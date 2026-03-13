@@ -11,7 +11,7 @@ import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 
 /**
  * Module d'authentification
- * Gère l'inscription, la connexion et la validation JWT
+ * Gère la connexion et la validation JWT
  */
 @Module({
   imports: [

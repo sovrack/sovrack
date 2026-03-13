@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { Role } from '@prisma/client';
 
 /**
  * Payload JWT contenant les informations de l'utilisateur
@@ -9,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 export interface JwtPayload {
   id: string;
   email: string;
-  role: string;
+  role: Role;
 }
 
 /**

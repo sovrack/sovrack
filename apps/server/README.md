@@ -1,73 +1,62 @@
-# 🚀 DevOps Platform — Backend
+# DevOps Platform Backend
 
-Plateforme web interne permettant à tout développeur de déployer
-une application sur un VPS en quelques clics.
+Backend de la Plateforme Centralisee de Deploiement (projet interne entreprise).
 
-## 🛠️ Stack technique
+## Etat actuel (Sprint 1 termine)
 
-- **Runtime** : Node.js v20
-- **Framework** : NestJS 11 (TypeScript)
-- **Base de données** : PostgreSQL 16
-- **ORM** : TypeORM
-- **Auth** : JWT + Passport
-- **Temps réel** : WebSocket (Socket.io)
-
-## ⚙️ Installation
-
-### Prérequis
-
-- Node.js v20+
+- NestJS 11 + TypeScript
 - PostgreSQL 16
-- NestJS CLI v11
+- Prisma
+- Authentification JWT + Passport
+- Roles: `ADMIN` et `DEVELOPER`
+- Hash des mots de passe avec bcrypt
+- Swagger actif sur `/api`
+- Guards actifs:
+  - `JwtAuthGuard`
+  - `RolesGuard`
+  - `LoginRateLimitGuard` (5 tentatives/minute/IP)
 
-### Cloner le projet
+## API disponible
 
-git clone https://gitlab.com/internal-devops-platform/devops-platform-backend.git
-cd devops-platform-backend
+### Auth
 
-### Installer les dépendances
+- `POST /auth/login`
+- `GET /auth/me`
 
+### Users (ADMIN uniquement)
+
+- `POST /users`
+- `GET /users`
+- `GET /users/:id`
+- `PUT /users/:id`
+- `DELETE /users/:id`
+- `PUT /users/:id/toggle-active`
+
+## Lancement rapide
+
+```bash
 npm install
-
-### Configurer l'environnement
-
-Copier le fichier `.env.example` et le remplir :
-cp .env.example .env
-
-### Variables d'environnement
-
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=devops_platform_user
-DB_PASSWORD=your_password
-DB_NAME=devops_platform
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=24h
-
-### Lancer en développement
+npm run prisma:generate
+npm run prisma:migrate -- --name init
+npm run prisma:seed
 
 npm run start:dev
+```
 
-## 📁 Structure du projet
+## Variables d'environnement minimales
 
-src/
-├── auth/ → Authentification JWT
-├── users/ → Gestion des utilisateurs
-├── projects/ → Gestion des projets
-├── deployments/ → Gestion des déploiements
-└── app.module.ts → Module principal
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/devops_platform"
+JWT_SECRET=change_me
+JWT_EXPIRES_IN=24h
+```
 
-## 🗺️ Sprints
+## Comptes seed par defaut
 
-| Sprint | Objectif                | Statut      |
-| ------ | ----------------------- | ----------- |
-| S1     | Setup + Auth            | 🔄 En cours |
-| S2     | CRUD Projets            | ⏳ À venir  |
-| S3     | Intégration GitLab      | ⏳ À venir  |
-| S4     | Déploiement + WebSocket | ⏳ À venir  |
-| S5     | Config + Variables      | ⏳ À venir  |
-| S6     | Rollback + Finalisation | ⏳ À venir  |
+- ADMIN: `admin@devops.com` / `Admin@2025!`
+- DEVELOPER: `dev@devops.com` / `Dev@2025!`
 
-## 👤 Auteur
+## Liens utiles
 
-Projet de stage DevOps/Fullstack
+- API: `http://localhost:3001`
+- Swagger: `http://localhost:3001/api`

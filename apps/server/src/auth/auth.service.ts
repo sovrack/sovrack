@@ -1,15 +1,13 @@
 import {
   Injectable,
-  ConflictException,
   UnauthorizedException,
   NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
-import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { User } from '../users/entities/user.entity';
+import { User } from '@prisma/client';
 
 /**
  * Réponse d'authentification
@@ -25,40 +23,6 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
   ) {}
-
-  /**
-   * Enregistre un nouvel utilisateur
-   * @param dto - Données d'enregistrement
-   * @returns Token JWT et utilisateur sans mot de passe
-   * @throws ConflictException si l'email existe déjà
-   */
-  async register(dto: RegisterDto): Promise<AuthResponse> {
-    // Vérifier si l'email existe déjà
-    const existingUser = await this.usersService.findByEmail(dto.email);
-    if (existingUser) {
-      throw new ConflictException('Cet email est déjà utilisé');
-    }
-
-    // Hasher le mot de passe avec bcrypt (salt: 10)
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-
-    // Créer l'utilisateur en base de données
-    const user = await this.usersService.create({
-      email: dto.email,
-      password: hashedPassword,
-      fullName: dto.fullName,
-    });
-
-    // Générer le token JWT
-    const access_token = this.generateToken(user);
-
-    // Retourner la réponse sans le mot de passe
-    const { password, ...userWithoutPassword } = user;
-    return {
-      access_token,
-      user: userWithoutPassword,
-    };
-  }
 
   /**
    * Connecte un utilisateur existant
