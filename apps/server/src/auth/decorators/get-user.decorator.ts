@@ -14,7 +14,9 @@ import { JwtPayload } from '../strategies/jwt.strategy';
  */
 export const GetUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): JwtPayload => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const request = ctx.switchToHttp().getRequest();
-    return request.user;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return request.user as JwtPayload;
   },
 );

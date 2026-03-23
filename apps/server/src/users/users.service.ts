@@ -133,6 +133,7 @@ export class UsersService {
    * Supprime le mot de passe d'un objet utilisateur.
    */
   private removePassword(user: User): Omit<User, 'password'> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }

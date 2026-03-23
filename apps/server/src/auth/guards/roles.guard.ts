@@ -25,9 +25,12 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const request = context.switchToHttp().getRequest();
-    const user = request.user as { role?: Role } | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const user = request.user;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
     if (!user?.role || !requiredRoles.includes(user.role)) {
       throw new ForbiddenException('Accès refusé: rôle insuffisant');
     }

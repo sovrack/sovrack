@@ -47,6 +47,7 @@ export class AuthService {
     const access_token = this.generateToken(user);
 
     // Retourner la réponse sans le mot de passe
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
     return {
       access_token,
@@ -67,6 +68,7 @@ export class AuthService {
     }
 
     // Retourner l'utilisateur sans le mot de passe
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }

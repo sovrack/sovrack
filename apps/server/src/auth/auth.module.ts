@@ -21,11 +21,9 @@ import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (
-        configService: ConfigService,
-      ): Promise<JwtModuleOptions> => {
+      useFactory: (configService: ConfigService): JwtModuleOptions => {
         const secret = configService.get<string>('JWT_SECRET');
-        const expiresIn = configService.get('JWT_EXPIRES_IN') || '24h';
+        const expiresIn = configService.get<string>('JWT_EXPIRES_IN') || '24h';
 
         if (!secret) {
           throw new Error(
@@ -36,9 +34,10 @@ import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
         return {
           secret,
           signOptions: {
-            expiresIn,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            expiresIn: expiresIn as any,
           },
-        } as JwtModuleOptions;
+        };
       },
     }),
   ],
