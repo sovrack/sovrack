@@ -1,0 +1,41 @@
+# ==============================================================================
+# 🛠️ GUIDE DE SURVIE POUR HABIB (COMMANDES TERMINAL) :
+# ==============================================================================
+# 1. INITIALISER (1ère fois / Modif) : docker compose up -d
+# 2. RÉVEILLER (Routine Matin)       : docker compose start  <-- RAPIDE (ÉCO RAM)
+# 3. ARRÊTER (Le soir / Pause)       : docker compose stop   <-- LIBÈRE TA RAM
+# 4. VÉRIFIER (Statut)               : docker ps
+# 5. REDÉMARRER (Relancer vite)      : docker compose restart
+# 6. NETTOYER (Tout effacer)         : docker compose down -v
+# 7. VOIR LA CONSOMMATION RAM        : docker stats
+# ==============================================================================
+
+services:
+  database:
+    # IMAGE : La "Recette" (Postgres version légère Alpine pour ton Ubuntu)
+    image: postgres:16-alpine
+    
+    # CONTAINER_NAME : Le nom du "Plat" (Évite les conflits avec tes autres projets)
+    container_name: nestjs_devops_db
+    
+    # RESTART POLICY : 
+    # unless-stopped : Se relance au boot d'Ubuntu SAUF si tu as fait "stop" avant.
+    restart: unless-stopped
+    
+    # CONFIGURATION : Docker lit ton .env et crée l'utilisateur/DB automatiquement
+    environment:
+      POSTGRES_USER: ${DB_USER}      
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}        
+      
+    # RÉSEAU : Le pont pour que DBeaver puisse se connecter sur le port 5432
+    ports:
+      - "${DB_PORT}:5432"            
+      
+    # STOCKAGE : Tes données Prisma restent ici même après un "stop" ou un "down"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+# PERSISTANCE : Déclaration du disque dur virtuel pour Postgres
+volumes:
+  postgres_data:
