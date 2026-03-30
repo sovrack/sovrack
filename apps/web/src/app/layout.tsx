@@ -5,7 +5,11 @@ import '@/styles/globals.css';
 export const metadata: Metadata = {
   title: 'DevOps Platform',
   description: 'Deployment automation platform for developers',
-  viewport: 'width=device-width, initial-scale=1',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({

@@ -1,5 +1,6 @@
-import { Header } from '@/components/header';
 import { ProtectedRoute } from '@/components/protected-route';
+import { Sidebar } from '@/components/sidebar';
+import { TopNav } from '@/components/top-nav';
 
 export default function AppLayout({
   children,
@@ -8,10 +9,13 @@ export default function AppLayout({
 }) {
   return (
     <ProtectedRoute>
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
+      <div className="min-h-screen bg-slate-50 lg:flex">
+        <Sidebar />
+        <div className="flex-1">
+          <TopNav />
+          <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        </div>
+      </div>
     </ProtectedRoute>
   );
 }
