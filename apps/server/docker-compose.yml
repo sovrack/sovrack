@@ -1,41 +1,91 @@
-# ==============================================================================
-# 🛠️ GUIDE DE SURVIE POUR HABIB (COMMANDES TERMINAL) :
-# ==============================================================================
-# 1. INITIALISER (1ère fois / Modif) : docker compose up -d
-# 2. RÉVEILLER (Routine Matin)       : docker compose start  <-- RAPIDE (ÉCO RAM)
-# 3. ARRÊTER (Le soir / Pause)       : docker compose stop   <-- LIBÈRE TA RAM
-# 4. VÉRIFIER (Statut)               : docker ps
-# 5. REDÉMARRER (Relancer vite)      : docker compose restart
-# 6. NETTOYER (Tout effacer)         : docker compose down -v
-# 7. VOIR LA CONSOMMATION RAM        : docker stats
-# ==============================================================================
+# =============================================================================
+# DOCKER COMPOSE - BACKEND DEVOPS PLATFORM
+# =============================================================================
+# Ce fichier lance toute la stack locale avec une seule commande.
+#
+# Commandes principales:
+# - Lancer tout (API + DB): docker compose up -d --build
+# - Arreter tout (sans supprimer): docker compose stop
+# - Arreter et supprimer (conteneurs + reseau): docker compose down
+# - Nettoyer aussi les donnees PostgreSQL: docker compose down -v
+# - Voir l'etat: docker compose ps
+# =============================================================================
 
 services:
+  # ---------------------------------------------------------------------------
+  # SERVICE DATABASE (PostgreSQL)
+  # ---------------------------------------------------------------------------
+  # Role:
+  # - Fournit la base de donnees PostgreSQL pour Prisma/NestJS.
+  # - Expose le port DB_PORT vers l'hote pour DBeaver ou autres clients.
   database:
-    # IMAGE : La "Recette" (Postgres version légère Alpine pour ton Ubuntu)
     image: postgres:16-alpine
-    
-    # CONTAINER_NAME : Le nom du "Plat" (Évite les conflits avec tes autres projets)
     container_name: nestjs_devops_db
-    
-    # RESTART POLICY : 
-    # unless-stopped : Se relance au boot d'Ubuntu SAUF si tu as fait "stop" avant.
     restart: unless-stopped
-    
-    # CONFIGURATION : Docker lit ton .env et crée l'utilisateur/DB automatiquement
+
+    # Variables d'initialisation de PostgreSQL (depuis .env).
     environment:
-      POSTGRES_USER: ${DB_USER}      
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}        
-      
-    # RÉSEAU : Le pont pour que DBeaver puisse se connecter sur le port 5432
+      POSTGRES_DB: ${DB_NAME}
+
+    # Healthcheck: permet a Compose de savoir quand la DB est vraiment prete.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+    # Port host:container => ex: 5432:5432
     ports:
-      - "${DB_PORT}:5432"            
-      
-    # STOCKAGE : Tes données Prisma restent ici même après un "stop" ou un "down"
+      - "${DB_PORT}:5432"
+
+    # Volume persistant pour conserver les donnees meme apres arret du conteneur.
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-# PERSISTANCE : Déclaration du disque dur virtuel pour Postgres
+  # ---------------------------------------------------------------------------
+  # SERVICE BACKEND (NestJS)
+  # ---------------------------------------------------------------------------
+  # Role:
+  # - Lance l'API NestJS en mode developpement.
+  # - Attend que la DB soit healthy avant de demarrer.
+  backend:
+    image: node:22-alpine
+    container_name: nestjs_devops_api
+    restart: unless-stopped
+    working_dir: /app
+
+    # Ne demarre l'API qu'une fois la base operationnelle.
+    depends_on:
+      database:
+        condition: service_healthy
+
+    # Charge les variables du projet.
+    env_file:
+      - .env
+
+    # Ecrase DATABASE_URL pour la communication interne Docker (service "database").
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@database:5432/${DB_NAME}
+
+    # Workflow de demarrage du conteneur API.
+    command: sh -c "npm install && npm run prisma:generate && npm run start:dev"
+
+    # Expose l'API (host:container), typiquement 3001:3001.
+    ports:
+      - "${PORT}:3001"
+
+    # Monte le code source local dans le conteneur pour le dev en temps reel.
+    # Le volume anonyme /app/node_modules evite les conflits de node_modules host/container.
+    volumes:
+      - ./:/app
+      - /app/node_modules
+
+# -----------------------------------------------------------------------------
+# VOLUMES
+# -----------------------------------------------------------------------------
+# Volume nomme pour persister les donnees PostgreSQL.
 volumes:
   postgres_data:
