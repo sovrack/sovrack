@@ -7,6 +7,10 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
 import { GitlabModule } from './gitlab/gitlab.module';
+import { ServersModule } from './servers/servers.module';
+import { EnvironmentsModule } from './environments/environments.module';
+import { ConfigsModule } from './configs/configs.module';
+import { DeploymentsModule } from './deployments/deployments.module';
 
 @Module({
   imports: [
@@ -18,6 +22,10 @@ import { GitlabModule } from './gitlab/gitlab.module';
     AuthModule,
     ProjectsModule,
     GitlabModule,
+    ServersModule,
+    EnvironmentsModule,
+    ConfigsModule,
+    DeploymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

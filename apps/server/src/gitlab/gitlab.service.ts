@@ -2,8 +2,11 @@ import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
+  Optional,
+  forwardRef,
 } from '@nestjs/common';
 import {
   PipelineStatus,
@@ -12,6 +15,7 @@ import {
   type GitlabConfig,
 } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
+import { DeploymentsService } from '../deployments/deployments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
 
@@ -45,6 +49,9 @@ export class GitlabService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
+    @Optional()
+    @Inject(forwardRef(() => DeploymentsService))
+    private readonly deploymentsService?: DeploymentsService,
   ) {}
 
   // Connecte un projet local a un projet GitLab externe.
@@ -235,6 +242,13 @@ export class GitlabService {
         webUrl,
       },
     });
+
+    if (this.deploymentsService) {
+      await this.deploymentsService.handleWebhookUpdate(
+        pipelineId,
+        payload.object_attributes?.status ?? 'pending',
+      );
+    }
 
     return { status: 'ok' };
   }

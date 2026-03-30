@@ -102,6 +102,8 @@ export class ProjectsService {
       gitlabUrl: project.gitlabUrl,
       gitlabId: project.gitlabId,
       branch: project.branch,
+      dockerfile: project.dockerfile,
+      port: project.port,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       memberCount: project._count.members,
