@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -11,8 +12,13 @@ const navItems = [
   { href: '/profile', label: 'Profile' },
 ];
 
+const adminItems = [{ href: '/admin/servers', label: 'Admin • Servers' }];
+
 export function Sidebar() {
   const pathname = usePathname();
+  const { isAdmin } = useAuth();
+
+  const allItems = isAdmin ? [...navItems, ...adminItems] : navItems;
 
   return (
     <aside className="w-full border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r">
@@ -23,7 +29,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex gap-2 overflow-x-auto lg:flex-col lg:gap-1 lg:overflow-visible">
-        {navItems.map((item) => {
+        {allItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
