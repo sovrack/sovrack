@@ -16,7 +16,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   useEffect(() => {
     if (!loading) {
       if (!token) {
-        router.push('/login');
+        router.push('/auth/login');
       } else if (requiredRole && user?.role !== requiredRole && user?.role !== 'ADMIN') {
         router.push('/access-denied');
       }

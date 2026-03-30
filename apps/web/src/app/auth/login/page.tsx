@@ -32,81 +32,88 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* Logo/Title */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">DevOps Platform</h1>
-          <p className="text-blue-100">Deployment automation made simple</p>
-        </div>
+    <div className="relative flex min-h-screen items-center px-4 py-8 lg:px-10">
+      <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-2">
+        <section className="surface-card fade-up hidden rounded-2xl p-8 lg:block">
+          <p className="mono text-xs uppercase tracking-[0.2em] text-slate-500">Platform Console</p>
+          <h1 className="mt-4 text-5xl font-semibold leading-tight text-slate-900">
+            Ship Faster.
+            <br />
+            Deploy Safer.
+          </h1>
+          <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-600">
+            Track projects, deployments, and environments from one control room designed for developers and admins.
+          </p>
 
-        {/* Login Form */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Sign In</h2>
+          <div className="mt-8 space-y-4">
+            <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
+              <p className="mono text-xs text-slate-500">Realtime Signals</p>
+              <p className="mt-1 text-sm font-medium text-slate-800">Live deployment states and logs</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
+              <p className="mono text-xs text-slate-500">Role Based Access</p>
+              <p className="mt-1 text-sm font-medium text-slate-800">Clear ADMIN and DEVELOPER scopes</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="surface-card fade-up rounded-2xl p-7 sm:p-9">
+          <div className="mb-6">
+            <p className="mono text-xs uppercase tracking-[0.2em] text-slate-500">Authentication</p>
+            <h2 className="mt-2 text-3xl font-semibold text-slate-900">Sign in to workspace</h2>
+            <p className="mt-2 text-sm text-slate-600">Use your credentials to access dashboard and operations.</p>
+          </div>
 
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="dev@example.com"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-600">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 rounded-lg transition duration-200"
+              className="mt-2 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Signing in...' : 'Access Workspace'}
             </button>
           </form>
 
-          {/* Test credentials hint */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600">
-            <p className="font-semibold mb-2">Test Credentials:</p>
-            <p>
-              <strong>ADMIN:</strong> admin@devops.com / password
-            </p>
-            <p>
-              <strong>DEVELOPER:</strong> dev@devops.com / password
-            </p>
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <p className="mono mb-2 text-xs uppercase tracking-wide text-slate-500">Demo Credentials</p>
+            <p><span className="font-semibold">ADMIN:</span> admin@devops.com / password</p>
+            <p><span className="font-semibold">DEVELOPER:</span> dev@devops.com / password</p>
           </div>
-        </div>
+        </section>
+      </div>
 
-        {/* Footer */}
-        <div className="text-center mt-6 text-blue-100 text-sm">
-          <p>© 2026 DevOps Platform. All rights reserved.</p>
-        </div>
+      <div className="pointer-events-none absolute bottom-4 left-0 right-0 text-center">
+        <p className="mono text-[11px] tracking-wide text-slate-500">DevOps Platform • 2026</p>
       </div>
     </div>
   );
