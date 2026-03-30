@@ -100,6 +100,7 @@ export class ProjectsService {
       name: project.name,
       description: project.description,
       gitlabUrl: project.gitlabUrl,
+      gitlabId: project.gitlabId,
       branch: project.branch,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
