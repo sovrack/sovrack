@@ -12,30 +12,62 @@ enum Role {
   DEVELOPER
 }
 
+enum ProjectMemberRole {
+  OWNER
+  MEMBER
+}
+
+enum PipelineStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  CANCELED
+}
+
+enum EnvName {
+  STAGING
+  PRODUCTION
+}
+
+enum DeploymentStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  CANCELED
+}
+
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  fullName  String
-  role      Role     @default(DEVELOPER)
-  isActive  Boolean  @default(true)
-  projects  ProjectMember[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String       @id @default(uuid())
+  email       String       @unique
+  password    String
+  fullName    String
+  role        Role         @default(DEVELOPER)
+  isActive    Boolean      @default(true)
+  projects    ProjectMember[]
+  deployments Deployment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model Project {
-  id          String          @id @default(uuid())
-  name        String
-  description String?
-  gitlabUrl   String
-  gitlabId    Int?
-  branch      String          @default("main")
-  members     ProjectMember[]
-  gitlabConfig GitlabConfig?
-  pipelines   Pipeline[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id            String          @id @default(uuid())
+  name          String
+  description   String?
+  gitlabUrl     String
+  gitlabId      Int?
+  branch        String          @default("main")
+  dockerfile    String          @default("Dockerfile")
+  port          Int             @default(3000)
+  members       ProjectMember[]
+  gitlabConfig  GitlabConfig?
+  pipelines     Pipeline[]
+  environments  Environment[]
+  deployments   Deployment[]
+  configs       Config[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
 
 model ProjectMember {
@@ -48,11 +80,6 @@ model ProjectMember {
   joinedAt  DateTime          @default(now())
 
   @@unique([projectId, userId])
-}
-
-enum ProjectMemberRole {
-  OWNER
-  MEMBER
 }
 
 model GitlabConfig {
@@ -82,10 +109,66 @@ model Pipeline {
   @@unique([projectId, gitlabId])
 }
 
-enum PipelineStatus {
-  PENDING
-  RUNNING
-  SUCCESS
-  FAILED
-  CANCELED
+model Server {
+  id        String        @id @default(uuid())
+  name      String
+  host      String
+  port      Int           @default(22)
+  username  String        @default("ubuntu")
+  sshKey    String
+  isActive  Boolean       @default(true)
+  isVerified Boolean      @default(false)
+  hasDocker Boolean       @default(false)
+  hasAnsible Boolean      @default(false)
+  hasRunner Boolean       @default(false)
+  environments Environment[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Environment {
+  id          String       @id @default(uuid())
+  name        EnvName
+  domain      String?
+  isActive    Boolean      @default(true)
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  server      Server       @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId    String
+  deployments Deployment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([projectId, name])
+}
+
+model Config {
+  id        String   @id @default(uuid())
+  key       String
+  value     String
+  isSecret  Boolean  @default(false)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, key])
+}
+
+model Deployment {
+  id            String           @id @default(uuid())
+  status        DeploymentStatus @default(PENDING)
+  logs          String?
+  dockerImage   String?
+  branch        String
+  environment   Environment      @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  environmentId String
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId     String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 }

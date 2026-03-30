@@ -69,6 +69,15 @@ async function main(): Promise<void> {
   });
 
   await ensureProjectOwner(apiProject.id, developer.id);
+
+  await upsertServerByName({
+    name: 'Local VM Staging',
+    host: '192.168.1.100',
+    port: 22,
+    username: 'ubuntu',
+    sshKey: 'REPLACE_WITH_REAL_KEY',
+    isActive: true,
+  });
 }
 
 /**
@@ -145,6 +154,46 @@ async function ensureProjectOwner(
       },
     });
   }
+}
+
+/**
+ * Crée ou met à jour un serveur de test pour les environnements.
+ */
+async function upsertServerByName(input: {
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  sshKey: string;
+  isActive: boolean;
+}) {
+  const existingServer = await prisma.server.findFirst({
+    where: { name: input.name },
+  });
+
+  if (existingServer) {
+    return await prisma.server.update({
+      where: { id: existingServer.id },
+      data: {
+        host: input.host,
+        port: input.port,
+        username: input.username,
+        sshKey: input.sshKey,
+        isActive: input.isActive,
+      },
+    });
+  }
+
+  return await prisma.server.create({
+    data: {
+      name: input.name,
+      host: input.host,
+      port: input.port,
+      username: input.username,
+      sshKey: input.sshKey,
+      isActive: input.isActive,
+    },
+  });
 }
 
 main()
