@@ -176,8 +176,18 @@ export class ProjectsService {
   ): Promise<ProjectWithMembers> {
     await this.assertCanManageProject(projectId, userId, userRole);
 
+    const lookup = dto.userId
+      ? { id: dto.userId }
+      : dto.email
+        ? { email: dto.email.toLowerCase() }
+        : null;
+
+    if (!lookup) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
     const targetUser = await this.prisma.user.findUnique({
-      where: { id: dto.userId },
+      where: lookup,
     });
     if (!targetUser) {
       throw new NotFoundException('Utilisateur non trouvé');
@@ -187,7 +197,7 @@ export class ProjectsService {
       where: {
         projectId_userId: {
           projectId,
-          userId: dto.userId,
+          userId: targetUser.id,
         },
       },
     });
@@ -199,7 +209,7 @@ export class ProjectsService {
     await this.prisma.projectMember.create({
       data: {
         projectId,
-        userId: dto.userId,
+        userId: targetUser.id,
         role: dto.role ?? ProjectMemberRole.MEMBER,
       },
     });
