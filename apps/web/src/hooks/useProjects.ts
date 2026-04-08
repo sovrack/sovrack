@@ -3,17 +3,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
-import type { Project } from '@/types/project';
+import type { ProjectDetail, ProjectListItem } from '@/types/project';
 
 type UseProjectsReturn = {
-  projects: Project[];
+  projects: ProjectListItem[];
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
 };
 
 export function useProjects(): UseProjectsReturn {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,14 +38,14 @@ export function useProjects(): UseProjectsReturn {
 }
 
 type UseProjectReturn = {
-  project: Project | null;
+  project: ProjectDetail | null;
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
 };
 
 export function useProject(id: string): UseProjectReturn {
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

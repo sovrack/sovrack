@@ -19,32 +19,44 @@ export type ProjectMember = {
 export type GitlabConfig = {
   id: string;
   gitlabUrl: string;
-  gitlabId: string;
+  gitlabId: number;
   defaultBranch: string;
+  gitlabToken: string;
 };
 
-export type Project = {
+export type ProjectListItem = {
   id: string;
   name: string;
   description: string | null;
   gitlabUrl: string | null;
-  gitlabId: string | null;
-  defaultBranch: string;
+  gitlabId: number | null;
+  branch: string;
+  dockerfile: string;
+  port: number;
+  createdAt: string;
+  updatedAt: string;
+  memberCount: number;
+};
+
+export type ProjectDetail = {
+  id: string;
+  name: string;
+  description: string | null;
+  gitlabUrl: string | null;
+  gitlabId: number | null;
+  branch: string;
+  dockerfile: string;
+  port: number;
   createdAt: string;
   updatedAt: string;
   members: ProjectMember[];
-  gitlabConfig: GitlabConfig | null;
-  _count?: {
-    deployments: number;
-    environments: number;
-  };
 };
 
 export type CreateProjectPayload = {
   name: string;
   description?: string;
-  gitlabUrl?: string;
-  defaultBranch?: string;
+  gitlabUrl: string;
+  branch?: string;
 };
 
 export type UpdateProjectPayload = Partial<CreateProjectPayload>;
@@ -56,8 +68,8 @@ export type AddMemberPayload = {
 
 export type ConnectGitlabPayload = {
   gitlabUrl: string;
-  token: string;
-  gitlabId: string;
+  gitlabToken: string;
+  gitlabId: number;
   defaultBranch?: string;
 };
 

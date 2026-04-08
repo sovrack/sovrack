@@ -9,7 +9,7 @@ type MembersListProps = {
   members: ProjectMember[];
   canManage: boolean;
   currentUserId?: string;
-  onRemove?: (memberId: string) => Promise<void>;
+  onRemove?: (userId: string) => Promise<void>;
 };
 
 export function MembersList({
@@ -20,11 +20,11 @@ export function MembersList({
 }: MembersListProps) {
   const [removingId, setRemovingId] = useState<string | null>(null);
 
-  const handleRemove = async (memberId: string) => {
+  const handleRemove = async (userId: string) => {
     if (!onRemove) return;
-    setRemovingId(memberId);
+    setRemovingId(userId);
     try {
-      await onRemove(memberId);
+      await onRemove(userId);
     } finally {
       setRemovingId(null);
     }
@@ -75,8 +75,8 @@ export function MembersList({
             {/* Remove button */}
             {canManage && !isCurrentUser && !isOwner && (
               <button
-                onClick={() => void handleRemove(member.id)}
-                disabled={removingId === member.id}
+                onClick={() => void handleRemove(member.user.id)}
+                disabled={removingId === member.user.id}
                 className="shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
                 title="Remove member"
               >

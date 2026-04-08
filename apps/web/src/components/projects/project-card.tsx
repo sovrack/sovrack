@@ -1,19 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { FolderGit2, Users, Rocket, GitBranch, CheckCircle, XCircle } from 'lucide-react';
+import { Users, GitBranch, CheckCircle, XCircle, Rocket } from 'lucide-react';
 import clsx from 'clsx';
-import type { Project } from '@/types/project';
+import type { ProjectListItem } from '@/types/project';
 
 type ProjectCardProps = {
-  project: Project;
+  project: ProjectListItem;
 };
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const isGitlabConnected = Boolean(project.gitlabConfig);
-  const ownerMember = project.members.find((m) => m.role === 'OWNER');
-  const memberCount = project.members.length;
-  const deployCount = project._count?.deployments ?? 0;
+  const isGitlabConnected = Boolean(project.gitlabId);
+  const memberCount = project.memberCount;
 
   // First letter of project name for the avatar
   const initial = project.name.charAt(0).toUpperCase();
@@ -54,10 +52,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
         </div>
 
         {/* Branch info */}
-        {project.defaultBranch && (
+        {project.branch && (
           <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
             <GitBranch size={12} />
-            <span className="font-mono">{project.defaultBranch}</span>
+            <span className="font-mono">{project.branch}</span>
           </div>
         )}
 
@@ -67,15 +65,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
             <Users size={12} className="text-slate-400" />
             <span>{memberCount} member{memberCount !== 1 ? 's' : ''}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+          <div className="ml-auto flex items-center gap-1.5 text-xs text-slate-500">
             <Rocket size={12} className="text-slate-400" />
-            <span>{deployCount} deploy{deployCount !== 1 ? 's' : ''}</span>
+            <span className="font-mono">:{project.port}</span>
           </div>
-          {ownerMember && (
-            <div className="ml-auto text-xs text-slate-400">
-              Owner: <span className="font-medium text-slate-600">{ownerMember.user.fullName}</span>
-            </div>
-          )}
         </div>
       </div>
     </Link>

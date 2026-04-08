@@ -12,14 +12,16 @@ export default function ProfilePage() {
       <div className="bg-white rounded-lg shadow p-6 max-w-md">
         <div className="mb-6">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-4">
-            {user?.name.charAt(0).toUpperCase()}
+            {user?.fullName?.charAt(0).toUpperCase() ?? 'U'}
           </div>
         </div>
 
         <div className="space-y-4">
           <div>
             <p className="text-sm text-gray-500 font-medium">Name</p>
-            <p className="text-lg font-semibold text-gray-900">{user?.name}</p>
+            <p className="text-lg font-semibold text-gray-900">
+              {user?.fullName}
+            </p>
           </div>
 
           <div>

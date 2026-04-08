@@ -2,10 +2,14 @@
 
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import type { Project, CreateProjectPayload } from '@/types/project';
+import type { CreateProjectPayload, ProjectDetail } from '@/types/project';
+
+type ProjectFormInitialValues = Partial<
+  Pick<ProjectDetail, 'name' | 'description' | 'gitlabUrl' | 'branch'>
+>;
 
 type ProjectFormProps = {
-  initialValues?: Partial<Project>;
+  initialValues?: ProjectFormInitialValues;
   onSubmit: (payload: CreateProjectPayload) => Promise<void>;
   submitLabel?: string;
   loading?: boolean;
@@ -24,8 +28,8 @@ export function ProjectForm({
     initialValues?.description ?? '',
   );
   const [gitlabUrl, setGitlabUrl] = useState(initialValues?.gitlabUrl ?? '');
-  const [defaultBranch, setDefaultBranch] = useState(
-    initialValues?.defaultBranch ?? 'main',
+  const [branch, setBranch] = useState(
+    initialValues?.branch ?? 'main',
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,8 +37,8 @@ export function ProjectForm({
     await onSubmit({
       name: name.trim(),
       description: description.trim() || undefined,
-      gitlabUrl: gitlabUrl.trim() || undefined,
-      defaultBranch: defaultBranch.trim() || 'main',
+      gitlabUrl: gitlabUrl.trim(),
+      branch: branch.trim() || 'main',
     });
   };
 
@@ -85,10 +89,11 @@ export function ProjectForm({
           value={gitlabUrl}
           onChange={(e) => setGitlabUrl(e.target.value)}
           placeholder="https://gitlab.com/yourname/yourrepo"
+          required
           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
         />
         <p className="mt-1 text-xs text-slate-400">
-          You can connect GitLab later from the project settings.
+          This repository URL is required. Token and project ID can be added later.
         </p>
       </div>
 
@@ -99,8 +104,8 @@ export function ProjectForm({
         </label>
         <input
           type="text"
-          value={defaultBranch}
-          onChange={(e) => setDefaultBranch(e.target.value)}
+          value={branch}
+          onChange={(e) => setBranch(e.target.value)}
           placeholder="main"
           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
         />
@@ -108,7 +113,7 @@ export function ProjectForm({
 
       <button
         type="submit"
-        disabled={loading || !name.trim()}
+        disabled={loading || !name.trim() || !gitlabUrl.trim()}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading && <Loader2 size={16} className="animate-spin" />}
