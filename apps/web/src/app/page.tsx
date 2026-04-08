@@ -6,15 +6,20 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function Home() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   useEffect(() => {
-    if (token) {
-      router.push('/dashboard');
-    } else {
-      router.push('/auth/login');
+    if (loading) {
+      return;
     }
-  }, [token, router]);
+
+    if (isAuthenticated) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    router.replace('/auth/login/developer');
+  }, [isAuthenticated, loading, router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

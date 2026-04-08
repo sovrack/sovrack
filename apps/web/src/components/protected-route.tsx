@@ -3,25 +3,26 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import type { UserRole } from '@/types/auth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'ADMIN' | 'DEVELOPER';
+  requiredRole?: UserRole;
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const router = useRouter();
-  const { token, user, loading } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
 
   useEffect(() => {
     if (!loading) {
-      if (!token) {
-        router.push('/auth/login');
+      if (!isAuthenticated) {
+        router.replace('/auth/login/developer');
       } else if (requiredRole && user?.role !== requiredRole && user?.role !== 'ADMIN') {
-        router.push('/access-denied');
+        router.replace('/access-denied');
       }
     }
-  }, [token, user, loading, requiredRole, router]);
+  }, [isAuthenticated, user, loading, requiredRole, router]);
 
   if (loading) {
     return (
@@ -34,7 +35,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     );
   }
 
-  if (!token) {
+  if (!isAuthenticated) {
     return null;
   }
 
