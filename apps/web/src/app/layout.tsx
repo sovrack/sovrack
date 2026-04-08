@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { Sora, IBM_Plex_Mono } from 'next/font/google';
+import { Outfit, IBM_Plex_Mono } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import '@/styles/globals.css';
 
-const sora = Sora({
+const outfit = Outfit({
   subsets: ['latin'],
-  variable: '--font-sora',
+  variable: '--font-outfit',
   weight: ['400', '500', '600', '700'],
 });
 
@@ -16,8 +16,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'DevOps Platform',
-  description: 'Deployment automation platform for developers',
+  title: 'platform Deploy Platform',
+  description: 'Deployment automation workspace powered by platform',
 };
 
 export const viewport = {
@@ -32,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${sora.variable} ${plexMono.variable} app-shell`}>
+      <body className={`${outfit.variable} ${plexMono.variable} app-shell`}>
         <Providers>{children}</Providers>
       </body>
     </html>

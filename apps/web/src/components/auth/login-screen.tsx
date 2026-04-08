@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { getApiErrorMessage } from '@/lib/api';
 
 const TEST_CREDENTIALS = {
   admin: {
@@ -69,10 +70,10 @@ export function LoginScreen({ variant }: LoginScreenProps) {
     try {
       await login(nextEmail, nextPassword);
       router.replace('/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = getApiErrorMessage(err);
       setError(
-        err?.response?.data?.message ||
-          'Email ou mot de passe invalide. Verifiez vos identifiants puis reessayez.',
+        message || 'Email ou mot de passe invalide. Verifiez vos identifiants puis reessayez.',
       );
     } finally {
       setLoading(false);

@@ -13,6 +13,9 @@ import {
   CheckCircle,
   RefreshCw,
   ArrowRight,
+  Shield,
+  Activity,
+  GitBranch,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -23,30 +26,90 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-            Welcome back
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">
-            {user?.fullName ?? 'Developer'} 👋
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Here&apos;s what&apos;s happening with your platform today.
-          </p>
-        </div>
-        <button
-          onClick={() => void refresh()}
-          disabled={loading}
-          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
-        >
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          Refresh
-        </button>
-      </div>
+      <section className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-theme-xs">
+        <div className="grid gap-0 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+          <div className="px-6 py-7 md:px-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-600">
+              Operations Center
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-900 md:text-4xl">
+              {user?.fullName ?? 'Developer'}, welcome back.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
+              Pilot your projects, monitor deployment activity and keep the
+              platform healthy from one shared workspace inspired by TailAdmin.
+            </p>
 
-      {/* Stats cards */}
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => void refresh()}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
+              >
+                <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+                Refresh dashboard
+              </button>
+              <Link
+                href="/deployments"
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              >
+                Open deployments
+                <ArrowRight size={15} />
+              </Link>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
+                <Shield size={14} />
+                {isAdmin ? 'Administrator workspace' : 'Developer workspace'}
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
+                <Activity size={14} />
+                API + dashboard connected
+              </span>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 bg-slate-50/70 px-6 py-7 md:px-8 xl:border-l xl:border-t-0">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="rounded-2xl border border-gray-200 bg-white p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  Current role
+                </p>
+                <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-900">
+                  {isAdmin ? 'Admin Control' : 'Developer Control'}
+                </p>
+                <p className="mt-2 text-sm text-slate-500">
+                  {isAdmin
+                    ? 'Manage servers and infrastructure settings.'
+                    : 'Choose a project, a branch and an environment to deploy.'}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  Current focus
+                </p>
+                <div className="mt-3 space-y-3 text-sm text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <GitBranch size={15} className="text-brand-500" />
+                    <span>Projects connected to GitLab</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Rocket size={15} className="text-brand-500" />
+                    <span>Deployments visible in one flow</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Server size={15} className="text-brand-500" />
+                    <span>Servers reserved to admin operations</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatsCard
           title="Projects"
@@ -90,66 +153,69 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Deployments bar chart */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="mb-5 flex items-center justify-between">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(330px,0.95fr)]">
+        <div className="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 shadow-theme-xs sm:px-6 sm:pt-6">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">
-                Deployments — Last 7 Days
+              <h2 className="text-lg font-semibold tracking-[-0.02em] text-slate-900">
+                Deployment activity
               </h2>
-              <p className="mt-0.5 text-xs text-slate-400">
-                Total vs successful deploys per day
+              <p className="mt-1 text-sm text-slate-500">
+                Total deployments versus successful runs over the last 7 days.
               </p>
             </div>
-            <span className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600">
+            <span className="rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
               This week
             </span>
           </div>
           <DeploymentsChart data={deploymentsChart} />
         </div>
 
-        {/* Success gauge */}
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold text-slate-900">Overall Success</h2>
-            <p className="mt-0.5 text-xs text-slate-400">
-              Ratio of successful deployments
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs">
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold tracking-[-0.02em] text-slate-900">
+              Success overview
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Instant health indicator for completed deployments.
             </p>
           </div>
-          <div className="flex items-center justify-center py-2">
+
+          <div className="flex items-center justify-center rounded-2xl border border-gray-200 bg-slate-50 py-5">
             <SuccessGauge
               percentage={loading ? 0 : stats.successRate}
               label="Success Rate"
             />
           </div>
-          <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
-            <div className="flex justify-between text-xs">
+
+          <div className="mt-5 space-y-3 border-t border-gray-200 pt-5">
+            <div className="flex justify-between text-sm">
               <span className="text-slate-500">Total Deployments</span>
               <span className="font-semibold text-slate-900">
                 {stats.deployments}
               </span>
             </div>
-            <div className="flex justify-between text-xs">
+            <div className="flex justify-between text-sm">
               <span className="text-slate-500">Projects Active</span>
               <span className="font-semibold text-slate-900">{stats.projects}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">Visible Servers</span>
+              <span className="font-semibold text-slate-900">{stats.servers}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Recent deployments + Quick actions */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Recent deployments */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-900">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-lg font-semibold tracking-[-0.02em] text-slate-900">
               Recent Deployments
             </h2>
             <Link
               href="/deployments"
-              className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+              className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
             >
               View all <ArrowRight size={12} />
             </Link>
@@ -160,74 +226,76 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Quick actions */}
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">
-            Quick Actions
-          </h2>
-          <div className="space-y-2">
-            <Link
-              href="/projects/new"
-              className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-sm transition hover:border-indigo-200 hover:bg-indigo-50"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50">
-                <FolderGit2 size={16} className="text-indigo-500" />
-              </div>
-              <div>
-                <p className="font-medium text-slate-800">New Project</p>
-                <p className="text-xs text-slate-400">Connect a GitLab repo</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/deployments"
-              className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-sm transition hover:border-purple-200 hover:bg-purple-50"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50">
-                <Rocket size={16} className="text-purple-500" />
-              </div>
-              <div>
-                <p className="font-medium text-slate-800">New Deployment</p>
-                <p className="text-xs text-slate-400">Deploy a branch now</p>
-              </div>
-            </Link>
-
-            {isAdmin && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs">
+            <h2 className="mb-4 text-lg font-semibold tracking-[-0.02em] text-slate-900">
+              Quick Actions
+            </h2>
+            <div className="space-y-3">
               <Link
-                href="/admin/servers"
-                className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-sm transition hover:border-orange-200 hover:bg-orange-50"
+                href="/projects/new"
+                className="flex items-center gap-3 rounded-2xl border border-gray-200 p-4 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50">
-                  <Server size={16} className="text-orange-500" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50">
+                  <FolderGit2 size={18} className="text-brand-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-slate-800">Add Server</p>
-                  <p className="text-xs text-slate-400">Register a new VPS</p>
+                  <p className="font-medium text-slate-800">New Project</p>
+                  <p className="text-xs text-slate-500">Connect a GitLab repository</p>
                 </div>
               </Link>
-            )}
+
+              <Link
+                href="/deployments"
+                className="flex items-center gap-3 rounded-2xl border border-gray-200 p-4 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50">
+                  <Rocket size={18} className="text-brand-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-800">New Deployment</p>
+                  <p className="text-xs text-slate-500">Launch a deployment flow</p>
+                </div>
+              </Link>
+
+              {isAdmin && (
+                <Link
+                  href="/admin/servers"
+                  className="flex items-center gap-3 rounded-2xl border border-gray-200 p-4 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50">
+                    <Server size={18} className="text-brand-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-800">Manage Servers</p>
+                    <p className="text-xs text-slate-500">
+                      Register and verify a target machine
+                    </p>
+                  </div>
+                </Link>
+              )}
+            </div>
           </div>
 
-          {/* Sprint progress */}
-          <div className="mt-5 border-t border-slate-100 pt-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs">
+            <h2 className="mb-4 text-lg font-semibold tracking-[-0.02em] text-slate-900">
               Platform Progress
-            </p>
+            </h2>
             {[
               { label: 'Backend', pct: 100 },
               { label: 'Auth & Login', pct: 100 },
               { label: 'Dashboard', pct: 100 },
-              { label: 'Projects', pct: 0 },
-              { label: 'Deployments', pct: 0 },
+              { label: 'Projects', pct: 70 },
+              { label: 'Deployments', pct: 25 },
             ].map((item) => (
-              <div key={item.label} className="mb-2">
-                <div className="mb-1 flex justify-between text-[11px]">
+              <div key={item.label} className="mb-4 last:mb-0">
+                <div className="mb-1.5 flex justify-between text-xs">
                   <span className="text-slate-500">{item.label}</span>
                   <span className="font-medium text-slate-700">{item.pct}%</span>
                 </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                   <div
-                    className="h-1.5 rounded-full bg-indigo-500 transition-all"
+                    className="h-2 rounded-full bg-brand-500 transition-all"
                     style={{ width: `${item.pct}%` }}
                   />
                 </div>

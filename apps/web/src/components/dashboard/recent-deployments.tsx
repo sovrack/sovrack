@@ -116,20 +116,20 @@ export function RecentDeployments({ deployments, loading }: RecentDeploymentsPro
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {deployments.map((d) => (
         <div
           key={d.id}
-          className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 transition hover:border-slate-200 hover:shadow-sm"
+          className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 transition duration-200 hover:border-slate-300 hover:shadow-theme-xs"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50">
-            <Rocket size={16} className="text-indigo-500" />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50">
+            <Rocket size={17} className="text-brand-600" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-slate-900">
               {d.projectName}
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               <span className="font-mono">{d.branch}</span>
               {' · '}
               <span className="uppercase">{d.environment}</span>
