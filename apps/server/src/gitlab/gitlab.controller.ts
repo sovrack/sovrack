@@ -89,6 +89,21 @@ export class GitlabController {
     return await this.gitlabService.getPipelines(projectId, user.id, user.role);
   }
 
+  @Get('projects/:id/gitlab/repos')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Lister les repositories (REPO/GROUP)' })
+  @ApiResponse({ status: 200, description: 'Repositories GitLab récupérés' })
+  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
+  @ApiResponse({
+    status: 404,
+    description: 'Projet ou config GitLab non trouvé',
+  })
+  async getRepos(@Param('id') projectId: string, @GetUser() user: JwtPayload) {
+    return await this.gitlabService.getRepos(projectId, user.id, user.role);
+  }
+
   @Post('projects/:id/gitlab/pipelines/trigger')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -121,7 +136,7 @@ export class GitlabController {
     @Headers('x-gitlab-token') webhookToken: string | undefined,
     @Body() payload: Record<string, unknown>,
   ) {
-    this.gitlabService.verifyWebhookToken(webhookToken);
+    await this.gitlabService.verifyWebhookToken(webhookToken, payload);
     return await this.gitlabService.handleWebhook(payload);
   }
 

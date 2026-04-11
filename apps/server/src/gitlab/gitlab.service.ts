@@ -4,16 +4,20 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   Optional,
   forwardRef,
 } from '@nestjs/common';
 import {
+  GitlabSourceType,
   PipelineStatus,
   ProjectMemberRole,
   Role,
   type GitlabConfig,
 } from '@prisma/client';
+import * as CryptoJS from 'crypto-js';
+import { randomBytes } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 import { DeploymentsService } from '../deployments/deployments.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -43,6 +47,22 @@ type GitlabWebhookPayload = {
 };
 
 type GitlabBranchItem = Record<string, unknown>;
+type PublicGitlabConfig = Omit<
+  GitlabConfig,
+  'gitlabToken' | 'deployTokenValue' | 'webhookSecret'
+> & {
+  gitlabToken: string;
+  deployTokenValue: string;
+  webhookSecret: string | null;
+};
+
+type RegistryCredentials = {
+  registryUrl: string;
+  username: string;
+  password: string;
+};
+
+type GitlabRepoItem = Record<string, unknown>;
 
 @Injectable()
 export class GitlabService {
@@ -60,41 +80,74 @@ export class GitlabService {
     dto: ConnectGitlabDto,
     userId: string,
     userRole: Role,
-  ): Promise<Omit<GitlabConfig, 'gitlabToken'> & { gitlabToken: string }> {
+  ): Promise<PublicGitlabConfig> {
     await this.assertCanManageProject(projectId, userId, userRole);
 
     const baseUrl = this.normalizeUrl(dto.gitlabUrl);
     const defaultBranch = dto.defaultBranch ?? 'main';
+    const sourceType = dto.sourceType ?? GitlabSourceType.REPO;
+    const webhookSecret = randomBytes(32).toString('hex');
+    const deployTokenUsername = dto.deployTokenUsername?.trim() || null;
+    const deployTokenValue = dto.deployTokenValue?.trim() || null;
+    const registryUrl = dto.registryUrl?.trim() || null;
+    const gitlabId = sourceType === GitlabSourceType.REPO ? dto.gitlabId : null;
+    const gitlabGroupId =
+      sourceType === GitlabSourceType.GROUP ? dto.gitlabGroupId : null;
 
-    try {
-      await firstValueFrom(
-        this.httpService.get(
-          `${baseUrl}/api/v4/projects/${encodeURIComponent(String(dto.gitlabId))}`,
-          {
-            headers: {
-              'PRIVATE-TOKEN': dto.gitlabToken,
-            },
-          },
-        ),
+    if (sourceType === GitlabSourceType.REPO) {
+      if (!gitlabId || gitlabId <= 0) {
+        throw new BadRequestException(
+          'gitlabId est requis pour une source REPO',
+        );
+      }
+      await this.validateGitlabRepoConnection(
+        baseUrl,
+        gitlabId,
+        dto.gitlabToken,
       );
-    } catch {
-      throw new BadRequestException('Connexion GitLab échouée');
+    } else {
+      if (!gitlabGroupId || gitlabGroupId <= 0) {
+        throw new BadRequestException(
+          'gitlabGroupId est requis pour une source GROUP',
+        );
+      }
+      await this.validateGitlabGroupConnection(
+        baseUrl,
+        gitlabGroupId,
+        dto.gitlabToken,
+      );
     }
 
     const config = await this.prisma.gitlabConfig.upsert({
       where: { projectId },
       update: {
         gitlabUrl: baseUrl,
-        gitlabToken: dto.gitlabToken,
-        gitlabId: dto.gitlabId,
+        gitlabToken: this.encrypt(dto.gitlabToken),
+        gitlabId,
         defaultBranch,
+        sourceType,
+        gitlabGroupId,
+        deployTokenUsername,
+        deployTokenValue: deployTokenValue
+          ? this.encrypt(deployTokenValue)
+          : null,
+        webhookSecret: this.encrypt(webhookSecret),
+        registryUrl,
       },
       create: {
         projectId,
         gitlabUrl: baseUrl,
-        gitlabToken: dto.gitlabToken,
-        gitlabId: dto.gitlabId,
+        gitlabToken: this.encrypt(dto.gitlabToken),
+        gitlabId,
         defaultBranch,
+        sourceType,
+        gitlabGroupId,
+        deployTokenUsername,
+        deployTokenValue: deployTokenValue
+          ? this.encrypt(deployTokenValue)
+          : null,
+        webhookSecret: this.encrypt(webhookSecret),
+        registryUrl,
       },
     });
 
@@ -102,12 +155,12 @@ export class GitlabService {
       where: { id: projectId },
       data: {
         gitlabUrl: baseUrl,
-        gitlabId: dto.gitlabId,
+        gitlabId,
         branch: defaultBranch,
       },
     });
 
-    return this.maskConfigToken(config);
+    return this.toPublicConfig(config, webhookSecret);
   }
 
   // Retourne les branches GitLab pour un projet autorise.
@@ -118,19 +171,25 @@ export class GitlabService {
   ): Promise<GitlabBranchItem[]> {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
+    const repoId = this.assertRepoSource(config, 'récupération des branches');
+    const gitlabToken = this.decryptConfigToken(config.gitlabToken);
 
-    const response = await firstValueFrom(
-      this.httpService.get<GitlabBranchItem[]>(
-        `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}/repository/branches`,
-        {
-          headers: {
-            'PRIVATE-TOKEN': config.gitlabToken,
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<GitlabBranchItem[]>(
+          `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}/repository/branches`,
+          {
+            headers: {
+              'PRIVATE-TOKEN': gitlabToken,
+            },
           },
-        },
-      ),
-    );
+        ),
+      );
 
-    return response.data;
+      return response.data;
+    } catch (error: unknown) {
+      this.throwGitlabRequestError('récupération des branches', error);
+    }
   }
 
   // Recupere les pipelines GitLab, puis synchronise en base locale.
@@ -141,23 +200,29 @@ export class GitlabService {
   ): Promise<GitlabPipelineItem[]> {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
+    const repoId = this.assertRepoSource(config, 'récupération des pipelines');
+    const gitlabToken = this.decryptConfigToken(config.gitlabToken);
 
-    const response = await firstValueFrom(
-      this.httpService.get<GitlabPipelineItem[]>(
-        `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}/pipelines`,
-        {
-          headers: {
-            'PRIVATE-TOKEN': config.gitlabToken,
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<GitlabPipelineItem[]>(
+          `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}/pipelines`,
+          {
+            headers: {
+              'PRIVATE-TOKEN': gitlabToken,
+            },
           },
-        },
-      ),
-    );
+        ),
+      );
 
-    for (const pipeline of response.data) {
-      await this.upsertPipeline(projectId, pipeline);
+      for (const pipeline of response.data) {
+        await this.upsertPipeline(projectId, pipeline);
+      }
+
+      return response.data;
+    } catch (error: unknown) {
+      this.throwGitlabRequestError('récupération des pipelines', error);
     }
-
-    return response.data;
   }
 
   // Declenche un pipeline sur une branche cible.
@@ -169,21 +234,83 @@ export class GitlabService {
   ): Promise<GitlabPipelineItem> {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
+    const repoId = this.assertRepoSource(config, 'déclenchement du pipeline');
+    const gitlabToken = this.decryptConfigToken(config.gitlabToken);
 
-    const response = await firstValueFrom(
-      this.httpService.post<GitlabPipelineItem>(
-        `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}/pipeline`,
-        { ref: branch },
-        {
-          headers: {
-            'PRIVATE-TOKEN': config.gitlabToken,
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post<GitlabPipelineItem>(
+          `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}/pipeline`,
+          { ref: branch },
+          {
+            headers: {
+              'PRIVATE-TOKEN': gitlabToken,
+            },
           },
-        },
-      ),
-    );
+        ),
+      );
 
-    await this.upsertPipeline(projectId, response.data);
-    return response.data;
+      await this.upsertPipeline(projectId, response.data);
+      return response.data;
+    } catch (error: unknown) {
+      this.throwGitlabRequestError(
+        `déclenchement du pipeline (${branch})`,
+        error,
+      );
+    }
+  }
+
+  // Retourne les repositories disponibles selon le type de source (REPO/GROUP).
+  async getRepos(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<GitlabRepoItem[]> {
+    await this.assertCanAccessProject(projectId, userId, userRole);
+    const config = await this.getProjectConfig(projectId);
+    const gitlabToken = this.decryptConfigToken(config.gitlabToken);
+
+    if (config.sourceType === GitlabSourceType.GROUP) {
+      if (!config.gitlabGroupId) {
+        throw new BadRequestException('Aucun gitlabGroupId configuré');
+      }
+
+      try {
+        const response = await firstValueFrom(
+          this.httpService.get<GitlabRepoItem[]>(
+            `${this.normalizeUrl(config.gitlabUrl)}/api/v4/groups/${encodeURIComponent(String(config.gitlabGroupId))}/projects`,
+            {
+              headers: {
+                'PRIVATE-TOKEN': gitlabToken,
+              },
+            },
+          ),
+        );
+        return response.data;
+      } catch (error: unknown) {
+        this.throwGitlabRequestError(
+          'récupération des repositories du groupe',
+          error,
+        );
+      }
+    }
+
+    const repoId = this.assertRepoSource(config, 'récupération du repository');
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<GitlabRepoItem>(
+          `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}`,
+          {
+            headers: {
+              'PRIVATE-TOKEN': gitlabToken,
+            },
+          },
+        ),
+      );
+      return [response.data];
+    } catch (error: unknown) {
+      this.throwGitlabRequestError('récupération du repository', error);
+    }
   }
 
   // Traite le webhook GitLab et met a jour les statuts de pipeline.
@@ -205,7 +332,10 @@ export class GitlabService {
     }
 
     const config = await this.prisma.gitlabConfig.findFirst({
-      where: { gitlabId: gitlabProjectId },
+      where: {
+        sourceType: GitlabSourceType.REPO,
+        gitlabId: gitlabProjectId,
+      },
     });
 
     if (!config) {
@@ -258,20 +388,60 @@ export class GitlabService {
     projectId: string,
     userId: string,
     userRole: Role,
-  ): Promise<Omit<GitlabConfig, 'gitlabToken'> & { gitlabToken: string }> {
+  ): Promise<PublicGitlabConfig> {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
-    return this.maskConfigToken(config);
+    return this.toPublicConfig(config);
   }
 
-  verifyWebhookToken(token?: string) {
+  async verifyWebhookToken(
+    token?: string,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
     if (!token) {
       throw new ForbiddenException('Token webhook GitLab manquant');
     }
 
-    if (token !== process.env.GITLAB_TOKEN) {
-      throw new ForbiddenException('Token webhook GitLab invalide');
+    const projectId = this.extractWebhookProjectId(payload);
+
+    if (projectId !== null) {
+      const config = await this.prisma.gitlabConfig.findFirst({
+        where: { gitlabId: projectId },
+      });
+
+      if (config?.webhookSecret) {
+        const expectedSecret = this.decryptConfigToken(config.webhookSecret);
+        if (token === expectedSecret) {
+          return;
+        }
+        throw new ForbiddenException('Token webhook GitLab invalide');
+      }
     }
+
+    // Compatibilité legacy: fallback vers variable globale si secret projet absent.
+    if (process.env.GITLAB_TOKEN && token === process.env.GITLAB_TOKEN) {
+      return;
+    }
+
+    throw new ForbiddenException('Token webhook GitLab invalide');
+  }
+
+  // Retourne les credentials registry (deploy token prioritaire sinon PAT GitLab).
+  resolveRegistryCredentials(config: GitlabConfig): RegistryCredentials {
+    const deployToken = config.deployTokenValue
+      ? this.decryptConfigToken(config.deployTokenValue)
+      : '';
+    const gitlabToken = this.decryptConfigToken(config.gitlabToken);
+    const password = deployToken || gitlabToken;
+    const username = config.deployTokenUsername?.trim() || 'oauth2';
+    const registryUrl =
+      config.registryUrl?.trim() || this.extractRegistryUrl(config.gitlabUrl);
+
+    return {
+      registryUrl,
+      username,
+      password,
+    };
   }
 
   private async upsertPipeline(
@@ -320,6 +490,43 @@ export class GitlabService {
     return url.trim().replace(/\/+$/, '');
   }
 
+  private throwGitlabRequestError(action: string, error: unknown): never {
+    const err = error as {
+      message?: string;
+      response?: { status?: number; data?: unknown };
+    };
+
+    const status = err.response?.status;
+    const data = err.response?.data;
+
+    let details = '';
+    if (typeof data === 'string') {
+      details = data;
+    } else if (data && typeof data === 'object') {
+      const payload = data as { message?: unknown; error?: unknown };
+      if (typeof payload.message === 'string') {
+        details = payload.message;
+      } else if (Array.isArray(payload.message)) {
+        details = payload.message
+          .filter((item): item is string => typeof item === 'string')
+          .join(', ');
+      } else if (typeof payload.error === 'string') {
+        details = payload.error;
+      }
+    }
+
+    const parts = [
+      status ? `HTTP ${String(status)}` : null,
+      details || err.message || null,
+    ].filter((value): value is string => Boolean(value));
+
+    throw new BadRequestException(
+      parts.length > 0
+        ? `GitLab: ${action} échoué (${parts.join(' - ')})`
+        : `GitLab: ${action} échoué`,
+    );
+  }
+
   private mapPipelineStatus(status?: string): PipelineStatus {
     switch ((status ?? '').toLowerCase()) {
       case 'pending':
@@ -338,11 +545,137 @@ export class GitlabService {
     }
   }
 
-  private maskConfigToken(config: GitlabConfig) {
+  private toPublicConfig(
+    config: GitlabConfig,
+    webhookSecretOverride?: string,
+  ): PublicGitlabConfig {
+    const webhookSecret = webhookSecretOverride
+      ? webhookSecretOverride
+      : config.webhookSecret
+        ? this.decryptConfigToken(config.webhookSecret)
+        : null;
+
     return {
       ...config,
       gitlabToken: '***',
+      deployTokenValue: config.deployTokenValue ? '***' : '',
+      webhookSecret,
     };
+  }
+
+  // Chiffre un secret en AES avec CONFIG_SECRET.
+  private encrypt(value: string): string {
+    const secret = process.env.CONFIG_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new InternalServerErrorException(
+        'CONFIG_SECRET doit contenir au moins 32 caractères',
+      );
+    }
+
+    return CryptoJS.AES.encrypt(value, secret).toString();
+  }
+
+  // Déchiffre un token GitLab; fallback en clair pour compatibilité historique.
+  private decryptConfigToken(value: string): string {
+    const secret = process.env.CONFIG_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new InternalServerErrorException(
+        'CONFIG_SECRET doit contenir au moins 32 caractères',
+      );
+    }
+
+    const decrypted = CryptoJS.AES.decrypt(value, secret).toString(
+      CryptoJS.enc.Utf8,
+    );
+
+    if (decrypted) {
+      return decrypted;
+    }
+
+    return value;
+  }
+
+  private extractWebhookProjectId(
+    payload?: Record<string, unknown>,
+  ): number | null {
+    if (!payload) {
+      return null;
+    }
+
+    const projectId = payload.project_id;
+    if (typeof projectId === 'number') {
+      return projectId;
+    }
+
+    if (payload.project && typeof payload.project === 'object') {
+      const project = payload.project as Record<string, unknown>;
+      if (typeof project.id === 'number') {
+        return project.id;
+      }
+    }
+
+    return null;
+  }
+
+  private extractRegistryUrl(gitlabUrl: string): string {
+    try {
+      const parsed = new URL(gitlabUrl);
+      return parsed.host;
+    } catch {
+      return gitlabUrl;
+    }
+  }
+
+  private async validateGitlabRepoConnection(
+    baseUrl: string,
+    gitlabId: number,
+    gitlabToken: string,
+  ): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.get(
+          `${baseUrl}/api/v4/projects/${encodeURIComponent(String(gitlabId))}`,
+          {
+            headers: {
+              'PRIVATE-TOKEN': gitlabToken,
+            },
+          },
+        ),
+      );
+    } catch {
+      throw new BadRequestException('Connexion GitLab échouée');
+    }
+  }
+
+  private async validateGitlabGroupConnection(
+    baseUrl: string,
+    gitlabGroupId: number,
+    gitlabToken: string,
+  ): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.get(
+          `${baseUrl}/api/v4/groups/${encodeURIComponent(String(gitlabGroupId))}`,
+          {
+            headers: {
+              'PRIVATE-TOKEN': gitlabToken,
+            },
+          },
+        ),
+      );
+    } catch {
+      throw new BadRequestException('Connexion GitLab groupe échouée');
+    }
+  }
+
+  private assertRepoSource(config: GitlabConfig, action: string): number {
+    if (config.sourceType !== GitlabSourceType.REPO || !config.gitlabId) {
+      throw new BadRequestException(
+        `Action indisponible pour une source GROUP (${action})`,
+      );
+    }
+
+    return config.gitlabId;
   }
 
   private async assertCanAccessProject(

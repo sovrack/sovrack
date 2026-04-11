@@ -38,6 +38,11 @@ enum DeploymentStatus {
   CANCELED
 }
 
+enum GitlabSourceType {
+  REPO
+  GROUP
+}
+
 model User {
   id          String       @id @default(uuid())
   email       String       @unique
@@ -83,15 +88,21 @@ model ProjectMember {
 }
 
 model GitlabConfig {
-  id            String   @id @default(uuid())
-  gitlabUrl     String
-  gitlabToken   String
-  gitlabId      Int
-  defaultBranch String   @default("main")
-  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId     String   @unique
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  gitlabUrl           String
+  gitlabToken         String
+  gitlabId            Int?
+  defaultBranch       String   @default("main")
+  sourceType          GitlabSourceType @default(REPO)
+  gitlabGroupId       Int?
+  deployTokenUsername String?
+  deployTokenValue    String?
+  webhookSecret       String?
+  registryUrl         String?
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId           String   @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model Pipeline {
@@ -171,4 +182,13 @@ model Deployment {
   finishedAt    DateTime?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
+}
+
+model PlatformConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  isSecret  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

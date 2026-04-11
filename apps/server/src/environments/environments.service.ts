@@ -4,10 +4,32 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Environment, ProjectMemberRole, Role } from '@prisma/client';
+import { Environment, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { UpdateEnvironmentDto } from './dto/update-environment.dto';
+
+const environmentServerInclude = {
+  server: {
+    select: {
+      id: true,
+      name: true,
+      host: true,
+      port: true,
+      username: true,
+      isVerified: true,
+      hasDocker: true,
+      hasAnsible: true,
+      hasRunner: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
+} satisfies Prisma.EnvironmentInclude;
+
+type EnvironmentWithServer = Prisma.EnvironmentGetPayload<{
+  include: typeof environmentServerInclude;
+}>;
 
 @Injectable()
 export class EnvironmentsService {
@@ -49,12 +71,13 @@ export class EnvironmentsService {
     projectId: string,
     userId: string,
     userRole: Role,
-  ): Promise<Environment[]> {
+  ): Promise<EnvironmentWithServer[]> {
     await this.assertCanAccessProject(projectId, userId, userRole);
 
     return await this.prisma.environment.findMany({
       where: { projectId },
       orderBy: { createdAt: 'asc' },
+      include: environmentServerInclude,
     });
   }
 
@@ -63,11 +86,12 @@ export class EnvironmentsService {
     envId: string,
     userId: string,
     userRole: Role,
-  ): Promise<Environment> {
+  ): Promise<EnvironmentWithServer> {
     await this.assertCanAccessProject(projectId, userId, userRole);
 
     const env = await this.prisma.environment.findFirst({
       where: { id: envId, projectId },
+      include: environmentServerInclude,
     });
 
     if (!env) {
@@ -150,28 +174,13 @@ export class EnvironmentsService {
 
   private async assertCanManageProject(
     projectId: string,
-    userId: string,
+    _userId: string,
     userRole: Role,
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
 
-    if (userRole === Role.ADMIN) {
-      return;
-    }
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-    });
-
-    if (!membership || membership.role !== ProjectMemberRole.OWNER) {
-      throw new ForbiddenException(
-        'Action réservée au OWNER du projet ou ADMIN',
-      );
+    if (userRole !== Role.ADMIN) {
+      throw new ForbiddenException('Action réservée aux administrateurs');
     }
   }
 

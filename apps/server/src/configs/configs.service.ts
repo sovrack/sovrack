@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { Config, ProjectMemberRole, Role } from '@prisma/client';
+import { Config, Role } from '@prisma/client';
 import * as CryptoJS from 'crypto-js';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateConfigDto } from './dto/create-config.dto';
@@ -216,28 +216,13 @@ export class ConfigsService {
 
   private async assertCanManageProject(
     projectId: string,
-    userId: string,
+    _userId: string,
     userRole: Role,
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
 
-    if (userRole === Role.ADMIN) {
-      return;
-    }
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-    });
-
-    if (!membership || membership.role !== ProjectMemberRole.OWNER) {
-      throw new ForbiddenException(
-        'Action réservée au OWNER du projet ou ADMIN',
-      );
+    if (userRole !== Role.ADMIN) {
+      throw new ForbiddenException('Action réservée aux administrateurs');
     }
   }
 
