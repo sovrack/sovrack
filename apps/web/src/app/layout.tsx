@@ -1,11 +1,28 @@
 import type { Metadata } from 'next';
+import { Outfit, IBM_Plex_Mono } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import '@/styles/globals.css';
 
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-outfit',
+  weight: ['400', '500', '600', '700'],
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  variable: '--font-plex-mono',
+  weight: ['400', '500'],
+});
+
 export const metadata: Metadata = {
-  title: 'DevOps Platform',
-  description: 'Deployment automation platform for developers',
-  viewport: 'width=device-width, initial-scale=1',
+  title: 'platform Deploy Platform',
+  description: 'Deployment automation workspace powered by platform',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -15,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${outfit.variable} ${plexMono.variable} app-shell`}>
         <Providers>{children}</Providers>
       </body>
     </html>

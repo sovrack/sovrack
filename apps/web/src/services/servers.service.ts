@@ -1,0 +1,38 @@
+import api from '@/lib/api';
+import type {
+  Server,
+  CreateServerPayload,
+  UpdateServerPayload,
+  VerifyServerResult,
+} from '@/types/server';
+
+export const serversService = {
+  async getAll(): Promise<Server[]> {
+    const res = await api.get<Server[]>('/servers');
+    return res.data;
+  },
+
+  async getById(id: string): Promise<Server> {
+    const res = await api.get<Server>(`/servers/${id}`);
+    return res.data;
+  },
+
+  async create(payload: CreateServerPayload): Promise<Server> {
+    const res = await api.post<Server>('/servers', payload);
+    return res.data;
+  },
+
+  async update(id: string, payload: UpdateServerPayload): Promise<Server> {
+    const res = await api.put<Server>(`/servers/${id}`, payload);
+    return res.data;
+  },
+
+  async remove(id: string): Promise<void> {
+    await api.delete(`/servers/${id}`);
+  },
+
+  async verify(id: string): Promise<VerifyServerResult> {
+    const res = await api.post<VerifyServerResult>(`/servers/${id}/verify`);
+    return res.data;
+  },
+};
