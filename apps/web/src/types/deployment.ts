@@ -34,3 +34,34 @@ export type CreateDeploymentPayload = {
   environmentId: string;
   branch?: string;
 };
+
+export type LogLevel = 'info' | 'error' | 'success';
+
+export type LogLine = {
+  timestamp: string;
+  message: string;
+  level: LogLevel;
+};
+
+export type DeploymentLogEvent = {
+  message: string;
+  timestamp: string;
+  deploymentId?: string;
+  level?: LogLevel;
+};
+
+export type DeploymentStatusEvent = {
+  deploymentId: string;
+  status: DeploymentStatus;
+};
+
+export type DeploymentFinishedEvent = {
+  deploymentId: string;
+  status: DeploymentStatus;
+  finishedAt?: string;
+};
+
+export type SocketDeploymentEvent =
+  | { type: 'deployment:log'; payload: DeploymentLogEvent }
+  | { type: 'deployment:status'; payload: DeploymentStatusEvent }
+  | { type: 'deployment:finished'; payload: DeploymentFinishedEvent };

@@ -1,16 +1,49 @@
 'use client';
 
-import { use, useCallback, useEffect, useRef, useState } from 'react';
+import { use, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Rocket, XCircle, RotateCcw, Loader2, Clock, ExternalLink } from 'lucide-react';
 import { deploymentsService } from '@/services/deployments.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
-import { DeploymentLogs } from '@/components/deployments/deployment-logs';
+import { LogTerminal } from '@/components/log-terminal';
 import { useAuthContext } from '@/contexts/auth-context';
-import type { Deployment } from '@/types/deployment';
+import { useDeploymentSocket } from '@/hooks/useDeploymentSocket';
+import type { Deployment, DeploymentStatus, LogLine } from '@/types/deployment';
 
 type Props = { params: Promise<{ id: string }> };
+
+function isActiveStatus(status: DeploymentStatus | null): boolean {
+  return status === 'PENDING' || status === 'RUNNING';
+}
+
+function inferLogLevel(message: string): LogLine['level'] {
+  if (/error|fail|fatal|exception/i.test(message)) {
+    return 'error';
+  }
+
+  if (/success|ok|done|completed|ready/i.test(message)) {
+    return 'success';
+  }
+
+  return 'info';
+}
+
+function parseStaticLogs(logs: string | null): LogLine[] {
+  if (!logs) {
+    return [];
+  }
+
+  return logs
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((message) => ({
+      timestamp: new Date().toISOString(),
+      message,
+      level: inferLogLevel(message),
+    }));
+}
 
 function formatDate(str: string | null): string {
   if (!str) return '—';
@@ -39,8 +72,6 @@ export default function DeploymentDetailPage({ params }: Props) {
   const [canceling, setCanceling] = useState(false);
   const [rollingBack, setRollingBack] = useState(false);
 
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-
   const fetchDeployment = useCallback(async () => {
     try {
       const dep = await deploymentsService.getById(id);
@@ -54,23 +85,41 @@ export default function DeploymentDetailPage({ params }: Props) {
     }
   }, [id]);
 
-  // Poll every 3s while PENDING or RUNNING
+  // Charge les détails une première fois.
   useEffect(() => {
-    void fetchDeployment().then((dep) => {
-      if (dep?.status === 'PENDING' || dep?.status === 'RUNNING') {
-        pollingRef.current = setInterval(async () => {
-          const updated = await fetchDeployment();
-          if (updated && updated.status !== 'PENDING' && updated.status !== 'RUNNING') {
-            if (pollingRef.current) clearInterval(pollingRef.current);
-          }
-        }, 3000);
+    void fetchDeployment();
+  }, [fetchDeployment]);
+
+  const liveEnabled = Boolean(deployment && isActiveStatus(deployment.status));
+  const { logs: liveLogs, status: liveStatus, isConnected } = useDeploymentSocket({
+    deploymentId: id,
+    enabled: liveEnabled,
+    initialLogs: deployment?.logs ?? null,
+    initialStatus: deployment?.status ?? null,
+  });
+
+  // Synchronise le statut live dans l'état local de la page.
+  useEffect(() => {
+    if (!liveStatus) {
+      return;
+    }
+
+    setDeployment((current) => {
+      if (!current || current.status === liveStatus) {
+        return current;
       }
+
+      return {
+        ...current,
+        status: liveStatus,
+      };
     });
 
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, [fetchDeployment]);
+    // Quand le déploiement se termine, on recharge la fiche complète.
+    if (!isActiveStatus(liveStatus)) {
+      void fetchDeployment();
+    }
+  }, [fetchDeployment, liveStatus]);
 
   const handleCancel = async () => {
     if (!confirm('Cancel this deployment?')) return;
@@ -79,7 +128,6 @@ export default function DeploymentDetailPage({ params }: Props) {
     try {
       const updated = await deploymentsService.cancel(id);
       setDeployment(updated);
-      if (pollingRef.current) clearInterval(pollingRef.current);
     } catch (err) {
       setActionError(getApiErrorMessage(err));
     } finally {
@@ -101,7 +149,10 @@ export default function DeploymentDetailPage({ params }: Props) {
     }
   };
 
-  const isActive = deployment?.status === 'PENDING' || deployment?.status === 'RUNNING';
+  const resolvedStatus = deployment ? (liveStatus ?? deployment.status) : null;
+  const isActive = isActiveStatus(resolvedStatus);
+  const staticLogs = useMemo(() => parseStaticLogs(deployment?.logs ?? null), [deployment?.logs]);
+  const displayedLogs = isActive ? liveLogs : staticLogs;
 
   return (
     <div className="space-y-6">
@@ -124,9 +175,7 @@ export default function DeploymentDetailPage({ params }: Props) {
               )}
             </div>
           </div>
-          {deployment && (
-            <DeploymentStatusBadge status={deployment.status} />
-          )}
+          {resolvedStatus && <DeploymentStatusBadge status={resolvedStatus} />}
         </div>
       </div>
 
@@ -207,7 +256,7 @@ export default function DeploymentDetailPage({ params }: Props) {
                   Cancel Deployment
                 </button>
               )}
-              {(deployment.status === 'SUCCESS' || deployment.status === 'FAILED') && isAdmin && (
+              {(resolvedStatus === 'SUCCESS' || resolvedStatus === 'FAILED') && isAdmin && (
                 <button onClick={() => void handleRollback()} disabled={rollingBack}
                   className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
                   {rollingBack ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
@@ -230,11 +279,11 @@ export default function DeploymentDetailPage({ params }: Props) {
               {isActive && (
                 <span className="flex items-center gap-1.5 text-xs text-blue-600">
                   <span className="inline-flex h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-                  Live — refreshing every 3s
+                  Live — {isConnected ? 'WebSocket connecté' : 'reconnexion…'}
                 </span>
               )}
             </div>
-            <DeploymentLogs logs={deployment.logs} />
+            <LogTerminal logs={displayedLogs} isLive={isActive} />
           </div>
         </>
       )}
