@@ -3,6 +3,24 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
+function resolveAllowedOrigins(): string[] {
+  const envOrigins = [
+    process.env.FRONTEND_URLS,
+    process.env.FRONTEND_URL,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  if (envOrigins.length > 0) {
+    return Array.from(new Set(envOrigins));
+  }
+
+  // Fallback local: Next peut basculer sur 3002 si 3000 est occupé.
+  return ['http://localhost:3000', 'http://localhost:3002'];
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -10,7 +28,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   // CORS pour le frontend
-  app.enableCors({ origin: 'http://localhost:3000' });
+  app.enableCors({ origin: resolveAllowedOrigins() });
 
   // Configuration Swagger
   const config = new DocumentBuilder()
