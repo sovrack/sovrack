@@ -1,15 +1,20 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ProjectMemberRole } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 
 /**
  * DTO pour ajouter un membre à un projet.
  */
 export class AddMemberDto {
-  @ApiProperty({ example: 'uuid-user' })
+  @ApiPropertyOptional({ example: 'uuid-user' })
+  @IsOptional()
   @IsString({ message: "L'identifiant utilisateur doit être une chaîne" })
-  @IsNotEmpty({ message: "L'identifiant utilisateur est requis" })
-  userId: string;
+  userId?: string;
+
+  @ApiPropertyOptional({ example: 'dev@devops.com' })
+  @IsOptional()
+  @IsEmail({}, { message: 'Email invalide' })
+  email?: string;
 
   @ApiPropertyOptional({
     enum: ProjectMemberRole,

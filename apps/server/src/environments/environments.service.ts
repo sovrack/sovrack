@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Environment, ProjectMemberRole, Role } from '@prisma/client';
+import { Environment, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { UpdateEnvironmentDto } from './dto/update-environment.dto';
@@ -150,28 +150,13 @@ export class EnvironmentsService {
 
   private async assertCanManageProject(
     projectId: string,
-    userId: string,
+    _userId: string,
     userRole: Role,
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
 
-    if (userRole === Role.ADMIN) {
-      return;
-    }
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-    });
-
-    if (!membership || membership.role !== ProjectMemberRole.OWNER) {
-      throw new ForbiddenException(
-        'Action réservée au OWNER du projet ou ADMIN',
-      );
+    if (userRole !== Role.ADMIN) {
+      throw new ForbiddenException('Action réservée aux administrateurs');
     }
   }
 

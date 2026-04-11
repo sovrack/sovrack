@@ -125,7 +125,7 @@ JWT_EXPIRES_IN=24h
 
 # GitLab
 GITLAB_URL=https://gitlab.master.ssd.vps.platform.com
-GITLAB_TOKEN=glpat-placeholder-sampleam86MQp1OjRuCA.01.0y0ngymqx
+GITLAB_TOKEN=replace_with_a_valid_local_token
 ```
 
 Notes:

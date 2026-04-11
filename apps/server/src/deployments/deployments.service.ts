@@ -103,12 +103,41 @@ export class DeploymentsService {
       startedAt: deployment.startedAt,
     });
 
-    const pipeline = await this.gitlabService.triggerPipeline(
-      dto.projectId,
-      branch,
-      actor.id,
-      actor.role,
-    );
+    let pipeline: { id: number };
+    try {
+      pipeline = await this.gitlabService.triggerPipeline(
+        dto.projectId,
+        branch,
+        actor.id,
+        actor.role,
+      );
+    } catch (error: unknown) {
+      const reason =
+        error instanceof Error
+          ? error.message
+          : 'Échec du déclenchement du pipeline GitLab';
+
+      const failed = await this.prisma.deployment.update({
+        where: { id: deployment.id },
+        data: {
+          status: DeploymentStatus.FAILED,
+          finishedAt: new Date(),
+          logs: `${deployment.logs ?? ''}\n${reason}`.trim(),
+        },
+      });
+
+      this.gateway.emitStatus({
+        deploymentId: failed.id,
+        status: failed.status,
+      });
+      this.gateway.emitFinished({
+        deploymentId: failed.id,
+        status: failed.status,
+        finishedAt: failed.finishedAt,
+      });
+
+      throw error;
+    }
 
     deployment = await this.prisma.deployment.update({
       where: { id: deployment.id },

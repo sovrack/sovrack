@@ -119,18 +119,22 @@ export class GitlabService {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
 
-    const response = await firstValueFrom(
-      this.httpService.get<GitlabBranchItem[]>(
-        `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}/repository/branches`,
-        {
-          headers: {
-            'PRIVATE-TOKEN': config.gitlabToken,
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<GitlabBranchItem[]>(
+          `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}/repository/branches`,
+          {
+            headers: {
+              'PRIVATE-TOKEN': config.gitlabToken,
+            },
           },
-        },
-      ),
-    );
+        ),
+      );
 
-    return response.data;
+      return response.data;
+    } catch (error: unknown) {
+      this.throwGitlabRequestError('récupération des branches', error);
+    }
   }
 
   // Recupere les pipelines GitLab, puis synchronise en base locale.
@@ -142,22 +146,26 @@ export class GitlabService {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
 
-    const response = await firstValueFrom(
-      this.httpService.get<GitlabPipelineItem[]>(
-        `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}/pipelines`,
-        {
-          headers: {
-            'PRIVATE-TOKEN': config.gitlabToken,
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<GitlabPipelineItem[]>(
+          `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}/pipelines`,
+          {
+            headers: {
+              'PRIVATE-TOKEN': config.gitlabToken,
+            },
           },
-        },
-      ),
-    );
+        ),
+      );
 
-    for (const pipeline of response.data) {
-      await this.upsertPipeline(projectId, pipeline);
+      for (const pipeline of response.data) {
+        await this.upsertPipeline(projectId, pipeline);
+      }
+
+      return response.data;
+    } catch (error: unknown) {
+      this.throwGitlabRequestError('récupération des pipelines', error);
     }
-
-    return response.data;
   }
 
   // Declenche un pipeline sur une branche cible.
@@ -170,20 +178,27 @@ export class GitlabService {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
 
-    const response = await firstValueFrom(
-      this.httpService.post<GitlabPipelineItem>(
-        `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}/pipeline`,
-        { ref: branch },
-        {
-          headers: {
-            'PRIVATE-TOKEN': config.gitlabToken,
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post<GitlabPipelineItem>(
+          `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}/pipeline`,
+          { ref: branch },
+          {
+            headers: {
+              'PRIVATE-TOKEN': config.gitlabToken,
+            },
           },
-        },
-      ),
-    );
+        ),
+      );
 
-    await this.upsertPipeline(projectId, response.data);
-    return response.data;
+      await this.upsertPipeline(projectId, response.data);
+      return response.data;
+    } catch (error: unknown) {
+      this.throwGitlabRequestError(
+        `déclenchement du pipeline (${branch})`,
+        error,
+      );
+    }
   }
 
   // Traite le webhook GitLab et met a jour les statuts de pipeline.
@@ -318,6 +333,43 @@ export class GitlabService {
 
   private normalizeUrl(url: string): string {
     return url.trim().replace(/\/+$/, '');
+  }
+
+  private throwGitlabRequestError(action: string, error: unknown): never {
+    const err = error as {
+      message?: string;
+      response?: { status?: number; data?: unknown };
+    };
+
+    const status = err.response?.status;
+    const data = err.response?.data;
+
+    let details = '';
+    if (typeof data === 'string') {
+      details = data;
+    } else if (data && typeof data === 'object') {
+      const payload = data as { message?: unknown; error?: unknown };
+      if (typeof payload.message === 'string') {
+        details = payload.message;
+      } else if (Array.isArray(payload.message)) {
+        details = payload.message
+          .filter((item): item is string => typeof item === 'string')
+          .join(', ');
+      } else if (typeof payload.error === 'string') {
+        details = payload.error;
+      }
+    }
+
+    const parts = [
+      status ? `HTTP ${String(status)}` : null,
+      details || err.message || null,
+    ].filter((value): value is string => Boolean(value));
+
+    throw new BadRequestException(
+      parts.length > 0
+        ? `GitLab: ${action} échoué (${parts.join(' - ')})`
+        : `GitLab: ${action} échoué`,
+    );
   }
 
   private mapPipelineStatus(status?: string): PipelineStatus {
