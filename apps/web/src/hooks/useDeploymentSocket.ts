@@ -133,7 +133,7 @@ export function useDeploymentSocket({
     };
 
     const onLog = (payload: DeploymentLogEvent) => {
-      if (payload.deploymentId && payload.deploymentId !== deploymentId) {
+      if (payload.deploymentId !== deploymentId) {
         return;
       }
 

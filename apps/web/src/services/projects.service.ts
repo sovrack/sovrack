@@ -9,6 +9,7 @@ import type {
   GitlabBranch,
   GitlabConfig,
   GitlabPipeline,
+  GitlabRepo,
 } from '@/types/project';
 
 export const projectsService = {
@@ -95,6 +96,12 @@ export const projectsService = {
       `/projects/${projectId}/gitlab/pipelines/trigger`,
       { branch },
     );
+    return res.data;
+  },
+
+  /** Get repositories from REPO/GROUP source */
+  async getRepos(projectId: string): Promise<GitlabRepo[]> {
+    const res = await api.get<GitlabRepo[]>(`/projects/${projectId}/gitlab/repos`);
     return res.data;
   },
 };

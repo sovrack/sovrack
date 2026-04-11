@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { LoginScreen } from '@/components/auth/login-screen';
 
 export default function LoginAliasPage() {
-  redirect('/auth/login/developer');
+  return <LoginScreen />;
 }

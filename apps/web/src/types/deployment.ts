@@ -17,15 +17,22 @@ export type Deployment = {
   project: {
     id: string;
     name: string;
+    gitlabUrl?: string;
   };
   environment: {
     id: string;
     name: string;
+    server?: {
+      id: string;
+      name: string;
+      host: string;
+    };
   };
   user: {
     id: string;
     fullName: string;
     email: string;
+    name?: string;
   };
 };
 
@@ -44,10 +51,15 @@ export type LogLine = {
 };
 
 export type DeploymentLogEvent = {
+  deploymentId: string;
   message: string;
   timestamp: string;
-  deploymentId?: string;
   level?: LogLevel;
+};
+
+export type DeploymentStartedEvent = {
+  deploymentId: string;
+  status?: DeploymentStatus;
 };
 
 export type DeploymentStatusEvent = {
@@ -62,6 +74,7 @@ export type DeploymentFinishedEvent = {
 };
 
 export type SocketDeploymentEvent =
+  | { type: 'deployment:started'; payload: DeploymentStartedEvent }
   | { type: 'deployment:log'; payload: DeploymentLogEvent }
   | { type: 'deployment:status'; payload: DeploymentStatusEvent }
   | { type: 'deployment:finished'; payload: DeploymentFinishedEvent };

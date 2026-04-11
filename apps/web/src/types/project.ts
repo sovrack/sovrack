@@ -1,6 +1,7 @@
 export type ProjectRole = 'OWNER' | 'MEMBER';
 
 export type UserRole = 'ADMIN' | 'DEVELOPER';
+export type GitlabSourceType = 'REPO' | 'GROUP';
 
 export type ProjectMemberUser = {
   id: string;
@@ -19,9 +20,15 @@ export type ProjectMember = {
 export type GitlabConfig = {
   id: string;
   gitlabUrl: string;
-  gitlabId: number;
+  gitlabId: number | null;
   defaultBranch: string;
+  sourceType: GitlabSourceType;
+  gitlabGroupId: number | null;
+  deployTokenUsername: string | null;
+  registryUrl: string | null;
   gitlabToken: string;
+  deployTokenValue: string;
+  webhookSecret: string | null;
 };
 
 export type ProjectListItem = {
@@ -57,6 +64,7 @@ export type CreateProjectPayload = {
   description?: string;
   gitlabUrl: string;
   branch?: string;
+  ownerId?: string;
 };
 
 export type UpdateProjectPayload = Partial<CreateProjectPayload>;
@@ -69,8 +77,13 @@ export type AddMemberPayload = {
 export type ConnectGitlabPayload = {
   gitlabUrl: string;
   gitlabToken: string;
-  gitlabId: number;
+  gitlabId?: number;
   defaultBranch?: string;
+  sourceType?: GitlabSourceType;
+  gitlabGroupId?: number;
+  deployTokenUsername?: string;
+  deployTokenValue?: string;
+  registryUrl?: string;
 };
 
 export type GitlabBranch = {
@@ -85,4 +98,11 @@ export type GitlabPipeline = {
   sha: string;
   web_url: string;
   created_at: string;
+};
+
+export type GitlabRepo = {
+  id: number;
+  name: string;
+  path_with_namespace?: string;
+  web_url?: string;
 };

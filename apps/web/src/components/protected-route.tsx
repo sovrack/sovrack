@@ -17,7 +17,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   useEffect(() => {
     if (!loading) {
       if (!isAuthenticated) {
-        router.replace('/auth/login/developer');
+        router.replace('/login');
       } else if (requiredRole && user?.role !== requiredRole && user?.role !== 'ADMIN') {
         router.replace('/access-denied');
       }
