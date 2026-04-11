@@ -11,6 +11,7 @@ import { ServersModule } from './servers/servers.module';
 import { EnvironmentsModule } from './environments/environments.module';
 import { ConfigsModule } from './configs/configs.module';
 import { DeploymentsModule } from './deployments/deployments.module';
+import { PlatformConfigModule } from './platform-config/platform-config.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { DeploymentsModule } from './deployments/deployments.module';
     EnvironmentsModule,
     ConfigsModule,
     DeploymentsModule,
+    PlatformConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],

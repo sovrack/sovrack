@@ -10,6 +10,8 @@ import {
 import {
   Deployment,
   DeploymentStatus,
+  GitlabSourceType,
+  Prisma,
   ProjectMemberRole,
   Role,
   type User,
@@ -24,6 +26,42 @@ import { GitlabService } from '../gitlab/gitlab.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import { DeploymentsGateway } from './deployments.gateway';
+
+const deploymentRelationsInclude = {
+  project: {
+    select: {
+      id: true,
+      name: true,
+      gitlabUrl: true,
+    },
+  },
+  environment: {
+    select: {
+      id: true,
+      name: true,
+      server: {
+        select: {
+          id: true,
+          name: true,
+          host: true,
+        },
+      },
+    },
+  },
+  user: {
+    select: {
+      id: true,
+      email: true,
+      fullName: true,
+    },
+  },
+} satisfies Prisma.DeploymentInclude;
+
+type DeploymentWithRelations = Prisma.DeploymentGetPayload<{
+  include: typeof deploymentRelationsInclude;
+}>;
+
+type DeploymentLogLevel = 'info' | 'error' | 'success';
 
 @Injectable()
 export class DeploymentsService {
@@ -144,7 +182,13 @@ export class DeploymentsService {
       data: {
         status: DeploymentStatus.RUNNING,
         logs: `Déploiement lancé. [PIPELINE_ID:${String(pipeline.id)}]`,
-        dockerImage: `${project.gitlabConfig.gitlabUrl}/${project.gitlabConfig.gitlabId}:${branch}`,
+        dockerImage: this.buildDockerImage({
+          gitlabUrl: project.gitlabConfig.gitlabUrl,
+          branch,
+          sourceType: project.gitlabConfig.sourceType,
+          gitlabId: project.gitlabConfig.gitlabId,
+          gitlabGroupId: project.gitlabConfig.gitlabGroupId,
+        }),
       },
     });
 
@@ -221,7 +265,11 @@ export class DeploymentsService {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },
       include: {
-        project: true,
+        project: {
+          include: {
+            gitlabConfig: true,
+          },
+        },
         environment: {
           include: {
             server: true,
@@ -275,7 +323,18 @@ export class DeploymentsService {
     const dockerImage =
       overrideImage ??
       deployment.dockerImage ??
-      `${deployment.project.gitlabUrl}:${deployment.branch}`;
+      this.buildDockerImage({
+        gitlabUrl: deployment.project.gitlabUrl,
+        branch: deployment.branch,
+        sourceType: deployment.project.gitlabConfig?.sourceType,
+        gitlabId: deployment.project.gitlabConfig?.gitlabId,
+        gitlabGroupId: deployment.project.gitlabConfig?.gitlabGroupId,
+      });
+    const registryAuth = deployment.project.gitlabConfig
+      ? this.gitlabService.resolveRegistryCredentials(
+          deployment.project.gitlabConfig,
+        )
+      : null;
 
     const inventoryContent =
       `[targets]\n` +
@@ -286,6 +345,9 @@ export class DeploymentsService {
       app_port: deployment.project.port,
       container_name: containerName,
       docker_image: dockerImage,
+      registry_url: registryAuth?.registryUrl ?? '',
+      registry_username: registryAuth?.username ?? '',
+      registry_password: registryAuth?.password ?? '',
       domain: deployment.environment.domain ?? '',
       env_vars: allConfigs,
     };
@@ -307,6 +369,7 @@ export class DeploymentsService {
         playbookPath,
         inventoryPath,
         varsPath,
+        deployment.id,
       );
 
       const finished = await this.prisma.deployment.update({
@@ -361,12 +424,16 @@ export class DeploymentsService {
     }
   }
 
-  async findAll(userId: string, userRole: Role): Promise<Deployment[]> {
+  async findAll(
+    userId: string,
+    userRole: Role,
+  ): Promise<DeploymentWithRelations[]> {
     const where = userRole === Role.ADMIN ? undefined : { userId };
 
     return await this.prisma.deployment.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      include: deploymentRelationsInclude,
     });
   }
 
@@ -374,12 +441,13 @@ export class DeploymentsService {
     projectId: string,
     userId: string,
     userRole: Role,
-  ): Promise<Deployment[]> {
+  ): Promise<DeploymentWithRelations[]> {
     await this.assertCanAccessProject(projectId, userId, userRole);
 
     return await this.prisma.deployment.findMany({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
+      include: deploymentRelationsInclude,
     });
   }
 
@@ -387,9 +455,10 @@ export class DeploymentsService {
     id: string,
     userId: string,
     userRole: Role,
-  ): Promise<Deployment> {
+  ): Promise<DeploymentWithRelations> {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id },
+      include: deploymentRelationsInclude,
     });
 
     if (!deployment) {
@@ -497,6 +566,7 @@ export class DeploymentsService {
     playbookPath: string,
     inventoryPath: string,
     varsPath: string,
+    deploymentId: string,
   ): Promise<string> {
     return await new Promise<string>((resolve, reject) => {
       const child = spawn('ansible-playbook', [
@@ -512,19 +582,13 @@ export class DeploymentsService {
       child.stdout.on('data', (chunk: Buffer) => {
         const message = chunk.toString();
         output += message;
-        this.gateway.emitLog({
-          message: message.trim(),
-          timestamp: new Date().toISOString(),
-        });
+        this.emitGatewayLog(deploymentId, message, 'info');
       });
 
       child.stderr.on('data', (chunk: Buffer) => {
         const message = chunk.toString();
         output += message;
-        this.gateway.emitLog({
-          message: message.trim(),
-          timestamp: new Date().toISOString(),
-        });
+        this.emitGatewayLog(deploymentId, message, 'error');
       });
 
       child.on('close', (code) => {
@@ -540,6 +604,41 @@ export class DeploymentsService {
         reject(error);
       });
     });
+  }
+
+  private emitGatewayLog(
+    deploymentId: string,
+    rawMessage: string,
+    fallbackLevel: 'info' | 'error',
+  ): void {
+    const lines = rawMessage
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    for (const line of lines) {
+      this.gateway.emitLog({
+        deploymentId,
+        message: line,
+        level: this.inferLogLevel(line, fallbackLevel),
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  private inferLogLevel(
+    message: string,
+    fallbackLevel: 'info' | 'error',
+  ): DeploymentLogLevel {
+    if (/error|fail|fatal|exception/i.test(message)) {
+      return 'error';
+    }
+
+    if (/success|ok|done|completed|ready/i.test(message)) {
+      return 'success';
+    }
+
+    return fallbackLevel;
   }
 
   private async getActor(userId: string): Promise<User> {
@@ -611,5 +710,29 @@ export class DeploymentsService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 40);
+  }
+
+  // Compose une image Docker cohérente pour REPO et GROUP.
+  private buildDockerImage({
+    gitlabUrl,
+    branch,
+    sourceType,
+    gitlabId,
+    gitlabGroupId,
+  }: {
+    gitlabUrl: string;
+    branch: string;
+    sourceType?: GitlabSourceType | null;
+    gitlabId?: number | null;
+    gitlabGroupId?: number | null;
+  }): string {
+    const identifier =
+      sourceType === GitlabSourceType.GROUP ? gitlabGroupId : gitlabId;
+
+    if (identifier && identifier > 0) {
+      return `${gitlabUrl}/${String(identifier)}:${branch}`;
+    }
+
+    return `${gitlabUrl}:${branch}`;
   }
 }

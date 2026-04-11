@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+  IsUUID,
+} from 'class-validator';
 
 /**
  * DTO de création de projet.
@@ -24,4 +30,12 @@ export class CreateProjectDto {
   @IsOptional()
   @IsString({ message: 'La branche doit être une chaîne de caractères' })
   branch?: string;
+
+  @ApiPropertyOptional({
+    example: '0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd',
+    description: 'Utilisateur DEVELOPER à assigner comme OWNER',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'ownerId doit être un UUID valide' })
+  ownerId?: string;
 }
