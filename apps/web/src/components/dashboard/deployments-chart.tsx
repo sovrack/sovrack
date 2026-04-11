@@ -35,7 +35,7 @@ export function DeploymentsChart({ data }: DeploymentsChartProps) {
               y1={y}
               x2={chartWidth}
               y2={y}
-              stroke="#f1f5f9"
+              stroke="#e4e7ec"
               strokeWidth={1}
             />
           );
@@ -55,7 +55,7 @@ export function DeploymentsChart({ data }: DeploymentsChartProps) {
                 width={BAR_WIDTH}
                 height={totalHeight}
                 rx={5}
-                fill="#e0e7ff"
+                fill="#dbe4ff"
               />
               {/* Success bar (foreground) */}
               {d.success > 0 && (
@@ -65,7 +65,7 @@ export function DeploymentsChart({ data }: DeploymentsChartProps) {
                   width={BAR_WIDTH}
                   height={successHeight}
                   rx={5}
-                  fill="#6366f1"
+                  fill="#465fff"
                 />
               )}
               {/* Day label */}
@@ -74,7 +74,7 @@ export function DeploymentsChart({ data }: DeploymentsChartProps) {
                 y={CHART_HEIGHT + 18}
                 textAnchor="middle"
                 fontSize={10}
-                fill="#94a3b8"
+                fill="#98a2b3"
                 fontFamily="system-ui, sans-serif"
               >
                 {d.label}
@@ -89,11 +89,11 @@ export function DeploymentsChart({ data }: DeploymentsChartProps) {
       {/* Legend */}
       <div className="mt-3 flex items-center gap-4">
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-500" />
           <span className="text-xs text-slate-500">Success</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-indigo-100" />
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-100" />
           <span className="text-xs text-slate-500">Total</span>
         </div>
       </div>

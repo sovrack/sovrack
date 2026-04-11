@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
@@ -52,7 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogout = (redirectToLogin = true) => {
+  const handleLogout = useCallback((redirectToLogin = true) => {
     clearAuthStorage();
     setToken(null);
     setUser(null);
@@ -61,9 +62,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (redirectToLogin && pathname && !pathname.startsWith('/auth/login')) {
       router.replace(LOGIN_ROUTE);
     }
-  };
+  }, [pathname, router]);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     const currentToken = getToken();
 
     if (!currentToken || isTokenExpired(currentToken)) {
@@ -83,11 +84,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [handleLogout]);
 
   useEffect(() => {
     void refreshUser();
-  }, []);
+  }, [refreshUser]);
 
   useEffect(() => {
     registerUnauthorizedHandler(() => {
@@ -112,9 +113,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       registerUnauthorizedHandler(null);
       window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized);
     };
-  }, [pathname, router]);
+  }, [handleLogout, pathname, router]);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     setError(null);
 
@@ -135,7 +136,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const logout = useCallback(() => {
+    handleLogout();
+  }, [handleLogout]);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -146,11 +155,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: Boolean(token && user),
       isAdmin: user?.role === 'ADMIN',
       login,
-      logout: () => handleLogout(),
+      logout,
       refreshUser,
-      clearError: () => setError(null),
+      clearError,
     }),
-    [token, user, loading, error],
+    [token, user, loading, error, login, logout, refreshUser, clearError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

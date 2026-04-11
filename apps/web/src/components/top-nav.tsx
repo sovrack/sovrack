@@ -2,12 +2,23 @@
 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Bell, Search, ChevronDown, LogOut, User } from 'lucide-react';
+import { useSidebar } from '@/contexts/sidebar-context';
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  User,
+  Menu,
+  X,
+} from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export function TopNav() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +37,15 @@ export function TopNav() {
     router.push('/auth/login/developer');
   };
 
+  const handleSidebarToggle = () => {
+    if (window.innerWidth >= 1024) {
+      toggleSidebar();
+      return;
+    }
+
+    toggleMobileSidebar();
+  };
+
   // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -38,74 +58,91 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-200 bg-white/95 px-4 backdrop-blur-sm lg:px-6">
-      {/* Search */}
-      <div className="hidden flex-1 sm:flex">
-        <div className="relative w-full max-w-sm">
-          <Search
-            size={15}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-          <input
-            type="text"
-            placeholder="Search projects, deployments..."
-            className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm text-slate-700 placeholder-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-          />
-        </div>
-      </div>
+    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
+      <div className="flex flex-col px-4 py-3 lg:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSidebarToggle}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white"
+              aria-label="Toggle sidebar"
+            >
+              {isMobileOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
 
-      <div className="ml-auto flex items-center gap-2">
-        {/* Notification bell */}
-        <button className="relative flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100">
-          <Bell size={18} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-indigo-500" />
-        </button>
-
-        {/* User dropdown */}
-        <div ref={dropdownRef} className="relative">
-          <button
-            onClick={() => setDropdownOpen((v) => !v)}
-            className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-1.5 pl-2 pr-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-          >
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-white">
-              {initials}
+            <div className="flex items-center gap-2">
+              <Image
+                src="/platform-brand.svg"
+                alt="platform"
+                width={118}
+                height={34}
+                priority
+              />
             </div>
-            <span className="hidden max-w-[120px] truncate sm:block">
-              {user?.fullName ?? 'User'}
-            </span>
-            <span className="hidden rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 sm:block">
-              {user?.role ?? 'DEV'}
-            </span>
-            <ChevronDown size={14} className="text-slate-400" />
-          </button>
+          </div>
 
-          {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-              <div className="border-b border-slate-100 px-4 py-2.5">
-                <p className="text-sm font-semibold text-slate-900 truncate">
-                  {user?.fullName}
-                </p>
-                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-              </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+
+            <button className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white">
+              <Bell size={18} />
+              <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-brand-500" />
+            </button>
+
+            <div ref={dropdownRef} className="relative">
               <button
-                onClick={() => {
-                  setDropdownOpen(false);
-                  router.push('/profile');
-                }}
-                className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+                onClick={() => setDropdownOpen((v) => !v)}
+                className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-sm shadow-sm transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 dark:hover:bg-slate-900"
               >
-                <User size={15} className="text-slate-400" />
-                Profile
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white">
+                  {initials}
+                </div>
+                <div className="hidden text-left md:block">
+                  <p className="max-w-[160px] truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {user?.fullName ?? 'User'}
+                  </p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                    {user?.role ?? 'DEVELOPER'}
+                  </p>
+                </div>
+                <ChevronDown size={16} className="hidden text-slate-400 md:block" />
               </button>
-              <button
-                onClick={handleLogout}
-                className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-red-600 transition hover:bg-red-50"
-              >
-                <LogOut size={15} className="text-red-400" />
-                Logout
-              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                  <div className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-slate-800">
+                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {user?.fullName}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-slate-500">
+                      {user?.email}
+                    </p>
+                  </div>
+
+                  <div className="mt-2 space-y-1">
+                    <button
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        router.push('/profile');
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      <User size={15} className="text-slate-400" />
+                      Profile
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-red-600 transition hover:bg-red-50"
+                    >
+                      <LogOut size={15} className="text-red-400" />
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </header>
