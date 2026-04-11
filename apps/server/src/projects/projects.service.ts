@@ -51,6 +51,24 @@ export class ProjectsService {
     userId: string,
     dto: CreateProjectDto,
   ): Promise<ProjectWithMembers> {
+    const ownerId = dto.ownerId ?? userId;
+
+    if (dto.ownerId) {
+      const ownerUser = await this.prisma.user.findUnique({
+        where: { id: dto.ownerId },
+      });
+
+      if (!ownerUser) {
+        throw new NotFoundException('Utilisateur owner introuvable');
+      }
+
+      if (ownerUser.role !== Role.DEVELOPER) {
+        throw new ConflictException(
+          'Le owner assigné doit avoir le rôle DEVELOPER',
+        );
+      }
+    }
+
     const project = await this.prisma.project.create({
       data: {
         name: dto.name,
@@ -59,7 +77,7 @@ export class ProjectsService {
         branch: dto.branch ?? 'main',
         members: {
           create: {
-            userId,
+            userId: ownerId,
             role: ProjectMemberRole.OWNER,
           },
         },

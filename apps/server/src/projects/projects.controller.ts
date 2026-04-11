@@ -14,8 +14,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -33,9 +36,15 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Créer un projet' })
   @ApiResponse({ status: 201, description: 'Projet créé avec succès' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({
+    status: 403,
+    description: 'Action réservée aux administrateurs',
+  })
   async create(@GetUser() user: JwtPayload, @Body() dto: CreateProjectDto) {
     return await this.projectsService.create(user.id, dto);
   }

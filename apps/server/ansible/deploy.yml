@@ -6,6 +6,9 @@
     container_name: "{{ container_name | default('deploy-app') }}"
     app_port: "{{ app_port | default(3000) }}"
     docker_image: "{{ docker_image }}"
+    registry_url: "{{ registry_url | default('') }}"
+    registry_username: "{{ registry_username | default('') }}"
+    registry_password: "{{ registry_password | default('') }}"
     domain: "{{ domain | default('') }}"
     env_vars: "{{ env_vars | default({}) }}"
 
@@ -17,6 +20,17 @@
 
     - name: Pull de la nouvelle image
       ansible.builtin.command: "docker pull {{ docker_image }}"
+      when: registry_username | length == 0 or registry_password | length == 0
+
+    - name: Connexion au registry Docker
+      ansible.builtin.command: >-
+        docker login {{ registry_url }} -u {{ registry_username }} -p {{ registry_password }}
+      when: registry_username | length > 0 and registry_password | length > 0
+      no_log: true
+
+    - name: Pull de la nouvelle image avec registry authentifie
+      ansible.builtin.command: "docker pull {{ docker_image }}"
+      when: registry_username | length > 0 and registry_password | length > 0
 
     - name: Supprimer ancien container si present
       ansible.builtin.shell: |
