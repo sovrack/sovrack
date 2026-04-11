@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { CreateProjectPayload, ProjectDetail } from '@/types/project';
+import type { UserListItem } from '@/types/user';
 
 type ProjectFormInitialValues = Partial<
   Pick<ProjectDetail, 'name' | 'description' | 'gitlabUrl' | 'branch'>
@@ -14,6 +15,9 @@ type ProjectFormProps = {
   submitLabel?: string;
   loading?: boolean;
   error?: string | null;
+  includeOwnerSelect?: boolean;
+  ownerOptions?: UserListItem[];
+  initialOwnerId?: string;
 };
 
 export function ProjectForm({
@@ -22,6 +26,9 @@ export function ProjectForm({
   submitLabel = 'Create Project',
   loading = false,
   error,
+  includeOwnerSelect = false,
+  ownerOptions = [],
+  initialOwnerId = '',
 }: ProjectFormProps) {
   const [name, setName] = useState(initialValues?.name ?? '');
   const [description, setDescription] = useState(
@@ -31,15 +38,28 @@ export function ProjectForm({
   const [branch, setBranch] = useState(
     initialValues?.branch ?? 'main',
   );
+  const [ownerId, setOwnerId] = useState(initialOwnerId);
+
+  useEffect(() => {
+    if (includeOwnerSelect) {
+      setOwnerId(initialOwnerId);
+    }
+  }, [includeOwnerSelect, initialOwnerId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit({
+    const payload: CreateProjectPayload = {
       name: name.trim(),
       description: description.trim() || undefined,
       gitlabUrl: gitlabUrl.trim(),
       branch: branch.trim() || 'main',
-    });
+    };
+
+    if (includeOwnerSelect && ownerId) {
+      payload.ownerId = ownerId;
+    }
+
+    await onSubmit(payload);
   };
 
   return (
@@ -111,9 +131,37 @@ export function ProjectForm({
         />
       </div>
 
+      {includeOwnerSelect && (
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            Project Owner
+          </label>
+          <select
+            value={ownerId}
+            onChange={(event) => setOwnerId(event.target.value)}
+            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+          >
+            <option value="">Select owner</option>
+            {ownerOptions.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.fullName} ({user.email})
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-slate-400">
+            Only developers can be assigned as project OWNER.
+          </p>
+        </div>
+      )}
+
       <button
         type="submit"
-        disabled={loading || !name.trim() || !gitlabUrl.trim()}
+        disabled={
+          loading ||
+          !name.trim() ||
+          !gitlabUrl.trim() ||
+          (includeOwnerSelect && !ownerId)
+        }
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading && <Loader2 size={16} className="animate-spin" />}

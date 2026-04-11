@@ -42,7 +42,11 @@ type AuthProviderProps = {
   children: ReactNode;
 };
 
-const LOGIN_ROUTE = '/auth/login/developer';
+const LOGIN_ROUTE = '/login';
+
+function isLoginPath(pathname: string): boolean {
+  return pathname.startsWith('/login') || pathname.startsWith('/auth/login');
+}
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter();
@@ -59,7 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null);
     setError(null);
 
-    if (redirectToLogin && pathname && !pathname.startsWith('/auth/login')) {
+    if (redirectToLogin && pathname && !isLoginPath(pathname)) {
       router.replace(LOGIN_ROUTE);
     }
   }, [pathname, router]);
@@ -94,7 +98,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     registerUnauthorizedHandler(() => {
       handleLogout(false);
 
-      if (pathname && !pathname.startsWith('/auth/login')) {
+      if (pathname && !isLoginPath(pathname)) {
         router.replace(LOGIN_ROUTE);
       }
     });
@@ -102,7 +106,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const handleUnauthorized = () => {
       handleLogout(false);
 
-      if (pathname && !pathname.startsWith('/auth/login')) {
+      if (pathname && !isLoginPath(pathname)) {
         router.replace(LOGIN_ROUTE);
       }
     };

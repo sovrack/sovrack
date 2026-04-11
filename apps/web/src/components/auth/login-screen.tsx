@@ -8,55 +8,18 @@ import { getApiErrorMessage } from '@/lib/api';
 
 const TEST_CREDENTIALS = {
   admin: {
-    email: 'admin@devops.com',
-    password: 'Admin@2025!',
+    email: process.env.NEXT_PUBLIC_TEST_ADMIN_EMAIL ?? '',
+    password: process.env.NEXT_PUBLIC_TEST_ADMIN_PASSWORD ?? '',
   },
   developer: {
-    email: 'dev@devops.com',
-    password: 'Dev@2025!',
+    email: process.env.NEXT_PUBLIC_TEST_DEV_EMAIL ?? '',
+    password: process.env.NEXT_PUBLIC_TEST_DEV_PASSWORD ?? '',
   },
 } as const;
 
-type LoginVariant = 'admin' | 'developer';
-
-type LoginScreenProps = {
-  variant: LoginVariant;
-};
-
-type RoleContent = {
-  title: string;
-  subtitle: string;
-  panelGradient: string;
-  heroPhrase: string;
-};
-
-const ROLE_CONTENT: Record<LoginVariant, RoleContent> = {
-  admin: {
-    title: 'Connexion',
-    subtitle: 'Connectez-vous a votre espace.',
-    panelGradient: 'from-[#dfe8ff] via-[#eff3ff] to-[#ffffff]',
-    heroPhrase: 'Bienvenue equipe platform',
-  },
-  developer: {
-    title: 'Connexion',
-    subtitle: 'Connectez-vous a votre espace.',
-    panelGradient: 'from-[#e0f0ff] via-[#eef7ff] to-[#ffffff]',
-    heroPhrase: 'Bienvenue equipe platform',
-  },
-};
-
-function getCredentials(variant: LoginVariant) {
-  return variant === 'admin'
-    ? TEST_CREDENTIALS.admin
-    : TEST_CREDENTIALS.developer;
-}
-
-export function LoginScreen({ variant }: LoginScreenProps) {
+export function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
-
-  const content = ROLE_CONTENT[variant];
-  const testCredentials = getCredentials(variant);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -85,10 +48,20 @@ export function LoginScreen({ variant }: LoginScreenProps) {
     await submitLogin(email, password);
   };
 
-  const handleQuickAccess = async () => {
-    setEmail(testCredentials.email);
-    setPassword(testCredentials.password);
-    await submitLogin(testCredentials.email, testCredentials.password);
+  const fillTestCredentials = (mode: 'admin' | 'developer') => {
+    const credentials =
+      mode === 'admin' ? TEST_CREDENTIALS.admin : TEST_CREDENTIALS.developer;
+
+    if (!credentials.email || !credentials.password) {
+      setError(
+        'Variables de test absentes. Configurez NEXT_PUBLIC_TEST_* dans .env.local.',
+      );
+      return;
+    }
+
+    setError('');
+    setEmail(credentials.email);
+    setPassword(credentials.password);
   };
 
   return (
@@ -97,10 +70,10 @@ export function LoginScreen({ variant }: LoginScreenProps) {
         <section className="flex items-center bg-white px-6 py-10 sm:px-10 lg:px-16 xl:px-24">
           <div className="mx-auto w-full max-w-md">
             <h1 className="text-3xl font-semibold leading-tight text-slate-900 sm:text-4xl">
-              {content.title}
+              Connexion
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-500">
-              {content.subtitle}
+              Connectez-vous a votre espace.
             </p>
 
             {error && (
@@ -118,7 +91,7 @@ export function LoginScreen({ variant }: LoginScreenProps) {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder={testCredentials.email}
+                  placeholder="vous@entreprise.com"
                   autoComplete="email"
                   required
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
@@ -149,19 +122,29 @@ export function LoginScreen({ variant }: LoginScreenProps) {
               </button>
             </form>
 
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handleQuickAccess}
-              className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Acces test
-            </button>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => fillTestCredentials('admin')}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Acces Admin Test
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => fillTestCredentials('developer')}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Acces Developer Test
+              </button>
+            </div>
           </div>
         </section>
 
         <section
-          className={`relative flex items-center justify-center overflow-hidden bg-gradient-to-br ${content.panelGradient} px-8 py-14 sm:px-12 lg:px-16`}
+          className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#e4eeff] via-[#f2f6ff] to-[#ffffff] px-8 py-14 sm:px-12 lg:px-16"
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.62),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(98,138,255,0.18),transparent_28%)]" />
           <div className="relative z-10 max-w-lg text-center">
@@ -175,7 +158,7 @@ export function LoginScreen({ variant }: LoginScreenProps) {
             />
 
             <p className="mt-10 text-center text-2xl font-medium leading-snug tracking-[-0.03em] text-slate-900 sm:text-3xl">
-              {content.heroPhrase}
+              Bienvenue equipe platform
             </p>
           </div>
         </section>

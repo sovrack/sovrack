@@ -60,9 +60,9 @@ function handleUnauthorized(): void {
 
   window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
 
-  if (!unauthorizedHandler && window.location.pathname !== '/auth/login/developer') {
+  if (!unauthorizedHandler && !window.location.pathname.startsWith('/login')) {
     const nextPath = `${window.location.pathname}${window.location.search}`;
-    window.location.href = `/auth/login/developer?next=${encodeURIComponent(nextPath)}`;
+    window.location.href = `/login?next=${encodeURIComponent(nextPath)}`;
   }
 
   window.setTimeout(() => {

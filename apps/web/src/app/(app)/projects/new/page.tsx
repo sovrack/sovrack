@@ -1,18 +1,57 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, FolderGit2 } from 'lucide-react';
 import { ProjectForm } from '@/components/projects/project-form';
 import { projectsService } from '@/services/projects.service';
+import { usersService } from '@/services/users.service';
 import { getApiErrorMessage } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 import type { CreateProjectPayload } from '@/types/project';
+import type { UserListItem } from '@/types/user';
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const { isAdmin, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [developers, setDevelopers] = useState<UserListItem[]>([]);
+
+  useEffect(() => {
+    if (!authLoading && !isAdmin) {
+      router.replace('/access-denied');
+    }
+  }, [authLoading, isAdmin, router]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setUsersLoading(false);
+      return;
+    }
+
+    const loadUsers = async () => {
+      setUsersLoading(true);
+      setError(null);
+      try {
+        const users = await usersService.getAll();
+        setDevelopers(
+          users.filter((user) => user.role === 'DEVELOPER' && user.isActive),
+        );
+      } catch (fetchError) {
+        setError(getApiErrorMessage(fetchError));
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+
+    void loadUsers();
+  }, [isAdmin]);
+
+  const ownerOptions = useMemo(() => developers, [developers]);
 
   const handleCreate = async (payload: CreateProjectPayload) => {
     setLoading(true);
@@ -26,6 +65,14 @@ export default function NewProjectPage() {
       setLoading(false);
     }
   };
+
+  if (authLoading || (!isAdmin && !authLoading) || usersLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-sm text-slate-500">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -58,6 +105,9 @@ export default function NewProjectPage() {
           submitLabel="Create Project"
           loading={loading}
           error={error}
+          includeOwnerSelect
+          ownerOptions={ownerOptions}
+          initialOwnerId={ownerOptions[0]?.id ?? ''}
         />
       </div>
 

@@ -34,7 +34,7 @@ export function TopNav() {
   const handleLogout = () => {
     setDropdownOpen(false);
     logout();
-    router.push('/auth/login/developer');
+    router.push('/login');
   };
 
   const handleSidebarToggle = () => {
