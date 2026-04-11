@@ -18,7 +18,7 @@ export default function Home() {
       return;
     }
 
-    router.replace('/auth/login/developer');
+    router.replace('/login');
   }, [isAuthenticated, loading, router]);
 
   return (

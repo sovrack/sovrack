@@ -12,6 +12,8 @@ import {
   Rocket,
   User,
   Server,
+  SquarePlus,
+  Settings,
   ChevronRight,
   LogOut,
 } from 'lucide-react';
@@ -23,7 +25,11 @@ const navItems = [
   { href: '/profile', label: 'Profile', icon: User },
 ];
 
-const adminItems = [{ href: '/admin/servers', label: 'Servers', icon: Server }];
+const adminItems = [
+  { href: '/projects/new', label: 'New Project', icon: SquarePlus },
+  { href: '/admin/servers', label: 'Servers', icon: Server },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
+];
 
 type NavItemProps = {
   href: string;

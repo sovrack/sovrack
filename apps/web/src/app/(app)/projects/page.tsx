@@ -12,11 +12,13 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useProjects } from '@/hooks/useProjects';
+import { useAuth } from '@/hooks/useAuth';
 import { ProjectCard } from '@/components/projects/project-card';
 import { ProjectsEmpty } from '@/components/projects/projects-empty';
 
 export default function ProjectsPage() {
   const { projects, loading, error, refresh } = useProjects();
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState('');
 
   const filtered = projects.filter(
@@ -50,13 +52,15 @@ export default function ProjectsPage() {
             >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
-            <Link
-              href="/projects/new"
-              className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
-            >
-              <Plus size={16} />
-              New Project
-            </Link>
+            {isAdmin && (
+              <Link
+                href="/projects/new"
+                className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
+              >
+                <Plus size={16} />
+                New Project
+              </Link>
+            )}
           </div>
         </div>
 
@@ -137,7 +141,9 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {!loading && projects.length === 0 && !error && <ProjectsEmpty />}
+      {!loading && projects.length === 0 && !error && (
+        <ProjectsEmpty canCreate={isAdmin} />
+      )}
 
       {!loading && projects.length > 0 && filtered.length === 0 && (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center shadow-theme-xs">

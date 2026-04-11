@@ -217,7 +217,7 @@ export default function DashboardPage() {
               href="/deployments"
               className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
             >
-              View all <ArrowRight size={12} />
+              View deployments <ArrowRight size={12} />
             </Link>
           </div>
           <RecentDeployments
@@ -232,18 +232,20 @@ export default function DashboardPage() {
               Quick Actions
             </h2>
             <div className="space-y-3">
-              <Link
-                href="/projects/new"
-                className="flex items-center gap-3 rounded-2xl border border-gray-200 p-4 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50">
-                  <FolderGit2 size={18} className="text-brand-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-slate-800">New Project</p>
-                  <p className="text-xs text-slate-500">Connect a GitLab repository</p>
-                </div>
-              </Link>
+              {isAdmin && (
+                <Link
+                  href="/projects/new"
+                  className="flex items-center gap-3 rounded-2xl border border-gray-200 p-4 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50">
+                    <FolderGit2 size={18} className="text-brand-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-800">New Project</p>
+                    <p className="text-xs text-slate-500">Connect a GitLab repository</p>
+                  </div>
+                </Link>
+              )}
 
               <Link
                 href="/deployments"

@@ -1,5 +1,5 @@
-import { LoginScreen } from '@/components/auth/login-screen';
+import { redirect } from 'next/navigation';
 
 export default function AdminLoginPage() {
-  return <LoginScreen variant="admin" />;
+  redirect('/login');
 }
