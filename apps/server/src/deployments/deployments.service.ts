@@ -10,14 +10,14 @@ import {
 import {
   Deployment,
   DeploymentStatus,
-  GitlabSourceType,
+  GitlabConfig,
   Prisma,
   ProjectMemberRole,
   Role,
   type User,
 } from '@prisma/client';
 import { spawn } from 'child_process';
-import { mkdtemp, rm, writeFile } from 'fs/promises';
+import { chmod, mkdtemp, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { NodeSSH } from 'node-ssh';
@@ -121,6 +121,11 @@ export class DeploymentsService {
     await this.configsService.getDecrypted(dto.projectId, actor.id, actor.role);
 
     const branch = dto.branch ?? project.branch;
+    const dockerImage = await this.buildDockerImage({
+      gitlabConfig: project.gitlabConfig,
+      projectName: project.name,
+      branch,
+    });
 
     let deployment = await this.prisma.deployment.create({
       data: {
@@ -182,13 +187,7 @@ export class DeploymentsService {
       data: {
         status: DeploymentStatus.RUNNING,
         logs: `Déploiement lancé. [PIPELINE_ID:${String(pipeline.id)}]`,
-        dockerImage: this.buildDockerImage({
-          gitlabUrl: project.gitlabConfig.gitlabUrl,
-          branch,
-          sourceType: project.gitlabConfig.sourceType,
-          gitlabId: project.gitlabConfig.gitlabId,
-          gitlabGroupId: project.gitlabConfig.gitlabGroupId,
-        }),
+        dockerImage,
       },
     });
 
@@ -315,6 +314,7 @@ export class DeploymentsService {
     const tmpPath = await mkdtemp(join(tmpdir(), 'deploy-ansible-'));
     const inventoryPath = join(tmpPath, 'inventory.ini');
     const varsPath = join(tmpPath, 'vars.json');
+    const privateKeyPath = join(tmpdir(), `deploy_key_${deployment.id}`);
 
     const playbookRoot = process.env.ANSIBLE_PLAYBOOKS_PATH ?? './ansible';
     const playbookPath = join(playbookRoot, 'deploy.yml');
@@ -323,13 +323,11 @@ export class DeploymentsService {
     const dockerImage =
       overrideImage ??
       deployment.dockerImage ??
-      this.buildDockerImage({
-        gitlabUrl: deployment.project.gitlabUrl,
+      (await this.buildDockerImage({
+        gitlabConfig: deployment.project.gitlabConfig,
+        projectName: deployment.project.name,
         branch: deployment.branch,
-        sourceType: deployment.project.gitlabConfig?.sourceType,
-        gitlabId: deployment.project.gitlabConfig?.gitlabId,
-        gitlabGroupId: deployment.project.gitlabConfig?.gitlabGroupId,
-      });
+      }));
     const registryAuth = deployment.project.gitlabConfig
       ? this.gitlabService.resolveRegistryCredentials(
           deployment.project.gitlabConfig,
@@ -354,6 +352,12 @@ export class DeploymentsService {
 
     await writeFile(inventoryPath, inventoryContent, 'utf-8');
     await writeFile(varsPath, JSON.stringify(varsContent, null, 2), 'utf-8');
+    // Cle privee ecrite en temporaire pour ansible-playbook (--private-key).
+    await writeFile(privateKeyPath, server.sshKey, {
+      encoding: 'utf-8',
+      mode: 0o600,
+    });
+    await chmod(privateKeyPath, 0o600);
 
     const currentLogs = deployment.logs ?? '';
     await this.prisma.deployment.update({
@@ -369,6 +373,7 @@ export class DeploymentsService {
         playbookPath,
         inventoryPath,
         varsPath,
+        privateKeyPath,
         deployment.id,
       );
 
@@ -420,7 +425,10 @@ export class DeploymentsService {
 
       throw new BadRequestException('Déploiement Ansible échoué');
     } finally {
-      await rm(tmpPath, { recursive: true, force: true });
+      await Promise.all([
+        rm(tmpPath, { recursive: true, force: true }),
+        rm(privateKeyPath, { force: true }),
+      ]);
     }
   }
 
@@ -566,6 +574,7 @@ export class DeploymentsService {
     playbookPath: string,
     inventoryPath: string,
     varsPath: string,
+    privateKeyPath: string,
     deploymentId: string,
   ): Promise<string> {
     return await new Promise<string>((resolve, reject) => {
@@ -573,6 +582,8 @@ export class DeploymentsService {
         playbookPath,
         '-i',
         inventoryPath,
+        '--private-key',
+        privateKeyPath,
         '--extra-vars',
         `@${varsPath}`,
       ]);
@@ -712,27 +723,68 @@ export class DeploymentsService {
       .slice(0, 40);
   }
 
-  // Compose une image Docker cohérente pour REPO et GROUP.
-  private buildDockerImage({
-    gitlabUrl,
+  // Compose une image Docker valide (registry/path:tag) pour REPO et GROUP.
+  private async buildDockerImage({
+    gitlabConfig,
+    projectName,
     branch,
-    sourceType,
-    gitlabId,
-    gitlabGroupId,
   }: {
-    gitlabUrl: string;
+    gitlabConfig?: GitlabConfig | null;
+    projectName: string;
     branch: string;
-    sourceType?: GitlabSourceType | null;
-    gitlabId?: number | null;
-    gitlabGroupId?: number | null;
-  }): string {
-    const identifier =
-      sourceType === GitlabSourceType.GROUP ? gitlabGroupId : gitlabId;
-
-    if (identifier && identifier > 0) {
-      return `${gitlabUrl}/${String(identifier)}:${branch}`;
+  }): Promise<string> {
+    if (!gitlabConfig) {
+      return `${this.slugify(projectName)}:${this.sanitizeDockerTag(branch)}`;
     }
 
-    return `${gitlabUrl}:${branch}`;
+    const registryHost = this.resolveRegistryHost(
+      gitlabConfig.registryUrl,
+      gitlabConfig.gitlabUrl,
+    );
+    const repositoryPath = await this.gitlabService.resolveRepositoryPath(
+      gitlabConfig,
+      this.slugify(projectName),
+    );
+    const tag = this.sanitizeDockerTag(branch);
+
+    return `${registryHost}/${repositoryPath}:${tag}`;
+  }
+
+  private sanitizeDockerTag(value: string): string {
+    const sanitized = value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    return sanitized || 'latest';
+  }
+
+  private resolveRegistryHost(
+    registryUrl: string | null | undefined,
+    gitlabUrl: string,
+  ): string {
+    if (registryUrl && registryUrl.trim()) {
+      return this.cleanRegistryHost(registryUrl);
+    }
+
+    try {
+      const parsed = new URL(gitlabUrl);
+      if (parsed.port) {
+        return parsed.host;
+      }
+      return `${parsed.hostname}:5050`;
+    } catch {
+      const fallback = this.cleanRegistryHost(gitlabUrl);
+      return fallback.includes(':') ? fallback : `${fallback}:5050`;
+    }
+  }
+
+  private cleanRegistryHost(value: string): string {
+    return value
+      .trim()
+      .replace(/^https?:\/\//i, '')
+      .replace(/^registry\./i, 'registry.')
+      .replace(/\/+$/, '');
   }
 }

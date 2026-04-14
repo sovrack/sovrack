@@ -43,6 +43,11 @@ export class AuthService {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
 
+    // Bloque explicitement les comptes desactives.
+    if (!user.isActive) {
+      throw new UnauthorizedException('Compte désactivé');
+    }
+
     // Générer le token JWT
     const access_token = this.generateToken(user);
 

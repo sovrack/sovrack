@@ -4,18 +4,50 @@ import { PrismaClient, Role } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
+  const adminEmail = 'admin@devops.com';
+  const developerEmail = 'dev@devops.com';
+  const platformKeys = ['GITLAB_URL', 'GITLAB_TOKEN', 'PLATFORM_NAME'];
+
+  // Nettoyage global: on supprime les données de test/projet/serveur
+  // pour repartir d'une base minimale et stable.
+  await prisma.$transaction([
+    prisma.deployment.deleteMany(),
+    prisma.pipeline.deleteMany(),
+    prisma.config.deleteMany(),
+    prisma.environment.deleteMany(),
+    prisma.gitlabConfig.deleteMany(),
+    prisma.projectMember.deleteMany(),
+    prisma.project.deleteMany(),
+    prisma.server.deleteMany(),
+    prisma.platformConfig.deleteMany({
+      where: {
+        key: {
+          notIn: platformKeys,
+        },
+      },
+    }),
+    prisma.user.deleteMany({
+      where: {
+        email: {
+          notIn: [adminEmail, developerEmail],
+        },
+      },
+    }),
+  ]);
+
   const adminPassword = await bcrypt.hash('Admin@2025!', 10);
   const developerPassword = await bcrypt.hash('Dev@2025!', 10);
 
   await prisma.user.upsert({
-    where: { email: 'admin@devops.com' },
+    where: { email: adminEmail },
     update: {
+      password: adminPassword,
       fullName: 'Administrator',
       role: Role.ADMIN,
       isActive: true,
     },
     create: {
-      email: 'admin@devops.com',
+      email: adminEmail,
       password: adminPassword,
       fullName: 'Administrator',
       role: Role.ADMIN,
@@ -24,14 +56,15 @@ async function main(): Promise<void> {
   });
 
   await prisma.user.upsert({
-    where: { email: 'dev@devops.com' },
+    where: { email: developerEmail },
     update: {
+      password: developerPassword,
       fullName: 'John Developer',
       role: Role.DEVELOPER,
       isActive: true,
     },
     create: {
-      email: 'dev@devops.com',
+      email: developerEmail,
       password: developerPassword,
       fullName: 'John Developer',
       role: Role.DEVELOPER,
