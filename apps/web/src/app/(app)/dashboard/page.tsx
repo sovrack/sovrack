@@ -16,6 +16,8 @@ import {
   Shield,
   Activity,
   GitBranch,
+  Users,
+  UserCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -115,7 +117,11 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div
+        className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${
+          isAdmin ? 'xl:grid-cols-6' : 'xl:grid-cols-4'
+        }`}
+      >
         <StatsCard
           title="Projects"
           value={loading ? '–' : stats.projects}
@@ -134,6 +140,24 @@ export default function DashboardPage() {
             stats.deployments > 0 ? { value: 8, direction: 'up' } : undefined
           }
         />
+        {isAdmin && (
+          <StatsCard
+            title="Utilisateurs"
+            value={loading ? '–' : stats.usersTotal}
+            hint="Comptes enregistrés"
+            tone="brand"
+            icon={Users}
+          />
+        )}
+        {isAdmin && (
+          <StatsCard
+            title="Devs Actifs"
+            value={loading ? '–' : stats.activeDevelopers}
+            hint="Développeurs actifs"
+            tone="ok"
+            icon={UserCheck}
+          />
+        )}
         <StatsCard
           title="Servers"
           value={loading ? '–' : stats.servers}
@@ -277,6 +301,22 @@ export default function DashboardPage() {
                     <p className="font-medium text-slate-800">Manage Servers</p>
                     <p className="text-xs text-slate-500">
                       Register and verify a target machine
+                    </p>
+                  </div>
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  href="/admin/users"
+                  className="flex items-center gap-3 rounded-2xl border border-gray-200 p-4 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50">
+                    <Users size={18} className="text-brand-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-800">Gérer les utilisateurs</p>
+                    <p className="text-xs text-slate-500">
+                      Activer, modifier ou supprimer un compte
                     </p>
                   </div>
                 </Link>

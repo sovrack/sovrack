@@ -9,3 +9,16 @@ export type UserListItem = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type CreateUserPayload = {
+  fullName: string;
+  email: string;
+  password: string;
+  role: UserRole;
+};
+
+export type UpdateUserPayload = {
+  fullName?: string;
+  role?: UserRole;
+  isActive?: boolean;
+};

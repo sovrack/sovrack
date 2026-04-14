@@ -17,6 +17,8 @@ type DashboardStats = {
   deployments: number;
   servers: number | 'N/A';
   successRate: number;
+  usersTotal: number | 'N/A';
+  activeDevelopers: number | 'N/A';
 };
 
 type DashboardData = {
@@ -67,6 +69,12 @@ type ApiDeployment = {
   };
 };
 
+type ApiUser = {
+  id: string;
+  role: 'ADMIN' | 'DEVELOPER';
+  isActive: boolean;
+};
+
 function toRecentDeployment(d: ApiDeployment): RecentDeployment {
   return {
     id: d.id,
@@ -88,6 +96,8 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
     deployments: 0,
     servers: isAdmin ? 0 : 'N/A',
     successRate: 0,
+    usersTotal: isAdmin ? 0 : 'N/A',
+    activeDevelopers: isAdmin ? 0 : 'N/A',
   });
   const [recentDeployments, setRecentDeployments] = useState<RecentDeployment[]>([]);
   const [deploymentsChart, setDeploymentsChart] = useState<DayData[]>(
@@ -99,12 +109,15 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
     setError(null);
 
     try {
-      const [projectsRes, deploymentsRes, serversRes] = await Promise.all([
+      const [projectsRes, deploymentsRes, serversRes, usersRes] = await Promise.all([
         apiClient.get<unknown[]>('/projects'),
         apiClient.get<ApiDeployment[]>('/deployments'),
         isAdmin
           ? apiClient.get<unknown[]>('/servers')
           : Promise.resolve({ data: [] as unknown[] }),
+        isAdmin
+          ? apiClient.get<ApiUser[]>('/users')
+          : Promise.resolve({ data: [] as ApiUser[] }),
       ]);
 
       const projects = Array.isArray(projectsRes.data) ? projectsRes.data : [];
@@ -114,6 +127,11 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
       const servers = isAdmin
         ? Array.isArray(serversRes.data)
           ? serversRes.data
+          : []
+        : [];
+      const users = isAdmin
+        ? Array.isArray(usersRes.data)
+          ? usersRes.data
           : []
         : [];
 
@@ -129,6 +147,11 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
         deployments: deployments.length,
         servers: isAdmin ? servers.length : 'N/A',
         successRate,
+        usersTotal: isAdmin ? users.length : 'N/A',
+        activeDevelopers: isAdmin
+          ? users.filter((item) => item.role === 'DEVELOPER' && item.isActive)
+              .length
+          : 'N/A',
       });
 
       // Recent: last 5 deployments sorted by date desc
