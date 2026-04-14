@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import type { RecentDeployment, DeploymentStatus } from '@/components/dashboard/recent-deployments';
 
@@ -23,6 +24,7 @@ type DashboardData = {
   recentDeployments: RecentDeployment[];
   deploymentsChart: DayData[];
   loading: boolean;
+  error: string | null;
 };
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -80,6 +82,7 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
   const { isAdmin } = useAuth();
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     projects: 0,
     deployments: 0,
@@ -93,6 +96,7 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
+    setError(null);
 
     try {
       const [projectsRes, deploymentsRes, serversRes] = await Promise.all([
@@ -137,8 +141,8 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
 
       // Chart: last 7 days
       setDeploymentsChart(buildChartData(deployments));
-    } catch {
-      // API unavailable — keep zeros, no crash
+    } catch (err) {
+      setError(getApiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -148,5 +152,12 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
     void fetchStats();
   }, [fetchStats]);
 
-  return { stats, recentDeployments, deploymentsChart, loading, refresh: fetchStats };
+  return {
+    stats,
+    recentDeployments,
+    deploymentsChart,
+    loading,
+    error,
+    refresh: fetchStats,
+  };
 }

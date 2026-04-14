@@ -196,7 +196,7 @@ export default function ConfigsPage({ params }: Props) {
                         <div className="space-y-1">
                           <div>***</div>
                           <p className="font-sans text-xs text-slate-500">
-                            Secret chiffre - modifiez pour changer.
+                            Secret chiffré — modifiez pour changer.
                           </p>
                         </div>
                       ) : cfg.isSecret && !isRevealed ? (

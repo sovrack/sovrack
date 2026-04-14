@@ -21,11 +21,16 @@ import Link from 'next/link';
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
-  const { stats, recentDeployments, deploymentsChart, loading, refresh } =
+  const { stats, recentDeployments, deploymentsChart, loading, error, refresh } =
     useDashboardStats();
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
       <section className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-theme-xs">
         <div className="grid gap-0 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
           <div className="px-6 py-7 md:px-8">
