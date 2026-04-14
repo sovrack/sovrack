@@ -75,7 +75,7 @@ export class DeploymentsGateway implements OnGatewayConnection {
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);
       // Stocker l'utilisateur décodé pour usage ultérieur dans les événements.
-      client.data.user = payload;
+      (client.data as { user: JwtPayload }).user = payload;
       this.logger.debug(
         `WebSocket: connexion acceptée — user ${payload.email} (id: ${client.id})`,
       );
