@@ -316,7 +316,7 @@ export class DeploymentsService {
     const tmpPath = await mkdtemp(join(tmpdir(), 'deploy-ansible-'));
     const inventoryPath = join(tmpPath, 'inventory.ini');
     const varsPath = join(tmpPath, 'vars.json');
-    const privateKeyPath = join(tmpdir(), `deploy_key_${deployment.id}`);
+    const privateKeyPath = `/tmp/deploy_key_${deployment.id}`;
 
     const playbookRoot = process.env.ANSIBLE_PLAYBOOKS_PATH ?? './ansible';
     const playbookPath = join(playbookRoot, 'deploy.yml');
