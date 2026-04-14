@@ -436,7 +436,18 @@ export class DeploymentsService {
     userId: string,
     userRole: Role,
   ): Promise<DeploymentWithRelations[]> {
-    const where = userRole === Role.ADMIN ? undefined : { userId };
+    const where: Prisma.DeploymentWhereInput | undefined =
+      userRole === Role.ADMIN
+        ? undefined
+        : {
+            project: {
+              members: {
+                some: {
+                  userId,
+                },
+              },
+            },
+          };
 
     return await this.prisma.deployment.findMany({
       where,
