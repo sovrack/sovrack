@@ -187,11 +187,23 @@ export default function ConfigsPage({ params }: Props) {
             <tbody className="divide-y divide-slate-100">
               {configs.map((cfg) => {
                 const isRevealed = revealedIds.has(cfg.id);
+                const isMaskedSecret = cfg.isSecret && cfg.value === '***';
                 return (
                   <tr key={cfg.id} className="hover:bg-slate-50 transition">
                     <td className="px-5 py-3.5 font-mono text-sm font-semibold text-slate-900">{cfg.key}</td>
                     <td className="px-5 py-3.5 font-mono text-sm text-slate-600 max-w-xs truncate">
-                      {cfg.isSecret && !isRevealed ? '••••••••••••' : cfg.value}
+                      {isMaskedSecret ? (
+                        <div className="space-y-1">
+                          <div>***</div>
+                          <p className="font-sans text-xs text-slate-500">
+                            Secret chiffre - modifiez pour changer.
+                          </p>
+                        </div>
+                      ) : cfg.isSecret && !isRevealed ? (
+                        '••••••••••••'
+                      ) : (
+                        cfg.value
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       {cfg.isSecret ? (
@@ -202,7 +214,7 @@ export default function ConfigsPage({ params }: Props) {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1">
-                        {isAdmin && cfg.isSecret && (
+                        {isAdmin && cfg.isSecret && !isMaskedSecret && (
                           <button onClick={() => toggleReveal(cfg.id)}
                             className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
                             {isRevealed ? <EyeOff size={14} /> : <Eye size={14} />}

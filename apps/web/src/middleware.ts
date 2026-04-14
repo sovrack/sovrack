@@ -3,9 +3,9 @@ import type { NextRequest } from 'next/server';
 
 const AUTH_COOKIE_NAME = 'devops_platform_token';
 
-const PUBLIC_PATHS = [
+const PUBLIC_PATHS = ['/login'];
+const LEGACY_LOGIN_ALIASES = [
   '/auth/login',
-  '/login',
   '/auth/login/admin',
   '/auth/login/developer',
   '/login/admin',
@@ -21,6 +21,10 @@ function isPublicPath(pathname: string): boolean {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+
+  if (LEGACY_LOGIN_ALIASES.includes(pathname)) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 
   if (
     pathname.startsWith('/_next') ||
