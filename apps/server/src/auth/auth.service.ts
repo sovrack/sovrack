@@ -45,7 +45,7 @@ export class AuthService {
 
     // Bloque explicitement les comptes desactives.
     if (!user.isActive) {
-      throw new UnauthorizedException('Compte désactivé');
+      throw new UnauthorizedException('Votre compte est désactivé');
     }
 
     // Générer le token JWT
