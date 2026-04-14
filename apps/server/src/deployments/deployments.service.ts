@@ -11,6 +11,7 @@ import {
   Deployment,
   DeploymentStatus,
   GitlabConfig,
+  GitlabSourceType,
   Prisma,
   ProjectMemberRole,
   Role,
@@ -124,6 +125,7 @@ export class DeploymentsService {
     const dockerImage = await this.buildDockerImage({
       gitlabConfig: project.gitlabConfig,
       projectName: project.name,
+      projectGitlabUrl: project.gitlabUrl,
       branch,
     });
 
@@ -738,10 +740,12 @@ export class DeploymentsService {
   private async buildDockerImage({
     gitlabConfig,
     projectName,
+    projectGitlabUrl,
     branch,
   }: {
     gitlabConfig?: GitlabConfig | null;
     projectName: string;
+    projectGitlabUrl?: string | null;
     branch: string;
   }): Promise<string> {
     if (!gitlabConfig) {
@@ -752,10 +756,18 @@ export class DeploymentsService {
       gitlabConfig.registryUrl,
       gitlabConfig.gitlabUrl,
     );
-    const repositoryPath = await this.gitlabService.resolveRepositoryPath(
+    const resolvedPath = await this.gitlabService.resolveRepositoryPath(
       gitlabConfig,
       this.slugify(projectName),
     );
+    const fallbackPathFromUrl = this.extractRepositoryPathFromProjectUrl(
+      projectGitlabUrl,
+    );
+    const repositoryPath =
+      fallbackPathFromUrl &&
+      this.isPlaceholderRepositoryPath(gitlabConfig, resolvedPath)
+        ? fallbackPathFromUrl
+        : resolvedPath;
     const tag = this.sanitizeDockerTag(branch);
 
     return `${registryHost}/${repositoryPath}:${tag}`;
@@ -781,6 +793,9 @@ export class DeploymentsService {
 
     try {
       const parsed = new URL(gitlabUrl);
+      if (parsed.hostname.toLowerCase() === 'gitlab.com') {
+        return 'registry.gitlab.com';
+      }
       if (parsed.port) {
         return parsed.host;
       }
@@ -795,7 +810,52 @@ export class DeploymentsService {
     return value
       .trim()
       .replace(/^https?:\/\//i, '')
-      .replace(/^registry\./i, 'registry.')
       .replace(/\/+$/, '');
+  }
+
+  private extractRepositoryPathFromProjectUrl(
+    projectGitlabUrl?: string | null,
+  ): string | null {
+    if (!projectGitlabUrl?.trim()) {
+      return null;
+    }
+
+    try {
+      const parsed = new URL(projectGitlabUrl);
+      const path = parsed.pathname
+        .replace(/^\/+/, '')
+        .replace(/\/+$/, '')
+        .replace(/\.git$/i, '');
+
+      return path || null;
+    } catch {
+      const cleaned = projectGitlabUrl
+        .trim()
+        .replace(/^https?:\/\//i, '')
+        .replace(/^[^/]+\/?/, '')
+        .replace(/\/+$/, '')
+        .replace(/\.git$/i, '');
+
+      return cleaned || null;
+    }
+  }
+
+  private isPlaceholderRepositoryPath(
+    config: GitlabConfig,
+    repositoryPath: string,
+  ): boolean {
+    if (
+      config.sourceType === GitlabSourceType.REPO &&
+      config.gitlabId &&
+      repositoryPath.startsWith(`project-${String(config.gitlabId)}/`)
+    ) {
+      return true;
+    }
+
+    return Boolean(
+      config.sourceType === GitlabSourceType.GROUP &&
+        config.gitlabGroupId &&
+        repositoryPath.startsWith(`group-${String(config.gitlabGroupId)}/`),
+    );
   }
 }
