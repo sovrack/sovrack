@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Server, type Prisma } from '@prisma/client';
+import * as CryptoJS from 'crypto-js';
 import { NodeSSH } from 'node-ssh';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateServerDto } from './dto/create-server.dto';
@@ -28,7 +30,8 @@ export class ServersService {
         host: dto.host,
         port: dto.port ?? 22,
         username: dto.username ?? 'ubuntu',
-        sshKey: dto.sshKey,
+        // Chiffrement AES de la clé SSH avant stockage en base.
+        sshKey: this.encrypt(dto.sshKey),
       },
     });
 
@@ -64,16 +67,20 @@ export class ServersService {
       dto.username !== undefined ||
       dto.sshKey !== undefined;
 
+    // Construction explicite pour chiffrer sshKey si elle est mise à jour.
     const data: Prisma.ServerUpdateInput = {
-      ...dto,
-      ...(resetVerification
-        ? {
-            isVerified: false,
-            hasDocker: false,
-            hasAnsible: false,
-            hasRunner: false,
-          }
-        : {}),
+      ...(dto.name !== undefined && { name: dto.name }),
+      ...(dto.host !== undefined && { host: dto.host }),
+      ...(dto.port !== undefined && { port: dto.port }),
+      ...(dto.username !== undefined && { username: dto.username }),
+      ...(dto.sshKey !== undefined && { sshKey: this.encrypt(dto.sshKey) }),
+      ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      ...(resetVerification && {
+        isVerified: false,
+        hasDocker: false,
+        hasAnsible: false,
+        hasRunner: false,
+      }),
     };
 
     const updated = await this.prisma.server.update({
@@ -112,7 +119,8 @@ export class ServersService {
         host: server.host,
         port: server.port,
         username: server.username,
-        privateKey: server.sshKey,
+        // Déchiffrement de la clé SSH stockée en AES avant connexion.
+        privateKey: this.decrypt(server.sshKey),
         readyTimeout: 10000,
       });
 
@@ -162,7 +170,8 @@ export class ServersService {
         host: server.host,
         port: server.port,
         username: server.username,
-        privateKey: server.sshKey,
+        // Déchiffrement de la clé SSH stockée en AES avant connexion.
+        privateKey: this.decrypt(server.sshKey),
         readyTimeout: 10000,
       });
 
@@ -208,7 +217,8 @@ export class ServersService {
         host: server.host,
         port: server.port,
         username: server.username,
-        privateKey: server.sshKey,
+        // Déchiffrement de la clé SSH stockée en AES avant connexion.
+        privateKey: this.decrypt(server.sshKey),
         readyTimeout: 10000,
       });
 
@@ -258,5 +268,31 @@ export class ServersService {
     const { sshKey, ...publicServer } = server;
     void sshKey;
     return publicServer;
+  }
+
+  // Chiffre une valeur en AES-256 avec CONFIG_SECRET.
+  private encrypt(value: string): string {
+    const secret = process.env.CONFIG_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new InternalServerErrorException(
+        'CONFIG_SECRET doit contenir au moins 32 caractères',
+      );
+    }
+    return CryptoJS.AES.encrypt(value, secret).toString();
+  }
+
+  // Déchiffre une valeur AES-256 avec CONFIG_SECRET.
+  // Compatibilité ascendante : si le déchiffrement échoue, retourne la valeur brute.
+  private decrypt(encryptedValue: string): string {
+    const secret = process.env.CONFIG_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new InternalServerErrorException(
+        'CONFIG_SECRET doit contenir au moins 32 caractères',
+      );
+    }
+    const decrypted = CryptoJS.AES.decrypt(encryptedValue, secret).toString(
+      CryptoJS.enc.Utf8,
+    );
+    return decrypted || encryptedValue;
   }
 }

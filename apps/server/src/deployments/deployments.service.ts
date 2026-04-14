@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
   forwardRef,
@@ -17,6 +18,7 @@ import {
   Role,
   type User,
 } from '@prisma/client';
+import * as CryptoJS from 'crypto-js';
 import { spawn } from 'child_process';
 import { chmod, mkdtemp, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
@@ -296,7 +298,8 @@ export class DeploymentsService {
         host: server.host,
         port: server.port,
         username: server.username,
-        privateKey: server.sshKey,
+        // Déchiffrement de la clé SSH chiffrée en AES en base avant connexion.
+        privateKey: this.decryptSshKey(server.sshKey),
         readyTimeout: 10000,
       });
     } catch {
@@ -354,8 +357,8 @@ export class DeploymentsService {
 
     await writeFile(inventoryPath, inventoryContent, 'utf-8');
     await writeFile(varsPath, JSON.stringify(varsContent, null, 2), 'utf-8');
-    // Cle privee ecrite en temporaire pour ansible-playbook (--private-key).
-    await writeFile(privateKeyPath, server.sshKey, {
+    // Clé privée déchiffrée et écrite en temporaire pour ansible-playbook (--private-key).
+    await writeFile(privateKeyPath, this.decryptSshKey(server.sshKey), {
       encoding: 'utf-8',
       mode: 0o600,
     });
@@ -857,5 +860,20 @@ export class DeploymentsService {
         config.gitlabGroupId &&
         repositoryPath.startsWith(`group-${String(config.gitlabGroupId)}/`),
     );
+  }
+
+  // Déchiffre la clé SSH AES-256 stockée en base.
+  // Compatibilité ascendante : si le déchiffrement échoue, retourne la valeur brute.
+  private decryptSshKey(encryptedValue: string): string {
+    const secret = process.env.CONFIG_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new InternalServerErrorException(
+        'CONFIG_SECRET doit contenir au moins 32 caractères',
+      );
+    }
+    const decrypted = CryptoJS.AES.decrypt(encryptedValue, secret).toString(
+      CryptoJS.enc.Utf8,
+    );
+    return decrypted || encryptedValue;
   }
 }
