@@ -62,6 +62,19 @@ type RegistryCredentials = {
   password: string;
 };
 
+type GitlabProjectSummary = {
+  path_with_namespace?: string;
+  path?: string;
+  namespace?: {
+    full_path?: string;
+  };
+};
+
+type GitlabGroupSummary = {
+  full_path?: string;
+  path?: string;
+};
+
 type GitlabRepoItem = Record<string, unknown>;
 
 @Injectable()
@@ -403,10 +416,22 @@ export class GitlabService {
     }
 
     const projectId = this.extractWebhookProjectId(payload);
+    const groupId = this.extractWebhookGroupId(payload);
+    const lookupIds = Array.from(
+      new Set([projectId, groupId].filter((id): id is number => id !== null)),
+    );
 
-    if (projectId !== null) {
+    if (lookupIds.length > 0) {
       const config = await this.prisma.gitlabConfig.findFirst({
-        where: { gitlabId: projectId },
+        where: {
+          OR: lookupIds.flatMap((id) => [
+            { gitlabId: id },
+            {
+              sourceType: GitlabSourceType.GROUP,
+              gitlabGroupId: id,
+            },
+          ]),
+        },
       });
 
       if (config?.webhookSecret) {
@@ -442,6 +467,86 @@ export class GitlabService {
       username,
       password,
     };
+  }
+
+  // Résout un chemin de repository utilisable pour construire une image Docker.
+  async resolveRepositoryPath(
+    config: GitlabConfig,
+    fallbackProjectSlug: string,
+  ): Promise<string> {
+    const normalizedFallback = this.normalizeRepositoryPath(fallbackProjectSlug);
+
+    if (config.sourceType === GitlabSourceType.REPO && config.gitlabId) {
+      const gitlabToken = this.decryptConfigToken(config.gitlabToken);
+
+      try {
+        const response = await firstValueFrom(
+          this.httpService.get<GitlabProjectSummary>(
+            `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}`,
+            {
+              headers: {
+                'PRIVATE-TOKEN': gitlabToken,
+              },
+            },
+          ),
+        );
+
+        const fullPath = response.data.path_with_namespace;
+        if (typeof fullPath === 'string' && fullPath.trim()) {
+          return this.normalizeRepositoryPath(fullPath);
+        }
+
+        const namespacePath = response.data.namespace?.full_path;
+        const repoPath = response.data.path;
+        if (
+          typeof namespacePath === 'string' &&
+          namespacePath.trim() &&
+          typeof repoPath === 'string' &&
+          repoPath.trim()
+        ) {
+          return this.normalizeRepositoryPath(`${namespacePath}/${repoPath}`);
+        }
+      } catch {
+        // Fallback silencieux: on conserve un chemin stable.
+      }
+
+      return `project-${String(config.gitlabId)}/${normalizedFallback}`;
+    }
+
+    if (config.sourceType === GitlabSourceType.GROUP && config.gitlabGroupId) {
+      const gitlabToken = this.decryptConfigToken(config.gitlabToken);
+
+      try {
+        const response = await firstValueFrom(
+          this.httpService.get<GitlabGroupSummary>(
+            `${this.normalizeUrl(config.gitlabUrl)}/api/v4/groups/${encodeURIComponent(String(config.gitlabGroupId))}`,
+            {
+              headers: {
+                'PRIVATE-TOKEN': gitlabToken,
+              },
+            },
+          ),
+        );
+
+        const groupPath =
+          typeof response.data.full_path === 'string' &&
+          response.data.full_path.trim()
+            ? response.data.full_path
+            : response.data.path;
+
+        if (typeof groupPath === 'string' && groupPath.trim()) {
+          return this.normalizeRepositoryPath(
+            `${groupPath}/${normalizedFallback}`,
+          );
+        }
+      } catch {
+        // Fallback silencieux: on conserve un chemin stable.
+      }
+
+      return `group-${String(config.gitlabGroupId)}/${normalizedFallback}`;
+    }
+
+    return normalizedFallback;
   }
 
   private async upsertPipeline(
@@ -615,6 +720,44 @@ export class GitlabService {
     }
 
     return null;
+  }
+
+  private extractWebhookGroupId(
+    payload?: Record<string, unknown>,
+  ): number | null {
+    if (!payload) {
+      return null;
+    }
+
+    const groupId = payload.group_id;
+    if (typeof groupId === 'number') {
+      return groupId;
+    }
+
+    if (payload.project && typeof payload.project === 'object') {
+      const project = payload.project as Record<string, unknown>;
+
+      if (typeof project.namespace_id === 'number') {
+        return project.namespace_id;
+      }
+
+      if (project.namespace && typeof project.namespace === 'object') {
+        const namespace = project.namespace as Record<string, unknown>;
+        if (typeof namespace.id === 'number') {
+          return namespace.id;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeRepositoryPath(value: string): string {
+    return value
+      .trim()
+      .replace(/^\/+/, '')
+      .replace(/\/+$/, '')
+      .replace(/\.git$/i, '');
   }
 
   private extractRegistryUrl(gitlabUrl: string): string {

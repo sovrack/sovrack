@@ -2,23 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 
-function resolveSocketOrigins(): string[] {
-  const envOrigins = [
-    process.env.FRONTEND_URLS,
-    process.env.FRONTEND_URL,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .flatMap((value) => value.split(','))
-    .map((value) => value.trim())
-    .filter((value) => value.length > 0);
-
-  if (envOrigins.length > 0) {
-    return Array.from(new Set(envOrigins));
-  }
-
-  return ['http://localhost:3000', 'http://localhost:3002'];
-}
-
 type DeploymentLogLevel = 'info' | 'error' | 'success';
 
 type DeploymentStartedPayload = {
@@ -51,7 +34,7 @@ type DeploymentFinishedPayload = {
 @Injectable()
 @WebSocketGateway({
   namespace: '/deployments',
-  cors: { origin: resolveSocketOrigins() },
+  cors: { origin: process.env.FRONTEND_URL || 'http://localhost:3000' },
 })
 export class DeploymentsGateway {
   @WebSocketServer()
