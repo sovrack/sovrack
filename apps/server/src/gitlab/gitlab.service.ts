@@ -34,8 +34,15 @@ type GitlabPipelineItem = {
 type GitlabWebhookPayload = {
   object_kind?: string;
   event_name?: string;
+  group_id?: number;
   project_id?: number;
-  project?: { id?: number };
+  project?: {
+    id?: number;
+    namespace_id?: number;
+    namespace?: {
+      id?: number;
+    };
+  };
   object_attributes?: {
     id?: number;
     status?: string;
@@ -337,17 +344,36 @@ export class GitlabService {
       return { status: 'ignored' };
     }
 
-    const gitlabProjectId = payload.project_id ?? payload.project?.id;
+    const gitlabProjectId = payload.project_id ?? payload.project?.id ?? null;
+    const gitlabGroupId = this.extractWebhookGroupId(
+      payload as Record<string, unknown>,
+    );
     const pipelineId = payload.object_attributes?.id;
 
-    if (!gitlabProjectId || !pipelineId) {
+    if (!pipelineId || (!gitlabProjectId && !gitlabGroupId)) {
       return { status: 'ignored' };
     }
 
     const config = await this.prisma.gitlabConfig.findFirst({
       where: {
-        sourceType: GitlabSourceType.REPO,
-        gitlabId: gitlabProjectId,
+        OR: [
+          ...(gitlabProjectId
+            ? [
+                {
+                  sourceType: GitlabSourceType.REPO,
+                  gitlabId: gitlabProjectId,
+                },
+              ]
+            : []),
+          ...(gitlabGroupId
+            ? [
+                {
+                  sourceType: GitlabSourceType.GROUP,
+                  gitlabGroupId,
+                },
+              ]
+            : []),
+        ],
       },
     });
 
@@ -425,7 +451,10 @@ export class GitlabService {
       const config = await this.prisma.gitlabConfig.findFirst({
         where: {
           OR: lookupIds.flatMap((id) => [
-            { gitlabId: id },
+            {
+              sourceType: GitlabSourceType.REPO,
+              gitlabId: id,
+            },
             {
               sourceType: GitlabSourceType.GROUP,
               gitlabGroupId: id,
