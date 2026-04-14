@@ -42,19 +42,39 @@ export class PlatformConfigService {
   async set(
     key: string,
     value: string,
-    isSecret: boolean,
+    isSecret?: boolean,
   ): Promise<PlatformConfigPublic> {
-    const storedValue = isSecret ? this.encrypt(value) : value;
+    const existing = await this.prisma.platformConfig.findUnique({
+      where: { key },
+    });
+
+    // Si le client ne précise pas isSecret, on conserve l'état actuel.
+    const nextIsSecret = isSecret ?? existing?.isSecret ?? false;
+    const isMaskedValue = value === '***';
+
+    let valueToPersist = value;
+
+    if (existing?.isSecret && isMaskedValue) {
+      if (nextIsSecret) {
+        valueToPersist = existing.value;
+      } else {
+        // Conversion explicite secret -> non secret: on stocke la valeur déchiffrée.
+        valueToPersist = this.decrypt(existing.value);
+      }
+    } else if (nextIsSecret) {
+      valueToPersist = this.encrypt(value);
+    }
+
     const saved = await this.prisma.platformConfig.upsert({
       where: { key },
       update: {
-        value: storedValue,
-        isSecret,
+        value: valueToPersist,
+        isSecret: nextIsSecret,
       },
       create: {
         key,
-        value: storedValue,
-        isSecret,
+        value: valueToPersist,
+        isSecret: nextIsSecret,
       },
     });
 
