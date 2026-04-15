@@ -9,7 +9,12 @@ import { environmentsService } from '@/services/environments.service';
 import { deploymentsService } from '@/services/deployments.service';
 import { useAuth } from '@/hooks/useAuth';
 import { getApiErrorMessage } from '@/lib/api';
-import type { ProjectListItem, GitlabBranch } from '@/types/project';
+import type {
+  ProjectListItem,
+  GitlabBranch,
+  GitlabConfig,
+  GitlabRepo,
+} from '@/types/project';
 import type { Environment } from '@/types/environment';
 
 export default function NewDeploymentPage() {
@@ -19,20 +24,25 @@ export default function NewDeploymentPage() {
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [branches, setBranches] = useState<GitlabBranch[]>([]);
+  const [groupRepos, setGroupRepos] = useState<GitlabRepo[]>([]);
+  const [gitlabConfig, setGitlabConfig] = useState<GitlabConfig | null>(null);
 
   const [projectId, setProjectId] = useState('');
   const [environmentId, setEnvironmentId] = useState('');
   const [branch, setBranch] = useState('');
+  const [selectedRepoId, setSelectedRepoId] = useState('');
 
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [loadingEnvs, setLoadingEnvs] = useState(false);
   const [loadingBranches, setLoadingBranches] = useState(false);
+  const [loadingRepos, setLoadingRepos] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [envError, setEnvError] = useState<string | null>(null);
   const [branchError, setBranchError] = useState<string | null>(null);
+  const [repoError, setRepoError] = useState<string | null>(null);
 
   // Load projects on mount
   useEffect(() => {
@@ -45,45 +55,178 @@ export default function NewDeploymentPage() {
       .finally(() => setLoadingProjects(false));
   }, []);
 
-  // Load environments + branches when project changes
+  // Load environments + GitLab config/repositories when project changes
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) {
+      return;
+    }
+
+    let isCancelled = false;
+
     setEnvironments([]);
     setBranches([]);
+    setGroupRepos([]);
+    setGitlabConfig(null);
     setEnvironmentId('');
     setBranch('');
+    setSelectedRepoId('');
     setEnvError(null);
     setBranchError(null);
+    setRepoError(null);
 
     setLoadingEnvs(true);
     environmentsService.getAll(projectId)
       .then((envs) => {
+        if (isCancelled) {
+          return;
+        }
         setEnvironments(envs);
         setEnvError(null);
         if (envs.length > 0) setEnvironmentId(envs[0].id);
       })
       .catch((err) => {
+        if (isCancelled) {
+          return;
+        }
         setEnvError(getApiErrorMessage(err));
       })
       .finally(() => setLoadingEnvs(false));
 
+    projectsService.getGitlabConfig(projectId)
+      .then(async (config) => {
+        if (isCancelled) {
+          return;
+        }
+
+        setGitlabConfig(config);
+
+        if (config.sourceType === 'GROUP') {
+          setLoadingRepos(true);
+          try {
+            const repos = await projectsService.getRepos(projectId);
+            if (isCancelled) {
+              return;
+            }
+            setGroupRepos(repos);
+            setRepoError(null);
+
+            if (repos.length > 0) {
+              const firstRepoId = repos[0]?.id;
+              setSelectedRepoId(
+                Number.isFinite(firstRepoId) ? String(firstRepoId) : '',
+              );
+            } else {
+              setSelectedRepoId('');
+              setBranchError(
+                'Aucun repository disponible dans ce groupe GitLab.',
+              );
+            }
+          } catch (repoErr) {
+            if (isCancelled) {
+              return;
+            }
+            setRepoError(getApiErrorMessage(repoErr));
+          } finally {
+            if (!isCancelled) {
+              setLoadingRepos(false);
+            }
+          }
+          return;
+        }
+
+        setLoadingBranches(true);
+        projectsService.getBranches(projectId)
+          .then((list) => {
+            if (isCancelled) {
+              return;
+            }
+            setBranches(list);
+            setBranchError(null);
+            const def = list.find((b) => b.default);
+            setBranch(def?.name ?? list[0]?.name ?? '');
+          })
+          .catch((err) => {
+            if (isCancelled) {
+              return;
+            }
+            // GitLab might not be connected — fallback to project default branch
+            const proj = projects.find((p) => p.id === projectId);
+            if (proj?.branch) setBranch(proj.branch);
+            setBranchError(getApiErrorMessage(err));
+          })
+          .finally(() => {
+            if (!isCancelled) {
+              setLoadingBranches(false);
+            }
+          });
+      })
+      .catch(() => {
+        if (isCancelled) {
+          return;
+        }
+        const proj = projects.find((p) => p.id === projectId);
+        if (proj?.branch) {
+          setBranch(proj.branch);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [projectId, projects]);
+
+  // Load branches from selected GROUP repository
+  useEffect(() => {
+    if (!projectId || gitlabConfig?.sourceType !== 'GROUP') {
+      return;
+    }
+
+    if (!selectedRepoId) {
+      setBranches([]);
+      setBranch('');
+      setBranchError('Sélectionner le repository à déployer.');
+      return;
+    }
+
+    let isCancelled = false;
+    const parsedRepoId = Number(selectedRepoId);
+    if (!Number.isInteger(parsedRepoId) || parsedRepoId <= 0) {
+      setBranches([]);
+      setBranch('');
+      setBranchError('Repository GitLab invalide.');
+      return;
+    }
+
     setLoadingBranches(true);
-    projectsService.getBranches(projectId)
+    setBranchError(null);
+    projectsService
+      .getBranches(projectId, parsedRepoId)
       .then((list) => {
+        if (isCancelled) {
+          return;
+        }
         setBranches(list);
-        setBranchError(null);
-        const def = list.find((b) => b.default);
+        const def = list.find((item) => item.default);
         setBranch(def?.name ?? list[0]?.name ?? '');
       })
       .catch((err) => {
-        // GitLab might not be connected — fallback to project default branch
-        const proj = projects.find((p) => p.id === projectId);
-        if (proj?.branch) setBranch(proj.branch);
+        if (isCancelled) {
+          return;
+        }
+        setBranches([]);
+        setBranch('');
         setBranchError(getApiErrorMessage(err));
       })
-      .finally(() => setLoadingBranches(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+      .finally(() => {
+        if (!isCancelled) {
+          setLoadingBranches(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [projectId, selectedRepoId, gitlabConfig?.sourceType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +234,17 @@ export default function NewDeploymentPage() {
       setFormError('Please select a project and environment.');
       return;
     }
+
+    const isGroupDeployment = gitlabConfig?.sourceType === 'GROUP';
+    const parsedRepoId = Number(selectedRepoId);
+    if (
+      isGroupDeployment &&
+      (!Number.isInteger(parsedRepoId) || parsedRepoId <= 0)
+    ) {
+      setFormError('Sélectionner le repository à déployer.');
+      return;
+    }
+
     setSubmitting(true);
     setFormError(null);
     try {
@@ -98,6 +252,7 @@ export default function NewDeploymentPage() {
         projectId,
         environmentId,
         branch: branch || undefined,
+        repoId: isGroupDeployment ? parsedRepoId : undefined,
       });
       router.push(`/deployments/${dep.id}`);
     } catch (err) {
@@ -105,6 +260,8 @@ export default function NewDeploymentPage() {
       setSubmitting(false);
     }
   };
+
+  const isGroupSource = gitlabConfig?.sourceType === 'GROUP';
 
   return (
     <div className="space-y-6">
@@ -196,6 +353,42 @@ export default function NewDeploymentPage() {
               )}
             </div>
 
+            {isGroupSource && (
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+                  Repository <span className="text-red-400">*</span>
+                </label>
+                <p className="mb-2 text-xs text-amber-700">
+                  Sélectionner le repository à déployer.
+                </p>
+                {loadingRepos ? (
+                  <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
+                ) : groupRepos.length === 0 ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                    Aucun repository trouvé dans ce groupe GitLab.
+                  </div>
+                ) : (
+                  <select
+                    value={selectedRepoId}
+                    onChange={(e) => setSelectedRepoId(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  >
+                    <option value="">Select repository</option>
+                    {groupRepos.map((repo) => (
+                      <option key={repo.id} value={String(repo.id)}>
+                        {repo.path_with_namespace ?? repo.name ?? `Repo ${String(repo.id)}`}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {repoError && (
+                  <p className="mt-2 text-xs text-red-600">
+                    {repoError}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Branch */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
@@ -212,13 +405,34 @@ export default function NewDeploymentPage() {
                     </option>
                   ))}
                 </select>
+              ) : isGroupSource ? (
+                <input
+                  type="text"
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                  placeholder={
+                    selectedRepoId
+                      ? 'Branch not found, enter manually'
+                      : 'Select repository first'
+                  }
+                  disabled={!selectedRepoId}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                />
               ) : (
                 <input type="text" value={branch} onChange={(e) => setBranch(e.target.value)}
                   placeholder="main"
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
               )}
               <p className="mt-1 text-xs text-slate-400">
-                {branches.length === 0 ? 'GitLab not connected — enter branch name manually.' : 'Select from your GitLab branches.'}
+                {isGroupSource
+                  ? selectedRepoId
+                    ? branches.length === 0
+                      ? 'Aucune branche chargée, vous pouvez la saisir manuellement.'
+                      : 'Branches chargées depuis le repository sélectionné.'
+                    : 'Sélectionner le repository à déployer.'
+                  : branches.length === 0
+                    ? 'GitLab not connected — enter branch name manually.'
+                    : 'Select from your GitLab branches.'}
               </p>
               {branchError && (
                 <p className="mt-2 text-xs text-red-600">
@@ -233,7 +447,7 @@ export default function NewDeploymentPage() {
                 className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-center text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                 Cancel
               </Link>
-              <button type="submit" disabled={submitting || !projectId || !environmentId}
+              <button type="submit" disabled={submitting || !projectId || !environmentId || (isGroupSource && !selectedRepoId)}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60">
                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <Rocket size={15} />}
                 {submitting ? 'Launching…' : 'Launch Deployment'}

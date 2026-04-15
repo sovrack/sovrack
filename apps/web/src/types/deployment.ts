@@ -40,6 +40,7 @@ export type CreateDeploymentPayload = {
   projectId: string;
   environmentId: string;
   branch?: string;
+  repoId?: number;
 };
 
 export type LogLevel = 'info' | 'error' | 'success';

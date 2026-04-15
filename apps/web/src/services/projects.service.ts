@@ -75,9 +75,12 @@ export const projectsService = {
   },
 
   /** Get GitLab branches for a project */
-  async getBranches(projectId: string): Promise<GitlabBranch[]> {
+  async getBranches(projectId: string, repoId?: number): Promise<GitlabBranch[]> {
     const res = await api.get<GitlabBranch[]>(
       `/projects/${projectId}/gitlab/branches`,
+      {
+        params: repoId ? { repoId } : undefined,
+      },
     );
     return res.data;
   },
