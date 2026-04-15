@@ -1,11 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Role } from '@prisma/client';
 import {
+  ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { PrismaService } from '../../prisma/prisma.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 
 type DeploymentLogLevel = 'info' | 'error' | 'success';
@@ -37,6 +42,10 @@ type DeploymentFinishedPayload = {
   finishedAt?: Date | null;
 };
 
+type JoinDeploymentPayload = {
+  deploymentId?: string;
+};
+
 @Injectable()
 @WebSocketGateway({
   namespace: '/deployments',
@@ -48,7 +57,10 @@ export class DeploymentsGateway implements OnGatewayConnection {
   @WebSocketServer()
   server!: Server;
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // Vérifie le token JWT à chaque nouvelle connexion WebSocket.
   // Les clients sans token valide sont immédiatement déconnectés.
@@ -87,19 +99,89 @@ export class DeploymentsGateway implements OnGatewayConnection {
     }
   }
 
+  @SubscribeMessage('join:deployment')
+  async handleJoinDeployment(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: JoinDeploymentPayload,
+  ): Promise<{ ok: boolean; deploymentId?: string; error?: string }> {
+    const deploymentId = payload?.deploymentId?.trim();
+    if (!deploymentId) {
+      const message = 'deploymentId manquant';
+      client.emit('deployment:error', { message });
+      return { ok: false, error: message };
+    }
+
+    const user = (client.data as { user?: JwtPayload }).user;
+    if (!user) {
+      const message = 'Utilisateur non authentifié';
+      client.emit('deployment:error', { deploymentId, message });
+      return { ok: false, deploymentId, error: message };
+    }
+
+    const hasAccess = await this.canAccessDeployment(user, deploymentId);
+    if (!hasAccess) {
+      const message = 'Accès non autorisé à ce déploiement';
+      client.emit('deployment:error', { deploymentId, message });
+      return { ok: false, deploymentId, error: message };
+    }
+
+    await client.join(this.roomName(deploymentId));
+    client.emit('deployment:joined', { deploymentId });
+    return { ok: true, deploymentId };
+  }
+
   emitStarted(payload: DeploymentStartedPayload): void {
-    this.server.emit('deployment:started', payload);
+    this.server
+      .to(this.roomName(payload.deploymentId))
+      .emit('deployment:started', payload);
   }
 
   emitLog(payload: DeploymentLogPayload): void {
-    this.server.emit('deployment:log', payload);
+    this.server.to(this.roomName(payload.deploymentId)).emit('deployment:log', payload);
   }
 
   emitStatus(payload: DeploymentStatusPayload): void {
-    this.server.emit('deployment:status', payload);
+    this.server
+      .to(this.roomName(payload.deploymentId))
+      .emit('deployment:status', payload);
   }
 
   emitFinished(payload: DeploymentFinishedPayload): void {
-    this.server.emit('deployment:finished', payload);
+    this.server
+      .to(this.roomName(payload.deploymentId))
+      .emit('deployment:finished', payload);
+  }
+
+  private roomName(deploymentId: string): string {
+    return `deployment:${deploymentId}`;
+  }
+
+  private async canAccessDeployment(
+    user: JwtPayload,
+    deploymentId: string,
+  ): Promise<boolean> {
+    if (user.role === Role.ADMIN) {
+      return true;
+    }
+
+    const deployment = await this.prisma.deployment.findUnique({
+      where: { id: deploymentId },
+      select: { projectId: true },
+    });
+    if (!deployment) {
+      return false;
+    }
+
+    const member = await this.prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId: deployment.projectId,
+          userId: user.id,
+        },
+      },
+      select: { id: true },
+    });
+
+    return Boolean(member);
   }
 }

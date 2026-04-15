@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   Optional,
   forwardRef,
@@ -95,6 +96,8 @@ type GitlabRepoItem = {
 
 @Injectable()
 export class GitlabService {
+  private readonly logger = new Logger(GitlabService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
@@ -466,6 +469,17 @@ export class GitlabService {
         if (token === expectedSecret) {
           return;
         }
+        throw new ForbiddenException('Token webhook GitLab invalide');
+      }
+
+      if (config) {
+        if (process.env.GITLAB_TOKEN && token === process.env.GITLAB_TOKEN) {
+          this.logger.warn(
+            `Webhook secret non configuré pour le projet ${config.projectId}; fallback GITLAB_TOKEN utilisé.`,
+          );
+          return;
+        }
+
         throw new ForbiddenException('Token webhook GitLab invalide');
       }
     }
