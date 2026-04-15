@@ -58,6 +58,13 @@ class RegisterRunnerDto {
   token!: string;
 }
 
+class InstallKeyDto {
+  @ApiProperty({ example: 'MyTempPassword123!' })
+  @IsString({ message: 'Le mot de passe doit être une chaîne de caractères' })
+  @IsNotEmpty({ message: 'password est obligatoire' })
+  password!: string;
+}
+
 @ApiTags('Servers')
 @ApiBearerAuth()
 @Controller('servers')
@@ -167,6 +174,22 @@ export class ServersController {
       dto.gitlabUrl,
       dto.token,
     );
+  }
+
+  @Post(':id/install-key')
+  @ApiOperation({
+    summary: 'Installer la clé publique SSH via mot de passe temporaire',
+  })
+  @ApiResponse({ status: 201, description: 'Clé SSH installée et validée' })
+  @ApiResponse({
+    status: 400,
+    description: 'Installation de clé impossible pour ce serveur',
+  })
+  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
+  @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
+  async installKey(@Param('id') id: string, @Body() dto: InstallKeyDto) {
+    return await this.serversService.installPublicKey(id, dto.password);
   }
 
   @Get(':id/jobs')

@@ -48,7 +48,7 @@ export class UpdateServerDto {
 
   @ApiPropertyOptional({ example: '10.0.0.5' })
   @IsOptional()
-  @IsString({ message: "Le bastionHost doit être une chaîne de caractères" })
+  @IsString({ message: 'Le bastionHost doit être une chaîne de caractères' })
   bastionHost?: string;
 
   @ApiPropertyOptional({ example: 22 })
@@ -59,12 +59,16 @@ export class UpdateServerDto {
 
   @ApiPropertyOptional({ example: 'ubuntu' })
   @IsOptional()
-  @IsString({ message: 'Le bastionUsername doit être une chaîne de caractères' })
+  @IsString({
+    message: 'Le bastionUsername doit être une chaîne de caractères',
+  })
   bastionUsername?: string;
 
   @ApiPropertyOptional({ example: '-----BEGIN OPENSSH PRIVATE KEY-----...' })
   @IsOptional()
-  @IsString({ message: 'La clé bastionSshKey doit être une chaîne de caractères' })
+  @IsString({
+    message: 'La clé bastionSshKey doit être une chaîne de caractères',
+  })
   bastionSshKey?: string;
 
   @ApiPropertyOptional({ example: true })

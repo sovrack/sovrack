@@ -6,7 +6,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  ValidateIf,
 } from 'class-validator';
 
 export enum ServerVerificationMode {
@@ -44,11 +43,11 @@ export class CreateServerDto {
 
   @ApiPropertyOptional({
     example: '-----BEGIN OPENSSH PRIVATE KEY-----...',
-    description: 'Requise pour les modes ssh/bastion, optionnelle en mode agent',
+    description:
+      'Optionnelle. Si absente, la plateforme génère automatiquement une paire de clés SSH',
   })
+  @IsOptional()
   @IsString({ message: 'La clé SSH doit être une chaîne de caractères' })
-  @ValidateIf((dto: CreateServerDto) => dto.connectionMode !== ServerConnectionModeDto.AGENT)
-  @IsNotEmpty({ message: 'La clé SSH est obligatoire' })
   sshKey?: string;
 
   @ApiPropertyOptional({
@@ -76,7 +75,7 @@ export class CreateServerDto {
 
   @ApiPropertyOptional({ example: '10.0.0.5' })
   @IsOptional()
-  @IsString({ message: "Le bastionHost doit être une chaîne de caractères" })
+  @IsString({ message: 'Le bastionHost doit être une chaîne de caractères' })
   bastionHost?: string;
 
   @ApiPropertyOptional({ example: 22 })
@@ -87,11 +86,15 @@ export class CreateServerDto {
 
   @ApiPropertyOptional({ example: 'ubuntu' })
   @IsOptional()
-  @IsString({ message: 'Le bastionUsername doit être une chaîne de caractères' })
+  @IsString({
+    message: 'Le bastionUsername doit être une chaîne de caractères',
+  })
   bastionUsername?: string;
 
   @ApiPropertyOptional({ example: '-----BEGIN OPENSSH PRIVATE KEY-----...' })
   @IsOptional()
-  @IsString({ message: 'La clé bastionSshKey doit être une chaîne de caractères' })
+  @IsString({
+    message: 'La clé bastionSshKey doit être une chaîne de caractères',
+  })
   bastionSshKey?: string;
 }

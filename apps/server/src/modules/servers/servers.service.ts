@@ -13,7 +13,12 @@ import {
   ServerJobType,
 } from '@prisma/client';
 import * as CryptoJS from 'crypto-js';
-import { randomBytes } from 'crypto';
+import {
+  createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync,
+  randomBytes,
+} from 'crypto';
 import { NodeSSH } from 'node-ssh';
 import type { Duplex } from 'stream';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -64,6 +69,7 @@ export class ServersService {
   async create(dto: CreateServerDto): Promise<CreateServerResult> {
     const connectionMode = this.mapConnectionMode(dto.connectionMode);
     const normalizedSshKey = dto.sshKey?.trim();
+    const sshMaterial = this.resolveSshMaterial(normalizedSshKey);
 
     if (connectionMode === ServerConnectionMode.BASTION) {
       this.assertBastionConfig(
@@ -71,10 +77,6 @@ export class ServersService {
         dto.bastionUsername,
         dto.bastionSshKey,
       );
-    }
-
-    if (connectionMode !== ServerConnectionMode.AGENT && !normalizedSshKey) {
-      throw new BadRequestException('La clé SSH est obligatoire');
     }
 
     const agentBootstrapToken =
@@ -88,9 +90,8 @@ export class ServersService {
         host: dto.host,
         port: dto.port ?? 22,
         username: dto.username ?? 'ubuntu',
-        sshKey: this.encrypt(
-          normalizedSshKey || '__AGENT_MODE_NO_DIRECT_SSH_KEY__',
-        ),
+        sshKey: this.encrypt(sshMaterial.privateKey),
+        sshPublicKey: sshMaterial.publicKey,
         connectionMode,
         bastionHost: dto.bastionHost,
         bastionPort: dto.bastionPort,
@@ -186,7 +187,9 @@ export class ServersService {
         bastionUsername: dto.bastionUsername || null,
       }),
       ...(dto.bastionSshKey !== undefined && {
-        bastionSshKey: dto.bastionSshKey ? this.encrypt(dto.bastionSshKey) : null,
+        bastionSshKey: dto.bastionSshKey
+          ? this.encrypt(dto.bastionSshKey)
+          : null,
       }),
       ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       ...(dto.isVerified !== undefined && { isVerified: dto.isVerified }),
@@ -271,7 +274,10 @@ export class ServersService {
     const job = await this.createJob(server.id, ServerJobType.VERIFY);
 
     if (server.connectionMode === ServerConnectionMode.AGENT) {
-      await this.markJobAgentPending(job.id, 'Vérification en attente de l’agent');
+      await this.markJobAgentPending(
+        job.id,
+        'Vérification en attente de l’agent',
+      );
       return this.toPublic(server);
     }
 
@@ -291,16 +297,127 @@ export class ServersService {
       runner: tools?.runner ?? true,
     };
 
-    const job = await this.createJob(server.id, ServerJobType.INSTALL_TOOLS, payload);
+    const job = await this.createJob(
+      server.id,
+      ServerJobType.INSTALL_TOOLS,
+      payload,
+    );
 
     if (server.connectionMode === ServerConnectionMode.AGENT) {
-      await this.markJobAgentPending(job.id, 'Installation en attente de l’agent');
+      await this.markJobAgentPending(
+        job.id,
+        'Installation en attente de l’agent',
+      );
       return this.toPublic(server);
     }
 
     return await this.executeJobWithRetry(job, async () => {
       return await this.installToolsDirect(id, payload);
     });
+  }
+
+  async installPublicKey(
+    id: string,
+    password: string,
+  ): Promise<{ success: true; message: string }> {
+    const server = await this.getServerById(id);
+
+    if (server.connectionMode !== ServerConnectionMode.SSH) {
+      throw new BadRequestException(
+        'Installation de clé par mot de passe disponible uniquement en mode SSH direct',
+      );
+    }
+
+    const normalizedPassword = password.trim();
+    if (!normalizedPassword) {
+      throw new BadRequestException(
+        'Le mot de passe temporaire est obligatoire',
+      );
+    }
+
+    const publicKey = server.sshPublicKey?.trim();
+    if (!publicKey) {
+      throw new BadRequestException(
+        'Clé publique introuvable pour ce serveur. Regénérez une paire SSH.',
+      );
+    }
+
+    const setupConnection = new NodeSSH();
+    try {
+      await setupConnection.connect({
+        host: server.host,
+        port: server.port,
+        username: server.username,
+        password: normalizedPassword,
+        readyTimeout: 10_000,
+      });
+
+      await this.execOrThrow(
+        setupConnection,
+        'mkdir -p ~/.ssh',
+        'Échec création du dossier ~/.ssh',
+      );
+      await this.execOrThrow(
+        setupConnection,
+        'chmod 700 ~/.ssh',
+        'Échec chmod 700 ~/.ssh',
+      );
+      await this.execOrThrow(
+        setupConnection,
+        'touch ~/.ssh/authorized_keys',
+        'Échec création du fichier authorized_keys',
+      );
+
+      const escapedPublicKey = this.shellQuote(publicKey);
+      await this.execOrThrow(
+        setupConnection,
+        `grep -qxF ${escapedPublicKey} ~/.ssh/authorized_keys || echo ${escapedPublicKey} >> ~/.ssh/authorized_keys`,
+        'Échec ajout de la clé publique dans authorized_keys',
+      );
+
+      await this.execOrThrow(
+        setupConnection,
+        'chmod 600 ~/.ssh/authorized_keys',
+        'Échec chmod 600 ~/.ssh/authorized_keys',
+      );
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      throw new BadRequestException(
+        'Connexion SSH par mot de passe échouée. Vérifiez host/port/username/password.',
+      );
+    } finally {
+      setupConnection.dispose();
+    }
+
+    const keyConnection = new NodeSSH();
+    try {
+      await keyConnection.connect({
+        host: server.host,
+        port: server.port,
+        username: server.username,
+        privateKey: this.decrypt(server.sshKey),
+        readyTimeout: 10_000,
+      });
+    } catch {
+      throw new BadRequestException(
+        'La clé a été installée mais la connexion SSH par clé a échoué',
+      );
+    } finally {
+      keyConnection.dispose();
+    }
+
+    await this.prisma.server.update({
+      where: { id },
+      data: { isVerified: true },
+    });
+
+    return {
+      success: true,
+      message: 'Clé installée et connexion SSH vérifiée',
+    };
   }
 
   async registerRunner(
@@ -333,7 +450,9 @@ export class ServersService {
     try {
       const docker = await connection.target.execCommand('docker --version');
       const ansible = await connection.target.execCommand('ansible --version');
-      const runner = await connection.target.execCommand('gitlab-runner --version');
+      const runner = await connection.target.execCommand(
+        'gitlab-runner --version',
+      );
 
       const updated = await this.prisma.server.update({
         where: { id },
@@ -757,7 +876,9 @@ export class ServersService {
     return ServerConnectionMode.AGENT;
   }
 
-  private toConnectionModeDto(mode: ServerConnectionMode): ServerConnectionModeDto {
+  private toConnectionModeDto(
+    mode: ServerConnectionMode,
+  ): ServerConnectionModeDto {
     if (mode === ServerConnectionMode.SSH) {
       return ServerConnectionModeDto.SSH;
     }
@@ -810,6 +931,97 @@ export class ServersService {
     const { payload, ...publicJob } = job;
     void payload;
     return publicJob;
+  }
+
+  // Retourne une paire SSH exploitable:
+  // - clé privée PEM (PKCS8) pour la connexion SSH
+  // - clé publique OpenSSH pour authorized_keys
+  private resolveSshMaterial(providedPrivateKey?: string): {
+    privateKey: string;
+    publicKey: string;
+  } {
+    if (providedPrivateKey) {
+      return {
+        privateKey: providedPrivateKey,
+        publicKey: this.deriveOpenSshPublicKey(providedPrivateKey),
+      };
+    }
+
+    const { privateKey, publicKey } = generateKeyPairSync('ed25519', {
+      publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem',
+      },
+      privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem',
+      },
+    });
+
+    return {
+      privateKey,
+      publicKey: this.convertPublicKeyPemToOpenSsh(publicKey),
+    };
+  }
+
+  private deriveOpenSshPublicKey(privateKeyPem: string): string {
+    try {
+      const privateKeyObject = createPrivateKey(privateKeyPem);
+      const publicKeyObject = createPublicKey(privateKeyObject);
+      const publicKeyDer = publicKeyObject.export({
+        type: 'spki',
+        format: 'der',
+      }) as Buffer;
+
+      return this.convertSpkiDerToOpenSsh(publicKeyDer);
+    } catch {
+      throw new BadRequestException(
+        'Clé privée SSH invalide: impossible de dériver la clé publique',
+      );
+    }
+  }
+
+  private convertPublicKeyPemToOpenSsh(publicKeyPem: string): string {
+    const publicKeyObject = createPublicKey(publicKeyPem);
+    const publicKeyDer = publicKeyObject.export({
+      type: 'spki',
+      format: 'der',
+    }) as Buffer;
+
+    return this.convertSpkiDerToOpenSsh(publicKeyDer);
+  }
+
+  // Convertit une clé publique Ed25519 SPKI DER en format authorized_keys.
+  private convertSpkiDerToOpenSsh(publicKeyDer: Buffer): string {
+    const ed25519SpkiPrefix = Buffer.from([
+      0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
+    ]);
+
+    if (
+      publicKeyDer.length !== 44 ||
+      !publicKeyDer
+        .subarray(0, ed25519SpkiPrefix.length)
+        .equals(ed25519SpkiPrefix)
+    ) {
+      throw new BadRequestException(
+        'Format de clé publique Ed25519 non supporté',
+      );
+    }
+
+    const rawPublicKey = publicKeyDer.subarray(ed25519SpkiPrefix.length);
+    const keyType = Buffer.from('ssh-ed25519', 'utf8');
+    const keyBlob = Buffer.concat([
+      this.encodeSshField(keyType),
+      this.encodeSshField(rawPublicKey),
+    ]);
+
+    return `ssh-ed25519 ${keyBlob.toString('base64')}`;
+  }
+
+  private encodeSshField(value: Buffer): Buffer {
+    const size = Buffer.alloc(4);
+    size.writeUInt32BE(value.length, 0);
+    return Buffer.concat([size, value]);
   }
 
   private encrypt(value: string): string {

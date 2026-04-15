@@ -150,6 +150,7 @@ model Server {
   port               Int                  @default(22)
   username           String               @default("ubuntu")
   sshKey             String
+  sshPublicKey       String?              @db.Text
   connectionMode     ServerConnectionMode @default(SSH)
   bastionHost        String?
   bastionPort        Int?
