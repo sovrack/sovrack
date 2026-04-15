@@ -43,6 +43,28 @@ enum GitlabSourceType {
   GROUP
 }
 
+enum ServerConnectionMode {
+  SSH
+  BASTION
+  AGENT
+}
+
+enum ServerJobType {
+  VERIFY
+  INSTALL_TOOLS
+  REGISTER_RUNNER
+}
+
+enum ServerJobStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  TIMEOUT
+  BLOCKED
+  AGENT_PENDING
+}
+
 model User {
   id          String       @id @default(uuid())
   email       String       @unique
@@ -122,20 +144,49 @@ model Pipeline {
 }
 
 model Server {
-  id        String        @id @default(uuid())
-  name      String
-  host      String
-  port      Int           @default(22)
-  username  String        @default("ubuntu")
-  sshKey    String
-  isActive  Boolean       @default(true)
-  isVerified Boolean      @default(false)
-  hasDocker Boolean       @default(false)
-  hasAnsible Boolean      @default(false)
-  hasRunner Boolean       @default(false)
+  id                 String               @id @default(uuid())
+  name               String
+  host               String
+  port               Int                  @default(22)
+  username           String               @default("ubuntu")
+  sshKey             String
+  connectionMode     ServerConnectionMode @default(SSH)
+  bastionHost        String?
+  bastionPort        Int?
+  bastionUsername    String?
+  bastionSshKey      String?
+  agentTokenHash     String?
+  agentLastSeenAt    DateTime?
+  isActive           Boolean              @default(true)
+  isVerified         Boolean              @default(false)
+  hasDocker          Boolean              @default(false)
+  hasAnsible         Boolean              @default(false)
+  hasRunner          Boolean              @default(false)
   environments Environment[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  jobs               ServerJob[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+}
+
+model ServerJob {
+  id          String          @id @default(uuid())
+  server      Server          @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId    String
+  type        ServerJobType
+  status      ServerJobStatus @default(PENDING)
+  payload     Json?
+  output      String?
+  error       String?
+  attempts    Int             @default(0)
+  maxAttempts Int             @default(3)
+  timeoutMs   Int             @default(45000)
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([serverId, status])
+  @@index([createdAt])
 }
 
 model Environment {

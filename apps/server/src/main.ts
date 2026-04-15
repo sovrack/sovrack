@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import type { NextFunction, Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 
 function resolveAllowedOrigins(): string[] {
   const envOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
@@ -21,8 +23,37 @@ function resolveAllowedOrigins(): string[] {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Validation globale
-  app.useGlobalPipes(new ValidationPipe());
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const startedAt = Date.now();
+    const incomingRequestId = req.headers['x-request-id'];
+    const requestId =
+      (typeof incomingRequestId === 'string' && incomingRequestId.trim()) ||
+      randomUUID();
+
+    req.headers['x-request-id'] = requestId;
+    res.setHeader('x-request-id', requestId);
+
+    res.on('finish', () => {
+      const durationMs = Date.now() - startedAt;
+      const line =
+        `[req:${requestId}] ` +
+        `${req.method} ${req.originalUrl} -> ${String(res.statusCode)} ` +
+        `${String(durationMs)}ms`;
+      console.log(line);
+    });
+
+    next();
+  });
+
+  // Validation globale stricte (sécurité + DTOs prévisibles)
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
 
   // CORS pour le frontend
   app.enableCors({ origin: resolveAllowedOrigins() });
