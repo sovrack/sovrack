@@ -15,6 +15,16 @@ import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { ProjectCard } from '@/components/projects/project-card';
 import { ProjectsEmpty } from '@/components/projects/projects-empty';
+import type { ProjectListItem } from '@/types/project';
+
+function isProjectGitlabConnected(project: ProjectListItem): boolean {
+  const hasGitlabConfig = project.hasGitlabConfig ?? false;
+  const hasSourceIdentifier =
+    typeof project.gitlabId === 'number' ||
+    typeof project.gitlabGroupId === 'number';
+
+  return hasGitlabConfig && hasSourceIdentifier;
+}
 
 export default function ProjectsPage() {
   const { projects, loading, error, refresh } = useProjects();
@@ -26,6 +36,12 @@ export default function ProjectsPage() {
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.description ?? '').toLowerCase().includes(search.toLowerCase()),
   );
+  const gitlabConnectedCount = projects.filter(isProjectGitlabConnected).length;
+  const readyForDeployCount = projects.filter(
+    (project) =>
+      isProjectGitlabConnected(project) &&
+      (project.environmentCount ?? 0) > 0,
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -77,7 +93,7 @@ export default function ProjectsPage() {
               GitLab connected
             </div>
             <p className="mt-1 text-2xl font-semibold text-blue-800">
-              {projects.filter((p) => Boolean(p.gitlabId)).length}
+              {gitlabConnectedCount}
             </p>
           </div>
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
@@ -86,7 +102,7 @@ export default function ProjectsPage() {
               Ready for deploy
             </div>
             <p className="mt-1 text-2xl font-semibold text-emerald-800">
-              {projects.filter((p) => Boolean(p.gitlabId)).length}
+              {readyForDeployCount}
             </p>
           </div>
         </div>

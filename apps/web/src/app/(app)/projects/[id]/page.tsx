@@ -750,47 +750,53 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
               </div>
 
               {gitlabConfig.sourceType === 'GROUP' ? (
-                <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                  <div className="mb-4 flex items-center justify-between">
-                    <h4 className="text-sm font-semibold text-slate-900">
-                      Group Repositories
-                    </h4>
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                      {repos.length} repos
-                    </span>
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                    Ce projet est connecté à un groupe GitLab. Sélectionnez un
+                    repository lors du déploiement.
                   </div>
-                  <div className="space-y-2">
-                    {repos.length === 0 && (
-                      <p className="text-sm text-slate-500">
-                        No repositories found in this group.
-                      </p>
-                    )}
-                    {repos.slice(0, 10).map((repo) => (
-                      <div
-                        key={repo.id}
-                        className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2"
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">
-                            {repo.name}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {repo.path_with_namespace ?? ''}
-                          </p>
+                  <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-slate-900">
+                        Group Repositories
+                      </h4>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                        {repos.length} repos
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {repos.length === 0 && (
+                        <p className="text-sm text-slate-500">
+                          No repositories found in this group.
+                        </p>
+                      )}
+                      {repos.slice(0, 10).map((repo) => (
+                        <div
+                          key={repo.id}
+                          className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">
+                              {repo.name}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {repo.path_with_namespace ?? ''}
+                            </p>
+                          </div>
+                          {repo.web_url && (
+                            <a
+                              href={repo.web_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700"
+                            >
+                              Open
+                              <ExternalLink size={12} />
+                            </a>
+                          )}
                         </div>
-                        {repo.web_url && (
-                          <a
-                            href={repo.web_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700"
-                          >
-                            Open
-                            <ExternalLink size={12} />
-                          </a>
-                        )}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : (

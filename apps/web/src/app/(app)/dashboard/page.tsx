@@ -21,10 +21,51 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+function toPercent(value: number, total: number): number {
+  if (total <= 0) {
+    return 0;
+  }
+
+  return Math.round((value / total) * 100);
+}
+
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
   const { stats, recentDeployments, deploymentsChart, loading, error, refresh } =
     useDashboardStats();
+
+  const totalServers = typeof stats.servers === 'number' ? stats.servers : 0;
+  const verifiedServers =
+    typeof stats.verifiedServers === 'number' ? stats.verifiedServers : 0;
+  const serverVerificationRate = toPercent(verifiedServers, totalServers);
+  const gitlabConnectionRate = toPercent(
+    stats.gitlabConnectedProjects,
+    stats.projects,
+  );
+  const readyProjectsRate = toPercent(stats.readyProjects, stats.projects);
+
+  const platformProgressItems = [
+    {
+      label: 'Projets connectés GitLab',
+      pct: gitlabConnectionRate,
+      detail: `${stats.gitlabConnectedProjects}/${stats.projects}`,
+    },
+    {
+      label: 'Projets prêts à déployer',
+      pct: readyProjectsRate,
+      detail: `${stats.readyProjects}/${stats.projects}`,
+    },
+    {
+      label: 'Serveurs vérifiés',
+      pct: isAdmin ? serverVerificationRate : 0,
+      detail: isAdmin ? `${verifiedServers}/${totalServers}` : 'N/A (admin)',
+    },
+    {
+      label: 'Déploiements réussis',
+      pct: stats.successRate,
+      detail: `${stats.successRate}%`,
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -328,17 +369,13 @@ export default function DashboardPage() {
             <h2 className="mb-4 text-lg font-semibold tracking-[-0.02em] text-slate-900">
               Platform Progress
             </h2>
-            {[
-              { label: 'Backend', pct: 100 },
-              { label: 'Auth & Login', pct: 100 },
-              { label: 'Dashboard', pct: 100 },
-              { label: 'Projects', pct: 70 },
-              { label: 'Deployments', pct: 25 },
-            ].map((item) => (
+            {platformProgressItems.map((item) => (
               <div key={item.label} className="mb-4 last:mb-0">
                 <div className="mb-1.5 flex justify-between text-xs">
                   <span className="text-slate-500">{item.label}</span>
-                  <span className="font-medium text-slate-700">{item.pct}%</span>
+                  <span className="font-medium text-slate-700">
+                    {item.detail}
+                  </span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                   <div

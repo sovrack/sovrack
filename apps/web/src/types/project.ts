@@ -37,9 +37,13 @@ export type ProjectListItem = {
   description: string | null;
   gitlabUrl: string | null;
   gitlabId: number | null;
+  gitlabSourceType: GitlabSourceType | null;
+  gitlabGroupId: number | null;
+  hasGitlabConfig: boolean;
   branch: string;
   dockerfile: string;
   port: number;
+  environmentCount: number;
   createdAt: string;
   updatedAt: string;
   memberCount: number;

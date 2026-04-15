@@ -16,7 +16,10 @@ type DashboardStats = {
   projects: number;
   deployments: number;
   servers: number | 'N/A';
+  verifiedServers: number | 'N/A';
   successRate: number;
+  gitlabConnectedProjects: number;
+  readyProjects: number;
   usersTotal: number | 'N/A';
   activeDevelopers: number | 'N/A';
 };
@@ -69,6 +72,19 @@ type ApiDeployment = {
   };
 };
 
+type ApiProject = {
+  id: string;
+  gitlabId?: number | null;
+  gitlabGroupId?: number | null;
+  hasGitlabConfig?: boolean;
+  environmentCount?: number;
+};
+
+type ApiServer = {
+  id: string;
+  isVerified?: boolean;
+};
+
 type ApiUser = {
   id: string;
   role: 'ADMIN' | 'DEVELOPER';
@@ -86,6 +102,15 @@ function toRecentDeployment(d: ApiDeployment): RecentDeployment {
   };
 }
 
+function isProjectGitlabConnected(project: ApiProject): boolean {
+  const hasConfig = project.hasGitlabConfig ?? false;
+  const hasSourceIdentifier =
+    typeof project.gitlabId === 'number' ||
+    typeof project.gitlabGroupId === 'number';
+
+  return hasConfig && hasSourceIdentifier;
+}
+
 export function useDashboardStats(): DashboardData & { refresh: () => void } {
   const { isAdmin } = useAuth();
 
@@ -95,7 +120,10 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
     projects: 0,
     deployments: 0,
     servers: isAdmin ? 0 : 'N/A',
+    verifiedServers: isAdmin ? 0 : 'N/A',
     successRate: 0,
+    gitlabConnectedProjects: 0,
+    readyProjects: 0,
     usersTotal: isAdmin ? 0 : 'N/A',
     activeDevelopers: isAdmin ? 0 : 'N/A',
   });
@@ -120,13 +148,15 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
           : Promise.resolve({ data: [] as ApiUser[] }),
       ]);
 
-      const projects = Array.isArray(projectsRes.data) ? projectsRes.data : [];
+      const projects: ApiProject[] = Array.isArray(projectsRes.data)
+        ? (projectsRes.data as ApiProject[])
+        : [];
       const deployments: ApiDeployment[] = Array.isArray(deploymentsRes.data)
         ? deploymentsRes.data
         : [];
-      const servers = isAdmin
+      const servers: ApiServer[] = isAdmin
         ? Array.isArray(serversRes.data)
-          ? serversRes.data
+          ? (serversRes.data as ApiServer[])
           : []
         : [];
       const users = isAdmin
@@ -141,12 +171,26 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
       ).length;
       const successRate =
         finishedCount > 0 ? Math.round((successCount / finishedCount) * 100) : 0;
+      const gitlabConnectedProjects = projects.filter(
+        isProjectGitlabConnected,
+      ).length;
+      const readyProjects = projects.filter(
+        (project) =>
+          isProjectGitlabConnected(project) &&
+          (project.environmentCount ?? 0) > 0,
+      ).length;
+      const verifiedServers = isAdmin
+        ? servers.filter((server) => server.isVerified).length
+        : 'N/A';
 
       setStats({
         projects: projects.length,
         deployments: deployments.length,
         servers: isAdmin ? servers.length : 'N/A',
+        verifiedServers,
         successRate,
+        gitlabConnectedProjects,
+        readyProjects,
         usersTotal: isAdmin ? users.length : 'N/A',
         activeDevelopers: isAdmin
           ? users.filter((item) => item.role === 'DEVELOPER' && item.isActive)
