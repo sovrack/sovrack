@@ -2,7 +2,38 @@
 
 import { useState } from 'react';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { z } from 'zod';
 import type { CreateServerPayload } from '@/types/server';
+
+// Schéma Zod de validation du formulaire serveur
+const hostSchema = z
+  .string()
+  .min(1, 'Le host est obligatoire')
+  .refine(
+    (v) => {
+      const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
+      if (ipv4.test(v)) {
+        return v.split('.').every((n) => parseInt(n, 10) <= 255);
+      }
+      const hostname =
+        /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      return hostname.test(v);
+    },
+    { message: 'Host invalide — saisir une IP ou un hostname valide' },
+  );
+
+const serverFormSchema = z.object({
+  name: z.string().min(1, 'Le nom du serveur est obligatoire'),
+  host: hostSchema,
+  port: z
+    .number()
+    .int()
+    .min(1, 'Port minimum : 1')
+    .max(65535, 'Port maximum : 65535'),
+  username: z.string().min(1, 'Le username SSH est obligatoire'),
+});
+
+type FormErrors = Partial<Record<'name' | 'host' | 'port' | 'username' | 'sshKey', string>>;
 
 type ServerFormProps = {
   onSubmit: (payload: CreateServerPayload) => Promise<void>;
@@ -28,9 +59,37 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
     'manual',
   );
 
+  // Erreurs de validation Zod par champ
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormErrors({});
+
+    // Validation Zod des champs principaux
+    const validation = serverFormSchema.safeParse({
+      name: name.trim(),
+      host: host.trim(),
+      port: Number(port) || 22,
+      username: username.trim() || 'ubuntu',
+    });
+
+    if (!validation.success) {
+      const errors: FormErrors = {};
+      for (const issue of validation.error.issues) {
+        const field = issue.path[0] as keyof FormErrors;
+        errors[field] = issue.message;
+      }
+      setFormErrors(errors);
+      return;
+    }
+
+    // Validation de la clé SSH pour les modes non-agent
     const sshKeyValue = sshKey.trim();
+    if (connectionMode !== 'agent' && sshKeyValue && !sshKeyValue.startsWith('-----BEGIN')) {
+      setFormErrors({ sshKey: 'La clé SSH doit commencer par "-----BEGIN"' });
+      return;
+    }
 
     await onSubmit({
       name: name.trim(),
@@ -134,10 +193,10 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
               />
               <span>
                 <span className="block text-sm font-semibold text-slate-900">
-                  Manual
+                  Créer seulement
                 </span>
                 <span className="block text-xs text-slate-500">
-                  You confirm SSH/tools status later from the server list.
+                  Vous confirmez SSH/outils plus tard depuis la liste.
                 </span>
               </span>
             </label>
@@ -151,10 +210,10 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
               />
               <span>
                 <span className="block text-sm font-semibold text-slate-900">
-                  SSH Auto-verify
+                  Créer et vérifier SSH
                 </span>
                 <span className="block text-xs text-slate-500">
-                  Runs automatic SSH/tool checks right after creation.
+                  Lance les vérifications SSH/outils automatiquement après création.
                 </span>
               </span>
             </label>
@@ -221,16 +280,22 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
         {/* Name */}
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-            Server Name <span className="text-red-400">*</span>
+            Nom du serveur <span className="text-red-400">*</span>
           </label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="VPS Production"
-            required
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            placeholder="VPS Production OVH"
+            className={`w-full rounded-xl border bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:bg-white focus:ring-2 ${
+              formErrors.name
+                ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
+                : 'border-slate-200 focus:border-indigo-400 focus:ring-indigo-100'
+            }`}
           />
+          {formErrors.name && (
+            <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>
+          )}
         </div>
 
         {/* Host */}
@@ -242,16 +307,22 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
             type="text"
             value={host}
             onChange={(e) => setHost(e.target.value)}
-            placeholder="192.168.1.100"
-            required
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            placeholder="192.168.122.30 ou vps-xxx.ovh.net"
+            className={`w-full rounded-xl border bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:bg-white focus:ring-2 ${
+              formErrors.host
+                ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
+                : 'border-slate-200 focus:border-indigo-400 focus:ring-indigo-100'
+            }`}
           />
+          {formErrors.host && (
+            <p className="mt-1 text-xs text-red-600">{formErrors.host}</p>
+          )}
         </div>
 
         {/* Port */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-            SSH Port
+            Port SSH
           </label>
           <input
             type="number"
@@ -259,29 +330,43 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
             onChange={(e) => setPort(e.target.value)}
             min="1"
             max="65535"
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            className={`w-full rounded-xl border bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:bg-white focus:ring-2 ${
+              formErrors.port
+                ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
+                : 'border-slate-200 focus:border-indigo-400 focus:ring-indigo-100'
+            }`}
           />
+          {formErrors.port && (
+            <p className="mt-1 text-xs text-red-600">{formErrors.port}</p>
+          )}
         </div>
 
         {/* Username */}
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-            SSH Username
+            Username SSH
           </label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="ubuntu"
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            className={`w-full rounded-xl border bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:bg-white focus:ring-2 ${
+              formErrors.username
+                ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
+                : 'border-slate-200 focus:border-indigo-400 focus:ring-indigo-100'
+            }`}
           />
+          {formErrors.username && (
+            <p className="mt-1 text-xs text-red-600">{formErrors.username}</p>
+          )}
         </div>
 
         {/* SSH Key */}
         <div className="sm:col-span-2">
           <div className="mb-1.5 flex items-center justify-between">
             <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              SSH Private Key{' '}
+              Clé SSH privée{' '}
               {connectionMode !== 'agent' && <span className="text-red-400">*</span>}
             </label>
             <button
@@ -290,7 +375,7 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
               className="flex items-center gap-1 text-xs text-slate-400 transition hover:text-slate-600"
             >
               {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
-              {showKey ? 'Hide' : 'Show'}
+              {showKey ? 'Masquer' : 'Afficher'}
             </button>
           </div>
           <textarea
@@ -299,14 +384,22 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
             placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
             required={connectionMode !== 'agent'}
             rows={showKey ? 8 : 3}
-            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+            className={`w-full resize-none rounded-xl border bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900 outline-none transition focus:bg-white focus:ring-2 ${
+              formErrors.sshKey
+                ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
+                : 'border-slate-200 focus:border-indigo-400 focus:ring-indigo-100'
+            }`}
             style={{ filter: showKey ? 'none' : 'blur(3px)' }}
           />
-          <p className="mt-1 text-xs text-slate-400">
-            {connectionMode === 'agent'
-              ? 'Optional in agent mode. Leave empty if this server will be managed only by agent.'
-              : 'The private key is stored securely and never displayed again.'}
-          </p>
+          {formErrors.sshKey ? (
+            <p className="mt-1 text-xs text-red-600">{formErrors.sshKey}</p>
+          ) : (
+            <p className="mt-1 text-xs text-slate-400">
+              {connectionMode === 'agent'
+                ? 'Optionnel en mode agent. Laissez vide si ce serveur est géré uniquement par agent.'
+                : 'Votre clé privée SSH — jamais stockée en clair, chiffrée côté serveur.'}
+            </p>
+          )}
         </div>
       </div>
 
@@ -323,7 +416,7 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading && <Loader2 size={16} className="animate-spin" />}
-        Add Server
+        {verificationMode === 'ssh' ? 'Créer et vérifier SSH' : 'Créer le serveur'}
       </button>
     </form>
   );

@@ -16,6 +16,7 @@ import {
   Save,
   Wrench,
   RotateCcw,
+  Play,
 } from 'lucide-react';
 import { serversService } from '@/services/servers.service';
 import { getApiErrorMessage } from '@/lib/api';
@@ -33,6 +34,9 @@ type InstallOptions = {
   runner: boolean;
 };
 
+type ToastTone = 'success' | 'error';
+type ToastItem = { id: number; message: string; tone: ToastTone };
+
 export default function AdminServersPage() {
   const [servers, setServers] = useState<ServerType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +45,7 @@ export default function AdminServersPage() {
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [savingManualId, setSavingManualId] = useState<string | null>(null);
+  const [registeringId, setRegisteringId] = useState<string | null>(null);
   const [loadingJobsByServer, setLoadingJobsByServer] = useState<
     Record<string, boolean>
   >({});
@@ -54,6 +59,23 @@ export default function AdminServersPage() {
   const [installDrafts, setInstallDrafts] = useState<
     Record<string, InstallOptions>
   >({});
+
+  // Système de toasts de notification
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  // État du modal d'enregistrement GitLab Runner
+  const [runnerModal, setRunnerModal] = useState<string | null>(null);
+  const [runnerGitlabUrl, setRunnerGitlabUrl] = useState('');
+  const [runnerToken, setRunnerToken] = useState('');
+  const [runnerError, setRunnerError] = useState<string | null>(null);
+
+  const showToast = useCallback((message: string, tone: ToastTone) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((prev) => [...prev, { id, message, tone }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3000);
+  }, []);
 
   const fetchServers = useCallback(async () => {
     setLoading(true);
@@ -103,7 +125,7 @@ export default function AdminServersPage() {
       const jobs = await serversService.getJobs(serverId);
       setJobsByServer((prev) => ({ ...prev, [serverId]: jobs }));
     } catch (err) {
-      alert(getApiErrorMessage(err));
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setLoadingJobsByServer((prev) => ({ ...prev, [serverId]: false }));
     }
@@ -117,9 +139,10 @@ export default function AdminServersPage() {
         prev.map((s) => s.id === id ? { ...s, ...result } : s),
       );
       clearManualDraft(id);
+      showToast('Vérification SSH réussie', 'success');
       await refreshJobs(id);
     } catch (err) {
-      alert(getApiErrorMessage(err));
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setVerifyingId(null);
     }
@@ -181,7 +204,7 @@ export default function AdminServersPage() {
     const hasSelection = payload.docker || payload.ansible || payload.runner;
 
     if (!hasSelection) {
-      alert('Select at least one tool to install.');
+      showToast('Sélectionnez au moins un outil à installer.', 'error');
       return;
     }
 
@@ -191,9 +214,10 @@ export default function AdminServersPage() {
       setServers((prev) => prev.map((s) => (s.id === server.id ? updated : s)));
       clearManualDraft(server.id);
       clearInstallDraft(server.id);
+      showToast('Installation terminée avec succès', 'success');
       await refreshJobs(server.id);
     } catch (err) {
-      alert(getApiErrorMessage(err));
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setInstallingId(null);
     }
@@ -206,9 +230,10 @@ export default function AdminServersPage() {
       const updated = await serversService.update(server.id, payload);
       setServers((prev) => prev.map((s) => (s.id === server.id ? updated : s)));
       clearManualDraft(server.id);
+      showToast('Statut mis à jour manuellement', 'success');
       await refreshJobs(server.id);
     } catch (err) {
-      alert(getApiErrorMessage(err));
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setSavingManualId(null);
     }
@@ -226,22 +251,24 @@ export default function AdminServersPage() {
       const updated = await serversService.update(server.id, payload);
       setServers((prev) => prev.map((s) => (s.id === server.id ? updated : s)));
       clearManualDraft(server.id);
+      showToast('Serveur marqué prêt', 'success');
       await refreshJobs(server.id);
     } catch (err) {
-      alert(getApiErrorMessage(err));
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setSavingManualId(null);
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Delete server "${name}"? This cannot be undone.`)) return;
+    if (!confirm(`Supprimer le serveur "${name}" ? Cette action est irréversible.`)) return;
     setDeletingId(id);
     try {
       await serversService.remove(id);
       setServers((prev) => prev.filter((s) => s.id !== id));
+      showToast(`Serveur "${name}" supprimé`, 'success');
     } catch (err) {
-      alert(getApiErrorMessage(err));
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setDeletingId(null);
     }
@@ -252,11 +279,38 @@ export default function AdminServersPage() {
     try {
       const updated = await serversService.retryJob(serverId, jobId);
       setServers((prev) => prev.map((s) => (s.id === serverId ? updated : s)));
+      showToast('Job relancé avec succès', 'success');
       await refreshJobs(serverId);
     } catch (err) {
-      alert(getApiErrorMessage(err));
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setRetryingJobId(null);
+    }
+  };
+
+  // Enregistrement du GitLab Runner via modal
+  const handleRegisterRunner = async (serverId: string) => {
+    if (!runnerGitlabUrl.trim() || !runnerToken.trim()) {
+      setRunnerError("L'URL GitLab et le token sont obligatoires");
+      return;
+    }
+    setRegisteringId(serverId);
+    setRunnerError(null);
+    try {
+      const updated = await serversService.registerRunner(serverId, {
+        gitlabUrl: runnerGitlabUrl.trim(),
+        token: runnerToken.trim(),
+      });
+      setServers((prev) => prev.map((s) => (s.id === serverId ? updated : s)));
+      setRunnerModal(null);
+      setRunnerGitlabUrl('');
+      setRunnerToken('');
+      showToast('Runner GitLab enregistré avec succès', 'success');
+      await refreshJobs(serverId);
+    } catch (err) {
+      setRunnerError(getApiErrorMessage(err));
+    } finally {
+      setRegisteringId(null);
     }
   };
 
@@ -422,6 +476,7 @@ export default function AdminServersPage() {
               installingId === server.id ||
               deletingId === server.id ||
               savingManualId === server.id ||
+              registeringId === server.id ||
               jobsLoading;
 
             return (
@@ -457,6 +512,15 @@ export default function AdminServersPage() {
                       <p className="mt-0.5 font-mono text-xs text-slate-400">
                         {server.username}@{server.host}:{server.port}
                       </p>
+                      {/* Date d'ajout du serveur */}
+                      <p className="mt-0.5 text-[11px] text-slate-400">
+                        Ajouté le{' '}
+                        {new Date(server.createdAt).toLocaleDateString('fr-FR', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
                         <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold uppercase tracking-[0.08em] text-slate-500">
                           Mode {formatConnectionMode(server.connectionMode)}
@@ -487,7 +551,7 @@ export default function AdminServersPage() {
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <button
                       onClick={() => void handleVerify(server.id)}
                       disabled={isBusy}
@@ -502,6 +566,28 @@ export default function AdminServersPage() {
                         ? 'Queue verify'
                         : 'Verify SSH'}
                     </button>
+
+                    {/* Bouton Register Runner — visible uniquement si Docker est installé */}
+                    {server.hasDocker && (
+                      <button
+                        onClick={() => {
+                          setRunnerModal(server.id);
+                          setRunnerGitlabUrl('');
+                          setRunnerToken('');
+                          setRunnerError(null);
+                        }}
+                        disabled={isBusy}
+                        className="flex items-center gap-1.5 rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-semibold text-violet-700 transition hover:bg-violet-50 disabled:opacity-50"
+                      >
+                        {registeringId === server.id ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Play size={13} />
+                        )}
+                        Register Runner
+                      </button>
+                    )}
+
                     <button
                       onClick={() => void handleDelete(server.id, server.name)}
                       disabled={isBusy}
@@ -740,6 +826,91 @@ export default function AdminServersPage() {
           })}
         </div>
       )}
+
+      {/* Modal d'enregistrement du GitLab Runner */}
+      {runnerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h3 className="text-base font-semibold text-slate-900">
+              Enregistrer GitLab Runner
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Le runner sera enregistré sur le serveur via SSH.
+            </p>
+            {runnerError && (
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {runnerError}
+              </div>
+            )}
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+                  URL GitLab <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="url"
+                  value={runnerGitlabUrl}
+                  onChange={(e) => setRunnerGitlabUrl(e.target.value)}
+                  placeholder="https://gitlab.example.com"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+                  Token d&apos;enregistrement <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={runnerToken}
+                  onChange={(e) => setRunnerToken(e.target.value)}
+                  placeholder="GR1345xyz..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setRunnerModal(null);
+                  setRunnerError(null);
+                }}
+                disabled={!!registeringId}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => void handleRegisterRunner(runnerModal)}
+                disabled={!!registeringId}
+                className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
+              >
+                {registeringId === runnerModal ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Play size={14} />
+                )}
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toasts de notification */}
+      <div className="pointer-events-none fixed right-4 top-4 z-[100] space-y-2">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${
+              toast.tone === 'success'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-red-600 text-white'
+            }`}
+          >
+            {toast.message}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

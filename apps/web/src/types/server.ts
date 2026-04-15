@@ -39,6 +39,7 @@ export type Server = {
   bastionPort: number | null;
   bastionUsername: string | null;
   agentLastSeenAt: string | null;
+  isActive: boolean;
   isVerified: boolean;
   hasDocker: boolean;
   hasAnsible: boolean;
@@ -95,4 +96,20 @@ export type InstallToolsPayload = {
 export type RegisterRunnerPayload = {
   gitlabUrl: string;
   token: string;
+};
+
+export type ServerInstallResult = {
+  success: boolean;
+  message: string;
+  hasDocker: boolean;
+  hasAnsible: boolean;
+  hasRunner: boolean;
+};
+
+export type ServerVerifyResult = {
+  success: boolean;
+  message: string;
+  isVerified: boolean;
+  hasDocker: boolean;
+  hasAnsible: boolean;
 };
