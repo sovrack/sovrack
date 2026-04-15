@@ -11,6 +11,8 @@ import {
   FolderGit2,
   Rocket,
   User,
+  Users,
+  UsersRound,
   Server,
   SquarePlus,
   Settings,
@@ -27,6 +29,8 @@ const navItems = [
 
 const adminItems = [
   { href: '/projects/new', label: 'New Project', icon: SquarePlus },
+  { href: '/admin/users', label: 'Utilisateurs', icon: Users },
+  { href: '/admin/teams', label: 'Équipes', icon: UsersRound },
   { href: '/admin/servers', label: 'Servers', icon: Server },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];

@@ -31,6 +31,8 @@ export default function NewDeploymentPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [envError, setEnvError] = useState<string | null>(null);
+  const [branchError, setBranchError] = useState<string | null>(null);
 
   // Load projects on mount
   useEffect(() => {
@@ -50,27 +52,34 @@ export default function NewDeploymentPage() {
     setBranches([]);
     setEnvironmentId('');
     setBranch('');
+    setEnvError(null);
+    setBranchError(null);
 
     setLoadingEnvs(true);
     environmentsService.getAll(projectId)
       .then((envs) => {
         setEnvironments(envs);
+        setEnvError(null);
         if (envs.length > 0) setEnvironmentId(envs[0].id);
       })
-      .catch(() => { /* non-blocking */ })
+      .catch((err) => {
+        setEnvError(getApiErrorMessage(err));
+      })
       .finally(() => setLoadingEnvs(false));
 
     setLoadingBranches(true);
     projectsService.getBranches(projectId)
       .then((list) => {
         setBranches(list);
+        setBranchError(null);
         const def = list.find((b) => b.default);
         setBranch(def?.name ?? list[0]?.name ?? '');
       })
-      .catch(() => {
+      .catch((err) => {
         // GitLab might not be connected — fallback to project default branch
         const proj = projects.find((p) => p.id === projectId);
         if (proj?.branch) setBranch(proj.branch);
+        setBranchError(getApiErrorMessage(err));
       })
       .finally(() => setLoadingBranches(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,6 +189,11 @@ export default function NewDeploymentPage() {
                   ))}
                 </select>
               )}
+              {envError && (
+                <p className="mt-2 text-xs text-red-600">
+                  {envError}
+                </p>
+              )}
             </div>
 
             {/* Branch */}
@@ -206,6 +220,11 @@ export default function NewDeploymentPage() {
               <p className="mt-1 text-xs text-slate-400">
                 {branches.length === 0 ? 'GitLab not connected — enter branch name manually.' : 'Select from your GitLab branches.'}
               </p>
+              {branchError && (
+                <p className="mt-2 text-xs text-red-600">
+                  {branchError}
+                </p>
+              )}
             </div>
 
             {/* Actions */}

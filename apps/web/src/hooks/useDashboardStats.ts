@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import apiClient from '@/lib/api';
+import { getApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import type { RecentDeployment, DeploymentStatus } from '@/components/dashboard/recent-deployments';
 
@@ -16,6 +17,8 @@ type DashboardStats = {
   deployments: number;
   servers: number | 'N/A';
   successRate: number;
+  usersTotal: number | 'N/A';
+  activeDevelopers: number | 'N/A';
 };
 
 type DashboardData = {
@@ -23,6 +26,7 @@ type DashboardData = {
   recentDeployments: RecentDeployment[];
   deploymentsChart: DayData[];
   loading: boolean;
+  error: string | null;
 };
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -65,6 +69,12 @@ type ApiDeployment = {
   };
 };
 
+type ApiUser = {
+  id: string;
+  role: 'ADMIN' | 'DEVELOPER';
+  isActive: boolean;
+};
+
 function toRecentDeployment(d: ApiDeployment): RecentDeployment {
   return {
     id: d.id,
@@ -80,11 +90,14 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
   const { isAdmin } = useAuth();
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     projects: 0,
     deployments: 0,
     servers: isAdmin ? 0 : 'N/A',
     successRate: 0,
+    usersTotal: isAdmin ? 0 : 'N/A',
+    activeDevelopers: isAdmin ? 0 : 'N/A',
   });
   const [recentDeployments, setRecentDeployments] = useState<RecentDeployment[]>([]);
   const [deploymentsChart, setDeploymentsChart] = useState<DayData[]>(
@@ -93,14 +106,18 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
+    setError(null);
 
     try {
-      const [projectsRes, deploymentsRes, serversRes] = await Promise.all([
+      const [projectsRes, deploymentsRes, serversRes, usersRes] = await Promise.all([
         apiClient.get<unknown[]>('/projects'),
         apiClient.get<ApiDeployment[]>('/deployments'),
         isAdmin
           ? apiClient.get<unknown[]>('/servers')
           : Promise.resolve({ data: [] as unknown[] }),
+        isAdmin
+          ? apiClient.get<ApiUser[]>('/users')
+          : Promise.resolve({ data: [] as ApiUser[] }),
       ]);
 
       const projects = Array.isArray(projectsRes.data) ? projectsRes.data : [];
@@ -110,6 +127,11 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
       const servers = isAdmin
         ? Array.isArray(serversRes.data)
           ? serversRes.data
+          : []
+        : [];
+      const users = isAdmin
+        ? Array.isArray(usersRes.data)
+          ? usersRes.data
           : []
         : [];
 
@@ -125,6 +147,11 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
         deployments: deployments.length,
         servers: isAdmin ? servers.length : 'N/A',
         successRate,
+        usersTotal: isAdmin ? users.length : 'N/A',
+        activeDevelopers: isAdmin
+          ? users.filter((item) => item.role === 'DEVELOPER' && item.isActive)
+              .length
+          : 'N/A',
       });
 
       // Recent: last 5 deployments sorted by date desc
@@ -137,8 +164,8 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
 
       // Chart: last 7 days
       setDeploymentsChart(buildChartData(deployments));
-    } catch {
-      // API unavailable — keep zeros, no crash
+    } catch (err) {
+      setError(getApiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -148,5 +175,12 @@ export function useDashboardStats(): DashboardData & { refresh: () => void } {
     void fetchStats();
   }, [fetchStats]);
 
-  return { stats, recentDeployments, deploymentsChart, loading, refresh: fetchStats };
+  return {
+    stats,
+    recentDeployments,
+    deploymentsChart,
+    loading,
+    error,
+    refresh: fetchStats,
+  };
 }

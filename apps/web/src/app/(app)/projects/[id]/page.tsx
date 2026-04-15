@@ -23,6 +23,8 @@ import { AddMemberModal } from '@/components/projects/add-member-modal';
 import { MembersList } from '@/components/projects/members-list';
 import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
+import { teamsService } from '@/services/teams.service';
+import type { Team } from '@/types/team';
 import type {
   ConnectGitlabPayload,
   GitlabBranch,
@@ -48,6 +50,11 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const [tab, setTab] = useState<Tab>('overview');
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [addTeamLoading, setAddTeamLoading] = useState(false);
+  const [addTeamSuccess, setAddTeamSuccess] = useState<string | null>(null);
+  const [addTeamError, setAddTeamError] = useState<string | null>(null);
 
   const [gitlabConfig, setGitlabConfig] = useState<GitlabConfig | null>(null);
   const [branches, setBranches] = useState<GitlabBranch[]>([]);
@@ -139,6 +146,12 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     void loadGitlabData();
   }, [loadGitlabData]);
 
+  useEffect(() => {
+    if (isAdmin) {
+      teamsService.getAll().then(setTeams).catch(() => {});
+    }
+  }, [isAdmin]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -172,6 +185,23 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const handleRemoveMember = async (userId: string) => {
     await projectsService.removeMember(id, userId);
     await refresh();
+  };
+
+  const handleAddTeam = async () => {
+    if (!selectedTeamId) return;
+    setAddTeamLoading(true);
+    setAddTeamError(null);
+    setAddTeamSuccess(null);
+    try {
+      const result = await teamsService.addTeamToProject(id, selectedTeamId);
+      setAddTeamSuccess(result.message);
+      setSelectedTeamId('');
+      await refresh();
+    } catch (err) {
+      setAddTeamError(getApiErrorMessage(err));
+    } finally {
+      setAddTeamLoading(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -417,6 +447,57 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
             onClose={() => setAddMemberOpen(false)}
             onAdd={handleAddMember}
           />
+
+          {isAdmin && teams.length > 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <Users size={16} className="text-brand-500" />
+                Ajouter une équipe
+              </h3>
+              <p className="mb-3 text-xs text-slate-500">
+                Ajoute tous les membres d&apos;une équipe au projet.
+              </p>
+
+              {addTeamSuccess && (
+                <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                  {addTeamSuccess}
+                </div>
+              )}
+              {addTeamError && (
+                <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {addTeamError}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <select
+                  value={selectedTeamId}
+                  onChange={(e) => setSelectedTeamId(e.target.value)}
+                  className="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                >
+                  <option value="">Sélectionner une équipe...</option>
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name} ({team.members.length} membre{team.members.length !== 1 ? 's' : ''})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => void handleAddTeam()}
+                  disabled={!selectedTeamId || addTeamLoading}
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {addTeamLoading ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Plus size={15} />
+                  )}
+                  Ajouter
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
