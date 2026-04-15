@@ -156,7 +156,7 @@ export class TeamsService {
       throw new NotFoundException('Équipe introuvable');
     }
 
-    // Add all team members to the project (as MEMBER, skip if already present)
+    // Add all team members to the project (as DEVELOPER by default, skip if already present)
     for (const member of team.members) {
       const existing = await this.prisma.projectMember.findUnique({
         where: { projectId_userId: { projectId, userId: member.userId } },

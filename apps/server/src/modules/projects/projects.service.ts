@@ -7,7 +7,7 @@ import {
 import {
   GitlabSourceType,
   Project,
-  ProjectMemberRole,
+  ProjectRole,
   Prisma,
   Role,
 } from '@prisma/client';
@@ -45,6 +45,7 @@ type ProjectListItem = Project & {
   hasGitlabConfig: boolean;
   gitlabSourceType: GitlabSourceType | null;
   gitlabGroupId: number | null;
+  currentUserProjectRole: ProjectRole | null;
 };
 
 /**
@@ -88,11 +89,16 @@ export class ProjectsService {
         members: {
           create: {
             userId: ownerId,
-            role: ProjectMemberRole.OWNER,
+            role: ProjectRole.OWNER,
           },
         },
       },
       include: projectWithMembersInclude,
+    });
+
+    await this.recordAuditLog(userId, 'PROJECT_CREATE', 'Project', project.id, {
+      name: project.name,
+      ownerId,
     });
 
     return project;
@@ -123,6 +129,11 @@ export class ProjectsService {
             gitlabGroupId: true,
           },
         },
+        members: {
+          where: { userId },
+          select: { role: true },
+          take: 1,
+        },
         _count: {
           select: { members: true, environments: true },
         },
@@ -145,6 +156,7 @@ export class ProjectsService {
       hasGitlabConfig: Boolean(project.gitlabConfig),
       gitlabSourceType: project.gitlabConfig?.sourceType ?? null,
       gitlabGroupId: project.gitlabConfig?.gitlabGroupId ?? null,
+      currentUserProjectRole: project.members[0]?.role ?? null,
     }));
   }
 
@@ -191,16 +203,18 @@ export class ProjectsService {
   }
 
   /**
-   * Supprime un projet si utilisateur OWNER ou ADMIN.
+   * Supprime un projet si utilisateur ADMIN.
    */
   async remove(
     projectId: string,
     userId: string,
     userRole: Role,
   ): Promise<void> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.ensureProjectExists(projectId);
+    await this.assertAdminRole(userRole);
 
     await this.prisma.project.delete({ where: { id: projectId } });
+    await this.recordAuditLog(userId, 'PROJECT_DELETE', 'Project', projectId);
   }
 
   /**
@@ -248,7 +262,7 @@ export class ProjectsService {
       data: {
         projectId,
         userId: targetUser.id,
-        role: dto.role ?? ProjectMemberRole.MEMBER,
+        role: dto.role ?? ProjectRole.DEVELOPER,
       },
     });
 
@@ -279,7 +293,7 @@ export class ProjectsService {
       throw new NotFoundException('Membre non trouvé dans ce projet');
     }
 
-    if (membership.role === ProjectMemberRole.OWNER) {
+    if (membership.role === ProjectRole.OWNER) {
       throw new ForbiddenException('Impossible de retirer le OWNER du projet');
     }
 
@@ -377,10 +391,40 @@ export class ProjectsService {
       },
     });
 
-    if (!ownerMembership || ownerMembership.role !== ProjectMemberRole.OWNER) {
+    if (!ownerMembership || ownerMembership.role !== ProjectRole.OWNER) {
       throw new ForbiddenException(
         'Action réservée au OWNER du projet ou ADMIN',
       );
+    }
+  }
+
+  private async assertAdminRole(userRole: Role): Promise<void> {
+    if (userRole !== Role.ADMIN) {
+      throw new ForbiddenException('Action réservée aux administrateurs');
+    }
+  }
+
+  private async recordAuditLog(
+    userId: string,
+    action: string,
+    resourceType: string,
+    resourceId: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action,
+          resourceType,
+          resourceId,
+          ...(metadata
+            ? { metadata: metadata as Prisma.InputJsonValue }
+            : {}),
+        },
+      });
+    } catch {
+      // Le log d'audit ne doit jamais bloquer l'action métier.
     }
   }
 

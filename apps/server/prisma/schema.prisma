@@ -12,9 +12,10 @@ enum Role {
   DEVELOPER
 }
 
-enum ProjectMemberRole {
+enum ProjectRole {
   OWNER
-  MEMBER
+  DEVELOPER
+  VIEWER
 }
 
 enum PipelineStatus {
@@ -66,66 +67,67 @@ enum ServerJobStatus {
 }
 
 model User {
-  id          String       @id @default(uuid())
-  email       String       @unique
+  id          String          @id @default(uuid())
+  email       String          @unique
   password    String
   fullName    String
-  role        Role         @default(DEVELOPER)
-  isActive    Boolean      @default(true)
+  role        Role            @default(DEVELOPER)
+  isActive    Boolean         @default(true)
   projects    ProjectMember[]
   teams       TeamMember[]
   deployments Deployment[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  auditLogs   AuditLog[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }
 
 model Project {
-  id            String          @id @default(uuid())
-  name          String
-  description   String?
-  gitlabUrl     String
-  gitlabId      Int?
-  branch        String          @default("main")
-  dockerfile    String          @default("Dockerfile")
-  port          Int             @default(3000)
-  members       ProjectMember[]
-  gitlabConfig  GitlabConfig?
-  pipelines     Pipeline[]
-  environments  Environment[]
-  deployments   Deployment[]
-  configs       Config[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id           String          @id @default(uuid())
+  name         String
+  description  String?
+  gitlabUrl    String
+  gitlabId     Int?
+  branch       String          @default("main")
+  dockerfile   String          @default("Dockerfile")
+  port         Int             @default(3000)
+  members      ProjectMember[]
+  gitlabConfig GitlabConfig?
+  pipelines    Pipeline[]
+  environments Environment[]
+  deployments  Deployment[]
+  configs      Config[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 }
 
 model ProjectMember {
-  id        String            @id @default(uuid())
-  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id        String      @id @default(uuid())
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  role      ProjectMemberRole @default(MEMBER)
-  joinedAt  DateTime          @default(now())
+  role      ProjectRole @default(DEVELOPER)
+  joinedAt  DateTime    @default(now())
 
   @@unique([projectId, userId])
 }
 
 model GitlabConfig {
-  id                  String   @id @default(uuid())
+  id                  String           @id @default(uuid())
   gitlabUrl           String
   gitlabToken         String
   gitlabId            Int?
-  defaultBranch       String   @default("main")
+  defaultBranch       String           @default("main")
   sourceType          GitlabSourceType @default(REPO)
   gitlabGroupId       Int?
   deployTokenUsername String?
   deployTokenValue    String?
   webhookSecret       String?
   registryUrl         String?
-  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId           String   @unique
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  project             Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId           String           @unique
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 }
 
 model Pipeline {
@@ -144,29 +146,29 @@ model Pipeline {
 }
 
 model Server {
-  id                 String               @id @default(uuid())
-  name               String
-  host               String
-  port               Int                  @default(22)
-  username           String               @default("ubuntu")
-  sshKey             String
-  sshPublicKey       String?              @db.Text
-  connectionMode     ServerConnectionMode @default(SSH)
-  bastionHost        String?
-  bastionPort        Int?
-  bastionUsername    String?
-  bastionSshKey      String?
-  agentTokenHash     String?
-  agentLastSeenAt    DateTime?
-  isActive           Boolean              @default(true)
-  isVerified         Boolean              @default(false)
-  hasDocker          Boolean              @default(false)
-  hasAnsible         Boolean              @default(false)
-  hasRunner          Boolean              @default(false)
-  environments Environment[]
-  jobs               ServerJob[]
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  id              String               @id @default(uuid())
+  name            String
+  host            String
+  port            Int                  @default(22)
+  username        String               @default("ubuntu")
+  sshKey          String
+  sshPublicKey    String?              @db.Text
+  connectionMode  ServerConnectionMode @default(SSH)
+  bastionHost     String?
+  bastionPort     Int?
+  bastionUsername String?
+  bastionSshKey   String?
+  agentTokenHash  String?
+  agentLastSeenAt DateTime?
+  isActive        Boolean              @default(true)
+  isVerified      Boolean              @default(false)
+  hasDocker       Boolean              @default(false)
+  hasAnsible      Boolean              @default(false)
+  hasRunner       Boolean              @default(false)
+  environments    Environment[]
+  jobs            ServerJob[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 }
 
 model ServerJob {
@@ -255,6 +257,20 @@ model TeamMember {
   joinedAt DateTime @default(now())
 
   @@unique([teamId, userId])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action       String
+  resourceType String
+  resourceId   String
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([resourceType, resourceId])
 }
 
 model PlatformConfig {

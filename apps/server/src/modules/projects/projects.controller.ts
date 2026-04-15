@@ -82,6 +82,8 @@ export class ProjectsController {
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Supprimer un projet' })
   @ApiResponse({ status: 200, description: 'Projet supprimé' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })

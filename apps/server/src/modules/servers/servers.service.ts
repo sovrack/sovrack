@@ -66,7 +66,7 @@ export class ServersService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateServerDto): Promise<CreateServerResult> {
+  async create(dto: CreateServerDto, actorUserId: string): Promise<CreateServerResult> {
     const connectionMode = this.mapConnectionMode(dto.connectionMode);
     const normalizedSshKey = dto.sshKey?.trim();
     const sshMaterial = this.resolveSshMaterial(normalizedSshKey);
@@ -105,6 +105,12 @@ export class ServersService {
       },
     });
 
+    await this.recordAuditLog(actorUserId, 'SERVER_CREATE', server.id, {
+      name: server.name,
+      host: server.host,
+      connectionMode: server.connectionMode,
+    });
+
     const verificationMode = dto.verificationMode ?? ServerVerificationMode.SSH;
 
     if (
@@ -141,7 +147,11 @@ export class ServersService {
     return this.toPublic(server);
   }
 
-  async update(id: string, dto: UpdateServerDto): Promise<ServerPublic> {
+  async update(
+    id: string,
+    dto: UpdateServerDto,
+    actorUserId: string,
+  ): Promise<ServerPublic> {
     const existing = await this.getServerById(id);
 
     const nextConnectionMode =
@@ -209,10 +219,14 @@ export class ServersService {
       data,
     });
 
+    await this.recordAuditLog(actorUserId, 'SERVER_UPDATE', updated.id, {
+      changedFields: Object.keys(dto),
+    });
+
     return this.toPublic(updated);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, actorUserId: string): Promise<void> {
     await this.getServerById(id);
 
     const activeEnvCount = await this.prisma.environment.count({
@@ -229,6 +243,7 @@ export class ServersService {
     }
 
     await this.prisma.server.delete({ where: { id } });
+    await this.recordAuditLog(actorUserId, 'SERVER_DELETE', id);
   }
 
   async listJobs(id: string): Promise<ServerJobPublic[]> {
@@ -1045,5 +1060,28 @@ export class ServersService {
       CryptoJS.enc.Utf8,
     );
     return decrypted || encryptedValue;
+  }
+
+  private async recordAuditLog(
+    userId: string,
+    action: string,
+    resourceId: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action,
+          resourceType: 'Server',
+          resourceId,
+          ...(metadata
+            ? { metadata: metadata as Prisma.InputJsonValue }
+            : {}),
+        },
+      });
+    } catch {
+      // Le journal d'audit reste non bloquant.
+    }
   }
 }

@@ -14,7 +14,7 @@ import {
   GitlabConfig,
   GitlabSourceType,
   Prisma,
-  ProjectMemberRole,
+  ProjectRole,
   Role,
   type User,
 } from '@prisma/client';
@@ -81,7 +81,7 @@ export class DeploymentsService {
 
   async create(dto: CreateDeploymentDto, userId: string): Promise<Deployment> {
     const actor = await this.getActor(userId);
-    await this.assertCanAccessProject(dto.projectId, actor.id, actor.role);
+    await this.assertCanDeployProject(dto.projectId, actor.id, actor.role);
 
     const environment = await this.prisma.environment.findFirst({
       where: {
@@ -142,6 +142,12 @@ export class DeploymentsService {
         status: DeploymentStatus.PENDING,
         startedAt: new Date(),
       },
+    });
+
+    await this.recordAuditLog(actor.id, 'DEPLOYMENT_CREATE', deployment.id, {
+      projectId: dto.projectId,
+      environmentId: dto.environmentId,
+      branch,
     });
 
     this.gateway.emitStarted({
@@ -503,6 +509,7 @@ export class DeploymentsService {
     userRole: Role,
   ): Promise<Deployment> {
     const deployment = await this.findOne(id, userId, userRole);
+    await this.assertCanDeployProject(deployment.projectId, userId, userRole);
 
     if (
       deployment.status !== DeploymentStatus.PENDING &&
@@ -527,6 +534,11 @@ export class DeploymentsService {
       status: canceled.status,
     });
 
+    await this.recordAuditLog(userId, 'DEPLOYMENT_CANCEL', canceled.id, {
+      projectId: canceled.projectId,
+      environmentId: canceled.environmentId,
+    });
+
     return canceled;
   }
 
@@ -536,6 +548,7 @@ export class DeploymentsService {
     userRole: Role,
   ): Promise<Deployment> {
     const deployment = await this.findOne(id, userId, userRole);
+    await this.assertCanRollbackProject(deployment.projectId, userId, userRole);
 
     const previousSuccess = await this.prisma.deployment.findFirst({
       where: {
@@ -572,6 +585,12 @@ export class DeploymentsService {
         startedAt: new Date(),
         logs: `Rollback depuis ${previousSuccess.id}`,
       },
+    });
+
+    await this.recordAuditLog(userId, 'DEPLOYMENT_ROLLBACK', rollbackDeployment.id, {
+      projectId: rollbackDeployment.projectId,
+      environmentId: rollbackDeployment.environmentId,
+      sourceDeploymentId: previousSuccess.id,
     });
 
     this.gateway.emitStarted({
@@ -729,6 +748,62 @@ export class DeploymentsService {
     userId: string,
     userRole: Role,
   ): Promise<void> {
+    await this.resolveProjectMemberRole(projectId, userId, userRole);
+  }
+
+  private async assertCanDeployProject(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    const memberRole = await this.resolveProjectMemberRole(
+      projectId,
+      userId,
+      userRole,
+    );
+
+    if (memberRole === null) {
+      return;
+    }
+
+    if (memberRole === ProjectRole.OWNER || memberRole === ProjectRole.DEVELOPER) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'Action réservée aux OWNER/DEVELOPER du projet ou ADMIN',
+    );
+  }
+
+  private async assertCanRollbackProject(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    const memberRole = await this.resolveProjectMemberRole(
+      projectId,
+      userId,
+      userRole,
+    );
+
+    if (memberRole === null) {
+      return;
+    }
+
+    if (memberRole === ProjectRole.OWNER) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'Action réservée au OWNER du projet ou ADMIN',
+    );
+  }
+
+  private async resolveProjectMemberRole(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<ProjectRole | null> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -738,7 +813,7 @@ export class DeploymentsService {
     }
 
     if (userRole === Role.ADMIN) {
-      return;
+      return null;
     }
 
     const member = await this.prisma.projectMember.findUnique({
@@ -748,17 +823,42 @@ export class DeploymentsService {
           userId,
         },
       },
+      select: {
+        role: true,
+      },
     });
 
     if (!member) {
       throw new ForbiddenException('Accès non autorisé à ce projet');
     }
 
-    if (
-      member.role !== ProjectMemberRole.OWNER &&
-      member.role !== ProjectMemberRole.MEMBER
-    ) {
-      throw new ForbiddenException('Rôle non autorisé');
+    return member.role;
+  }
+
+  private async recordAuditLog(
+    userId: string,
+    action: string,
+    resourceId: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action,
+          resourceType: 'Deployment',
+          resourceId,
+          ...(metadata
+            ? { metadata: metadata as Prisma.InputJsonValue }
+            : {}),
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Audit log ignoré (${action}) : ${
+          error instanceof Error ? error.message : 'erreur inconnue'
+        }`,
+      );
     }
   }
 

@@ -70,4 +70,14 @@ export class AuthController {
   async getMe(@GetUser() user: JwtPayload): Promise<Omit<User, 'password'>> {
     return await this.authService.getMe(user.id);
   }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Déconnexion utilisateur (audit)' })
+  @ApiResponse({ status: 201, description: 'Déconnexion enregistrée' })
+  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  async logout(@GetUser() user: JwtPayload): Promise<{ message: string }> {
+    return await this.authService.logout(user.id);
+  }
 }

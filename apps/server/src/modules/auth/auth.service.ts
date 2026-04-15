@@ -7,7 +7,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
-import { User } from '@prisma/client';
+import { Prisma, User } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 
 /**
  * Réponse d'authentification
@@ -22,6 +23,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -51,12 +53,24 @@ export class AuthService {
     // Générer le token JWT
     const access_token = this.generateToken(user);
 
+    await this.recordAuditLog(user.id, 'AUTH_LOGIN', user.id, {
+      email: user.email,
+    });
+
     // Retourner la réponse sans le mot de passe
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
     return {
       access_token,
       user: userWithoutPassword,
+    };
+  }
+
+  async logout(userId: string): Promise<{ message: string }> {
+    await this.recordAuditLog(userId, 'AUTH_LOGOUT', userId);
+
+    return {
+      message: 'Déconnexion enregistrée',
     };
   }
 
@@ -90,5 +104,28 @@ export class AuthService {
       role: user.role,
     };
     return this.jwtService.sign(payload);
+  }
+
+  private async recordAuditLog(
+    userId: string,
+    action: string,
+    resourceId: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          userId,
+          action,
+          resourceType: 'User',
+          resourceId,
+          ...(metadata
+            ? { metadata: metadata as Prisma.InputJsonValue }
+            : {}),
+        },
+      });
+    } catch {
+      // Le log d'audit ne doit pas bloquer l'authentification.
+    }
   }
 }

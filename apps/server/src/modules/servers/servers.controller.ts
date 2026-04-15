@@ -20,8 +20,10 @@ import { Type } from 'class-transformer';
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { GetUser } from '../../common/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateServerDto } from './dto/create-server.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
 import { ServersService } from './servers.service';
@@ -81,8 +83,8 @@ export class ServersController {
   @ApiResponse({ status: 201, description: 'Serveur créé avec succès' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
-  async create(@Body() dto: CreateServerDto) {
-    return await this.serversService.create(dto);
+  async create(@Body() dto: CreateServerDto, @GetUser() user: JwtPayload) {
+    return await this.serversService.create(dto, user.id);
   }
 
   @Get()
@@ -110,8 +112,12 @@ export class ServersController {
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
-  async update(@Param('id') id: string, @Body() dto: UpdateServerDto) {
-    return await this.serversService.update(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateServerDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.serversService.update(id, dto, user.id);
   }
 
   @Delete(':id')
@@ -126,8 +132,8 @@ export class ServersController {
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
-  async remove(@Param('id') id: string) {
-    await this.serversService.remove(id);
+  async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    await this.serversService.remove(id, user.id);
     return { message: 'Serveur supprimé avec succès' };
   }
 

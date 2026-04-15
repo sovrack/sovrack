@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { ProjectMemberRole } from '@prisma/client';
+import { ProjectRole } from '@prisma/client';
 import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 
 /**
@@ -17,10 +17,10 @@ export class AddMemberDto {
   email?: string;
 
   @ApiPropertyOptional({
-    enum: ProjectMemberRole,
-    default: ProjectMemberRole.MEMBER,
+    enum: ProjectRole,
+    default: ProjectRole.DEVELOPER,
   })
   @IsOptional()
-  @IsEnum(ProjectMemberRole, { message: 'Rôle de membre invalide' })
-  role?: ProjectMemberRole;
+  @IsEnum(ProjectRole, { message: 'Rôle de membre invalide' })
+  role?: ProjectRole;
 }

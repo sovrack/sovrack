@@ -13,7 +13,7 @@ import {
 import {
   GitlabSourceType,
   PipelineStatus,
-  ProjectMemberRole,
+  ProjectRole,
   Role,
   type GitlabConfig,
 } from '@prisma/client';
@@ -1018,7 +1018,7 @@ export class GitlabService {
       },
     });
 
-    if (!ownerMembership || ownerMembership.role !== ProjectMemberRole.OWNER) {
+    if (!ownerMembership || ownerMembership.role !== ProjectRole.OWNER) {
       throw new ForbiddenException(
         'Action réservée au OWNER du projet ou ADMIN',
       );
