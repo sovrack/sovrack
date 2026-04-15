@@ -4,6 +4,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { LoggerService } from './common/logger/logger.service';
 
 function resolveAllowedOrigins(): string[] {
   const envOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
@@ -22,6 +24,9 @@ function resolveAllowedOrigins(): string[] {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const logger = app.get(LoggerService);
+
+  app.useGlobalFilters(new AllExceptionsFilter(logger));
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     const startedAt = Date.now();
@@ -39,7 +44,7 @@ async function bootstrap() {
         `[req:${requestId}] ` +
         `${req.method} ${req.originalUrl} -> ${String(res.statusCode)} ` +
         `${String(durationMs)}ms`;
-      console.log(line);
+      logger.log(line, 'HTTP');
     });
 
     next();
@@ -71,7 +76,7 @@ async function bootstrap() {
 
   const port = Number(process.env.PORT) || 3001;
   await app.listen(port);
-  console.log(`Backend running on http://localhost:${port}`);
-  console.log(`Swagger UI      -> http://localhost:${port}/api`);
+  logger.log(`Backend running on http://localhost:${port}`, 'Bootstrap');
+  logger.log(`Swagger UI      -> http://localhost:${port}/api`, 'Bootstrap');
 }
 bootstrap().catch(console.error);

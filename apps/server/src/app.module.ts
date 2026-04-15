@@ -13,12 +13,16 @@ import { ConfigsModule } from './modules/configs/configs.module';
 import { DeploymentsModule } from './modules/deployments/deployments.module';
 import { PlatformConfigModule } from './modules/platform-config/platform-config.module';
 import { TeamsModule } from './modules/teams/teams.module';
+import { LoggerModule } from './common/logger/logger.module';
+import { validateEnv } from './common/config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: validateEnv,
     }),
+    LoggerModule,
     PrismaModule,
     UsersModule,
     AuthModule,
