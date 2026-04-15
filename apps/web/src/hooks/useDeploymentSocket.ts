@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { getToken } from '@/lib/auth';
 import { getSocket } from '@/lib/socket';
 import type {
+  DeploymentErrorEvent,
   DeploymentFinishedEvent,
+  DeploymentJoinedEvent,
   DeploymentLogEvent,
   DeploymentStatus,
   DeploymentStatusEvent,
@@ -83,6 +85,7 @@ export function useDeploymentSocket({
   const [status, setStatus] = useState<DeploymentStatus | null>(initialStatus);
   const [isConnected, setIsConnected] = useState(false);
   const previousDeploymentId = useRef<string | null>(null);
+  const hasJoinedRoom = useRef(false);
 
   // Réinitialise les données locales quand on change de déploiement.
   useEffect(() => {
@@ -94,6 +97,7 @@ export function useDeploymentSocket({
     setLogs(parseStaticLogs(initialLogs));
     setStatus(initialStatus);
     setIsConnected(false);
+    hasJoinedRoom.current = false;
   }, [deploymentId, initialLogs, initialStatus]);
 
   // Quand le live est désactivé, on garde uniquement la vue statique.
@@ -105,6 +109,7 @@ export function useDeploymentSocket({
     setLogs(parseStaticLogs(initialLogs));
     setStatus(initialStatus);
     setIsConnected(false);
+    hasJoinedRoom.current = false;
   }, [enabled, initialLogs, initialStatus]);
 
   useEffect(() => {
@@ -126,13 +131,44 @@ export function useDeploymentSocket({
 
     const onConnect = () => {
       setIsConnected(true);
+      hasJoinedRoom.current = false;
+      deploymentSocket.emit('join:deployment', { deploymentId });
     };
 
     const onDisconnect = () => {
       setIsConnected(false);
+      hasJoinedRoom.current = false;
+    };
+
+    const onJoined = (payload: DeploymentJoinedEvent) => {
+      if (payload.deploymentId !== deploymentId) {
+        return;
+      }
+      hasJoinedRoom.current = true;
+    };
+
+    const onRoomError = (payload: DeploymentErrorEvent) => {
+      if (payload.deploymentId && payload.deploymentId !== deploymentId) {
+        return;
+      }
+      const message = payload.message?.trim();
+      if (!message) {
+        return;
+      }
+      setLogs((previous) => [
+        ...previous,
+        {
+          timestamp: new Date().toISOString(),
+          message,
+          level: 'error',
+        },
+      ]);
     };
 
     const onLog = (payload: DeploymentLogEvent) => {
+      if (!hasJoinedRoom.current) {
+        return;
+      }
       if (payload.deploymentId !== deploymentId) {
         return;
       }
@@ -153,6 +189,9 @@ export function useDeploymentSocket({
     };
 
     const onStatus = (payload: DeploymentStatusEvent) => {
+      if (!hasJoinedRoom.current) {
+        return;
+      }
       if (payload.deploymentId !== deploymentId) {
         return;
       }
@@ -163,6 +202,9 @@ export function useDeploymentSocket({
     };
 
     const onFinished = (payload: DeploymentFinishedEvent) => {
+      if (!hasJoinedRoom.current) {
+        return;
+      }
       if (payload.deploymentId !== deploymentId) {
         return;
       }
@@ -181,6 +223,8 @@ export function useDeploymentSocket({
 
     deploymentSocket.on('connect', onConnect);
     deploymentSocket.on('disconnect', onDisconnect);
+    deploymentSocket.on('deployment:joined', onJoined);
+    deploymentSocket.on('deployment:error', onRoomError);
     deploymentSocket.on('deployment:log', onLog);
     deploymentSocket.on('deployment:status', onStatus);
     deploymentSocket.on('deployment:finished', onFinished);
@@ -189,16 +233,21 @@ export function useDeploymentSocket({
       deploymentSocket.connect();
     } else {
       setIsConnected(true);
+      hasJoinedRoom.current = false;
+      deploymentSocket.emit('join:deployment', { deploymentId });
     }
 
     return () => {
       deploymentSocket.off('connect', onConnect);
       deploymentSocket.off('disconnect', onDisconnect);
+      deploymentSocket.off('deployment:joined', onJoined);
+      deploymentSocket.off('deployment:error', onRoomError);
       deploymentSocket.off('deployment:log', onLog);
       deploymentSocket.off('deployment:status', onStatus);
       deploymentSocket.off('deployment:finished', onFinished);
       deploymentSocket.disconnect();
       setIsConnected(false);
+      hasJoinedRoom.current = false;
     };
   }, [deploymentId, enabled]);
 
