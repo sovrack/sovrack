@@ -20,7 +20,9 @@ import { DeploymentsService } from './deployments.service';
       useFactory: (configService: ConfigService): JwtModuleOptions => {
         const secret = configService.get<string>('JWT_SECRET');
         if (!secret) {
-          throw new Error("JWT_SECRET non configuré dans les variables d'environnement");
+          throw new Error(
+            "JWT_SECRET non configuré dans les variables d'environnement",
+          );
         }
         return { secret };
       },

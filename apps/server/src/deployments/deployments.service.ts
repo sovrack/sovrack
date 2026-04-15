@@ -763,9 +763,8 @@ export class DeploymentsService {
       gitlabConfig,
       this.slugify(projectName),
     );
-    const fallbackPathFromUrl = this.extractRepositoryPathFromProjectUrl(
-      projectGitlabUrl,
-    );
+    const fallbackPathFromUrl =
+      this.extractRepositoryPathFromProjectUrl(projectGitlabUrl);
     const repositoryPath =
       fallbackPathFromUrl &&
       this.isPlaceholderRepositoryPath(gitlabConfig, resolvedPath)
@@ -857,8 +856,8 @@ export class DeploymentsService {
 
     return Boolean(
       config.sourceType === GitlabSourceType.GROUP &&
-        config.gitlabGroupId &&
-        repositoryPath.startsWith(`group-${String(config.gitlabGroupId)}/`),
+      config.gitlabGroupId &&
+      repositoryPath.startsWith(`group-${String(config.gitlabGroupId)}/`),
     );
   }
 

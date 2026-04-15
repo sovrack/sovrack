@@ -75,7 +75,10 @@ export class TeamsController {
   @Post(':id/members')
   @ApiOperation({ summary: 'Ajouter un membre à une équipe' })
   @ApiResponse({ status: 201, description: 'Membre ajouté' })
-  @ApiResponse({ status: 404, description: 'Équipe ou utilisateur introuvable' })
+  @ApiResponse({
+    status: 404,
+    description: 'Équipe ou utilisateur introuvable',
+  })
   @ApiResponse({ status: 409, description: 'Déjà membre de cette équipe' })
   async addMember(@Param('id') id: string, @Body() dto: AddTeamMemberDto) {
     return this.teamsService.addMember(id, dto);
@@ -83,7 +86,7 @@ export class TeamsController {
 
   @Delete(':id/members/:userId')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Retirer un membre d\'une équipe' })
+  @ApiOperation({ summary: "Retirer un membre d'une équipe" })
   @ApiResponse({ status: 200, description: 'Membre retiré' })
   @ApiResponse({ status: 404, description: 'Équipe ou membre introuvable' })
   async removeMember(@Param('id') id: string, @Param('userId') userId: string) {

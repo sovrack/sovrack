@@ -4,10 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 function resolveAllowedOrigins(): string[] {
-  const envOrigins = [
-    process.env.FRONTEND_URLS,
-    process.env.FRONTEND_URL,
-  ]
+  const envOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
     .filter((value): value is string => Boolean(value))
     .flatMap((value) => value.split(','))
     .map((value) => value.trim())

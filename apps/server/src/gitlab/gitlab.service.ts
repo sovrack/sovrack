@@ -503,7 +503,8 @@ export class GitlabService {
     config: GitlabConfig,
     fallbackProjectSlug: string,
   ): Promise<string> {
-    const normalizedFallback = this.normalizeRepositoryPath(fallbackProjectSlug);
+    const normalizedFallback =
+      this.normalizeRepositoryPath(fallbackProjectSlug);
 
     if (config.sourceType === GitlabSourceType.REPO && config.gitlabId) {
       const gitlabToken = this.decryptConfigToken(config.gitlabToken);

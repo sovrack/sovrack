@@ -98,7 +98,9 @@ export class TeamsService {
   async addMember(id: string, dto: AddTeamMemberDto): Promise<TeamWithMembers> {
     await this.findOne(id);
 
-    const user = await this.prisma.user.findUnique({ where: { id: dto.userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+    });
     if (!user) {
       throw new NotFoundException('Utilisateur introuvable');
     }
@@ -107,7 +109,9 @@ export class TeamsService {
       where: { teamId_userId: { teamId: id, userId: dto.userId } },
     });
     if (existing) {
-      throw new ConflictException("L'utilisateur est déjà membre de cette équipe");
+      throw new ConflictException(
+        "L'utilisateur est déjà membre de cette équipe",
+      );
     }
 
     await this.prisma.teamMember.create({
@@ -124,7 +128,9 @@ export class TeamsService {
       where: { teamId_userId: { teamId: id, userId } },
     });
     if (!member) {
-      throw new NotFoundException("L'utilisateur n'est pas membre de cette équipe");
+      throw new NotFoundException(
+        "L'utilisateur n'est pas membre de cette équipe",
+      );
     }
 
     await this.prisma.teamMember.delete({
