@@ -382,7 +382,6 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
             value={sshKey}
             onChange={(e) => setSshKey(e.target.value)}
             placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
-            required={connectionMode !== 'agent'}
             rows={showKey ? 8 : 3}
             className={`w-full resize-none rounded-xl border bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900 outline-none transition focus:bg-white focus:ring-2 ${
               formErrors.sshKey
@@ -395,9 +394,7 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
             <p className="mt-1 text-xs text-red-600">{formErrors.sshKey}</p>
           ) : (
             <p className="mt-1 text-xs text-slate-400">
-              {connectionMode === 'agent'
-                ? 'Optionnel en mode agent. Laissez vide si ce serveur est géré uniquement par agent.'
-                : 'Votre clé privée SSH — jamais stockée en clair, chiffrée côté serveur.'}
+              Optionnel: laissez vide pour générer automatiquement une paire SSH.
             </p>
           )}
         </div>
@@ -409,7 +406,6 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
           loading ||
           !name.trim() ||
           !host.trim() ||
-          (connectionMode !== 'agent' && !sshKey.trim()) ||
           (connectionMode === 'bastion' &&
             (!bastionHost.trim() || !bastionUsername.trim() || !bastionSshKey.trim()))
         }

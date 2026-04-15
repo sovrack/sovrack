@@ -34,6 +34,7 @@ export type Server = {
   host: string;
   port: number;
   username: string;
+  sshPublicKey: string | null;
   connectionMode: ServerConnectionMode;
   bastionHost: string | null;
   bastionPort: number | null;
@@ -96,6 +97,15 @@ export type InstallToolsPayload = {
 export type RegisterRunnerPayload = {
   gitlabUrl: string;
   token: string;
+};
+
+export type InstallServerKeyPayload = {
+  password: string;
+};
+
+export type InstallServerKeyResult = {
+  success: boolean;
+  message: string;
 };
 
 export type ServerInstallResult = {

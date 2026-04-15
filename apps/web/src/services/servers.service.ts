@@ -7,6 +7,8 @@ import type {
   InstallToolsPayload,
   RegisterRunnerPayload,
   ServerJob,
+  InstallServerKeyPayload,
+  InstallServerKeyResult,
 } from '@/types/server';
 
 export const serversService = {
@@ -41,6 +43,17 @@ export const serversService = {
 
   async install(id: string, payload: InstallToolsPayload): Promise<Server> {
     const res = await api.post<Server>(`/servers/${id}/install`, payload);
+    return res.data;
+  },
+
+  async installKey(
+    id: string,
+    payload: InstallServerKeyPayload,
+  ): Promise<InstallServerKeyResult> {
+    const res = await api.post<InstallServerKeyResult>(
+      `/servers/${id}/install-key`,
+      payload,
+    );
     return res.data;
   },
 
