@@ -82,7 +82,16 @@ type GitlabGroupSummary = {
   path?: string;
 };
 
-type GitlabRepoItem = Record<string, unknown>;
+type GitlabRepoItem = {
+  id?: number;
+  name?: string;
+  path?: string;
+  path_with_namespace?: string;
+  namespace?: {
+    full_path?: string;
+    path?: string;
+  };
+};
 
 @Injectable()
 export class GitlabService {
@@ -188,10 +197,15 @@ export class GitlabService {
     projectId: string,
     userId: string,
     userRole: Role,
+    preferredRepoId?: number,
   ): Promise<GitlabBranchItem[]> {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
-    const repoId = this.assertRepoSource(config, 'récupération des branches');
+    const repoId = await this.resolveRepoIdForAction(
+      config,
+      'récupération des branches',
+      preferredRepoId,
+    );
     const gitlabToken = this.decryptConfigToken(config.gitlabToken);
 
     try {
@@ -251,10 +265,15 @@ export class GitlabService {
     branch: string,
     userId: string,
     userRole: Role,
+    preferredRepoId?: number,
   ): Promise<GitlabPipelineItem> {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
-    const repoId = this.assertRepoSource(config, 'déclenchement du pipeline');
+    const repoId = await this.resolveRepoIdForAction(
+      config,
+      'déclenchement du pipeline',
+      preferredRepoId,
+    );
     const gitlabToken = this.decryptConfigToken(config.gitlabToken);
 
     try {
@@ -288,34 +307,13 @@ export class GitlabService {
   ): Promise<GitlabRepoItem[]> {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
-    const gitlabToken = this.decryptConfigToken(config.gitlabToken);
 
     if (config.sourceType === GitlabSourceType.GROUP) {
-      if (!config.gitlabGroupId) {
-        throw new BadRequestException('Aucun gitlabGroupId configuré');
-      }
-
-      try {
-        const response = await firstValueFrom(
-          this.httpService.get<GitlabRepoItem[]>(
-            `${this.normalizeUrl(config.gitlabUrl)}/api/v4/groups/${encodeURIComponent(String(config.gitlabGroupId))}/projects`,
-            {
-              headers: {
-                'PRIVATE-TOKEN': gitlabToken,
-              },
-            },
-          ),
-        );
-        return response.data;
-      } catch (error: unknown) {
-        this.throwGitlabRequestError(
-          'récupération des repositories du groupe',
-          error,
-        );
-      }
+      return await this.fetchGroupRepositories(config);
     }
 
     const repoId = this.assertRepoSource(config, 'récupération du repository');
+    const gitlabToken = this.decryptConfigToken(config.gitlabToken);
     try {
       const response = await firstValueFrom(
         this.httpService.get<GitlabRepoItem>(
@@ -502,6 +500,7 @@ export class GitlabService {
   async resolveRepositoryPath(
     config: GitlabConfig,
     fallbackProjectSlug: string,
+    preferredRepoId?: number,
   ): Promise<string> {
     const normalizedFallback =
       this.normalizeRepositoryPath(fallbackProjectSlug);
@@ -545,6 +544,42 @@ export class GitlabService {
 
     if (config.sourceType === GitlabSourceType.GROUP && config.gitlabGroupId) {
       const gitlabToken = this.decryptConfigToken(config.gitlabToken);
+      const targetRepoId = await this.resolveRepoIdForAction(
+        config,
+        "résolution du repository pour l'image Docker",
+        preferredRepoId,
+      );
+
+      try {
+        const response = await firstValueFrom(
+          this.httpService.get<GitlabProjectSummary>(
+            `${this.normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(targetRepoId))}`,
+            {
+              headers: {
+                'PRIVATE-TOKEN': gitlabToken,
+              },
+            },
+          ),
+        );
+
+        const fullPath = response.data.path_with_namespace;
+        if (typeof fullPath === 'string' && fullPath.trim()) {
+          return this.normalizeRepositoryPath(fullPath);
+        }
+
+        const namespacePath = response.data.namespace?.full_path;
+        const repoPath = response.data.path;
+        if (
+          typeof namespacePath === 'string' &&
+          namespacePath.trim() &&
+          typeof repoPath === 'string' &&
+          repoPath.trim()
+        ) {
+          return this.normalizeRepositoryPath(`${namespacePath}/${repoPath}`);
+        }
+      } catch {
+        // Fallback silencieux: on conserve la stratégie group path + slug.
+      }
 
       try {
         const response = await firstValueFrom(
@@ -849,6 +884,79 @@ export class GitlabService {
     }
 
     return config.gitlabId;
+  }
+
+  private async fetchGroupRepositories(
+    config: GitlabConfig,
+  ): Promise<GitlabRepoItem[]> {
+    if (!config.gitlabGroupId) {
+      throw new BadRequestException('Aucun gitlabGroupId configuré');
+    }
+
+    const gitlabToken = this.decryptConfigToken(config.gitlabToken);
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<GitlabRepoItem[]>(
+          `${this.normalizeUrl(config.gitlabUrl)}/api/v4/groups/${encodeURIComponent(String(config.gitlabGroupId))}/projects`,
+          {
+            headers: {
+              'PRIVATE-TOKEN': gitlabToken,
+            },
+          },
+        ),
+      );
+      return response.data;
+    } catch (error: unknown) {
+      this.throwGitlabRequestError(
+        'récupération des repositories du groupe',
+        error,
+      );
+    }
+  }
+
+  private async resolveRepoIdForAction(
+    config: GitlabConfig,
+    action: string,
+    preferredRepoId?: number,
+  ): Promise<number> {
+    if (config.sourceType === GitlabSourceType.REPO) {
+      return this.assertRepoSource(config, action);
+    }
+
+    const repos = await this.fetchGroupRepositories(config);
+    const repoIds = repos
+      .map((repo) => repo.id)
+      .filter(
+        (id): id is number =>
+          typeof id === 'number' && Number.isInteger(id) && id > 0,
+      );
+
+    if (repoIds.length === 0) {
+      throw new BadRequestException(
+        `Aucun repository disponible dans le groupe (${action})`,
+      );
+    }
+
+    if (
+      Number.isInteger(preferredRepoId) &&
+      preferredRepoId !== undefined &&
+      preferredRepoId > 0
+    ) {
+      if (repoIds.includes(preferredRepoId)) {
+        return preferredRepoId;
+      }
+
+      throw new BadRequestException(
+        `Repository ${String(preferredRepoId)} introuvable dans ce groupe (${action})`,
+      );
+    }
+
+    if (config.gitlabId && repoIds.includes(config.gitlabId)) {
+      return config.gitlabId;
+    }
+
+    return repoIds[0];
   }
 
   private async assertCanAccessProject(

@@ -5,6 +5,7 @@ import {
   Headers,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -13,7 +14,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
@@ -24,6 +26,12 @@ class TriggerPipelineDto {
   @IsString()
   @IsNotEmpty()
   branch!: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  repoId?: number;
 }
 
 @ApiTags('GitLab')
@@ -66,9 +74,16 @@ export class GitlabController {
   })
   async getBranches(
     @Param('id') projectId: string,
+    @Query('repoId') repoId: string | undefined,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.gitlabService.getBranches(projectId, user.id, user.role);
+    const parsedRepoId = this.parseOptionalRepoId(repoId);
+    return await this.gitlabService.getBranches(
+      projectId,
+      user.id,
+      user.role,
+      parsedRepoId,
+    );
   }
 
   @Get('projects/:id/gitlab/pipelines')
@@ -125,6 +140,7 @@ export class GitlabController {
       dto.branch,
       user.id,
       user.role,
+      dto.repoId,
     );
   }
 
@@ -160,5 +176,18 @@ export class GitlabController {
       user.id,
       user.role,
     );
+  }
+
+  private parseOptionalRepoId(repoId: string | undefined): number | undefined {
+    if (!repoId || repoId.trim().length === 0) {
+      return undefined;
+    }
+
+    const parsed = Number(repoId);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      return undefined;
+    }
+
+    return parsed;
   }
 }

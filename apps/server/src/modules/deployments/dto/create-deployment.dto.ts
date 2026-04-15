@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateDeploymentDto {
   @ApiProperty({ example: 'project-uuid' })
@@ -16,4 +17,15 @@ export class CreateDeploymentDto {
   @IsOptional()
   @IsString({ message: 'La branche doit être une chaîne de caractères' })
   branch?: string;
+
+  @ApiPropertyOptional({
+    example: 42,
+    description:
+      'Repository GitLab ciblé (recommandé pour source GROUP, optionnel pour REPO)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'repoId doit être un entier positif' })
+  @Min(1, { message: 'repoId doit être supérieur à 0' })
+  repoId?: number;
 }

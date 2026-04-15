@@ -130,6 +130,7 @@ export class DeploymentsService {
       projectName: project.name,
       projectGitlabUrl: project.gitlabUrl,
       branch,
+      repositoryId: dto.repoId,
     });
 
     let deployment = await this.prisma.deployment.create({
@@ -158,6 +159,7 @@ export class DeploymentsService {
         branch,
         actor.id,
         actor.role,
+        dto.repoId,
       );
     } catch (error: unknown) {
       const reason =
@@ -595,7 +597,8 @@ export class DeploymentsService {
     deploymentId: string,
   ): Promise<string> {
     return await new Promise<string>((resolve, reject) => {
-      const child = spawn('ansible-playbook', [
+      const ansiblePlaybookCommand = this.resolveAnsiblePlaybookCommand();
+      const child = spawn(ansiblePlaybookCommand, [
         playbookPath,
         '-i',
         inventoryPath,
@@ -632,6 +635,24 @@ export class DeploymentsService {
         reject(error);
       });
     });
+  }
+
+  private resolveAnsiblePlaybookCommand(): string {
+    const configuredVenvPath = process.env.ANSIBLE_VENV_PATH?.trim();
+    if (!configuredVenvPath) {
+      return 'ansible-playbook';
+    }
+
+    const absoluteVenvPath = resolve(configuredVenvPath);
+    const venvBinaryPath = join(absoluteVenvPath, 'bin', 'ansible-playbook');
+    if (existsSync(venvBinaryPath)) {
+      return venvBinaryPath;
+    }
+
+    this.logger.warn(
+      `ANSIBLE_VENV_PATH défini mais ansible-playbook introuvable (${venvBinaryPath}). Utilisation du binaire global.`,
+    );
+    return 'ansible-playbook';
   }
 
   private resolvePlaybookRoot(): string {
@@ -772,11 +793,13 @@ export class DeploymentsService {
     projectName,
     projectGitlabUrl,
     branch,
+    repositoryId,
   }: {
     gitlabConfig?: GitlabConfig | null;
     projectName: string;
     projectGitlabUrl?: string | null;
     branch: string;
+    repositoryId?: number;
   }): Promise<string> {
     if (!gitlabConfig) {
       return `${this.slugify(projectName)}:${this.sanitizeDockerTag(branch)}`;
@@ -789,6 +812,7 @@ export class DeploymentsService {
     const resolvedPath = await this.gitlabService.resolveRepositoryPath(
       gitlabConfig,
       this.slugify(projectName),
+      repositoryId,
     );
     const fallbackPathFromUrl =
       this.extractRepositoryPathFromProjectUrl(projectGitlabUrl);
