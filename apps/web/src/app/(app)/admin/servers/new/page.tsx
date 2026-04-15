@@ -51,9 +51,10 @@ export default function NewServerPage() {
       <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
         <p className="text-xs font-semibold text-amber-700">⚡ After adding</p>
         <ul className="mt-2 space-y-1 text-xs text-amber-600">
-          <li>→ Click Verify to test SSH connection and detect Docker/Ansible/Runner</li>
-          <li>→ Only verified servers can be linked to project environments</li>
-          <li>→ Docker must be installed on the server to run deployments</li>
+          <li>→ Pick SSH, Bastion, or Agent connection mode based on network topology</li>
+          <li>→ Choose Manual to update readiness from the server checklist</li>
+          <li>→ Choose SSH Auto-verify to run remote checks right after creation</li>
+          <li>→ A server must be marked verified before linking to environments</li>
         </ul>
       </div>
     </div>

@@ -4,6 +4,9 @@ import type {
   CreateServerPayload,
   UpdateServerPayload,
   VerifyServerResult,
+  InstallToolsPayload,
+  RegisterRunnerPayload,
+  ServerJob,
 } from '@/types/server';
 
 export const serversService = {
@@ -33,6 +36,29 @@ export const serversService = {
 
   async verify(id: string): Promise<VerifyServerResult> {
     const res = await api.post<VerifyServerResult>(`/servers/${id}/verify`);
+    return res.data;
+  },
+
+  async install(id: string, payload: InstallToolsPayload): Promise<Server> {
+    const res = await api.post<Server>(`/servers/${id}/install`, payload);
+    return res.data;
+  },
+
+  async registerRunner(
+    id: string,
+    payload: RegisterRunnerPayload,
+  ): Promise<Server> {
+    const res = await api.post<Server>(`/servers/${id}/register-runner`, payload);
+    return res.data;
+  },
+
+  async getJobs(id: string): Promise<ServerJob[]> {
+    const res = await api.get<ServerJob[]>(`/servers/${id}/jobs`);
+    return res.data;
+  },
+
+  async retryJob(id: string, jobId: string): Promise<Server> {
+    const res = await api.post<Server>(`/servers/${id}/jobs/${jobId}/retry`);
     return res.data;
   },
 };

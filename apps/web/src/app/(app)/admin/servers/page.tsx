@@ -3,26 +3,75 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  Server, Plus, RefreshCw, CheckCircle, XCircle,
-  Loader2, Trash2, Zap, ShieldCheck, AlertTriangle,
+  Server,
+  Plus,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Trash2,
+  Zap,
+  ShieldCheck,
+  AlertTriangle,
+  Save,
+  Wrench,
+  RotateCcw,
 } from 'lucide-react';
 import { serversService } from '@/services/servers.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { ServerStatusBadges } from '@/components/servers/server-status-badges';
-import type { Server as ServerType } from '@/types/server';
+import type { Server as ServerType, ServerJob } from '@/types/server';
+
+type ManualChecklist = Pick<
+  ServerType,
+  'isVerified' | 'hasDocker' | 'hasAnsible' | 'hasRunner'
+>;
+
+type InstallOptions = {
+  docker: boolean;
+  ansible: boolean;
+  runner: boolean;
+};
 
 export default function AdminServersPage() {
   const [servers, setServers] = useState<ServerType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [installingId, setInstallingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [savingManualId, setSavingManualId] = useState<string | null>(null);
+  const [loadingJobsByServer, setLoadingJobsByServer] = useState<
+    Record<string, boolean>
+  >({});
+  const [jobsByServer, setJobsByServer] = useState<Record<string, ServerJob[]>>(
+    {},
+  );
+  const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
+  const [manualDrafts, setManualDrafts] = useState<
+    Record<string, ManualChecklist>
+  >({});
+  const [installDrafts, setInstallDrafts] = useState<
+    Record<string, InstallOptions>
+  >({});
 
   const fetchServers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setServers(await serversService.getAll());
+      const nextServers = await serversService.getAll();
+      setServers(nextServers);
+
+      await Promise.all(
+        nextServers.map(async (server) => {
+          try {
+            const jobs = await serversService.getJobs(server.id);
+            setJobsByServer((prev) => ({ ...prev, [server.id]: jobs }));
+          } catch {
+            // Pas bloquant pour le listing principal.
+          }
+        }),
+      );
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -32,6 +81,34 @@ export default function AdminServersPage() {
 
   useEffect(() => { void fetchServers(); }, [fetchServers]);
 
+  const clearManualDraft = (serverId: string) => {
+    setManualDrafts((prev) => {
+      const next = { ...prev };
+      delete next[serverId];
+      return next;
+    });
+  };
+
+  const clearInstallDraft = (serverId: string) => {
+    setInstallDrafts((prev) => {
+      const next = { ...prev };
+      delete next[serverId];
+      return next;
+    });
+  };
+
+  const refreshJobs = async (serverId: string) => {
+    setLoadingJobsByServer((prev) => ({ ...prev, [serverId]: true }));
+    try {
+      const jobs = await serversService.getJobs(serverId);
+      setJobsByServer((prev) => ({ ...prev, [serverId]: jobs }));
+    } catch (err) {
+      alert(getApiErrorMessage(err));
+    } finally {
+      setLoadingJobsByServer((prev) => ({ ...prev, [serverId]: false }));
+    }
+  };
+
   const handleVerify = async (id: string) => {
     setVerifyingId(id);
     try {
@@ -39,10 +116,121 @@ export default function AdminServersPage() {
       setServers((prev) =>
         prev.map((s) => s.id === id ? { ...s, ...result } : s),
       );
+      clearManualDraft(id);
+      await refreshJobs(id);
     } catch (err) {
       alert(getApiErrorMessage(err));
     } finally {
       setVerifyingId(null);
+    }
+  };
+
+  const getChecklist = (server: ServerType): ManualChecklist => {
+    return (
+      manualDrafts[server.id] ?? {
+        isVerified: server.isVerified,
+        hasDocker: server.hasDocker,
+        hasAnsible: server.hasAnsible,
+        hasRunner: server.hasRunner,
+      }
+    );
+  };
+
+  const handleChecklistChange = (
+    server: ServerType,
+    field: keyof ManualChecklist,
+    value: boolean,
+  ) => {
+    const current = getChecklist(server);
+    setManualDrafts((prev) => ({
+      ...prev,
+      [server.id]: {
+        ...current,
+        [field]: value,
+      },
+    }));
+  };
+
+  const getInstallOptions = (server: ServerType): InstallOptions => {
+    return (
+      installDrafts[server.id] ?? {
+        docker: !server.hasDocker,
+        ansible: !server.hasAnsible,
+        runner: !server.hasRunner,
+      }
+    );
+  };
+
+  const handleInstallOptionChange = (
+    server: ServerType,
+    field: keyof InstallOptions,
+    value: boolean,
+  ) => {
+    const current = getInstallOptions(server);
+    setInstallDrafts((prev) => ({
+      ...prev,
+      [server.id]: {
+        ...current,
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleInstall = async (server: ServerType) => {
+    const payload = getInstallOptions(server);
+    const hasSelection = payload.docker || payload.ansible || payload.runner;
+
+    if (!hasSelection) {
+      alert('Select at least one tool to install.');
+      return;
+    }
+
+    setInstallingId(server.id);
+    try {
+      const updated = await serversService.install(server.id, payload);
+      setServers((prev) => prev.map((s) => (s.id === server.id ? updated : s)));
+      clearManualDraft(server.id);
+      clearInstallDraft(server.id);
+      await refreshJobs(server.id);
+    } catch (err) {
+      alert(getApiErrorMessage(err));
+    } finally {
+      setInstallingId(null);
+    }
+  };
+
+  const handleManualSave = async (server: ServerType) => {
+    const payload = getChecklist(server);
+    setSavingManualId(server.id);
+    try {
+      const updated = await serversService.update(server.id, payload);
+      setServers((prev) => prev.map((s) => (s.id === server.id ? updated : s)));
+      clearManualDraft(server.id);
+      await refreshJobs(server.id);
+    } catch (err) {
+      alert(getApiErrorMessage(err));
+    } finally {
+      setSavingManualId(null);
+    }
+  };
+
+  const handleMarkReady = async (server: ServerType) => {
+    const payload: ManualChecklist = {
+      isVerified: true,
+      hasDocker: true,
+      hasAnsible: true,
+      hasRunner: true,
+    };
+    setSavingManualId(server.id);
+    try {
+      const updated = await serversService.update(server.id, payload);
+      setServers((prev) => prev.map((s) => (s.id === server.id ? updated : s)));
+      clearManualDraft(server.id);
+      await refreshJobs(server.id);
+    } catch (err) {
+      alert(getApiErrorMessage(err));
+    } finally {
+      setSavingManualId(null);
     }
   };
 
@@ -57,6 +245,59 @@ export default function AdminServersPage() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleRetryJob = async (serverId: string, jobId: string) => {
+    setRetryingJobId(jobId);
+    try {
+      const updated = await serversService.retryJob(serverId, jobId);
+      setServers((prev) => prev.map((s) => (s.id === serverId ? updated : s)));
+      await refreshJobs(serverId);
+    } catch (err) {
+      alert(getApiErrorMessage(err));
+    } finally {
+      setRetryingJobId(null);
+    }
+  };
+
+  const formatConnectionMode = (mode: ServerType['connectionMode']) => {
+    if (mode === 'bastion') return 'Bastion';
+    if (mode === 'agent') return 'Agent';
+    return 'SSH';
+  };
+
+  const formatJobType = (type: ServerJob['type']) => {
+    if (type === 'INSTALL_TOOLS') return 'Install Tools';
+    if (type === 'REGISTER_RUNNER') return 'Register Runner';
+    return 'Verify';
+  };
+
+  const canRetryJob = (job: ServerJob) => {
+    const retryableStatuses: ServerJob['status'][] = [
+      'FAILED',
+      'TIMEOUT',
+      'BLOCKED',
+    ];
+    if (!retryableStatuses.includes(job.status)) {
+      return false;
+    }
+    return job.type !== 'REGISTER_RUNNER';
+  };
+
+  const getJobStatusClassName = (status: ServerJob['status']) => {
+    if (status === 'SUCCESS') {
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    }
+    if (status === 'FAILED' || status === 'TIMEOUT' || status === 'BLOCKED') {
+      return 'border-red-200 bg-red-50 text-red-700';
+    }
+    if (status === 'RUNNING') {
+      return 'border-blue-200 bg-blue-50 text-blue-700';
+    }
+    if (status === 'AGENT_PENDING') {
+      return 'border-violet-200 bg-violet-50 text-violet-700';
+    }
+    return 'border-slate-200 bg-slate-100 text-slate-600';
   };
 
   const verifiedCount = servers.filter((s) => s.isVerified).length;
@@ -74,8 +315,8 @@ export default function AdminServersPage() {
               Servers
             </h1>
             <p className="mt-2 text-sm text-slate-500">
-              Register and verify target VPS nodes before using them in
-              environments.
+              Configure servers with manual checklist updates or SSH
+              auto-verification before linking them to environments.
             </p>
           </div>
 
@@ -154,7 +395,7 @@ export default function AdminServersPage() {
           </div>
           <h3 className="mt-4 text-base font-semibold text-slate-900">No servers yet</h3>
           <p className="mt-2 max-w-xs text-sm text-slate-500">
-            Add a VPS with SSH credentials. After verification, it can host deployments.
+            Add a VPS and choose manual or SSH verification workflow.
           </p>
           <Link
             href="/admin/servers/new"
@@ -167,64 +408,336 @@ export default function AdminServersPage() {
 
       {!loading && servers.length > 0 && (
         <div className="space-y-3">
-          {servers.map((server) => (
-            <div
-              key={server.id}
-              className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs transition hover:border-slate-300 hover:shadow-theme-lg"
-            >
-              <div className="flex flex-wrap items-start gap-4">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${server.isVerified ? 'bg-emerald-50' : 'bg-slate-100'}`}>
-                    <Server size={18} className={server.isVerified ? 'text-emerald-600' : 'text-slate-400'} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold text-slate-900">{server.name}</h3>
-                      {server.isVerified
-                        ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700"><CheckCircle size={10} />Verified</span>
-                        : <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500"><XCircle size={10} />Not verified</span>
-                      }
-                    </div>
-                    <p className="mt-0.5 font-mono text-xs text-slate-400">
-                      {server.username}@{server.host}:{server.port}
-                    </p>
-                    <div className="mt-2">
-                      <ServerStatusBadges
-                        isVerified={server.isVerified}
-                        hasDocker={server.hasDocker}
-                        hasAnsible={server.hasAnsible}
-                        hasRunner={server.hasRunner}
+          {servers.map((server) => {
+            const checklist = getChecklist(server);
+            const installOptions = getInstallOptions(server);
+            const jobs = jobsByServer[server.id] ?? [];
+            const jobsLoading = Boolean(loadingJobsByServer[server.id]);
+            const hasInstallSelection =
+              installOptions.docker ||
+              installOptions.ansible ||
+              installOptions.runner;
+            const isBusy =
+              verifyingId === server.id ||
+              installingId === server.id ||
+              deletingId === server.id ||
+              savingManualId === server.id ||
+              jobsLoading;
+
+            return (
+              <div
+                key={server.id}
+                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs transition hover:border-slate-300 hover:shadow-theme-lg"
+              >
+                <div className="flex flex-wrap items-start gap-4">
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <div
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${server.isVerified ? 'bg-emerald-50' : 'bg-slate-100'}`}
+                    >
+                      <Server
+                        size={18}
+                        className={server.isVerified ? 'text-emerald-600' : 'text-slate-400'}
                       />
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-sm font-semibold text-slate-900">{server.name}</h3>
+                        {server.isVerified ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            <CheckCircle size={10} />
+                            Verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                            <XCircle size={10} />
+                            Not verified
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 font-mono text-xs text-slate-400">
+                        {server.username}@{server.host}:{server.port}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold uppercase tracking-[0.08em] text-slate-500">
+                          Mode {formatConnectionMode(server.connectionMode)}
+                        </span>
+                        {server.connectionMode === 'bastion' && server.bastionHost && (
+                          <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 font-medium text-blue-700">
+                            via {server.bastionHost}:{server.bastionPort ?? 22}
+                          </span>
+                        )}
+                        {server.connectionMode === 'agent' && (
+                          <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 font-medium text-violet-700">
+                            {server.agentLastSeenAt
+                              ? `Last seen ${new Date(
+                                  server.agentLastSeenAt,
+                                ).toLocaleString()}`
+                              : 'Agent waiting for first heartbeat'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2">
+                        <ServerStatusBadges
+                          isVerified={server.isVerified}
+                          hasDocker={server.hasDocker}
+                          hasAnsible={server.hasAnsible}
+                          hasRunner={server.hasRunner}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => void handleVerify(server.id)}
+                      disabled={isBusy}
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {verifyingId === server.id ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Zap size={13} className="text-brand-500" />
+                      )}
+                      {server.connectionMode === 'agent'
+                        ? 'Queue verify'
+                        : 'Verify SSH'}
+                    </button>
+                    <button
+                      onClick={() => void handleDelete(server.id, server.name)}
+                      disabled={isBusy}
+                      className="flex items-center gap-1.5 rounded-xl border border-red-100 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {deletingId === server.id ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={13} />
+                      )}
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => void handleVerify(server.id)}
-                    disabled={verifyingId === server.id}
-                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    {verifyingId === server.id
-                      ? <Loader2 size={13} className="animate-spin" />
-                      : <Zap size={13} className="text-brand-500" />
-                    }
-                    Verify
-                  </button>
-                  <button
-                    onClick={() => void handleDelete(server.id, server.name)}
-                    disabled={deletingId === server.id}
-                    className="flex items-center gap-1.5 rounded-xl border border-red-100 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                  >
-                    {deletingId === server.id
-                      ? <Loader2 size={13} className="animate-spin" />
-                      : <Trash2 size={13} />
-                    }
-                  </button>
+                <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-700">
+                    {server.connectionMode === 'agent'
+                      ? 'Agent Automation'
+                      : 'SSH Automation'}
+                  </p>
+                  <p className="mt-1 text-xs text-blue-700/80">
+                    {server.connectionMode === 'agent'
+                      ? 'Actions are queued and executed when the agent pulls pending jobs.'
+                      : 'Install missing tools remotely from this interface.'}
+                  </p>
+                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <label className="flex items-center gap-2 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={installOptions.docker}
+                        onChange={(e) =>
+                          handleInstallOptionChange(server, 'docker', e.target.checked)
+                        }
+                        disabled={isBusy}
+                      />
+                      Docker
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={installOptions.ansible}
+                        onChange={(e) =>
+                          handleInstallOptionChange(server, 'ansible', e.target.checked)
+                        }
+                        disabled={isBusy}
+                      />
+                      Ansible
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={installOptions.runner}
+                        onChange={(e) =>
+                          handleInstallOptionChange(server, 'runner', e.target.checked)
+                        }
+                        disabled={isBusy}
+                      />
+                      GitLab Runner
+                    </label>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => void handleInstall(server)}
+                      disabled={isBusy || !hasInstallSelection}
+                      className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
+                    >
+                      {installingId === server.id ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Wrench size={13} />
+                      )}
+                      Run setup
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Manual Checklist
+                  </p>
+                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <label className="flex items-center gap-2 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={checklist.isVerified}
+                        onChange={(e) =>
+                          handleChecklistChange(server, 'isVerified', e.target.checked)
+                        }
+                        disabled={isBusy}
+                      />
+                      SSH reachable
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={checklist.hasDocker}
+                        onChange={(e) =>
+                          handleChecklistChange(server, 'hasDocker', e.target.checked)
+                        }
+                        disabled={isBusy}
+                      />
+                      Docker installed
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={checklist.hasAnsible}
+                        onChange={(e) =>
+                          handleChecklistChange(server, 'hasAnsible', e.target.checked)
+                        }
+                        disabled={isBusy}
+                      />
+                      Ansible installed
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={checklist.hasRunner}
+                        onChange={(e) =>
+                          handleChecklistChange(server, 'hasRunner', e.target.checked)
+                        }
+                        disabled={isBusy}
+                      />
+                      GitLab Runner installed
+                    </label>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => void handleManualSave(server)}
+                      disabled={isBusy}
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                    >
+                      {savingManualId === server.id ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Save size={13} />
+                      )}
+                      Save manual status
+                    </button>
+                    <button
+                      onClick={() => void handleMarkReady(server)}
+                      disabled={isBusy}
+                      className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50"
+                    >
+                      {savingManualId === server.id ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <CheckCircle size={13} />
+                      )}
+                      Mark ready
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-700">
+                      Job History
+                    </p>
+                    <button
+                      onClick={() => void refreshJobs(server.id)}
+                      disabled={isBusy}
+                      className="inline-flex items-center gap-1 rounded-lg border border-violet-200 bg-white px-2 py-1 text-[11px] font-semibold text-violet-700 transition hover:bg-violet-100 disabled:opacity-50"
+                    >
+                      {jobsLoading ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <RefreshCw size={12} />
+                      )}
+                      Refresh
+                    </button>
+                  </div>
+
+                  {jobs.length === 0 && !jobsLoading && (
+                    <p className="mt-2 text-xs text-violet-700/80">
+                      No jobs yet for this server.
+                    </p>
+                  )}
+
+                  <div className="mt-2 space-y-2">
+                    {jobs.slice(0, 5).map((job) => (
+                      <div
+                        key={job.id}
+                        className="rounded-lg border border-violet-100 bg-white/80 p-2"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-800">
+                              {formatJobType(job.type)}
+                            </p>
+                            <p className="text-[11px] text-slate-500">
+                              {new Date(job.createdAt).toLocaleString()} · attempts{' '}
+                              {job.attempts}/{job.maxAttempts}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${getJobStatusClassName(
+                                job.status,
+                              )}`}
+                            >
+                              {job.status.replace('_', ' ')}
+                            </span>
+                            {canRetryJob(job) && (
+                              <button
+                                onClick={() => void handleRetryJob(server.id, job.id)}
+                                disabled={isBusy || retryingJobId === job.id}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                              >
+                                {retryingJobId === job.id ? (
+                                  <Loader2 size={11} className="animate-spin" />
+                                ) : (
+                                  <RotateCcw size={11} />
+                                )}
+                                Retry
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {job.output && (
+                          <p className="mt-1 line-clamp-2 text-[11px] text-slate-600">
+                            {job.output}
+                          </p>
+                        )}
+                        {job.error && (
+                          <p className="mt-1 line-clamp-2 text-[11px] text-red-600">
+                            {job.error}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
