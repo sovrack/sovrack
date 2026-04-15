@@ -4,12 +4,14 @@ import { use, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Rocket, XCircle, RotateCcw, Loader2, Clock, ExternalLink } from 'lucide-react';
 import { deploymentsService } from '@/services/deployments.service';
+import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
 import { LogTerminal } from '@/components/log-terminal';
 import { useAuthContext } from '@/contexts/auth-context';
 import { useDeploymentSocket } from '@/hooks/useDeploymentSocket';
 import type { Deployment, DeploymentStatus, LogLine } from '@/types/deployment';
+import type { ProjectRole } from '@/types/project';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -63,9 +65,10 @@ function duration(start: string | null, end: string | null): string {
 
 export default function DeploymentDetailPage({ params }: Props) {
   const { id } = use(params);
-  const { isAdmin } = useAuthContext();
+  const { user, isAdmin } = useAuthContext();
 
   const [deployment, setDeployment] = useState<Deployment | null>(null);
+  const [projectRole, setProjectRole] = useState<ProjectRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -89,6 +92,10 @@ export default function DeploymentDetailPage({ params }: Props) {
   useEffect(() => {
     void fetchDeployment();
   }, [fetchDeployment]);
+
+  useEffect(() => {
+    setProjectRole(null);
+  }, [id]);
 
   const liveEnabled = Boolean(deployment && isActiveStatus(deployment.status));
   const { logs: liveLogs, status: liveStatus, isConnected } = useDeploymentSocket({
@@ -121,6 +128,36 @@ export default function DeploymentDetailPage({ params }: Props) {
     }
   }, [fetchDeployment, liveStatus]);
 
+  useEffect(() => {
+    if (!deployment || !user?.id || isAdmin) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void projectsService
+      .getById(deployment.project.id)
+      .then((project) => {
+        if (cancelled) {
+          return;
+        }
+
+        const membership = project.members.find(
+          (member) => member.user.id === user.id,
+        );
+        setProjectRole(membership?.role ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProjectRole(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deployment, isAdmin, user?.id]);
+
   const handleCancel = async () => {
     if (!confirm('Cancel this deployment?')) return;
     setCanceling(true);
@@ -151,6 +188,9 @@ export default function DeploymentDetailPage({ params }: Props) {
 
   const resolvedStatus = deployment ? (liveStatus ?? deployment.status) : null;
   const isActive = isActiveStatus(resolvedStatus);
+  const canManageDeployment =
+    isAdmin || projectRole === 'OWNER' || projectRole === 'DEVELOPER';
+  const canRollbackDeployment = isAdmin || projectRole === 'OWNER';
   const staticLogs = useMemo(() => parseStaticLogs(deployment?.logs ?? null), [deployment?.logs]);
   const displayedLogs = isActive ? liveLogs : staticLogs;
 
@@ -249,21 +289,22 @@ export default function DeploymentDetailPage({ params }: Props) {
 
             {/* Actions */}
             <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-              {isActive && (
+              {isActive && canManageDeployment && (
                 <button onClick={() => void handleCancel()} disabled={canceling}
                   className="flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50">
                   {canceling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                   Cancel Deployment
                 </button>
               )}
-              {(resolvedStatus === 'SUCCESS' || resolvedStatus === 'FAILED') && isAdmin && (
+              {(resolvedStatus === 'SUCCESS' || resolvedStatus === 'FAILED') &&
+                canRollbackDeployment && (
                 <button onClick={() => void handleRollback()} disabled={rollingBack}
                   className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
                   {rollingBack ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                   Rollback
                 </button>
-              )}
-              {!isActive && (
+                )}
+              {!isActive && canManageDeployment && (
                 <Link href="/deployments/new"
                   className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
                   <Rocket size={14} /> Deploy Again

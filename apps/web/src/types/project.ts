@@ -1,4 +1,4 @@
-export type ProjectRole = 'OWNER' | 'MEMBER';
+export type ProjectRole = 'OWNER' | 'DEVELOPER' | 'VIEWER';
 
 export type UserRole = 'ADMIN' | 'DEVELOPER';
 export type GitlabSourceType = 'REPO' | 'GROUP';
@@ -47,6 +47,7 @@ export type ProjectListItem = {
   createdAt: string;
   updatedAt: string;
   memberCount: number;
+  currentUserProjectRole: ProjectRole | null;
 };
 
 export type ProjectDetail = {

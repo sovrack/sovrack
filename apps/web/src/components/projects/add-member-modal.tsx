@@ -12,7 +12,7 @@ type AddMemberModalProps = {
 
 export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<ProjectRole>('MEMBER');
+  const [role, setRole] = useState<ProjectRole>('DEVELOPER');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +25,7 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
     try {
       await onAdd(email.trim(), role);
       setEmail('');
-      setRole('MEMBER');
+      setRole('DEVELOPER');
       onClose();
     } catch (err: unknown) {
       const message =
@@ -92,7 +92,8 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
               onChange={(e) => setRole(e.target.value as ProjectRole)}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
             >
-              <option value="MEMBER">Member — Can view and deploy</option>
+              <option value="DEVELOPER">Developer — Can deploy</option>
+              <option value="VIEWER">Viewer — Read only</option>
               <option value="OWNER">Owner — Full project access</option>
             </select>
           </div>

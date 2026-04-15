@@ -12,8 +12,10 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { deploymentsService } from '@/services/deployments.service';
+import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
+import { useAuthContext } from '@/contexts/auth-context';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
 
 function timeAgo(dateStr: string): string {
@@ -36,7 +38,9 @@ const STATUS_OPTIONS: { label: string; value: DeploymentStatus | 'ALL' }[] = [
 ];
 
 export default function DeploymentsPage() {
+  const { isAdmin } = useAuthContext();
   const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [canCreateDeployment, setCanCreateDeployment] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<DeploymentStatus | 'ALL'>('ALL');
@@ -45,13 +49,26 @@ export default function DeploymentsPage() {
     setLoading(true);
     setError(null);
     try {
-      setDeployments(await deploymentsService.getAll());
+      const [deploymentList, projectList] = await Promise.all([
+        deploymentsService.getAll(),
+        projectsService.getAll(),
+      ]);
+      setDeployments(deploymentList);
+      setCanCreateDeployment(
+        isAdmin ||
+          projectList.some(
+            (project) =>
+              project.currentUserProjectRole === 'OWNER' ||
+              project.currentUserProjectRole === 'DEVELOPER',
+          ),
+      );
     } catch (err) {
       setError(getApiErrorMessage(err));
+      setCanCreateDeployment(false);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => { void fetchDeployments(); }, [fetchDeployments]);
 
@@ -87,12 +104,14 @@ export default function DeploymentsPage() {
             >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
-            <Link
-              href="/deployments/new"
-              className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
-            >
-              <Plus size={16} /> New Deployment
-            </Link>
+            {canCreateDeployment && (
+              <Link
+                href="/deployments/new"
+                className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
+              >
+                <Plus size={16} /> New Deployment
+              </Link>
+            )}
           </div>
         </div>
 
@@ -174,7 +193,7 @@ export default function DeploymentsPage() {
               ? 'No deployments yet. Launch your first deployment.'
               : `No deployments with status "${statusFilter}".`}
           </p>
-          {statusFilter === 'ALL' && (
+          {statusFilter === 'ALL' && canCreateDeployment && (
             <Link
               href="/deployments/new"
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
