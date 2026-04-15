@@ -4,7 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Project, ProjectMemberRole, Prisma, Role } from '@prisma/client';
+import {
+  GitlabSourceType,
+  Project,
+  ProjectMemberRole,
+  Prisma,
+  Role,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -35,6 +41,10 @@ type ProjectWithMembers = Prisma.ProjectGetPayload<{
 
 type ProjectListItem = Project & {
   memberCount: number;
+  environmentCount: number;
+  hasGitlabConfig: boolean;
+  gitlabSourceType: GitlabSourceType | null;
+  gitlabGroupId: number | null;
 };
 
 /**
@@ -107,8 +117,14 @@ export class ProjectsService {
       where,
       orderBy: { createdAt: 'desc' },
       include: {
+        gitlabConfig: {
+          select: {
+            sourceType: true,
+            gitlabGroupId: true,
+          },
+        },
         _count: {
-          select: { members: true },
+          select: { members: true, environments: true },
         },
       },
     });
@@ -125,6 +141,10 @@ export class ProjectsService {
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       memberCount: project._count.members,
+      environmentCount: project._count.environments,
+      hasGitlabConfig: Boolean(project.gitlabConfig),
+      gitlabSourceType: project.gitlabConfig?.sourceType ?? null,
+      gitlabGroupId: project.gitlabConfig?.gitlabGroupId ?? null,
     }));
   }
 

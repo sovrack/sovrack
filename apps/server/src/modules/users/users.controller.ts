@@ -15,9 +15,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role, User } from '@prisma/client';
+import { GetUser } from '../../common/decorators/get-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
@@ -63,6 +65,7 @@ export class UsersController {
   }
 
   @Put(':id')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({ summary: 'Modifier un utilisateur' })
   @ApiResponse({ status: 200, description: 'Utilisateur mis à jour' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
@@ -70,9 +73,13 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
   async update(
     @Param('id') id: string,
+    @GetUser() user: JwtPayload,
     @Body() dto: UpdateUserDto,
   ): Promise<Omit<User, 'password'>> {
-    return await this.usersService.update(id, dto);
+    return await this.usersService.update(id, dto, {
+      id: user.id,
+      role: user.role,
+    });
   }
 
   @Delete(':id')

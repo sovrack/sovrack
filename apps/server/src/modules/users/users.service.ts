@@ -1,13 +1,21 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { Role, User } from '@prisma/client';
+import { Prisma, Role, User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+
+type UpdateActor = {
+  id: string;
+  role: Role;
+};
 
 @Injectable()
 export class UsersService {
@@ -81,14 +89,82 @@ export class UsersService {
   async update(
     id: string,
     dto: UpdateUserDto,
+    actor?: UpdateActor,
   ): Promise<Omit<User, 'password'>> {
-    await this.ensureUserExists(id);
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
 
-    const updatedUser = await this.prisma.user.update({
-      where: { id },
-      data: dto,
-    });
+    const isAdminActor = actor?.role === Role.ADMIN;
+    const isSelfUpdate = actor?.id === id;
+    const hasActorContext = Boolean(actor);
 
+    if (hasActorContext && !isAdminActor && !isSelfUpdate) {
+      throw new ForbiddenException(
+        'Vous ne pouvez modifier que votre propre profil',
+      );
+    }
+
+    if (
+      hasActorContext &&
+      !isAdminActor &&
+      (dto.role !== undefined || dto.isActive !== undefined)
+    ) {
+      throw new ForbiddenException(
+        'Seul un administrateur peut modifier le rôle ou le statut actif',
+      );
+    }
+
+    const wantsPasswordChange =
+      dto.currentPassword !== undefined ||
+      dto.newPassword !== undefined ||
+      dto.confirmNewPassword !== undefined;
+
+    const data: Prisma.UserUpdateInput = {};
+
+    if (dto.fullName !== undefined) {
+      data.fullName = dto.fullName;
+    }
+
+    if (!hasActorContext || isAdminActor) {
+      if (dto.role !== undefined) {
+        data.role = dto.role;
+      }
+      if (dto.isActive !== undefined) {
+        data.isActive = dto.isActive;
+      }
+    }
+
+    if (wantsPasswordChange) {
+      if (!dto.currentPassword || !dto.newPassword || !dto.confirmNewPassword) {
+        throw new BadRequestException(
+          'Pour changer le mot de passe, renseignez mot de passe actuel, nouveau et confirmation',
+        );
+      }
+
+      if (dto.newPassword !== dto.confirmNewPassword) {
+        throw new BadRequestException(
+          'La confirmation du nouveau mot de passe ne correspond pas',
+        );
+      }
+
+      const isCurrentPasswordValid = await bcrypt.compare(
+        dto.currentPassword,
+        user.password,
+      );
+      if (!isCurrentPasswordValid) {
+        throw new UnauthorizedException('Mot de passe actuel incorrect');
+      }
+
+      data.password = await bcrypt.hash(dto.newPassword, 10);
+    }
+
+    if (Object.keys(data).length === 0) {
+      return this.removePassword(user);
+    }
+
+    const updatedUser = await this.prisma.user.update({ where: { id }, data });
     return this.removePassword(updatedUser);
   }
 
