@@ -67,11 +67,7 @@ export class PlatformConfigController {
     @Param('key') key: string,
     @Body() dto: UpdatePlatformConfigDto,
   ) {
-    return await this.platformConfigService.set(
-      key,
-      dto.value,
-      dto.isSecret ?? false,
-    );
+    return await this.platformConfigService.set(key, dto.value, dto.isSecret);
   }
 
   @Post('test-gitlab')

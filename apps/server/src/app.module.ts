@@ -12,6 +12,7 @@ import { EnvironmentsModule } from './environments/environments.module';
 import { ConfigsModule } from './configs/configs.module';
 import { DeploymentsModule } from './deployments/deployments.module';
 import { PlatformConfigModule } from './platform-config/platform-config.module';
+import { TeamsModule } from './teams/teams.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PlatformConfigModule } from './platform-config/platform-config.module';
     ConfigsModule,
     DeploymentsModule,
     PlatformConfigModule,
+    TeamsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

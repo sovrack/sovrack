@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
   forwardRef,
@@ -11,11 +12,13 @@ import {
   Deployment,
   DeploymentStatus,
   GitlabConfig,
+  GitlabSourceType,
   Prisma,
   ProjectMemberRole,
   Role,
   type User,
 } from '@prisma/client';
+import * as CryptoJS from 'crypto-js';
 import { spawn } from 'child_process';
 import { chmod, mkdtemp, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
@@ -124,6 +127,7 @@ export class DeploymentsService {
     const dockerImage = await this.buildDockerImage({
       gitlabConfig: project.gitlabConfig,
       projectName: project.name,
+      projectGitlabUrl: project.gitlabUrl,
       branch,
     });
 
@@ -294,7 +298,8 @@ export class DeploymentsService {
         host: server.host,
         port: server.port,
         username: server.username,
-        privateKey: server.sshKey,
+        // Déchiffrement de la clé SSH chiffrée en AES en base avant connexion.
+        privateKey: this.decryptSshKey(server.sshKey),
         readyTimeout: 10000,
       });
     } catch {
@@ -314,7 +319,7 @@ export class DeploymentsService {
     const tmpPath = await mkdtemp(join(tmpdir(), 'deploy-ansible-'));
     const inventoryPath = join(tmpPath, 'inventory.ini');
     const varsPath = join(tmpPath, 'vars.json');
-    const privateKeyPath = join(tmpdir(), `deploy_key_${deployment.id}`);
+    const privateKeyPath = `/tmp/deploy_key_${deployment.id}`;
 
     const playbookRoot = process.env.ANSIBLE_PLAYBOOKS_PATH ?? './ansible';
     const playbookPath = join(playbookRoot, 'deploy.yml');
@@ -352,8 +357,8 @@ export class DeploymentsService {
 
     await writeFile(inventoryPath, inventoryContent, 'utf-8');
     await writeFile(varsPath, JSON.stringify(varsContent, null, 2), 'utf-8');
-    // Cle privee ecrite en temporaire pour ansible-playbook (--private-key).
-    await writeFile(privateKeyPath, server.sshKey, {
+    // Clé privée déchiffrée et écrite en temporaire pour ansible-playbook (--private-key).
+    await writeFile(privateKeyPath, this.decryptSshKey(server.sshKey), {
       encoding: 'utf-8',
       mode: 0o600,
     });
@@ -436,7 +441,18 @@ export class DeploymentsService {
     userId: string,
     userRole: Role,
   ): Promise<DeploymentWithRelations[]> {
-    const where = userRole === Role.ADMIN ? undefined : { userId };
+    const where: Prisma.DeploymentWhereInput | undefined =
+      userRole === Role.ADMIN
+        ? undefined
+        : {
+            project: {
+              members: {
+                some: {
+                  userId,
+                },
+              },
+            },
+          };
 
     return await this.prisma.deployment.findMany({
       where,
@@ -727,10 +743,12 @@ export class DeploymentsService {
   private async buildDockerImage({
     gitlabConfig,
     projectName,
+    projectGitlabUrl,
     branch,
   }: {
     gitlabConfig?: GitlabConfig | null;
     projectName: string;
+    projectGitlabUrl?: string | null;
     branch: string;
   }): Promise<string> {
     if (!gitlabConfig) {
@@ -741,10 +759,17 @@ export class DeploymentsService {
       gitlabConfig.registryUrl,
       gitlabConfig.gitlabUrl,
     );
-    const repositoryPath = await this.gitlabService.resolveRepositoryPath(
+    const resolvedPath = await this.gitlabService.resolveRepositoryPath(
       gitlabConfig,
       this.slugify(projectName),
     );
+    const fallbackPathFromUrl =
+      this.extractRepositoryPathFromProjectUrl(projectGitlabUrl);
+    const repositoryPath =
+      fallbackPathFromUrl &&
+      this.isPlaceholderRepositoryPath(gitlabConfig, resolvedPath)
+        ? fallbackPathFromUrl
+        : resolvedPath;
     const tag = this.sanitizeDockerTag(branch);
 
     return `${registryHost}/${repositoryPath}:${tag}`;
@@ -770,6 +795,9 @@ export class DeploymentsService {
 
     try {
       const parsed = new URL(gitlabUrl);
+      if (parsed.hostname.toLowerCase() === 'gitlab.com') {
+        return 'registry.gitlab.com';
+      }
       if (parsed.port) {
         return parsed.host;
       }
@@ -784,7 +812,67 @@ export class DeploymentsService {
     return value
       .trim()
       .replace(/^https?:\/\//i, '')
-      .replace(/^registry\./i, 'registry.')
       .replace(/\/+$/, '');
+  }
+
+  private extractRepositoryPathFromProjectUrl(
+    projectGitlabUrl?: string | null,
+  ): string | null {
+    if (!projectGitlabUrl?.trim()) {
+      return null;
+    }
+
+    try {
+      const parsed = new URL(projectGitlabUrl);
+      const path = parsed.pathname
+        .replace(/^\/+/, '')
+        .replace(/\/+$/, '')
+        .replace(/\.git$/i, '');
+
+      return path || null;
+    } catch {
+      const cleaned = projectGitlabUrl
+        .trim()
+        .replace(/^https?:\/\//i, '')
+        .replace(/^[^/]+\/?/, '')
+        .replace(/\/+$/, '')
+        .replace(/\.git$/i, '');
+
+      return cleaned || null;
+    }
+  }
+
+  private isPlaceholderRepositoryPath(
+    config: GitlabConfig,
+    repositoryPath: string,
+  ): boolean {
+    if (
+      config.sourceType === GitlabSourceType.REPO &&
+      config.gitlabId &&
+      repositoryPath.startsWith(`project-${String(config.gitlabId)}/`)
+    ) {
+      return true;
+    }
+
+    return Boolean(
+      config.sourceType === GitlabSourceType.GROUP &&
+      config.gitlabGroupId &&
+      repositoryPath.startsWith(`group-${String(config.gitlabGroupId)}/`),
+    );
+  }
+
+  // Déchiffre la clé SSH AES-256 stockée en base.
+  // Compatibilité ascendante : si le déchiffrement échoue, retourne la valeur brute.
+  private decryptSshKey(encryptedValue: string): string {
+    const secret = process.env.CONFIG_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new InternalServerErrorException(
+        'CONFIG_SECRET doit contenir au moins 32 caractères',
+      );
+    }
+    const decrypted = CryptoJS.AES.decrypt(encryptedValue, secret).toString(
+      CryptoJS.enc.Utf8,
+    );
+    return decrypted || encryptedValue;
   }
 }

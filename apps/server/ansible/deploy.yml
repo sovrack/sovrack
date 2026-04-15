@@ -23,8 +23,10 @@
       when: registry_username | length == 0 or registry_password | length == 0
 
     - name: Connexion au registry Docker
-      ansible.builtin.command: >-
-        docker login {{ registry_url }} -u {{ registry_username }} -p {{ registry_password }}
+      ansible.builtin.shell: >-
+        echo "{{ registry_password }}" | docker login {{ registry_url }} -u {{ registry_username }} --password-stdin
+      args:
+        executable: /bin/bash
       when: registry_username | length > 0 and registry_password | length > 0
       no_log: true
 

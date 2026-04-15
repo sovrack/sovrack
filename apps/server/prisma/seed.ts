@@ -19,13 +19,7 @@ async function main(): Promise<void> {
     prisma.projectMember.deleteMany(),
     prisma.project.deleteMany(),
     prisma.server.deleteMany(),
-    prisma.platformConfig.deleteMany({
-      where: {
-        key: {
-          notIn: platformKeys,
-        },
-      },
-    }),
+    prisma.platformConfig.deleteMany(),
     prisma.user.deleteMany({
       where: {
         email: {

@@ -51,6 +51,7 @@ model User {
   role        Role         @default(DEVELOPER)
   isActive    Boolean      @default(true)
   projects    ProjectMember[]
+  teams       TeamMember[]
   deployments Deployment[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -182,6 +183,26 @@ model Deployment {
   finishedAt    DateTime?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
+}
+
+model Team {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  members     TeamMember[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model TeamMember {
+  id       String   @id @default(uuid())
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  joinedAt DateTime @default(now())
+
+  @@unique([teamId, userId])
 }
 
 model PlatformConfig {
