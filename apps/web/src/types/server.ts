@@ -42,6 +42,7 @@ export type Server = {
   agentLastSeenAt: string | null;
   isActive: boolean;
   isVerified: boolean;
+  onboardingStep: string;
   hasDocker: boolean;
   hasAnsible: boolean;
   hasRunner: boolean;
@@ -61,6 +62,10 @@ export type CreateServerPayload = {
   bastionPort?: number;
   bastionUsername?: string;
   bastionSshKey?: string;
+};
+
+export type CreateServerResult = Server & {
+  agentBootstrapToken?: string;
 };
 
 export type UpdateServerPayload = Partial<{

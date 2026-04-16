@@ -18,6 +18,8 @@ import {
   RotateCcw,
   Play,
 } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import { serversService } from '@/services/servers.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { ServerStatusBadges } from '@/components/servers/server-status-badges';
@@ -359,22 +361,12 @@ export default function AdminServersPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-theme-xs md:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-600">
-              Infrastructure
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-900">
-              Servers
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Configure servers with manual checklist updates or SSH
-              auto-verification before linking them to environments.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
+      <PageHeader
+        eyebrow="Infrastructure"
+        title="Servers"
+        description="Configure servers with manual checklist updates or SSH auto-verification before linking them to environments."
+        actions={
+          <>
             <button
               onClick={() => void fetchServers()}
               disabled={loading}
@@ -388,13 +380,15 @@ export default function AdminServersPage() {
             >
               <Plus size={16} /> Add Server
             </Link>
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3">
+      <SectionCard contentClassName="p-0">
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-200 p-5 sm:grid-cols-3 dark:border-slate-800">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70">
             <p className="text-xs font-medium text-slate-500">Total servers</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">
+            <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
               {servers.length}
             </p>
           </div>
@@ -417,7 +411,7 @@ export default function AdminServersPage() {
             </p>
           </div>
         </div>
-      </section>
+      </SectionCard>
 
       {error && (
         <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -508,6 +502,23 @@ export default function AdminServersPage() {
                             Not verified
                           </span>
                         )}
+                        {/* Onboarding Step Badge */}
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                          server.onboardingStep === 'PENDING' ? 'border-red-200 bg-red-50 text-red-700' :
+                          server.onboardingStep === 'KEY_INSTALLED' ? 'border-amber-200 bg-amber-50 text-amber-700' :
+                          server.onboardingStep === 'VALIDATED' ? 'border-blue-200 bg-blue-50 text-blue-700' :
+                          server.onboardingStep === 'READY' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' :
+                          'border-slate-200 bg-slate-50 text-slate-500'
+                        }`}>
+                          {server.onboardingStep === 'PENDING' && '🔴'}
+                          {server.onboardingStep === 'KEY_INSTALLED' && '🟠'}
+                          {server.onboardingStep === 'VALIDATED' && '🔵'}
+                          {server.onboardingStep === 'READY' && '🟢'}
+                          {server.onboardingStep === 'PENDING' && 'Non config'}
+                          {server.onboardingStep === 'KEY_INSTALLED' && 'Clé inst'}
+                          {server.onboardingStep === 'VALIDATED' && 'Validé'}
+                          {server.onboardingStep === 'READY' && 'Prêt'}
+                        </span>
                       </div>
                       <p className="mt-0.5 font-mono text-xs text-slate-400">
                         {server.username}@{server.host}:{server.port}
