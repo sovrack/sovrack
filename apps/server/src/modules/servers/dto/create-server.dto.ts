@@ -64,7 +64,7 @@ export class CreateServerDto {
 
   @ApiPropertyOptional({
     enum: ServerConnectionModeDto,
-    default: ServerConnectionModeDto.SSH,
+    default: ServerConnectionModeDto.AGENT,
     description: 'Mode de connexion vers le VPS cible',
   })
   @IsOptional()

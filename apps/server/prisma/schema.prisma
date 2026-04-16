@@ -86,7 +86,7 @@ model Project {
   name         String
   description  String?
   gitlabUrl    String
-  gitlabId     Int?
+  gitlabId     BigInt?
   branch       String          @default("main")
   dockerfile   String          @default("Dockerfile")
   port         Int             @default(3000)
@@ -116,10 +116,10 @@ model GitlabConfig {
   id                  String           @id @default(uuid())
   gitlabUrl           String
   gitlabToken         String
-  gitlabId            Int?
+  gitlabId            BigInt?
   defaultBranch       String           @default("main")
   sourceType          GitlabSourceType @default(REPO)
-  gitlabGroupId       Int?
+  gitlabGroupId       BigInt?
   deployTokenUsername String?
   deployTokenValue    String?
   webhookSecret       String?
@@ -132,7 +132,7 @@ model GitlabConfig {
 
 model Pipeline {
   id        String         @id @default(uuid())
-  gitlabId  Int
+  gitlabId  BigInt
   status    PipelineStatus
   ref       String
   sha       String
@@ -162,6 +162,7 @@ model Server {
   agentLastSeenAt DateTime?
   isActive        Boolean              @default(true)
   isVerified      Boolean              @default(false)
+  onboardingStep  String               @default("PENDING")
   hasDocker       Boolean              @default(false)
   hasAnsible      Boolean              @default(false)
   hasRunner       Boolean              @default(false)

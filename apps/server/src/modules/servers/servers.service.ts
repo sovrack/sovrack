@@ -13,12 +13,14 @@ import {
   ServerJobType,
 } from '@prisma/client';
 import * as CryptoJS from 'crypto-js';
+import { writeFile, chmod, rm } from 'fs/promises';
 import {
+  randomBytes,
   createPrivateKey,
   createPublicKey,
   generateKeyPairSync,
-  randomBytes,
 } from 'crypto';
+import * as sshpk from 'sshpk';
 import { NodeSSH } from 'node-ssh';
 import type { Duplex } from 'stream';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -66,10 +68,13 @@ export class ServersService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateServerDto, actorUserId: string): Promise<CreateServerResult> {
+  async create(
+    dto: CreateServerDto,
+    actorUserId: string,
+  ): Promise<CreateServerResult> {
     const connectionMode = this.mapConnectionMode(dto.connectionMode);
-    const normalizedSshKey = dto.sshKey?.trim();
-    const sshMaterial = this.resolveSshMaterial(normalizedSshKey);
+    // Toujours générer une nouvelle paire SSH (jamais accepter de l'extérieur)
+    const sshMaterial = this.resolveSshMaterial();
 
     if (connectionMode === ServerConnectionMode.BASTION) {
       this.assertBastionConfig(
@@ -171,7 +176,6 @@ export class ServersService {
       dto.host !== undefined ||
       dto.port !== undefined ||
       dto.username !== undefined ||
-      dto.sshKey !== undefined ||
       dto.connectionMode !== undefined ||
       dto.bastionHost !== undefined ||
       dto.bastionPort !== undefined ||
@@ -183,7 +187,6 @@ export class ServersService {
       ...(dto.host !== undefined && { host: dto.host }),
       ...(dto.port !== undefined && { port: dto.port }),
       ...(dto.username !== undefined && { username: dto.username }),
-      ...(dto.sshKey !== undefined && { sshKey: this.encrypt(dto.sshKey) }),
       ...(dto.connectionMode !== undefined && {
         connectionMode: this.mapConnectionMode(dto.connectionMode),
       }),
@@ -409,13 +412,22 @@ export class ServersService {
 
     const keyConnection = new NodeSSH();
     try {
-      await keyConnection.connect({
-        host: server.host,
-        port: server.port,
-        username: server.username,
-        privateKey: this.decrypt(server.sshKey),
-        readyTimeout: 10_000,
-      });
+      const normalizedKey = this.decrypt(server.sshKey);
+      const keyPath = `/tmp/ssh_verify_${server.id}_${Date.now()}`;
+      try {
+        await writeFile(keyPath, normalizedKey, { mode: 0o600 });
+        await keyConnection.connect({
+          host: server.host,
+          port: server.port,
+          username: server.username,
+          privateKeyPath: keyPath,
+          readyTimeout: 10_000,
+        });
+        await rm(keyPath, { force: true }).catch(() => {});
+      } catch (err) {
+        await rm(keyPath, { force: true }).catch(() => {});
+        throw err;
+      }
     } catch {
       throw new BadRequestException(
         'La clé a été installée mais la connexion SSH par clé a échoué',
@@ -713,13 +725,34 @@ export class ServersService {
 
     if (server.connectionMode === ServerConnectionMode.SSH) {
       const target = new NodeSSH();
-      await target.connect({
-        host: server.host,
-        port: server.port,
-        username: server.username,
-        privateKey: this.decrypt(server.sshKey),
-        readyTimeout: 10_000,
-      });
+      const decryptedKey = this.decrypt(server.sshKey);
+      console.log('[SSH] Clé décryptée, longueur:', decryptedKey.length);
+      // Écrire la clé directement SANS conversion (ssh2 peut comprendre OpenSSH format)
+      const keyPath = `/tmp/ssh_key_${server.id}_${Date.now()}`;
+      try {
+        await writeFile(keyPath, decryptedKey, { mode: 0o600 });
+        console.log(
+          `[SSH] Clé écrite à ${keyPath}, taille: ${decryptedKey.length} bytes`,
+        );
+        await target.connect({
+          host: server.host,
+          port: server.port,
+          username: server.username,
+          privateKeyPath: keyPath,
+          readyTimeout: 10_000,
+        });
+        console.log('[SSH] Connexion réussie!');
+        // Nettoyer le fichier après connexion réussie
+        target['_onClose'] = () => {
+          rm(keyPath, { force: true }).catch((err) => {
+            console.log('[SSH] Erreur nettoyage clé:', (err as Error).message);
+          });
+        };
+      } catch (err) {
+        // Nettoyer en cas d'erreur
+        await rm(keyPath, { force: true }).catch(() => {});
+        throw err;
+      }
       return { target };
     }
 
@@ -730,13 +763,21 @@ export class ServersService {
     );
 
     const bastion = new NodeSSH();
-    await bastion.connect({
-      host: server.bastionHost!,
-      port: server.bastionPort ?? 22,
-      username: server.bastionUsername!,
-      privateKey: this.decrypt(server.bastionSshKey!),
-      readyTimeout: 10_000,
-    });
+    const bastionKey = this.decrypt(server.bastionSshKey!);
+    const bastionKeyPath = `/tmp/ssh_bastion_${server.id}_${Date.now()}`;
+    try {
+      await writeFile(bastionKeyPath, bastionKey, { mode: 0o600 });
+      await bastion.connect({
+        host: server.bastionHost!,
+        port: server.bastionPort ?? 22,
+        username: server.bastionUsername!,
+        privateKeyPath: bastionKeyPath,
+        readyTimeout: 10_000,
+      });
+    } catch (err) {
+      await rm(bastionKeyPath, { force: true }).catch(() => {});
+      throw err;
+    }
 
     const sock = await this.forwardThroughBastion(
       bastion,
@@ -745,12 +786,20 @@ export class ServersService {
     );
 
     const target = new NodeSSH();
-    await target.connect({
-      sock,
-      username: server.username,
-      privateKey: this.decrypt(server.sshKey),
-      readyTimeout: 10_000,
-    });
+    const targetKey = this.decrypt(server.sshKey);
+    const targetKeyPath = `/tmp/ssh_target_${server.id}_${Date.now()}`;
+    try {
+      await writeFile(targetKeyPath, targetKey, { mode: 0o600 });
+      await target.connect({
+        sock,
+        username: server.username,
+        privateKeyPath: targetKeyPath,
+        readyTimeout: 10_000,
+      });
+    } catch (err) {
+      await rm(targetKeyPath, { force: true }).catch(() => {});
+      throw err;
+    }
 
     return { target, bastion };
   }
@@ -880,7 +929,11 @@ export class ServersService {
   private mapConnectionMode(
     mode?: ServerConnectionModeDto,
   ): ServerConnectionMode {
-    if (!mode || mode === ServerConnectionModeDto.SSH) {
+    if (!mode || mode === ServerConnectionModeDto.AGENT) {
+      return ServerConnectionMode.AGENT;
+    }
+
+    if (mode === ServerConnectionModeDto.SSH) {
       return ServerConnectionMode.SSH;
     }
 
@@ -888,7 +941,7 @@ export class ServersService {
       return ServerConnectionMode.BASTION;
     }
 
-    return ServerConnectionMode.AGENT;
+    return ServerConnectionMode.SSH;
   }
 
   private toConnectionModeDto(
@@ -979,19 +1032,50 @@ export class ServersService {
     };
   }
 
+  // Convertit une clé privée SSH (OpenSSH, PKCS8, PKCS1) vers PKCS8 PEM
+  // utilisable par Node.js crypto et NodeSSH
+  private normalizePrivateKeyFormat(privateKeyPem: string): string {
+    try {
+      try {
+        const key = sshpk.parsePrivateKey(privateKeyPem, 'auto');
+        const converted = key.toString('pkcs8');
+        console.log('[SSH] Clé convertie de format OpenSSH vers PKCS8');
+        return converted;
+      } catch (err) {
+        console.log(
+          '[SSH] Conversion sshpk échouée, essai format natif:',
+          (err as Error).message,
+        );
+        createPrivateKey(privateKeyPem);
+        console.log('[SSH] Clé déjà en format natif accepté');
+        return privateKeyPem;
+      }
+    } catch (err) {
+      console.log('[SSH] Erreur normalisation:', (err as Error).message);
+      return privateKeyPem;
+    }
+  }
+
   private deriveOpenSshPublicKey(privateKeyPem: string): string {
     try {
-      const privateKeyObject = createPrivateKey(privateKeyPem);
-      const publicKeyObject = createPublicKey(privateKeyObject);
-      const publicKeyDer = publicKeyObject.export({
-        type: 'spki',
-        format: 'der',
-      }) as Buffer;
+      // Try parsing with sshpk first (supports all SSH key formats including OpenSSH)
+      try {
+        const key = sshpk.parsePrivateKey(privateKeyPem, 'auto');
+        return key.toString('openssh');
+      } catch {
+        // Fallback to createPrivateKey for other formats
+        const privateKeyObject = createPrivateKey(privateKeyPem);
+        const publicKeyObject = createPublicKey(privateKeyObject);
+        const publicKeyDer = publicKeyObject.export({
+          type: 'spki',
+          format: 'der',
+        }) as Buffer;
 
-      return this.convertSpkiDerToOpenSsh(publicKeyDer);
+        return this.convertSpkiDerToOpenSsh(publicKeyDer);
+      }
     } catch {
       throw new BadRequestException(
-        'Clé privée SSH invalide: impossible de dériver la clé publique',
+        'Clé privée SSH invalide. Formats acceptés: OpenSSH (-----BEGIN OPENSSH PRIVATE KEY-----), PKCS8 (-----BEGIN PRIVATE KEY-----), ou PKCS1 (-----BEGIN RSA PRIVATE KEY-----)',
       );
     }
   }
@@ -1052,13 +1136,32 @@ export class ServersService {
   private decrypt(encryptedValue: string): string {
     const secret = process.env.CONFIG_SECRET;
     if (!secret || secret.length < 32) {
+      console.log('[DEBUG] CONFIG_SECRET problem:', {
+        hasSecret: !!secret,
+        length: secret?.length,
+      });
       throw new InternalServerErrorException(
         'CONFIG_SECRET doit contenir au moins 32 caractères',
       );
     }
+    console.log(
+      '[DEBUG] Attempting decrypt with secret length:',
+      secret.length,
+    );
     const decrypted = CryptoJS.AES.decrypt(encryptedValue, secret).toString(
       CryptoJS.enc.Utf8,
     );
+    console.log(
+      '[DEBUG] Decrypted result length:',
+      decrypted.length,
+      'starts with:',
+      decrypted.substring(0, 50),
+    );
+    if (!decrypted) {
+      console.log(
+        '[DEBUG] Decryption resulted in empty string, returning encrypted value',
+      );
+    }
     return decrypted || encryptedValue;
   }
 
@@ -1075,9 +1178,7 @@ export class ServersService {
           action,
           resourceType: 'Server',
           resourceId,
-          ...(metadata
-            ? { metadata: metadata as Prisma.InputJsonValue }
-            : {}),
+          ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
         },
       });
     } catch {
