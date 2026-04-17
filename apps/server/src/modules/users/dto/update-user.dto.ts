@@ -47,7 +47,8 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'NouveauMotDePasse123!' })
   @IsOptional()
   @IsString({
-    message: 'La confirmation du mot de passe doit être une chaîne de caractères',
+    message:
+      'La confirmation du mot de passe doit être une chaîne de caractères',
   })
   confirmNewPassword?: string;
 }

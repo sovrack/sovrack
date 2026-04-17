@@ -155,7 +155,7 @@ export class ProjectsService {
       environmentCount: project._count.environments,
       hasGitlabConfig: Boolean(project.gitlabConfig),
       gitlabSourceType: project.gitlabConfig?.sourceType ?? null,
-      gitlabGroupId: project.gitlabConfig?.gitlabGroupId ?? null,
+      gitlabGroupId: project.gitlabConfig?.gitlabGroupId ? Number(project.gitlabConfig.gitlabGroupId) : null,
       currentUserProjectRole: project.members[0]?.role ?? null,
     }));
   }
@@ -418,9 +418,7 @@ export class ProjectsService {
           action,
           resourceType,
           resourceId,
-          ...(metadata
-            ? { metadata: metadata as Prisma.InputJsonValue }
-            : {}),
+          ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
         },
       });
     } catch {

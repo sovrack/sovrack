@@ -2,13 +2,21 @@ import { HttpModule } from '@nestjs/axios';
 import { Module, forwardRef } from '@nestjs/common';
 import { DeploymentsModule } from '../deployments/deployments.module';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { GitlabApiService } from './gitlab-api.service';
 import { GitlabController } from './gitlab.controller';
+import { GitlabCryptoService } from './gitlab-crypto.service';
 import { GitlabService } from './gitlab.service';
+import { GitlabWebhookService } from './gitlab-webhook.service';
 
 @Module({
   imports: [PrismaModule, HttpModule, forwardRef(() => DeploymentsModule)],
   controllers: [GitlabController],
-  providers: [GitlabService],
-  exports: [GitlabService],
+  providers: [
+    GitlabService,
+    GitlabApiService,
+    GitlabWebhookService,
+    GitlabCryptoService,
+  ],
+  exports: [GitlabService, GitlabApiService, GitlabWebhookService, GitlabCryptoService],
 })
 export class GitlabModule {}

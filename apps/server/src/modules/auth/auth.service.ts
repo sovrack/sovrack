@@ -119,9 +119,7 @@ export class AuthService {
           action,
           resourceType: 'User',
           resourceId,
-          ...(metadata
-            ? { metadata: metadata as Prisma.InputJsonValue }
-            : {}),
+          ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
         },
       });
     } catch {

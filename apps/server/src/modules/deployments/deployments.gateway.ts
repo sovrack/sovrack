@@ -137,7 +137,9 @@ export class DeploymentsGateway implements OnGatewayConnection {
   }
 
   emitLog(payload: DeploymentLogPayload): void {
-    this.server.to(this.roomName(payload.deploymentId)).emit('deployment:log', payload);
+    this.server
+      .to(this.roomName(payload.deploymentId))
+      .emit('deployment:log', payload);
   }
 
   emitStatus(payload: DeploymentStatusPayload): void {

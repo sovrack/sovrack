@@ -4,7 +4,10 @@ import { JwtModule, type JwtModuleOptions } from '@nestjs/jwt';
 import { ConfigsModule } from '../configs/configs.module';
 import { GitlabModule } from '../gitlab/gitlab.module';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { DeploymentsAnsibleService } from './deployments-ansible.service';
+import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { DeploymentsController } from './deployments.controller';
+import { DeploymentsDockerService } from './deployments-docker.service';
 import { DeploymentsGateway } from './deployments.gateway';
 import { DeploymentsService } from './deployments.service';
 
@@ -13,7 +16,6 @@ import { DeploymentsService } from './deployments.service';
     PrismaModule,
     forwardRef(() => GitlabModule),
     ConfigsModule,
-    // JwtModule pour la validation des tokens dans le WebSocket gateway.
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -29,7 +31,18 @@ import { DeploymentsService } from './deployments.service';
     }),
   ],
   controllers: [DeploymentsController],
-  providers: [DeploymentsService, DeploymentsGateway],
-  exports: [DeploymentsService],
+  providers: [
+    DeploymentsService,
+    DeploymentsGateway,
+    DeploymentsAnsibleService,
+    DeploymentsDockerService,
+    DeploymentsAuthorizationService,
+  ],
+  exports: [
+    DeploymentsService,
+    DeploymentsAnsibleService,
+    DeploymentsDockerService,
+    DeploymentsAuthorizationService,
+  ],
 })
 export class DeploymentsModule {}
