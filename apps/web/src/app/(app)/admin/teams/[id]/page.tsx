@@ -14,6 +14,8 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import { teamsService } from '@/services/teams.service';
 import { usersService } from '@/services/users.service';
 import { getApiErrorMessage } from '@/lib/api';
@@ -168,21 +170,20 @@ export default function TeamDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/admin/teams"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
-        >
-          <ArrowLeft size={15} />
-          Retour à la liste
-        </Link>
-        <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-900">
-          {team.name}
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Modifiez les informations et gérez les membres de cette équipe.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Administration"
+        title={team.name}
+        description="Modifiez les informations et gérez les membres de cette équipe."
+        actions={
+          <Link
+            href="/admin/teams"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+          >
+            <ArrowLeft size={15} />
+            Retour à la liste
+          </Link>
+        }
+      />
 
       {toast && (
         <div
@@ -196,14 +197,8 @@ export default function TeamDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/* Edit form */}
-      <form
-        onSubmit={handleSave}
-        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-theme-xs"
-      >
-        <h2 className="mb-4 text-base font-semibold text-slate-900">
-          Informations de l&apos;équipe
-        </h2>
+      <SectionCard title="Informations de l&apos;équipe">
+        <form onSubmit={handleSave} className="space-y-4">
 
         <div className="space-y-4">
           <div>
@@ -233,7 +228,7 @@ export default function TeamDetailPage({ params }: Props) {
           </div>
         </div>
 
-        <div className="mt-6">
+          <div className="pt-2">
           <button
             type="submit"
             disabled={saving}
@@ -242,86 +237,87 @@ export default function TeamDetailPage({ params }: Props) {
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             Enregistrer
           </button>
-        </div>
-      </form>
-
-      {/* Members */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-theme-xs">
-        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
-          <Users size={18} className="text-brand-500" />
-          Membres ({team.members.length})
-        </h2>
-
-        {team.members.length === 0 ? (
-          <p className="text-sm text-slate-500">Aucun membre pour l&apos;instant.</p>
-        ) : (
-          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
-            {team.members.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{member.user.fullName}</p>
-                  <p className="text-xs text-slate-500">{member.user.email}</p>
-                </div>
-                <button
-                  onClick={() => void handleRemoveMember(member.userId)}
-                  disabled={removingUserId === member.userId}
-                  className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                >
-                  {removingUserId === member.userId ? (
-                    <Loader2 size={13} className="animate-spin" />
-                  ) : (
-                    <UserMinus size={13} />
-                  )}
-                  Retirer
-                </button>
-              </div>
-            ))}
           </div>
-        )}
+        </form>
+      </SectionCard>
 
-        {availableUsers.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Ajouter un membre
-            </p>
-            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
-              {availableUsers.map((user) => (
+      <SectionCard title={`Membres (${team.members.length})`}>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-100">
+            <Users size={18} className="text-brand-500" />
+            Membres
+          </div>
+
+          {team.members.length === 0 ? (
+            <p className="text-sm text-slate-500">Aucun membre pour l&apos;instant.</p>
+          ) : (
+            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-700">
+              {team.members.map((member) => (
                 <div
-                  key={user.id}
+                  key={member.id}
                   className="flex items-center justify-between px-4 py-3"
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{user.fullName}</p>
-                    <p className="text-xs text-slate-500">{user.email}</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{member.user.fullName}</p>
+                    <p className="text-xs text-slate-500">{member.user.email}</p>
                   </div>
                   <button
-                    onClick={() => void handleAddMember(user.id)}
-                    disabled={addingUserId === user.id}
-                    className="inline-flex items-center gap-1 rounded-lg border border-brand-200 px-2.5 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-50 disabled:opacity-50"
+                    onClick={() => void handleRemoveMember(member.userId)}
+                    disabled={removingUserId === member.userId}
+                    className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900/40 dark:hover:bg-red-950/30"
                   >
-                    {addingUserId === user.id ? (
+                    {removingUserId === member.userId ? (
                       <Loader2 size={13} className="animate-spin" />
                     ) : (
-                      <UserPlus size={13} />
+                      <UserMinus size={13} />
                     )}
-                    Ajouter
+                    Retirer
                   </button>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Danger zone */}
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-        <h2 className="mb-2 text-base font-semibold text-red-800">Zone dangereuse</h2>
-        <p className="mb-4 text-sm text-red-600">
-          La suppression de cette équipe est irréversible.
-        </p>
+          {availableUsers.length > 0 && (
+            <div className="pt-2">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+                Ajouter un membre
+              </p>
+              <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-700">
+                {availableUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{user.fullName}</p>
+                      <p className="text-xs text-slate-500">{user.email}</p>
+                    </div>
+                    <button
+                      onClick={() => void handleAddMember(user.id)}
+                      disabled={addingUserId === user.id}
+                      className="inline-flex items-center gap-1 rounded-lg border border-brand-200 px-2.5 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-50 disabled:opacity-50"
+                    >
+                      {addingUserId === user.id ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <UserPlus size={13} />
+                      )}
+                      Ajouter
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Zone dangereuse"
+        description="La suppression de cette équipe est irréversible."
+        className="border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/30"
+      >
         <button
           onClick={async () => {
             const confirmed = window.confirm(`Supprimer l'équipe "${team.name}" ?`);
@@ -333,12 +329,12 @@ export default function TeamDetailPage({ params }: Props) {
               showToast(getApiErrorMessage(err), 'error');
             }
           }}
-          className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+          className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40"
         >
           <Trash2 size={15} />
           Supprimer l&apos;équipe
         </button>
-      </div>
+      </SectionCard>
     </div>
   );
 }

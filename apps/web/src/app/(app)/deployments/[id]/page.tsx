@@ -8,6 +8,8 @@ import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
 import { LogTerminal } from '@/components/log-terminal';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import { useAuthContext } from '@/contexts/auth-context';
 import { useDeploymentSocket } from '@/hooks/useDeploymentSocket';
 import type { Deployment, DeploymentStatus, LogLine } from '@/types/deployment';
@@ -196,28 +198,23 @@ export default function DeploymentDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <Link href="/deployments" className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700">
-          <ArrowLeft size={15} /> Back to Deployments
-        </Link>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
-              <Rocket size={20} className="text-indigo-600" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">
-                {loading ? 'Loading…' : `${deployment?.project.name} → ${deployment?.environment.name}`}
-              </h1>
-              {deployment && (
-                <p className="font-mono text-xs text-slate-400">{id}</p>
-              )}
-            </div>
-          </div>
-          {resolvedStatus && <DeploymentStatusBadge status={resolvedStatus} />}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Deployments"
+        title={loading ? 'Loading…' : `${deployment?.project.name} → ${deployment?.environment.name}`}
+        description={deployment ? `Deployment ${id}` : 'Loading deployment details and live logs.'}
+        actions={
+          <>
+            <Link
+              href="/deployments"
+              className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+            >
+              <ArrowLeft size={15} />
+              Back to Deployments
+            </Link>
+            {resolvedStatus && <DeploymentStatusBadge status={resolvedStatus} />}
+          </>
+        }
+      />
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -235,8 +232,7 @@ export default function DeploymentDetailPage({ params }: Props) {
 
       {!loading && deployment && (
         <>
-          {/* Meta card */}
-          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <SectionCard title="Deployment details" contentClassName="p-5">
             <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Project</p>
@@ -287,7 +283,6 @@ export default function DeploymentDetailPage({ params }: Props) {
               )}
             </div>
 
-            {/* Actions */}
             <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
               {isActive && canManageDeployment && (
                 <button onClick={() => void handleCancel()} disabled={canceling}
@@ -311,12 +306,13 @@ export default function DeploymentDetailPage({ params }: Props) {
                 </Link>
               )}
             </div>
-          </div>
+          </SectionCard>
 
-          {/* Logs */}
-          <div>
+          <SectionCard
+            title="Deployment Logs"
+            description={isActive ? 'Live logs are streamed from the deployment socket.' : 'Static logs from the finished deployment.'}
+          >
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900">Deployment Logs</h2>
               {isActive && (
                 <span className="flex items-center gap-1.5 text-xs text-blue-600">
                   <span className="inline-flex h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -325,7 +321,7 @@ export default function DeploymentDetailPage({ params }: Props) {
               )}
             </div>
             <LogTerminal logs={displayedLogs} isLive={isActive} />
-          </div>
+          </SectionCard>
         </>
       )}
     </div>

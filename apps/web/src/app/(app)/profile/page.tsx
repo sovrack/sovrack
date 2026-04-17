@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { Loader2, Save, Shield, User } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import { useAuth } from '@/hooks/useAuth';
 import { getApiErrorMessage } from '@/lib/api';
 import { usersService } from '@/services/users.service';
@@ -172,14 +174,10 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-[-0.04em] text-slate-900">
-          Mon profil
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Mettez à jour votre nom et votre mot de passe.
-        </p>
-      </div>
+      <PageHeader
+        title="Mon profil"
+        description="Mettez à jour votre nom et votre mot de passe."
+      />
 
       {toast && (
         <div
@@ -193,7 +191,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-theme-xs">
+      <SectionCard className="max-w-2xl" contentClassName="!p-6">
         <div className="mb-6 flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500 text-2xl font-bold text-white">
             {user?.fullName?.charAt(0).toUpperCase() ?? 'U'}
@@ -307,7 +305,7 @@ export default function ProfilePage() {
             Enregistrer les modifications
           </button>
         </form>
-      </div>
+      </SectionCard>
     </div>
   );
 }

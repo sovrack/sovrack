@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Rocket, Loader2 } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import { projectsService } from '@/services/projects.service';
 import { environmentsService } from '@/services/environments.service';
 import { deploymentsService } from '@/services/deployments.service';
@@ -44,18 +46,19 @@ export default function NewDeploymentPage() {
   const [branchError, setBranchError] = useState<string | null>(null);
   const [repoError, setRepoError] = useState<string | null>(null);
 
-  // Load projects on mount
   useEffect(() => {
-    projectsService.getAll()
+    projectsService
+      .getAll()
       .then((list) => {
         setProjects(list);
-        if (list.length > 0) setProjectId(list[0].id);
+        if (list.length > 0) {
+          setProjectId(list[0].id);
+        }
       })
       .catch((err) => setError(getApiErrorMessage(err)))
       .finally(() => setLoadingProjects(false));
   }, []);
 
-  // Load environments + GitLab config/repositories when project changes
   useEffect(() => {
     if (!projectId) {
       return;
@@ -75,14 +78,17 @@ export default function NewDeploymentPage() {
     setRepoError(null);
 
     setLoadingEnvs(true);
-    environmentsService.getAll(projectId)
+    environmentsService
+      .getAll(projectId)
       .then((envs) => {
         if (isCancelled) {
           return;
         }
         setEnvironments(envs);
         setEnvError(null);
-        if (envs.length > 0) setEnvironmentId(envs[0].id);
+        if (envs.length > 0) {
+          setEnvironmentId(envs[0].id);
+        }
       })
       .catch((err) => {
         if (isCancelled) {
@@ -92,7 +98,8 @@ export default function NewDeploymentPage() {
       })
       .finally(() => setLoadingEnvs(false));
 
-    projectsService.getGitlabConfig(projectId)
+    projectsService
+      .getGitlabConfig(projectId)
       .then(async (config) => {
         if (isCancelled) {
           return;
@@ -117,9 +124,7 @@ export default function NewDeploymentPage() {
               );
             } else {
               setSelectedRepoId('');
-              setBranchError(
-                'Aucun repository disponible dans ce groupe GitLab.',
-              );
+              setBranchError('Aucun repository disponible dans ce groupe GitLab.');
             }
           } catch (repoErr) {
             if (isCancelled) {
@@ -135,7 +140,8 @@ export default function NewDeploymentPage() {
         }
 
         setLoadingBranches(true);
-        projectsService.getBranches(projectId)
+        projectsService
+          .getBranches(projectId)
           .then((list) => {
             if (isCancelled) {
               return;
@@ -149,9 +155,10 @@ export default function NewDeploymentPage() {
             if (isCancelled) {
               return;
             }
-            // GitLab might not be connected — fallback to project default branch
             const proj = projects.find((p) => p.id === projectId);
-            if (proj?.branch) setBranch(proj.branch);
+            if (proj?.branch) {
+              setBranch(proj.branch);
+            }
             setBranchError(getApiErrorMessage(err));
           })
           .finally(() => {
@@ -175,7 +182,6 @@ export default function NewDeploymentPage() {
     };
   }, [projectId, projects]);
 
-  // Load branches from selected GROUP repository
   useEffect(() => {
     if (!projectId || gitlabConfig?.sourceType !== 'GROUP') {
       return;
@@ -265,70 +271,88 @@ export default function NewDeploymentPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/deployments" className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700">
-          <ArrowLeft size={15} /> Back to Deployments
-        </Link>
-        <div className="mt-3 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
-            <Rocket size={20} className="text-indigo-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Launch Deployment</h1>
-            <p className="text-sm text-slate-500">Select a project, environment, and branch to deploy.</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Launch Deployment"
+        description="Select a project, environment, and branch to deploy."
+        actions={
+          <Link
+            href="/deployments"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          >
+            <ArrowLeft size={15} /> Back to Deployments
+          </Link>
+        }
+      />
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
+          {error}
+        </div>
       )}
 
-      <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+      <SectionCard contentClassName="!p-6">
         {loadingProjects ? (
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => <div key={i} className="h-12 animate-pulse rounded-xl bg-slate-100" />)}
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-12 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800"
+              />
+            ))}
           </div>
         ) : projects.length === 0 ? (
           <div className="py-10 text-center">
-            <p className="text-sm text-slate-500">No projects available. Create a project first.</p>
-            <Link href="/projects/new" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              No projects available. Create a project first.
+            </p>
+            <Link
+              href="/projects/new"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            >
               Create Project
             </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {formError && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</div>
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
+                {formError}
+              </div>
             )}
 
-            {/* Project */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
                 Project <span className="text-red-400">*</span>
               </label>
-              <select value={projectId} onChange={(e) => setProjectId(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+              <select
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-900/40"
+              >
                 {projects.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             </div>
 
-            {/* Environment */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
                 Environment <span className="text-red-400">*</span>
               </label>
               {loadingEnvs ? (
-                <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
+                <div className="h-12 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
               ) : environments.length === 0 ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
                   No environments configured for this project.
                   {isAdmin ? (
                     <>
                       {' '}
-                      <Link href={`/projects/${projectId}/environments`} className="font-semibold underline">
+                      <Link
+                        href={`/projects/${projectId}/environments`}
+                        className="font-semibold underline"
+                      >
                         Add one here
                       </Link>
                     </>
@@ -337,8 +361,11 @@ export default function NewDeploymentPage() {
                   )}
                 </div>
               ) : (
-                <select value={environmentId} onChange={(e) => setEnvironmentId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                <select
+                  value={environmentId}
+                  onChange={(e) => setEnvironmentId(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-900/40"
+                >
                   {environments.map((env) => (
                     <option key={env.id} value={env.id}>
                       {env.name} — {env.server.name} ({env.server.host})
@@ -347,7 +374,7 @@ export default function NewDeploymentPage() {
                 </select>
               )}
               {envError && (
-                <p className="mt-2 text-xs text-red-600">
+                <p className="mt-2 text-xs text-red-600 dark:text-red-300">
                   {envError}
                 </p>
               )}
@@ -355,23 +382,23 @@ export default function NewDeploymentPage() {
 
             {isGroupSource && (
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
                   Repository <span className="text-red-400">*</span>
                 </label>
-                <p className="mb-2 text-xs text-amber-700">
+                <p className="mb-2 text-xs text-amber-700 dark:text-amber-300">
                   Sélectionner le repository à déployer.
                 </p>
                 {loadingRepos ? (
-                  <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
+                  <div className="h-12 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
                 ) : groupRepos.length === 0 ? (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
                     Aucun repository trouvé dans ce groupe GitLab.
                   </div>
                 ) : (
                   <select
                     value={selectedRepoId}
                     onChange={(e) => setSelectedRepoId(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-900/40"
                   >
                     <option value="">Select repository</option>
                     {groupRepos.map((repo) => (
@@ -382,26 +409,29 @@ export default function NewDeploymentPage() {
                   </select>
                 )}
                 {repoError && (
-                  <p className="mt-2 text-xs text-red-600">
+                  <p className="mt-2 text-xs text-red-600 dark:text-red-300">
                     {repoError}
                   </p>
                 )}
               </div>
             )}
 
-            {/* Branch */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
                 Branch
               </label>
               {loadingBranches ? (
-                <div className="h-12 animate-pulse rounded-xl bg-slate-100" />
+                <div className="h-12 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
               ) : branches.length > 0 ? (
-                <select value={branch} onChange={(e) => setBranch(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                <select
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-900/40"
+                >
                   {branches.map((b) => (
                     <option key={b.name} value={b.name}>
-                      {b.name}{b.default ? ' (default)' : ''}
+                      {b.name}
+                      {b.default ? ' (default)' : ''}
                     </option>
                   ))}
                 </select>
@@ -416,14 +446,18 @@ export default function NewDeploymentPage() {
                       : 'Select repository first'
                   }
                   disabled={!selectedRepoId}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-900/40 dark:disabled:bg-slate-800"
                 />
               ) : (
-                <input type="text" value={branch} onChange={(e) => setBranch(e.target.value)}
+                <input
+                  type="text"
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
                   placeholder="main"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-900/40"
+                />
               )}
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                 {isGroupSource
                   ? selectedRepoId
                     ? branches.length === 0
@@ -435,38 +469,50 @@ export default function NewDeploymentPage() {
                     : 'Select from your GitLab branches.'}
               </p>
               {branchError && (
-                <p className="mt-2 text-xs text-red-600">
+                <p className="mt-2 text-xs text-red-600 dark:text-red-300">
                   {branchError}
                 </p>
               )}
             </div>
 
-            {/* Actions */}
             <div className="flex gap-3 pt-2">
-              <Link href="/deployments"
-                className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-center text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+              <Link
+                href="/deployments"
+                className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-center text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
                 Cancel
               </Link>
-              <button type="submit" disabled={submitting || !projectId || !environmentId || (isGroupSource && !selectedRepoId)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60">
-                {submitting ? <Loader2 size={15} className="animate-spin" /> : <Rocket size={15} />}
+              <button
+                type="submit"
+                disabled={
+                  submitting || !projectId || !environmentId || (isGroupSource && !selectedRepoId)
+                }
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+              >
+                {submitting ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Rocket size={15} />
+                )}
                 {submitting ? 'Launching…' : 'Launch Deployment'}
               </button>
             </div>
           </form>
         )}
-      </div>
+      </SectionCard>
 
-      {/* Info box */}
-      <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-        <p className="text-xs font-semibold text-indigo-700">How it works</p>
-        <ul className="mt-2 space-y-1 text-xs text-indigo-600">
+      <SectionCard
+        title="How it works"
+        contentClassName="!p-4"
+        className="border-indigo-100 bg-indigo-50/70 dark:border-indigo-500/30 dark:bg-indigo-500/10"
+      >
+        <ul className="space-y-1 text-xs text-indigo-600 dark:text-indigo-300">
           <li>→ The backend pulls the selected branch from GitLab</li>
           <li>→ Builds a Docker image and pushes it to the registry</li>
           <li>→ Ansible deploys the container on the environment server</li>
           <li>→ Live logs appear on the deployment detail page</li>
         </ul>
-      </div>
+      </SectionCard>
     </div>
   );
 }

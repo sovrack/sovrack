@@ -12,7 +12,6 @@ import {
   X,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 export function TopNav() {
@@ -72,13 +71,7 @@ export function TopNav() {
             </button>
 
             <div className="flex items-center gap-2">
-              <Image
-                src="/platform-brand.svg"
-                alt="platform"
-                width={118}
-                height={34}
-                priority
-              />
+            
             </div>
           </div>
 

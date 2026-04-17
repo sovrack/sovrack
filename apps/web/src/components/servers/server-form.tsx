@@ -49,7 +49,7 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
   const [sshKey, setSshKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [connectionMode, setConnectionMode] = useState<'ssh' | 'bastion' | 'agent'>(
-    'ssh',
+    'agent',
   );
   const [bastionHost, setBastionHost] = useState('');
   const [bastionPort, setBastionPort] = useState('22');
@@ -97,7 +97,7 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
       port: Number(port) || 22,
       username: username.trim() || 'ubuntu',
       ...(sshKeyValue && { sshKey: sshKeyValue }),
-      verificationMode,
+      verificationMode: connectionMode === 'agent' ? 'manual' : verificationMode,
       connectionMode,
       ...(connectionMode === 'bastion' && {
         bastionHost: bastionHost.trim(),
@@ -128,7 +128,9 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
                 type="radio"
                 name="connectionMode"
                 checked={connectionMode === 'ssh'}
-                onChange={() => setConnectionMode('ssh')}
+                onChange={() => {
+                  setConnectionMode('ssh');
+                }}
                 className="mt-0.5"
               />
               <span>
@@ -145,7 +147,9 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
                 type="radio"
                 name="connectionMode"
                 checked={connectionMode === 'bastion'}
-                onChange={() => setConnectionMode('bastion')}
+                onChange={() => {
+                  setConnectionMode('bastion');
+                }}
                 className="mt-0.5"
               />
               <span>
@@ -162,7 +166,10 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
                 type="radio"
                 name="connectionMode"
                 checked={connectionMode === 'agent'}
-                onChange={() => setConnectionMode('agent')}
+                onChange={() => {
+                  setConnectionMode('agent');
+                  setVerificationMode('manual');
+                }}
                 className="mt-0.5"
               />
               <span>
@@ -206,6 +213,7 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
                 name="verificationMode"
                 checked={verificationMode === 'ssh'}
                 onChange={() => setVerificationMode('ssh')}
+                disabled={connectionMode === 'agent'}
                 className="mt-0.5"
               />
               <span>

@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
@@ -125,23 +124,14 @@ export function Sidebar() {
           className={clsx('flex items-center', isCompact ? 'justify-center' : 'gap-3')}
           onClick={closeMobileSidebar}
         >
-          {isCompact ? (
-            <Image
-              src="/platform-mark.svg"
-              alt="platform"
-              width={34}
-              height={34}
-              priority
-            />
-          ) : (
-            <Image
-              src="/platform-brand.svg"
-              alt="platform"
-              width={146}
-              height={42}
-              priority
-            />
-          )}
+          <span
+            className={clsx(
+              'font-semibold tracking-wide text-slate-600 dark:text-slate-300',
+              isCompact ? 'text-sm' : 'text-base',
+            )}
+          >
+            platform
+          </span>
         </Link>
       </div>
 

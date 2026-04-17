@@ -6,6 +6,8 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { DeploymentsChart } from '@/components/dashboard/deployments-chart';
 import { SuccessGauge } from '@/components/dashboard/success-gauge';
 import { RecentDeployments } from '@/components/dashboard/recent-deployments';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import {
   FolderGit2,
   Rocket,
@@ -74,89 +76,83 @@ export default function DashboardPage() {
           {error}
         </div>
       )}
-      <section className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-theme-xs">
-        <div className="grid gap-0 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-          <div className="px-6 py-7 md:px-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-600">
-              Operations Center
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-900 md:text-4xl">
-              {user?.fullName ?? 'Developer'}, welcome back.
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
-              Pilot your projects, monitor deployment activity and keep the
-              platform healthy from one shared workspace inspired by TailAdmin.
-            </p>
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => void refresh()}
-                disabled={loading}
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
-              >
-                <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-                Refresh dashboard
-              </button>
-              <Link
-                href="/deployments"
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-              >
-                Open deployments
-                <ArrowRight size={15} />
-              </Link>
-            </div>
+      <PageHeader
+        eyebrow="Operations Center"
+        title={`${user?.fullName ?? 'Developer'}, welcome back.`}
+        description="Pilot your projects, monitor deployment activity and keep the
+              platform healthy from one shared workspace inspired by TailAdmin."
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => void refresh()}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
+            >
+              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+              Refresh dashboard
+            </button>
+            <Link
+              href="/deployments"
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              Open deployments
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+        }
+      />
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700">
-                <Shield size={14} />
-                {isAdmin ? 'Administrator workspace' : 'Developer workspace'}
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
-                <Activity size={14} />
-                API + dashboard connected
-              </span>
-            </div>
+      <SectionCard contentClassName="!pt-0">
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+              <Shield size={14} />
+              {isAdmin ? 'Administrator workspace' : 'Developer workspace'}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+              <Activity size={14} />
+              API + dashboard connected
+            </span>
           </div>
 
-          <div className="border-t border-gray-200 bg-slate-50/70 px-6 py-7 md:px-8 xl:border-l xl:border-t-0">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-2xl border border-gray-200 bg-white p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Current role
-                </p>
-                <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-900">
-                  {isAdmin ? 'Admin Control' : 'Developer Control'}
-                </p>
-                <p className="mt-2 text-sm text-slate-500">
-                  {isAdmin
-                    ? 'Manage servers and infrastructure settings.'
-                    : 'Choose a project, a branch and an environment to deploy.'}
-                </p>
-              </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/60">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                Current role
+              </p>
+              <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-900 dark:text-white">
+                {isAdmin ? 'Admin Control' : 'Developer Control'}
+              </p>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                {isAdmin
+                  ? 'Manage servers and infrastructure settings.'
+                  : 'Choose a project, a branch and an environment to deploy.'}
+              </p>
+            </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Current focus
-                </p>
-                <div className="mt-3 space-y-3 text-sm text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <GitBranch size={15} className="text-brand-500" />
-                    <span>Projects connected to GitLab</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Rocket size={15} className="text-brand-500" />
-                    <span>Deployments visible in one flow</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Server size={15} className="text-brand-500" />
-                    <span>Servers reserved to admin operations</span>
-                  </div>
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/60">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                Current focus
+              </p>
+              <div className="mt-3 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                <div className="flex items-center gap-2">
+                  <GitBranch size={15} className="text-brand-500" />
+                  <span>Projects connected to GitLab</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Rocket size={15} className="text-brand-500" />
+                  <span>Deployments visible in one flow</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Server size={15} className="text-brand-500" />
+                  <span>Servers reserved to admin operations</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </SectionCard>
 
       <div
         className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${
@@ -224,32 +220,22 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(330px,0.95fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 shadow-theme-xs sm:px-6 sm:pt-6">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold tracking-[-0.02em] text-slate-900">
-                Deployment activity
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Total deployments versus successful runs over the last 7 days.
-              </p>
-            </div>
-            <span className="rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
+        <SectionCard
+          title="Deployment activity"
+          description="Total deployments versus successful runs over the last 7 days."
+          actions={
+            <span className="rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
               This week
             </span>
-          </div>
+          }
+        >
           <DeploymentsChart data={deploymentsChart} />
-        </div>
+        </SectionCard>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs">
-          <div className="mb-5">
-            <h2 className="text-lg font-semibold tracking-[-0.02em] text-slate-900">
-              Success overview
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Instant health indicator for completed deployments.
-            </p>
-          </div>
+        <SectionCard
+          title="Success overview"
+          description="Instant health indicator for completed deployments."
+        >
 
           <div className="flex items-center justify-center rounded-2xl border border-gray-200 bg-slate-50 py-5">
             <SuccessGauge
@@ -274,33 +260,29 @@ export default function DashboardPage() {
               <span className="font-semibold text-slate-900">{stats.servers}</span>
             </div>
           </div>
-        </div>
+        </SectionCard>
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-lg font-semibold tracking-[-0.02em] text-slate-900">
-              Recent Deployments
-            </h2>
+        <SectionCard
+          title="Recent Deployments"
+          actions={
             <Link
               href="/deployments"
               className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
             >
               View deployments <ArrowRight size={12} />
             </Link>
-          </div>
+          }
+        >
           <RecentDeployments
             deployments={recentDeployments}
             loading={loading}
           />
-        </div>
+        </SectionCard>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs">
-            <h2 className="mb-4 text-lg font-semibold tracking-[-0.02em] text-slate-900">
-              Quick Actions
-            </h2>
+          <SectionCard title="Quick Actions">
             <div className="space-y-3">
               {isAdmin && (
                 <Link
@@ -363,12 +345,9 @@ export default function DashboardPage() {
                 </Link>
               )}
             </div>
-          </div>
+          </SectionCard>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs">
-            <h2 className="mb-4 text-lg font-semibold tracking-[-0.02em] text-slate-900">
-              Platform Progress
-            </h2>
+          <SectionCard title="Platform Progress">
             {platformProgressItems.map((item) => (
               <div key={item.label} className="mb-4 last:mb-0">
                 <div className="mb-1.5 flex justify-between text-xs">
@@ -385,7 +364,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-          </div>
+          </SectionCard>
         </div>
       </div>
     </div>

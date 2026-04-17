@@ -1,6 +1,7 @@
 import api from '@/lib/api';
 import type {
   Server,
+  CreateServerResult,
   CreateServerPayload,
   UpdateServerPayload,
   VerifyServerResult,
@@ -22,8 +23,8 @@ export const serversService = {
     return res.data;
   },
 
-  async create(payload: CreateServerPayload): Promise<Server> {
-    const res = await api.post<Server>('/servers', payload);
+  async create(payload: CreateServerPayload): Promise<CreateServerResult> {
+    const res = await api.post<CreateServerResult>('/servers', payload);
     return res.data;
   },
 
@@ -41,7 +42,10 @@ export const serversService = {
     return res.data;
   },
 
-  async install(id: string, payload: InstallToolsPayload): Promise<Server> {
+  async installTools(
+    id: string,
+    payload: InstallToolsPayload,
+  ): Promise<Server> {
     const res = await api.post<Server>(`/servers/${id}/install`, payload);
     return res.data;
   },

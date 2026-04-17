@@ -34,7 +34,6 @@ export default function NewServerPage() {
   const [installing, setInstalling] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
   const [installSuccess, setInstallSuccess] = useState<string | null>(null);
-  const [keyInstalled, setKeyInstalled] = useState(false);
 
   const [copied, setCopied] = useState(false);
   
@@ -48,7 +47,6 @@ export default function NewServerPage() {
     setInstallSuccess(null);
     setCopied(false);
     setTemporaryPassword('');
-    setKeyInstalled(false);
 
     try {
       const created = await serversService.create(payload);
@@ -107,7 +105,6 @@ export default function NewServerPage() {
       });
 
       setInstallSuccess(result.message);
-      setKeyInstalled(true);
       await handleKeyInstalled();
     } catch (error) {
       setInstallError(getApiErrorMessage(error));
@@ -277,8 +274,8 @@ export default function NewServerPage() {
             <button type="button" onClick={() => router.push('/admin/servers')} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
               Voir serveurs
             </button>
-            <button type="button" onClick={() => router.push('/admin/environments/new')} className="inline-flex items-center gap-2 rounded-xl border border-emerald-600 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-600 hover:bg-emerald-50">
-              Créer environnement
+            <button type="button" onClick={() => router.push('/projects')} className="inline-flex items-center gap-2 rounded-xl border border-emerald-600 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-600 hover:bg-emerald-50">
+              Allez dans votre projet pour créer un environnement
             </button>
           </div>
         </SectionCard>
