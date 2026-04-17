@@ -7,6 +7,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { DeploymentsAnsibleService } from './deployments-ansible.service';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { DeploymentsController } from './deployments.controller';
+import { DeploymentsCoreService } from './deployments-core.service';
 import { DeploymentsDockerService } from './deployments-docker.service';
 import { DeploymentsGateway } from './deployments.gateway';
 import { DeploymentsService } from './deployments.service';
@@ -33,6 +34,7 @@ import { DeploymentsService } from './deployments.service';
   controllers: [DeploymentsController],
   providers: [
     DeploymentsService,
+    DeploymentsCoreService,
     DeploymentsGateway,
     DeploymentsAnsibleService,
     DeploymentsDockerService,

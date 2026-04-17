@@ -4,6 +4,7 @@ import { DeploymentsModule } from '../deployments/deployments.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { GitlabApiService } from './gitlab-api.service';
 import { GitlabController } from './gitlab.controller';
+import { GitlabCoreService } from './gitlab-core.service';
 import { GitlabCryptoService } from './gitlab-crypto.service';
 import { GitlabService } from './gitlab.service';
 import { GitlabWebhookService } from './gitlab-webhook.service';
@@ -13,6 +14,7 @@ import { GitlabWebhookService } from './gitlab-webhook.service';
   controllers: [GitlabController],
   providers: [
     GitlabService,
+    GitlabCoreService,
     GitlabApiService,
     GitlabWebhookService,
     GitlabCryptoService,
