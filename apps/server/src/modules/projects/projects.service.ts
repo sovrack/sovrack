@@ -12,6 +12,7 @@ import {
   Role,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PaginationDto, PaginatedResult, paginate } from '../../common/dto/pagination.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -107,40 +108,40 @@ export class ProjectsService {
   /**
    * Liste les projets selon le rôle utilisateur.
    */
-  async findAll(userId: string, userRole: Role): Promise<ProjectListItem[]> {
+  async findAll(
+    userId: string,
+    userRole: Role,
+    pagination?: PaginationDto,
+  ): Promise<ProjectListItem[] | PaginatedResult<ProjectListItem>> {
     const where: Prisma.ProjectWhereInput | undefined =
       userRole === Role.ADMIN
         ? undefined
-        : {
-            members: {
-              some: {
-                userId,
-              },
-            },
-          };
+        : { members: { some: { userId } } };
 
-    const projects = await this.prisma.project.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        gitlabConfig: {
-          select: {
-            sourceType: true,
-            gitlabGroupId: true,
-          },
-        },
-        members: {
-          where: { userId },
-          select: { role: true },
-          take: 1,
-        },
-        _count: {
-          select: { members: true, environments: true },
-        },
-      },
-    });
+    const queryInclude = {
+      gitlabConfig: { select: { sourceType: true, gitlabGroupId: true } },
+      members: { where: { userId }, select: { role: true }, take: 1 },
+      _count: { select: { members: true, environments: true } },
+    };
 
-    return projects.map((project) => ({
+    const page = pagination?.page;
+    const limit = pagination?.limit;
+
+    const rawProjects = page && limit
+      ? await this.prisma.project.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          include: queryInclude,
+          skip: (page - 1) * limit,
+          take: limit,
+        })
+      : await this.prisma.project.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          include: queryInclude,
+        });
+
+    const projects = rawProjects.map((project) => ({
       id: project.id,
       name: project.name,
       description: project.description,
@@ -149,15 +150,31 @@ export class ProjectsService {
       branch: project.branch,
       dockerfile: project.dockerfile,
       port: project.port,
+      projectType: project.projectType,
+      buildPort: project.buildPort,
+      buildStartCmd: project.buildStartCmd,
+      autoDeploy: project.autoDeploy,
+      autoDeployBranch: project.autoDeployBranch,
+      dockerfileContent: project.dockerfileContent,
+      gitlabCiContent: project.gitlabCiContent,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       memberCount: project._count.members,
       environmentCount: project._count.environments,
       hasGitlabConfig: Boolean(project.gitlabConfig),
       gitlabSourceType: project.gitlabConfig?.sourceType ?? null,
-      gitlabGroupId: project.gitlabConfig?.gitlabGroupId ? Number(project.gitlabConfig.gitlabGroupId) : null,
+      gitlabGroupId: project.gitlabConfig?.gitlabGroupId
+        ? Number(project.gitlabConfig.gitlabGroupId)
+        : null,
       currentUserProjectRole: project.members[0]?.role ?? null,
     }));
+
+    if (page && limit) {
+      const total = await this.prisma.project.count({ where });
+      return paginate(projects, total, page, limit);
+    }
+
+    return projects;
   }
 
   /**
@@ -211,7 +228,7 @@ export class ProjectsService {
     userRole: Role,
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
-    await this.assertAdminRole(userRole);
+    this.assertAdminRole(userRole);
 
     await this.prisma.project.delete({ where: { id: projectId } });
     await this.recordAuditLog(userId, 'PROJECT_DELETE', 'Project', projectId);
@@ -398,7 +415,7 @@ export class ProjectsService {
     }
   }
 
-  private async assertAdminRole(userRole: Role): Promise<void> {
+  private assertAdminRole(userRole: Role): void {
     if (userRole !== Role.ADMIN) {
       throw new ForbiddenException('Action réservée aux administrateurs');
     }

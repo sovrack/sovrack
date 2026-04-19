@@ -1,14 +1,12 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
+  forwardRef,
 } from '@nestjs/common';
-import {
-  Deployment,
-  DeploymentStatus,
-  type GitlabConfig,
-} from '@prisma/client';
+import { Deployment, DeploymentStatus } from '@prisma/client';
 import * as CryptoJS from 'crypto-js';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
@@ -31,8 +29,10 @@ export class DeploymentsAnsibleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configsService: ConfigsService,
+    @Inject(forwardRef(() => GitlabService))
     private readonly gitlabService: GitlabService,
     private readonly dockerService: DeploymentsDockerService,
+    @Inject(forwardRef(() => DeploymentsGateway))
     private readonly gateway: DeploymentsGateway,
   ) {}
 

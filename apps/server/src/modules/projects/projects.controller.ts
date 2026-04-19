@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -20,6 +21,7 @@ import { GetUser } from '../../common/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -53,8 +55,8 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Lister les projets selon le rôle utilisateur' })
   @ApiResponse({ status: 200, description: 'Liste des projets' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  async findAll(@GetUser() user: JwtPayload) {
-    return await this.projectsService.findAll(user.id, user.role);
+  async findAll(@GetUser() user: JwtPayload, @Query() pagination: PaginationDto) {
+    return await this.projectsService.findAll(user.id, user.role, pagination);
   }
 
   @Get(':id')

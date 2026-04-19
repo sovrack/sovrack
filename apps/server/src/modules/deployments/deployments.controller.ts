@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, UseGuards, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -8,6 +8,7 @@ import {
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import { DeploymentsService } from './deployments.service';
 
@@ -35,8 +36,8 @@ export class DeploymentsController {
   @ApiOperation({ summary: 'Lister les déploiements (filtrés par rôle)' })
   @ApiResponse({ status: 200, description: 'Liste des déploiements' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  async findAll(@GetUser() user: JwtPayload) {
-    return await this.deploymentsService.findAll(user.id, user.role);
+  async findAll(@GetUser() user: JwtPayload, @Query() pagination: PaginationDto) {
+    return await this.deploymentsService.findAll(user.id, user.role, pagination);
   }
 
   @Get('project/:projectId')

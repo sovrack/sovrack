@@ -6,15 +6,11 @@ import {
   forwardRef,
   BadRequestException,
 } from '@nestjs/common';
-import {
-  Deployment,
-  DeploymentStatus,
-  Prisma,
-  Role,
-} from '@prisma/client';
+import { Deployment, DeploymentStatus, Prisma, Role } from '@prisma/client';
 import { ConfigsService } from '../configs/configs.service';
 import { GitlabService } from '../gitlab/gitlab.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PaginationDto, PaginatedResult, paginate } from '../../common/dto/pagination.dto';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import { DeploymentsAnsibleService } from './deployments-ansible.service';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
@@ -65,6 +61,7 @@ export class DeploymentsCoreService {
     private readonly gitlabService: GitlabService,
     private readonly configsService: ConfigsService,
     private readonly gateway: DeploymentsGateway,
+    @Inject(forwardRef(() => DeploymentsAnsibleService))
     private readonly ansibleService: DeploymentsAnsibleService,
     private readonly dockerService: DeploymentsDockerService,
     private readonly authorizationService: DeploymentsAuthorizationService,
@@ -268,25 +265,37 @@ export class DeploymentsCoreService {
   async findAll(
     userId: string,
     userRole: Role,
-  ): Promise<DeploymentWithRelations[]> {
+    pagination?: PaginationDto,
+  ): Promise<DeploymentWithRelations[] | PaginatedResult<DeploymentWithRelations>> {
     const where: Prisma.DeploymentWhereInput | undefined =
       userRole === Role.ADMIN
         ? undefined
-        : {
-            project: {
-              members: {
-                some: {
-                  userId,
-                },
-              },
-            },
-          };
+        : { project: { members: { some: { userId } } } };
 
-    return await this.prisma.deployment.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: deploymentRelationsInclude,
-    });
+    if (!pagination?.page && !pagination?.limit) {
+      return await this.prisma.deployment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: deploymentRelationsInclude,
+      });
+    }
+
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      this.prisma.deployment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: deploymentRelationsInclude,
+        skip,
+        take: limit,
+      }),
+      this.prisma.deployment.count({ where }),
+    ]);
+
+    return paginate(items, total, page, limit);
   }
 
   async findByProject(
@@ -330,7 +339,11 @@ export class DeploymentsCoreService {
     return deployment;
   }
 
-  async cancel(id: string, userId: string, userRole: Role): Promise<Deployment> {
+  async cancel(
+    id: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<Deployment> {
     const deployment = await this.findOne(id, userId, userRole);
     await this.authorizationService.assertCanDeployProject(
       deployment.projectId,
@@ -442,6 +455,75 @@ export class DeploymentsCoreService {
       rollbackDeployment.id,
       previousSuccess.dockerImage,
     );
+  }
+
+  async triggerAutoDeployIfConfigured(
+    projectId: string,
+    branch: string,
+    dockerImage?: string,
+  ): Promise<void> {
+    // Chercher les environnements auto-deploy correspondant à la branche
+    const environments = await this.prisma.environment.findMany({
+      where: {
+        projectId,
+        autoDeploy: true,
+        OR: [
+          { autoDeployBranch: branch },
+          { autoDeployBranch: '*' },
+          { autoDeployBranch: null },
+        ],
+        isActive: true,
+        server: { isVerified: true, hasDocker: true },
+      },
+      include: { server: true },
+    });
+
+    if (environments.length === 0) {
+      return;
+    }
+
+    // Utiliser le premier admin disponible comme acteur système
+    const adminUser = await this.prisma.user.findFirst({
+      where: { role: 'ADMIN', isActive: true },
+    });
+
+    if (!adminUser) {
+      this.logger.warn('Auto-deploy: aucun administrateur actif trouvé');
+      return;
+    }
+
+    for (const environment of environments) {
+      try {
+        const deployment = await this.prisma.deployment.create({
+          data: {
+            projectId,
+            environmentId: environment.id,
+            userId: adminUser.id,
+            branch,
+            status: DeploymentStatus.PENDING,
+            startedAt: new Date(),
+            logs: `Auto-deploy déclenché par push sur ${branch}`,
+            ...(dockerImage ? { dockerImage } : {}),
+          },
+        });
+
+        this.gateway.emitStarted({
+          deploymentId: deployment.id,
+          projectId: deployment.projectId,
+          environmentId: deployment.environmentId,
+          status: deployment.status,
+          startedAt: deployment.startedAt,
+        });
+
+        await this.ansibleService.deployWithAnsible(deployment.id, dockerImage);
+      } catch (error) {
+        this.logger.error(
+          `Auto-deploy échoué pour environnement ${environment.id}: ${
+            error instanceof Error ? error.message : 'erreur inconnue'
+          }`,
+        );
+      }
+    }
   }
 
   private mapDeploymentStatus(status: string): DeploymentStatus {

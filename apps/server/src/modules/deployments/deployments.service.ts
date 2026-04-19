@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Role } from '@prisma/client';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import { DeploymentsCoreService } from './deployments-core.service';
 
@@ -11,12 +12,16 @@ export class DeploymentsService {
     return await this.core.create(dto, userId);
   }
 
-  async handleWebhookUpdate(pipelineId: number, status: string, image?: string) {
+  async handleWebhookUpdate(
+    pipelineId: number,
+    status: string,
+    image?: string,
+  ) {
     return await this.core.handleWebhookUpdate(pipelineId, status, image);
   }
 
-  async findAll(userId: string, userRole: Role) {
-    return await this.core.findAll(userId, userRole);
+  async findAll(userId: string, userRole: Role, pagination?: PaginationDto) {
+    return await this.core.findAll(userId, userRole, pagination);
   }
 
   async findByProject(projectId: string, userId: string, userRole: Role) {
@@ -33,5 +38,17 @@ export class DeploymentsService {
 
   async rollback(id: string, userId: string, userRole: Role) {
     return await this.core.rollback(id, userId, userRole);
+  }
+
+  async triggerAutoDeployIfConfigured(
+    projectId: string,
+    branch: string,
+    dockerImage?: string,
+  ): Promise<void> {
+    return await this.core.triggerAutoDeployIfConfigured(
+      projectId,
+      branch,
+      dockerImage,
+    );
   }
 }

@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -24,6 +25,7 @@ import { GetUser } from '../../common/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CreateServerDto } from './dto/create-server.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
 import { ServersService } from './servers.service';
@@ -92,8 +94,8 @@ export class ServersController {
   @ApiResponse({ status: 200, description: 'Liste des serveurs' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
-  async findAll() {
-    return await this.serversService.findAll();
+  async findAll(@Query() pagination: PaginationDto) {
+    return await this.serversService.findAll(pagination);
   }
 
   @Get(':id')

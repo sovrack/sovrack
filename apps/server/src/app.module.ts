@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -15,6 +14,7 @@ import { PlatformConfigModule } from './modules/platform-config/platform-config.
 import { TeamsModule } from './modules/teams/teams.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { validateEnv } from './common/config/env.validation';
+import { BuildModule } from './modules/build/build.module';
 
 @Module({
   imports: [
@@ -34,8 +34,9 @@ import { validateEnv } from './common/config/env.validation';
     DeploymentsModule,
     PlatformConfigModule,
     TeamsModule,
+    BuildModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [],
 })
 export class AppModule {}
