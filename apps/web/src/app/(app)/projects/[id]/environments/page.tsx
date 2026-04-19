@@ -34,6 +34,7 @@ export default function EnvironmentsPage({ params }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [autoDeployStates, setAutoDeployStates] = useState<Record<string, { autoDeploy: boolean; branch: string }>>({});
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -41,6 +42,9 @@ export default function EnvironmentsPage({ params }: Props) {
     try {
       const envs = await environmentsService.getAll(projectId);
       setEnvironments(envs);
+      const states: Record<string, { autoDeploy: boolean; branch: string }> = {};
+      envs.forEach((e) => { states[e.id] = { autoDeploy: e.autoDeploy, branch: e.autoDeployBranch ?? 'main' }; });
+      setAutoDeployStates(states);
 
       if (isAdmin) {
         const svrs = await serversService.getAll();
@@ -82,6 +86,33 @@ export default function EnvironmentsPage({ params }: Props) {
       setFormError(getApiErrorMessage(err));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAutoDeployToggle = async (envId: string) => {
+    if (!isAdmin) return;
+    const current = autoDeployStates[envId];
+    if (!current) return;
+    const next = { ...current, autoDeploy: !current.autoDeploy };
+    setAutoDeployStates((prev) => ({ ...prev, [envId]: next }));
+    try {
+      await environmentsService.update(projectId, envId, {
+        autoDeploy: next.autoDeploy,
+        autoDeployBranch: next.branch,
+      });
+    } catch (err) {
+      setAutoDeployStates((prev) => ({ ...prev, [envId]: current }));
+      alert(getApiErrorMessage(err));
+    }
+  };
+
+  const handleAutoDeployBranchChange = async (envId: string, branch: string) => {
+    if (!isAdmin) return;
+    setAutoDeployStates((prev) => ({ ...prev, [envId]: { ...prev[envId], branch } }));
+    try {
+      await environmentsService.update(projectId, envId, { autoDeployBranch: branch });
+    } catch (err) {
+      alert(getApiErrorMessage(err));
     }
   };
 
@@ -243,6 +274,37 @@ export default function EnvironmentsPage({ params }: Props) {
                     : <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600"><XCircle size={10} />No Docker</span>
                   }
                 </div>
+                {isAdmin && (
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-slate-600">Auto-deploy</span>
+                      <button
+                        onClick={() => void handleAutoDeployToggle(env.id)}
+                        className={clsx(
+                          'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
+                          autoDeployStates[env.id]?.autoDeploy ? 'bg-indigo-600' : 'bg-slate-200',
+                        )}
+                      >
+                        <span className={clsx(
+                          'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
+                          autoDeployStates[env.id]?.autoDeploy ? 'translate-x-4' : 'translate-x-0.5',
+                        )} />
+                      </button>
+                    </div>
+                    {autoDeployStates[env.id]?.autoDeploy && (
+                      <div className="mt-2">
+                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Branche</label>
+                        <input
+                          type="text"
+                          value={autoDeployStates[env.id]?.branch ?? 'main'}
+                          onChange={(e) => void handleAutoDeployBranchChange(env.id, e.target.value)}
+                          placeholder="main"
+                          className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-800 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}

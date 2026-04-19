@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -18,6 +19,9 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
+import { Pagination } from '@/components/ui/pagination';
+import { usePagination } from '@/hooks/usePagination';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { usersService } from '@/services/users.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -49,14 +53,26 @@ export default function AdminUsersPage() {
   const router = useRouter();
   const { isAdmin, loading: authLoading, user: currentUser } = useAuth();
 
-  const [users, setUsers] = useState<UserListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [confirmTarget, setConfirmTarget] = useState<UserListItem | null>(null);
+  const queryClient = useQueryClient();
+
+  const {
+    data: users = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: () => usersService.getAll(),
+    enabled: !authLoading && isAdmin,
+  });
+
+  const error = queryError ? getApiErrorMessage(queryError) : null;
 
   const showToast = useCallback((message: string, tone: ToastTone) => {
     const id = Date.now() + Math.floor(Math.random() * 1000);
@@ -68,28 +84,14 @@ export default function AdminUsersPage() {
   }, []);
 
   const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const rows = await usersService.getAll();
-      setUsers(rows);
-    } catch (fetchError) {
-      setError(getApiErrorMessage(fetchError));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    await refetch();
+  }, [queryClient, refetch]);
 
-  useEffect(() => {
-    if (!authLoading && !isAdmin) {
-      router.replace('/access-denied');
-      return;
-    }
-
-    if (!authLoading && isAdmin) {
-      void fetchUsers();
-    }
-  }, [authLoading, isAdmin, fetchUsers, router]);
+  // Redirection si non-admin
+  if (!authLoading && !isAdmin) {
+    router.replace('/access-denied');
+  }
 
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -105,44 +107,41 @@ export default function AdminUsersPage() {
     });
   }, [users, search, roleFilter]);
 
+  const { page, totalPages, paged: pagedUsers, goToPage, reset: resetPage } = usePagination(filteredUsers, { pageSize: 20 });
+
+  useEffect(() => { resetPage(); }, [search, roleFilter, resetPage]);
+
   const handleToggleActive = async (userId: string) => {
     setTogglingId(userId);
     try {
       const updated = await usersService.toggleActive(userId);
-      setUsers((prev) =>
-        prev.map((item) => (item.id === userId ? updated : item)),
-      );
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       showToast(
-        updated.isActive
-          ? 'Utilisateur activé avec succès'
-          : 'Utilisateur désactivé avec succès',
+        updated.isActive ? 'Utilisateur activé avec succès' : 'Utilisateur désactivé avec succès',
         'success',
       );
     } catch (toggleError) {
-      const message = getApiErrorMessage(toggleError);
-      showToast(message, 'error');
+      showToast(getApiErrorMessage(toggleError), 'error');
     } finally {
       setTogglingId(null);
     }
   };
 
-  const handleDelete = async (target: UserListItem) => {
+  const handleDelete = (target: UserListItem) => {
     if (target.id === currentUser?.id) {
       showToast('Vous ne pouvez pas supprimer votre propre compte', 'error');
       return;
     }
+    setConfirmTarget(target);
+  };
 
-    const confirmed = window.confirm(
-      `Supprimer l'utilisateur "${target.fullName}" ?`,
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    setDeletingId(target.id);
+  const confirmDelete = async () => {
+    if (!confirmTarget) return;
+    setDeletingId(confirmTarget.id);
+    setConfirmTarget(null);
     try {
-      await usersService.delete(target.id);
-      setUsers((prev) => prev.filter((item) => item.id !== target.id));
+      await usersService.delete(confirmTarget.id);
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       showToast('Utilisateur supprimé avec succès', 'success');
     } catch (deleteError) {
       showToast(getApiErrorMessage(deleteError), 'error');
@@ -303,7 +302,7 @@ export default function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredUsers.map((item) => (
+                {pagedUsers.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
                     <td className="px-4 py-3 text-slate-900 dark:text-slate-100">{item.fullName}</td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-300">
@@ -377,7 +376,19 @@ export default function AdminUsersPage() {
             </table>
           </div>
         )}
+        <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} className="mt-4" />
       </SectionCard>
+
+      <ConfirmDialog
+        open={Boolean(confirmTarget)}
+        title={`Supprimer l'utilisateur "${confirmTarget?.fullName ?? ''}"`}
+        description="Cette action est irréversible."
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        loading={Boolean(deletingId)}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setConfirmTarget(null)}
+      />
 
       <div className="pointer-events-none fixed right-4 top-4 z-[100] space-y-2">
         {toasts.map((toast) => (

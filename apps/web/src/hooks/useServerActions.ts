@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getApiErrorMessage } from '@/lib/api';
 import { serversService } from '@/services/servers.service';
 import type { Server as ServerType, ServerJob } from '@/types/server';
@@ -21,8 +22,7 @@ type ToastTone = 'success' | 'error';
 type ToastItem = { id: number; message: string; tone: ToastTone };
 
 export function useServerActions() {
-  const [servers, setServers] = useState<ServerType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
@@ -60,13 +60,14 @@ export function useServerActions() {
     }, 3000);
   }, []);
 
-  const fetchServers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const {
+    data: servers = [],
+    isLoading: loading,
+    refetch: refetchServers,
+  } = useQuery({
+    queryKey: ['admin-servers'],
+    queryFn: async () => {
       const nextServers = await serversService.getAll();
-      setServers(nextServers);
-
       await Promise.all(
         nextServers.map(async (server) => {
           try {
@@ -77,16 +78,15 @@ export function useServerActions() {
           }
         }),
       );
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return nextServers;
+    },
+  });
 
-  useEffect(() => {
-    void fetchServers();
-  }, [fetchServers]);
+  const fetchServers = useCallback(async () => {
+    setError(null);
+    await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
+    await refetchServers();
+  }, [queryClient, refetchServers]);
 
   const clearManualDraft = (serverId: string) => {
     setManualDrafts((prev) => {
@@ -171,7 +171,7 @@ export function useServerActions() {
     setVerifyingId(id);
     try {
       const result = await serversService.verify(id);
-      setServers((prev) => prev.map((server) => (server.id === id ? { ...server, ...result } : server)));
+      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
       clearManualDraft(id);
       showToast('Vérification SSH réussie', 'success');
       await refreshJobs(id);
@@ -194,7 +194,7 @@ export function useServerActions() {
     setInstallingId(server.id);
     try {
       const updated = await serversService.installTools(server.id, payload);
-      setServers((prev) => prev.map((item) => (item.id === server.id ? updated : item)));
+      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
       clearManualDraft(server.id);
       clearInstallDraft(server.id);
       showToast('Installation terminée avec succès', 'success');
@@ -210,8 +210,8 @@ export function useServerActions() {
     const payload = getChecklist(server);
     setSavingManualId(server.id);
     try {
-      const updated = await serversService.update(server.id, payload);
-      setServers((prev) => prev.map((item) => (item.id === server.id ? updated : item)));
+      await serversService.update(server.id, payload);
+      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
       clearManualDraft(server.id);
       showToast('Statut mis à jour manuellement', 'success');
       await refreshJobs(server.id);
@@ -232,8 +232,8 @@ export function useServerActions() {
 
     setSavingManualId(server.id);
     try {
-      const updated = await serversService.update(server.id, payload);
-      setServers((prev) => prev.map((item) => (item.id === server.id ? updated : item)));
+      await serversService.update(server.id, payload);
+      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
       clearManualDraft(server.id);
       showToast('Serveur marqué prêt', 'success');
       await refreshJobs(server.id);
@@ -252,7 +252,7 @@ export function useServerActions() {
     setDeletingId(id);
     try {
       await serversService.remove(id);
-      setServers((prev) => prev.filter((server) => server.id !== id));
+      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
       showToast(`Serveur "${name}" supprimé`, 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
@@ -264,8 +264,8 @@ export function useServerActions() {
   const handleRetryJob = async (serverId: string, jobId: string) => {
     setRetryingJobId(jobId);
     try {
-      const updated = await serversService.retryJob(serverId, jobId);
-      setServers((prev) => prev.map((item) => (item.id === serverId ? updated : item)));
+      await serversService.retryJob(serverId, jobId);
+      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
       showToast('Job relancé avec succès', 'success');
       await refreshJobs(serverId);
     } catch (err) {
@@ -300,7 +300,7 @@ export function useServerActions() {
         gitlabUrl: runnerGitlabUrl.trim(),
         token: runnerToken.trim(),
       });
-      setServers((prev) => prev.map((item) => (item.id === serverId ? updated : item)));
+      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
       setRunnerModal(null);
       setRunnerGitlabUrl('');
       setRunnerToken('');

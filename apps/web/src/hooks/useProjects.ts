@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
 import type { ProjectDetail, ProjectListItem } from '@/types/project';
@@ -13,28 +13,21 @@ type UseProjectsReturn = {
 };
 
 export function useProjects(): UseProjectsReturn {
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => projectsService.getAll(),
+  });
 
-  const fetchProjects = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await projectsService.getAll();
-      setProjects(data);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchProjects();
-  }, [fetchProjects]);
-
-  return { projects, loading, error, refresh: fetchProjects };
+  return {
+    projects: data ?? [],
+    loading: isLoading,
+    error: error ? getApiErrorMessage(error) : null,
+    refresh: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['projects'] });
+      await refetch();
+    },
+  };
 }
 
 type UseProjectReturn = {
@@ -45,26 +38,16 @@ type UseProjectReturn = {
 };
 
 export function useProject(id: string): UseProjectReturn {
-  const [project, setProject] = useState<ProjectDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['project', id],
+    queryFn: () => projectsService.getById(id),
+    enabled: Boolean(id),
+  });
 
-  const fetchProject = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await projectsService.getById(id);
-      setProject(data);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void fetchProject();
-  }, [fetchProject]);
-
-  return { project, loading, error, refresh: fetchProject };
+  return {
+    project: data ?? null,
+    loading: isLoading,
+    error: error ? getApiErrorMessage(error) : null,
+    refresh: async () => { await refetch(); },
+  };
 }

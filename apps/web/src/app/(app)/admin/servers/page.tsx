@@ -1,21 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  AlertTriangle,
-  Plus,
-  RefreshCw,
-  Server,
-  ShieldCheck,
-} from 'lucide-react';
+import { Plus, RefreshCw, Server, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Alert } from '@/components/ui/alert';
+import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { ServerCard } from '@/components/servers/server-card';
 import { ServerRunnerModal } from '@/components/servers/server-runner-modal';
 import { useServerActions } from '@/hooks/useServerActions';
+import { usePagination } from '@/hooks/usePagination';
+import { Pagination } from '@/components/ui/pagination';
 
 export default function AdminServersPage() {
   const servers = useServerActions();
+  const { page, totalPages, paged: pagedServers, goToPage } = usePagination(servers.servers, { pageSize: 10 });
 
   return (
     <div className="space-y-6">
@@ -65,34 +64,29 @@ export default function AdminServersPage() {
         </div>
       </SectionCard>
 
-      {servers.error && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-          <span>{servers.error}</span>
-        </div>
-      )}
+      {servers.error && <Alert tone="error">{servers.error}</Alert>}
 
       {!servers.loading && servers.servers.length === 0 && !servers.error && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center shadow-theme-xs">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50">
-            <Server size={28} className="text-brand-500" />
-          </div>
-          <h3 className="mt-4 text-base font-semibold text-slate-900">No servers yet</h3>
-          <p className="mt-2 max-w-xs text-sm text-slate-500">
-            Add a VPS and choose manual or SSH verification workflow.
-          </p>
-          <Link
-            href="/admin/servers/new"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
-          >
-            <Plus size={16} /> Add Server
-          </Link>
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white shadow-theme-xs">
+          <EmptyState
+            icon={Server}
+            title="No servers yet"
+            description="Add a VPS and choose manual or SSH verification workflow."
+            action={
+              <Link
+                href="/admin/servers/new"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
+              >
+                <Plus size={16} /> Add Server
+              </Link>
+            }
+          />
         </div>
       )}
 
       {!servers.loading && servers.servers.length > 0 && (
         <div className="space-y-3">
-          {servers.servers.map((server) => {
+          {pagedServers.map((server) => {
             const checklist = servers.getChecklist(server);
             const installOptions = servers.getInstallOptions(server);
             const jobs = servers.jobsByServer[server.id] ?? [];
@@ -137,6 +131,7 @@ export default function AdminServersPage() {
               />
             );
           })}
+          <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} className="mt-2" />
         </div>
       )}
 

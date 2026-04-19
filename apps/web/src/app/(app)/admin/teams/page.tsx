@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { teamsService } from '@/services/teams.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,11 +28,27 @@ export default function AdminTeamsPage() {
   const router = useRouter();
   const { isAdmin, loading: authLoading } = useAuth();
 
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [confirmTeam, setConfirmTeam] = useState<Team | null>(null);
+  const queryClient = useQueryClient();
+
+  const {
+    data: teams = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: ['admin-teams'],
+    queryFn: () => teamsService.getAll(),
+    enabled: !authLoading && isAdmin,
+  });
+
+  const error = queryError ? getApiErrorMessage(queryError) : null;
+
+  if (!authLoading && !isAdmin) {
+    router.replace('/access-denied');
+  }
 
   const showToast = useCallback((message: string, tone: ToastTone) => {
     const id = Date.now() + Math.floor(Math.random() * 1000);
@@ -41,36 +59,21 @@ export default function AdminTeamsPage() {
   }, []);
 
   const fetchTeams = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    await queryClient.invalidateQueries({ queryKey: ['admin-teams'] });
+    await refetch();
+  }, [queryClient, refetch]);
+
+  const handleDelete = (team: Team) => {
+    setConfirmTeam(team);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmTeam) return;
+    setDeletingId(confirmTeam.id);
+    setConfirmTeam(null);
     try {
-      const rows = await teamsService.getAll();
-      setTeams(rows);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!authLoading && !isAdmin) {
-      router.replace('/access-denied');
-      return;
-    }
-    if (!authLoading && isAdmin) {
-      void fetchTeams();
-    }
-  }, [authLoading, isAdmin, fetchTeams, router]);
-
-  const handleDelete = async (team: Team) => {
-    const confirmed = window.confirm(`Supprimer l'équipe "${team.name}" ?`);
-    if (!confirmed) return;
-
-    setDeletingId(team.id);
-    try {
-      await teamsService.remove(team.id);
-      setTeams((prev) => prev.filter((t) => t.id !== team.id));
+      await teamsService.remove(confirmTeam.id);
+      await queryClient.invalidateQueries({ queryKey: ['admin-teams'] });
       showToast('Équipe supprimée avec succès', 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
@@ -228,6 +231,17 @@ export default function AdminTeamsPage() {
           <span>{error}</span>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(confirmTeam)}
+        title={`Supprimer l'équipe "${confirmTeam?.name ?? ''}"`}
+        description="Cette action est irréversible."
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        loading={Boolean(deletingId)}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setConfirmTeam(null)}
+      />
 
       <div className="pointer-events-none fixed right-4 top-4 z-[100] space-y-2">
         {toasts.map((toast) => (

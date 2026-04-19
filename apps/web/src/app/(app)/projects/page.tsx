@@ -8,16 +8,18 @@ import {
   FolderGit2,
   Link2,
   Workflow,
-  AlertTriangle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useProjects } from '@/hooks/useProjects';
+import { usePagination } from '@/hooks/usePagination';
+import { Pagination } from '@/components/ui/pagination';
 import { useAuth } from '@/hooks/useAuth';
 import { ProjectCard } from '@/components/projects/project-card';
 import { ProjectsEmpty } from '@/components/projects/projects-empty';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import type { ProjectListItem } from '@/types/project';
+import { Alert } from '@/components/ui/alert';
 
 function isProjectGitlabConnected(project: ProjectListItem): boolean {
   const hasGitlabConfig = project.hasGitlabConfig ?? false;
@@ -38,6 +40,10 @@ export default function ProjectsPage() {
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.description ?? '').toLowerCase().includes(search.toLowerCase()),
   );
+
+  const { page, totalPages, paged: pagedProjects, goToPage, reset: resetPage } = usePagination(filtered, { pageSize: 12 });
+
+  useEffect(() => { resetPage(); }, [search, resetPage]);
   const gitlabConnectedCount = projects.filter(isProjectGitlabConnected).length;
   const readyForDeployCount = projects.filter(
     (project) =>
@@ -123,12 +129,7 @@ export default function ProjectsPage() {
         </SectionCard>
       )}
 
-      {error && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
       {loading && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -181,10 +182,11 @@ export default function ProjectsPage() {
             </span>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((project) => (
+            {pagedProjects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
           </div>
+          <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} />
         </>
       )}
     </div>
