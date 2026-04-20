@@ -4,12 +4,16 @@ import { use, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Rocket, XCircle, RotateCcw, Loader2, Clock, ExternalLink } from 'lucide-react';
 import { deploymentsService } from '@/services/deployments.service';
+import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
 import { LogTerminal } from '@/components/log-terminal';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import { useAuthContext } from '@/contexts/auth-context';
 import { useDeploymentSocket } from '@/hooks/useDeploymentSocket';
 import type { Deployment, DeploymentStatus, LogLine } from '@/types/deployment';
+import type { ProjectRole } from '@/types/project';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -63,9 +67,10 @@ function duration(start: string | null, end: string | null): string {
 
 export default function DeploymentDetailPage({ params }: Props) {
   const { id } = use(params);
-  const { isAdmin } = useAuthContext();
+  const { user, isAdmin } = useAuthContext();
 
   const [deployment, setDeployment] = useState<Deployment | null>(null);
+  const [projectRole, setProjectRole] = useState<ProjectRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -89,6 +94,10 @@ export default function DeploymentDetailPage({ params }: Props) {
   useEffect(() => {
     void fetchDeployment();
   }, [fetchDeployment]);
+
+  useEffect(() => {
+    setProjectRole(null);
+  }, [id]);
 
   const liveEnabled = Boolean(deployment && isActiveStatus(deployment.status));
   const { logs: liveLogs, status: liveStatus, isConnected } = useDeploymentSocket({
@@ -121,6 +130,36 @@ export default function DeploymentDetailPage({ params }: Props) {
     }
   }, [fetchDeployment, liveStatus]);
 
+  useEffect(() => {
+    if (!deployment || !user?.id || isAdmin) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void projectsService
+      .getById(deployment.project.id)
+      .then((project) => {
+        if (cancelled) {
+          return;
+        }
+
+        const membership = project.members.find(
+          (member) => member.user.id === user.id,
+        );
+        setProjectRole(membership?.role ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProjectRole(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deployment, isAdmin, user?.id]);
+
   const handleCancel = async () => {
     if (!confirm('Cancel this deployment?')) return;
     setCanceling(true);
@@ -151,33 +190,31 @@ export default function DeploymentDetailPage({ params }: Props) {
 
   const resolvedStatus = deployment ? (liveStatus ?? deployment.status) : null;
   const isActive = isActiveStatus(resolvedStatus);
+  const canManageDeployment =
+    isAdmin || projectRole === 'OWNER' || projectRole === 'DEVELOPER';
+  const canRollbackDeployment = isAdmin || projectRole === 'OWNER';
   const staticLogs = useMemo(() => parseStaticLogs(deployment?.logs ?? null), [deployment?.logs]);
   const displayedLogs = isActive ? liveLogs : staticLogs;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <Link href="/deployments" className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700">
-          <ArrowLeft size={15} /> Back to Deployments
-        </Link>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
-              <Rocket size={20} className="text-indigo-600" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">
-                {loading ? 'Loading…' : `${deployment?.project.name} → ${deployment?.environment.name}`}
-              </h1>
-              {deployment && (
-                <p className="font-mono text-xs text-slate-400">{id}</p>
-              )}
-            </div>
-          </div>
-          {resolvedStatus && <DeploymentStatusBadge status={resolvedStatus} />}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Deployments"
+        title={loading ? 'Loading…' : `${deployment?.project.name} → ${deployment?.environment.name}`}
+        description={deployment ? `Deployment ${id}` : 'Loading deployment details and live logs.'}
+        actions={
+          <>
+            <Link
+              href="/deployments"
+              className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+            >
+              <ArrowLeft size={15} />
+              Back to Deployments
+            </Link>
+            {resolvedStatus && <DeploymentStatusBadge status={resolvedStatus} />}
+          </>
+        }
+      />
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -195,8 +232,7 @@ export default function DeploymentDetailPage({ params }: Props) {
 
       {!loading && deployment && (
         <>
-          {/* Meta card */}
-          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+          <SectionCard title="Deployment details" contentClassName="p-5">
             <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Project</p>
@@ -247,35 +283,36 @@ export default function DeploymentDetailPage({ params }: Props) {
               )}
             </div>
 
-            {/* Actions */}
             <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-              {isActive && (
+              {isActive && canManageDeployment && (
                 <button onClick={() => void handleCancel()} disabled={canceling}
                   className="flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50">
                   {canceling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                   Cancel Deployment
                 </button>
               )}
-              {(resolvedStatus === 'SUCCESS' || resolvedStatus === 'FAILED') && isAdmin && (
+              {(resolvedStatus === 'SUCCESS' || resolvedStatus === 'FAILED') &&
+                canRollbackDeployment && (
                 <button onClick={() => void handleRollback()} disabled={rollingBack}
                   className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
                   {rollingBack ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                   Rollback
                 </button>
-              )}
-              {!isActive && (
+                )}
+              {!isActive && canManageDeployment && (
                 <Link href="/deployments/new"
                   className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
                   <Rocket size={14} /> Deploy Again
                 </Link>
               )}
             </div>
-          </div>
+          </SectionCard>
 
-          {/* Logs */}
-          <div>
+          <SectionCard
+            title="Deployment Logs"
+            description={isActive ? 'Live logs are streamed from the deployment socket.' : 'Static logs from the finished deployment.'}
+          >
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900">Deployment Logs</h2>
               {isActive && (
                 <span className="flex items-center gap-1.5 text-xs text-blue-600">
                   <span className="inline-flex h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -284,7 +321,7 @@ export default function DeploymentDetailPage({ params }: Props) {
               )}
             </div>
             <LogTerminal logs={displayedLogs} isLive={isActive} />
-          </div>
+          </SectionCard>
         </>
       )}
     </div>

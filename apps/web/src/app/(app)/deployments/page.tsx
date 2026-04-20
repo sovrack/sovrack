@@ -12,8 +12,12 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { deploymentsService } from '@/services/deployments.service';
+import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
+import { useAuthContext } from '@/contexts/auth-context';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
 
 function timeAgo(dateStr: string): string {
@@ -36,7 +40,9 @@ const STATUS_OPTIONS: { label: string; value: DeploymentStatus | 'ALL' }[] = [
 ];
 
 export default function DeploymentsPage() {
+  const { isAdmin } = useAuthContext();
   const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [canCreateDeployment, setCanCreateDeployment] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<DeploymentStatus | 'ALL'>('ALL');
@@ -45,13 +51,26 @@ export default function DeploymentsPage() {
     setLoading(true);
     setError(null);
     try {
-      setDeployments(await deploymentsService.getAll());
+      const [deploymentList, projectList] = await Promise.all([
+        deploymentsService.getAll(),
+        projectsService.getAll(),
+      ]);
+      setDeployments(deploymentList);
+      setCanCreateDeployment(
+        isAdmin ||
+          projectList.some(
+            (project) =>
+              project.currentUserProjectRole === 'OWNER' ||
+              project.currentUserProjectRole === 'DEVELOPER',
+          ),
+      );
     } catch (err) {
       setError(getApiErrorMessage(err));
+      setCanCreateDeployment(false);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => { void fetchDeployments(); }, [fetchDeployments]);
 
@@ -65,38 +84,33 @@ export default function DeploymentsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-theme-xs md:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-600">
-              Deployment Center
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-900">
-              Deployments
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Track every release, filter by status and drill down into each run.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
+      <PageHeader
+        eyebrow="Deployment Center"
+        title="Deployments"
+        description="Track every release, filter by status and drill down into each run."
+        actions={
+          <>
             <button
               onClick={() => void fetchDeployments()}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
-            <Link
-              href="/deployments/new"
-              className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
-            >
-              <Plus size={16} /> New Deployment
-            </Link>
-          </div>
-        </div>
+            {canCreateDeployment && (
+              <Link
+                href="/deployments/new"
+                className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
+              >
+                <Plus size={16} /> New Deployment
+              </Link>
+            )}
+          </>
+        }
+      />
 
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <SectionCard contentClassName="!p-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3">
             <p className="text-xs font-medium text-slate-500">Total</p>
             <p className="mt-1 text-2xl font-semibold text-slate-900">
@@ -122,7 +136,7 @@ export default function DeploymentsPage() {
             </p>
           </div>
         </div>
-      </section>
+      </SectionCard>
 
       {error && (
         <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -131,7 +145,7 @@ export default function DeploymentsPage() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-xs">
+      <SectionCard contentClassName="!p-3">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
           <span className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-500">
             <Filter size={13} />
@@ -151,7 +165,7 @@ export default function DeploymentsPage() {
             </button>
           ))}
         </div>
-      </div>
+      </SectionCard>
 
       {loading && (
         <div className="space-y-2">
@@ -162,7 +176,7 @@ export default function DeploymentsPage() {
       )}
 
       {!loading && filtered.length === 0 && !error && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center shadow-theme-xs">
+        <SectionCard contentClassName="!py-16 text-center" className="border-dashed">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50">
             <Rocket size={28} className="text-brand-500" />
           </div>
@@ -174,7 +188,7 @@ export default function DeploymentsPage() {
               ? 'No deployments yet. Launch your first deployment.'
               : `No deployments with status "${statusFilter}".`}
           </p>
-          {statusFilter === 'ALL' && (
+          {statusFilter === 'ALL' && canCreateDeployment && (
             <Link
               href="/deployments/new"
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
@@ -182,11 +196,11 @@ export default function DeploymentsPage() {
               <Plus size={16} /> Deploy
             </Link>
           )}
-        </div>
+        </SectionCard>
       )}
 
       {!loading && filtered.length > 0 && (
-        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-theme-xs no-scrollbar">
+        <SectionCard contentClassName="!p-0" className="overflow-hidden">
           <table className="w-full min-w-[960px] text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/80">
@@ -234,7 +248,7 @@ export default function DeploymentsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </SectionCard>
       )}
     </div>
   );

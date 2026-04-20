@@ -1,12 +1,13 @@
 'use client';
 
 import { use, useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Key, Plus, Trash2, Loader2, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Key, Plus, Trash2, Loader2, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { configsService } from '@/services/configs.service';
 import { useAuth } from '@/hooks/useAuth';
 import { getApiErrorMessage } from '@/lib/api';
 import clsx from 'clsx';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import type { Config, CreateConfigPayload } from '@/types/config';
 
 type Props = { params: Promise<{ id: string }> };
@@ -84,33 +85,34 @@ export default function ConfigsPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href={`/projects/${projectId}`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700">
-          <ArrowLeft size={15} /> Back to Project
-        </Link>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Environment Variables</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {isAdmin
-                ? 'Key/value pairs injected into the container at deployment. Secrets are encrypted.'
-                : 'Read-only view. Variable management is restricted to admins.'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => void fetchConfigs()} disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
+      <PageHeader
+        eyebrow="Project"
+        title="Environment Variables"
+        description={
+          isAdmin
+            ? 'Key/value pairs injected into the container at deployment. Secrets are encrypted.'
+            : 'Read-only view. Variable management is restricted to admins.'
+        }
+        actions={
+          <>
+            <button
+              onClick={() => void fetchConfigs()}
+              disabled={loading}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+            >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
             {isAdmin && (
-              <button onClick={() => setShowForm((v) => !v)}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-700">
+              <button
+                onClick={() => setShowForm((v) => !v)}
+                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-700"
+              >
                 <Plus size={16} /> Add Variable
               </button>
             )}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       {!isAdmin && (
@@ -119,10 +121,9 @@ export default function ConfigsPage({ params }: Props) {
         </div>
       )}
 
-      {/* Create form */}
       {showForm && isAdmin && (
-        <form onSubmit={handleCreate} className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-slate-900">New Variable</h2>
+        <SectionCard title="New Variable" description="Create a new environment variable for this project.">
+          <form onSubmit={handleCreate} className="space-y-4">
           {formError && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</div>}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -159,22 +160,24 @@ export default function ConfigsPage({ params }: Props) {
               Save
             </button>
           </div>
-        </form>
+          </form>
+        </SectionCard>
       )}
 
-      {/* Variables table */}
       {loading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => <div key={i} className="h-14 animate-pulse rounded-xl bg-slate-100" />)}
         </div>
       ) : configs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-14 text-center">
-          <Key size={28} className="text-slate-300" />
-          <p className="mt-3 text-sm font-medium text-slate-500">No variables yet</p>
-          <p className="mt-1 text-xs text-slate-400">Add env vars that will be injected into your containers.</p>
-        </div>
+        <SectionCard>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-14 text-center dark:border-slate-700 dark:bg-slate-900">
+            <Key size={28} className="text-slate-300" />
+            <p className="mt-3 text-sm font-medium text-slate-500">No variables yet</p>
+            <p className="mt-1 text-xs text-slate-400">Add env vars that will be injected into your containers.</p>
+          </div>
+        </SectionCard>
       ) : (
-        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+        <SectionCard contentClassName="p-0">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50">
@@ -233,7 +236,7 @@ export default function ConfigsPage({ params }: Props) {
               })}
             </tbody>
           </table>
-        </div>
+        </SectionCard>
       )}
     </div>
   );

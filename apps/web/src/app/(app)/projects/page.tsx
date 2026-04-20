@@ -15,6 +15,18 @@ import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { ProjectCard } from '@/components/projects/project-card';
 import { ProjectsEmpty } from '@/components/projects/projects-empty';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
+import type { ProjectListItem } from '@/types/project';
+
+function isProjectGitlabConnected(project: ProjectListItem): boolean {
+  const hasGitlabConfig = project.hasGitlabConfig ?? false;
+  const hasSourceIdentifier =
+    typeof project.gitlabId === 'number' ||
+    typeof project.gitlabGroupId === 'number';
+
+  return hasGitlabConfig && hasSourceIdentifier;
+}
 
 export default function ProjectsPage() {
   const { projects, loading, error, refresh } = useProjects();
@@ -26,25 +38,21 @@ export default function ProjectsPage() {
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.description ?? '').toLowerCase().includes(search.toLowerCase()),
   );
+  const gitlabConnectedCount = projects.filter(isProjectGitlabConnected).length;
+  const readyForDeployCount = projects.filter(
+    (project) =>
+      isProjectGitlabConnected(project) &&
+      (project.environmentCount ?? 0) > 0,
+  ).length;
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-theme-xs md:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-600">
-              Project Hub
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-900">
-              Projects
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Connect GitLab repositories and manage deployment ownership in one
-              place.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
+      <PageHeader
+        eyebrow="Project Hub"
+        title="Projects"
+        description="Connect GitLab repositories and manage deployment ownership in one place."
+        actions={
+          <>
             <button
               onClick={() => void refresh()}
               disabled={loading}
@@ -61,10 +69,15 @@ export default function ProjectsPage() {
                 New Project
               </Link>
             )}
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <SectionCard
+        className="overflow-hidden rounded-[28px]"
+        contentClassName="!p-0"
+      >
+        <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-3">
           <div className="rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3">
             <p className="text-xs font-medium text-slate-500">Total projects</p>
             <p className="mt-1 text-2xl font-semibold text-slate-900">
@@ -77,7 +90,7 @@ export default function ProjectsPage() {
               GitLab connected
             </div>
             <p className="mt-1 text-2xl font-semibold text-blue-800">
-              {projects.filter((p) => Boolean(p.gitlabId)).length}
+              {gitlabConnectedCount}
             </p>
           </div>
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
@@ -86,14 +99,14 @@ export default function ProjectsPage() {
               Ready for deploy
             </div>
             <p className="mt-1 text-2xl font-semibold text-emerald-800">
-              {projects.filter((p) => Boolean(p.gitlabId)).length}
+              {readyForDeployCount}
             </p>
           </div>
         </div>
-      </section>
+      </SectionCard>
 
       {!loading && projects.length > 0 && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-xs">
+        <SectionCard contentClassName="!p-3">
           <div className="relative max-w-sm">
             <Search
               size={15}
@@ -107,7 +120,7 @@ export default function ProjectsPage() {
               className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm text-slate-700 outline-none transition focus:border-brand-300 focus:bg-white focus:ring-2 focus:ring-brand-100"
             />
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {error && (
@@ -146,7 +159,7 @@ export default function ProjectsPage() {
       )}
 
       {!loading && projects.length > 0 && filtered.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center shadow-theme-xs">
+        <SectionCard contentClassName="!py-12 text-center" className="border-dashed">
           <p className="text-sm font-medium text-slate-500">
             No projects match &quot;{search}&quot;
           </p>
@@ -156,7 +169,7 @@ export default function ProjectsPage() {
           >
             Clear search
           </button>
-        </div>
+        </SectionCard>
       )}
 
       {!loading && filtered.length > 0 && (

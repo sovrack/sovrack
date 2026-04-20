@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import { usersService } from '@/services/users.service';
 import { getApiErrorMessage } from '@/lib/api';
 
@@ -115,21 +117,20 @@ export default function NewUserPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/admin/users"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
-        >
-          <ArrowLeft size={15} />
-          Retour à la liste
-        </Link>
-        <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-900">
-          Créer un utilisateur
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Ajoutez un nouveau compte admin ou développeur.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Administration"
+        title="Créer un utilisateur"
+        description="Ajoutez un nouveau compte admin ou développeur."
+        actions={
+          <Link
+            href="/admin/users"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+          >
+            <ArrowLeft size={15} />
+            Retour à la liste
+          </Link>
+        }
+      />
 
       {toast && (
         <div
@@ -143,10 +144,8 @@ export default function NewUserPage() {
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-theme-xs"
-      >
+      <SectionCard title="User details" contentClassName="p-6">
+        <form onSubmit={handleSubmit} className="space-y-0">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
@@ -239,7 +238,7 @@ export default function NewUserPage() {
           </div>
         </div>
 
-        <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex gap-3">
           <Link
             href="/admin/users"
             className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
@@ -258,8 +257,9 @@ export default function NewUserPage() {
             )}
             Créer
           </button>
-        </div>
-      </form>
+          </div>
+        </form>
+      </SectionCard>
     </div>
   );
 }

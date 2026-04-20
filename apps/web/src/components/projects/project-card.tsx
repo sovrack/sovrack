@@ -10,7 +10,11 @@ type ProjectCardProps = {
 };
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const isGitlabConnected = Boolean(project.gitlabId);
+  const hasGitlabConfig = project.hasGitlabConfig ?? false;
+  const hasGitlabSourceId =
+    typeof project.gitlabId === 'number' ||
+    typeof project.gitlabGroupId === 'number';
+  const isGitlabConnected = hasGitlabConfig && hasGitlabSourceId;
   const memberCount = project.memberCount;
 
   // First letter of project name for the avatar

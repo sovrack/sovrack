@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, Globe, Plus, Trash2, Loader2,
+  Globe, Plus, Trash2, Loader2,
   CheckCircle, XCircle, RefreshCw,
 } from 'lucide-react';
 import { environmentsService } from '@/services/environments.service';
@@ -11,6 +11,8 @@ import { serversService } from '@/services/servers.service';
 import { useAuth } from '@/hooks/useAuth';
 import { getApiErrorMessage } from '@/lib/api';
 import clsx from 'clsx';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import type { Environment, EnvName, CreateEnvironmentPayload } from '@/types/environment';
 import type { Server } from '@/types/server';
 
@@ -101,33 +103,34 @@ export default function EnvironmentsPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href={`/projects/${projectId}`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700">
-          <ArrowLeft size={15} /> Back to Project
-        </Link>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Environments</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {isAdmin
-                ? 'Link environments to verified servers for deployment.'
-                : 'Read-only view. Environment management is restricted to admins.'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => void fetchData()} disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
+      <PageHeader
+        eyebrow="Project"
+        title="Environments"
+        description={
+          isAdmin
+            ? 'Link environments to verified servers for deployment.'
+            : 'Read-only view. Environment management is restricted to admins.'
+        }
+        actions={
+          <>
+            <button
+              onClick={() => void fetchData()}
+              disabled={loading}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+            >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
             {isAdmin && (
-              <button onClick={() => setShowForm((v) => !v)}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-700">
+              <button
+                onClick={() => setShowForm((v) => !v)}
+                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-700"
+              >
                 <Plus size={16} /> New Environment
               </button>
             )}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       {!isAdmin && (
@@ -136,10 +139,9 @@ export default function EnvironmentsPage({ params }: Props) {
         </div>
       )}
 
-      {/* Create form */}
       {showForm && isAdmin && (
-        <form onSubmit={handleCreate} className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-slate-900">New Environment</h2>
+        <SectionCard title="New Environment" description="Create a deployment target and link it to a verified server.">
+          <form onSubmit={handleCreate} className="space-y-4">
           {formError && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</div>}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -190,7 +192,8 @@ export default function EnvironmentsPage({ params }: Props) {
               Create
             </button>
           </div>
-        </form>
+          </form>
+        </SectionCard>
       )}
 
       {/* List */}
@@ -199,11 +202,13 @@ export default function EnvironmentsPage({ params }: Props) {
           {[1, 2].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100" />)}
         </div>
       ) : environments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-14 text-center">
-          <Globe size={28} className="text-slate-300" />
-          <p className="mt-3 text-sm font-medium text-slate-500">No environments yet</p>
-          <p className="mt-1 text-xs text-slate-400">Create STAGING or PRODUCTION and link them to a server.</p>
-        </div>
+        <SectionCard>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-14 text-center dark:border-slate-700 dark:bg-slate-900">
+            <Globe size={28} className="text-slate-300" />
+            <p className="mt-3 text-sm font-medium text-slate-500">No environments yet</p>
+            <p className="mt-1 text-xs text-slate-400">Create STAGING or PRODUCTION and link them to a server.</p>
+          </div>
+        </SectionCard>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {environments.map((env) => (

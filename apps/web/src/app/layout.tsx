@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Outfit, IBM_Plex_Mono } from 'next/font/google';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { Providers } from '@/components/providers';
 import '@/styles/globals.css';
 
@@ -33,7 +34,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${outfit.variable} ${plexMono.variable} app-shell`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </Providers>
       </body>
     </html>
   );

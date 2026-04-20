@@ -143,6 +143,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const logout = useCallback(() => {
+    void api.post('/auth/logout').catch(() => undefined);
     handleLogout();
   }, [handleLogout]);
 

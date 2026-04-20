@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   XCircle,
 } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import { getApiErrorMessage } from '@/lib/api';
 import { platformConfigService } from '@/services/platform-config.service';
 import type { PlatformConfigItem } from '@/types/platform-config';
@@ -168,17 +170,11 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-600">
-          Administration
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-900">
-          Platform Settings
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Configure global GitLab access and platform identity from the UI.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Administration"
+        title="Platform Settings"
+        description="Configure global GitLab access and platform identity from the UI."
+      />
 
       {error && (
         <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -187,29 +183,24 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-theme-xs">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              Configuration GitLab globale
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              URL et token de test global administrateur.
-            </p>
-          </div>
-          {gitlabTest && (
+      <SectionCard
+        title="Configuration GitLab globale"
+        description="URL et token de test global administrateur."
+        actions={
+          gitlabTest ? (
             <span
               className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
                 gitlabTest.ok
-                  ? 'bg-emerald-50 text-emerald-700'
-                  : 'bg-red-50 text-red-700'
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                  : 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300'
               }`}
             >
               {gitlabTest.ok ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
               {gitlabTest.ok ? 'Connexion OK' : 'Connexion KO'}
             </span>
-          )}
-        </div>
+          ) : null
+        }
+      >
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="lg:col-span-2">
@@ -270,13 +261,12 @@ export default function AdminSettingsPage() {
             Tester connexion
           </button>
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-theme-xs">
-        <h2 className="text-lg font-semibold text-slate-900">Nom de la plateforme</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Définit l’identité globale affichée dans l’interface.
-        </p>
+      <SectionCard
+        title="Nom de la plateforme"
+        description="Définit l’identité globale affichée dans l’interface."
+      >
 
         <div className="mt-4 max-w-2xl">
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
@@ -303,7 +293,7 @@ export default function AdminSettingsPage() {
           )}
           Sauvegarder
         </button>
-      </section>
+      </SectionCard>
 
       <div className="pointer-events-none fixed right-4 top-4 z-[100] space-y-2">
         {toasts.map((toast) => (

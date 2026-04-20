@@ -21,4 +21,7 @@ export type UpdateUserPayload = {
   fullName?: string;
   role?: UserRole;
   isActive?: boolean;
+  currentPassword?: string;
+  newPassword?: string;
+  confirmNewPassword?: string;
 };

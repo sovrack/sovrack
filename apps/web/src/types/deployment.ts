@@ -40,6 +40,7 @@ export type CreateDeploymentPayload = {
   projectId: string;
   environmentId: string;
   branch?: string;
+  repoId?: number;
 };
 
 export type LogLevel = 'info' | 'error' | 'success';
@@ -73,8 +74,18 @@ export type DeploymentFinishedEvent = {
   finishedAt?: string;
 };
 
+export type DeploymentJoinedEvent = {
+  deploymentId: string;
+};
+
+export type DeploymentErrorEvent = {
+  deploymentId?: string;
+  message: string;
+};
+
 export type SocketDeploymentEvent =
   | { type: 'deployment:started'; payload: DeploymentStartedEvent }
   | { type: 'deployment:log'; payload: DeploymentLogEvent }
   | { type: 'deployment:status'; payload: DeploymentStatusEvent }
-  | { type: 'deployment:finished'; payload: DeploymentFinishedEvent };
+  | { type: 'deployment:finished'; payload: DeploymentFinishedEvent }
+  | { type: 'deployment:joined'; payload: DeploymentJoinedEvent };

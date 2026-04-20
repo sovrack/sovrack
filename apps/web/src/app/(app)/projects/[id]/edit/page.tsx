@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useProject } from '@/hooks/useProjects';
 import { ProjectForm } from '@/components/projects/project-form';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
 import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
 import type { CreateProjectPayload } from '@/types/project';
@@ -52,18 +54,22 @@ export default function EditProjectPage({ params }: EditProjectPageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href={`/projects/${id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
-        >
-          <ArrowLeft size={15} />
-          Back to {project.name}
-        </Link>
-        <h1 className="mt-3 text-2xl font-bold text-slate-900">Edit Project</h1>
-      </div>
+      <PageHeader
+        eyebrow="Projects"
+        title="Edit Project"
+        description={`Update ${project.name} without changing the current behavior.`}
+        actions={
+          <Link
+            href={`/projects/${id}`}
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+          >
+            <ArrowLeft size={15} />
+            Back to {project.name}
+          </Link>
+        }
+      />
 
-      <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+      <SectionCard title="Project form" contentClassName="p-0">
         <ProjectForm
           initialValues={project}
           onSubmit={handleUpdate}
@@ -71,7 +77,7 @@ export default function EditProjectPage({ params }: EditProjectPageProps) {
           loading={saving}
           error={error}
         />
-      </div>
+      </SectionCard>
     </div>
   );
 }
