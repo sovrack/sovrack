@@ -2,6 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import type { NextFunction, Request, Response } from 'express';
+import { randomUUID } from 'crypto';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { LoggerService } from './common/logger/logger.service';
 
 function resolveAllowedOrigins(): string[] {
   const envOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
@@ -20,9 +24,41 @@ function resolveAllowedOrigins(): string[] {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const logger = app.get(LoggerService);
 
-  // Validation globale
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalFilters(new AllExceptionsFilter(logger));
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const startedAt = Date.now();
+    const incomingRequestId = req.headers['x-request-id'];
+    const requestId =
+      (typeof incomingRequestId === 'string' && incomingRequestId.trim()) ||
+      randomUUID();
+
+    req.headers['x-request-id'] = requestId;
+    res.setHeader('x-request-id', requestId);
+
+    res.on('finish', () => {
+      const durationMs = Date.now() - startedAt;
+      const line =
+        `[req:${requestId}] ` +
+        `${req.method} ${req.originalUrl} -> ${String(res.statusCode)} ` +
+        `${String(durationMs)}ms`;
+      logger.log(line, 'HTTP');
+    });
+
+    next();
+  });
+
+  // Validation globale stricte (sécurité + DTOs prévisibles)
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
 
   // CORS pour le frontend
   app.enableCors({ origin: resolveAllowedOrigins() });
@@ -40,7 +76,7 @@ async function bootstrap() {
 
   const port = Number(process.env.PORT) || 3001;
   await app.listen(port);
-  console.log(`Backend running on http://localhost:${port}`);
-  console.log(`Swagger UI      -> http://localhost:${port}/api`);
+  logger.log(`Backend running on http://localhost:${port}`, 'Bootstrap');
+  logger.log(`Swagger UI      -> http://localhost:${port}/api`, 'Bootstrap');
 }
 bootstrap().catch(console.error);
