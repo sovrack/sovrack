@@ -13,8 +13,6 @@ type NavItemProps = {
   label: string;
   icon: React.ElementType;
   isActive: boolean;
-  collapsed: boolean;
-  onNavigate: () => void;
 };
 
 function NavItem({
@@ -22,17 +20,13 @@ function NavItem({
   label,
   icon: Icon,
   isActive,
-  collapsed,
-  onNavigate,
 }: NavItemProps) {
   return (
     <Link
       href={href}
-      onClick={onNavigate}
-      title={collapsed ? label : undefined}
+      title={label}
       className={clsx(
-        'group flex items-center gap-3 rounded-md py-2 text-[15px] transition-colors duration-150',
-        collapsed ? 'justify-center px-0' : 'px-3',
+        'group flex items-center gap-3 rounded-md px-3 py-2 text-[15px] transition-colors duration-150',
         isActive
           ? 'bg-zinc-100 font-medium text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-800'
           : 'font-normal text-zinc-700 hover:bg-zinc-100/80 hover:text-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100',
@@ -46,7 +40,7 @@ function NavItem({
             : 'text-zinc-700 group-hover:text-zinc-900 dark:text-zinc-200 dark:group-hover:text-zinc-100',
         )}
       />
-      {!collapsed && <span className="truncate">{label}</span>}
+      <span className="truncate">{label}</span>
     </Link>
   );
 }
@@ -105,10 +99,10 @@ export function Sidebar() {
               {section.items.map((item) => (
                 <NavItem
                   key={item.href}
-                  {...item}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
                   isActive={isRouteActive(pathname, item.href)}
-                  collapsed={false}
-                  onNavigate={() => {}}
                 />
               ))}
             </nav>
@@ -117,8 +111,7 @@ export function Sidebar() {
       </div>
 
       <div className="shrink-0 border-t border-zinc-200 p-3 dark:border-zinc-800">
-        <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900"
-        >
+        <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-zinc-50 dark:bg-zinc-800 dark:text-zinc-50">
             {initials}
           </div>
