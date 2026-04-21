@@ -11,11 +11,42 @@ import type {
   InstallServerKeyPayload,
   InstallServerKeyResult,
 } from '@/types/server';
+import type { ServerJobApi, ServersListApiResult } from '@/types/api-contract';
+
+type PaginatedApiResponse<T> = {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+type ListParams = {
+  page?: number;
+  limit?: number;
+};
+
+function isPaginatedResponse<T>(
+  value: unknown,
+): value is PaginatedApiResponse<T> {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  return Array.isArray((value as PaginatedApiResponse<T>).data);
+}
 
 export const serversService = {
-  async getAll(): Promise<Server[]> {
-    const res = await api.get<Server[]>('/servers');
-    return res.data;
+  async getAll(params?: ListParams): Promise<Server[]> {
+    const res = await api.get<ServersListApiResult | Server[]>('/servers', {
+      params,
+    });
+
+    if (isPaginatedResponse<Server>(res.data)) {
+      return res.data.data;
+    }
+
+    return res.data as Server[];
   },
 
   async getById(id: string): Promise<Server> {
@@ -69,8 +100,15 @@ export const serversService = {
     return res.data;
   },
 
-  async getJobs(id: string): Promise<ServerJob[]> {
-    const res = await api.get<ServerJob[]>(`/servers/${id}/jobs`);
+  async getJobs(id: string, params?: ListParams): Promise<ServerJob[]> {
+    const res = await api.get<
+      ServerJobApi[] | PaginatedApiResponse<ServerJobApi>
+    >(`/servers/${id}/jobs`, { params });
+
+    if (isPaginatedResponse<ServerJob>(res.data)) {
+      return res.data.data;
+    }
+
     return res.data;
   },
 
