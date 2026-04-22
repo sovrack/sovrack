@@ -15,6 +15,8 @@ import { TeamsModule } from './modules/teams/teams.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { validateEnv } from './common/config/env.validation';
 import { BuildModule } from './modules/build/build.module';
+import { SshKeysModule } from './modules/ssh-keys/ssh-keys.module';
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { BuildModule } from './modules/build/build.module';
     PlatformConfigModule,
     TeamsModule,
     BuildModule,
+    SshKeysModule,
+    AuditLogsModule,
   ],
   controllers: [AppController],
   providers: [],

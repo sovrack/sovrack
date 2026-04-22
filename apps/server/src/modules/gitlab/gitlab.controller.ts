@@ -39,6 +39,19 @@ class TriggerPipelineDto {
 export class GitlabController {
   constructor(private readonly gitlabService: GitlabService) {}
 
+  @Get('gitlab/providers')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Lister les providers GitLab disponibles pour la configuration projet',
+  })
+  @ApiResponse({ status: 200, description: 'Providers GitLab disponibles' })
+  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  async listProviders() {
+    return await this.gitlabService.listAvailableProviders();
+  }
+
   @Post('projects/:id/gitlab/connect')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

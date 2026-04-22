@@ -73,7 +73,7 @@ prisma/
   schema.prisma
   seed.ts
   migrations/
-docker-compose.yml
+../devops/docker/docker-compose.db.yml
 prisma.config.ts
 ```
 
@@ -168,7 +168,7 @@ npm run prisma:seed
 
 ## Lancement Du Projet
 
-### Option 1 (recommandee): via Docker Compose
+### Option 1 (recommandee): via Docker Compose (DB locale)
 
 ```bash
 npm run docker:up
@@ -215,6 +215,7 @@ npm run build
 npm run start
 npm run start:dev
 npm run start:debug
+# start:prod applique d'abord les migrations puis demarre l'API
 npm run start:prod
 
 # Docker helpers
@@ -226,6 +227,7 @@ npm run docker:logs
 
 # Qualite / tests
 npm run lint
+npm run lint:fix
 npm run test
 npm run test:e2e
 npm run test:cov
@@ -233,8 +235,25 @@ npm run test:cov
 # Prisma
 npm run prisma:generate
 npm run prisma:migrate
+npm run prisma:migrate:status
+npm run prisma:migrate:deploy
 npm run prisma:seed
 npm run prisma:studio
+npm run openapi:export
+```
+
+## Contrat API (OpenAPI)
+
+Le backend exporte le contrat OpenAPI consommé par le frontend:
+
+```bash
+npm run openapi:export
+```
+
+Le fichier est généré dans:
+
+```text
+frontend/src/generated/api-contract.openapi.json
 ```
 
 ## Routes API

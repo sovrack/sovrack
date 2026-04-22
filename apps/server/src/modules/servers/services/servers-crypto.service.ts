@@ -5,19 +5,29 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as CryptoJS from 'crypto-js';
+import * as sshpk from 'sshpk';
 import {
   createCipheriv,
   createDecipheriv,
   createHash,
-  createPrivateKey,
-  createPublicKey,
   generateKeyPairSync,
   randomBytes,
 } from 'crypto';
-import * as sshpk from 'sshpk';
 
 @Injectable()
 export class ServersCryptoService {
+  private readonly sshpkParser = sshpk as unknown as {
+    parsePrivateKey: (
+      value: string,
+      format: 'pem',
+    ) => {
+      toString: (format: 'openssh' | 'pem' | 'ssh') => string;
+      toPublic: () => {
+        toString: (format: 'ssh') => string;
+      };
+    };
+  };
+
   constructor(private readonly configService: ConfigService) {}
 
   hashToken(token: string): string {
@@ -29,57 +39,25 @@ export class ServersCryptoService {
     publicKey: string;
   } {
     if (providedPrivateKey) {
+      const normalizedPrivateKey =
+        this.normalizePrivateKeyFormat(providedPrivateKey);
       return {
-        privateKey: providedPrivateKey,
-        publicKey: this.deriveOpenSshPublicKey(providedPrivateKey),
+        privateKey: normalizedPrivateKey,
+        publicKey: this.deriveOpenSshPublicKey(normalizedPrivateKey),
       };
     }
 
-    const { privateKey: pkcs8Key, publicKey } = this.generateSshKeyPair();
-
-    let opensshPrivateKey: string;
-    try {
-      const key = sshpk.parsePrivateKey(pkcs8Key, 'pem');
-      opensshPrivateKey = key.toString('openssh');
-    } catch {
-      opensshPrivateKey = pkcs8Key;
-    }
-
-    return {
-      privateKey: opensshPrivateKey,
-      publicKey: this.convertPublicKeyPemToOpenSsh(publicKey),
-    };
+    return this.generateSshKeyPair();
   }
 
   normalizePrivateKeyFormat(privateKeyPem: string): string {
-    try {
-      try {
-        const key = sshpk.parsePrivateKey(privateKeyPem, 'auto');
-        return key.toString('pkcs8');
-      } catch {
-        createPrivateKey(privateKeyPem);
-        return privateKeyPem;
-      }
-    } catch {
-      return privateKeyPem;
-    }
-  }
+    const normalizedLineEndings = privateKeyPem.replace(/\r\n/g, '\n').trim();
+    const withTrailingNewLine = `${normalizedLineEndings}\n`;
 
-  deriveOpenSshPublicKey(privateKeyPem: string): string {
     try {
-      try {
-        const key = sshpk.parsePrivateKey(privateKeyPem, 'auto');
-        return key.toString('openssh');
-      } catch {
-        const privateKeyObject = createPrivateKey(privateKeyPem);
-        const publicKeyObject = createPublicKey(privateKeyObject);
-        const publicKeyDer = publicKeyObject.export({
-          type: 'spki',
-          format: 'der',
-        }) as Buffer;
-
-        return this.convertSpkiDerToOpenSsh(publicKeyDer);
-      }
+      return this.sshpkParser
+        .parsePrivateKey(withTrailingNewLine, 'pem')
+        .toString('openssh');
     } catch {
       throw new BadRequestException(
         'Clé privée SSH invalide. Formats acceptés: OpenSSH, PKCS8, PKCS1.',
@@ -87,44 +65,18 @@ export class ServersCryptoService {
     }
   }
 
-  convertPublicKeyPemToOpenSsh(publicKeyPem: string): string {
-    const publicKeyObject = createPublicKey(publicKeyPem);
-    const publicKeyDer = publicKeyObject.export({
-      type: 'spki',
-      format: 'der',
-    }) as Buffer;
-
-    return this.convertSpkiDerToOpenSsh(publicKeyDer);
-  }
-
-  convertSpkiDerToOpenSsh(publicKeyDer: Buffer): string {
-    const ed25519SpkiPrefix = Buffer.from([
-      0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
-    ]);
-
-    if (
-      publicKeyDer.length !== 44 ||
-      !publicKeyDer
-        .subarray(0, ed25519SpkiPrefix.length)
-        .equals(ed25519SpkiPrefix)
-    ) {
-      throw new BadRequestException('Format de clé publique Ed25519 non supporté');
+  deriveOpenSshPublicKey(privateKeyPem: string): string {
+    try {
+      const normalized = this.normalizePrivateKeyFormat(privateKeyPem);
+      return this.sshpkParser
+        .parsePrivateKey(normalized, 'pem')
+        .toPublic()
+        .toString('ssh');
+    } catch {
+      throw new BadRequestException(
+        'Clé privée SSH invalide. Formats acceptés: OpenSSH, PKCS8, PKCS1.',
+      );
     }
-
-    const rawPublicKey = publicKeyDer.subarray(ed25519SpkiPrefix.length);
-    const keyType = Buffer.from('ssh-ed25519', 'utf8');
-    const keyBlob = Buffer.concat([
-      this.encodeSshField(keyType),
-      this.encodeSshField(rawPublicKey),
-    ]);
-
-    return `ssh-ed25519 ${keyBlob.toString('base64')}`;
-  }
-
-  encodeSshField(value: Buffer): Buffer {
-    const size = Buffer.alloc(4);
-    size.writeUInt32BE(value.length, 0);
-    return Buffer.concat([size, value]);
   }
 
   encrypt(value: string): string {
@@ -161,17 +113,37 @@ export class ServersCryptoService {
       decrypted = Buffer.concat([decrypted, decipher.final()]);
 
       return decrypted.toString('utf8');
-    } catch (error) {
+    } catch {
+      const legacy = this.tryLegacyDecrypt(encryptedValue, secret);
+      if (legacy) {
+        return legacy;
+      }
+
       throw new InternalServerErrorException(
-        `Décryptage a échoué: ${
-          error instanceof Error ? error.message : 'erreur inconnue'
-        }`,
+        'Décryptage a échoué. Vérifiez CONFIG_SECRET et régénérez la clé SSH si nécessaire.',
       );
     }
   }
 
+  private tryLegacyDecrypt(
+    encryptedValue: string,
+    secret: string,
+  ): string | null {
+    try {
+      const decrypted = CryptoJS.AES.decrypt(encryptedValue, secret).toString(
+        CryptoJS.enc.Utf8,
+      );
+      if (decrypted.trim().length === 0) {
+        return null;
+      }
+      return decrypted;
+    } catch {
+      return null;
+    }
+  }
+
   private generateSshKeyPair(): { privateKey: string; publicKey: string } {
-    return generateKeyPairSync('ed25519', {
+    const { privateKey: rawPrivateKey } = generateKeyPairSync('ed25519', {
       publicKeyEncoding: {
         type: 'spki',
         format: 'pem',
@@ -181,6 +153,14 @@ export class ServersCryptoService {
         format: 'pem',
       },
     });
+
+    const privateKey = this.normalizePrivateKeyFormat(rawPrivateKey);
+    const publicKey = this.deriveOpenSshPublicKey(privateKey);
+
+    return {
+      privateKey,
+      publicKey,
+    };
   }
 
   private getConfigSecret(): string {

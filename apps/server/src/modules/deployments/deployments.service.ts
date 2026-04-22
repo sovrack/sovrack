@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import { DeploymentsCoreService } from './deployments-core.service';
 
@@ -20,8 +19,8 @@ export class DeploymentsService {
     return await this.core.handleWebhookUpdate(pipelineId, status, image);
   }
 
-  async findAll(userId: string, userRole: Role, pagination?: PaginationDto) {
-    return await this.core.findAll(userId, userRole, pagination);
+  async findAll(userId: string, userRole: Role) {
+    return await this.core.findAll(userId, userRole);
   }
 
   async findByProject(projectId: string, userId: string, userRole: Role) {
@@ -44,11 +43,17 @@ export class DeploymentsService {
     projectId: string,
     branch: string,
     dockerImage?: string,
+    pipelineId?: number,
   ): Promise<void> {
     return await this.core.triggerAutoDeployIfConfigured(
       projectId,
       branch,
       dockerImage,
+      pipelineId,
     );
+  }
+
+  async recoverInFlightDeploymentsAfterRestart(): Promise<number> {
+    return await this.core.recoverInFlightDeploymentsAfterRestart();
   }
 }

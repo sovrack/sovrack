@@ -1,11 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { SwaggerModule } from '@nestjs/swagger';
 import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggerService } from './common/logger/logger.service';
+import { buildSwaggerConfig } from './common/config/swagger';
+import { PrismaService } from './prisma/prisma.service';
+import { DeploymentsService } from './modules/deployments/deployments.service';
 
 function resolveAllowedOrigins(): string[] {
   const envOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
@@ -25,6 +28,7 @@ function resolveAllowedOrigins(): string[] {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = app.get(LoggerService);
+  const prisma = app.get(PrismaService);
 
   app.useGlobalFilters(new AllExceptionsFilter(logger));
 
@@ -61,18 +65,17 @@ async function bootstrap() {
   );
 
   // CORS pour le frontend
-  app.enableCors({ origin: resolveAllowedOrigins() });
+  app.enableCors({
+    origin: resolveAllowedOrigins(),
+    credentials: true,
+  });
 
   // Configuration Swagger
-  const config = new DocumentBuilder()
-    .setTitle('DevOps Platform API')
-    .setDescription('API de la plateforme centralisée de déploiement')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
   SwaggerModule.setup('api', app, document);
+
+  await assertRequiredTables(prisma);
+  await recoverInFlightDeployments(app, logger);
 
   const port = Number(process.env.PORT) || 3001;
   await app.listen(port);
@@ -80,3 +83,49 @@ async function bootstrap() {
   logger.log(`Swagger UI      -> http://localhost:${port}/api`, 'Bootstrap');
 }
 bootstrap().catch(console.error);
+
+async function recoverInFlightDeployments(
+  app: INestApplication,
+  logger: LoggerService,
+): Promise<void> {
+  try {
+    const deploymentsService = app.get(DeploymentsService, {
+      strict: false,
+    });
+    const recovered =
+      await deploymentsService.recoverInFlightDeploymentsAfterRestart();
+
+    if (recovered > 0) {
+      logger.warn(
+        `Startup recovery: ${String(recovered)} déploiement(s) in-flight basculés en FAILED.`,
+        'Bootstrap',
+      );
+    }
+  } catch (error) {
+    logger.warn(
+      `Startup recovery skipped: ${error instanceof Error ? error.message : 'unknown error'}`,
+      'Bootstrap',
+    );
+  }
+}
+
+async function assertRequiredTables(prisma: PrismaService): Promise<void> {
+  const rows = await prisma.$queryRaw<Array<{ table_name: string }>>`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+  `;
+
+  const existingTables = new Set(rows.map((row) => row.table_name));
+  const requiredTables = ['SshKey', 'GitProviderConfig'];
+  const missingTables = requiredTables.filter(
+    (tableName) => !existingTables.has(tableName),
+  );
+
+  if (missingTables.length > 0) {
+    throw new Error(
+      `Base de données incomplète: tables manquantes [${missingTables.join(', ')}]. ` +
+        `Appliquez les migrations avec "npx prisma migrate deploy" puis redémarrez le backend.`,
+    );
+  }
+}

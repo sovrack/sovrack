@@ -12,6 +12,24 @@ import {
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
+import {
+  extractTokenFromCookieHeader,
+  AUTH_COOKIE_NAME_DEFAULT,
+} from '../../common/auth/auth-cookie.util';
+
+function resolveGatewayCorsOrigins(): string[] {
+  const envOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
+    .filter((value): value is string => Boolean(value))
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  if (envOrigins.length > 0) {
+    return Array.from(new Set(envOrigins));
+  }
+
+  return ['http://localhost:3000', 'http://localhost:3002'];
+}
 
 type DeploymentLogLevel = 'info' | 'error' | 'success';
 
@@ -49,7 +67,10 @@ type JoinDeploymentPayload = {
 @Injectable()
 @WebSocketGateway({
   namespace: '/deployments',
-  cors: { origin: process.env.FRONTEND_URL || 'http://localhost:3000' },
+  cors: {
+    origin: resolveGatewayCorsOrigins(),
+    credentials: true,
+  },
 })
 export class DeploymentsGateway implements OnGatewayConnection {
   private readonly logger = new Logger(DeploymentsGateway.name);
@@ -66,7 +87,13 @@ export class DeploymentsGateway implements OnGatewayConnection {
   // Les clients sans token valide sont immédiatement déconnectés.
   handleConnection(client: Socket): void {
     const authData = client.handshake.auth as Record<string, unknown>;
+    const cookieName = process.env.AUTH_COOKIE_NAME || AUTH_COOKIE_NAME_DEFAULT;
+    const cookieToken = extractTokenFromCookieHeader(
+      client.handshake.headers.cookie,
+      cookieName,
+    );
     const rawToken =
+      cookieToken ??
       (authData.token as string | undefined) ??
       client.handshake.headers.authorization;
 

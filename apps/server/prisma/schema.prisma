@@ -80,6 +80,20 @@ enum GitProviderType {
   GITLAB
 }
 
+enum RegistryProviderType {
+  DOCKER_HUB
+  DOCKER_REGISTRY
+  ECR
+  GCR
+}
+
+enum BuildStatus {
+  NOT_BUILT
+  BUILDING
+  SUCCESS
+  FAILED
+}
+
 model User {
   id          String          @id @default(uuid())
   email       String          @unique
@@ -264,7 +278,9 @@ model Config {
 model Deployment {
   id            String           @id @default(uuid())
   status        DeploymentStatus @default(PENDING)
+  buildStatus   BuildStatus      @default(NOT_BUILT)
   logs          String?
+  buildLog      String?          @db.Text
   dockerImage   String?
   gitlabPipelineId BigInt?
   branch        String
@@ -364,6 +380,23 @@ model GitProviderConfig {
   gitlabProjects    GitlabConfig[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+
+  @@index([type, isDefault])
+  @@unique([type, name])
+}
+
+model RegistryConfig {
+  id              String                @id @default(uuid())
+  name            String
+  type            RegistryProviderType
+  username        String?
+  password        String?               @db.Text
+  registryUrl     String?
+  isDefault       Boolean               @default(false)
+  isConnected     Boolean               @default(false)
+  connectionError String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 
   @@index([type, isDefault])
   @@unique([type, name])

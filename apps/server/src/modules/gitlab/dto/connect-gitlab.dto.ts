@@ -1,24 +1,26 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { GitlabSourceType } from '@prisma/client';
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  IsUrl,
-} from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class ConnectGitlabDto {
-  @ApiProperty({ example: 'https://gitlab.example.com' })
+  @ApiPropertyOptional({ example: 'https://gitlab.example.com' })
+  @IsOptional()
   @IsUrl()
-  @IsNotEmpty()
   gitlabUrl!: string;
 
-  @ApiProperty({ example: 'glpat-xxxxxxxxxxxxxxxxxxxx' })
+  @ApiPropertyOptional({ example: 'glpat-xxxxxxxxxxxxxxxxxxxx' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   gitlabToken!: string;
+
+  @ApiPropertyOptional({
+    example: 'b5073d11-f378-4c71-87da-093f3ecf20af',
+    description:
+      'Provider GitLab global (Platform Config). Si fourni, URL/token peuvent être omis.',
+  })
+  @IsOptional()
+  @IsString()
+  providerId?: string;
 
   @ApiPropertyOptional({ example: 123 })
   @IsNumber()

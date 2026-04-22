@@ -6,10 +6,19 @@ const envSchema = z.object({
   CONFIG_SECRET: z.string().min(32),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('24h'),
+  AUTH_COOKIE_NAME: z.string().optional(),
+  AUTH_COOKIE_DOMAIN: z.string().optional(),
+  AUTH_COOKIE_SECURE: z.string().optional(),
+  AUTH_COOKIE_SAME_SITE: z.string().optional(),
+  AUTH_COOKIE_MAX_AGE_MS: z.string().optional(),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
   ANSIBLE_PLAYBOOKS_PATH: z.string(),
   ANSIBLE_SSH_KEY_PATH: z.string(),
   ANSIBLE_VENV_PATH: z.string(),
+  DEPLOY_HEALTHCHECK_ENABLED: z.string().optional(),
+  DEPLOY_HEALTHCHECK_TIMEOUT_MS: z.string().optional(),
+  DEPLOY_HEALTHCHECK_RETRIES: z.string().optional(),
+  DEPLOY_HEALTHCHECK_RETRY_DELAY_MS: z.string().optional(),
 });
 
 export function validateEnv(

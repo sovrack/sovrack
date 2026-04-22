@@ -1,34 +1,34 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '../../prisma/prisma.module';
-import { ServersAnsibleService } from './servers-ansible.service';
-import { ServersCoreService } from './servers-core.service';
 import { ServersController } from './servers.controller';
-import { ServersCryptoService } from './servers-crypto.service';
-import { ServersJobsService } from './servers-jobs.service';
-import { ServersRunnerService } from './servers-runner.service';
-import { ServersService } from './servers.service';
-import { ServersSshService } from './servers-ssh.service';
+import {
+  ServerVerificationService,
+  ServersAnsibleService,
+  ServersCoreService,
+  ServersCryptoService,
+  ServersJobsService,
+  ServersSshService,
+} from './services';
 
 @Module({
   imports: [ConfigModule, PrismaModule],
   controllers: [ServersController],
   providers: [
-    ServersService,
     ServersCoreService,
     ServersCryptoService,
     ServersSshService,
     ServersAnsibleService,
     ServersJobsService,
-    ServersRunnerService,
+    ServerVerificationService,
   ],
   exports: [
-    ServersService,
+    ServersCoreService,
     ServersCryptoService,
     ServersSshService,
     ServersAnsibleService,
     ServersJobsService,
-    ServersRunnerService,
+    ServerVerificationService,
   ],
 })
 export class ServersModule {}

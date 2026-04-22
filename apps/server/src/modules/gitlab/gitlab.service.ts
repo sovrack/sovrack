@@ -9,6 +9,7 @@ import {
 import { PublicGitlabConfig } from './gitlab-crypto.service';
 import { GitlabCoreService } from './gitlab-core.service';
 import { GitlabWebhookPayload } from './gitlab-webhook.service';
+import { type GitlabProviderProjectOption } from '../platform-config/platform-config.service';
 
 @Injectable()
 export class GitlabService {
@@ -67,6 +68,10 @@ export class GitlabService {
     userRole: Role,
   ): Promise<GitlabRepoItem[]> {
     return await this.core.getRepos(projectId, userId, userRole);
+  }
+
+  async listAvailableProviders(): Promise<GitlabProviderProjectOption[]> {
+    return await this.core.listAvailableProviders();
   }
 
   async handleWebhook(

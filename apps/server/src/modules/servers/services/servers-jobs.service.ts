@@ -9,13 +9,19 @@ import {
   ServerJobStatus,
   ServerJobType,
 } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { PaginationDto, paginate } from '../../../common/dto/pagination.dto';
 import { ServersSshService } from './servers-ssh.service';
-import { InstallToolsDto, ServerJobPublic } from './servers.types';
+import { InstallToolsDto } from '../dto/install-tools.dto';
+import {
+  ServerExecutionOptions,
+  ServerJobPublic,
+  ServerJobsListResult,
+} from '../shared/servers.types';
 
 @Injectable()
 export class ServersJobsService {
-  private readonly defaultJobTimeoutMs = 45_000;
+  private readonly defaultJobTimeoutMs = this.resolveDefaultJobTimeoutMs();
   private readonly defaultJobMaxAttempts = 3;
 
   constructor(
@@ -23,18 +29,45 @@ export class ServersJobsService {
     private readonly ssh: ServersSshService,
   ) {}
 
-  async listJobs(id: string): Promise<ServerJobPublic[]> {
+  async listJobs(
+    id: string,
+    pagination?: PaginationDto,
+  ): Promise<ServerJobsListResult> {
     const server = await this.prisma.server.findUnique({ where: { id } });
     if (!server) {
       throw new NotFoundException('Serveur non trouvé');
     }
 
-    const jobs = await this.prisma.serverJob.findMany({
-      where: { serverId: id },
-      orderBy: { createdAt: 'desc' },
-    });
+    if (!pagination?.page || !pagination?.limit) {
+      const jobs = await this.prisma.serverJob.findMany({
+        where: { serverId: id },
+        orderBy: { createdAt: 'desc' },
+      });
+      return jobs.map((job) => this.toPublicJob(job));
+    }
 
-    return jobs.map((job) => this.toPublicJob(job));
+    const page = pagination.page;
+    const limit = pagination.limit;
+    const skip = (page - 1) * limit;
+
+    const [jobs, total] = await Promise.all([
+      this.prisma.serverJob.findMany({
+        where: { serverId: id },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.serverJob.count({
+        where: { serverId: id },
+      }),
+    ]);
+
+    return paginate(
+      jobs.map((job) => this.toPublicJob(job)),
+      total,
+      page,
+      limit,
+    );
   }
 
   async retryJob<T>(
@@ -73,7 +106,7 @@ export class ServersJobsService {
 
   async executeJobWithRetry<T>(
     job: ServerJob,
-    task: () => Promise<T>,
+    task: (options: ServerExecutionOptions) => Promise<T>,
     toErrorMessage: (error: unknown) => string,
   ): Promise<T> {
     await this.assertJobLock(job);
@@ -92,7 +125,16 @@ export class ServersJobsService {
       });
 
       try {
-        const result = await this.ssh.withTimeout(task(), job.timeoutMs);
+        const abortController = new AbortController();
+        const result = await this.ssh.withTimeout(
+          () =>
+            task({
+              signal: abortController.signal,
+              timeoutMs: job.timeoutMs,
+            }),
+          job.timeoutMs,
+          () => abortController.abort(),
+        );
 
         await this.prisma.serverJob.update({
           where: { id: job.id },
@@ -176,19 +218,17 @@ export class ServersJobsService {
     });
   }
 
-  async markJobAgentPending(jobId: string, output: string): Promise<void> {
-    await this.prisma.serverJob.update({
-      where: { id: jobId },
-      data: {
-        status: ServerJobStatus.AGENT_PENDING,
-        output,
-      },
-    });
-  }
-
   toPublicJob(job: ServerJob): ServerJobPublic {
     const { payload, ...publicJob } = job;
     void payload;
     return publicJob;
+  }
+
+  private resolveDefaultJobTimeoutMs(): number {
+    const candidate = Number(process.env.SERVER_JOB_TIMEOUT_MS);
+    if (Number.isFinite(candidate) && candidate >= 10_000) {
+      return Math.floor(candidate);
+    }
+    return 120_000;
   }
 }

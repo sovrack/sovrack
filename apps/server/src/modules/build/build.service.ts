@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BuildDetectorService } from './build-detector.service';
 import { BuildGeneratorService } from './build-generator.service';
@@ -22,12 +27,18 @@ export class BuildService {
     private readonly generator: BuildGeneratorService,
   ) {}
 
-  async prepare(projectId: string): Promise<{
+  async prepare(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<{
     type: string;
     confidence: string;
     dockerfileContent: string;
     gitlabCiContent: string;
   }> {
+    await this.assertCanConfigureBuild(projectId, userId, userRole);
+
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: { gitlabConfig: true },
@@ -80,14 +91,23 @@ export class BuildService {
     };
   }
 
-  getTemplates(): { types: string[] } {
+  async getTemplates(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<{ types: string[] }> {
+    await this.assertCanConfigureBuild(projectId, userId, userRole);
     return { types: SUPPORTED_TYPES };
   }
 
   async updateBuildConfig(
     projectId: string,
     dto: CreateBuildConfigDto,
+    userId: string,
+    userRole: Role,
   ): Promise<void> {
+    await this.assertCanConfigureBuild(projectId, userId, userRole);
+
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -115,7 +135,13 @@ export class BuildService {
     });
   }
 
-  async pushFiles(projectId: string): Promise<void> {
+  async pushFiles(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    await this.assertCanConfigureBuild(projectId, userId, userRole);
+
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -129,5 +155,37 @@ export class BuildService {
       Dockerfile: project.dockerfileContent,
       '.gitlab-ci.yml': project.gitlabCiContent,
     });
+  }
+
+  async assertCanConfigureBuild(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    if (userRole === Role.ADMIN) {
+      return;
+    }
+
+    const membership = await this.prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+      select: {
+        role: true,
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('Accès non autorisé au projet');
+    }
+
+    if (membership.role === ProjectRole.VIEWER) {
+      throw new ForbiddenException(
+        'Le rôle VIEWER ne peut pas configurer le build',
+      );
+    }
   }
 }

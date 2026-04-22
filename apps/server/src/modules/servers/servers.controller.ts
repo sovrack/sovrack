@@ -11,14 +11,16 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiExtraModels,
+  ApiOkResponse,
   ApiProperty,
-  ApiPropertyOptional,
   ApiOperation,
   ApiResponse,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { GetUser } from '../../common/decorators/get-user.decorator';
@@ -27,28 +29,21 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CreateServerDto } from './dto/create-server.dto';
+import {
+  CreateServerResponseDto,
+  DeleteServerResponseDto,
+  InstallKeyResponseDto,
+  PaginatedServerJobsResponseDto,
+  PaginatedServersResponseDto,
+  ServerJobResponseDto,
+  ServerResponseDto,
+  ServerVerificationStatusDto,
+  VerifyServerResponseDto,
+  ServerLogDto,
+} from './dto/server-response.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
-import { ServersService } from './servers.service';
-
-class InstallToolsDto {
-  @ApiPropertyOptional({ example: true })
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  docker?: boolean;
-
-  @ApiPropertyOptional({ example: true })
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  ansible?: boolean;
-
-  @ApiPropertyOptional({ example: true })
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  runner?: boolean;
-}
+import { InstallToolsDto } from './dto/install-tools.dto';
+import { ServerVerificationService, ServersCoreService } from './services';
 
 class RegisterRunnerDto {
   @ApiProperty({ example: 'https://gitlab.example.com' })
@@ -71,46 +66,75 @@ class InstallKeyDto {
 
 @ApiTags('Servers')
 @ApiBearerAuth()
+@ApiExtraModels(
+  ServerResponseDto,
+  CreateServerResponseDto,
+  PaginatedServersResponseDto,
+  PaginatedServerJobsResponseDto,
+  ServerJobResponseDto,
+  DeleteServerResponseDto,
+  InstallKeyResponseDto,
+)
 @Controller('servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class ServersController {
-  constructor(private readonly serversService: ServersService) {}
+  constructor(
+    private readonly core: ServersCoreService,
+    private readonly verification: ServerVerificationService,
+  ) {}
 
   @Post()
   @ApiOperation({
     summary:
-      'Créer un serveur avec vérification SSH auto ou mode manuel configurable',
+      'Créer un serveur (onboarding SSH: installation de clé via mot de passe temporaire, puis vérification)',
   })
-  @ApiResponse({ status: 201, description: 'Serveur créé avec succès' })
+  @ApiCreatedResponse({
+    description: 'Serveur créé avec succès',
+    type: CreateServerResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   async create(@Body() dto: CreateServerDto, @GetUser() user: JwtPayload) {
-    return await this.serversService.create(dto, user.id);
+    return await this.core.create(dto, user.id);
   }
 
   @Get()
   @ApiOperation({ summary: 'Lister tous les serveurs (sshKey masquée)' })
-  @ApiResponse({ status: 200, description: 'Liste des serveurs' })
+  @ApiOkResponse({
+    description: 'Liste des serveurs',
+    schema: {
+      oneOf: [
+        {
+          type: 'array',
+          items: { $ref: getSchemaPath(ServerResponseDto) },
+        },
+        { $ref: getSchemaPath(PaginatedServersResponseDto) },
+      ],
+    },
+  })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   async findAll(@Query() pagination: PaginationDto) {
-    return await this.serversService.findAll(pagination);
+    return await this.core.findAll(pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: "Voir le détail d'un serveur" })
-  @ApiResponse({ status: 200, description: 'Serveur trouvé' })
+  @ApiOkResponse({ description: 'Serveur trouvé', type: ServerResponseDto })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
   async findOne(@Param('id') id: string) {
-    return await this.serversService.findOne(id);
+    return await this.core.findOne(id);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Modifier un serveur' })
-  @ApiResponse({ status: 200, description: 'Serveur mis à jour' })
+  @ApiOkResponse({
+    description: 'Serveur mis à jour',
+    type: ServerResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
@@ -119,14 +143,17 @@ export class ServersController {
     @Body() dto: UpdateServerDto,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.serversService.update(id, dto, user.id);
+    return await this.core.update(id, dto, user.id);
   }
 
   @Delete(':id')
   @ApiOperation({
     summary: 'Supprimer un serveur si aucun environnement actif',
   })
-  @ApiResponse({ status: 200, description: 'Serveur supprimé' })
+  @ApiOkResponse({
+    description: 'Serveur supprimé',
+    type: DeleteServerResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Serveur utilisé par un environnement actif',
@@ -135,13 +162,16 @@ export class ServersController {
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
   async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    await this.serversService.remove(id, user.id);
+    await this.core.remove(id, user.id);
     return { message: 'Serveur supprimé avec succès' };
   }
 
   @Post(':id/verify')
   @ApiOperation({ summary: 'Vérifier SSH, Docker, Ansible et GitLab Runner' })
-  @ApiResponse({ status: 201, description: 'Vérification serveur terminée' })
+  @ApiCreatedResponse({
+    description: 'Vérification serveur terminée',
+    type: ServerResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Connexion SSH ou vérification échouée',
@@ -150,25 +180,31 @@ export class ServersController {
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
   async verify(@Param('id') id: string) {
-    return await this.serversService.verifyServer(id);
+    return await this.core.verifyServer(id);
   }
 
   @Post(':id/install')
   @ApiOperation({
     summary: 'Installer les outils manquants sur le serveur cible',
   })
-  @ApiResponse({ status: 201, description: 'Installation terminée' })
+  @ApiCreatedResponse({
+    description: 'Installation terminée',
+    type: ServerResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Installation distante échouée' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
   async install(@Param('id') id: string, @Body() dto: InstallToolsDto) {
-    return await this.serversService.installTools(id, dto);
+    return await this.core.installTools(id, dto);
   }
 
   @Post(':id/register-runner')
   @ApiOperation({ summary: 'Enregistrer le GitLab Runner sur ce serveur' })
-  @ApiResponse({ status: 201, description: 'Runner enregistré' })
+  @ApiCreatedResponse({
+    description: 'Runner enregistré',
+    type: ServerResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Échec enregistrement runner' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
@@ -177,18 +213,17 @@ export class ServersController {
     @Param('id') id: string,
     @Body() dto: RegisterRunnerDto,
   ) {
-    return await this.serversService.registerRunner(
-      id,
-      dto.gitlabUrl,
-      dto.token,
-    );
+    return await this.core.registerRunner(id, dto.gitlabUrl, dto.token);
   }
 
   @Post(':id/install-key')
   @ApiOperation({
     summary: 'Installer la clé publique SSH via mot de passe temporaire',
   })
-  @ApiResponse({ status: 201, description: 'Clé SSH installée et validée' })
+  @ApiCreatedResponse({
+    description: 'Clé SSH installée et validée',
+    type: InstallKeyResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Installation de clé impossible pour ce serveur',
@@ -197,27 +232,125 @@ export class ServersController {
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
   async installKey(@Param('id') id: string, @Body() dto: InstallKeyDto) {
-    return await this.serversService.installPublicKey(id, dto.password);
+    return await this.core.installPublicKey(id, dto.password);
+  }
+
+  @Get(':id/status')
+  @ApiOperation({ summary: 'Récupérer le statut de vérification du serveur' })
+  @ApiOkResponse({
+    description: 'Statut de vérification du serveur',
+    type: ServerVerificationStatusDto,
+  })
+  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
+  @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
+  async getVerificationStatus(@Param('id') id: string) {
+    const server = await this.core.findOne(id);
+    const recentLogs = await this.verification.getRecentLogs(id, 10);
+
+    return {
+      id: server.id,
+      name: server.name,
+      status: server.status,
+      verificationError: server.verificationError,
+      lastVerifiedAt: server.lastVerifiedAt,
+      isVerified: server.isVerified,
+      hasDocker: server.hasDocker,
+      hasAnsible: server.hasAnsible,
+      hasRunner: server.hasRunner,
+      recentLogs: recentLogs.map((log) => ({
+        id: log.id,
+        serverId: log.serverId,
+        message: log.message,
+        level: log.level,
+        context: log.context,
+        createdAt: log.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  @Get(':id/logs')
+  @ApiOperation({ summary: 'Récupérer les logs de vérification du serveur' })
+  @ApiOkResponse({
+    description: 'Logs de vérification du serveur',
+    type: ServerLogDto,
+    isArray: true,
+  })
+  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
+  @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
+  async getVerificationLogs(
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+  ) {
+    await this.core.findOne(id);
+    const logs = await this.verification.getRecentLogs(
+      id,
+      limit ? parseInt(limit, 10) : 50,
+    );
+
+    return logs.map((log) => ({
+      id: log.id,
+      serverId: log.serverId,
+      message: log.message,
+      level: log.level,
+      context: log.context,
+      createdAt: log.createdAt.toISOString(),
+    }));
+  }
+
+  @Post(':id/retry-verification')
+  @ApiOperation({ summary: 'Relancer la vérification du serveur' })
+  @ApiCreatedResponse({
+    description: 'Vérification relancée',
+    type: VerifyServerResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
+  @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
+  async retryVerification(@Param('id') id: string) {
+    await this.verification.resetStatus(id);
+    const result = await this.core.verifyServer(id);
+
+    return {
+      serverId: id,
+      message: 'Verification started, check status endpoint for updates',
+      status: result.status,
+    };
   }
 
   @Get(':id/jobs')
   @ApiOperation({ summary: "Lister l'historique des jobs serveur" })
-  @ApiResponse({ status: 200, description: 'Liste des jobs serveur' })
+  @ApiOkResponse({
+    description: 'Liste des jobs serveur',
+    schema: {
+      oneOf: [
+        {
+          type: 'array',
+          items: { $ref: getSchemaPath(ServerJobResponseDto) },
+        },
+        { $ref: getSchemaPath(PaginatedServerJobsResponseDto) },
+      ],
+    },
+  })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   @ApiResponse({ status: 404, description: 'Serveur non trouvé' })
-  async listJobs(@Param('id') id: string) {
-    return await this.serversService.listJobs(id);
+  async listJobs(@Param('id') id: string, @Query() pagination: PaginationDto) {
+    return await this.core.listJobs(id, pagination);
   }
 
   @Post(':id/jobs/:jobId/retry')
   @ApiOperation({ summary: 'Relancer un job serveur' })
-  @ApiResponse({ status: 201, description: 'Job relancé' })
+  @ApiCreatedResponse({
+    description: 'Job relancé',
+    type: ServerResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Job non rejouable' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès réservé aux ADMIN' })
   @ApiResponse({ status: 404, description: 'Serveur ou job non trouvé' })
   async retryJob(@Param('id') id: string, @Param('jobId') jobId: string) {
-    return await this.serversService.retryJob(id, jobId);
+    return await this.core.retryJob(id, jobId);
   }
 }

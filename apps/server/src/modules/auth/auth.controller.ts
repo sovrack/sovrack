@@ -1,4 +1,5 @@
-import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -14,6 +15,12 @@ import { GetUser } from '../../common/decorators/get-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { JwtPayload } from './strategies/jwt.strategy';
 import { Role, User } from '@prisma/client';
+import type { Response } from 'express';
+import {
+  buildAuthCookieClearOptions,
+  buildAuthCookieOptions,
+  resolveAuthCookieName,
+} from '../../common/auth/auth-cookie.util';
 
 /**
  * Contrôleur d'authentification
@@ -22,7 +29,10 @@ import { Role, User } from '@prisma/client';
 @Controller('auth')
 @ApiTags('Auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * Route de connexion d'un utilisateur
@@ -45,8 +55,17 @@ export class AuthController {
     status: 429,
     description: 'Trop de tentatives de connexion',
   })
-  async login(@Body() dto: LoginDto): Promise<AuthResponse> {
-    return await this.authService.login(dto);
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthResponse> {
+    const result = await this.authService.login(dto);
+    response.cookie(
+      resolveAuthCookieName(this.configService),
+      result.access_token,
+      buildAuthCookieOptions(this.configService),
+    );
+    return result;
   }
 
   /**
@@ -77,7 +96,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Déconnexion utilisateur (audit)' })
   @ApiResponse({ status: 201, description: 'Déconnexion enregistrée' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  async logout(@GetUser() user: JwtPayload): Promise<{ message: string }> {
+  async logout(
+    @GetUser() user: JwtPayload,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ message: string }> {
+    response.clearCookie(
+      resolveAuthCookieName(this.configService),
+      buildAuthCookieClearOptions(this.configService),
+    );
     return await this.authService.logout(user.id);
   }
 }

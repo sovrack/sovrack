@@ -93,7 +93,7 @@ export class GitlabWebhookService {
       return { status: 'ignored' };
     }
 
-    const status = this.mapPipelineStatus(payload.object_attributes?.status);
+    const webhookStatus = payload.object_attributes?.status ?? 'pending';
     const ref = payload.object_attributes?.ref ?? config.defaultBranch;
     const sha = payload.object_attributes?.sha ?? '';
     const webUrl =
@@ -101,26 +101,34 @@ export class GitlabWebhookService {
       payload.object_attributes?.url ??
       '';
 
-    await this.upsertPipeline(config.projectId, {
-      id: pipelineId,
-      status,
-      ref,
-      sha,
-      web_url: webUrl,
-    });
+    const pipelineSnapshot = await this.upsertPipelineWithPreviousStatus(
+      config.projectId,
+      {
+        id: pipelineId,
+        status: webhookStatus,
+        ref,
+        sha,
+        web_url: webUrl,
+      },
+    );
+
+    const transitionedToSuccess =
+      pipelineSnapshot.currentStatus === PipelineStatus.SUCCESS &&
+      pipelineSnapshot.previousStatus !== PipelineStatus.SUCCESS;
 
     if (this.deploymentsService) {
-      const webhookStatus = payload.object_attributes?.status ?? 'pending';
       const result = await this.deploymentsService.handleWebhookUpdate(
         pipelineId,
         webhookStatus,
       );
 
       // Si aucun déploiement existant ne correspond, vérifier l'auto-deploy
-      if (result.status === 'ignored' && webhookStatus === 'success') {
+      if (result.status === 'ignored' && transitionedToSuccess) {
         await this.deploymentsService.triggerAutoDeployIfConfigured(
           config.projectId,
           ref,
+          undefined,
+          pipelineId,
         );
       }
     }
@@ -247,6 +255,34 @@ export class GitlabWebhookService {
         webUrl: pipeline.web_url ?? '',
       },
     });
+  }
+
+  async upsertPipelineWithPreviousStatus(
+    projectId: string,
+    pipeline: GitlabPipelineItem,
+  ): Promise<{
+    previousStatus: PipelineStatus | null;
+    currentStatus: PipelineStatus;
+  }> {
+    const currentStatus = this.mapPipelineStatus(pipeline.status);
+    const existing = await this.prisma.pipeline.findUnique({
+      where: {
+        projectId_gitlabId: {
+          projectId,
+          gitlabId: pipeline.id,
+        },
+      },
+      select: {
+        status: true,
+      },
+    });
+
+    await this.upsertPipeline(projectId, pipeline);
+
+    return {
+      previousStatus: existing?.status ?? null,
+      currentStatus,
+    };
   }
 
   mapPipelineStatus(status?: string): PipelineStatus {

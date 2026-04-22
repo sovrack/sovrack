@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
 
 describe('AppController', () => {
@@ -10,10 +9,11 @@ describe('AppController', () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
       providers: [
-        AppService,
         {
           provide: PrismaService,
-          useValue: { $queryRaw: jest.fn() },
+          useValue: {
+            $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
+          },
         },
       ],
     }).compile();
@@ -21,9 +21,31 @@ describe('AppController', () => {
     appController = app.get<AppController>(AppController);
   });
 
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+  describe('GET /health', () => {
+    it('retourne status ok avec database connected', async () => {
+      const result = await appController.getHealth();
+      expect(result.status).toBe('ok');
+      expect(result.database).toBe('connected');
+      expect(result.timestamp).toBeDefined();
+    });
+
+    it('retourne database disconnected si Prisma échoue', async () => {
+      const app: TestingModule = await Test.createTestingModule({
+        controllers: [AppController],
+        providers: [
+          {
+            provide: PrismaService,
+            useValue: {
+              $queryRaw: jest.fn().mockRejectedValue(new Error('DB down')),
+            },
+          },
+        ],
+      }).compile();
+
+      const ctrl = app.get<AppController>(AppController);
+      const result = await ctrl.getHealth();
+      expect(result.status).toBe('ok');
+      expect(result.database).toBe('disconnected');
     });
   });
 });

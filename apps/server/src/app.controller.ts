@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from './prisma/prisma.service';
 
 type HealthResponse = {
@@ -10,20 +10,14 @@ type HealthResponse = {
   database: string;
 };
 
+@ApiTags('Health')
 @Controller()
 export class AppController {
-  constructor(
-    private readonly appService: AppService,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
-
-  // Endpoint de monitoring — accessible sans authentification JWT.
-  @Get('/health')
+  @Get('health')
+  @ApiOperation({ summary: 'Vérification de santé de la plateforme' })
+  @ApiResponse({ status: 200, description: 'Service opérationnel' })
   async getHealth(): Promise<HealthResponse> {
     let databaseStatus = 'disconnected';
 
@@ -31,7 +25,7 @@ export class AppController {
       await this.prisma.$queryRaw`SELECT 1`;
       databaseStatus = 'connected';
     } catch {
-      // La base est inaccessible, on retourne quand même un statut partiel.
+      // Base inaccessible — retourne statut partiel.
     }
 
     return {

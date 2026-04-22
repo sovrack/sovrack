@@ -38,7 +38,7 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Créer un projet' })
   @ApiResponse({ status: 201, description: 'Projet créé avec succès' })
@@ -48,14 +48,17 @@ export class ProjectsController {
     description: 'Action réservée aux administrateurs',
   })
   async create(@GetUser() user: JwtPayload, @Body() dto: CreateProjectDto) {
-    return await this.projectsService.create(user.id, dto);
+    return await this.projectsService.create(user.id, user.role, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Lister les projets selon le rôle utilisateur' })
   @ApiResponse({ status: 200, description: 'Liste des projets' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  async findAll(@GetUser() user: JwtPayload, @Query() pagination: PaginationDto) {
+  async findAll(
+    @GetUser() user: JwtPayload,
+    @Query() pagination: PaginationDto,
+  ) {
     return await this.projectsService.findAll(user.id, user.role, pagination);
   }
 

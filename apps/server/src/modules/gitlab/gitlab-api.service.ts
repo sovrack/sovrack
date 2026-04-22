@@ -325,8 +325,8 @@ export class GitlabApiService {
           },
         ),
       );
-    } catch {
-      throw new BadRequestException('Connexion GitLab échouée');
+    } catch (error: unknown) {
+      this.throwGitlabRequestError('connexion GitLab repository', error);
     }
   }
 
@@ -346,8 +346,8 @@ export class GitlabApiService {
           },
         ),
       );
-    } catch {
-      throw new BadRequestException('Connexion GitLab groupe échouée');
+    } catch (error: unknown) {
+      this.throwGitlabRequestError('connexion GitLab group', error);
     }
   }
 

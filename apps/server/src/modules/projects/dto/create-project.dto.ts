@@ -21,10 +21,10 @@ export class CreateProjectDto {
   @IsString({ message: 'La description doit être une chaîne de caractères' })
   description?: string;
 
-  @ApiProperty({ example: 'https://gitlab.com/test/ecommerce' })
+  @ApiPropertyOptional({ example: 'https://gitlab.com/test/ecommerce' })
+  @IsOptional()
   @IsUrl({}, { message: 'URL GitLab invalide' })
-  @IsNotEmpty({ message: 'URL GitLab requise' })
-  gitlabUrl: string;
+  gitlabUrl?: string;
 
   @ApiPropertyOptional({ example: 'main', default: 'main' })
   @IsOptional()

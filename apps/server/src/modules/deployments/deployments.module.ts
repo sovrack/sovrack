@@ -4,6 +4,7 @@ import { JwtModule, type JwtModuleOptions } from '@nestjs/jwt';
 import { ConfigsModule } from '../configs/configs.module';
 import { GitlabModule } from '../gitlab/gitlab.module';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { ServersModule } from '../servers/servers.module';
 import { DeploymentsAnsibleService } from './deployments-ansible.service';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { DeploymentsController } from './deployments.controller';
@@ -17,6 +18,7 @@ import { DeploymentsService } from './deployments.service';
     PrismaModule,
     forwardRef(() => GitlabModule),
     ConfigsModule,
+    ServersModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

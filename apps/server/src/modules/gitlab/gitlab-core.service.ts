@@ -27,6 +27,10 @@ import {
   GitlabWebhookPayload,
   GitlabWebhookService,
 } from './gitlab-webhook.service';
+import {
+  PlatformConfigService,
+  type GitlabProviderProjectOption,
+} from '../platform-config/platform-config.service';
 
 type RegistryCredentials = {
   registryUrl: string;
@@ -41,6 +45,7 @@ export class GitlabCoreService {
     private readonly apiService: GitlabApiService,
     private readonly webhookService: GitlabWebhookService,
     private readonly cryptoService: GitlabCryptoService,
+    private readonly platformConfigService: PlatformConfigService,
   ) {}
 
   async connectProject(
@@ -51,7 +56,8 @@ export class GitlabCoreService {
   ): Promise<PublicGitlabConfig> {
     await this.assertCanManageProject(projectId, userId, userRole);
 
-    const baseUrl = this.normalizeUrl(dto.gitlabUrl);
+    const connection = await this.resolveGitlabConnectionInput(dto);
+    const baseUrl = this.normalizeUrl(connection.gitlabUrl);
     const defaultBranch = dto.defaultBranch ?? 'main';
     const sourceType = dto.sourceType ?? GitlabSourceType.REPO;
     const webhookSecret = randomBytes(32).toString('hex');
@@ -71,7 +77,7 @@ export class GitlabCoreService {
       await this.apiService.validateGitlabRepoConnection(
         baseUrl,
         gitlabId,
-        dto.gitlabToken,
+        connection.gitlabToken,
       );
     } else {
       if (!gitlabGroupId || gitlabGroupId <= 0) {
@@ -82,7 +88,7 @@ export class GitlabCoreService {
       await this.apiService.validateGitlabGroupConnection(
         baseUrl,
         gitlabGroupId,
-        dto.gitlabToken,
+        connection.gitlabToken,
       );
     }
 
@@ -90,11 +96,12 @@ export class GitlabCoreService {
       where: { projectId },
       update: {
         gitlabUrl: baseUrl,
-        gitlabToken: this.cryptoService.encrypt(dto.gitlabToken),
+        gitlabToken: this.cryptoService.encrypt(connection.gitlabToken),
         gitlabId,
         defaultBranch,
         sourceType,
         gitlabGroupId,
+        providerId: connection.providerId,
         deployTokenUsername,
         deployTokenValue: deployTokenValue
           ? this.cryptoService.encrypt(deployTokenValue)
@@ -105,11 +112,12 @@ export class GitlabCoreService {
       create: {
         projectId,
         gitlabUrl: baseUrl,
-        gitlabToken: this.cryptoService.encrypt(dto.gitlabToken),
+        gitlabToken: this.cryptoService.encrypt(connection.gitlabToken),
         gitlabId,
         defaultBranch,
         sourceType,
         gitlabGroupId,
+        providerId: connection.providerId,
         deployTokenUsername,
         deployTokenValue: deployTokenValue
           ? this.cryptoService.encrypt(deployTokenValue)
@@ -128,7 +136,7 @@ export class GitlabCoreService {
       },
     });
 
-    return this.cryptoService.toPublicConfig(config, webhookSecret);
+    return this.cryptoService.toPublicConfig(config);
   }
 
   async getBranches(
@@ -159,8 +167,10 @@ export class GitlabCoreService {
     const config = await this.getProjectConfig(projectId);
     const repoId = this.assertRepoSource(config, 'récupération des pipelines');
 
-    const pipelines = await this.apiService.getPipelines(config, repoId, (url) =>
-      this.normalizeUrl(url),
+    const pipelines = await this.apiService.getPipelines(
+      config,
+      repoId,
+      (url) => this.normalizeUrl(url),
     );
 
     for (const pipeline of pipelines) {
@@ -216,6 +226,10 @@ export class GitlabCoreService {
     );
   }
 
+  async listAvailableProviders(): Promise<GitlabProviderProjectOption[]> {
+    return await this.platformConfigService.listGitlabProvidersForProjects();
+  }
+
   async handleWebhook(
     payload: GitlabWebhookPayload,
   ): Promise<{ status: 'ignored' | 'ok' }> {
@@ -240,19 +254,49 @@ export class GitlabCoreService {
   }
 
   resolveRegistryCredentials(config: GitlabConfig): RegistryCredentials {
-    const deployToken = config.deployTokenValue
+    // Déchiffrer les tokens
+    const deployTokenValue = config.deployTokenValue
       ? this.cryptoService.decryptConfigToken(config.deployTokenValue)
       : '';
-    const gitlabToken = this.cryptoService.decryptConfigToken(config.gitlabToken);
-    const password = deployToken || gitlabToken;
-    const username = config.deployTokenUsername?.trim() || 'oauth2';
+    const gitlabToken = this.cryptoService.decryptConfigToken(
+      config.gitlabToken,
+    );
+
+    // Valider que deployToken a un format valide (commence par gldt- ou gr-)
+    const isValidDeployToken =
+      deployTokenValue &&
+      deployTokenValue.length > 10 &&
+      (deployTokenValue.startsWith('gldt-') ||
+        deployTokenValue.startsWith('gr-'));
+
+    // Récupérer le registryUrl
     const registryUrl =
       config.registryUrl?.trim() || this.extractRegistryUrl(config.gitlabUrl);
 
+    // Logique: Si deployToken fourni, exiger deployTokenUsername
+    if (isValidDeployToken && config.deployTokenUsername?.trim()) {
+      return {
+        registryUrl,
+        username: config.deployTokenUsername.trim(),
+        password: deployTokenValue,
+      };
+    }
+
+    // Si deployTokenValue fourni mais pas décryptable ou pas deployTokenUsername
+    // → Fallback à gitlabToken + oauth2
+    if (config.deployTokenValue) {
+      return {
+        registryUrl,
+        username: 'oauth2',
+        password: gitlabToken,
+      };
+    }
+
+    // Aucun deployToken → utiliser gitlabToken + oauth2
     return {
       registryUrl,
-      username,
-      password,
+      username: 'oauth2',
+      password: gitlabToken,
     };
   }
 
@@ -267,11 +311,7 @@ export class GitlabCoreService {
       preferredRepoId,
       normalizeRepositoryPath: (value) => this.normalizeRepositoryPath(value),
       normalizeUrl: (value) => this.normalizeUrl(value),
-      resolveRepoIdForAction: async (
-        candidateConfig,
-        action,
-        selectedRepoId,
-      ) =>
+      resolveRepoIdForAction: async (candidateConfig, action, selectedRepoId) =>
         await this.resolveRepoIdForAction(
           candidateConfig,
           action,
@@ -294,8 +334,62 @@ export class GitlabCoreService {
     return config;
   }
 
+  private async resolveGitlabConnectionInput(dto: ConnectGitlabDto): Promise<{
+    gitlabUrl: string;
+    gitlabToken: string;
+    providerId: string | null;
+  }> {
+    const manualUrl = this.normalizeOptionalString(dto.gitlabUrl);
+    const manualToken = this.normalizeOptionalString(dto.gitlabToken);
+
+    if (dto.providerId) {
+      const providerCredentials =
+        await this.platformConfigService.resolveGitlabCredentials(
+          dto.providerId,
+        );
+
+      return {
+        gitlabUrl: manualUrl ?? providerCredentials.gitlabUrl,
+        gitlabToken: manualToken ?? providerCredentials.token,
+        providerId: providerCredentials.providerId,
+      };
+    }
+
+    if (manualUrl && manualToken) {
+      return {
+        gitlabUrl: manualUrl,
+        gitlabToken: manualToken,
+        providerId: null,
+      };
+    }
+
+    if (manualUrl || manualToken) {
+      throw new BadRequestException(
+        'Fournissez gitlabUrl + gitlabToken ensemble, ou utilisez providerId',
+      );
+    }
+
+    const defaultProviderCredentials =
+      await this.platformConfigService.resolveGitlabCredentials();
+
+    return {
+      gitlabUrl: defaultProviderCredentials.gitlabUrl,
+      gitlabToken: defaultProviderCredentials.token,
+      providerId: defaultProviderCredentials.providerId,
+    };
+  }
+
   private normalizeUrl(url: string): string {
     return url.trim().replace(/\/+$/, '');
+  }
+
+  private normalizeOptionalString(value?: string | null): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : null;
   }
 
   private normalizeRepositoryPath(value: string): string {

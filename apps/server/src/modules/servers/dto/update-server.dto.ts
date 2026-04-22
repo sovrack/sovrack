@@ -6,93 +6,81 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
 } from 'class-validator';
 import { ServerConnectionModeDto } from './create-server.dto';
 
 export class UpdateServerDto {
   @ApiPropertyOptional({ example: 'Production VPS' })
   @IsOptional()
-  @IsString({ message: 'Le nom doit être une chaîne de caractères' })
+  @IsString()
+  @MaxLength(80)
   name?: string;
 
   @ApiPropertyOptional({ example: '10.0.0.10' })
   @IsOptional()
-  @IsString({ message: "L'hôte doit être une chaîne de caractères" })
+  @IsString()
+  @Matches(/^[a-zA-Z0-9][a-zA-Z0-9.-]{0,253}$/, {
+    message: "L'hôte doit être une adresse IP ou un nom de domaine valide",
+  })
   host?: string;
 
   @ApiPropertyOptional({ example: 22 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber({}, { message: 'Le port doit être un nombre' })
+  @Min(1, { message: 'Le port doit être supérieur à 0' })
+  @Max(65535, { message: 'Le port doit être inférieur ou égal à 65535' })
   port?: number;
 
   @ApiPropertyOptional({ example: 'ubuntu' })
   @IsOptional()
-  @IsString({ message: 'Le username doit être une chaîne de caractères' })
+  @IsString()
+  @Matches(/^[a-z_][a-z0-9_-]{0,31}$/i, {
+    message: 'Le username SSH doit être un username Linux valide',
+  })
   username?: string;
 
-  @ApiPropertyOptional({ example: '-----BEGIN OPENSSH PRIVATE KEY-----...' })
+  @ApiPropertyOptional({ example: '-----BEGIN OPENSSH PRIVATE KEY-----\n...' })
   @IsOptional()
-  @IsString({ message: 'La clé SSH doit être une chaîne de caractères' })
+  @IsString()
+  @Matches(/PRIVATE KEY/, {
+    message: 'La clé SSH doit être au format PEM (contenir "PRIVATE KEY")',
+  })
   sshKey?: string;
 
-  @ApiPropertyOptional({
-    enum: ServerConnectionModeDto,
-    description: 'Mode de connexion vers le VPS cible',
-  })
+  @ApiPropertyOptional({ enum: ServerConnectionModeDto })
   @IsOptional()
   @IsEnum(ServerConnectionModeDto, {
-    message: 'connectionMode doit être "ssh", "bastion" ou "agent"',
+    message: 'connectionMode doit être "ssh"',
   })
   connectionMode?: ServerConnectionModeDto;
 
-  @ApiPropertyOptional({ example: '10.0.0.5' })
-  @IsOptional()
-  @IsString({ message: 'Le bastionHost doit être une chaîne de caractères' })
-  bastionHost?: string;
-
-  @ApiPropertyOptional({ example: 22 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber({}, { message: 'Le bastionPort doit être un nombre' })
-  bastionPort?: number;
-
-  @ApiPropertyOptional({ example: 'ubuntu' })
-  @IsOptional()
-  @IsString({
-    message: 'Le bastionUsername doit être une chaîne de caractères',
-  })
-  bastionUsername?: string;
-
-  @ApiPropertyOptional({ example: '-----BEGIN OPENSSH PRIVATE KEY-----...' })
-  @IsOptional()
-  @IsString({
-    message: 'La clé bastionSshKey doit être une chaîne de caractères',
-  })
-  bastionSshKey?: string;
-
   @ApiPropertyOptional({ example: true })
   @IsOptional()
-  @IsBoolean({ message: 'isActive doit être un booléen' })
+  @IsBoolean()
   isActive?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
-  @IsBoolean({ message: 'isVerified doit être un booléen' })
+  @IsBoolean()
   isVerified?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
-  @IsBoolean({ message: 'hasDocker doit être un booléen' })
+  @IsBoolean()
   hasDocker?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
-  @IsBoolean({ message: 'hasAnsible doit être un booléen' })
+  @IsBoolean()
   hasAnsible?: boolean;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
-  @IsBoolean({ message: 'hasRunner doit être un booléen' })
+  @IsBoolean()
   hasRunner?: boolean;
 }

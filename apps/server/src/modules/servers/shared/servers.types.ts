@@ -1,5 +1,6 @@
 import type { Server, ServerJob } from '@prisma/client';
-import { ServerConnectionModeDto } from './dto/create-server.dto';
+import type { PaginatedResult } from '../../../common/dto/pagination.dto';
+import { ServerConnectionModeDto } from '../dto/create-server.dto';
 
 export type ServerPublic = Omit<
   Server,
@@ -14,11 +15,16 @@ export type CreateServerResult = ServerPublic & {
 
 export type ServerJobPublic = Omit<ServerJob, 'payload'>;
 
-export type InstallToolsDto = {
-  docker?: boolean;
-  ansible?: boolean;
-  runner?: boolean;
+export type ServerExecutionOptions = {
+  signal: AbortSignal;
+  timeoutMs: number;
 };
+
+export type ServerListResult = ServerPublic[] | PaginatedResult<ServerPublic>;
+
+export type ServerJobsListResult =
+  | ServerJobPublic[]
+  | PaginatedResult<ServerJobPublic>;
 
 export type RegisterRunnerPayload = {
   gitlabUrl: string;

@@ -2,12 +2,11 @@ import {
   BadRequestException,
   Inject,
   Injectable,
-  InternalServerErrorException,
   Logger,
   forwardRef,
 } from '@nestjs/common';
+import axios from 'axios';
 import { Deployment, DeploymentStatus } from '@prisma/client';
-import * as CryptoJS from 'crypto-js';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { chmod, mkdtemp, rm, writeFile } from 'fs/promises';
@@ -17,6 +16,7 @@ import { join, resolve } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigsService } from '../configs/configs.service';
 import { GitlabService } from '../gitlab/gitlab.service';
+import { ServersCryptoService } from '../servers/services';
 import { DeploymentsDockerService } from './deployments-docker.service';
 import { DeploymentsGateway } from './deployments.gateway';
 
@@ -31,6 +31,7 @@ export class DeploymentsAnsibleService {
     private readonly configsService: ConfigsService,
     @Inject(forwardRef(() => GitlabService))
     private readonly gitlabService: GitlabService,
+    private readonly serversCryptoService: ServersCryptoService,
     private readonly dockerService: DeploymentsDockerService,
     @Inject(forwardRef(() => DeploymentsGateway))
     private readonly gateway: DeploymentsGateway,
@@ -62,6 +63,7 @@ export class DeploymentsAnsibleService {
     }
 
     const server = deployment.environment.server;
+    const decryptedSshKey = this.decryptSshKey(server.sshKey);
 
     if (!server.isVerified) {
       throw new BadRequestException('Serveur non vérifié');
@@ -73,7 +75,7 @@ export class DeploymentsAnsibleService {
         host: server.host,
         port: server.port,
         username: server.username,
-        privateKey: this.decryptSshKey(server.sshKey),
+        privateKey: decryptedSshKey,
         readyTimeout: 10_000,
       });
     } catch {
@@ -132,7 +134,7 @@ export class DeploymentsAnsibleService {
 
     await writeFile(inventoryPath, inventoryContent, 'utf-8');
     await writeFile(varsPath, JSON.stringify(varsContent, null, 2), 'utf-8');
-    await writeFile(privateKeyPath, this.decryptSshKey(server.sshKey), {
+    await writeFile(privateKeyPath, decryptedSshKey, {
       encoding: 'utf-8',
       mode: 0o600,
     });
@@ -147,8 +149,9 @@ export class DeploymentsAnsibleService {
       },
     });
 
+    let commandLogs = '';
     try {
-      const commandLogs = await this.runAnsible(
+      commandLogs = await this.runAnsible(
         playbookPath,
         inventoryPath,
         varsPath,
@@ -156,13 +159,20 @@ export class DeploymentsAnsibleService {
         deployment.id,
       );
 
+      const healthCheckLogs = await this.runPostDeployHealthChecks({
+        deploymentId: deployment.id,
+        environmentDomain: deployment.environment.domain,
+        serverHost: server.host,
+        appPort: deployment.project.port,
+      });
+
       const finished = await this.prisma.deployment.update({
         where: { id: deployment.id },
         data: {
           status: DeploymentStatus.SUCCESS,
           dockerImage,
           finishedAt: new Date(),
-          logs: `${currentLogs}\n${commandLogs}`.trim(),
+          logs: `${currentLogs}\n${commandLogs}\n${healthCheckLogs}`.trim(),
         },
       });
 
@@ -188,7 +198,7 @@ export class DeploymentsAnsibleService {
         data: {
           status: DeploymentStatus.FAILED,
           finishedAt: new Date(),
-          logs: `${currentLogs}\n${message}`.trim(),
+          logs: `${currentLogs}\n${commandLogs}\n${message}`.trim(),
         },
       });
 
@@ -201,6 +211,10 @@ export class DeploymentsAnsibleService {
         status: failed.status,
         finishedAt: failed.finishedAt,
       });
+
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
 
       throw new BadRequestException('Déploiement Ansible échoué');
     } finally {
@@ -306,16 +320,7 @@ export class DeploymentsAnsibleService {
   }
 
   decryptSshKey(encryptedValue: string): string {
-    const secret = process.env.CONFIG_SECRET;
-    if (!secret || secret.length < 32) {
-      throw new InternalServerErrorException(
-        'CONFIG_SECRET doit contenir au moins 32 caractères',
-      );
-    }
-    const decrypted = CryptoJS.AES.decrypt(encryptedValue, secret).toString(
-      CryptoJS.enc.Utf8,
-    );
-    return decrypted || encryptedValue;
+    return this.serversCryptoService.decrypt(encryptedValue);
   }
 
   emitGatewayLog(
@@ -359,5 +364,139 @@ export class DeploymentsAnsibleService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 40);
+  }
+
+  private async runPostDeployHealthChecks(params: {
+    deploymentId: string;
+    environmentDomain: string | null;
+    serverHost: string;
+    appPort: number;
+  }): Promise<string> {
+    if (!this.isPostDeployHealthCheckEnabled()) {
+      return 'Health-check post-déploiement ignoré (DEPLOY_HEALTHCHECK_ENABLED=false).';
+    }
+
+    const timeoutMs = this.parsePositiveInt(
+      process.env.DEPLOY_HEALTHCHECK_TIMEOUT_MS,
+      5000,
+    );
+    const retries = this.parsePositiveInt(
+      process.env.DEPLOY_HEALTHCHECK_RETRIES,
+      6,
+    );
+    const retryDelayMs = this.parsePositiveInt(
+      process.env.DEPLOY_HEALTHCHECK_RETRY_DELAY_MS,
+      4000,
+    );
+
+    const targets = this.buildHealthCheckTargets({
+      environmentDomain: params.environmentDomain,
+      serverHost: params.serverHost,
+      appPort: params.appPort,
+    });
+
+    if (targets.length === 0) {
+      return 'Health-check post-déploiement ignoré (aucune cible disponible).';
+    }
+
+    let lastError = '';
+    for (let attempt = 1; attempt <= retries; attempt += 1) {
+      for (const target of targets) {
+        this.emitGatewayLog(
+          params.deploymentId,
+          `[HEALTHCHECK] Tentative ${String(attempt)}/${String(retries)}: ${target}`,
+          'info',
+        );
+
+        try {
+          const response = await axios.get(target, {
+            timeout: timeoutMs,
+            validateStatus: () => true,
+            maxRedirects: 0,
+          });
+
+          if (
+            response.status >= 200 &&
+            response.status < 500 &&
+            response.status !== 429
+          ) {
+            const successMessage = `[HEALTHCHECK] OK ${target} (status ${String(response.status)})`;
+            this.emitGatewayLog(params.deploymentId, successMessage, 'info');
+            return `Health-check post-déploiement OK sur ${target} (status ${String(response.status)}).`;
+          }
+
+          lastError = `${target} a répondu status ${String(response.status)}`;
+        } catch (error) {
+          lastError = `${
+            error instanceof Error ? error.message : 'erreur inconnue'
+          } (${target})`;
+        }
+      }
+
+      if (attempt < retries) {
+        await this.sleep(retryDelayMs);
+      }
+    }
+
+    throw new BadRequestException(
+      `Health-check post-déploiement échoué après ${String(retries)} tentative(s). Dernière erreur: ${lastError}`,
+    );
+  }
+
+  private isPostDeployHealthCheckEnabled(): boolean {
+    const raw = (process.env.DEPLOY_HEALTHCHECK_ENABLED ?? 'true').trim();
+    return raw !== '0' && raw.toLowerCase() !== 'false';
+  }
+
+  private parsePositiveInt(
+    rawValue: string | undefined,
+    fallback: number,
+  ): number {
+    if (!rawValue?.trim()) {
+      return fallback;
+    }
+
+    const parsed = Number.parseInt(rawValue, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      return fallback;
+    }
+
+    return parsed;
+  }
+
+  private buildHealthCheckTargets(params: {
+    environmentDomain: string | null;
+    serverHost: string;
+    appPort: number;
+  }): string[] {
+    const targets = new Set<string>();
+
+    if (params.environmentDomain?.trim()) {
+      for (const baseUrl of this.toBaseUrls(params.environmentDomain.trim())) {
+        targets.add(`${baseUrl}/health`);
+        targets.add(`${baseUrl}/`);
+      }
+    }
+
+    const hostBase = `http://${params.serverHost}:${String(params.appPort)}`;
+    targets.add(`${hostBase}/health`);
+    targets.add(`${hostBase}/`);
+
+    return [...targets];
+  }
+
+  private toBaseUrls(hostOrUrl: string): string[] {
+    const normalized = hostOrUrl.replace(/\/+$/g, '');
+    if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+      return [normalized];
+    }
+
+    return [`https://${normalized}`, `http://${normalized}`];
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    await new Promise<void>((resolvePromise) => {
+      setTimeout(resolvePromise, ms);
+    });
   }
 }

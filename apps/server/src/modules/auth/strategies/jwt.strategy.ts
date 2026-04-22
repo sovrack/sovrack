@@ -3,6 +3,11 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { Role } from '@prisma/client';
+import type { Request } from 'express';
+import {
+  extractTokenFromCookieHeader,
+  resolveAuthCookieName,
+} from '../../../common/auth/auth-cookie.util';
 
 /**
  * Payload JWT contenant les informations de l'utilisateur
@@ -21,14 +26,22 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly configService: ConfigService) {
     const secret = configService.get<string>('JWT_SECRET');
+    const cookieName = resolveAuthCookieName(configService);
     if (!secret) {
       throw new Error(
         "JWT_SECRET non configuré dans les variables d'environnement",
       );
     }
 
+    const fromCookie = (request: Request): string | null => {
+      return extractTokenFromCookieHeader(request?.headers?.cookie, cookieName);
+    };
+
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        fromCookie,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: secret,
     });

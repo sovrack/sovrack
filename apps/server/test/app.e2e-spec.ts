@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppController } from '../src/app.controller';
-import { AppService } from '../src/app.service';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -11,17 +11,32 @@ describe('AppController (e2e)', () => {
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        {
+          provide: PrismaService,
+          useValue: {
+            $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
+          },
+        },
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('GET /health → 200 avec status ok', () => {
     return request(app.getHttpServer())
-      .get('/')
+      .get('/health')
       .expect(200)
-      .expect('Hello World!');
+      .expect((res) => {
+        expect((res.body as { status: string }).status).toBe('ok');
+        expect((res.body as { database: string }).database).toBe('connected');
+      });
   });
 });

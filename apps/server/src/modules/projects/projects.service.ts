@@ -12,7 +12,11 @@ import {
   Role,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PaginationDto, PaginatedResult, paginate } from '../../common/dto/pagination.dto';
+import {
+  PaginationDto,
+  PaginatedResult,
+  paginate,
+} from '../../common/dto/pagination.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -61,11 +65,18 @@ export class ProjectsService {
    */
   async create(
     userId: string,
+    userRole: Role,
     dto: CreateProjectDto,
   ): Promise<ProjectWithMembers> {
     const ownerId = dto.ownerId ?? userId;
 
     if (dto.ownerId) {
+      if (userRole !== Role.ADMIN && dto.ownerId !== userId) {
+        throw new ForbiddenException(
+          'Seul un administrateur peut assigner un owner différent',
+        );
+      }
+
       const ownerUser = await this.prisma.user.findUnique({
         where: { id: dto.ownerId },
       });
@@ -85,7 +96,7 @@ export class ProjectsService {
       data: {
         name: dto.name,
         description: dto.description,
-        gitlabUrl: dto.gitlabUrl,
+        gitlabUrl: dto.gitlabUrl?.trim() ?? '',
         branch: dto.branch ?? 'main',
         members: {
           create: {
@@ -114,9 +125,7 @@ export class ProjectsService {
     pagination?: PaginationDto,
   ): Promise<ProjectListItem[] | PaginatedResult<ProjectListItem>> {
     const where: Prisma.ProjectWhereInput | undefined =
-      userRole === Role.ADMIN
-        ? undefined
-        : { members: { some: { userId } } };
+      userRole === Role.ADMIN ? undefined : { members: { some: { userId } } };
 
     const queryInclude = {
       gitlabConfig: { select: { sourceType: true, gitlabGroupId: true } },
@@ -127,19 +136,20 @@ export class ProjectsService {
     const page = pagination?.page;
     const limit = pagination?.limit;
 
-    const rawProjects = page && limit
-      ? await this.prisma.project.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          include: queryInclude,
-          skip: (page - 1) * limit,
-          take: limit,
-        })
-      : await this.prisma.project.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          include: queryInclude,
-        });
+    const rawProjects =
+      page && limit
+        ? await this.prisma.project.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            include: queryInclude,
+            skip: (page - 1) * limit,
+            take: limit,
+          })
+        : await this.prisma.project.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            include: queryInclude,
+          });
 
     const projects = rawProjects.map((project) => ({
       id: project.id,
