@@ -8,9 +8,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
-    "type-check": "next typegen && tsc --noEmit"
+    "type-check": "next typegen && tsc --noEmit",
+    "scaffold:page": "node scripts/scaffold-page.mjs",
+    "scaffold:feature": "node scripts/scaffold-feature.mjs",
+    "check:architecture": "node scripts/quality-gates.mjs all",
+    "check:frontend": "npm run check:architecture && npm run lint -- --max-warnings=0 && npx tsc --noEmit",
+    "contract:export-openapi": "cd ../backend && npm run openapi:export",
+    "contract:types": "openapi-typescript --default-non-nullable=false src/generated/api-contract.openapi.json -o src/generated/api-contract.ts",
+    "contract:generate": "npm run contract:export-openapi && npm run contract:types"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@tanstack/react-query": "^5.99.2",
+    "@tanstack/react-query-devtools": "^5.99.2",
     "axios": "^1.14.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.7.0",
@@ -30,6 +40,7 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.0",
+    "openapi-typescript": "^7.13.0",
     "typescript": "^5.7.3"
   }
 }
