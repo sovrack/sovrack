@@ -41,7 +41,6 @@ export class BuildService {
     const port = project.buildPort ?? project.port ?? 3000;
     const startCmd = project.buildStartCmd ?? 'index.js';
     const registryUrl = project.gitlabConfig?.registryUrl ?? undefined;
-    const webhookUrl = process.env.WEBHOOK_URL ?? 'http://localhost:3001';
 
     // Génération des fichiers
     const dockerfileContent = this.generator.generateDockerfile(type, {
@@ -52,7 +51,6 @@ export class BuildService {
       port,
       startCmd,
       registryUrl,
-      webhookUrl,
     });
 
     // Push dans le repo GitLab
@@ -102,6 +100,16 @@ export class BuildService {
         ...(dto.buildPort !== undefined && { buildPort: dto.buildPort }),
         ...(dto.buildStartCmd !== undefined && {
           buildStartCmd: dto.buildStartCmd,
+        }),
+        ...(dto.autoDeploy !== undefined && { autoDeploy: dto.autoDeploy }),
+        ...(dto.autoDeployBranch !== undefined && {
+          autoDeployBranch: dto.autoDeployBranch,
+        }),
+        ...(dto.dockerfileContent !== undefined && {
+          dockerfileContent: dto.dockerfileContent,
+        }),
+        ...(dto.gitlabCiContent !== undefined && {
+          gitlabCiContent: dto.gitlabCiContent,
         }),
       },
     });

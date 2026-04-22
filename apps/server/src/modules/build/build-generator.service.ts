@@ -31,19 +31,27 @@ export class BuildGeneratorService {
 
   generateDockerfile(type: string, config: BuildConfig): string {
     const port = config.port ?? 3000;
-    const startCmd = config.startCmd ?? 'index.js';
+    const startCmd = config.startCmd ?? 'dist/main.js';
 
     switch (type) {
       case 'nodejs':
         return [
-          'FROM node:20-alpine',
+          'FROM node:20-alpine AS builder',
           'WORKDIR /app',
           'COPY package*.json ./',
-          'RUN npm ci --only=production',
+          'RUN npm ci',
           'COPY . .',
           'RUN npm run build || true',
+          '',
+          'FROM node:20-alpine AS production',
+          'WORKDIR /app',
+          'RUN addgroup -S app && adduser -S app -G app',
+          'COPY --from=builder /app/dist ./dist',
+          'COPY --from=builder /app/node_modules ./node_modules',
+          'COPY package*.json ./',
+          'USER app',
           `EXPOSE ${port}`,
-          `HEALTHCHECK CMD wget -qO- http://localhost:${port}/health || exit 1`,
+          `HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://localhost:${port}/health || exit 1`,
           `CMD ["node", "${startCmd}"]`,
         ].join('\n');
 
@@ -52,17 +60,61 @@ export class BuildGeneratorService {
           'FROM python:3.11-slim',
           'WORKDIR /app',
           'COPY requirements.txt .',
-          'RUN pip install -r requirements.txt',
+          'RUN pip install --no-cache-dir -r requirements.txt',
           'COPY . .',
           `EXPOSE ${port}`,
-          `CMD ["python", "${startCmd}"]`,
+          `HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost:${port}/health || exit 1`,
+          `CMD ["python", "${config.startCmd ?? 'app.py'}"]`,
         ].join('\n');
 
       case 'php':
         return [
           'FROM php:8.2-apache',
           'COPY . /var/www/html/',
+          'RUN docker-php-ext-install pdo pdo_mysql',
           'EXPOSE 80',
+          'HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost/health || exit 1',
+        ].join('\n');
+
+      case 'ruby':
+        return [
+          'FROM ruby:3.2-alpine',
+          'WORKDIR /app',
+          'COPY Gemfile* ./',
+          'RUN bundle install',
+          'COPY . .',
+          `EXPOSE ${port}`,
+          `CMD ["${config.startCmd ?? 'bundle exec rails server -b 0.0.0.0'}"]`,
+        ].join('\n');
+
+      case 'golang':
+        return [
+          'FROM golang:1.21-alpine AS builder',
+          'WORKDIR /app',
+          'COPY go.* ./',
+          'RUN go mod download',
+          'COPY . .',
+          'RUN go build -o main .',
+          '',
+          'FROM alpine:latest',
+          'WORKDIR /app',
+          'COPY --from=builder /app/main .',
+          `EXPOSE ${port}`,
+          'CMD ["./main"]',
+        ].join('\n');
+
+      case 'rust':
+        return [
+          'FROM rust:1.75-alpine AS builder',
+          'WORKDIR /app',
+          'COPY . .',
+          'RUN cargo build --release',
+          '',
+          'FROM alpine:latest',
+          'WORKDIR /app',
+          'COPY --from=builder /app/target/release/app .',
+          `EXPOSE ${port}`,
+          'CMD ["./app"]',
         ].join('\n');
 
       case 'static':
@@ -70,6 +122,7 @@ export class BuildGeneratorService {
           'FROM nginx:alpine',
           'COPY . /usr/share/nginx/html',
           'EXPOSE 80',
+          'HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost || exit 1',
         ].join('\n');
 
       default:
@@ -82,22 +135,20 @@ export class BuildGeneratorService {
     }
   }
 
-  generateGitlabCI(config: BuildConfig & { webhookUrl: string }): string {
+  generateGitlabCI(config: BuildConfig & { webhookUrl?: string }): string {
     const registryUrl = config.registryUrl ?? '$CI_REGISTRY';
-    const webhookUrl = config.webhookUrl;
 
     return [
       'stages:',
       '  - build',
-      '  - notify',
       '',
       'build:',
       '  stage: build',
       '  image: docker:24',
       '  services:',
-      '    - docker:24-dind',
+      '    - docker:dind',
       '  variables:',
-      '    DOCKER_TLS_CERTDIR: "/certs"',
+      '    DOCKER_TLS_CERTDIR: ""',
       '  before_script:',
       `    - echo "$CI_REGISTRY_PASSWORD" | docker login ${registryUrl} -u "$CI_REGISTRY_USER" --password-stdin`,
       '  script:',
@@ -106,20 +157,8 @@ export class BuildGeneratorService {
       '    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:latest',
       '    - docker push $CI_REGISTRY_IMAGE:latest',
       '  only:',
-      '    - branches',
-      '',
-      'notify:',
-      '  stage: notify',
-      '  image: curlimages/curl:latest',
-      '  script:',
-      `    - |`,
-      `      curl -s -X POST ${webhookUrl}/gitlab/webhook \\`,
-      `        -H "Content-Type: application/json" \\`,
-      `        -H "X-Gitlab-Token: $PLATFORM_WEBHOOK_TOKEN" \\`,
-      `        -d '{"object_kind":"pipeline","object_attributes":{"id":'$CI_PIPELINE_ID',"status":"'$CI_JOB_STATUS'","ref":"'$CI_COMMIT_REF_NAME'","sha":"'$CI_COMMIT_SHA'"},"project":{"id":'$CI_PROJECT_ID'}}'`,
-      '  when: always',
-      '  only:',
-      '    - branches',
+      '    - develop',
+      '    - main',
     ].join('\n');
   }
 

@@ -66,13 +66,19 @@ export class BuildDetectorService {
   private inferType(files: string[]): DetectResult {
     const set = new Set(files);
 
-    if (set.has('Dockerfile')) return { type: 'docker', confidence: 'high' };
+    if (set.has('docker-compose.yml') || set.has('docker-compose.yaml'))
+      return { type: 'compose', confidence: 'high' };
+    if (set.has('Dockerfile') || set.has('dockerfile'))
+      return { type: 'docker', confidence: 'high' };
     if (set.has('package.json')) return { type: 'nodejs', confidence: 'high' };
     if (set.has('requirements.txt'))
       return { type: 'python', confidence: 'high' };
     if (set.has('composer.json')) return { type: 'php', confidence: 'high' };
     if (set.has('Gemfile')) return { type: 'ruby', confidence: 'high' };
-    if (set.has('index.html')) return { type: 'static', confidence: 'medium' };
+    if (set.has('go.mod')) return { type: 'golang', confidence: 'high' };
+    if (set.has('Cargo.toml')) return { type: 'rust', confidence: 'high' };
+    if (set.has('index.html') || set.has('public/index.html'))
+      return { type: 'static', confidence: 'medium' };
 
     return { type: 'unknown', confidence: 'low' };
   }
