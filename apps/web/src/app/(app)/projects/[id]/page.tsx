@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Boxes,
   GitBranch,
+  Hammer,
   Loader2,
   Rocket,
   Settings,
@@ -24,6 +25,7 @@ import { SectionCard } from '@/components/layout/section-card';
 import { ProjectConfigsTab } from '@/components/projects/project-configs-tab';
 import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
 import { ProjectEnvironmentsTab } from '@/components/projects/project-environments-tab';
+import { ProjectBuildTab } from '@/components/projects/project-build-tab';
 import { ProjectGitlabTab } from '@/components/projects/project-gitlab-tab';
 import { ProjectMembersTab } from '@/components/projects/project-members-tab';
 import { ProjectOverview } from '@/components/projects/project-overview';
@@ -35,7 +37,8 @@ type Tab =
   | 'gitlab'
   | 'environments'
   | 'configs'
-  | 'deployments';
+  | 'deployments'
+  | 'build';
 type ProjectPageProps = {
   params: Promise<{ id: string }>;
 };
@@ -98,6 +101,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     { id: 'environments', label: 'Environments', icon: Boxes },
     { id: 'configs', label: 'Configs', icon: Wrench },
     { id: 'deployments', label: 'Deployments', icon: Settings },
+    { id: 'build', label: 'Build', icon: Hammer },
   ];
   return (
     <div className="space-y-6">
@@ -191,6 +195,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           error={projectDeployments.error}
         />
       )}
+      {tab === 'build' && <ProjectBuildTab projectId={id} isAdmin={isAdmin} />}
     </div>
   );
 }

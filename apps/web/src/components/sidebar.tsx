@@ -4,42 +4,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import { useAuth } from '@/hooks/useAuth';
-import { useSidebar } from '@/contexts/sidebar-context';
-import {
-  LayoutDashboard,
-  FolderGit2,
-  Rocket,
-  User,
-  Users,
-  UsersRound,
-  Server,
-  SquarePlus,
-  Settings,
-  ChevronRight,
-  LogOut,
-} from 'lucide-react';
-
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/projects', label: 'Projects', icon: FolderGit2 },
-  { href: '/deployments', label: 'Deployments', icon: Rocket },
-  { href: '/profile', label: 'Profile', icon: User },
-];
-
-const adminItems = [
-  { href: '/projects/new', label: 'New Project', icon: SquarePlus },
-  { href: '/admin/users', label: 'Utilisateurs', icon: Users },
-  { href: '/admin/teams', label: 'Équipes', icon: UsersRound },
-  { href: '/admin/servers', label: 'Servers', icon: Server },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
-];
+import { LogOut, Rocket } from 'lucide-react';
+import { SIDEBAR_CLASSES } from '@/config/layout';
+import { APP_NAV_SECTIONS, isRouteActive } from '@/config/navigation';
 
 type NavItemProps = {
   href: string;
   label: string;
   icon: React.ElementType;
   isActive: boolean;
-  isCompact: boolean;
 };
 
 function NavItem({
@@ -47,43 +20,44 @@ function NavItem({
   label,
   icon: Icon,
   isActive,
-  isCompact,
 }: NavItemProps) {
   return (
     <Link
       href={href}
+      title={label}
       className={clsx(
-        'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
+        'group flex items-center gap-3 rounded-md px-3 py-2 text-[15px] transition-colors duration-150',
         isActive
-          ? 'bg-brand-50 text-brand-700 shadow-sm dark:bg-brand-950/60 dark:text-brand-300'
-          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white',
-        isCompact ? 'justify-center lg:px-2.5' : 'justify-start',
+          ? 'bg-zinc-100 font-medium text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-800'
+          : 'font-normal text-zinc-700 hover:bg-zinc-100/80 hover:text-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100',
       )}
     >
       <Icon
-        size={18}
         className={clsx(
-          'shrink-0 transition-colors',
+          'h-5 w-5 shrink-0 transition-colors',
           isActive
-            ? 'text-brand-600 dark:text-brand-300'
-            : 'text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-200',
+            ? 'text-zinc-900 dark:text-white'
+            : 'text-zinc-700 group-hover:text-zinc-900 dark:text-zinc-200 dark:group-hover:text-zinc-100',
         )}
       />
-      {!isCompact && <span className="truncate">{label}</span>}
-      {isActive && !isCompact && (
-        <ChevronRight size={14} className="ml-auto shrink-0 text-slate-400" />
-      )}
+      <span className="truncate">{label}</span>
     </Link>
+  );
+}
+
+type SectionLabelProps = { label: string };
+
+function SectionLabel({ label }: SectionLabelProps) {
+  return (
+    <p className="mb-1 mt-5 px-3 text-xs font-medium uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+      {label}
+    </p>
   );
 }
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user, isAdmin, logout } = useAuth();
-  const { isExpanded, isHovered, isMobileOpen, setIsHovered, closeMobileSidebar } =
-    useSidebar();
-
-  const isCompact = !isExpanded && !isHovered && !isMobileOpen;
 
   const initials = user?.fullName
     ? user.fullName
@@ -94,127 +68,70 @@ export function Sidebar() {
         .slice(0, 2)
     : 'U';
 
-  const isActive = (href: string) =>
-    pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`));
+  const visibleSections = APP_NAV_SECTIONS.filter((section) => (section.adminOnly ? isAdmin : true));
 
   return (
     <aside
       className={clsx(
-        'fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-gray-200 bg-white transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950',
-        isCompact ? 'w-[92px]' : 'w-[290px]',
-        isMobileOpen
-          ? 'translate-x-0 shadow-2xl'
-          : '-translate-x-full lg:translate-x-0',
+        'fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900',
+        SIDEBAR_CLASSES.expanded,
       )}
-      onMouseEnter={() => {
-        if (!isExpanded) {
-          setIsHovered(true);
-        }
-      }}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      <div
-        className={clsx(
-          'flex h-[88px] items-center border-b border-gray-200 dark:border-slate-800',
-          isCompact ? 'justify-center px-3' : 'justify-between px-5',
-        )}
-      >
+      <div className="shrink-0 py-4 px-3">
         <Link
           href="/dashboard"
-          className={clsx('flex items-center', isCompact ? 'justify-center' : 'gap-3')}
-          onClick={closeMobileSidebar}
+          className="flex w-full items-center gap-2"
         >
-          <span
-            className={clsx(
-              'font-semibold tracking-wide text-slate-600 dark:text-slate-300',
-              isCompact ? 'text-sm' : 'text-base',
-            )}
-          >
-            platform
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white">
+            <Rocket className="h-6 w-6" />
+          </div>
+          <span className="truncate text-[17px] font-semibold text-zinc-900 dark:text-white">
+            Vaytek
           </span>
         </Link>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 no-scrollbar">
-        <div>
-          <p
-            className={clsx(
-              'mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500',
-              isCompact && 'text-center',
-            )}
-          >
-            {isCompact ? '...' : 'Menu'}
-          </p>
-
-          <nav className="space-y-1.5">
-            {navItems.map((item) => (
-              <NavItem
-                key={item.href}
-                {...item}
-                isActive={isActive(item.href)}
-                isCompact={isCompact}
-              />
-            ))}
-          </nav>
-        </div>
-
-        {isAdmin && (
-          <div className="mt-6">
-            <div className="my-4 border-t border-gray-200 dark:border-slate-800" />
-            <p
-              className={clsx(
-                'mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500',
-                isCompact && 'text-center',
-              )}
-            >
-              {isCompact ? 'A' : 'Administration'}
-            </p>
-
-            <nav className="space-y-1.5">
-              {adminItems.map((item) => (
+      <div className="flex-1 overflow-y-auto px-2 pb-4 no-scrollbar">
+        {visibleSections.map((section) => (
+          <div key={section.id}>
+            <SectionLabel label={section.label} />
+            <nav className="space-y-0.5">
+              {section.items.map((item) => (
                 <NavItem
                   key={item.href}
-                  {...item}
-                  isActive={isActive(item.href)}
-                  isCompact={isCompact}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  isActive={isRouteActive(pathname, item.href)}
                 />
               ))}
             </nav>
           </div>
-        )}
+        ))}
       </div>
 
-      <div className="border-t border-gray-200 p-4 dark:border-slate-800">
-        <div
-          className={clsx(
-            'flex items-center rounded-2xl border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-900',
-            isCompact ? 'justify-center px-2 py-3' : 'gap-3 px-3 py-3',
-          )}
-        >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white">
+      <div className="shrink-0 border-t border-zinc-200 p-3 dark:border-zinc-800">
+        <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-zinc-50 dark:bg-zinc-800 dark:text-zinc-50">
             {initials}
           </div>
 
-          {!isCompact && (
-            <>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {user?.fullName ?? 'User'}
-                </p>
-                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                  {user?.role ?? 'DEVELOPER'}
-                </p>
-              </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-medium text-zinc-700 dark:text-zinc-200">
+              {user?.fullName ?? 'User'}
+            </p>
+            <p className="truncate text-[12px] text-zinc-500 dark:text-zinc-500">
+              {user?.role ?? 'DEVELOPER'}
+            </p>
+          </div>
 
-              <button
-                onClick={logout}
-                title="Logout"
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-              >
-                <LogOut size={16} />
-              </button>
-            </>
-          )}
+          <button
+            onClick={logout}
+            title="Logout"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100/80 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-50"
+          >
+            <LogOut size={14} />
+          </button>
         </div>
       </div>
     </aside>

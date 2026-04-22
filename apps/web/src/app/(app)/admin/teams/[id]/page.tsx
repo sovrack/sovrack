@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { teamsService } from '@/services/teams.service';
 import { usersService } from '@/services/users.service';
 import { getApiErrorMessage } from '@/lib/api';
@@ -46,6 +47,7 @@ export default function TeamDetailPage({ params }: Props) {
   const [addingUserId, setAddingUserId] = useState<string | null>(null);
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [form, setForm] = useState<FormData>({ name: '', description: '' });
 
@@ -319,22 +321,31 @@ export default function TeamDetailPage({ params }: Props) {
         className="border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/30"
       >
         <button
-          onClick={async () => {
-            const confirmed = window.confirm(`Supprimer l'équipe "${team.name}" ?`);
-            if (!confirmed) return;
-            try {
-              await teamsService.remove(id);
-              router.push('/admin/teams');
-            } catch (err) {
-              showToast(getApiErrorMessage(err), 'error');
-            }
-          }}
+          onClick={() => setConfirmDeleteOpen(true)}
           className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40"
         >
           <Trash2 size={15} />
           Supprimer l&apos;équipe
         </button>
       </SectionCard>
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title={`Supprimer l'équipe "${team.name}"`}
+        description="Cette action est irréversible."
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        onConfirm={async () => {
+          setConfirmDeleteOpen(false);
+          try {
+            await teamsService.remove(id);
+            router.push('/admin/teams');
+          } catch (err) {
+            showToast(getApiErrorMessage(err), 'error');
+          }
+        }}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
     </div>
   );
 }

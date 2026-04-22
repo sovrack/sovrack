@@ -7,6 +7,8 @@ export type Environment = {
   name: EnvName;
   domain: string | null;
   isActive: boolean;
+  autoDeploy: boolean;
+  autoDeployBranch: string | null;
   projectId: string;
   serverId: string;
   server: Server;
@@ -20,4 +22,7 @@ export type CreateEnvironmentPayload = {
   domain?: string;
 };
 
-export type UpdateEnvironmentPayload = Partial<CreateEnvironmentPayload>;
+export type UpdateEnvironmentPayload = Partial<CreateEnvironmentPayload> & {
+  autoDeploy?: boolean;
+  autoDeployBranch?: string;
+};

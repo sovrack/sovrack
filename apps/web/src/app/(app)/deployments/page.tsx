@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Rocket,
@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deploymentsService } from '@/services/deployments.service';
 import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
@@ -19,6 +20,8 @@ import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { useAuthContext } from '@/contexts/auth-context';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
+import { usePagination } from '@/hooks/usePagination';
+import { Pagination } from '@/components/ui/pagination';
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -41,42 +44,40 @@ const STATUS_OPTIONS: { label: string; value: DeploymentStatus | 'ALL' }[] = [
 
 export default function DeploymentsPage() {
   const { isAdmin } = useAuthContext();
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [canCreateDeployment, setCanCreateDeployment] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<DeploymentStatus | 'ALL'>('ALL');
 
-  const fetchDeployments = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['deployments-page'],
+    queryFn: async () => {
       const [deploymentList, projectList] = await Promise.all([
         deploymentsService.getAll(),
         projectsService.getAll(),
       ]);
-      setDeployments(deploymentList);
-      setCanCreateDeployment(
-        isAdmin ||
-          projectList.some(
-            (project) =>
-              project.currentUserProjectRole === 'OWNER' ||
-              project.currentUserProjectRole === 'DEVELOPER',
-          ),
-      );
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-      setCanCreateDeployment(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAdmin]);
+      return { deployments: deploymentList, projects: projectList };
+    },
+  });
 
-  useEffect(() => { void fetchDeployments(); }, [fetchDeployments]);
+  const deployments: Deployment[] = data?.deployments ?? [];
+  const error = queryError ? getApiErrorMessage(queryError) : null;
+  const canCreateDeployment =
+    isAdmin ||
+    (data?.projects ?? []).some(
+      (p) => p.currentUserProjectRole === 'OWNER' || p.currentUserProjectRole === 'DEVELOPER',
+    );
+
+  const fetchDeployments = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['deployments-page'] });
+    await refetch();
+  };
 
   const filtered = statusFilter === 'ALL'
     ? deployments
     : deployments.filter((d) => d.status === statusFilter);
+
+  const { page, totalPages, paged: pagedDeployments, goToPage, reset: resetPage } = usePagination(filtered, { pageSize: 20 });
+
+  useEffect(() => { resetPage(); }, [statusFilter, resetPage]);
 
   const runningCount = deployments.filter((d) => d.status === 'RUNNING').length;
   const successCount = deployments.filter((d) => d.status === 'SUCCESS').length;
@@ -214,7 +215,7 @@ export default function DeploymentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((dep) => (
+              {pagedDeployments.map((dep) => (
                 <tr key={dep.id} className="hover:bg-slate-50 transition">
                   <td className="px-5 py-3.5 font-semibold text-slate-900">
                     <Link href={`/projects/${dep.project.id}`} className="transition hover:text-brand-600">
@@ -249,6 +250,9 @@ export default function DeploymentsPage() {
             </tbody>
           </table>
         </SectionCard>
+      )}
+      {!loading && totalPages > 1 && (
+        <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} />
       )}
     </div>
   );
