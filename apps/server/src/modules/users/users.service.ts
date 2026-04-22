@@ -9,6 +9,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { Prisma, Role, User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PaginationDto, PaginatedResult, paginate } from '../../common/dto/pagination.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -65,10 +66,25 @@ export class UsersService {
   /**
    * Retourne tous les utilisateurs sans mot de passe.
    */
-  async findAll(): Promise<Array<Omit<User, 'password'>>> {
-    const users = await this.prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(
+    pagination?: PaginationDto,
+  ): Promise<Array<Omit<User, 'password'>> | PaginatedResult<Omit<User, 'password'>>> {
+    const page = pagination?.page;
+    const limit = pagination?.limit;
+
+    if (page && limit) {
+      const [users, total] = await Promise.all([
+        this.prisma.user.findMany({
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        this.prisma.user.count(),
+      ]);
+      return paginate(users.map((u) => this.removePassword(u)), total, page, limit);
+    }
+
+    const users = await this.prisma.user.findMany({ orderBy: { createdAt: 'desc' } });
     return users.map((user) => this.removePassword(user));
   }
 

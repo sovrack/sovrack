@@ -22,4 +22,14 @@ export class UpdateEnvironmentDto {
   @IsOptional()
   @IsBoolean({ message: 'isActive doit être un booléen' })
   isActive?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean({ message: 'autoDeploy doit être un booléen' })
+  autoDeploy?: boolean;
+
+  @ApiPropertyOptional({ example: 'main' })
+  @IsOptional()
+  @IsString({ message: 'autoDeployBranch doit être une chaîne de caractères' })
+  autoDeployBranch?: string;
 }

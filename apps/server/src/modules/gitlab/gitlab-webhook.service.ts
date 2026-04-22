@@ -110,10 +110,19 @@ export class GitlabWebhookService {
     });
 
     if (this.deploymentsService) {
-      await this.deploymentsService.handleWebhookUpdate(
+      const webhookStatus = payload.object_attributes?.status ?? 'pending';
+      const result = await this.deploymentsService.handleWebhookUpdate(
         pipelineId,
-        payload.object_attributes?.status ?? 'pending',
+        webhookStatus,
       );
+
+      // Si aucun déploiement existant ne correspond, vérifier l'auto-deploy
+      if (result.status === 'ignored' && webhookStatus === 'success') {
+        await this.deploymentsService.triggerAutoDeployIfConfigured(
+          config.projectId,
+          ref,
+        );
+      }
     }
 
     return { status: 'ok' };
@@ -150,27 +159,15 @@ export class GitlabWebhookService {
       });
 
       if (config?.webhookSecret) {
-        const expectedSecret = this.crypto.decryptConfigToken(config.webhookSecret);
+        const expectedSecret = this.crypto.decryptConfigToken(
+          config.webhookSecret,
+        );
         if (token === expectedSecret) {
           return;
         }
-        throw new ForbiddenException('Token webhook GitLab invalide');
       }
 
-      if (config) {
-        if (process.env.GITLAB_TOKEN && token === process.env.GITLAB_TOKEN) {
-          this.logger.warn(
-            `Webhook secret non configuré pour le projet ${config.projectId}; fallback GITLAB_TOKEN utilisé.`,
-          );
-          return;
-        }
-
-        throw new ForbiddenException('Token webhook GitLab invalide');
-      }
-    }
-
-    if (process.env.GITLAB_TOKEN && token === process.env.GITLAB_TOKEN) {
-      return;
+      throw new ForbiddenException('Token webhook GitLab invalide');
     }
 
     throw new ForbiddenException('Token webhook GitLab invalide');

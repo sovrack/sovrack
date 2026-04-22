@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { GitlabConfig, GitlabSourceType } from '@prisma/client';
 import { GitlabService } from '../gitlab/gitlab.service';
 
 @Injectable()
 export class DeploymentsDockerService {
-  constructor(private readonly gitlabService: GitlabService) {}
+  constructor(
+    @Inject(forwardRef(() => GitlabService))
+    private readonly gitlabService: GitlabService,
+  ) {}
 
   async buildDockerImage({
     gitlabConfig,
@@ -86,7 +89,9 @@ export class DeploymentsDockerService {
       .replace(/\/+$/, '');
   }
 
-  extractRepositoryPathFromProjectUrl(projectGitlabUrl?: string | null): string | null {
+  extractRepositoryPathFromProjectUrl(
+    projectGitlabUrl?: string | null,
+  ): string | null {
     if (!projectGitlabUrl?.trim()) {
       return null;
     }
@@ -125,8 +130,8 @@ export class DeploymentsDockerService {
 
     return Boolean(
       config.sourceType === GitlabSourceType.GROUP &&
-        config.gitlabGroupId &&
-        repositoryPath.startsWith(`group-${String(config.gitlabGroupId)}/`),
+      config.gitlabGroupId &&
+      repositoryPath.startsWith(`group-${String(config.gitlabGroupId)}/`),
     );
   }
 }

@@ -6,15 +6,15 @@ import {
   forwardRef,
   BadRequestException,
 } from '@nestjs/common';
-import {
-  Deployment,
-  DeploymentStatus,
-  Prisma,
-  Role,
-} from '@prisma/client';
+import { Deployment, DeploymentStatus, Prisma, Role } from '@prisma/client';
 import { ConfigsService } from '../configs/configs.service';
 import { GitlabService } from '../gitlab/gitlab.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  PaginationDto,
+  PaginatedResult,
+  paginate,
+} from '../../common/dto/pagination.dto';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import { DeploymentsAnsibleService } from './deployments-ansible.service';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
@@ -65,10 +65,66 @@ export class DeploymentsCoreService {
     private readonly gitlabService: GitlabService,
     private readonly configsService: ConfigsService,
     private readonly gateway: DeploymentsGateway,
+    @Inject(forwardRef(() => DeploymentsAnsibleService))
     private readonly ansibleService: DeploymentsAnsibleService,
     private readonly dockerService: DeploymentsDockerService,
     private readonly authorizationService: DeploymentsAuthorizationService,
   ) {}
+
+  async recoverInFlightDeploymentsAfterRestart(): Promise<number> {
+    const inFlight = await this.prisma.deployment.findMany({
+      where: {
+        status: {
+          in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING],
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        logs: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (inFlight.length === 0) {
+      return 0;
+    }
+
+    let recoveredCount = 0;
+    for (const deployment of inFlight) {
+      const updated = await this.prisma.deployment.update({
+        where: { id: deployment.id },
+        data: {
+          status: DeploymentStatus.FAILED,
+          finishedAt: new Date(),
+          logs: `${deployment.logs ?? ''}\nDéploiement interrompu suite à un redémarrage backend. Relancez le déploiement.`.trim(),
+        },
+        select: {
+          id: true,
+          status: true,
+          finishedAt: true,
+        },
+      });
+
+      this.gateway.emitStatus({
+        deploymentId: updated.id,
+        status: updated.status,
+      });
+      this.gateway.emitFinished({
+        deploymentId: updated.id,
+        status: updated.status,
+        finishedAt: updated.finishedAt,
+      });
+
+      recoveredCount += 1;
+    }
+
+    this.logger.warn(
+      `Recovery startup: ${String(recoveredCount)} déploiement(s) in-flight marqués FAILED après redémarrage.`,
+    );
+
+    return recoveredCount;
+  }
 
   async create(dto: CreateDeploymentDto, userId: string): Promise<Deployment> {
     const actor = await this.authorizationService.getActor(userId);
@@ -194,7 +250,8 @@ export class DeploymentsCoreService {
       where: { id: deployment.id },
       data: {
         status: DeploymentStatus.RUNNING,
-        logs: `Déploiement lancé. [PIPELINE_ID:${String(pipeline.id)}]`,
+        logs: `Déploiement lancé. ${this.buildPipelineMarker(pipeline.id)}`,
+        gitlabPipelineId: this.toPipelineIdValue(pipeline.id),
         dockerImage,
       },
     });
@@ -212,16 +269,24 @@ export class DeploymentsCoreService {
     status: string,
     image?: string,
   ): Promise<{ status: 'ok' | 'ignored' }> {
-    const marker = `[PIPELINE_ID:${String(pipelineId)}]`;
+    const marker = this.buildPipelineMarker(pipelineId);
+    const pipelineIdValue = this.toPipelineIdValue(pipelineId);
 
     const deployment = await this.prisma.deployment.findFirst({
       where: {
-        logs: {
-          contains: marker,
-        },
         status: {
           in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING],
         },
+        OR: [
+          {
+            gitlabPipelineId: pipelineIdValue,
+          },
+          {
+            logs: {
+              contains: marker,
+            },
+          },
+        ],
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -233,6 +298,31 @@ export class DeploymentsCoreService {
     const mappedStatus = this.mapDeploymentStatus(status);
 
     if (mappedStatus === DeploymentStatus.SUCCESS) {
+      const successClaimMarker =
+        this.buildWebhookSuccessClaimMarker(pipelineId);
+      const claim = await this.prisma.deployment.updateMany({
+        where: {
+          id: deployment.id,
+          status: {
+            in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING],
+          },
+          NOT: {
+            logs: {
+              contains: successClaimMarker,
+            },
+          },
+        },
+        data: {
+          status: DeploymentStatus.RUNNING,
+          gitlabPipelineId: pipelineIdValue,
+          logs: `${deployment.logs ?? ''}\nPipeline GitLab: ${status}\n${successClaimMarker}`.trim(),
+        },
+      });
+
+      if (claim.count === 0) {
+        return { status: 'ignored' };
+      }
+
       await this.ansibleService.deployWithAnsible(deployment.id, image);
       return { status: 'ok' };
     }
@@ -241,14 +331,46 @@ export class DeploymentsCoreService {
       mappedStatus === DeploymentStatus.FAILED ||
       mappedStatus === DeploymentStatus.CANCELED
     ) {
-      const updated = await this.prisma.deployment.update({
-        where: { id: deployment.id },
+      const finalizationMarker = this.buildWebhookFinalizationMarker(
+        pipelineId,
+        mappedStatus,
+      );
+      const finalized = await this.prisma.deployment.updateMany({
+        where: {
+          id: deployment.id,
+          status: {
+            in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING],
+          },
+          NOT: {
+            logs: {
+              contains: finalizationMarker,
+            },
+          },
+        },
         data: {
           status: mappedStatus,
           finishedAt: new Date(),
-          logs: `${deployment.logs ?? ''}\nPipeline GitLab: ${status}`.trim(),
+          gitlabPipelineId: pipelineIdValue,
+          logs: `${deployment.logs ?? ''}\nPipeline GitLab: ${status}\n${finalizationMarker}`.trim(),
         },
       });
+
+      if (finalized.count === 0) {
+        return { status: 'ignored' };
+      }
+
+      const updated = await this.prisma.deployment.findUnique({
+        where: { id: deployment.id },
+        select: {
+          id: true,
+          status: true,
+          finishedAt: true,
+        },
+      });
+
+      if (!updated) {
+        return { status: 'ignored' };
+      }
 
       this.gateway.emitStatus({
         deploymentId: updated.id,
@@ -268,25 +390,39 @@ export class DeploymentsCoreService {
   async findAll(
     userId: string,
     userRole: Role,
-  ): Promise<DeploymentWithRelations[]> {
+    pagination?: PaginationDto,
+  ): Promise<
+    DeploymentWithRelations[] | PaginatedResult<DeploymentWithRelations>
+  > {
     const where: Prisma.DeploymentWhereInput | undefined =
       userRole === Role.ADMIN
         ? undefined
-        : {
-            project: {
-              members: {
-                some: {
-                  userId,
-                },
-              },
-            },
-          };
+        : { project: { members: { some: { userId } } } };
 
-    return await this.prisma.deployment.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: deploymentRelationsInclude,
-    });
+    if (!pagination?.page && !pagination?.limit) {
+      return await this.prisma.deployment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: deploymentRelationsInclude,
+      });
+    }
+
+    const page = pagination.page ?? 1;
+    const limit = pagination.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      this.prisma.deployment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: deploymentRelationsInclude,
+        skip,
+        take: limit,
+      }),
+      this.prisma.deployment.count({ where }),
+    ]);
+
+    return paginate(items, total, page, limit);
   }
 
   async findByProject(
@@ -330,7 +466,11 @@ export class DeploymentsCoreService {
     return deployment;
   }
 
-  async cancel(id: string, userId: string, userRole: Role): Promise<Deployment> {
+  async cancel(
+    id: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<Deployment> {
     const deployment = await this.findOne(id, userId, userRole);
     await this.authorizationService.assertCanDeployProject(
       deployment.projectId,
@@ -413,6 +553,7 @@ export class DeploymentsCoreService {
         branch: previousSuccess.branch,
         status: DeploymentStatus.RUNNING,
         dockerImage: previousSuccess.dockerImage,
+        previousDeploymentId: previousSuccess.id,
         startedAt: new Date(),
         logs: `Rollback depuis ${previousSuccess.id}`,
       },
@@ -444,6 +585,117 @@ export class DeploymentsCoreService {
     );
   }
 
+  async triggerAutoDeployIfConfigured(
+    projectId: string,
+    branch: string,
+    dockerImage?: string,
+    pipelineId?: number,
+  ): Promise<void> {
+    // Chercher les environnements auto-deploy correspondant à la branche
+    const environments = await this.prisma.environment.findMany({
+      where: {
+        projectId,
+        autoDeploy: true,
+        OR: [
+          { autoDeployBranch: branch },
+          { autoDeployBranch: '*' },
+          { autoDeployBranch: null },
+        ],
+        isActive: true,
+        server: { isVerified: true, hasDocker: true },
+      },
+      include: { server: true },
+    });
+
+    if (environments.length === 0) {
+      return;
+    }
+
+    // Utiliser le premier admin disponible comme acteur système
+    const adminUser = await this.prisma.user.findFirst({
+      where: { role: 'ADMIN', isActive: true },
+    });
+
+    if (!adminUser) {
+      this.logger.warn('Auto-deploy: aucun administrateur actif trouvé');
+      return;
+    }
+
+    const autoDeployMarker = this.buildAutoDeployMarker(pipelineId);
+    const pipelineIdValue = this.toPipelineIdValueOrNull(pipelineId);
+
+    for (const environment of environments) {
+      try {
+        if (pipelineIdValue || autoDeployMarker) {
+          const existingDeployment = await this.prisma.deployment.findFirst({
+            where: {
+              projectId,
+              environmentId: environment.id,
+              OR: [
+                ...(pipelineIdValue
+                  ? [
+                      {
+                        gitlabPipelineId: pipelineIdValue,
+                      },
+                    ]
+                  : []),
+                ...(autoDeployMarker
+                  ? [
+                      {
+                        logs: {
+                          contains: autoDeployMarker,
+                        },
+                      },
+                    ]
+                  : []),
+              ],
+            },
+            select: { id: true },
+          });
+
+          if (existingDeployment) {
+            continue;
+          }
+        }
+
+        const deployment = await this.prisma.deployment.create({
+          data: {
+            projectId,
+            environmentId: environment.id,
+            userId: adminUser.id,
+            branch,
+            status: DeploymentStatus.PENDING,
+            startedAt: new Date(),
+            ...(pipelineIdValue ? { gitlabPipelineId: pipelineIdValue } : {}),
+            logs: [
+              `Auto-deploy déclenché par push sur ${branch}`,
+              autoDeployMarker,
+            ]
+              .filter((entry): entry is string => Boolean(entry))
+              .join('\n'),
+            ...(dockerImage ? { dockerImage } : {}),
+          },
+        });
+
+        this.gateway.emitStarted({
+          deploymentId: deployment.id,
+          projectId: deployment.projectId,
+          environmentId: deployment.environmentId,
+          status: deployment.status,
+          startedAt: deployment.startedAt,
+        });
+
+        await this.ansibleService.deployWithAnsible(deployment.id, dockerImage);
+      } catch (error) {
+        this.logger.error(
+          `Auto-deploy échoué pour environnement ${environment.id}: ${
+            error instanceof Error ? error.message : 'erreur inconnue'
+          }`,
+        );
+      }
+    }
+  }
+
   private mapDeploymentStatus(status: string): DeploymentStatus {
     const normalized = status.toLowerCase();
     if (normalized === 'success') {
@@ -459,6 +711,39 @@ export class DeploymentsCoreService {
       return DeploymentStatus.RUNNING;
     }
     return DeploymentStatus.PENDING;
+  }
+
+  private buildPipelineMarker(pipelineId: number): string {
+    return `[PIPELINE_ID:${String(pipelineId)}]`;
+  }
+
+  private buildWebhookSuccessClaimMarker(pipelineId: number): string {
+    return `[WEBHOOK_SUCCESS_CLAIM:${String(pipelineId)}]`;
+  }
+
+  private buildWebhookFinalizationMarker(
+    pipelineId: number,
+    status: DeploymentStatus,
+  ): string {
+    return `[WEBHOOK_FINALIZED:${status}:${String(pipelineId)}]`;
+  }
+
+  private buildAutoDeployMarker(pipelineId?: number): string | null {
+    if (!pipelineId) {
+      return null;
+    }
+    return `[AUTO_DEPLOY_PIPELINE_ID:${String(pipelineId)}]`;
+  }
+
+  private toPipelineIdValue(pipelineId: number): bigint {
+    return BigInt(pipelineId);
+  }
+
+  private toPipelineIdValueOrNull(pipelineId?: number): bigint | null {
+    if (!pipelineId) {
+      return null;
+    }
+    return this.toPipelineIdValue(pipelineId);
   }
 
   private async recordAuditLog(

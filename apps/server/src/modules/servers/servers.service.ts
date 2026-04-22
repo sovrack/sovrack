@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { PaginationDto, PaginatedResult, paginate } from '../../common/dto/pagination.dto';
 import { CreateServerDto } from './dto/create-server.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
 import { ServersCoreService } from './servers-core.service';
-import { InstallToolsDto } from './servers.types';
+import { InstallToolsDto, ServerPublic } from './servers.types';
 
 @Injectable()
 export class ServersService {
@@ -12,8 +13,16 @@ export class ServersService {
     return await this.core.create(dto, actorUserId);
   }
 
-  async findAll() {
-    return await this.core.findAll();
+  async findAll(
+    pagination?: PaginationDto,
+  ): Promise<ServerPublic[] | PaginatedResult<ServerPublic>> {
+    const items = await this.core.findAll();
+    if (!pagination?.page || !pagination?.limit) {
+      return items;
+    }
+    const { page, limit } = pagination;
+    const start = (page - 1) * limit;
+    return paginate(items.slice(start, start + limit), items.length, page, limit);
   }
 
   async findOne(id: string) {

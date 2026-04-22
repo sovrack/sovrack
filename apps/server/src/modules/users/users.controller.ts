@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -20,6 +21,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
@@ -50,8 +52,8 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Liste des utilisateurs' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
-  async findAll(): Promise<Array<Omit<User, 'password'>>> {
-    return await this.usersService.findAll();
+  async findAll(@Query() pagination: PaginationDto) {
+    return await this.usersService.findAll(pagination);
   }
 
   @Get(':id')
