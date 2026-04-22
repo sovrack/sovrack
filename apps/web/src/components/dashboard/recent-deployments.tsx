@@ -26,7 +26,7 @@ const statusConfig: Record<
   SUCCESS: {
     label: 'Success',
     icon: CheckCircle,
-    className: 'bg-emerald-50 text-emerald-700',
+    className: 'bg-green-50 text-green-700',
   },
   FAILED: {
     label: 'Failed',
@@ -36,17 +36,17 @@ const statusConfig: Record<
   RUNNING: {
     label: 'Running',
     icon: RefreshCw,
-    className: 'bg-blue-50 text-blue-700',
+    className: 'bg-[var(--hover)] text-[var(--text-secondary)]',
   },
   PENDING: {
     label: 'Pending',
     icon: Clock,
-    className: 'bg-amber-50 text-amber-700',
+    className: 'bg-yellow-50 text-yellow-700',
   },
   CANCELED: {
     label: 'Canceled',
     icon: Ban,
-    className: 'bg-slate-100 text-slate-600',
+    className: 'bg-[var(--hover)] text-[var(--text-secondary)]',
   },
 };
 
@@ -90,13 +90,13 @@ export function RecentDeployments({ deployments, loading }: RecentDeploymentsPro
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 animate-pulse">
-            <div className="h-8 w-8 rounded-lg bg-slate-200" />
+          <div key={i} className="flex items-center gap-3 rounded-xl bg-[var(--hover)] p-3 animate-pulse">
+            <div className="h-8 w-8 rounded-lg bg-[var(--hover)]" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-32 rounded bg-slate-200" />
-              <div className="h-2.5 w-20 rounded bg-slate-200" />
+              <div className="h-3 w-32 rounded bg-[var(--hover)]" />
+              <div className="h-2.5 w-20 rounded bg-[var(--hover)]" />
             </div>
-            <div className="h-6 w-16 rounded-full bg-slate-200" />
+            <div className="h-6 w-16 rounded-full bg-[var(--hover)]" />
           </div>
         ))}
       </div>
@@ -106,9 +106,9 @@ export function RecentDeployments({ deployments, loading }: RecentDeploymentsPro
   if (deployments.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center">
-        <Rocket size={32} className="text-slate-300" />
-        <p className="mt-3 text-sm font-medium text-slate-500">No deployments yet</p>
-        <p className="mt-1 text-xs text-slate-400">
+        <Rocket size={32} className="text-[var(--text-primary)]" />
+        <p className="mt-3 text-sm font-medium text-[var(--text-secondary)]">No deployments yet</p>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">
           Create a project and launch your first deployment.
         </p>
       </div>
@@ -120,16 +120,16 @@ export function RecentDeployments({ deployments, loading }: RecentDeploymentsPro
       {deployments.map((d) => (
         <div
           key={d.id}
-          className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 transition duration-200 hover:border-slate-300 hover:shadow-theme-xs"
+          className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 transition duration-200 hover:border-[var(--border)] hover:shadow-theme-xs"
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-50">
-            <Rocket size={17} className="text-brand-600" />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--hover)]">
+            <Rocket size={17} className="text-[var(--text-secondary)]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">
+            <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
               {d.projectName}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[var(--text-secondary)]">
               <span className="font-mono">{d.branch}</span>
               {' · '}
               <span className="uppercase">{d.environment}</span>

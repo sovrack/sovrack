@@ -18,6 +18,36 @@ function isPublicPath(pathname: string): boolean {
   );
 }
 
+function parseJwtExpiration(token: string): number | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(
+      atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')),
+    ) as { exp?: unknown };
+
+    if (typeof payload.exp !== 'number') {
+      return null;
+    }
+
+    return payload.exp;
+  } catch {
+    return null;
+  }
+}
+
+function isTokenExpiredOrInvalid(token: string): boolean {
+  const exp = parseJwtExpiration(token);
+  if (!exp) {
+    return true;
+  }
+
+  return Date.now() >= exp * 1000;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
@@ -32,6 +62,17 @@ export function middleware(request: NextRequest) {
     pathname === '/favicon.ico'
   ) {
     return NextResponse.next();
+  }
+
+  if (token && isTokenExpiredOrInvalid(token)) {
+    const loginUrl = new URL('/login', request.url);
+    if (!isPublicPath(pathname)) {
+      loginUrl.searchParams.set('next', pathname);
+    }
+
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.delete(AUTH_COOKIE_NAME);
+    return response;
   }
 
   if (!token && !isPublicPath(pathname)) {

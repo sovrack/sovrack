@@ -98,14 +98,14 @@ export default function ConfigsPage({ params }: Props) {
             <button
               onClick={() => void fetchConfigs()}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-3 py-2 text-sm font-medium text-[var(--text-primary)] shadow-sm transition hover:bg-[var(--bg-card)]/10 disabled:opacity-50"
             >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
             {isAdmin && (
               <button
                 onClick={() => setShowForm((v) => !v)}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-700"
+                className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90"
               >
                 <Plus size={16} /> Add Variable
               </button>
@@ -114,9 +114,9 @@ export default function ConfigsPage({ params }: Props) {
         }
       />
 
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
       {!isAdmin && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--text-primary)]/10 px-4 py-3 text-sm text-[var(--text-secondary)]">
           Only admins can create, update or delete variables.
         </div>
       )}
@@ -124,38 +124,38 @@ export default function ConfigsPage({ params }: Props) {
       {showForm && isAdmin && (
         <SectionCard title="New Variable" description="Create a new environment variable for this project.">
           <form onSubmit={handleCreate} className="space-y-4">
-          {formError && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</div>}
+          {formError && <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{formError}</div>}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Key <span className="text-red-400">*</span></label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Key <span className="text-red-400">*</span></label>
               <input type="text" value={key} onChange={(e) => setKey(e.target.value)}
                 placeholder="DATABASE_URL" required
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-3 font-mono text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20" />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Value <span className="text-red-400">*</span></label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Value <span className="text-red-400">*</span></label>
               <input type={isSecret ? 'password' : 'text'} value={value} onChange={(e) => setValue(e.target.value)}
                 placeholder="postgresql://..." required
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-3 font-mono text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20" />
             </div>
           </div>
 
           <label className="flex cursor-pointer items-center gap-3">
-            <div className={clsx('relative h-5 w-9 rounded-full transition', isSecret ? 'bg-indigo-500' : 'bg-slate-200')}>
-              <div className={clsx('absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all', isSecret ? 'left-4' : 'left-0.5')} />
+            <div className={clsx('relative h-5 w-9 rounded-full transition', isSecret ? 'bg-[var(--text-primary)]' : 'bg-[var(--bg-card)]/15')}>
+              <div className={clsx('absolute top-0.5 h-4 w-4 rounded-full bg-[var(--bg-card)] shadow transition-all', isSecret ? 'left-4' : 'left-0.5')} />
             </div>
             <input type="checkbox" checked={isSecret} onChange={(e) => setIsSecret(e.target.checked)} className="sr-only" />
-            <span className="text-sm text-slate-700">Mark as secret (encrypted at rest)</span>
+            <span className="text-sm text-[var(--text-primary)]">Mark as secret (encrypted at rest)</span>
           </label>
 
           <div className="flex gap-3">
             <button type="button" onClick={() => setShowForm(false)}
-              className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+              className="flex-1 rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10">
               Cancel
             </button>
             <button type="submit" disabled={submitting || !key.trim() || !value.trim()}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60">
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-60">
               {submitting && <Loader2 size={15} className="animate-spin" />}
               Save
             </button>
@@ -166,39 +166,39 @@ export default function ConfigsPage({ params }: Props) {
 
       {loading ? (
         <div className="space-y-2">
-          {[1, 2, 3].map((i) => <div key={i} className="h-14 animate-pulse rounded-xl bg-slate-100" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-14 animate-pulse rounded-xl bg-[var(--bg-card)]/10" />)}
         </div>
       ) : configs.length === 0 ? (
         <SectionCard>
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-14 text-center dark:border-slate-700 dark:bg-slate-900">
-            <Key size={28} className="text-slate-300" />
-            <p className="mt-3 text-sm font-medium text-slate-500">No variables yet</p>
-            <p className="mt-1 text-xs text-slate-400">Add env vars that will be injected into your containers.</p>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-card)]/5 py-14 text-center">
+            <Key size={28} className="text-[var(--text-primary)]" />
+            <p className="mt-3 text-sm font-medium text-[var(--text-secondary)]">No variables yet</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">Add env vars that will be injected into your containers.</p>
           </div>
         </SectionCard>
       ) : (
         <SectionCard contentClassName="p-0">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Key</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Value</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Type</th>
+              <tr className="border-b border-[var(--border)] bg-[var(--bg-card)]/5">
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Key</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Value</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Type</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-white/10">
               {configs.map((cfg) => {
                 const isRevealed = revealedIds.has(cfg.id);
                 const isMaskedSecret = cfg.isSecret && cfg.value === '***';
                 return (
-                  <tr key={cfg.id} className="hover:bg-slate-50 transition">
-                    <td className="px-5 py-3.5 font-mono text-sm font-semibold text-slate-900">{cfg.key}</td>
-                    <td className="px-5 py-3.5 font-mono text-sm text-slate-600 max-w-xs truncate">
+                  <tr key={cfg.id} className="hover:bg-[var(--bg-card)]/5 transition">
+                    <td className="px-5 py-3.5 font-mono text-sm font-semibold text-[var(--text-primary)]">{cfg.key}</td>
+                    <td className="px-5 py-3.5 font-mono text-sm text-[var(--text-secondary)] max-w-xs truncate">
                       {isMaskedSecret ? (
                         <div className="space-y-1">
                           <div>***</div>
-                          <p className="font-sans text-xs text-slate-500">
+                          <p className="font-sans text-xs text-[var(--text-secondary)]">
                             Secret chiffré — modifiez pour changer.
                           </p>
                         </div>
@@ -210,22 +210,22 @@ export default function ConfigsPage({ params }: Props) {
                     </td>
                     <td className="px-5 py-3.5">
                       {cfg.isSecret ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700">🔒 Secret</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--text-primary)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">🔒 Secret</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">Plain</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-card)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">Plain</span>
                       )}
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1">
                         {isAdmin && cfg.isSecret && !isMaskedSecret && (
                           <button onClick={() => toggleReveal(cfg.id)}
-                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                            className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-[var(--bg-card)]/10 hover:text-[var(--text-primary)]">
                             {isRevealed ? <EyeOff size={14} /> : <Eye size={14} />}
                           </button>
                         )}
                         {isAdmin && (
                           <button onClick={() => void handleDelete(cfg.id, cfg.key)} disabled={deletingId === cfg.id}
-                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50">
+                            className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50">
                             {deletingId === cfg.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                           </button>
                         )}

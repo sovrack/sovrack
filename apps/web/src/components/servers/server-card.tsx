@@ -1,280 +1,175 @@
-import { CheckCircle, Loader2, Save, Server, XCircle } from 'lucide-react';
-import { ServerStatusBadges } from '@/components/servers/server-status-badges';
+import { CheckCircle, Server, XCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  ServerOverallStatusBadge,
+  ServerStatusBadges,
+} from '@/components/servers/server-status-badges';
 import { ServerActions } from '@/components/servers/server-actions';
-import { ServerInstallPanel } from '@/components/servers/server-install-panel';
-import { ServerJobsPanel } from '@/components/servers/server-jobs-panel';
-import type { Server as ServerType, ServerJob } from '@/types/server';
-
-type ManualChecklist = {
-  isVerified: boolean;
-  hasDocker: boolean;
-  hasAnsible: boolean;
-  hasRunner: boolean;
-};
-
-type InstallOptions = {
-  docker: boolean;
-  ansible: boolean;
-  runner: boolean;
-};
+import type { Server as ServerType } from '@/types/server';
 
 type ServerCardProps = {
   server: ServerType;
-  checklist: ManualChecklist;
-  installOptions: InstallOptions;
-  jobs: ServerJob[];
-  jobsLoading: boolean;
   isBusy: boolean;
   verifyingId: string | null;
-  installingId: string | null;
+  installingKeyId: string | null;
   deletingId: string | null;
-  savingManualId: string | null;
   registeringId: string | null;
-  retryingJobId: string | null;
+  updatingId: string | null;
   formatConnectionMode: (mode: ServerType['connectionMode']) => string;
-  formatJobType: (type: ServerJob['type']) => string;
-  canRetryJob: (job: ServerJob) => boolean;
-  getJobStatusClassName: (status: ServerJob['status']) => string;
   onVerify: (id: string) => Promise<void>;
+  onInstallKey: (server: ServerType) => void;
+  onOpenPrepare: (server: ServerType) => void;
+  onOpenDetails: (server: ServerType) => void;
   onOpenRunner: (serverId: string) => void;
-  onDelete: (id: string, name: string) => Promise<void>;
-  onInstallOptionChange: (
-    server: ServerType,
-    field: keyof InstallOptions,
-    value: boolean,
-  ) => void;
-  onInstall: (server: ServerType) => Promise<void>;
-  onChecklistChange: (
-    server: ServerType,
-    field: keyof ManualChecklist,
-    value: boolean,
-  ) => void;
-  onManualSave: (server: ServerType) => Promise<void>;
-  onMarkReady: (server: ServerType) => Promise<void>;
-  onRefreshJobs: (serverId: string) => Promise<void>;
-  onRetryJob: (serverId: string, jobId: string) => Promise<void>;
+  onEdit: (server: ServerType) => void;
+  onDelete: (server: ServerType) => void;
 };
+
+function getOnboardingStepBadge(step: ServerType['onboardingStep']) {
+  if (step === 'PENDING') {
+    return { tone: 'error' as const, label: 'Pending' };
+  }
+  if (step === 'KEY_INSTALLED') {
+    return { tone: 'warning' as const, label: 'Key installed' };
+  }
+  if (step === 'VALIDATED') {
+    return { tone: 'info' as const, label: 'Validated' };
+  }
+  if (step === 'READY') {
+    return { tone: 'success' as const, label: 'Ready' };
+  }
+  return { tone: 'default' as const, label: step };
+}
 
 export function ServerCard({
   server,
-  checklist,
-  installOptions,
-  jobs,
-  jobsLoading,
   isBusy,
   verifyingId,
-  installingId,
+  installingKeyId,
   deletingId,
-  savingManualId,
   registeringId,
-  retryingJobId,
+  updatingId,
   formatConnectionMode,
-  formatJobType,
-  canRetryJob,
-  getJobStatusClassName,
   onVerify,
+  onInstallKey,
+  onOpenPrepare,
+  onOpenDetails,
   onOpenRunner,
+  onEdit,
   onDelete,
-  onInstallOptionChange,
-  onInstall,
-  onChecklistChange,
-  onManualSave,
-  onMarkReady,
-  onRefreshJobs,
-  onRetryJob,
 }: ServerCardProps) {
+  const onboarding = getOnboardingStepBadge(server.onboardingStep);
+  const needsSshKeyInstall =
+    server.connectionMode === 'ssh' &&
+    server.onboardingStep === 'PENDING' &&
+    !server.isVerified;
+
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-xs transition hover:border-slate-300 hover:shadow-theme-lg">
-      <div className="flex flex-wrap items-start gap-4">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
-              server.isVerified ? 'bg-emerald-50' : 'bg-slate-100'
-            }`}
-          >
-            <Server
-              size={18}
-              className={server.isVerified ? 'text-emerald-600' : 'text-slate-400'}
-            />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-semibold text-slate-900">{server.name}</h3>
-              {server.isVerified ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                  <CheckCircle size={10} /> Verified
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
-                  <XCircle size={10} /> Not verified
-                </span>
-              )}
-              <span
-                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-                  server.onboardingStep === 'PENDING'
-                    ? 'border-red-200 bg-red-50 text-red-700'
-                    : server.onboardingStep === 'KEY_INSTALLED'
-                      ? 'border-amber-200 bg-amber-50 text-amber-700'
-                      : server.onboardingStep === 'VALIDATED'
-                        ? 'border-blue-200 bg-blue-50 text-blue-700'
-                        : server.onboardingStep === 'READY'
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                          : 'border-slate-200 bg-slate-50 text-slate-500'
-                }`}
-              >
-                {server.onboardingStep === 'PENDING' && 'Non config'}
-                {server.onboardingStep === 'KEY_INSTALLED' && 'Clé inst'}
-                {server.onboardingStep === 'VALIDATED' && 'Validé'}
-                {server.onboardingStep === 'READY' && 'Prêt'}
-              </span>
-            </div>
-
-            <p className="mt-0.5 font-mono text-xs text-slate-400">
-              {server.username}@{server.host}:{server.port}
-            </p>
-            <p className="mt-0.5 text-[11px] text-slate-400">
-              Ajouté le{' '}
-              {new Date(server.createdAt).toLocaleDateString('fr-FR', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-              })}
-            </p>
-
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold uppercase tracking-[0.08em] text-slate-500">
-                Mode {formatConnectionMode(server.connectionMode)}
-              </span>
-              {server.connectionMode === 'bastion' && server.bastionHost && (
-                <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 font-medium text-blue-700">
-                  via {server.bastionHost}:{server.bastionPort ?? 22}
-                </span>
-              )}
-              {server.connectionMode === 'agent' && (
-                <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 font-medium text-violet-700">
-                  {server.agentLastSeenAt
-                    ? `Last seen ${new Date(server.agentLastSeenAt).toLocaleString()}`
-                    : 'Agent waiting for first heartbeat'}
-                </span>
-              )}
-            </div>
-
-            <div className="mt-2">
-              <ServerStatusBadges
-                isVerified={server.isVerified}
-                hasDocker={server.hasDocker}
-                hasAnsible={server.hasAnsible}
-                hasRunner={server.hasRunner}
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition hover:border-[var(--border)]/70">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.5fr),minmax(0,1fr),minmax(0,1fr),auto]">
+        <div className="min-w-0">
+          <div className="flex items-start gap-3">
+            <div
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                server.isVerified
+                  ? 'bg-green-500/10'
+                  : 'bg-[var(--hover)]'
+              }`}
+            >
+              <Server
+                size={18}
+                className={server.isVerified ? 'text-green-400' : 'text-[var(--text-secondary)]'}
               />
             </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="truncate text-sm font-semibold text-[var(--text-primary)]">{server.name}</h3>
+                {server.isVerified ? (
+                  <Badge tone="success" size="sm">
+                    <CheckCircle size={10} /> Verified
+                  </Badge>
+                ) : (
+                  <Badge tone="default" size="sm">
+                    <XCircle size={10} /> Unverified
+                  </Badge>
+                )}
+                <Badge tone={onboarding.tone} size="sm">
+                  {onboarding.label}
+                </Badge>
+              </div>
+
+              <p className="mt-1 break-all font-mono text-xs text-[var(--text-secondary)]">
+                {server.username}@{server.host}:{server.port}
+              </p>
+              {needsSshKeyInstall && (
+                <p className="mt-1 text-[11px] text-yellow-500">
+                  SSH key installation required before verification.
+                </p>
+              )}
+              <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
+                Added on{' '}
+                {new Date(server.createdAt).toLocaleDateString('fr-FR', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </p>
+            </div>
           </div>
         </div>
 
-        <ServerActions
-          server={server}
-          isBusy={isBusy}
-          verifyingId={verifyingId}
-          registeringId={registeringId}
-          deletingId={deletingId}
-          onVerify={onVerify}
-          onOpenRunner={onOpenRunner}
-          onDelete={onDelete}
-        />
-      </div>
-
-      <ServerInstallPanel
-        server={server}
-        isBusy={isBusy}
-        installingId={installingId}
-        installOptions={installOptions}
-        onOptionChange={onInstallOptionChange}
-        onInstall={onInstall}
-      />
-
-      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-          Manual Checklist
-        </p>
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <label className="flex items-center gap-2 text-xs text-slate-700">
-            <input
-              type="checkbox"
-              checked={checklist.isVerified}
-              onChange={(event) => onChecklistChange(server, 'isVerified', event.target.checked)}
-              disabled={isBusy}
-            />
-            SSH reachable
-          </label>
-          <label className="flex items-center gap-2 text-xs text-slate-700">
-            <input
-              type="checkbox"
-              checked={checklist.hasDocker}
-              onChange={(event) => onChecklistChange(server, 'hasDocker', event.target.checked)}
-              disabled={isBusy}
-            />
-            Docker installed
-          </label>
-          <label className="flex items-center gap-2 text-xs text-slate-700">
-            <input
-              type="checkbox"
-              checked={checklist.hasAnsible}
-              onChange={(event) => onChecklistChange(server, 'hasAnsible', event.target.checked)}
-              disabled={isBusy}
-            />
-            Ansible installed
-          </label>
-          <label className="flex items-center gap-2 text-xs text-slate-700">
-            <input
-              type="checkbox"
-              checked={checklist.hasRunner}
-              onChange={(event) => onChecklistChange(server, 'hasRunner', event.target.checked)}
-              disabled={isBusy}
-            />
-            GitLab Runner installed
-          </label>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+            Connection
+          </p>
+          <div className="mt-1.5 space-y-1.5">
+            <Badge tone="brand" size="sm">
+              {formatConnectionMode(server.connectionMode)}
+            </Badge>
+          </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => void onManualSave(server)}
-            disabled={isBusy}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
-          >
-            {savingManualId === server.id ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <Save size={13} />
-            )}
-            Save manual status
-          </button>
-          <button
-            onClick={() => void onMarkReady(server)}
-            disabled={isBusy}
-            className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50"
-          >
-            {savingManualId === server.id ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <CheckCircle size={13} />
-            )}
-            Mark ready
-          </button>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+            Tools & Status
+          </p>
+          <div className="mt-1.5 space-y-2">
+            <ServerOverallStatusBadge
+              isActive={server.isActive}
+              isVerified={server.isVerified}
+              hasDocker={server.hasDocker}
+              hasAnsible={server.hasAnsible}
+              hasRunner={server.hasRunner}
+            />
+            <ServerStatusBadges
+              isVerified={server.isVerified}
+              hasDocker={server.hasDocker}
+              hasAnsible={server.hasAnsible}
+              hasRunner={server.hasRunner}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-2">
+          <ServerActions
+            server={server}
+            isBusy={isBusy}
+            verifyingId={verifyingId}
+            installingKeyId={installingKeyId}
+            registeringId={registeringId}
+            deletingId={deletingId}
+            updatingId={updatingId}
+            onVerify={onVerify}
+            onInstallKey={onInstallKey}
+            onOpenPrepare={onOpenPrepare}
+            onOpenDetails={onOpenDetails}
+            onOpenRunner={onOpenRunner}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
         </div>
       </div>
-
-      <ServerJobsPanel
-        serverId={server.id}
-        jobs={jobs}
-        jobsLoading={jobsLoading}
-        isBusy={isBusy}
-        retryingJobId={retryingJobId}
-        formatJobType={formatJobType}
-        canRetryJob={canRetryJob}
-        getJobStatusClassName={getJobStatusClassName}
-        onRefreshJobs={onRefreshJobs}
-        onRetryJob={onRetryJob}
-      />
     </div>
   );
 }

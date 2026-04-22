@@ -10,6 +10,7 @@ import type {
   GitlabConfig,
   GitlabPipeline,
   GitlabRepo,
+  GitlabProviderOption,
 } from '@/types/project';
 
 export const projectsService = {
@@ -105,6 +106,12 @@ export const projectsService = {
   /** Get repositories from REPO/GROUP source */
   async getRepos(projectId: string): Promise<GitlabRepo[]> {
     const res = await api.get<GitlabRepo[]>(`/projects/${projectId}/gitlab/repos`);
+    return res.data;
+  },
+
+  /** List global GitLab providers available for project-level connection */
+  async getGitlabProviders(): Promise<GitlabProviderOption[]> {
+    const res = await api.get<GitlabProviderOption[]>('/gitlab/providers');
     return res.data;
   },
 };

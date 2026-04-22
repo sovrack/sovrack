@@ -39,20 +39,20 @@ export function MembersList({
         return (
           <div
             key={member.id}
-            className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3"
+            className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 p-3"
           >
             {/* Avatar */}
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-sm font-bold text-white">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--text-primary)] text-sm font-bold text-[var(--bg-app)]">
               {member.user.fullName.charAt(0).toUpperCase()}
             </div>
 
             {/* Info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <p className="truncate text-sm font-semibold text-slate-900">
+                <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
                   {member.user.fullName}
                   {isCurrentUser && (
-                    <span className="ml-1.5 text-xs font-normal text-slate-400">
+                    <span className="ml-1.5 text-xs font-normal text-[var(--text-secondary)]">
                       (you)
                     </span>
                   )}
@@ -61,15 +61,15 @@ export function MembersList({
                   className={clsx(
                     'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
                     isOwner
-                      ? 'bg-amber-50 text-amber-700'
-                      : 'bg-slate-100 text-slate-600',
+                      ? 'bg-yellow-500/15 text-yellow-300'
+                      : 'bg-[var(--bg-card)]/10 text-[var(--text-primary)]',
                   )}
                 >
                   {isOwner ? <Crown size={9} /> : <User size={9} />}
                   {member.role}
                 </span>
               </div>
-              <p className="truncate text-xs text-slate-400">{member.user.email}</p>
+              <p className="truncate text-xs text-[var(--text-secondary)]">{member.user.email}</p>
             </div>
 
             {/* Remove button */}
@@ -77,7 +77,7 @@ export function MembersList({
               <button
                 onClick={() => void handleRemove(member.user.id)}
                 disabled={removingId === member.user.id}
-                className="shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
+                className="shrink-0 rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
                 title="Remove member"
               >
                 <Trash2 size={15} />

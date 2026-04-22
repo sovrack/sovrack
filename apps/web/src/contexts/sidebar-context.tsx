@@ -9,12 +9,13 @@ import {
   type ReactNode,
 } from 'react';
 
+const SIDEBAR_COLLAPSED_KEY = 'deploy-automation-sidebar-collapsed';
+
 type SidebarContextValue = {
-  isExpanded: boolean;
-  isHovered: boolean;
+  collapsed: boolean;
   isMobileOpen: boolean;
-  setIsHovered: (value: boolean) => void;
   toggleSidebar: () => void;
+  setCollapsed: (value: boolean) => void;
   toggleMobileSidebar: () => void;
   closeMobileSidebar: () => void;
 };
@@ -22,8 +23,13 @@ type SidebarContextValue = {
 const SidebarContext = createContext<SidebarContextValue | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [isExpanded, setIsExpanded] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+  });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -41,17 +47,20 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+  }, [collapsed]);
+
   const value = useMemo<SidebarContextValue>(
     () => ({
-      isExpanded,
-      isHovered,
+      collapsed,
       isMobileOpen,
-      setIsHovered,
-      toggleSidebar: () => setIsExpanded((prev) => !prev),
+      toggleSidebar: () => setCollapsed((prev) => !prev),
+      setCollapsed,
       toggleMobileSidebar: () => setIsMobileOpen((prev) => !prev),
       closeMobileSidebar: () => setIsMobileOpen(false),
     }),
-    [isExpanded, isHovered, isMobileOpen],
+    [collapsed, isMobileOpen],
   );
 
   return (

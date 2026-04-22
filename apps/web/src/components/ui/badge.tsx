@@ -7,8 +7,7 @@ type BadgeTone =
   | 'warning'
   | 'error'
   | 'info'
-  | 'brand'
-  | 'purple';
+  | 'brand';
 
 type BadgeProps = {
   children: ReactNode;
@@ -19,23 +18,21 @@ type BadgeProps = {
 };
 
 const toneMap: Record<BadgeTone, string> = {
-  default: 'bg-slate-100 text-slate-600',
-  success: 'bg-emerald-50 text-emerald-700',
-  warning: 'bg-amber-50 text-amber-700',
-  error: 'bg-red-50 text-red-600',
-  info: 'bg-blue-50 text-blue-700',
-  brand: 'bg-brand-50 text-brand-700',
-  purple: 'bg-purple-50 text-purple-700',
+  default: 'border border-zinc-500/20 bg-[var(--text-primary)]/10 text-[var(--text-muted)]',
+  success: 'border border-green-500/20 bg-green-500/10 text-green-400',
+  warning: 'border border-yellow-500/20 bg-yellow-500/10 text-yellow-500',
+  error: 'border border-red-500/20 bg-red-500/10 text-red-400',
+  info: 'border border-zinc-500/20 bg-[var(--text-primary)]/10 text-[var(--text-muted)]',
+  brand: 'border border-zinc-500/20 bg-[var(--text-primary)]/10 text-[var(--text-muted)]',
 };
 
 const dotToneMap: Record<BadgeTone, string> = {
-  default: 'bg-slate-400',
-  success: 'bg-emerald-500',
-  warning: 'bg-amber-500',
-  error: 'bg-red-500',
-  info: 'bg-blue-500',
-  brand: 'bg-brand-500',
-  purple: 'bg-purple-500',
+  default: 'bg-[var(--text-primary)]',
+  success: 'bg-green-400',
+  warning: 'bg-yellow-500',
+  error: 'bg-red-400',
+  info: 'bg-zinc-400',
+  brand: 'bg-zinc-400',
 };
 
 export function Badge({
@@ -48,8 +45,10 @@ export function Badge({
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 rounded-full font-semibold',
-        size === 'sm' ? 'px-2 py-0.5 text-[10px] uppercase tracking-wider' : 'px-2.5 py-1 text-xs',
+        'inline-flex items-center gap-1.5 rounded-full text-xs font-medium',
+        size === 'sm'
+          ? 'px-2 py-0.5'
+          : 'px-2 py-0.5',
         toneMap[tone],
         className,
       )}

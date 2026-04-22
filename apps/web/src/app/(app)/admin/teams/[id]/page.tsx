@@ -152,7 +152,7 @@ export default function TeamDetailPage({ params }: Props) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-14 animate-pulse rounded-xl border border-slate-200 bg-white" />
+          <div key={i} className="h-14 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--bg-card)]" />
         ))}
       </div>
     );
@@ -179,7 +179,7 @@ export default function TeamDetailPage({ params }: Props) {
         actions={
           <Link
             href="/admin/teams"
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-secondary)]"
           >
             <ArrowLeft size={15} />
             Retour à la liste
@@ -191,7 +191,7 @@ export default function TeamDetailPage({ params }: Props) {
         <div
           className={`rounded-xl px-4 py-3 text-sm font-medium ${
             toast.tone === 'success'
-              ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+              ? 'border border-green-200 bg-green-50 text-green-700'
               : 'border border-red-200 bg-red-50 text-red-700'
           }`}
         >
@@ -204,13 +204,13 @@ export default function TeamDetailPage({ params }: Props) {
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
               Nom <span className="text-red-500">*</span>
             </label>
             <input
               value={form.name}
               onChange={(e) => setField('name', e.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100"
             />
             {errors.name && (
               <p className="mt-1 text-xs text-red-600">{errors.name}</p>
@@ -218,14 +218,14 @@ export default function TeamDetailPage({ params }: Props) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
               Description
             </label>
             <textarea
               value={form.description}
               onChange={(e) => setField('description', e.target.value)}
               rows={3}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100"
             />
           </div>
         </div>
@@ -234,7 +234,7 @@ export default function TeamDetailPage({ params }: Props) {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)] disabled:opacity-60"
           >
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             Enregistrer
@@ -245,28 +245,28 @@ export default function TeamDetailPage({ params }: Props) {
 
       <SectionCard title={`Membres (${team.members.length})`}>
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-100">
-            <Users size={18} className="text-brand-500" />
+          <div className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] text-[var(--text-primary)]">
+            <Users size={18} className="text-[var(--text-secondary)]" />
             Membres
           </div>
 
           {team.members.length === 0 ? (
-            <p className="text-sm text-slate-500">Aucun membre pour l&apos;instant.</p>
+            <p className="text-sm text-[var(--text-secondary)]">Aucun membre pour l&apos;instant.</p>
           ) : (
-            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-700">
+            <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] border-[var(--border)]">
               {team.members.map((member) => (
                 <div
                   key={member.id}
                   className="flex items-center justify-between px-4 py-3"
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{member.user.fullName}</p>
-                    <p className="text-xs text-slate-500">{member.user.email}</p>
+                    <p className="text-sm font-medium text-[var(--text-primary)] text-[var(--text-primary)]">{member.user.fullName}</p>
+                    <p className="text-xs text-[var(--text-secondary)]">{member.user.email}</p>
                   </div>
                   <button
                     onClick={() => void handleRemoveMember(member.userId)}
                     disabled={removingUserId === member.userId}
-                    className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900/40 dark:hover:bg-red-950/30"
+                    className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
                   >
                     {removingUserId === member.userId ? (
                       <Loader2 size={13} className="animate-spin" />
@@ -282,23 +282,23 @@ export default function TeamDetailPage({ params }: Props) {
 
           {availableUsers.length > 0 && (
             <div className="pt-2">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
                 Ajouter un membre
               </p>
-              <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-700">
+              <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] border-[var(--border)]">
                 {availableUsers.map((user) => (
                   <div
                     key={user.id}
                     className="flex items-center justify-between px-4 py-3"
                   >
                     <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{user.fullName}</p>
-                      <p className="text-xs text-slate-500">{user.email}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)] text-[var(--text-primary)]">{user.fullName}</p>
+                      <p className="text-xs text-[var(--text-secondary)]">{user.email}</p>
                     </div>
                     <button
                       onClick={() => void handleAddMember(user.id)}
                       disabled={addingUserId === user.id}
-                      className="inline-flex items-center gap-1 rounded-lg border border-brand-200 px-2.5 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-50 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
                     >
                       {addingUserId === user.id ? (
                         <Loader2 size={13} className="animate-spin" />
@@ -318,11 +318,11 @@ export default function TeamDetailPage({ params }: Props) {
       <SectionCard
         title="Zone dangereuse"
         description="La suppression de cette équipe est irréversible."
-        className="border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/30"
+        className="border-red-200 bg-red-50"
       >
         <button
           onClick={() => setConfirmDeleteOpen(true)}
-          className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40"
+          className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
         >
           <Trash2 size={15} />
           Supprimer l&apos;équipe

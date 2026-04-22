@@ -24,11 +24,20 @@ export type GitlabConfig = {
   defaultBranch: string;
   sourceType: GitlabSourceType;
   gitlabGroupId: number | null;
+  providerId: string | null;
   deployTokenUsername: string | null;
   registryUrl: string | null;
   gitlabToken: string;
   deployTokenValue: string;
-  webhookSecret: string | null;
+  webhookSecretConfigured: boolean;
+};
+
+export type GitlabProviderOption = {
+  id: string;
+  name: string;
+  gitlabUrl: string;
+  isDefault: boolean;
+  status: 'NOT_CONFIGURED' | 'ACTION_REQUIRED' | 'CONFIGURED';
 };
 
 export type ProjectListItem = {
@@ -67,7 +76,7 @@ export type ProjectDetail = {
 export type CreateProjectPayload = {
   name: string;
   description?: string;
-  gitlabUrl: string;
+  gitlabUrl?: string;
   branch?: string;
   ownerId?: string;
 };
@@ -80,8 +89,9 @@ export type AddMemberPayload = {
 };
 
 export type ConnectGitlabPayload = {
-  gitlabUrl: string;
-  gitlabToken: string;
+  gitlabUrl?: string;
+  gitlabToken?: string;
+  providerId?: string;
   gitlabId?: number;
   defaultBranch?: string;
   sourceType?: GitlabSourceType;

@@ -3,11 +3,11 @@ import { CheckCircle, XCircle, Clock, Ban, Loader2 } from 'lucide-react';
 import type { DeploymentStatus } from '@/types/deployment';
 
 const config: Record<DeploymentStatus, { label: string; icon: React.ElementType; cls: string }> = {
-  SUCCESS:  { label: 'Success',  icon: CheckCircle, cls: 'bg-emerald-50 text-emerald-700' },
-  FAILED:   { label: 'Failed',   icon: XCircle,     cls: 'bg-red-50 text-red-700' },
-  RUNNING:  { label: 'Running',  icon: Loader2,     cls: 'bg-blue-50 text-blue-700' },
-  PENDING:  { label: 'Pending',  icon: Clock,       cls: 'bg-amber-50 text-amber-700' },
-  CANCELED: { label: 'Canceled', icon: Ban,         cls: 'bg-slate-100 text-slate-600' },
+  SUCCESS:  { label: 'Success',  icon: CheckCircle, cls: 'bg-green-500/15 text-green-300' },
+  FAILED:   { label: 'Failed',   icon: XCircle,     cls: 'bg-red-500/15 text-red-300' },
+  RUNNING:  { label: 'Running',  icon: Loader2,     cls: 'bg-[var(--text-primary)]/15 text-[var(--text-secondary)]' },
+  PENDING:  { label: 'Pending',  icon: Clock,       cls: 'bg-yellow-500/15 text-yellow-300' },
+  CANCELED: { label: 'Canceled', icon: Ban,         cls: 'bg-[var(--bg-card)]/10 text-[var(--text-primary)]' },
 };
 
 type Props = { status: DeploymentStatus; size?: 'sm' | 'md' };

@@ -52,17 +52,17 @@ export class ErrorBoundary extends React.Component<
     }
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-lg rounded-2xl border border-red-200 bg-white p-6 shadow-theme-xs">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-app)] px-4">
+        <div className="w-full max-w-lg rounded-2xl border border-red-500/30 bg-[var(--bg-card)] p-6 shadow-theme-xs">
           <div className="flex items-start gap-3">
-            <div className="rounded-xl bg-red-50 p-2">
-              <AlertTriangle size={20} className="text-red-600" />
+            <div className="rounded-xl bg-red-500/15 p-2">
+              <AlertTriangle size={20} className="text-red-300" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-slate-900">
+              <h1 className="text-lg font-semibold text-[var(--text-primary)]">
                 Oups, une erreur est survenue
               </h1>
-              <p className="mt-1 text-sm text-slate-600">{this.state.message}</p>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">{this.state.message}</p>
             </div>
           </div>
 
@@ -70,7 +70,7 @@ export class ErrorBoundary extends React.Component<
             <button
               type="button"
               onClick={this.handleRetry}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)]"
             >
               <RotateCcw size={14} />
               Réessayer
@@ -78,7 +78,7 @@ export class ErrorBoundary extends React.Component<
             <button
               type="button"
               onClick={this.handleGoDashboard}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10"
             >
               <Home size={14} />
               Retour au dashboard

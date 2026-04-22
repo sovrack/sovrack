@@ -1,10 +1,15 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getApiErrorMessage } from '@/lib/api';
 import { serversService } from '@/services/servers.service';
-import type { Server as ServerType, ServerJob } from '@/types/server';
+import type {
+  CreateServerPayload,
+  Server as ServerType,
+  ServerJob,
+  UpdateServerPayload,
+} from '@/types/server';
 
 type ManualChecklist = Pick<
   ServerType,
@@ -21,15 +26,19 @@ type ToastTone = 'success' | 'error';
 
 type ToastItem = { id: number; message: string; tone: ToastTone };
 
+const ADMIN_SERVERS_QUERY_KEY = ['admin-servers'] as const;
+
 export function useServerActions() {
   const queryClient = useQueryClient();
-  const [error, setError] = useState<string | null>(null);
 
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [installingId, setInstallingId] = useState<string | null>(null);
+  const [installingKeyId, setInstallingKeyId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [savingManualId, setSavingManualId] = useState<string | null>(null);
   const [registeringId, setRegisteringId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const [loadingJobsByServer, setLoadingJobsByServer] = useState<
     Record<string, boolean>
@@ -64,29 +73,73 @@ export function useServerActions() {
     data: servers = [],
     isLoading: loading,
     refetch: refetchServers,
+    error: queryError,
   } = useQuery({
-    queryKey: ['admin-servers'],
-    queryFn: async () => {
-      const nextServers = await serversService.getAll();
-      await Promise.all(
-        nextServers.map(async (server) => {
-          try {
-            const jobs = await serversService.getJobs(server.id);
-            setJobsByServer((prev) => ({ ...prev, [server.id]: jobs }));
-          } catch {
-            // Non bloquant.
-          }
-        }),
-      );
-      return nextServers;
-    },
+    queryKey: ADMIN_SERVERS_QUERY_KEY,
+    queryFn: async () => await serversService.getAll(),
   });
 
+  const error = queryError ? getApiErrorMessage(queryError) : null;
+
   const fetchServers = useCallback(async () => {
-    setError(null);
-    await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
+    await queryClient.invalidateQueries({ queryKey: ADMIN_SERVERS_QUERY_KEY });
     await refetchServers();
   }, [queryClient, refetchServers]);
+
+  // Auto-poll toutes les 3s quand au moins un job RUNNING est actif.
+  // Détecte aussi les transitions SUCCESS/FAILED pour afficher un toast de completion.
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevJobStatusRef = useRef<Record<string, ServerJob['status']>>({});
+
+  useEffect(() => {
+    const hasRunningJob = Object.values(jobsByServer).some((jobs) =>
+      jobs.some((j) => j.status === 'RUNNING'),
+    );
+
+    if (hasRunningJob && !pollingRef.current) {
+      pollingRef.current = setInterval(() => {
+        const serverIds = Object.entries(jobsByServer)
+          .filter(([, jobs]) => jobs.some((j) => j.status === 'RUNNING'))
+          .map(([id]) => id);
+
+        for (const id of serverIds) {
+          serversService
+            .getJobs(id)
+            .then((updatedJobs) => {
+              // Détecter les transitions vers SUCCESS ou FAILED
+              for (const job of updatedJobs) {
+                const prevStatus = prevJobStatusRef.current[job.id];
+                if (prevStatus === 'RUNNING') {
+                  if (job.status === 'SUCCESS') {
+                    showToast(`✓ ${formatJobType(job.type)} terminé avec succès`, 'success');
+                  } else if (job.status === 'FAILED' || job.status === 'TIMEOUT') {
+                    showToast(`✗ ${formatJobType(job.type)} échoué — voir les logs`, 'error');
+                  }
+                }
+                prevJobStatusRef.current[job.id] = job.status;
+              }
+
+              setJobsByServer((prev) => ({ ...prev, [id]: updatedJobs }));
+            })
+            .catch(() => {});
+        }
+
+        void queryClient.invalidateQueries({ queryKey: ADMIN_SERVERS_QUERY_KEY });
+      }, 3_000);
+    }
+
+    if (!hasRunningJob && pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [jobsByServer, queryClient, showToast]);
 
   const clearManualDraft = (serverId: string) => {
     setManualDrafts((prev) => {
@@ -167,14 +220,53 @@ export function useServerActions() {
     }));
   };
 
+  const handleCreate = async (payload: CreateServerPayload) => {
+    setCreating(true);
+    try {
+      const created = await serversService.create(payload);
+      await fetchServers();
+      showToast(
+        'Server created. Install SSH key with temporary VPS password to continue.',
+        'success',
+      );
+      return created;
+    } catch (err) {
+      showToast(getApiErrorMessage(err), 'error');
+      throw err;
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleUpdate = async (id: string, payload: UpdateServerPayload) => {
+    setUpdatingId(id);
+    try {
+      await serversService.update(id, payload);
+      await fetchServers();
+      clearManualDraft(id);
+      clearInstallDraft(id);
+      showToast('Serveur mis à jour', 'success');
+    } catch (err) {
+      showToast(getApiErrorMessage(err), 'error');
+      throw err;
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const handleVerify = async (id: string) => {
+    const hasRunning = (jobsByServer[id] ?? []).some((j) => j.status === 'RUNNING');
+    if (hasRunning) {
+      showToast('Une vérification est déjà en cours sur ce serveur.', 'error');
+      return;
+    }
+
     setVerifyingId(id);
     try {
-      const result = await serversService.verify(id);
-      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
-      clearManualDraft(id);
-      showToast('Vérification SSH réussie', 'success');
+      await serversService.verify(id);
+      showToast('Vérification démarrée...', 'success');
       await refreshJobs(id);
+      clearManualDraft(id);
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
     } finally {
@@ -193,16 +285,33 @@ export function useServerActions() {
 
     setInstallingId(server.id);
     try {
-      const updated = await serversService.installTools(server.id, payload);
-      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
+      await serversService.installTools(server.id, payload);
+      // Job lancé en arrière-plan — on charge les jobs pour activer le polling
+      showToast('Installation démarrée...', 'success');
+      await refreshJobs(server.id);
       clearManualDraft(server.id);
       clearInstallDraft(server.id);
-      showToast('Installation terminée avec succès', 'success');
-      await refreshJobs(server.id);
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
     } finally {
       setInstallingId(null);
+    }
+  };
+
+  const handleInstallKey = async (serverId: string, password: string) => {
+    setInstallingKeyId(serverId);
+    try {
+      const result = await serversService.installKey(serverId, {
+        password,
+      });
+      await fetchServers();
+      showToast(result.message, 'success');
+      return result;
+    } catch (err) {
+      showToast(getApiErrorMessage(err), 'error');
+      throw err;
+    } finally {
+      setInstallingKeyId(null);
     }
   };
 
@@ -211,7 +320,7 @@ export function useServerActions() {
     setSavingManualId(server.id);
     try {
       await serversService.update(server.id, payload);
-      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
+      await fetchServers();
       clearManualDraft(server.id);
       showToast('Statut mis à jour manuellement', 'success');
       await refreshJobs(server.id);
@@ -233,7 +342,7 @@ export function useServerActions() {
     setSavingManualId(server.id);
     try {
       await serversService.update(server.id, payload);
-      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
+      await fetchServers();
       clearManualDraft(server.id);
       showToast('Serveur marqué prêt', 'success');
       await refreshJobs(server.id);
@@ -245,17 +354,19 @@ export function useServerActions() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Supprimer le serveur "${name}" ? Cette action est irréversible.`)) {
-      return;
-    }
-
     setDeletingId(id);
     try {
       await serversService.remove(id);
-      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
+      await fetchServers();
+      setJobsByServer((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       showToast(`Serveur "${name}" supprimé`, 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
+      throw err;
     } finally {
       setDeletingId(null);
     }
@@ -265,7 +376,7 @@ export function useServerActions() {
     setRetryingJobId(jobId);
     try {
       await serversService.retryJob(serverId, jobId);
-      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
+      await fetchServers();
       showToast('Job relancé avec succès', 'success');
       await refreshJobs(serverId);
     } catch (err) {
@@ -296,11 +407,11 @@ export function useServerActions() {
     setRegisteringId(serverId);
     setRunnerError(null);
     try {
-      const updated = await serversService.registerRunner(serverId, {
+      await serversService.registerRunner(serverId, {
         gitlabUrl: runnerGitlabUrl.trim(),
         token: runnerToken.trim(),
       });
-      await queryClient.invalidateQueries({ queryKey: ['admin-servers'] });
+      await fetchServers();
       setRunnerModal(null);
       setRunnerGitlabUrl('');
       setRunnerToken('');
@@ -314,13 +425,7 @@ export function useServerActions() {
   };
 
   const formatConnectionMode = (mode: ServerType['connectionMode']) => {
-    if (mode === 'bastion') {
-      return 'Bastion';
-    }
-    if (mode === 'agent') {
-      return 'Agent';
-    }
-    return 'SSH';
+    return mode.toUpperCase();
   };
 
   const formatJobType = (type: ServerJob['type']) => {
@@ -349,18 +454,15 @@ export function useServerActions() {
 
   const getJobStatusClassName = (status: ServerJob['status']) => {
     if (status === 'SUCCESS') {
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      return 'border-green-500/20 bg-green-500/10 text-green-400';
     }
     if (status === 'FAILED' || status === 'TIMEOUT' || status === 'BLOCKED') {
-      return 'border-red-200 bg-red-50 text-red-700';
+      return 'border-red-500/30 bg-red-500/10 text-red-400';
     }
     if (status === 'RUNNING') {
-      return 'border-blue-200 bg-blue-50 text-blue-700';
+      return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-400';
     }
-    if (status === 'AGENT_PENDING') {
-      return 'border-violet-200 bg-violet-50 text-violet-700';
-    }
-    return 'border-slate-200 bg-slate-100 text-slate-600';
+    return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-400';
   };
 
   const verifiedCount = useMemo(
@@ -373,8 +475,11 @@ export function useServerActions() {
     servers,
     loading,
     error,
+    creating,
+    updatingId,
     verifyingId,
     installingId,
+    installingKeyId,
     deletingId,
     savingManualId,
     registeringId,
@@ -394,8 +499,11 @@ export function useServerActions() {
     getInstallOptions,
     handleChecklistChange,
     handleInstallOptionChange,
+    handleCreate,
+    handleUpdate,
     handleVerify,
     handleInstall,
+    handleInstallKey,
     handleManualSave,
     handleMarkReady,
     handleDelete,

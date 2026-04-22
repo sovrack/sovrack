@@ -1,0 +1,191 @@
+#!/usr/bin/env node
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+const mode = process.argv[2] ?? 'all';
+const root = process.cwd();
+const srcDir = path.join(root, 'src');
+const navigationFile = path.join(srcDir, 'config', 'navigation.ts');
+const appRoot = path.join(srcDir, 'app', '(app)');
+
+const bannedColorPatterns = [
+  /#7c3aed/gi,
+  /#8b5cf6/gi,
+  /#a855f7/gi,
+  /\bpurple-\d{2,3}\b/gi,
+  /\bviolet-\d{2,3}\b/gi,
+  /\bfuchsia-\d{2,3}\b/gi,
+  /\bfrom-(purple|violet|fuchsia)-\d{2,3}\b/gi,
+  /\bto-(purple|violet|fuchsia)-\d{2,3}\b/gi,
+];
+
+function normalizeRouteToPagePath(route) {
+  const clean = route.replace(/^\/+|\/+$/g, '');
+  if (!clean) {
+    return path.join(appRoot, 'page.tsx');
+  }
+  return path.join(appRoot, ...clean.split('/'), 'page.tsx');
+}
+
+function extractHrefs(source) {
+  return [...source.matchAll(/href:\s*'([^']+)'/g)].map((match) => match[1]);
+}
+
+async function fileExists(targetPath) {
+  try {
+    await fs.access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function listFilesRecursive(directory) {
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  const files = await Promise.all(entries.map(async (entry) => {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      return listFilesRecursive(fullPath);
+    }
+    return [fullPath];
+  }));
+  return files.flat();
+}
+
+async function checkNavigation() {
+  const source = await fs.readFile(navigationFile, 'utf8');
+  const hrefs = extractHrefs(source);
+
+  const unique = new Set();
+  const duplicates = new Set();
+
+  for (const href of hrefs) {
+    if (unique.has(href)) {
+      duplicates.add(href);
+    } else {
+      unique.add(href);
+    }
+  }
+
+  const missingPages = [];
+  for (const href of unique) {
+    const expected = normalizeRouteToPagePath(href);
+    // Navigation should only point to concrete pages.
+    if (!(await fileExists(expected))) {
+      missingPages.push({ href, expected });
+    }
+  }
+
+  return {
+    passed: duplicates.size === 0 && missingPages.length === 0,
+    duplicates: [...duplicates],
+    missingPages,
+    routeCount: unique.size,
+  };
+}
+
+function collectMatches(text, pattern) {
+  const matches = [];
+  let match = pattern.exec(text);
+  while (match) {
+    matches.push(match[0]);
+    match = pattern.exec(text);
+  }
+  return matches;
+}
+
+async function checkColors() {
+  const files = await listFilesRecursive(srcDir);
+  const codeFiles = files.filter((file) => /\.(ts|tsx|css)$/.test(file));
+  const violations = [];
+
+  for (const filePath of codeFiles) {
+    const content = await fs.readFile(filePath, 'utf8');
+    const hits = bannedColorPatterns
+      .flatMap((pattern) => collectMatches(content, pattern))
+      .filter(Boolean);
+
+    if (hits.length > 0) {
+      const uniqueHits = [...new Set(hits)];
+      violations.push({
+        filePath: path.relative(root, filePath),
+        hits: uniqueHits,
+      });
+    }
+  }
+
+  return {
+    passed: violations.length === 0,
+    violations,
+    scanned: codeFiles.length,
+  };
+}
+
+function printNavigationReport(result) {
+  console.log('Navigation Gate');
+  console.log(`- Routes in navigation: ${result.routeCount}`);
+  if (result.duplicates.length > 0) {
+    console.log('- Duplicate href values detected:');
+    result.duplicates.forEach((href) => console.log(`  • ${href}`));
+  }
+  if (result.missingPages.length > 0) {
+    console.log('- Missing page files for configured href:');
+    result.missingPages.forEach(({ href, expected }) =>
+      console.log(`  • ${href} -> ${path.relative(root, expected)}`),
+    );
+  }
+  if (result.passed) {
+    console.log('- OK');
+  }
+  console.log('');
+}
+
+function printColorReport(result) {
+  console.log('Color Gate');
+  console.log(`- Files scanned: ${result.scanned}`);
+  if (result.violations.length > 0) {
+    console.log('- Banned colors/classes found:');
+    result.violations.forEach((violation) => {
+      console.log(`  • ${violation.filePath}: ${violation.hits.join(', ')}`);
+    });
+  }
+  if (result.passed) {
+    console.log('- OK');
+  }
+  console.log('');
+}
+
+async function main() {
+  const runNavigation = mode === 'all' || mode === 'navigation';
+  const runColors = mode === 'all' || mode === 'colors';
+
+  if (!runNavigation && !runColors) {
+    console.error('Usage: node scripts/quality-gates.mjs [all|navigation|colors]');
+    process.exit(1);
+  }
+
+  const results = [];
+
+  if (runNavigation) {
+    const navigation = await checkNavigation();
+    printNavigationReport(navigation);
+    results.push(navigation.passed);
+  }
+
+  if (runColors) {
+    const colors = await checkColors();
+    printColorReport(colors);
+    results.push(colors.passed);
+  }
+
+  if (results.every(Boolean)) {
+    console.log('All requested quality gates passed.');
+    process.exit(0);
+  }
+
+  console.error('Quality gate failure detected. Fix the issues above.');
+  process.exit(1);
+}
+
+await main();

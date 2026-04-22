@@ -147,14 +147,14 @@ export default function EnvironmentsPage({ params }: Props) {
             <button
               onClick={() => void fetchData()}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-3 py-2 text-sm font-medium text-[var(--text-primary)] shadow-sm transition hover:bg-[var(--bg-card)]/10 disabled:opacity-50"
             >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
             {isAdmin && (
               <button
                 onClick={() => setShowForm((v) => !v)}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-700"
+                className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90"
               >
                 <Plus size={16} /> New Environment
               </button>
@@ -163,9 +163,9 @@ export default function EnvironmentsPage({ params }: Props) {
         }
       />
 
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
       {!isAdmin && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--text-primary)]/10 px-4 py-3 text-sm text-[var(--text-secondary)]">
           Only admins can create, update or delete environments.
         </div>
       )}
@@ -173,30 +173,30 @@ export default function EnvironmentsPage({ params }: Props) {
       {showForm && isAdmin && (
         <SectionCard title="New Environment" description="Create a deployment target and link it to a verified server.">
           <form onSubmit={handleCreate} className="space-y-4">
-          {formError && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</div>}
+          {formError && <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{formError}</div>}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Environment</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Environment</label>
               <select value={envName} onChange={(e) => setEnvName(e.target.value as EnvName)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20">
                 <option value="STAGING">STAGING</option>
                 <option value="PRODUCTION">PRODUCTION</option>
               </select>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
                 Server <span className="text-red-400">*</span>
               </label>
               {verifiedServers.length === 0 ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-xs text-yellow-300">
                   No verified servers available.{' '}
                   <Link href="/admin/servers" className="font-semibold underline">Add one in Admin → Servers</Link>
                 </div>
               ) : (
                 <select value={serverId} onChange={(e) => setServerId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20">
                   {verifiedServers.map((s) => (
                     <option key={s.id} value={s.id}>{s.name} — {s.host}</option>
                   ))}
@@ -205,20 +205,20 @@ export default function EnvironmentsPage({ params }: Props) {
             </div>
 
             <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Domain (optional)</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Domain (optional)</label>
               <input type="text" value={domain} onChange={(e) => setDomain(e.target.value)}
                 placeholder="staging.myapp.com"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20" />
             </div>
           </div>
 
           <div className="flex gap-3">
             <button type="button" onClick={() => setShowForm(false)}
-              className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+              className="flex-1 rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10">
               Cancel
             </button>
             <button type="submit" disabled={submitting || !serverId}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60">
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-60">
               {submitting && <Loader2 size={15} className="animate-spin" />}
               Create
             </button>
@@ -230,76 +230,76 @@ export default function EnvironmentsPage({ params }: Props) {
       {/* List */}
       {loading ? (
         <div className="space-y-3">
-          {[1, 2].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100" />)}
+          {[1, 2].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-[var(--bg-card)]/10" />)}
         </div>
       ) : environments.length === 0 ? (
         <SectionCard>
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-14 text-center dark:border-slate-700 dark:bg-slate-900">
-            <Globe size={28} className="text-slate-300" />
-            <p className="mt-3 text-sm font-medium text-slate-500">No environments yet</p>
-            <p className="mt-1 text-xs text-slate-400">Create STAGING or PRODUCTION and link them to a server.</p>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-card)]/5 py-14 text-center">
+            <Globe size={28} className="text-[var(--text-primary)]" />
+            <p className="mt-3 text-sm font-medium text-[var(--text-secondary)]">No environments yet</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">Create STAGING or PRODUCTION and link them to a server.</p>
           </div>
         </SectionCard>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {environments.map((env) => (
-            <div key={env.id} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div key={env.id} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className={clsx('flex h-9 w-9 items-center justify-center rounded-xl',
-                    env.name === 'PRODUCTION' ? 'bg-red-50' : 'bg-blue-50')}>
-                    <Globe size={16} className={env.name === 'PRODUCTION' ? 'text-red-500' : 'text-blue-500'} />
+                    env.name === 'PRODUCTION' ? 'bg-red-500/15' : 'bg-[var(--text-primary)]/15')}>
+                    <Globe size={16} className={env.name === 'PRODUCTION' ? 'text-red-300' : 'text-[var(--text-secondary)]'} />
                   </div>
                   <div>
                     <span className={clsx('text-xs font-bold uppercase tracking-widest',
-                      env.name === 'PRODUCTION' ? 'text-red-600' : 'text-blue-600')}>
+                      env.name === 'PRODUCTION' ? 'text-red-300' : 'text-[var(--text-secondary)]')}>
                       {env.name}
                     </span>
-                    <p className="text-sm font-semibold text-slate-900">{env.server.name}</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{env.server.name}</p>
                   </div>
                 </div>
                 {isAdmin && (
                   <button onClick={() => void handleDelete(env.id, env.name)} disabled={deletingId === env.id}
-                    className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50">
+                    className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50">
                     {deletingId === env.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                   </button>
                 )}
               </div>
-              <div className="mt-3 space-y-1 text-xs text-slate-500">
+              <div className="mt-3 space-y-1 text-xs text-[var(--text-secondary)]">
                 <p className="font-mono">{env.server.username}@{env.server.host}:{env.server.port}</p>
-                {env.domain && <p className="text-indigo-600">{env.domain}</p>}
+                {env.domain && <p className="text-[var(--text-secondary)]">{env.domain}</p>}
                 <div className="flex items-center gap-1.5 pt-1">
                   {env.server.hasDocker
-                    ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700"><CheckCircle size={10} />Docker</span>
-                    : <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-600"><XCircle size={10} />No Docker</span>
+                    ? <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2 py-0.5 text-[10px] font-semibold text-green-300"><CheckCircle size={10} />Docker</span>
+                    : <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-300"><XCircle size={10} />No Docker</span>
                   }
                 </div>
                 {isAdmin && (
-                  <div className="mt-3 border-t border-slate-100 pt-3">
+                  <div className="mt-3 border-t border-[var(--border)] pt-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-slate-600">Auto-deploy</span>
+                      <span className="text-xs font-semibold text-[var(--text-secondary)]">Auto-deploy</span>
                       <button
                         onClick={() => void handleAutoDeployToggle(env.id)}
                         className={clsx(
                           'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
-                          autoDeployStates[env.id]?.autoDeploy ? 'bg-indigo-600' : 'bg-slate-200',
+                          autoDeployStates[env.id]?.autoDeploy ? 'bg-[var(--text-primary)]' : 'bg-[var(--bg-card)]/15',
                         )}
                       >
                         <span className={clsx(
-                          'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
+                          'inline-block h-3.5 w-3.5 transform rounded-full bg-[var(--bg-card)] shadow transition-transform',
                           autoDeployStates[env.id]?.autoDeploy ? 'translate-x-4' : 'translate-x-0.5',
                         )} />
                       </button>
                     </div>
                     {autoDeployStates[env.id]?.autoDeploy && (
                       <div className="mt-2">
-                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Branche</label>
+                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Branche</label>
                         <input
                           type="text"
                           value={autoDeployStates[env.id]?.branch ?? 'main'}
                           onChange={(e) => void handleAutoDeployBranchChange(env.id, e.target.value)}
                           placeholder="main"
-                          className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-800 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100"
+                          className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/5 px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border)] focus:ring-1 focus:ring-zinc-500/20"
                         />
                       </div>
                     )}

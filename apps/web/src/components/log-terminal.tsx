@@ -91,19 +91,19 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
     <div
       ref={terminalRef}
       className={clsx(
-        'rounded-2xl border border-slate-800 bg-black text-slate-100 shadow-sm',
+        'rounded-2xl border border-[var(--border)] bg-black text-[var(--text-primary)] shadow-sm',
         isFullscreen && 'h-screen w-screen rounded-none',
       )}
     >
-      <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
         <div className="flex items-center gap-2">
-          <TerminalSquare size={16} className="text-slate-300" />
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+          <TerminalSquare size={16} className="text-[var(--text-primary)]" />
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
             Deployment terminal
           </p>
           {isLive && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-300">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-300" />
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--text-primary)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--text-muted)]" />
               Live
             </span>
           )}
@@ -113,7 +113,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
           <button
             type="button"
             onClick={() => void copyLogs()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border)] hover:bg-[var(--bg-card)]"
           >
             {copied ? <Check size={12} /> : <Copy size={12} />}
             {copied ? 'Copié' : 'Copier'}
@@ -121,7 +121,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
           <button
             type="button"
             onClick={() => void toggleFullscreen()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border)] hover:bg-[var(--bg-card)]"
           >
             {isFullscreen ? <Minimize2 size={12} /> : <Expand size={12} />}
             {isFullscreen ? 'Réduire' : 'Plein écran'}
@@ -137,7 +137,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
         )}
       >
         {logs.length === 0 ? (
-          <p className="text-slate-500">Aucun log disponible pour le moment.</p>
+          <p className="text-[var(--text-secondary)]">Aucun log disponible pour le moment.</p>
         ) : (
           logs.map((line, index) => (
             <p
@@ -145,11 +145,11 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
               className={clsx(
                 'whitespace-pre-wrap break-words',
                 line.level === 'error' && 'text-red-400',
-                line.level === 'success' && 'text-emerald-400',
-                line.level === 'info' && 'text-slate-100',
+                line.level === 'success' && 'text-green-400',
+                line.level === 'info' && 'text-[var(--text-primary)]',
               )}
             >
-              <span className="mr-2 text-slate-500">[{formatTime(line.timestamp)}]</span>
+              <span className="mr-2 text-[var(--text-secondary)]">[{formatTime(line.timestamp)}]</span>
               {line.message}
             </p>
           ))

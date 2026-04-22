@@ -1,8 +1,7 @@
 import axios, {
   AxiosError,
-  InternalAxiosRequestConfig,
 } from 'axios';
-import { clearAuthStorage, getToken } from '@/lib/auth';
+import { clearAuthStorage } from '@/lib/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_TIMEOUT_MS = 10_000;
@@ -31,19 +30,6 @@ export function registerUnauthorizedHandler(
   handler: UnauthorizedHandler,
 ): void {
   unauthorizedHandler = handler;
-}
-
-function attachAuthorizationHeader(
-  config: InternalAxiosRequestConfig,
-): InternalAxiosRequestConfig {
-  const token = getToken();
-
-  if (!token) {
-    return config;
-  }
-
-  config.headers.Authorization = `Bearer ${token}`;
-  return config;
 }
 
 function handleUnauthorized(): void {
@@ -96,13 +82,12 @@ export function getApiErrorMessage(error: unknown): string {
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT_MS,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
 });
-
-api.interceptors.request.use(attachAuthorizationHeader);
 
 api.interceptors.response.use(
   (response) => response,

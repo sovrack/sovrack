@@ -14,7 +14,7 @@ export function Backdrop() {
       type="button"
       aria-label="Close sidebar"
       onClick={closeMobileSidebar}
-      className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px] lg:hidden"
+      className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px] lg:hidden"
     />
   );
 }

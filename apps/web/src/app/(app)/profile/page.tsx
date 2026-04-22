@@ -8,6 +8,8 @@ import { SectionCard } from '@/components/layout/section-card';
 import { useAuth } from '@/hooks/useAuth';
 import { getApiErrorMessage } from '@/lib/api';
 import { usersService } from '@/services/users.service';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 const profileSchema = z
   .object({
@@ -134,19 +136,30 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
-      const payload = {
-        fullName: parsed.data.fullName.trim(),
-        ...(parsed.data.newPassword.length > 0
-          ? {
-              currentPassword: parsed.data.currentPassword,
-              newPassword: parsed.data.newPassword,
-              confirmNewPassword: parsed.data.confirmNewPassword,
-            }
-          : {}),
-      };
+      const nextFullName = parsed.data.fullName.trim();
+      const wantsProfileUpdate = nextFullName !== user.fullName.trim();
+      const wantsPasswordChange = parsed.data.newPassword.length > 0;
 
-      await usersService.update(user.id, payload);
-      await refreshUser();
+      if (!wantsProfileUpdate && !wantsPasswordChange) {
+        setToast({
+          tone: 'success',
+          message: 'Aucune modification détectée',
+        });
+        return;
+      }
+
+      if (wantsProfileUpdate) {
+        await usersService.update(user.id, { fullName: nextFullName });
+        await refreshUser();
+      }
+
+      if (wantsPasswordChange) {
+        await usersService.changeMyPassword({
+          currentPassword: parsed.data.currentPassword,
+          newPassword: parsed.data.newPassword,
+          confirmNewPassword: parsed.data.confirmNewPassword,
+        });
+      }
 
       setForm((previous) => ({
         ...previous,
@@ -157,9 +170,10 @@ export default function ProfilePage() {
 
       setToast({
         tone: 'success',
-        message:
-          parsed.data.newPassword.length > 0
-            ? 'Profil et mot de passe mis à jour avec succès'
+        message: wantsProfileUpdate && wantsPasswordChange
+          ? 'Profil et mot de passe mis à jour avec succès'
+          : wantsPasswordChange
+            ? 'Mot de passe mis à jour avec succès'
             : 'Profil mis à jour avec succès',
       });
     } catch (updateError) {
@@ -175,46 +189,41 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Compte"
         title="Mon profil"
         description="Mettez à jour votre nom et votre mot de passe."
       />
 
       {toast && (
-        <div
-          className={`rounded-xl px-4 py-3 text-sm font-medium ${
-            toast.tone === 'success'
-              ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border border-red-200 bg-red-50 text-red-700'
-          }`}
-        >
+        <Alert tone={toast.tone === 'success' ? 'success' : 'error'}>
           {toast.message}
-        </div>
+        </Alert>
       )}
 
-      <SectionCard className="max-w-2xl" contentClassName="!p-6">
+      <SectionCard className="max-w-3xl" contentClassName="!p-6">
         <div className="mb-6 flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500 text-2xl font-bold text-white">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--text-primary)] text-2xl font-bold text-[var(--bg-app)]">
             {user?.fullName?.charAt(0).toUpperCase() ?? 'U'}
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
               Compte
             </p>
-            <p className="mt-1 text-sm text-slate-600">{user?.email ?? 'N/A'}</p>
+            <p className="mt-1 text-sm text-[var(--text-secondary)] text-[var(--text-secondary)]">{user?.email ?? 'N/A'}</p>
           </div>
         </div>
 
         <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-medium text-slate-500">Rôle</p>
-            <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-slate-800">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3 border-[var(--border)]">
+            <p className="text-xs font-medium text-[var(--text-secondary)]">Rôle</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)] text-[var(--text-primary)]">
               <Shield size={14} />
               {user?.role === 'ADMIN' ? 'Administrateur' : 'Développeur'}
             </p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-medium text-slate-500">Email</p>
-            <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-slate-800">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3 border-[var(--border)]">
+            <p className="text-xs font-medium text-[var(--text-secondary)]">Email</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)] text-[var(--text-primary)]">
               <User size={14} />
               {user?.email ?? 'N/A'}
             </p>
@@ -223,24 +232,24 @@ export default function ProfilePage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
               Nom complet
             </label>
             <input
               value={form.fullName}
               onChange={(event) => setField('fullName', event.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20 border-[var(--border)] text-[var(--text-primary)]"
             />
             {errors.fullName && (
               <p className="mt-1 text-xs text-red-600">{errors.fullName}</p>
             )}
           </div>
 
-          <div className="h-px bg-slate-200" />
+          <div className="h-px bg-[var(--hover)]" />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
                 Mot de passe actuel
               </label>
               <input
@@ -250,7 +259,7 @@ export default function ProfilePage() {
                   setField('currentPassword', event.target.value)
                 }
                 placeholder="Saisir uniquement si vous changez le mot de passe"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20 border-[var(--border)] text-[var(--text-primary)]"
               />
               {errors.currentPassword && (
                 <p className="mt-1 text-xs text-red-600">
@@ -260,7 +269,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
                 Nouveau mot de passe
               </label>
               <input
@@ -268,7 +277,7 @@ export default function ProfilePage() {
                 value={form.newPassword}
                 onChange={(event) => setField('newPassword', event.target.value)}
                 placeholder="Minimum 8 caractères"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20 border-[var(--border)] text-[var(--text-primary)]"
               />
               {errors.newPassword && (
                 <p className="mt-1 text-xs text-red-600">{errors.newPassword}</p>
@@ -276,7 +285,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
                 Confirmer le mot de passe
               </label>
               <input
@@ -286,7 +295,7 @@ export default function ProfilePage() {
                   setField('confirmNewPassword', event.target.value)
                 }
                 placeholder="Répéter le nouveau mot de passe"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20 border-[var(--border)] text-[var(--text-primary)]"
               />
               {errors.confirmNewPassword && (
                 <p className="mt-1 text-xs text-red-600">
@@ -296,14 +305,14 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={!canSubmit}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full"
           >
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             Enregistrer les modifications
-          </button>
+          </Button>
         </form>
       </SectionCard>
     </div>

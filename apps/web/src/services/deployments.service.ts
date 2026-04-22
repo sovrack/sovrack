@@ -1,5 +1,9 @@
 import api from '@/lib/api';
-import type { Deployment, CreateDeploymentPayload } from '@/types/deployment';
+import type {
+  CreateDeploymentPayload,
+  Deployment,
+  DeploymentMutation,
+} from '@/types/deployment';
 
 export const deploymentsService = {
   async getAll(): Promise<Deployment[]> {
@@ -17,18 +21,18 @@ export const deploymentsService = {
     return res.data;
   },
 
-  async create(payload: CreateDeploymentPayload): Promise<Deployment> {
-    const res = await api.post<Deployment>('/deployments', payload);
+  async create(payload: CreateDeploymentPayload): Promise<DeploymentMutation> {
+    const res = await api.post<DeploymentMutation>('/deployments', payload);
     return res.data;
   },
 
-  async cancel(id: string): Promise<Deployment> {
-    const res = await api.post<Deployment>(`/deployments/${id}/cancel`);
+  async cancel(id: string): Promise<DeploymentMutation> {
+    const res = await api.post<DeploymentMutation>(`/deployments/${id}/cancel`);
     return res.data;
   },
 
-  async rollback(id: string): Promise<Deployment> {
-    const res = await api.post<Deployment>(`/deployments/${id}/rollback`);
+  async rollback(id: string): Promise<DeploymentMutation> {
+    const res = await api.post<DeploymentMutation>(`/deployments/${id}/rollback`);
     return res.data;
   },
 };

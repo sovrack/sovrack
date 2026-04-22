@@ -39,7 +39,7 @@ export default function EditProjectPage({ params }: EditProjectPageProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 size={24} className="animate-spin text-indigo-500" />
+        <Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" />
       </div>
     );
   }
@@ -61,7 +61,7 @@ export default function EditProjectPage({ params }: EditProjectPageProps) {
         actions={
           <Link
             href={`/projects/${id}`}
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-secondary)]"
           >
             <ArrowLeft size={15} />
             Back to {project.name}

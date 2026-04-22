@@ -16,10 +16,8 @@ import api, {
   registerUnauthorizedHandler,
 } from '@/lib/api';
 import {
+  COOKIE_SESSION_TOKEN,
   clearAuthStorage,
-  getToken,
-  isTokenExpired,
-  persistToken,
 } from '@/lib/auth';
 import type { AuthUser, LoginResponse } from '@/types/auth';
 
@@ -69,17 +67,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [pathname, router]);
 
   const refreshUser = useCallback(async () => {
-    const currentToken = getToken();
-
-    if (!currentToken || isTokenExpired(currentToken)) {
-      handleLogout(false);
-      setLoading(false);
-      return;
-    }
-
     try {
       const response = await api.get<AuthUser>('/auth/me');
-      setToken(currentToken);
+      setToken(COOKIE_SESSION_TOKEN);
       setUser(response.data);
       setError(null);
     } catch (authError) {
@@ -129,8 +119,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         password,
       });
 
-      persistToken(response.data.access_token);
-      setToken(response.data.access_token);
+      setToken(COOKIE_SESSION_TOKEN);
       setUser(response.data.user);
       setError(null);
     } catch (loginError) {

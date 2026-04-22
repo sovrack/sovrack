@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getToken } from '@/lib/auth';
 import { getSocket } from '@/lib/socket';
 import type {
   DeploymentErrorEvent,
@@ -119,11 +118,6 @@ export function useDeploymentSocket({
 
     const rootSocket = getSocket();
     const deploymentSocket = rootSocket.io.socket('/deployments');
-    const token = getToken();
-
-    if (token) {
-      deploymentSocket.auth = { token: `Bearer ${token}` };
-    }
 
     deploymentSocket.io.opts.reconnection = true;
     deploymentSocket.io.opts.reconnectionDelay = 1000;

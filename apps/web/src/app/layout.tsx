@@ -31,8 +31,28 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const themeScript = `
+    (function () {
+      try {
+        var key = 'deploy-automation-theme';
+        var saved = localStorage.getItem(key);
+        var theme = saved === 'light' || saved === 'dark' ? saved : 'dark';
+        var root = document.documentElement;
+        root.classList.remove('light', 'dark');
+        root.classList.add(theme);
+        root.style.colorScheme = theme;
+      } catch (_error) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.style.colorScheme = 'dark';
+      }
+    })();
+  `;
+
   return (
-    <html lang="en">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`${outfit.variable} ${plexMono.variable} app-shell`}>
         <Providers>
           <ErrorBoundary>{children}</ErrorBoundary>

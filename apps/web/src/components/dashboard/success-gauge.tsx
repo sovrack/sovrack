@@ -15,17 +15,17 @@ export function SuccessGauge({ percentage, label = 'Success Rate' }: SuccessGaug
 
   const color =
     safePercent >= 80
-      ? '#12b76a'
+      ? '#22c55e'
       : safePercent >= 50
-        ? '#f79009'
-        : '#f04438';
+        ? '#eab308'
+        : '#ef4444';
 
   const bgColor =
     safePercent >= 80
-      ? '#d1fadf'
+      ? 'rgba(34, 197, 94, 0.1)'
       : safePercent >= 50
-        ? '#fef0c7'
-        : '#fee4e2';
+        ? 'rgba(234, 179, 8, 0.1)'
+        : 'rgba(239, 68, 68, 0.1)';
 
   return (
     <div className="flex flex-col items-center">
@@ -60,7 +60,7 @@ export function SuccessGauge({ percentage, label = 'Success Rate' }: SuccessGaug
           textAnchor="middle"
           fontSize={26}
           fontWeight={700}
-          fill="#101828"
+          fill="var(--text-primary)"
           fontFamily="system-ui, sans-serif"
         >
           {safePercent}%
@@ -70,7 +70,7 @@ export function SuccessGauge({ percentage, label = 'Success Rate' }: SuccessGaug
           y={cy + 14}
           textAnchor="middle"
           fontSize={11}
-          fill="#98a2b3"
+          fill="var(--text-muted)"
           fontFamily="system-ui, sans-serif"
         >
           {label}
@@ -83,7 +83,7 @@ export function SuccessGauge({ percentage, label = 'Success Rate' }: SuccessGaug
           className="h-2 w-2 rounded-full"
           style={{ backgroundColor: color }}
         />
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-[var(--text-secondary)]">
           {safePercent >= 80
             ? 'Excellent'
             : safePercent >= 50

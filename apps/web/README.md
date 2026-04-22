@@ -24,12 +24,17 @@ src/
 ├── app/              # Next.js App Router
 │   ├── (auth)/       # Auth pages (login)
 │   └── (app)/        # App pages (protected)
+├── config/           # Centralized app config (navigation/layout)
 ├── components/       # Reusable components
 ├── hooks/            # Custom React hooks
 ├── lib/              # Utilities (API client, auth)
 ├── types/            # TypeScript types
 └── styles/           # Global styles (Tailwind)
 ```
+
+Additional architecture guide:
+
+- `docs/frontend-organization.md`
 
 ## 🚀 Getting Started
 
@@ -67,12 +72,60 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Scaffold a New Page (recommended)
+
+```bash
+npm run scaffold:page -- /billing "Billing"
+```
+
+Then register labels/navigation in `src/config/navigation.ts`.
+
+### Scaffold a Reusable Feature Module
+
+```bash
+npm run scaffold:feature -- billing
+```
+
+This creates:
+
+- `src/components/billing/billing-panel.tsx`
+- `src/hooks/useBilling.ts`
+- `src/services/billing.service.ts`
+- `src/types/billing.ts`
+
+### Full Frontend Validation (recommended before push)
+
+```bash
+npm run check:frontend
+```
+
+This runs:
+
+1. Architecture checks (routes + color gate)
+2. ESLint
+3. TypeScript type-check
+
 ### Build
 
 ```bash
 npm run build
 npm start
 ```
+
+## API Contract Generation
+
+Frontend types are generated from backend OpenAPI:
+
+```bash
+npm run contract:generate
+```
+
+This runs:
+
+1. Backend OpenAPI export
+2. Type generation into `src/generated/api-contract.ts`
+
+Use generated types via `src/types/api-contract.ts` as the source of truth for request/response contracts.
 
 ## 📊 Sprints
 

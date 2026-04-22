@@ -49,7 +49,7 @@ function parseStaticLogs(logs: string | null): LogLine[] {
     }));
 }
 
-function formatDate(str: string | null): string {
+function formatDate(str: string | null | undefined): string {
   if (!str) return '—';
   return new Date(str).toLocaleString(undefined, {
     dateStyle: 'medium',
@@ -57,7 +57,10 @@ function formatDate(str: string | null): string {
   });
 }
 
-function duration(start: string | null, end: string | null): string {
+function duration(
+  start: string | null | undefined,
+  end: string | null | undefined,
+): string {
   if (!start) return '—';
   const ms = new Date(end ?? Date.now()).getTime() - new Date(start).getTime();
   const s = Math.floor(ms / 1000);
@@ -165,8 +168,8 @@ export default function DeploymentDetailPage({ params }: Props) {
     setCanceling(true);
     setActionError(null);
     try {
-      const updated = await deploymentsService.cancel(id);
-      setDeployment(updated);
+      await deploymentsService.cancel(id);
+      await fetchDeployment();
     } catch (err) {
       setActionError(getApiErrorMessage(err));
     } finally {
@@ -206,7 +209,7 @@ export default function DeploymentDetailPage({ params }: Props) {
           <>
             <Link
               href="/deployments"
-              className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+              className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
             >
               <ArrowLeft size={15} />
               Back to Deployments
@@ -217,16 +220,16 @@ export default function DeploymentDetailPage({ params }: Props) {
       />
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
       )}
       {actionError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{actionError}</div>
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{actionError}</div>
       )}
 
       {loading && (
         <div className="space-y-4">
-          <div className="h-28 animate-pulse rounded-2xl bg-slate-100" />
-          <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />
+          <div className="h-28 animate-pulse rounded-2xl bg-[var(--bg-card)]/10" />
+          <div className="h-64 animate-pulse rounded-2xl bg-[var(--bg-card)]/10" />
         </div>
       )}
 
@@ -235,58 +238,58 @@ export default function DeploymentDetailPage({ params }: Props) {
           <SectionCard title="Deployment details" contentClassName="p-5">
             <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Project</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Project</p>
                 <Link href={`/projects/${deployment.project.id}`}
-                  className="mt-1 flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition">
+                  className="mt-1 flex items-center gap-1 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition">
                   {deployment.project.name} <ExternalLink size={12} />
                 </Link>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Environment</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Environment</p>
                 <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                   deployment.environment.name === 'PRODUCTION'
-                    ? 'bg-red-50 text-red-600'
-                    : 'bg-blue-50 text-blue-600'
+                    ? 'bg-red-500/15 text-red-300'
+                    : 'bg-[var(--text-primary)]/15 text-[var(--text-secondary)]'
                 }`}>
                   {deployment.environment.name}
                 </span>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Branch</p>
-                <p className="mt-1 font-mono text-sm text-slate-700">{deployment.branch}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Branch</p>
+                <p className="mt-1 font-mono text-sm text-[var(--text-primary)]">{deployment.branch}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Triggered by</p>
-                <p className="mt-1 text-sm text-slate-700">{deployment.user.fullName}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Triggered by</p>
+                <p className="mt-1 text-sm text-[var(--text-primary)]">{deployment.user.fullName}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Started</p>
-                <p className="mt-1 text-sm text-slate-700">{formatDate(deployment.startedAt)}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Started</p>
+                <p className="mt-1 text-sm text-[var(--text-primary)]">{formatDate(deployment.startedAt)}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Finished</p>
-                <p className="mt-1 text-sm text-slate-700">{formatDate(deployment.finishedAt)}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Finished</p>
+                <p className="mt-1 text-sm text-[var(--text-primary)]">{formatDate(deployment.finishedAt)}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Duration</p>
-                <p className="mt-1 flex items-center gap-1 text-sm text-slate-700">
-                  <Clock size={12} className="text-slate-400" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Duration</p>
+                <p className="mt-1 flex items-center gap-1 text-sm text-[var(--text-primary)]">
+                  <Clock size={12} className="text-[var(--text-secondary)]" />
                   {duration(deployment.startedAt, deployment.finishedAt)}
-                  {isActive && <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />}
+                  {isActive && <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-[var(--text-primary)] animate-pulse" />}
                 </p>
               </div>
               {deployment.dockerImage && (
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Image</p>
-                  <p className="mt-1 font-mono text-xs text-slate-500 truncate">{deployment.dockerImage}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Image</p>
+                  <p className="mt-1 font-mono text-xs text-[var(--text-secondary)] truncate">{deployment.dockerImage}</p>
                 </div>
               )}
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+            <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
               {isActive && canManageDeployment && (
                 <button onClick={() => void handleCancel()} disabled={canceling}
-                  className="flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50">
+                  className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50">
                   {canceling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                   Cancel Deployment
                 </button>
@@ -294,14 +297,14 @@ export default function DeploymentDetailPage({ params }: Props) {
               {(resolvedStatus === 'SUCCESS' || resolvedStatus === 'FAILED') &&
                 canRollbackDeployment && (
                 <button onClick={() => void handleRollback()} disabled={rollingBack}
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
+                  className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10 disabled:opacity-50">
                   {rollingBack ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                   Rollback
                 </button>
                 )}
               {!isActive && canManageDeployment && (
-                <Link href="/deployments/new"
-                  className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                <Link href="/deployments?dialog=create-deployment"
+                  className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
                   <Rocket size={14} /> Deploy Again
                 </Link>
               )}
@@ -314,8 +317,8 @@ export default function DeploymentDetailPage({ params }: Props) {
           >
             <div className="mb-3 flex items-center justify-between">
               {isActive && (
-                <span className="flex items-center gap-1.5 text-xs text-blue-600">
-                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                <span className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[var(--text-primary)] animate-pulse" />
                   Live — {isConnected ? 'WebSocket connecté' : 'reconnexion…'}
                 </span>
               )}

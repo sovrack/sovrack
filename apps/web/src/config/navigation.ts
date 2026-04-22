@@ -1,5 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+  ClipboardList,
+  Database,
   FolderGit2,
   GitBranch,
   Hammer,
@@ -8,6 +10,7 @@ import {
   Rocket,
   Server,
   Settings,
+  TerminalSquare,
   Users,
 } from 'lucide-react';
 
@@ -33,6 +36,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
       { href: '/projects', label: 'Projects', icon: FolderGit2 },
       { href: '/deployments', label: 'Deployments', icon: Rocket },
       { href: '/builds', label: 'Builds', icon: Hammer },
+      { href: '/terminal', label: 'Terminal', icon: TerminalSquare },
     ],
   },
   {
@@ -41,6 +45,8 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     items: [
       { href: '/settings/ssh-keys', label: 'SSH Keys', icon: KeyRound },
       { href: '/settings/git', label: 'Git', icon: GitBranch },
+      { href: '/settings/registry', label: 'Registry', icon: Database, adminOnly: true },
+      { href: '/settings/audit-logs', label: 'Audit Logs', icon: ClipboardList, adminOnly: true },
       { href: '/admin/users', label: 'Users & Teams', icon: Users, adminOnly: true },
       { href: '/admin/servers', label: 'Remote Servers', icon: Server, adminOnly: true },
       { href: '/admin/settings', label: 'Settings', icon: Settings, adminOnly: true },
@@ -53,9 +59,12 @@ export const APP_ROUTE_LABELS: Record<string, string> = {
   '/projects': 'Projects',
   '/deployments': 'Deployments',
   '/builds': 'Builds',
+  '/terminal': 'Terminal',
   '/profile': 'Profile',
   '/settings/ssh-keys': 'SSH Keys',
   '/settings/git': 'Git',
+  '/settings/registry': 'Registry',
+  '/settings/audit-logs': 'Audit Logs',
   '/admin/users': 'Users & Teams',
   '/admin/teams': 'Users & Teams',
   '/admin/servers': 'Remote Servers',

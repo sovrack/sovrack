@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type UsePaginationOptions = {
   pageSize?: number;
@@ -18,11 +18,15 @@ export function usePagination<T>(items: T[], options: UsePaginationOptions = {})
     return items.slice(start, start + safePageSize);
   }, [items, page, safePageSize]);
 
-  const goToPage = (p: number) => {
-    setPage(Math.min(Math.max(1, p), totalPages));
-  };
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
 
-  const reset = () => setPage(1);
+  const goToPage = useCallback((p: number) => {
+    setPage(Math.min(Math.max(1, p), totalPages));
+  }, [totalPages]);
+
+  const reset = useCallback(() => setPage(1), []);
 
   return { page, totalPages, paged, goToPage, reset };
 }

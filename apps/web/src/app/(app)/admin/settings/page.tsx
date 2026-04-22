@@ -1,19 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Loader2,
-  Save,
-  ShieldCheck,
-  XCircle,
-} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Loader2, Save } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { getApiErrorMessage } from '@/lib/api';
 import { platformConfigService } from '@/services/platform-config.service';
 import type { PlatformConfigItem } from '@/types/platform-config';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 type ToastTone = 'success' | 'error';
 
@@ -26,16 +21,8 @@ type ToastItem = {
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [savingKey, setSavingKey] = useState<string | null>(null);
-  const [testingGitlab, setTestingGitlab] = useState(false);
-  const [gitlabTest, setGitlabTest] = useState<{
-    ok: boolean;
-    message: string;
-  } | null>(null);
+  const [saving, setSaving] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-
-  const [gitlabUrl, setGitlabUrl] = useState('');
-  const [gitlabToken, setGitlabToken] = useState('');
   const [platformName, setPlatformName] = useState('Deploy Automation');
 
   const showToast = useCallback((message: string, tone: ToastTone) => {
@@ -54,8 +41,6 @@ export default function AdminSettingsPage() {
       const asMap = new Map<string, PlatformConfigItem>(
         rows.map((item) => [item.key, item]),
       );
-      setGitlabUrl(asMap.get('GITLAB_URL')?.value ?? '');
-      setGitlabToken('');
       setPlatformName(asMap.get('PLATFORM_NAME')?.value ?? 'Deploy Automation');
     } catch (fetchError) {
       setError(getApiErrorMessage(fetchError));
@@ -68,52 +53,13 @@ export default function AdminSettingsPage() {
     void fetchSettings();
   }, [fetchSettings]);
 
-  const hasGitlabTokenInput = gitlabToken.trim().length > 0;
-
-  const canSaveGitlab = useMemo(
-    () => gitlabUrl.trim().length > 0,
-    [gitlabUrl],
-  );
-
-  const saveGitlab = async () => {
-    if (!canSaveGitlab) {
-      showToast('GitLab URL est requis', 'error');
-      return;
-    }
-
-    setSavingKey('GITLAB');
-    setError(null);
-    try {
-      await platformConfigService.update('GITLAB_URL', {
-        value: gitlabUrl.trim(),
-        isSecret: false,
-      });
-
-      if (hasGitlabTokenInput) {
-        await platformConfigService.update('GITLAB_TOKEN', {
-          value: gitlabToken.trim(),
-          isSecret: true,
-        });
-        setGitlabToken('');
-      }
-
-      showToast('Configuration GitLab sauvegardée', 'success');
-    } catch (saveError) {
-      const message = getApiErrorMessage(saveError);
-      setError(message);
-      showToast(message, 'error');
-    } finally {
-      setSavingKey(null);
-    }
-  };
-
   const savePlatformName = async () => {
     if (!platformName.trim()) {
       showToast('Le nom de plateforme est requis', 'error');
       return;
     }
 
-    setSavingKey('PLATFORM_NAME');
+    setSaving(true);
     setError(null);
     try {
       await platformConfigService.update('PLATFORM_NAME', {
@@ -126,42 +72,18 @@ export default function AdminSettingsPage() {
       setError(message);
       showToast(message, 'error');
     } finally {
-      setSavingKey(null);
-    }
-  };
-
-  const testGitlab = async () => {
-    setTestingGitlab(true);
-    setError(null);
-    try {
-      const result = await platformConfigService.testGitlab();
-      setGitlabTest(result);
-      showToast(result.message, 'success');
-    } catch (testError) {
-      const message = getApiErrorMessage(testError);
-      setGitlabTest({ ok: false, message });
-      setError(message);
-      showToast(message, 'error');
-    } finally {
-      setTestingGitlab(false);
+      setSaving(false);
     }
   };
 
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="h-8 w-64 animate-pulse rounded bg-slate-200" />
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="h-8 w-64 animate-pulse rounded bg-[var(--hover)]" />
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
           <div className="space-y-4">
-            <div className="h-10 animate-pulse rounded bg-slate-200" />
-            <div className="h-10 animate-pulse rounded bg-slate-200" />
-            <div className="h-10 w-40 animate-pulse rounded bg-slate-200" />
-          </div>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <div className="space-y-4">
-            <div className="h-10 animate-pulse rounded bg-slate-200" />
-            <div className="h-10 w-40 animate-pulse rounded bg-slate-200" />
+            <div className="h-10 animate-pulse rounded bg-[var(--hover)]" />
+            <div className="h-10 w-40 animate-pulse rounded bg-[var(--hover)]" />
           </div>
         </div>
       </div>
@@ -173,126 +95,36 @@ export default function AdminSettingsPage() {
       <PageHeader
         eyebrow="Administration"
         title="Platform Settings"
-        description="Configure global GitLab access and platform identity from the UI."
+        description="Configure global platform identity."
       />
 
-      {error && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
       <SectionCard
-        title="Configuration GitLab globale"
-        description="URL et token de test global administrateur."
-        actions={
-          gitlabTest ? (
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
-                gitlabTest.ok
-                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
-                  : 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300'
-              }`}
-            >
-              {gitlabTest.ok ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
-              {gitlabTest.ok ? 'Connexion OK' : 'Connexion KO'}
-            </span>
-          ) : null
-        }
+        title="Platform name"
+        description="Defines the global identity displayed throughout the interface."
       >
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="lg:col-span-2">
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              GitLab URL
-            </label>
-            <input
-              type="text"
-              value={gitlabUrl}
-              onChange={(event) => setGitlabUrl(event.target.value)}
-              placeholder="https://gitlab.example.com"
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
-            />
-          </div>
-
-          <div className="lg:col-span-2">
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Token global
-            </label>
-            <input
-              type="password"
-              value={gitlabToken}
-              onChange={(event) => setGitlabToken(event.target.value)}
-              placeholder="***"
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-mono text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
-            />
-            <p className="mt-1 text-xs text-slate-400">
-              Laissez vide pour conserver le token secret actuel.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void saveGitlab()}
-            disabled={savingKey === 'GITLAB'}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
-          >
-            {savingKey === 'GITLAB' ? (
-              <Loader2 size={15} className="animate-spin" />
-            ) : (
-              <Save size={15} />
-            )}
-            Sauvegarder
-          </button>
-          <button
-            type="button"
-            onClick={() => void testGitlab()}
-            disabled={testingGitlab}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-          >
-            {testingGitlab ? (
-              <Loader2 size={15} className="animate-spin" />
-            ) : (
-              <ShieldCheck size={15} />
-            )}
-            Tester connexion
-          </button>
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Nom de la plateforme"
-        description="Définit l’identité globale affichée dans l’interface."
-      >
-
         <div className="mt-4 max-w-2xl">
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
             PLATFORM_NAME
           </label>
           <input
             type="text"
             value={platformName}
             onChange={(event) => setPlatformName(event.target.value)}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+            className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
           />
         </div>
 
-        <button
+        <Button
           type="button"
           onClick={() => void savePlatformName()}
-          disabled={savingKey === 'PLATFORM_NAME'}
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
+          disabled={saving}
+          className="mt-5"
         >
-          {savingKey === 'PLATFORM_NAME' ? (
-            <Loader2 size={15} className="animate-spin" />
-          ) : (
-            <Save size={15} />
-          )}
-          Sauvegarder
-        </button>
+          {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+          Save
+        </Button>
       </SectionCard>
 
       <div className="pointer-events-none fixed right-4 top-4 z-[100] space-y-2">
@@ -300,9 +132,7 @@ export default function AdminSettingsPage() {
           <div
             key={toast.id}
             className={`pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${
-              toast.tone === 'success'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-red-600 text-white'
+              toast.tone === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
             }`}
           >
             {toast.message}

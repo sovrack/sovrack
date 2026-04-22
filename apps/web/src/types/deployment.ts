@@ -1,47 +1,13 @@
-export type DeploymentStatus =
-  | 'PENDING'
-  | 'RUNNING'
-  | 'SUCCESS'
-  | 'FAILED'
-  | 'CANCELED';
+import type {
+  CreateDeploymentApiPayload,
+  DeploymentApi,
+  DeploymentMutationApi,
+} from './api-contract';
 
-export type Deployment = {
-  id: string;
-  status: DeploymentStatus;
-  branch: string;
-  logs: string | null;
-  dockerImage: string | null;
-  startedAt: string | null;
-  finishedAt: string | null;
-  createdAt: string;
-  project: {
-    id: string;
-    name: string;
-    gitlabUrl?: string;
-  };
-  environment: {
-    id: string;
-    name: string;
-    server?: {
-      id: string;
-      name: string;
-      host: string;
-    };
-  };
-  user: {
-    id: string;
-    fullName: string;
-    email: string;
-    name?: string;
-  };
-};
-
-export type CreateDeploymentPayload = {
-  projectId: string;
-  environmentId: string;
-  branch?: string;
-  repoId?: number;
-};
+export type Deployment = DeploymentApi;
+export type DeploymentMutation = DeploymentMutationApi;
+export type DeploymentStatus = Deployment['status'];
+export type CreateDeploymentPayload = CreateDeploymentApiPayload;
 
 export type LogLevel = 'info' | 'error' | 'success';
 
