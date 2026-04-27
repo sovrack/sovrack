@@ -9,7 +9,12 @@ export class InstallToolsDto {
   @IsBoolean()
   docker?: boolean;
 
-  @ApiPropertyOptional({ example: true })
+  @ApiPropertyOptional({
+    example: false,
+    deprecated: true,
+    description:
+      'Ignored. Ansible is never installed on target VPS; it runs only from the control node.',
+  })
   @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()

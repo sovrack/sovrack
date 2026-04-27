@@ -19,6 +19,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
 import { RetryServerPreparationDto } from '../dto/retry-server-preparation.dto';
 import {
+  PREPARATION_PROFILE_DEFAULTS,
   PREPARATION_OPTIONS,
   PreparationRoleKey,
   resolvePreparationOptions,
@@ -34,6 +35,7 @@ import { ServersSshService } from './servers-ssh.service';
 type StartPreparationOptions = {
   retryOfPreparationId?: string;
   triggerSource?: string;
+  forcedRoles?: PreparationRoleKey[];
 };
 
 type ServerPreparationReadiness = {
@@ -135,6 +137,7 @@ export class ServerPreparationService {
         'Ansible is executed from the backend/control node. Target VPS hosts are SSH-managed and do not install Ansible.',
       profiles: ['BASIC', 'WEB', 'DATABASE', 'RUNNER', 'FULL', 'CUSTOM'],
       options: PREPARATION_OPTIONS,
+      profileDefaults: PREPARATION_PROFILE_DEFAULTS,
     };
   }
 
@@ -199,7 +202,11 @@ export class ServerPreparationService {
     await this.assertPreparationPrerequisites(server);
 
     const resolved = resolvePreparationOptions(dto);
-    if (resolved.roles.length === 0) {
+    const resolvedRoles =
+      options?.forcedRoles && options.forcedRoles.length > 0
+        ? options.forcedRoles
+        : resolved.roles;
+    if (resolvedRoles.length === 0) {
       throw new BadRequestException(
         'Au moins une option de préparation doit être sélectionnée.',
       );
@@ -232,10 +239,10 @@ export class ServerPreparationService {
               ...resolved.selectedOptions,
               _gitlabRunnerExecutor: resolved.gitlabRunnerExecutor,
             } as Prisma.InputJsonValue,
-            resolvedRolesJson: resolved.roles as Prisma.InputJsonValue,
+            resolvedRolesJson: resolvedRoles as Prisma.InputJsonValue,
             retryOfPreparationId: options?.retryOfPreparationId,
             tasks: {
-              create: resolved.roles.map((roleKey, index) => ({
+              create: resolvedRoles.map((roleKey, index) => ({
                 roleKey,
                 taskName: this.roleDisplayName(roleKey),
                 orderIndex: index + 1,
@@ -274,7 +281,7 @@ export class ServerPreparationService {
       {
         preparationId: preparation.id,
         selectedOptions: resolved.selectedOptions,
-        resolvedRoles: resolved.roles,
+        resolvedRoles,
         retryOfPreparationId: options?.retryOfPreparationId ?? null,
       },
     );
@@ -282,14 +289,14 @@ export class ServerPreparationService {
     await this.audit.record(server.id, 'SERVER_PREPARATION_START', actorId, {
       preparationId: preparation.id,
       profile: resolved.profile,
-      roles: resolved.roles,
+      roles: resolvedRoles,
     });
 
     this.runPreparationInBackground(
       server,
       preparation.id,
       job.id,
-      resolved.roles,
+      resolvedRoles,
     );
     return preparation;
   }
@@ -334,8 +341,17 @@ export class ServerPreparationService {
     const previous = await this.getPreparation(id);
     const rawOptions = previous.selectedOptionsJson as Record<string, unknown>;
     const { _gitlabRunnerExecutor, ...boolOptions } = rawOptions;
+    const restoredRoles = Array.isArray(previous.resolvedRolesJson)
+      ? previous.resolvedRolesJson
+          .filter((role): role is string => typeof role === 'string')
+          .filter((role): role is PreparationRoleKey =>
+            this.knownRoleKeys.has(role as PreparationRoleKey),
+          )
+      : [];
     const restoredExecutor =
-      typeof _gitlabRunnerExecutor === 'string' ? _gitlabRunnerExecutor : 'docker';
+      typeof _gitlabRunnerExecutor === 'string'
+        ? _gitlabRunnerExecutor
+        : 'docker';
     await this.audit.record(
       previous.serverId,
       'SERVER_PREPARATION_RETRY',
@@ -353,7 +369,11 @@ export class ServerPreparationService {
         gitlabRunnerExecutor: restoredExecutor,
       } as StartServerPreparationDto,
       actorId,
-      { retryOfPreparationId: id, triggerSource: 'RETRY' },
+      {
+        retryOfPreparationId: id,
+        triggerSource: 'RETRY',
+        forcedRoles: restoredRoles,
+      },
     );
   }
 
@@ -469,7 +489,8 @@ export class ServerPreparationService {
       const { _gitlabRunnerExecutor, ...boolOptions } = rawOptions;
       const selectedOptions = boolOptions as Record<string, boolean>;
       const gitlabRunnerExecutor =
-        typeof _gitlabRunnerExecutor === 'string' && _gitlabRunnerExecutor.length > 0
+        typeof _gitlabRunnerExecutor === 'string' &&
+        _gitlabRunnerExecutor.length > 0
           ? _gitlabRunnerExecutor
           : 'docker';
 
@@ -635,18 +656,22 @@ export class ServerPreparationService {
     source: string,
     message: string,
   ): Promise<void> {
-    const lineNumber =
-      (await this.prisma.serverPreparationLog.count({
+    const created = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`prep-log:${preparationId}`}))`;
+      const lastLine = await tx.serverPreparationLog.findFirst({
         where: { preparationId },
-      })) + 1;
-    const created = await this.prisma.serverPreparationLog.create({
-      data: {
-        preparationId,
-        level,
-        source,
-        message: this.redactSecrets(message),
-        lineNumber,
-      },
+        orderBy: { lineNumber: 'desc' },
+        select: { lineNumber: true },
+      });
+      return await tx.serverPreparationLog.create({
+        data: {
+          preparationId,
+          level,
+          source,
+          message: this.redactSecrets(message),
+          lineNumber: (lastLine?.lineNumber ?? 0) + 1,
+        },
+      });
     });
     this.gateway.emitLog(created);
   }

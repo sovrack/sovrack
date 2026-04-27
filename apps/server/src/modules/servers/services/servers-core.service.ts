@@ -9,6 +9,7 @@ import {
   Server,
   ServerConnectionMode,
   ServerJobType,
+  ServerStatus,
 } from '@prisma/client';
 import { PaginationDto, paginate } from '../../../common/dto/pagination.dto';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -17,11 +18,16 @@ import {
   ServerConnectionModeDto,
 } from '../dto/create-server.dto';
 import { UpdateServerDto } from '../dto/update-server.dto';
-import { ServersAnsibleService } from './servers-ansible.service';
 import { ServersCryptoService } from './servers-crypto.service';
 import { ServersJobsService } from './servers-jobs.service';
 import { ServersSshService } from './servers-ssh.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';
+import { PrepareServerDto } from '../dto/prepare-server.dto';
+import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
+import { ServerDetectionService } from './server-detection.service';
+import { ServerPreparationService } from './server-preparation.service';
+import { ServerVerificationService } from './server-verification.service';
+import { ServerAuditService } from './server-audit.service';
 import {
   CreateServerResult,
   ServerJobsListResult,
@@ -38,8 +44,11 @@ export class ServersCoreService {
     private readonly prisma: PrismaService,
     private readonly crypto: ServersCryptoService,
     private readonly ssh: ServersSshService,
-    private readonly ansible: ServersAnsibleService,
     private readonly jobs: ServersJobsService,
+    private readonly detection: ServerDetectionService,
+    private readonly preparation: ServerPreparationService,
+    private readonly verification: ServerVerificationService,
+    private readonly audit: ServerAuditService,
   ) {}
 
   async create(
@@ -63,7 +72,6 @@ export class ServersCoreService {
     const onboardingStep = this.resolveOnboardingStep({
       isVerified: false,
       hasDocker: false,
-      hasAnsible: false,
       hasRunner: false,
       // Le serveur est toujours créé en étape PENDING:
       // la clé publique doit être installée explicitement via install-key.
@@ -80,10 +88,16 @@ export class ServersCoreService {
         sshPublicKey: sshMaterial.publicKey,
         connectionMode,
         onboardingStep,
+        status: ServerStatus.NEW,
       },
     });
 
     await this.recordAuditLog(actorUserId, 'SERVER_CREATE', server.id, {
+      name: server.name,
+      host: server.host,
+      connectionMode: server.connectionMode,
+    });
+    await this.audit.record(server.id, 'SERVER_CREATE', actorUserId, {
       name: server.name,
       host: server.host,
       connectionMode: server.connectionMode,
@@ -148,7 +162,6 @@ export class ServersCoreService {
     const resetOnboardingStep = this.resolveOnboardingStep({
       isVerified: false,
       hasDocker: false,
-      hasAnsible: false,
       hasRunner: false,
       hasSshKeyInstalled: false,
     });
@@ -169,24 +182,21 @@ export class ServersCoreService {
       ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       ...(dto.isVerified !== undefined && { isVerified: dto.isVerified }),
       ...(dto.hasDocker !== undefined && { hasDocker: dto.hasDocker }),
-      ...(dto.hasAnsible !== undefined && { hasAnsible: dto.hasAnsible }),
       ...(dto.hasRunner !== undefined && { hasRunner: dto.hasRunner }),
       ...(resetVerification && {
         isVerified: false,
         hasDocker: false,
-        hasAnsible: false,
         hasRunner: false,
+        status: ServerStatus.NEW,
         onboardingStep: resetOnboardingStep,
       }),
       ...(!resetVerification &&
         (dto.isVerified !== undefined ||
           dto.hasDocker !== undefined ||
-          dto.hasAnsible !== undefined ||
           dto.hasRunner !== undefined) && {
           onboardingStep: this.resolveOnboardingStep({
             isVerified: dto.isVerified ?? existing.isVerified,
             hasDocker: dto.hasDocker ?? existing.hasDocker,
-            hasAnsible: dto.hasAnsible ?? existing.hasAnsible,
             hasRunner: dto.hasRunner ?? existing.hasRunner,
             hasSshKeyInstalled:
               existing.onboardingStep !== 'PENDING' ||
@@ -201,6 +211,9 @@ export class ServersCoreService {
     });
 
     await this.recordAuditLog(actorUserId, 'SERVER_UPDATE', updated.id, {
+      changedFields: Object.keys(dto),
+    });
+    await this.audit.record(updated.id, 'SERVER_EDIT', actorUserId, {
       changedFields: Object.keys(dto),
     });
 
@@ -238,10 +251,11 @@ export class ServersCoreService {
     return await this.jobs.retryJob(id, jobId, {
       verify: async () => await this.verifyServer(id),
       install: async (payload) => await this.installTools(id, payload),
+      prepare: async (payload) => await this.prepareServer(id, payload),
     });
   }
 
-  async verifyServer(id: string): Promise<ServerPublic> {
+  async verifyServer(id: string, actorUserId?: string): Promise<ServerPublic> {
     const server = await this.getServerById(id);
 
     if (server.onboardingStep === 'PENDING' && !server.isVerified) {
@@ -251,6 +265,9 @@ export class ServersCoreService {
     }
 
     const job = await this.jobs.createJob(server.id, ServerJobType.VERIFY);
+    await this.audit.record(server.id, 'SERVER_VALIDATE_SSH', actorUserId, {
+      jobId: job.id,
+    });
 
     this.runJobInBackground(
       job.id,
@@ -269,32 +286,74 @@ export class ServersCoreService {
     id: string,
     tools?: InstallToolsDto,
   ): Promise<ServerPublic> {
-    const server = await this.getServerById(id);
-    const payload: InstallToolsDto = {
+    const payload: StartServerPreparationDto = {
       docker: tools?.docker ?? true,
-      ansible: tools?.ansible ?? true,
-      runner: tools?.runner ?? true,
+      dockerComposePlugin: tools?.docker ?? true,
+      gitlabRunner: tools?.runner ?? false,
+      systemUpdate: true,
+      securityHardening: true,
+      logrotate: true,
     };
 
-    const job = await this.jobs.createJob(
-      server.id,
-      ServerJobType.INSTALL_TOOLS,
-      payload,
-    );
+    return await this.prepareServer(id, payload);
+  }
 
-    this.runJobInBackground(
-      job.id,
-      this.jobs.executeJobWithRetry(
-        job,
-        async (options) =>
-          this.toPublic(
-            await this.ansible.installToolsDirect(server, payload, options),
-          ),
-        (error) => this.toErrorMessage(error),
-      ),
-    );
-
+  async prepareServer(
+    id: string,
+    prepare?: PrepareServerDto | StartServerPreparationDto,
+    actorUserId?: string,
+  ): Promise<ServerPublic> {
+    const server = await this.getServerById(id);
+    await this.preparation.startPreparation(server.id, prepare, actorUserId);
     return this.toPublic(server);
+  }
+
+  async startPreparation(
+    id: string,
+    prepare?: StartServerPreparationDto,
+    actorUserId?: string,
+  ) {
+    const server = await this.getServerById(id);
+    return await this.preparation.startPreparation(
+      server.id,
+      prepare,
+      actorUserId,
+    );
+  }
+
+  async detectServer(id: string, actorUserId?: string): Promise<ServerPublic> {
+    const server = await this.getServerById(id);
+    return this.toPublic(await this.detection.detect(server, actorUserId));
+  }
+
+  async listAuditEvents(id: string) {
+    await this.getServerById(id);
+    return await this.audit.list(id);
+  }
+
+  async listCapabilities(id: string) {
+    await this.getServerById(id);
+    return await this.detection.listCapabilities(id);
+  }
+
+  async listInstalledTools(id: string) {
+    await this.getServerById(id);
+    return await this.detection.listInstalledTools(id);
+  }
+
+  async listValidationResults(id: string) {
+    await this.getServerById(id);
+    return await this.verification.listValidationResults(id);
+  }
+
+  async listPreparations(id: string) {
+    await this.getServerById(id);
+    return await this.preparation.listPreparations(id);
+  }
+
+  async getPreparationReadiness(id: string) {
+    await this.getServerById(id);
+    return await this.preparation.getPreparationReadiness(id);
   }
 
   async registerRunner(
@@ -340,8 +399,13 @@ export class ServersCoreService {
   async installPublicKey(
     id: string,
     password: string,
+    actorUserId?: string,
   ): Promise<{ success: true; message: string }> {
-    return await this.ssh.installPublicKey(id, password);
+    const result = await this.ssh.installPublicKey(id, password);
+    await this.audit.record(id, 'SERVER_INSTALL_SSH_KEY', actorUserId, {
+      success: true,
+    });
+    return result;
   }
 
   toErrorMessage(error: unknown): string {
@@ -388,16 +452,10 @@ export class ServersCoreService {
   private resolveOnboardingStep(input: {
     isVerified: boolean;
     hasDocker: boolean;
-    hasAnsible: boolean;
     hasRunner: boolean;
     hasSshKeyInstalled: boolean;
   }): string {
-    if (
-      input.isVerified &&
-      input.hasDocker &&
-      input.hasAnsible &&
-      input.hasRunner
-    ) {
+    if (input.isVerified && input.hasDocker && input.hasRunner) {
       return 'READY';
     }
 

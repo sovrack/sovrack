@@ -10,6 +10,7 @@ import { NodeSSH } from 'node-ssh';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
 import { ServersCryptoService } from './servers-crypto.service';
+import { ServerHostKeyService } from './server-host-key.service';
 import { ServerVerificationService } from './server-verification.service';
 import { ServerExecutionOptions } from '../shared/servers.types';
 import {
@@ -38,6 +39,7 @@ export class ServersSshService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: ServersCryptoService,
+    private readonly hostKeys: ServerHostKeyService,
     private readonly verification: ServerVerificationService,
   ) {}
 
@@ -59,8 +61,15 @@ export class ServersSshService {
     await this.verification.startVerification(id);
 
     try {
+      const pinnedHost = await this.hostKeys.resolveForConnection(server, {
+        allowTrustOnFirstUse: this.isTrustOnFirstUseEnabled(),
+      });
+
       // 2. Ouvrir la connexion SSH
-      const connection = await this.openConnection(server);
+      const connection = await this.openConnection(
+        server,
+        pinnedHost.keyBase64,
+      );
       let closed = false;
       const safeClose = () => {
         if (closed) {
@@ -74,94 +83,63 @@ export class ServersSshService {
       try {
         assertJobNotAborted(options);
 
-        // 3. Vérifier Docker
         await this.verification.addLog(
           id,
-          'Vérification de Docker...',
+          'Test de connectivité SSH et authentification par clé...',
           undefined,
-          'DOCKER',
+          'SSH',
         );
-        const docker = await connection.target.execCommand('docker --version');
-        if (docker.code === 0) {
-          await this.verification.addLog(
-            id,
-            `✓ Docker trouvé: ${docker.stdout.trim()}`,
-            undefined,
-            'DOCKER',
-          );
-        } else {
-          await this.verification.addLog(
-            id,
-            'Docker non trouvé',
-            undefined,
-            'DOCKER',
+        const echo = await connection.target.execCommand('printf platform-ok');
+        if (echo.code !== 0 || echo.stdout.trim() !== 'platform-ok') {
+          throw new BadRequestException(
+            echo.stderr || 'La session SSH ne répond pas correctement',
           );
         }
 
         assertJobNotAborted(options);
 
-        // 4. Vérifier Ansible
         await this.verification.addLog(
           id,
-          "Vérification d'Ansible...",
+          'Vérification de sudo sans mot de passe...',
           undefined,
-          'ANSIBLE',
+          'SSH',
         );
-        const ansible =
-          await connection.target.execCommand('ansible --version');
-        if (ansible.code === 0) {
-          await this.verification.addLog(
-            id,
-            `✓ Ansible trouvé: ${ansible.stdout.split('\n')[0]}`,
-            undefined,
-            'ANSIBLE',
-          );
-        } else {
-          await this.verification.addLog(
-            id,
-            'Ansible non trouvé',
-            undefined,
-            'ANSIBLE',
-          );
-        }
+        const sudo = this.isRootUser(server.username)
+          ? { code: 0, stdout: 'root', stderr: '' }
+          : await connection.target.execCommand('sudo -n true');
 
         assertJobNotAborted(options);
 
-        // 5. Vérifier GitLab Runner
+        const osRelease = await connection.target.execCommand(
+          'sh -lc \'if [ -r /etc/os-release ]; then . /etc/os-release; printf "%s|%s" "${NAME:-unknown}" "${VERSION_ID:-unknown}"; else printf "unknown|unknown"; fi\'',
+        );
+        const [osName, osVersion] = osRelease.stdout.trim().split('|');
+        const architecture = await connection.target.execCommand('uname -m');
+        const python =
+          await connection.target.execCommand('command -v python3');
+        const fingerprint = pinnedHost.knownHostsLine;
+
         await this.verification.addLog(
           id,
-          'Vérification de GitLab Runner...',
+          'Validation terminée. La détection des outils est une étape séparée.',
           undefined,
-          'RUNNER',
-        );
-        const runner = await connection.target.execCommand(
-          'gitlab-runner --version',
-        );
-        if (runner.code === 0) {
-          await this.verification.addLog(
-            id,
-            `✓ GitLab Runner trouvé: ${runner.stdout.trim()}`,
-            undefined,
-            'RUNNER',
-          );
-        } else {
-          await this.verification.addLog(
-            id,
-            'GitLab Runner non trouvé',
-            undefined,
-            'RUNNER',
-          );
-        }
-
-        // 6. Marquer comme vérifié avec succès
-        const verified = await this.verification.markVerified(
-          id,
-          docker.code === 0,
-          ansible.code === 0,
-          runner.code === 0,
+          'SSH',
         );
 
-        return verified;
+        return await this.verification.markSshValidated(id, {
+          sshReachable: true,
+          authSucceeded: true,
+          sudoAvailable: sudo.code === 0,
+          fingerprint,
+          osName: osName || null,
+          osVersion: osVersion || null,
+          architecture: architecture.stdout.trim() || null,
+          pythonAvailable: python.code === 0,
+          validationMessage:
+            sudo.code === 0
+              ? 'SSH, auth and sudo validated'
+              : sudo.stderr || 'SSH/auth valid but sudo -n true failed',
+        });
       } finally {
         detachAbort();
         safeClose();
@@ -174,7 +152,7 @@ export class ServersSshService {
       await this.verification.markFailed(id, errorMessage);
 
       throw new BadRequestException(
-        `Connexion SSH échouée ou vérification des outils impossible: ${errorMessage}`,
+        `Connexion SSH échouée ou validation impossible: ${errorMessage}`,
       );
     }
   }
@@ -239,11 +217,15 @@ export class ServersSshService {
         'Échec chmod 600 ~/.ssh/authorized_keys',
       );
 
-      if (!passwordlessSudoReady) {
+      if (!passwordlessSudoReady && this.isAutoSudoersEnabled()) {
         passwordlessSudoReady = await this.tryEnablePasswordlessSudo(
           setupConnection,
           server.username,
           normalizedPassword,
+        );
+      } else if (!passwordlessSudoReady) {
+        this.logger.warn(
+          `Passwordless sudo non configuré automatiquement pour ${server.username} (SERVER_AUTO_CONFIGURE_SUDOERS=false).`,
         );
       }
     } catch (error) {
@@ -305,16 +287,23 @@ export class ServersSshService {
     return {
       success: true,
       message: passwordlessSudoReady
-        ? 'Clé installée et accès sudo sans mot de passe prêt. Lancez la vérification puis l’installation des outils.'
-        : "Clé installée et test SSH réussi. Le compte SSH n'a pas sudo sans mot de passe: installez la clé avec un utilisateur sudo ou configurez sudoers avant l’installation des outils.",
+        ? 'Clé installée et accès sudo sans mot de passe prêt. Lancez la validation SSH puis la préparation du serveur.'
+        : "Clé installée et test SSH réussi. Le compte SSH n'a pas sudo sans mot de passe: configurez sudoers avant la préparation du serveur.",
     };
   }
 
-  async openConnection(server: Server): Promise<SshConnection> {
+  async openConnection(
+    server: Server,
+    expectedHostKeyBase64?: string,
+  ): Promise<SshConnection> {
     const target = new NodeSSH();
     const decryptedKey = this.crypto.normalizePrivateKeyFormat(
       this.crypto.decrypt(server.sshKey),
     );
+
+    const expectedKey =
+      expectedHostKeyBase64 ??
+      (await this.resolveExpectedHostKeyForConnection(server));
 
     const keyPath = `/tmp/ssh_key_${server.id}_${Date.now()}`;
     try {
@@ -326,6 +315,9 @@ export class ServersSshService {
         username: server.username,
         privateKeyPath: keyPath,
         readyTimeout: 30_000,
+        ...(expectedKey
+          ? { hostVerifier: this.hostKeys.hostVerifier(expectedKey) }
+          : {}),
       });
     } catch (error) {
       await rm(keyPath, { force: true }).catch(() => {});
@@ -514,5 +506,38 @@ export class ServersSshService {
 
   private isRootUser(username: string): boolean {
     return username.trim().toLowerCase() === 'root';
+  }
+
+  private isAutoSudoersEnabled(): boolean {
+    const raw = (process.env.SERVER_AUTO_CONFIGURE_SUDOERS ?? 'false')
+      .trim()
+      .toLowerCase();
+    return raw === '1' || raw === 'true' || raw === 'yes';
+  }
+
+  private async resolveExpectedHostKeyForConnection(
+    server: Server,
+  ): Promise<string | null> {
+    if (!this.hostKeys.isStrictMode()) {
+      return null;
+    }
+
+    const pinned = await this.hostKeys.resolveForConnection(server, {
+      allowTrustOnFirstUse: false,
+    });
+    return pinned.keyBase64;
+  }
+
+  private isTrustOnFirstUseEnabled(): boolean {
+    const raw = process.env.ANSIBLE_HOST_KEY_TRUST_ON_FIRST_USE?.trim();
+    if (raw) {
+      const normalized = raw.toLowerCase();
+      return (
+        normalized === '1' || normalized === 'true' || normalized === 'yes'
+      );
+    }
+
+    const nodeEnv = (process.env.NODE_ENV ?? '').toLowerCase();
+    return nodeEnv !== 'production';
   }
 }

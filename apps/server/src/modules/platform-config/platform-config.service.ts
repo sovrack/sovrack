@@ -1330,7 +1330,9 @@ export class PlatformConfigService {
     return this.toRegistryConfigPublic(updated);
   }
 
-  async testRegistryConnection(id: string): Promise<{ ok: boolean; message: string }> {
+  async testRegistryConnection(
+    id: string,
+  ): Promise<{ ok: boolean; message: string }> {
     const registry = await this.getRegistryConfigOrFail(id);
 
     try {
@@ -1354,8 +1356,9 @@ export class PlatformConfigService {
 
       return { ok: false, message: 'Type de registre non reconnu' };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erreur de connexion inconnue';
-      
+      const message =
+        error instanceof Error ? error.message : 'Erreur de connexion inconnue';
+
       await this.prisma.registryConfig.update({
         where: { id },
         data: {
@@ -1368,9 +1371,13 @@ export class PlatformConfigService {
     }
   }
 
-  private async testDockerHubConnection(registry: RegistryConfig): Promise<{ ok: boolean; message: string }> {
+  private async testDockerHubConnection(
+    registry: RegistryConfig,
+  ): Promise<{ ok: boolean; message: string }> {
     const username = registry.username?.trim();
-    const password = registry.password ? this.decrypt(registry.password).trim() : '';
+    const password = registry.password
+      ? this.decrypt(registry.password).trim()
+      : '';
 
     if (!username || !password) {
       throw new Error('Docker Hub username et password requis');
@@ -1378,14 +1385,14 @@ export class PlatformConfigService {
 
     try {
       const response = await firstValueFrom(
-        this.httpService.post(
+        this.httpService.post<{ token?: string }>(
           'https://hub.docker.com/v2/users/login',
           { username, password },
           { timeout: 10000 },
         ),
       );
 
-      if (response.data?.token) {
+      if (typeof response.data.token === 'string' && response.data.token) {
         await this.prisma.registryConfig.update({
           where: { id: registry.id },
           data: {
@@ -1400,15 +1407,21 @@ export class PlatformConfigService {
       throw new Error('Authentification Docker Hub échouée');
     } catch (error) {
       throw new Error(
-        error instanceof Error ? error.message : 'Erreur de connexion Docker Hub',
+        error instanceof Error
+          ? error.message
+          : 'Erreur de connexion Docker Hub',
       );
     }
   }
 
-  private async testDockerRegistryConnection(registry: RegistryConfig): Promise<{ ok: boolean; message: string }> {
+  private async testDockerRegistryConnection(
+    registry: RegistryConfig,
+  ): Promise<{ ok: boolean; message: string }> {
     const registryUrl = registry.registryUrl?.trim();
     const username = registry.username?.trim();
-    const password = registry.password ? this.decrypt(registry.password).trim() : '';
+    const password = registry.password
+      ? this.decrypt(registry.password).trim()
+      : '';
 
     if (!registryUrl) {
       throw new Error('Registry URL requise');
@@ -1437,37 +1450,45 @@ export class PlatformConfigService {
       throw new Error('Authentification au registre Docker échouée');
     } catch (error) {
       throw new Error(
-        error instanceof Error ? error.message : 'Erreur de connexion au registre Docker',
+        error instanceof Error
+          ? error.message
+          : 'Erreur de connexion au registre Docker',
       );
     }
   }
 
-  private async testECRConnection(registry: RegistryConfig): Promise<{ ok: boolean; message: string }> {
-    // AWS ECR testing would require AWS SDK
-    // For now, return placeholder
+  private async testECRConnection(
+    registry: RegistryConfig,
+  ): Promise<{ ok: boolean; message: string }> {
+    const message =
+      'Test ECR non supporté actuellement: configurez un test via AWS SDK (STS/ECR GetAuthorizationToken).';
+
     await this.prisma.registryConfig.update({
       where: { id: registry.id },
       data: {
-        isConnected: true,
-        connectionError: null,
+        isConnected: false,
+        connectionError: message,
       },
     });
 
-    return { ok: true, message: 'Connexion ECR vérifiée' };
+    return { ok: false, message };
   }
 
-  private async testGCRConnection(registry: RegistryConfig): Promise<{ ok: boolean; message: string }> {
-    // Google Container Registry testing would require GCP SDK
-    // For now, return placeholder
+  private async testGCRConnection(
+    registry: RegistryConfig,
+  ): Promise<{ ok: boolean; message: string }> {
+    const message =
+      'Test GCR non supporté actuellement: configurez un test via GCP IAM/Artifact Registry.';
+
     await this.prisma.registryConfig.update({
       where: { id: registry.id },
       data: {
-        isConnected: true,
-        connectionError: null,
+        isConnected: false,
+        connectionError: message,
       },
     });
 
-    return { ok: true, message: 'Connexion GCR vérifiée' };
+    return { ok: false, message };
   }
 
   private async getRegistryConfigOrFail(id: string): Promise<RegistryConfig> {
@@ -1482,7 +1503,9 @@ export class PlatformConfigService {
     return registry;
   }
 
-  private toRegistryConfigPublic(registry: RegistryConfig): RegistryConfigPublic {
+  private toRegistryConfigPublic(
+    registry: RegistryConfig,
+  ): RegistryConfigPublic {
     return {
       id: registry.id,
       name: registry.name,

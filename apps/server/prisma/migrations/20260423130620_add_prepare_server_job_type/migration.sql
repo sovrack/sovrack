@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "ServerJobType" ADD VALUE 'PREPARE_SERVER';

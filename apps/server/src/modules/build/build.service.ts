@@ -13,9 +13,12 @@ const SUPPORTED_TYPES = [
   'nodejs',
   'python',
   'php',
-  'static',
-  'docker',
   'ruby',
+  'golang',
+  'rust',
+  'static',
+  'compose',
+  'docker',
   'unknown',
 ];
 

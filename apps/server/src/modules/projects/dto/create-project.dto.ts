@@ -1,6 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { GitlabSourceType } from '@prisma/client';
 import {
+  IsEnum,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUrl,
@@ -25,6 +28,55 @@ export class CreateProjectDto {
   @IsOptional()
   @IsUrl({}, { message: 'URL GitLab invalide' })
   gitlabUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'b5073d11-f378-4c71-87da-093f3ecf20af',
+    description:
+      'Provider GitLab global. Si fourni, gitlabToken peut être omis.',
+  })
+  @IsOptional()
+  @IsString({ message: 'providerId doit être une chaîne de caractères' })
+  providerId?: string;
+
+  @ApiPropertyOptional({ example: 'glpat-xxxxxxxxxxxxxxxxxxxx' })
+  @IsOptional()
+  @IsString({ message: 'Le token GitLab doit être une chaîne de caractères' })
+  gitlabToken?: string;
+
+  @ApiPropertyOptional({ example: 123 })
+  @IsOptional()
+  @IsNumber({}, { message: 'gitlabId doit être un nombre' })
+  gitlabId?: number;
+
+  @ApiPropertyOptional({ example: 44, description: 'Group ID GitLab' })
+  @IsOptional()
+  @IsNumber({}, { message: 'gitlabGroupId doit être un nombre' })
+  gitlabGroupId?: number;
+
+  @ApiPropertyOptional({
+    enum: GitlabSourceType,
+    default: GitlabSourceType.REPO,
+  })
+  @IsOptional()
+  @IsEnum(GitlabSourceType)
+  sourceType?: GitlabSourceType;
+
+  @ApiPropertyOptional({ example: 'gitlab+deploy-token-12' })
+  @IsOptional()
+  @IsString({
+    message: 'deployTokenUsername doit être une chaîne de caractères',
+  })
+  deployTokenUsername?: string;
+
+  @ApiPropertyOptional({ example: 'glrt-xxxxxxxxxxxxxxxxxxxx' })
+  @IsOptional()
+  @IsString({ message: 'deployTokenValue doit être une chaîne de caractères' })
+  deployTokenValue?: string;
+
+  @ApiPropertyOptional({ example: 'registry.gitlab.example.com' })
+  @IsOptional()
+  @IsString({ message: 'registryUrl doit être une chaîne de caractères' })
+  registryUrl?: string;
 
   @ApiPropertyOptional({ example: 'main', default: 'main' })
   @IsOptional()

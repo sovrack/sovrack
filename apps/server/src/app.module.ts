@@ -17,6 +17,8 @@ import { validateEnv } from './common/config/env.validation';
 import { BuildModule } from './modules/build/build.module';
 import { SshKeysModule } from './modules/ssh-keys/ssh-keys.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { TerminalModule } from './modules/terminal/terminal.module';
+import { AutomationModule } from './modules/automation/automation.module';
 
 @Module({
   imports: [
@@ -39,6 +41,8 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
     BuildModule,
     SshKeysModule,
     AuditLogsModule,
+    TerminalModule,
+    AutomationModule,
   ],
   controllers: [AppController],
   providers: [],

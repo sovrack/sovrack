@@ -13,6 +13,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { PaginationDto, paginate } from '../../../common/dto/pagination.dto';
 import { ServersSshService } from './servers-ssh.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';
+import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
 import {
   ServerExecutionOptions,
   ServerJobPublic,
@@ -76,6 +77,7 @@ export class ServersJobsService {
     handlers: {
       verify: () => Promise<T>;
       install: (payload?: InstallToolsDto) => Promise<T>;
+      prepare: (payload?: StartServerPreparationDto) => Promise<T>;
     },
   ): Promise<T> {
     const job = await this.prisma.serverJob.findFirst({
@@ -97,6 +99,13 @@ export class ServersJobsService {
       const payload =
         (job.payload as InstallToolsDto | null | undefined) ?? undefined;
       return await handlers.install(payload);
+    }
+
+    if (job.type === ServerJobType.PREPARE_SERVER) {
+      const payload =
+        (job.payload as { selectedOptions?: StartServerPreparationDto } | null)
+          ?.selectedOptions ?? undefined;
+      return await handlers.prepare(payload);
     }
 
     throw new BadRequestException(

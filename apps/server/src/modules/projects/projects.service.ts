@@ -17,6 +17,8 @@ import {
   PaginatedResult,
   paginate,
 } from '../../common/dto/pagination.dto';
+import { ConnectGitlabDto } from '../gitlab/dto/connect-gitlab.dto';
+import { GitlabService } from '../gitlab/gitlab.service';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -58,7 +60,10 @@ type ProjectListItem = Project & {
  */
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gitlabService: GitlabService,
+  ) {}
 
   /**
    * Crée un projet et ajoute automatiquement son créateur en OWNER.
@@ -92,6 +97,8 @@ export class ProjectsService {
       }
     }
 
+    const shouldConnectGitlab = this.shouldConnectGitlabOnCreate(dto);
+
     const project = await this.prisma.project.create({
       data: {
         name: dto.name,
@@ -108,12 +115,40 @@ export class ProjectsService {
       include: projectWithMembersInclude,
     });
 
+    try {
+      if (shouldConnectGitlab) {
+        await this.gitlabService.connectProject(
+          project.id,
+          this.toConnectGitlabDto(dto),
+          userId,
+          userRole,
+        );
+      }
+    } catch (error) {
+      try {
+        await this.prisma.project.delete({
+          where: { id: project.id },
+        });
+      } catch {
+        // Ne pas masquer l'erreur métier initiale de connexion provider.
+      }
+      throw error;
+    }
+
+    const finalProject = shouldConnectGitlab
+      ? await this.prisma.project.findUniqueOrThrow({
+          where: { id: project.id },
+          include: projectWithMembersInclude,
+        })
+      : project;
+
     await this.recordAuditLog(userId, 'PROJECT_CREATE', 'Project', project.id, {
       name: project.name,
       ownerId,
+      sourceConnected: shouldConnectGitlab,
     });
 
-    return project;
+    return finalProject;
   }
 
   /**
@@ -365,6 +400,33 @@ export class ProjectsService {
     });
 
     return members;
+  }
+
+  private shouldConnectGitlabOnCreate(dto: CreateProjectDto): boolean {
+    return Boolean(
+      dto.providerId?.trim() ||
+      dto.gitlabToken?.trim() ||
+      dto.gitlabId !== undefined ||
+      dto.gitlabGroupId !== undefined ||
+      dto.deployTokenUsername?.trim() ||
+      dto.deployTokenValue?.trim() ||
+      dto.registryUrl?.trim(),
+    );
+  }
+
+  private toConnectGitlabDto(dto: CreateProjectDto): ConnectGitlabDto {
+    return {
+      providerId: dto.providerId?.trim() || undefined,
+      gitlabUrl: dto.gitlabUrl?.trim() || undefined,
+      gitlabToken: dto.gitlabToken?.trim() || undefined,
+      gitlabId: dto.gitlabId,
+      defaultBranch: dto.branch?.trim() || 'main',
+      sourceType: dto.sourceType,
+      gitlabGroupId: dto.gitlabGroupId,
+      deployTokenUsername: dto.deployTokenUsername?.trim() || undefined,
+      deployTokenValue: dto.deployTokenValue?.trim() || undefined,
+      registryUrl: dto.registryUrl?.trim() || undefined,
+    } as ConnectGitlabDto;
   }
 
   /**

@@ -32,6 +32,9 @@ export class BuildGeneratorService {
   generateDockerfile(type: string, config: BuildConfig): string {
     const port = config.port ?? 3000;
     const startCmd = config.startCmd ?? 'dist/main.js';
+    const rubyStartCmd =
+      config.startCmd ??
+      `bundle exec rails server -b 0.0.0.0 -p ${String(port)}`;
 
     switch (type) {
       case 'nodejs':
@@ -41,7 +44,7 @@ export class BuildGeneratorService {
           'COPY package*.json ./',
           'RUN npm ci',
           'COPY . .',
-          'RUN npm run build || true',
+          'RUN npm run build',
           '',
           'FROM node:20-alpine AS production',
           'WORKDIR /app',
@@ -84,7 +87,7 @@ export class BuildGeneratorService {
           'RUN bundle install',
           'COPY . .',
           `EXPOSE ${port}`,
-          `CMD ["${config.startCmd ?? 'bundle exec rails server -b 0.0.0.0'}"]`,
+          `CMD ["sh", "-c", "${rubyStartCmd}"]`,
         ].join('\n');
 
       case 'golang':

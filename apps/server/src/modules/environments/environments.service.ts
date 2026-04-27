@@ -19,7 +19,6 @@ const environmentServerInclude = {
       username: true,
       isVerified: true,
       hasDocker: true,
-      hasAnsible: true,
       hasRunner: true,
       createdAt: true,
       updatedAt: true,

@@ -77,10 +77,5 @@ export class UpdateServerDto {
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
-  hasAnsible?: boolean;
-
-  @ApiPropertyOptional({ example: true })
-  @IsOptional()
-  @IsBoolean()
   hasRunner?: boolean;
 }

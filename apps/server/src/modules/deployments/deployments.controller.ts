@@ -79,6 +79,7 @@ export class DeploymentsController {
     return await this.deploymentsService.findAll(
       user.id,
       user.role,
+      pagination,
     );
   }
 

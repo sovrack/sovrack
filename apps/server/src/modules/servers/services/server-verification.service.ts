@@ -1,6 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { Server, ServerStatus, ServerLogLevel } from '@prisma/client';
+import { Server, ServerLogLevel, ServerStatus } from '@prisma/client';
+
+type ValidationResultInput = {
+  sshReachable: boolean;
+  authSucceeded: boolean;
+  sudoAvailable: boolean;
+  fingerprint?: string | null;
+  osName?: string | null;
+  osVersion?: string | null;
+  architecture?: string | null;
+  pythonAvailable: boolean;
+  validationMessage?: string | null;
+};
 
 @Injectable()
 export class ServerVerificationService {
@@ -9,67 +21,71 @@ export class ServerVerificationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async startVerification(serverId: string): Promise<Server> {
-    this.logger.log(`[VERIFY] Starting verification for server ${serverId}`);
-
-    const server = await this.prisma.server.findUnique({
-      where: { id: serverId },
-    });
-    if (!server) {
-      throw new Error(`Server ${serverId} not found`);
-    }
+    this.logger.log(`[SSH] Starting SSH validation for server ${serverId}`);
 
     const updated = await this.prisma.server.update({
       where: { id: serverId },
-      data: { status: ServerStatus.VERIFYING, verificationError: null },
+      data: { status: ServerStatus.SSH_PENDING, verificationError: null },
     });
 
     await this.addLog(
       serverId,
-      'Vérification initiée',
+      'Validation SSH initiée',
       ServerLogLevel.INFO,
-      'VERIFY',
+      'SSH',
     );
     return updated;
   }
 
-  async markVerified(
+  async markSshValidated(
     serverId: string,
-    hasDocker: boolean,
-    hasAnsible: boolean,
-    hasRunner: boolean,
+    result: ValidationResultInput,
   ): Promise<Server> {
+    const fullyValidated =
+      result.sshReachable && result.authSucceeded && result.sudoAvailable;
+
     this.logger.log(
-      `[VERIFY] ✓ Server ${serverId} verified (Docker: ${hasDocker}, Ansible: ${hasAnsible}, Runner: ${hasRunner})`,
+      `[SSH] Server ${serverId} validated (sudo: ${String(result.sudoAvailable)}, python: ${String(result.pythonAvailable)})`,
     );
+
+    await this.prisma.serverValidationResult.create({
+      data: {
+        serverId,
+        sshReachable: result.sshReachable,
+        authSucceeded: result.authSucceeded,
+        sudoAvailable: result.sudoAvailable,
+        fingerprint: result.fingerprint,
+        osName: result.osName,
+        osVersion: result.osVersion,
+        architecture: result.architecture,
+        pythonAvailable: result.pythonAvailable,
+        validationMessage: result.validationMessage,
+        validatedAt: new Date(),
+      },
+    });
 
     const updated = await this.prisma.server.update({
       where: { id: serverId },
       data: {
-        status: ServerStatus.VERIFIED,
-        isVerified: true,
-        hasDocker,
-        hasAnsible,
-        hasRunner,
-        onboardingStep:
-          hasDocker && hasAnsible && hasRunner ? 'READY' : 'VALIDATED',
+        status: fullyValidated
+          ? ServerStatus.SSH_VALIDATED
+          : ServerStatus.VALIDATION_FAILED,
+        isVerified: fullyValidated,
+        onboardingStep: fullyValidated ? 'SSH_VALIDATED' : 'KEY_INSTALLED',
         lastVerifiedAt: new Date(),
-        verificationError: null,
+        verificationError: fullyValidated
+          ? null
+          : 'Validation SSH incomplète: sudo sans mot de passe indisponible.',
       },
     });
 
-    const tools = [
-      hasDocker ? 'Docker' : null,
-      hasAnsible ? 'Ansible' : null,
-      hasRunner ? 'GitLab Runner' : null,
-    ]
-      .filter(Boolean)
-      .join(', ');
-
     await this.addLog(
       serverId,
-      `✓ Vérification réussie — Outils trouvés: ${tools || 'aucun'}`,
-      ServerLogLevel.INFO,
-      'VERIFY',
+      fullyValidated
+        ? `Validation SSH réussie — sudo: ${result.sudoAvailable ? 'OK' : 'KO'}, python3: ${result.pythonAvailable ? 'OK' : 'KO'}`
+        : `Validation SSH partielle — sudo: ${result.sudoAvailable ? 'OK' : 'KO'}, python3: ${result.pythonAvailable ? 'OK' : 'KO'}`,
+      result.sudoAvailable ? ServerLogLevel.INFO : ServerLogLevel.WARNING,
+      'SSH',
     );
 
     return updated;
@@ -77,18 +93,25 @@ export class ServerVerificationService {
 
   async markFailed(serverId: string, error: Error | string): Promise<Server> {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    this.logger.error(`[VERIFY] ✗ Server ${serverId} failed: ${errorMessage}`);
+    this.logger.error(`[SSH] Server ${serverId} failed: ${errorMessage}`);
+
+    await this.prisma.serverValidationResult.create({
+      data: {
+        serverId,
+        sshReachable: false,
+        authSucceeded: false,
+        sudoAvailable: false,
+        pythonAvailable: false,
+        validationMessage: errorMessage,
+        validatedAt: new Date(),
+      },
+    });
 
     const updated = await this.prisma.server.update({
       where: { id: serverId },
       data: {
-        status: ServerStatus.FAILED,
+        status: ServerStatus.VALIDATION_FAILED,
         isVerified: false,
-        hasDocker: false,
-        hasAnsible: false,
-        hasRunner: false,
-        // Regress to KEY_INSTALLED: key was installed (verifyServer blocks PENDING servers),
-        // but SSH connection failed so the server is no longer verified.
         onboardingStep: 'KEY_INSTALLED',
         verificationError: errorMessage,
       },
@@ -96,9 +119,9 @@ export class ServerVerificationService {
 
     await this.addLog(
       serverId,
-      `✗ Vérification échouée: ${errorMessage}`,
+      `Validation SSH échouée: ${errorMessage}`,
       ServerLogLevel.ERROR,
-      'VERIFY',
+      'SSH',
     );
 
     return updated;
@@ -136,6 +159,21 @@ export class ServerVerificationService {
     });
   }
 
+  async listValidationResults(serverId: string) {
+    return await this.prisma.serverValidationResult.findMany({
+      where: { serverId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  async latestValidationResult(serverId: string) {
+    return await this.prisma.serverValidationResult.findFirst({
+      where: { serverId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async cleanupOldLogs(): Promise<number> {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const result = await this.prisma.serverLog.deleteMany({
@@ -146,7 +184,7 @@ export class ServerVerificationService {
   }
 
   async resetStatus(serverId: string): Promise<Server> {
-    this.logger.log(`[VERIFY] Resetting status for server ${serverId}`);
+    this.logger.log(`[SSH] Resetting status for server ${serverId}`);
     return await this.prisma.server.update({
       where: { id: serverId },
       data: {

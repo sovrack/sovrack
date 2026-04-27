@@ -16,7 +16,10 @@ import { join, resolve } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigsService } from '../configs/configs.service';
 import { GitlabService } from '../gitlab/gitlab.service';
-import { ServersCryptoService } from '../servers/services';
+import {
+  ServerHostKeyService,
+  ServersCryptoService,
+} from '../servers/services';
 import { DeploymentsDockerService } from './deployments-docker.service';
 import { DeploymentsGateway } from './deployments.gateway';
 
@@ -32,6 +35,7 @@ export class DeploymentsAnsibleService {
     @Inject(forwardRef(() => GitlabService))
     private readonly gitlabService: GitlabService,
     private readonly serversCryptoService: ServersCryptoService,
+    private readonly serverHostKeyService: ServerHostKeyService,
     private readonly dockerService: DeploymentsDockerService,
     @Inject(forwardRef(() => DeploymentsGateway))
     private readonly gateway: DeploymentsGateway,
@@ -71,12 +75,21 @@ export class DeploymentsAnsibleService {
 
     const ssh = new NodeSSH();
     try {
+      const pinnedHost = await this.serverHostKeyService.resolveForConnection(
+        server,
+        {
+          allowTrustOnFirstUse: false,
+        },
+      );
       await ssh.connect({
         host: server.host,
         port: server.port,
         username: server.username,
         privateKey: decryptedSshKey,
         readyTimeout: 10_000,
+        hostVerifier: this.serverHostKeyService.hostVerifier(
+          pinnedHost.keyBase64,
+        ),
       });
     } catch {
       throw new BadRequestException(
@@ -232,19 +245,69 @@ export class DeploymentsAnsibleService {
     privateKeyPath: string,
     deploymentId: string,
   ): Promise<string> {
+    const timeoutMs = this.resolveDeploymentTimeoutMs();
     return await new Promise<string>((resolvePromise, rejectPromise) => {
+      let settled = false;
       const ansiblePlaybookCommand = this.resolveAnsiblePlaybookCommand();
-      const child = spawn(ansiblePlaybookCommand, [
-        playbookPath,
-        '-i',
-        inventoryPath,
-        '--private-key',
-        privateKeyPath,
-        '--extra-vars',
-        `@${varsPath}`,
-      ]);
+      const child = spawn(
+        ansiblePlaybookCommand,
+        [
+          playbookPath,
+          '-i',
+          inventoryPath,
+          '--private-key',
+          privateKeyPath,
+          '--ssh-common-args',
+          this.resolveSshCommonArgs(),
+          '--extra-vars',
+          `@${varsPath}`,
+        ],
+        {
+          env: {
+            ...process.env,
+            ANSIBLE_HOST_KEY_CHECKING: 'True',
+          },
+        },
+      );
 
       let output = '';
+      const rejectOnce = (error: Error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeoutRef);
+        rejectPromise(error);
+      };
+      const resolveOnce = (value: string) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeoutRef);
+        resolvePromise(value);
+      };
+      const forceKill = () => {
+        if (!child.killed) {
+          child.kill('SIGTERM');
+          setTimeout(() => {
+            if (!child.killed) {
+              child.kill('SIGKILL');
+            }
+          }, 5_000);
+        }
+      };
+      const timeoutRef = setTimeout(() => {
+        this.emitGatewayLog(
+          deploymentId,
+          `Ansible deployment timeout (${String(timeoutMs)}ms). Stopping process...`,
+          'error',
+        );
+        forceKill();
+        rejectOnce(
+          new Error(`ansible-playbook timeout after ${String(timeoutMs)}ms`),
+        );
+      }, timeoutMs);
 
       child.stdout.on('data', (chunk: Buffer) => {
         const message = chunk.toString();
@@ -260,19 +323,27 @@ export class DeploymentsAnsibleService {
 
       child.on('close', (code) => {
         if (code === 0) {
-          resolvePromise(output);
+          resolveOnce(output);
           return;
         }
-        rejectPromise(
+        rejectOnce(
           new Error(`ansible-playbook a échoué (code ${String(code)})`),
         );
       });
 
       child.on('error', (error) => {
         this.logger.error(error);
-        rejectPromise(error);
+        rejectOnce(error);
       });
     });
+  }
+
+  private resolveDeploymentTimeoutMs(): number {
+    const raw = Number(process.env.DEPLOYMENT_ANSIBLE_TIMEOUT_MS);
+    if (Number.isFinite(raw) && raw >= 60_000) {
+      return Math.floor(raw);
+    }
+    return 900_000;
   }
 
   resolveAnsiblePlaybookCommand(): string {
@@ -441,6 +512,10 @@ export class DeploymentsAnsibleService {
     throw new BadRequestException(
       `Health-check post-déploiement échoué après ${String(retries)} tentative(s). Dernière erreur: ${lastError}`,
     );
+  }
+
+  private resolveSshCommonArgs(): string {
+    return this.serverHostKeyService.resolveSshCommonArgs();
   }
 
   private isPostDeployHealthCheckEnabled(): boolean {

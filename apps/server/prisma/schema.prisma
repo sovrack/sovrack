@@ -51,6 +51,7 @@ enum ServerConnectionMode {
 enum ServerJobType {
   VERIFY
   INSTALL_TOOLS
+  PREPARE_SERVER
   REGISTER_RUNNER
 }
 
@@ -65,15 +66,61 @@ enum ServerJobStatus {
 
 enum ServerStatus {
   NEW
-  VERIFYING
-  VERIFIED
-  FAILED
+  SSH_PENDING
+  SSH_VALIDATED
+  VALIDATION_FAILED
+  INFO_DETECTED
+  PREPARATION_PENDING
+  PREPARING
+  PREPARED
+  PARTIALLY_PREPARED
+  PREPARATION_FAILED
+  UNREACHABLE
+  DISABLED
 }
 
 enum ServerLogLevel {
   INFO
   WARNING
   ERROR
+}
+
+enum ServerPreparationStatus {
+  QUEUED
+  RESOLVING_OPTIONS
+  WAITING_FOR_LOCK
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+  TIMEOUT
+  CANCELED
+}
+
+enum ServerPreparationTaskStatus {
+  PENDING
+  SKIPPED
+  RUNNING
+  OK
+  CHANGED
+  FAILED
+  TIMEOUT
+}
+
+enum ServerInstalledToolStatus {
+  INSTALLED
+  MISSING
+  FAILED
+  UNKNOWN
+}
+
+enum ServerPreparationProfile {
+  BASIC
+  WEB
+  DATABASE
+  RUNNER
+  FULL
+  CUSTOM
 }
 
 enum GitProviderType {
@@ -95,45 +142,48 @@ enum BuildStatus {
 }
 
 model User {
-  id          String          @id @default(uuid())
-  email       String          @unique
-  password    String
-  fullName    String
-  role        Role            @default(DEVELOPER)
-  isActive    Boolean         @default(true)
-  projects    ProjectMember[]
-  teams       TeamMember[]
-  deployments Deployment[]
-  auditLogs   AuditLog[]
-  sshKeys     SshKey[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id                          String              @id @default(uuid())
+  email                       String              @unique
+  password                    String
+  fullName                    String
+  role                        Role                @default(DEVELOPER)
+  isActive                    Boolean             @default(true)
+  projects                    ProjectMember[]
+  teams                       TeamMember[]
+  deployments                 Deployment[]
+  auditLogs                   AuditLog[]
+  sshKeys                     SshKey[]
+  requestedServerPreparations ServerPreparation[] @relation("ServerPreparationRequestedBy")
+  serverAuditEvents           ServerAuditEvent[]  @relation("ServerAuditActor")
+  automationRuns              AutomationRun[]
+  createdAt                   DateTime            @default(now())
+  updatedAt                   DateTime            @updatedAt
 }
 
 model Project {
-  id               String          @id @default(uuid())
-  name             String
-  description      String?
-  gitlabUrl        String
-  gitlabId         BigInt?
-  branch           String          @default("main")
-  dockerfile       String          @default("Dockerfile")
-  port             Int             @default(3000)
-  projectType      String?
-  buildPort        Int?
-  buildStartCmd    String?
-  autoDeploy       Boolean         @default(false)
-  autoDeployBranch String?
-  dockerfileContent String?        @db.Text
-  gitlabCiContent  String?        @db.Text
-  members          ProjectMember[]
-  gitlabConfig     GitlabConfig?
-  pipelines        Pipeline[]
-  environments     Environment[]
-  deployments      Deployment[]
-  configs          Config[]
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  id                String          @id @default(uuid())
+  name              String
+  description       String?
+  gitlabUrl         String
+  gitlabId          BigInt?
+  branch            String          @default("main")
+  dockerfile        String          @default("Dockerfile")
+  port              Int             @default(3000)
+  projectType       String?
+  buildPort         Int?
+  buildStartCmd     String?
+  autoDeploy        Boolean         @default(false)
+  autoDeployBranch  String?
+  dockerfileContent String?         @db.Text
+  gitlabCiContent   String?         @db.Text
+  members           ProjectMember[]
+  gitlabConfig      GitlabConfig?
+  pipelines         Pipeline[]
+  environments      Environment[]
+  deployments       Deployment[]
+  configs           Config[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 }
 
 model ProjectMember {
@@ -149,12 +199,12 @@ model ProjectMember {
 }
 
 model GitlabConfig {
-  id                  String           @id @default(uuid())
+  id                  String             @id @default(uuid())
   gitlabUrl           String
   gitlabToken         String
   gitlabId            BigInt?
-  defaultBranch       String           @default("main")
-  sourceType          GitlabSourceType @default(REPO)
+  defaultBranch       String             @default("main")
+  sourceType          GitlabSourceType   @default(REPO)
   gitlabGroupId       BigInt?
   deployTokenUsername String?
   deployTokenValue    String?
@@ -162,10 +212,10 @@ model GitlabConfig {
   registryUrl         String?
   providerId          String?
   provider            GitProviderConfig? @relation(fields: [providerId], references: [id], onDelete: SetNull)
-  project             Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId           String           @unique
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  project             Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId           String             @unique
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@index([providerId])
 }
@@ -186,28 +236,37 @@ model Pipeline {
 }
 
 model Server {
-  id              String               @id @default(uuid())
-  name            String
-  host            String
-  port            Int                  @default(22)
-  username        String               @default("ubuntu")
-  sshKey          String
-  sshPublicKey    String?              @db.Text
-  connectionMode  ServerConnectionMode @default(SSH)
-  isActive        Boolean              @default(true)
-  isVerified      Boolean              @default(false)
-  status          ServerStatus         @default(NEW)
-  verificationError String?            @db.Text
-  lastVerifiedAt  DateTime?
-  onboardingStep  String               @default("PENDING")
-  hasDocker       Boolean              @default(false)
-  hasAnsible      Boolean              @default(false)
-  hasRunner       Boolean              @default(false)
-  environments    Environment[]
-  jobs            ServerJob[]
-  logs            ServerLog[]
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  id                String                   @id @default(uuid())
+  name              String
+  host              String
+  port              Int                      @default(22)
+  username          String                   @default("ubuntu")
+  sshKey            String
+  sshPublicKey      String?                  @db.Text
+  connectionMode    ServerConnectionMode     @default(SSH)
+  isActive          Boolean                  @default(true)
+  isVerified        Boolean                  @default(false)
+  status            ServerStatus             @default(NEW)
+  verificationError String?                  @db.Text
+  lastVerifiedAt    DateTime?
+  lastDetectedAt    DateTime?
+  lastPreparedAt    DateTime?
+  onboardingStep    String                   @default("PENDING")
+  // Transitional denormalized fields kept for compatibility with existing UI/deployment checks.
+  // The source of truth for new server tooling is ServerCapability / ServerInstalledTool.
+  hasDocker         Boolean                  @default(false)
+  hasRunner         Boolean                  @default(false)
+  environments      Environment[]
+  jobs              ServerJob[]
+  logs              ServerLog[]
+  validationResults ServerValidationResult[]
+  capabilities      ServerCapability[]
+  installedTools      ServerInstalledTool[]
+  preparations        ServerPreparation[]
+  auditEvents         ServerAuditEvent[]
+  automationTargets   AutomationRunTarget[]
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 }
 
 model ServerJob {
@@ -232,16 +291,143 @@ model ServerJob {
 }
 
 model ServerLog {
-  id        String          @id @default(uuid())
-  server    Server          @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  id        String         @id @default(uuid())
+  server    Server         @relation(fields: [serverId], references: [id], onDelete: Cascade)
   serverId  String
-  message   String          @db.Text
-  level     ServerLogLevel  @default(INFO)
-  context   String?         // "SSH", "VERIFY", "DOCKER", etc.
-  createdAt DateTime        @default(now())
+  message   String         @db.Text
+  level     ServerLogLevel @default(INFO)
+  context   String? // "SSH", "VERIFY", "DOCKER", etc.
+  createdAt DateTime       @default(now())
 
   @@index([serverId, createdAt])
   @@index([level])
+}
+
+model ServerValidationResult {
+  id                String    @id @default(uuid())
+  server            Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId          String
+  sshReachable      Boolean   @default(false)
+  authSucceeded     Boolean   @default(false)
+  sudoAvailable     Boolean   @default(false)
+  fingerprint       String?
+  osName            String?
+  osVersion         String?
+  architecture      String?
+  pythonAvailable   Boolean   @default(false)
+  validationMessage String?   @db.Text
+  validatedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([serverId, createdAt])
+  @@index([serverId, validatedAt])
+}
+
+model ServerCapability {
+  id         String   @id @default(uuid())
+  server     Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId   String
+  key        String
+  value      String
+  source     String
+  detectedAt DateTime @default(now())
+
+  @@unique([serverId, key])
+  @@index([serverId, detectedAt])
+}
+
+model ServerInstalledTool {
+  id          String                    @id @default(uuid())
+  server      Server                    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId    String
+  toolKey     String
+  displayName String
+  version     String?
+  installedBy String?
+  status      ServerInstalledToolStatus @default(UNKNOWN)
+  installedAt DateTime?
+  updatedAt   DateTime                  @updatedAt
+
+  @@unique([serverId, toolKey])
+  @@index([serverId, status])
+}
+
+model ServerPreparation {
+  id                   String                   @id @default(uuid())
+  server               Server                   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId             String
+  status               ServerPreparationStatus  @default(QUEUED)
+  profile              ServerPreparationProfile @default(CUSTOM)
+  triggerSource        String                   @default("USER")
+  requestedBy          User?                    @relation("ServerPreparationRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  requestedById        String?
+  startedAt            DateTime?
+  finishedAt           DateTime?
+  selectedOptionsJson  Json
+  resolvedRolesJson    Json
+  summary              String?                  @db.Text
+  errorMessage         String?                  @db.Text
+  retryOfPreparation   ServerPreparation?       @relation("ServerPreparationRetry", fields: [retryOfPreparationId], references: [id], onDelete: SetNull)
+  retryOfPreparationId String?
+  retries              ServerPreparation[]      @relation("ServerPreparationRetry")
+  tasks                ServerPreparationTask[]
+  logs                 ServerPreparationLog[]
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  @@index([serverId, status])
+  @@index([serverId, createdAt])
+  @@index([requestedById])
+  @@index([retryOfPreparationId])
+}
+
+model ServerPreparationTask {
+  id            String                      @id @default(uuid())
+  preparation   ServerPreparation           @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  preparationId String
+  roleKey       String
+  taskName      String
+  orderIndex    Int
+  status        ServerPreparationTaskStatus @default(PENDING)
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  message       String?                     @db.Text
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+
+  @@unique([preparationId, roleKey])
+  @@index([preparationId, orderIndex])
+}
+
+model ServerPreparationLog {
+  id            String            @id @default(uuid())
+  preparation   ServerPreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+  preparationId String
+  level         ServerLogLevel    @default(INFO)
+  source        String
+  message       String            @db.Text
+  lineNumber    Int
+  createdAt     DateTime          @default(now())
+
+  @@index([preparationId, lineNumber])
+  @@index([preparationId, createdAt])
+  @@index([level])
+}
+
+model ServerAuditEvent {
+  id          String   @id @default(uuid())
+  server      Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverId    String
+  actor       User?    @relation("ServerAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorId     String?
+  eventType   String
+  payloadJson Json?
+  createdAt   DateTime @default(now())
+
+  @@index([serverId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([eventType])
 }
 
 model Environment {
@@ -276,24 +462,24 @@ model Config {
 }
 
 model Deployment {
-  id            String           @id @default(uuid())
-  status        DeploymentStatus @default(PENDING)
-  buildStatus   BuildStatus      @default(NOT_BUILT)
-  logs          String?
-  buildLog      String?          @db.Text
-  dockerImage   String?
+  id               String           @id @default(uuid())
+  status           DeploymentStatus @default(PENDING)
+  buildStatus      BuildStatus      @default(NOT_BUILT)
+  logs             String?
+  buildLog         String?          @db.Text
+  dockerImage      String?
   gitlabPipelineId BigInt?
-  branch        String
-  environment   Environment      @relation(fields: [environmentId], references: [id], onDelete: Cascade)
-  environmentId String
-  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId     String
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId        String
-  startedAt     DateTime?
-  finishedAt    DateTime?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  branch           String
+  environment      Environment      @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  environmentId    String
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId        String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   previousDeploymentId String?
   previousDeployment   Deployment?  @relation("DeploymentHistory", fields: [previousDeploymentId], references: [id])
@@ -338,15 +524,15 @@ model AuditLog {
 }
 
 model SshKey {
-  id                 String   @id @default(uuid())
-  name               String
-  encryptedPrivateKey String  @db.Text
-  publicKey          String   @db.Text
-  keyType            String   @default("ed25519")
-  userId             String
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  name                String
+  encryptedPrivateKey String   @db.Text
+  publicKey           String   @db.Text
+  keyType             String   @default("ed25519")
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([userId])
 }
@@ -361,43 +547,119 @@ model PlatformConfig {
 }
 
 model GitProviderConfig {
-  id                String          @id @default(uuid())
-  name              String
-  type              GitProviderType @default(GITLAB)
-  gitlabUrl         String
-  internalUrl       String?
-  redirectUri       String?
-  applicationId     String?
-  applicationSecret String?         @db.Text
-  groupNames        String?
-  adminToken        String?         @db.Text
-  oauthAccessToken  String?         @db.Text
-  oauthRefreshToken String?         @db.Text
-  oauthExpiresAt    DateTime?
-  oauthState        String?
+  id                  String          @id @default(uuid())
+  name                String
+  type                GitProviderType @default(GITLAB)
+  gitlabUrl           String
+  internalUrl         String?
+  redirectUri         String?
+  applicationId       String?
+  applicationSecret   String?         @db.Text
+  groupNames          String?
+  adminToken          String?         @db.Text
+  oauthAccessToken    String?         @db.Text
+  oauthRefreshToken   String?         @db.Text
+  oauthExpiresAt      DateTime?
+  oauthState          String?
   oauthStateExpiresAt DateTime?
-  isDefault         Boolean         @default(false)
-  gitlabProjects    GitlabConfig[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  isDefault           Boolean         @default(false)
+  gitlabProjects      GitlabConfig[]
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
-  @@index([type, isDefault])
   @@unique([type, name])
+  @@index([type, isDefault])
 }
 
 model RegistryConfig {
-  id              String                @id @default(uuid())
+  id              String               @id @default(uuid())
   name            String
   type            RegistryProviderType
   username        String?
-  password        String?               @db.Text
+  password        String?              @db.Text
   registryUrl     String?
-  isDefault       Boolean               @default(false)
-  isConnected     Boolean               @default(false)
+  isDefault       Boolean              @default(false)
+  isConnected     Boolean              @default(false)
   connectionError String?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
-  @@index([type, isDefault])
   @@unique([type, name])
+  @@index([type, isDefault])
+}
+
+// ============================================================
+// AUTOMATION MODULE
+// ============================================================
+
+enum AutomationRunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+  CANCELED
+  TIMEOUT
+}
+
+enum AutomationTargetStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+  TIMEOUT
+}
+
+model AutomationRun {
+  id          String               @id @default(uuid())
+  actionKey   String
+  actionLabel String
+  status      AutomationRunStatus  @default(QUEUED)
+  summary     String?
+  errorMessage String?
+  extraVarsJson Json               @default("{}")
+  requestedById String?
+  requestedBy   User?              @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  targets     AutomationRunTarget[]
+  logs        AutomationRunLog[]
+
+  @@index([status])
+  @@index([actionKey])
+  @@index([createdAt])
+}
+
+model AutomationRunTarget {
+  id              String                @id @default(uuid())
+  runId           String
+  run             AutomationRun         @relation(fields: [runId], references: [id], onDelete: Cascade)
+  serverId        String
+  server          Server                @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  status          AutomationTargetStatus @default(PENDING)
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  errorMessage    String?
+  ansibleOutput   String?               @db.Text
+
+  @@unique([runId, serverId])
+  @@index([runId])
+  @@index([serverId])
+}
+
+model AutomationRunLog {
+  id          String        @id @default(uuid())
+  runId       String
+  run         AutomationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  serverId    String?
+  level       ServerLogLevel @default(INFO)
+  source      String        @default("orchestrator")
+  message     String        @db.Text
+  lineNumber  Int
+  createdAt   DateTime      @default(now())
+
+  @@index([runId, lineNumber])
 }
