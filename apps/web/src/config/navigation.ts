@@ -4,6 +4,7 @@ import {
   Database,
   FolderGit2,
   GitBranch,
+  GitMerge,
   Hammer,
   KeyRound,
   LayoutDashboard,
@@ -11,6 +12,8 @@ import {
   Server,
   Settings,
   TerminalSquare,
+  Wrench,
+  User,
   Users,
 } from 'lucide-react';
 
@@ -22,34 +25,37 @@ export type AppNavItem = {
 };
 
 export type AppNavSection = {
-  id: 'home' | 'settings';
+  id: 'operations' | 'settings';
   label: string;
   items: AppNavItem[];
 };
 
 export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
-    id: 'home',
-    label: 'Home',
+    id: 'operations',
+    label: 'Operations',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/projects', label: 'Projects', icon: FolderGit2 },
-      { href: '/deployments', label: 'Deployments', icon: Rocket },
       { href: '/builds', label: 'Builds', icon: Hammer },
-      { href: '/terminal', label: 'Terminal', icon: TerminalSquare },
+      { href: '/pipelines', label: 'Pipelines', icon: GitMerge },
+      { href: '/deployments', label: 'Deployments', icon: Rocket },
+      { href: '/admin/servers', label: 'Remote Servers', icon: Server, adminOnly: true },
+      { href: '/terminal', label: 'Terminal', icon: TerminalSquare, adminOnly: true },
+      { href: '/automation', label: 'Automation', icon: Wrench, adminOnly: true },
     ],
   },
   {
     id: 'settings',
     label: 'Settings',
     items: [
+      { href: '/settings/profile', label: 'Profile', icon: User },
       { href: '/settings/ssh-keys', label: 'SSH Keys', icon: KeyRound },
-      { href: '/settings/git', label: 'Git', icon: GitBranch },
+      { href: '/settings/git', label: 'Git Providers', icon: GitBranch },
       { href: '/settings/registry', label: 'Registry', icon: Database, adminOnly: true },
       { href: '/settings/audit-logs', label: 'Audit Logs', icon: ClipboardList, adminOnly: true },
       { href: '/admin/users', label: 'Users & Teams', icon: Users, adminOnly: true },
-      { href: '/admin/servers', label: 'Remote Servers', icon: Server, adminOnly: true },
-      { href: '/admin/settings', label: 'Settings', icon: Settings, adminOnly: true },
+      { href: '/admin/settings', label: 'Platform Settings', icon: Settings, adminOnly: true },
     ],
   },
 ];
@@ -58,17 +64,19 @@ export const APP_ROUTE_LABELS: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/projects': 'Projects',
   '/deployments': 'Deployments',
+  '/pipelines': 'Pipelines',
+  '/automation': 'Automation',
   '/builds': 'Builds',
   '/terminal': 'Terminal',
-  '/profile': 'Profile',
+  '/settings/profile': 'Profile',
   '/settings/ssh-keys': 'SSH Keys',
-  '/settings/git': 'Git',
+  '/settings/git': 'Git Providers',
   '/settings/registry': 'Registry',
   '/settings/audit-logs': 'Audit Logs',
   '/admin/users': 'Users & Teams',
   '/admin/teams': 'Users & Teams',
   '/admin/servers': 'Remote Servers',
-  '/admin/settings': 'Settings',
+  '/admin/settings': 'Platform Settings',
 };
 
 export function isRouteActive(pathname: string, href: string): boolean {
@@ -77,9 +85,7 @@ export function isRouteActive(pathname: string, href: string): boolean {
 
 export function resolveRouteLabel(pathname: string): string {
   const exact = APP_ROUTE_LABELS[pathname];
-  if (exact) {
-    return exact;
-  }
+  if (exact) return exact;
 
   const match = Object.keys(APP_ROUTE_LABELS)
     .sort((a, b) => b.length - a.length)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Plus, RefreshCw, Server } from 'lucide-react';
 import type { Server as ServerType } from '@/types/server';
 import { getApiErrorMessage } from '@/lib/api';
@@ -13,16 +13,11 @@ import { SectionCard } from '@/components/layout/section-card';
 import { ServerCard } from '@/components/servers/server-card';
 import { ServerDetailsDialog } from '@/components/servers/server-details-dialog';
 import { ServerKeyInstallDialog } from '@/components/servers/server-key-install-dialog';
-import {
-  ServerPrepareDialog,
-  type InstallOptions,
-} from '@/components/servers/server-prepare-dialog';
-import { ServerRunnerModal } from '@/components/servers/server-runner-modal';
+import { ServerPrepareDialog } from '@/components/servers/server-prepare-dialog';
 import {
   ServerUpsertDialog,
   type CreateServerOptions,
 } from '@/components/servers/server-upsert-dialog';
-import { getServerOverallStatus } from '@/components/servers/server-status-badges';
 import { useServerActions } from '@/hooks/useServerActions';
 import { usePagination } from '@/hooks/usePagination';
 import { Pagination } from '@/components/ui/pagination';
@@ -32,33 +27,14 @@ export default function AdminServersPage() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-
   const [editServer, setEditServer] = useState<ServerType | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
-
   const [installKeyServer, setInstallKeyServer] = useState<ServerType | null>(null);
   const [installKeyError, setInstallKeyError] = useState<string | null>(null);
   const [prepareServer, setPrepareServer] = useState<ServerType | null>(null);
   const [detailsServer, setDetailsServer] = useState<ServerType | null>(null);
-
   const [deleteTarget, setDeleteTarget] = useState<ServerType | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const readyCount = useMemo(
-    () =>
-      servers.servers.filter((server) => {
-        const status = getServerOverallStatus({
-          isActive: server.isActive,
-          isVerified: server.isVerified,
-          hasDocker: server.hasDocker,
-          hasAnsible: server.hasAnsible,
-          hasRunner: server.hasRunner,
-        });
-
-        return status.label === 'Ready';
-      }).length,
-    [servers.servers],
-  );
 
   const {
     page,
@@ -68,42 +44,28 @@ export default function AdminServersPage() {
   } = usePagination(servers.servers, { pageSize: 10 });
 
   const resolveLiveServer = (target: ServerType | null): ServerType | null => {
-    if (!target) {
-      return null;
-    }
+    if (!target) return null;
     return servers.servers.find((item) => item.id === target.id) ?? target;
   };
 
   const getServerBusy = (target: ServerType | null): boolean => {
-    if (!target) {
-      return false;
-    }
-    const jobsLoading = Boolean(servers.loadingJobsByServer[target.id]);
+    if (!target) return false;
     return (
       servers.verifyingId === target.id ||
-      servers.installingId === target.id ||
+      servers.detectingId === target.id ||
+      servers.preparingId === target.id ||
       servers.installingKeyId === target.id ||
       servers.deletingId === target.id ||
-      servers.savingManualId === target.id ||
-      servers.registeringId === target.id ||
       servers.updatingId === target.id ||
-      jobsLoading
+      Boolean(servers.loadingJobsByServer[target.id])
     );
   };
 
   const activePrepareServer = resolveLiveServer(prepareServer);
   const activeDetailsServer = resolveLiveServer(detailsServer);
-  const activePrepareOptions: InstallOptions = activePrepareServer
-    ? servers.getInstallOptions(activePrepareServer)
-    : { docker: false, ansible: false, runner: false };
-  const activeDetailsChecklist = activeDetailsServer
-    ? servers.getChecklist(activeDetailsServer)
-    : {
-        isVerified: false,
-        hasDocker: false,
-        hasAnsible: false,
-        hasRunner: false,
-      };
+  const activePrepareOptions = activePrepareServer
+    ? servers.getPrepareOptions(activePrepareServer)
+    : {};
   const activeDetailsJobs = activeDetailsServer
     ? (servers.jobsByServer[activeDetailsServer.id] ?? [])
     : [];
@@ -151,12 +113,8 @@ export default function AdminServersPage() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deleteTarget) {
-      return;
-    }
-
+    if (!deleteTarget) return;
     setDeleteError(null);
-
     try {
       await servers.handleDelete(deleteTarget.id, deleteTarget.name);
       setDeleteTarget(null);
@@ -180,7 +138,7 @@ export default function AdminServersPage() {
       <PageHeader
         eyebrow="Infrastructure"
         title="Servers"
-        description="Manage VPS onboarding, verify capabilities, and run Docker/Ansible/Runner automation from one place."
+        description="Manage VPS onboarding, SSH validation, capability detection and Ansible preparation from the control node. VPS targets do not install Ansible."
         actions={
           <>
             <Button
@@ -208,19 +166,27 @@ export default function AdminServersPage() {
         <div className="grid grid-cols-1 gap-3 border-b border-[var(--border)] p-5 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
             <p className="text-xs font-medium text-[var(--text-muted)]">Total servers</p>
-            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{servers.servers.length}</p>
+            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
+              {servers.servers.length}
+            </p>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-muted)]">Verified</p>
-            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{servers.verifiedCount}</p>
+            <p className="text-xs font-medium text-[var(--text-muted)]">SSH validated</p>
+            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
+              {servers.verifiedCount}
+            </p>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-muted)]">Needs verification</p>
-            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{servers.unverifiedCount}</p>
+            <p className="text-xs font-medium text-[var(--text-muted)]">Needs validation</p>
+            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
+              {servers.unverifiedCount}
+            </p>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-muted)]">Ready for deployments</p>
-            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{readyCount}</p>
+            <p className="text-xs font-medium text-[var(--text-muted)]">Prepared</p>
+            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
+              {servers.readyCount}
+            </p>
           </div>
         </div>
       </SectionCard>
@@ -228,11 +194,11 @@ export default function AdminServersPage() {
       {servers.error && <Alert tone="error">{servers.error}</Alert>}
 
       {!servers.loading && servers.servers.length === 0 && !servers.error && (
-        <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--hover)] border-[var(--border)]">
+        <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--hover)]">
           <EmptyState
             icon={Server}
             title="No servers yet"
-            description="Add your first VPS to start automated verification and tools installation."
+            description="Add your first VPS to start SSH validation and server preparation."
             action={
               <Button
                 icon={<Plus size={16} />}
@@ -251,15 +217,7 @@ export default function AdminServersPage() {
       {!servers.loading && servers.servers.length > 0 && (
         <div className="space-y-3">
           {pagedServers.map((server) => {
-            const isBusy =
-              servers.verifyingId === server.id ||
-              servers.installingId === server.id ||
-              servers.installingKeyId === server.id ||
-              servers.deletingId === server.id ||
-              servers.savingManualId === server.id ||
-              servers.registeringId === server.id ||
-              servers.updatingId === server.id ||
-              Boolean(servers.loadingJobsByServer[server.id]);
+            const isBusy = getServerBusy(server);
 
             return (
               <ServerCard
@@ -267,19 +225,20 @@ export default function AdminServersPage() {
                 server={server}
                 isBusy={isBusy}
                 verifyingId={servers.verifyingId}
+                detectingId={servers.detectingId}
+                preparingId={servers.preparingId}
                 installingKeyId={servers.installingKeyId}
                 deletingId={servers.deletingId}
-                registeringId={servers.registeringId}
                 updatingId={servers.updatingId}
                 formatConnectionMode={servers.formatConnectionMode}
                 onVerify={servers.handleVerify}
+                onDetect={servers.handleDetect}
                 onInstallKey={(nextServer) => {
                   setInstallKeyError(null);
                   setInstallKeyServer(nextServer);
                 }}
                 onOpenPrepare={setPrepareServer}
                 onOpenDetails={setDetailsServer}
-                onOpenRunner={servers.openRunnerModal}
                 onEdit={(nextServer) => {
                   setEditError(null);
                   setEditServer(nextServer);
@@ -295,18 +254,6 @@ export default function AdminServersPage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} className="mt-2" />
         </div>
       )}
-
-      <ServerRunnerModal
-        openServerId={servers.runnerModal}
-        gitlabUrl={servers.runnerGitlabUrl}
-        onGitlabUrlChange={servers.setRunnerGitlabUrl}
-        token={servers.runnerToken}
-        onTokenChange={servers.setRunnerToken}
-        error={servers.runnerError}
-        registeringId={servers.registeringId}
-        onClose={servers.closeRunnerModal}
-        onSubmit={servers.handleRegisterRunner}
-      />
 
       <ServerKeyInstallDialog
         open={Boolean(installKeyServer)}
@@ -325,30 +272,25 @@ export default function AdminServersPage() {
       <ServerPrepareDialog
         open={Boolean(activePrepareServer)}
         server={activePrepareServer}
-        installOptions={activePrepareOptions}
+        prepareOptions={activePrepareOptions}
         isBusy={getServerBusy(activePrepareServer)}
-        installingId={servers.installingId}
+        preparingId={servers.preparingId}
         onClose={() => setPrepareServer(null)}
-        onOptionChange={servers.handleInstallOptionChange}
-        onInstall={servers.handleInstall}
+        onFieldChange={servers.handlePrepareOptionChange}
+        onPrepare={servers.handlePrepare}
       />
 
       <ServerDetailsDialog
         open={Boolean(activeDetailsServer)}
         server={activeDetailsServer}
-        checklist={activeDetailsChecklist}
         jobs={activeDetailsJobs}
         jobsLoading={activeDetailsJobsLoading}
         isBusy={getServerBusy(activeDetailsServer)}
-        savingManualId={servers.savingManualId}
         retryingJobId={servers.retryingJobId}
         formatJobType={servers.formatJobType}
         canRetryJob={servers.canRetryJob}
         getJobStatusClassName={servers.getJobStatusClassName}
         onClose={() => setDetailsServer(null)}
-        onChecklistChange={servers.handleChecklistChange}
-        onManualSave={servers.handleManualSave}
-        onMarkReady={servers.handleMarkReady}
         onRefreshJobs={servers.refreshJobs}
         onRetryJob={servers.handleRetryJob}
       />

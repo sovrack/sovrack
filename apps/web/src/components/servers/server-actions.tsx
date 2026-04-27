@@ -1,13 +1,4 @@
-import {
-  Eye,
-  KeyRound,
-  Loader2,
-  Pencil,
-  Play,
-  Trash2,
-  Wrench,
-  Zap,
-} from 'lucide-react';
+import { Eye, KeyRound, Loader2, Pencil, Radar, Trash2, Wrench, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Server } from '@/types/server';
 
@@ -15,43 +6,60 @@ type ServerActionsProps = {
   server: Server;
   isBusy: boolean;
   verifyingId: string | null;
+  detectingId: string | null;
+  preparingId: string | null;
   installingKeyId: string | null;
-  registeringId: string | null;
   deletingId: string | null;
   updatingId: string | null;
   onVerify: (id: string) => Promise<void>;
+  onDetect: (id: string) => Promise<void>;
   onInstallKey: (server: Server) => void;
   onOpenPrepare: (server: Server) => void;
   onOpenDetails: (server: Server) => void;
-  onOpenRunner: (serverId: string) => void;
   onEdit: (server: Server) => void;
   onDelete: (server: Server) => void;
 };
 
-export function ServerActions({
-  server,
-  isBusy,
-  verifyingId,
-  installingKeyId,
-  registeringId,
-  deletingId,
-  updatingId,
-  onVerify,
-  onInstallKey,
-  onOpenPrepare,
-  onOpenDetails,
-  onOpenRunner,
-  onEdit,
-  onDelete,
-}: ServerActionsProps) {
+function resolvePrimaryAction(server: Server) {
   const needsSshKeyInstall =
     server.connectionMode === 'ssh' &&
     server.onboardingStep === 'PENDING' &&
     !server.isVerified;
 
+  if (needsSshKeyInstall) {
+    return 'install-key' as const;
+  }
+  if (!server.isVerified || server.status === 'VALIDATION_FAILED') {
+    return 'validate' as const;
+  }
+  if (!server.lastDetectedAt && server.status !== 'INFO_DETECTED') {
+    return 'detect' as const;
+  }
+  return 'prepare' as const;
+}
+
+export function ServerActions({
+  server,
+  isBusy,
+  verifyingId,
+  detectingId,
+  preparingId,
+  installingKeyId,
+  deletingId,
+  updatingId,
+  onVerify,
+  onDetect,
+  onInstallKey,
+  onOpenPrepare,
+  onOpenDetails,
+  onEdit,
+  onDelete,
+}: ServerActionsProps) {
+  const primary = resolvePrimaryAction(server);
+
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-2">
-      {needsSshKeyInstall && (
+    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+      {primary === 'install-key' && (
         <Button
           variant="secondary"
           size="sm"
@@ -65,15 +73,53 @@ export function ServerActions({
         </Button>
       )}
 
+      {primary === 'validate' && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void onVerify(server.id)}
+          disabled={isBusy}
+          loading={verifyingId === server.id}
+          icon={verifyingId === server.id ? null : <Zap size={13} />}
+        >
+          Validate SSH
+        </Button>
+      )}
+
+      {primary === 'detect' && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void onDetect(server.id)}
+          disabled={isBusy}
+          loading={detectingId === server.id}
+          icon={detectingId === server.id ? null : <Radar size={13} />}
+        >
+          Detect Info
+        </Button>
+      )}
+
+      {primary === 'prepare' && (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => onOpenPrepare(server)}
+          disabled={isBusy || server.status === 'PREPARING'}
+          loading={preparingId === server.id}
+          icon={preparingId === server.id ? null : <Wrench size={13} />}
+        >
+          {server.status === 'PREPARED' ? 'Re-prepare' : 'Prepare Server'}
+        </Button>
+      )}
+
       <Button
         variant="secondary"
         size="sm"
-        onClick={() => void onVerify(server.id)}
-        disabled={isBusy || needsSshKeyInstall}
-        loading={verifyingId === server.id}
-        icon={verifyingId === server.id ? null : <Zap size={13} className="text-[var(--text-secondary)]" />}
+        onClick={() => onOpenDetails(server)}
+        disabled={isBusy}
+        icon={<Eye size={13} />}
       >
-        Verify SSH
+        Details
       </Button>
 
       <Button
@@ -86,40 +132,6 @@ export function ServerActions({
       >
         Edit
       </Button>
-
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={() => onOpenPrepare(server)}
-        disabled={isBusy}
-        icon={<Wrench size={13} />}
-      >
-        Prepare VPS
-      </Button>
-
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={() => onOpenDetails(server)}
-        disabled={isBusy}
-        icon={<Eye size={13} />}
-      >
-        Details
-      </Button>
-
-      {server.hasDocker && (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => onOpenRunner(server.id)}
-          disabled={isBusy}
-          loading={registeringId === server.id}
-          icon={registeringId === server.id ? null : <Play size={13} />}
-          className="border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
-        >
-          Register Runner
-        </Button>
-      )}
 
       <button
         onClick={() => onDelete(server)}

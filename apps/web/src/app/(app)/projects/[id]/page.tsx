@@ -40,8 +40,8 @@ type Tab =
   | 'gitlab'
   | 'environments'
   | 'configs'
-  | 'deployments'
-  | 'build';
+  | 'build'
+  | 'deployments';
 
 const TAB_VALUES: Tab[] = [
   'overview',
@@ -49,8 +49,8 @@ const TAB_VALUES: Tab[] = [
   'gitlab',
   'environments',
   'configs',
-  'deployments',
   'build',
+  'deployments',
 ];
 
 function parseTab(value: string | null): Tab | null {
@@ -204,8 +204,8 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     { id: 'gitlab', label: 'Source', icon: GitBranch },
     { id: 'environments', label: 'Environments', icon: Boxes },
     { id: 'configs', label: 'Configs', icon: Wrench },
-    { id: 'deployments', label: 'Deployments', icon: Settings },
     { id: 'build', label: 'Build', icon: Hammer },
+    { id: 'deployments', label: 'Deployments', icon: Settings },
   ];
 
   return (

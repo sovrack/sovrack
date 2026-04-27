@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 :root {
+  --font-outfit: 'Avenir Next', 'Segoe UI', sans-serif;
+  --font-plex-mono: 'IBM Plex Mono', 'SFMono-Regular', 'Consolas', monospace;
   --bg-app: #fafafa;
   --bg-sidebar: #ffffff;
   --bg-card: #ffffff;

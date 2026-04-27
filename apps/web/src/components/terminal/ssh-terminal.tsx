@@ -1,0 +1,178 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { io, type Socket } from 'socket.io-client';
+import '@xterm/xterm/css/xterm.css';
+
+type Props = {
+  serverId: string;
+  onClose?: () => void;
+};
+
+type ConnectionState = 'idle' | 'connecting' | 'connected' | 'error' | 'closed';
+
+export function SshTerminal({ serverId, onClose }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const termRef = useRef<Terminal | null>(null);
+  const fitRef = useRef<FitAddon | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const [state, setState] = useState<ConnectionState>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const disconnect = useCallback(() => {
+    socketRef.current?.emit('terminal:disconnect');
+    socketRef.current?.disconnect();
+    socketRef.current = null;
+    setState('closed');
+    onClose?.();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const term = new Terminal({
+      theme: {
+        background: '#09090b',
+        foreground: '#e4e4e7',
+        cursor: '#a1a1aa',
+        selectionBackground: '#3f3f46',
+        black: '#18181b',
+        brightBlack: '#3f3f46',
+        red: '#ef4444',
+        brightRed: '#f87171',
+        green: '#22c55e',
+        brightGreen: '#4ade80',
+        yellow: '#eab308',
+        brightYellow: '#facc15',
+        blue: '#3b82f6',
+        brightBlue: '#60a5fa',
+        magenta: '#f97316',
+        brightMagenta: '#fb923c',
+        cyan: '#06b6d4',
+        brightCyan: '#22d3ee',
+        white: '#d4d4d8',
+        brightWhite: '#f4f4f5',
+      },
+      fontFamily: '"JetBrains Mono", "Cascadia Code", "Fira Code", monospace',
+      fontSize: 13,
+      lineHeight: 1.4,
+      cursorBlink: true,
+      cursorStyle: 'block',
+      scrollback: 5000,
+      convertEol: true,
+    });
+
+    const fitAddon = new FitAddon();
+    const linksAddon = new WebLinksAddon();
+    term.loadAddon(fitAddon);
+    term.loadAddon(linksAddon);
+    term.open(containerRef.current);
+    fitAddon.fit();
+
+    termRef.current = term;
+    fitRef.current = fitAddon;
+
+    setState('connecting');
+    term.writeln('\x1b[90mConnexion SSH en cours...\x1b[0m');
+
+    const backendUrl =
+      process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
+
+    const socket = io(`${backendUrl}/terminal`, {
+      transports: ['websocket'],
+      withCredentials: true,
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      const { cols, rows } = term;
+      socket.emit('terminal:connect', { serverId, cols, rows });
+    });
+
+    socket.on('terminal:ready', () => {
+      setState('connected');
+      term.writeln('\x1b[32mConnecté.\x1b[0m\r\n');
+
+      term.onData((data) => socket.emit('terminal:data', data));
+
+      term.onResize(({ cols, rows }) => {
+        socket.emit('terminal:resize', { cols, rows });
+      });
+    });
+
+    socket.on('terminal:data', (data: string) => {
+      term.write(data);
+    });
+
+    socket.on('terminal:error', (msg: string) => {
+      setState('error');
+      setErrorMsg(msg);
+      term.writeln(`\r\n\x1b[31m✗ Erreur: ${msg}\x1b[0m`);
+    });
+
+    socket.on('terminal:close', ({ code }: { code: number | null }) => {
+      setState('closed');
+      term.writeln(`\r\n\x1b[90mSession fermée (code: ${String(code ?? 0)}).\x1b[0m`);
+      socket.disconnect();
+    });
+
+    socket.on('disconnect', () => {
+      term.writeln('\r\n\x1b[33mDéconnecté du serveur.\x1b[0m');
+      setState('closed');
+    });
+
+    const onResize = () => fitAddon.fit();
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      socket.disconnect();
+      term.dispose();
+      termRef.current = null;
+      socketRef.current = null;
+    };
+  }, [serverId]);
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-zinc-950">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${
+              state === 'connected'
+                ? 'bg-green-400'
+                : state === 'connecting'
+                  ? 'animate-pulse bg-yellow-400'
+                  : state === 'error'
+                    ? 'bg-red-400'
+                    : 'bg-zinc-600'
+            }`}
+          />
+          <span className="text-xs font-mono text-zinc-400">
+            {state === 'connected'
+              ? 'Connecté'
+              : state === 'connecting'
+                ? 'Connexion...'
+                : state === 'error'
+                  ? `Erreur${errorMsg ? `: ${errorMsg}` : ''}`
+                  : 'Fermé'}
+          </span>
+        </div>
+        <button
+          onClick={disconnect}
+          className="rounded px-2 py-1 text-xs font-medium text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
+        >
+          Fermer
+        </button>
+      </div>
+
+      {/* Terminal container */}
+      <div ref={containerRef} className="flex-1 overflow-hidden p-2" />
+    </div>
+  );
+}

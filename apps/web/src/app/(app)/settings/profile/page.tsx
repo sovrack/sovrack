@@ -149,13 +149,14 @@ export default function ProfileSettingsPage() {
       }
 
       if (wantsProfileUpdate) {
-        await usersService.updateMyProfile({ fullName: nextFullName });
+        await usersService.update(user.id, { fullName: nextFullName });
       }
 
       if (wantsPasswordChange) {
-        await usersService.changePassword({
+        await usersService.changeMyPassword({
           currentPassword: parsed.data.currentPassword,
           newPassword: parsed.data.newPassword,
+          confirmNewPassword: parsed.data.confirmNewPassword,
         });
       }
 
@@ -195,10 +196,11 @@ export default function ProfileSettingsPage() {
 
       {toast && (
         <Alert
-          variant={toast.tone === 'success' ? 'success' : 'error'}
+          tone={toast.tone === 'success' ? 'success' : 'error'}
           title={toast.tone === 'success' ? 'Succès' : 'Erreur'}
-          message={toast.message}
-        />
+        >
+          {toast.message}
+        </Alert>
       )}
 
       <SectionCard title="Informations Personnelles" description="Mettez à jour vos informations de profil.">

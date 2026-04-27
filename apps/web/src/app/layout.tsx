@@ -1,20 +1,7 @@
 import type { Metadata } from 'next';
-import { Outfit, IBM_Plex_Mono } from 'next/font/google';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Providers } from '@/components/providers';
 import '@/styles/globals.css';
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit',
-  weight: ['400', '500', '600', '700'],
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  variable: '--font-plex-mono',
-  weight: ['400', '500'],
-});
 
 export const metadata: Metadata = {
   title: 'platform Deploy Platform',
@@ -53,7 +40,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`${outfit.variable} ${plexMono.variable} app-shell`}>
+      <body className="app-shell">
         <Providers>
           <ErrorBoundary>{children}</ErrorBoundary>
         </Providers>

@@ -1,42 +1,26 @@
 'use client';
 
 import { useEffect } from 'react';
-import { CheckCircle, Server as ServerIcon, X } from 'lucide-react';
+import { Server as ServerIcon, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   ServerOverallStatusBadge,
-  ServerStatusBadges,
+  ServerWorkflowBadges,
 } from '@/components/servers/server-status-badges';
 import { ServerJobsPanel } from '@/components/servers/server-jobs-panel';
 import type { Server, ServerJob } from '@/types/server';
 
-type ManualChecklist = {
-  isVerified: boolean;
-  hasDocker: boolean;
-  hasAnsible: boolean;
-  hasRunner: boolean;
-};
-
 type ServerDetailsDialogProps = {
   open: boolean;
   server: Server | null;
-  checklist: ManualChecklist;
   jobs: ServerJob[];
   jobsLoading: boolean;
   isBusy: boolean;
-  savingManualId: string | null;
   retryingJobId: string | null;
   formatJobType: (type: ServerJob['type']) => string;
   canRetryJob: (job: ServerJob) => boolean;
   getJobStatusClassName: (status: ServerJob['status']) => string;
   onClose: () => void;
-  onChecklistChange: (
-    server: Server,
-    field: keyof ManualChecklist,
-    value: boolean,
-  ) => void;
-  onManualSave: (server: Server) => Promise<void>;
-  onMarkReady: (server: Server) => Promise<void>;
   onRefreshJobs: (serverId: string) => Promise<void>;
   onRetryJob: (serverId: string, jobId: string) => Promise<void>;
 };
@@ -44,19 +28,14 @@ type ServerDetailsDialogProps = {
 export function ServerDetailsDialog({
   open,
   server,
-  checklist,
   jobs,
   jobsLoading,
   isBusy,
-  savingManualId,
   retryingJobId,
   formatJobType,
   canRetryJob,
   getJobStatusClassName,
   onClose,
-  onChecklistChange,
-  onManualSave,
-  onMarkReady,
   onRefreshJobs,
   onRetryJob,
 }: ServerDetailsDialogProps) {
@@ -105,75 +84,45 @@ export function ServerDetailsDialog({
                 <ServerIcon size={18} className="text-[var(--text-secondary)]" />
               </div>
               <div className="space-y-2">
-                <ServerOverallStatusBadge
-                  isActive={server.isActive}
-                  isVerified={server.isVerified}
-                  hasDocker={server.hasDocker}
-                  hasAnsible={server.hasAnsible}
-                  hasRunner={server.hasRunner}
-                />
-                <ServerStatusBadges
-                  isVerified={server.isVerified}
-                  hasDocker={server.hasDocker}
-                  hasAnsible={server.hasAnsible}
-                  hasRunner={server.hasRunner}
-                />
+                <ServerOverallStatusBadge server={server} />
+                <ServerWorkflowBadges server={server} />
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Ansible is executed from the platform control node. This VPS is managed through SSH and does not need Ansible installed locally.
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
-              Manual Checklist
-            </p>
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {(
-                [
-                  { key: 'isVerified', label: 'SSH reachable' },
-                  { key: 'hasDocker', label: 'Docker installed' },
-                  { key: 'hasAnsible', label: 'Ansible installed' },
-                  { key: 'hasRunner', label: 'GitLab Runner installed' },
-                ] as const
-              ).map(({ key, label }) => (
-                <label
-                  key={key}
-                  className="flex items-center gap-2 text-xs text-[var(--text-secondary)]"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checklist[key]}
-                    onChange={(event) =>
-                      onChecklistChange(server, key, event.target.checked)
-                    }
-                    disabled={isBusy}
-                    className="accent-zinc-500"
-                  />
-                  {label}
-                </label>
-              ))}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                Last SSH validation
+              </p>
+              <p className="mt-2 text-sm text-[var(--text-primary)]">
+                {server.lastVerifiedAt
+                  ? new Date(server.lastVerifiedAt).toLocaleString()
+                  : 'Not validated yet'}
+              </p>
             </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => void onManualSave(server)}
-                disabled={isBusy}
-                loading={savingManualId === server.id}
-              >
-                Save manual status
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => void onMarkReady(server)}
-                disabled={isBusy}
-                className="border-green-500/30 text-green-700 hover:bg-green-100"
-                loading={savingManualId === server.id}
-                icon={savingManualId === server.id ? undefined : <CheckCircle size={13} />}
-              >
-                Mark ready
-              </Button>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                Last detection
+              </p>
+              <p className="mt-2 text-sm text-[var(--text-primary)]">
+                {server.lastDetectedAt
+                  ? new Date(server.lastDetectedAt).toLocaleString()
+                  : 'Not detected yet'}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                Last preparation
+              </p>
+              <p className="mt-2 text-sm text-[var(--text-primary)]">
+                {server.lastPreparedAt
+                  ? new Date(server.lastPreparedAt).toLocaleString()
+                  : 'Not prepared yet'}
+              </p>
             </div>
           </div>
 

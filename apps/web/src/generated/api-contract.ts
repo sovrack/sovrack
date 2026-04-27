@@ -506,6 +506,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/platform-config/registries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les configurations de registre */
+        get: operations["PlatformConfigController_listRegistries"];
+        put?: never;
+        /** Créer une nouvelle configuration de registre */
+        post: operations["PlatformConfigController_createRegistry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/registries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mettre à jour une configuration de registre */
+        put: operations["PlatformConfigController_updateRegistry"];
+        post?: never;
+        /** Supprimer une configuration de registre */
+        delete: operations["PlatformConfigController_deleteRegistry"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/registries/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tester la connexion à un registre */
+        post: operations["PlatformConfigController_testRegistry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/registries/{id}/set-default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Définir un registre comme registre par défaut */
+        post: operations["PlatformConfigController_setDefaultRegistry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/deployments": {
         parameters: {
             query?: never;
@@ -662,7 +732,8 @@ export interface paths {
         delete: operations["ServersController_remove"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Modifier partiellement un serveur */
+        patch: operations["ServersController_patch"];
         trace?: never;
     };
     "/servers/{id}/verify": {
@@ -674,8 +745,48 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Vérifier SSH, Docker, Ansible et GitLab Runner */
+        /**
+         * Alias déprécié: valider la connexion SSH du serveur
+         * @description Ne vérifie pas Ansible sur le VPS. Ansible reste uniquement sur la machine de contrôle.
+         */
         post: operations["ServersController_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/validate-ssh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Valider la connexion SSH, auth, sudo et prérequis minimaux
+         * @description Les VPS sont des cibles SSH agentless. Cette étape ne cherche jamais à installer Ansible sur le VPS.
+         */
+        post: operations["ServersController_validateSsh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/detect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Détecter les informations système et outils installés */
+        post: operations["ServersController_detect"];
         delete?: never;
         options?: never;
         head?: never;
@@ -691,8 +802,31 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Installer les outils manquants sur le serveur cible */
+        /**
+         * Déprécié: utiliser Prepare Server
+         * @description Compatibilité ancienne API. Le champ ansible est ignoré: Ansible n'est jamais installé sur le VPS cible.
+         */
         post: operations["ServersController_install"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Alias: démarrer une préparation serveur suivie
+         * @description Lance le workflow ServerPreparation. Ansible est exécuté uniquement depuis la machine de contrôle.
+         */
+        post: operations["ServersController_prepare"];
         delete?: never;
         options?: never;
         head?: never;
@@ -767,6 +901,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/servers/{id}/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les capacités détectées du serveur */
+        get: operations["ServersController_getCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/installed-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les outils installés détectés */
+        get: operations["ServersController_getInstalledTools"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/validation-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les résultats de validation SSH */
+        get: operations["ServersController_getValidationResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister l'audit des actions serveur sensibles */
+        get: operations["ServersController_getAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/preparations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister l'historique de préparation du serveur */
+        get: operations["ServersController_listPreparations"];
+        put?: never;
+        /** Démarrer une préparation serveur */
+        post: operations["ServersController_startPreparation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/preparation-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vérifier si le serveur est prêt à lancer une préparation (SSH/sudo/état/verrou). */
+        get: operations["ServersController_getPreparationReadiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/servers/{id}/retry-verification": {
         parameters: {
             query?: never;
@@ -812,6 +1049,91 @@ export interface paths {
         put?: never;
         /** Relancer un job serveur */
         post: operations["ServersController_retryJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/preparations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Voir le détail d'une préparation serveur */
+        get: operations["ServerPreparationsController_findOne"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/preparations/{id}/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lire les logs persistés d'une préparation */
+        get: operations["ServerPreparationsController_logs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/preparations/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Relancer une préparation en créant un nouveau job lié */
+        post: operations["ServerPreparationsController_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/preparations/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Annuler une préparation si elle est encore active */
+        post: operations["ServerPreparationsController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/server-preparation-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les options et profils de préparation */
+        get: operations["ServerPreparationOptionsController_options"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1055,6 +1377,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les logs d’audit (admin) */
+        get: operations["AuditLogsController_findAll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1101,7 +1440,32 @@ export interface components {
             /** @example Application e-commerce interne */
             description?: string;
             /** @example https://gitlab.com/test/ecommerce */
-            gitlabUrl: string;
+            gitlabUrl?: string;
+            /**
+             * @description Provider GitLab global. Si fourni, gitlabToken peut être omis.
+             * @example b5073d11-f378-4c71-87da-093f3ecf20af
+             */
+            providerId?: string;
+            /** @example glpat-xxxxxxxxxxxxxxxxxxxx */
+            gitlabToken?: string;
+            /** @example 123 */
+            gitlabId?: number;
+            /**
+             * @description Group ID GitLab
+             * @example 44
+             */
+            gitlabGroupId?: number;
+            /**
+             * @default REPO
+             * @enum {string}
+             */
+            sourceType?: "REPO" | "GROUP";
+            /** @example gitlab+deploy-token-12 */
+            deployTokenUsername?: string;
+            /** @example glrt-xxxxxxxxxxxxxxxxxxxx */
+            deployTokenValue?: string;
+            /** @example registry.gitlab.example.com */
+            registryUrl?: string;
             /**
              * @default main
              * @example main
@@ -1172,6 +1536,8 @@ export interface components {
         UpdatePlatformConfigDto: Record<string, never>;
         CreateGitlabProviderDto: Record<string, never>;
         UpdateGitlabProviderDto: Record<string, never>;
+        CreateRegistryConfigDto: Record<string, never>;
+        UpdateRegistryConfigDto: Record<string, never>;
         DeploymentResponseDto: {
             id: string;
             /** @enum {string} */
@@ -1290,8 +1656,16 @@ export interface components {
             isActive: boolean;
             isVerified: boolean;
             onboardingStep: string;
+            /** @enum {string} */
+            status: "NEW" | "SSH_PENDING" | "SSH_VALIDATED" | "VALIDATION_FAILED" | "INFO_DETECTED" | "PREPARATION_PENDING" | "PREPARING" | "PREPARED" | "PARTIALLY_PREPARED" | "PREPARATION_FAILED" | "UNREACHABLE" | "DISABLED";
+            verificationError?: string | null;
+            /** Format: date-time */
+            lastVerifiedAt?: string | null;
+            /** Format: date-time */
+            lastDetectedAt?: string | null;
+            /** Format: date-time */
+            lastPreparedAt?: string | null;
             hasDocker: boolean;
-            hasAnsible: boolean;
             hasRunner: boolean;
             /** Format: date-time */
             createdAt: string;
@@ -1315,8 +1689,16 @@ export interface components {
             isActive: boolean;
             isVerified: boolean;
             onboardingStep: string;
+            /** @enum {string} */
+            status: "NEW" | "SSH_PENDING" | "SSH_VALIDATED" | "VALIDATION_FAILED" | "INFO_DETECTED" | "PREPARATION_PENDING" | "PREPARING" | "PREPARED" | "PARTIALLY_PREPARED" | "PREPARATION_FAILED" | "UNREACHABLE" | "DISABLED";
+            verificationError?: string | null;
+            /** Format: date-time */
+            lastVerifiedAt?: string | null;
+            /** Format: date-time */
+            lastDetectedAt?: string | null;
+            /** Format: date-time */
+            lastPreparedAt?: string | null;
             hasDocker: boolean;
-            hasAnsible: boolean;
             hasRunner: boolean;
             /** Format: date-time */
             createdAt: string;
@@ -1335,7 +1717,7 @@ export interface components {
             id: string;
             serverId: string;
             /** @enum {string} */
-            type: "VERIFY" | "INSTALL_TOOLS" | "REGISTER_RUNNER";
+            type: "VERIFY" | "INSTALL_TOOLS" | "PREPARE_SERVER" | "REGISTER_RUNNER";
             /** @enum {string} */
             status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "TIMEOUT" | "BLOCKED";
             output?: string | null;
@@ -1429,17 +1811,87 @@ export interface components {
             /** @example true */
             hasDocker?: boolean;
             /** @example true */
-            hasAnsible?: boolean;
-            /** @example true */
             hasRunner?: boolean;
+        };
+        ValidateServerSshDto: {
+            /**
+             * @description When true, refresh host fingerprint metadata if the control node can read it.
+             * @example true
+             */
+            refreshFingerprint?: boolean;
+        };
+        DetectServerDto: {
+            /** @example true */
+            refreshTools?: boolean;
         };
         InstallToolsDto: {
             /** @example true */
             docker?: boolean;
-            /** @example true */
+            /**
+             * @deprecated
+             * @description Ignored. Ansible is never installed on target VPS; it runs only from the control node.
+             * @example false
+             */
             ansible?: boolean;
             /** @example true */
             runner?: boolean;
+        };
+        PrepareServerDto: {
+            /**
+             * @description Reusable preparation profile. Explicit options override profile defaults.
+             * @default BASIC
+             * @enum {string}
+             */
+            profile?: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
+            /** @example true */
+            systemUpdate?: boolean;
+            /** @example true */
+            docker?: boolean;
+            /** @example true */
+            dockerComposePlugin?: boolean;
+            /** @example true */
+            nginx?: boolean;
+            /** @example false */
+            nodejs?: boolean;
+            /** @example false */
+            postgres?: boolean;
+            /**
+             * @deprecated
+             * @example false
+             */
+            postgresql?: boolean;
+            /** @example false */
+            redis?: boolean;
+            /** @example false */
+            gitlabRunner?: boolean;
+            /** @example true */
+            firewall?: boolean;
+            /** @example true */
+            fail2ban?: boolean;
+            /** @example false */
+            certbot?: boolean;
+            /**
+             * @deprecated
+             * @example false
+             */
+            ssl?: boolean;
+            /** @example true */
+            swap?: boolean;
+            /** @example false */
+            monitoring?: boolean;
+            /** @example false */
+            backup?: boolean;
+            /** @example true */
+            logrotate?: boolean;
+            /** @example true */
+            securityHardening?: boolean;
+            /** @example true */
+            autoUpdates?: boolean;
+            /**
+             * @description Executor mode for GitLab Runner. docker implies Docker dependency.
+             * @example docker
+             */
+            gitlabRunnerExecutor?: string;
         };
         RegisterRunnerDto: {
             /** @example https://gitlab.example.com */
@@ -1465,22 +1917,188 @@ export interface components {
             id: string;
             name: string;
             /** @enum {string} */
-            status: "NEW" | "VERIFYING" | "VERIFIED" | "FAILED";
+            status: "NEW" | "SSH_PENDING" | "SSH_VALIDATED" | "VALIDATION_FAILED" | "INFO_DETECTED" | "PREPARATION_PENDING" | "PREPARING" | "PREPARED" | "PARTIALLY_PREPARED" | "PREPARATION_FAILED" | "UNREACHABLE" | "DISABLED";
             verificationError?: string;
             /** Format: date-time */
             lastVerifiedAt?: string;
             isVerified: boolean;
             hasDocker: boolean;
-            hasAnsible: boolean;
             hasRunner: boolean;
             recentLogs: components["schemas"]["ServerLogDto"][];
+        };
+        ServerCapabilityDto: {
+            id: string;
+            serverId: string;
+            key: string;
+            value: string;
+            source: string;
+            /** Format: date-time */
+            detectedAt: string;
+        };
+        ServerInstalledToolDto: {
+            id: string;
+            serverId: string;
+            toolKey: string;
+            displayName: string;
+            version?: Record<string, never> | null;
+            installedBy?: Record<string, never> | null;
+            /** @enum {string} */
+            status: "INSTALLED" | "MISSING" | "FAILED" | "UNKNOWN";
+            /** Format: date-time */
+            installedAt?: Record<string, never> | null;
+        };
+        ServerValidationResultDto: {
+            id: string;
+            serverId: string;
+            sshReachable: boolean;
+            authSucceeded: boolean;
+            sudoAvailable: boolean;
+            fingerprint?: Record<string, never> | null;
+            osName?: Record<string, never> | null;
+            osVersion?: Record<string, never> | null;
+            architecture?: Record<string, never> | null;
+            pythonAvailable: boolean;
+            validationMessage?: Record<string, never> | null;
+            /** Format: date-time */
+            validatedAt?: Record<string, never> | null;
+        };
+        ServerAuditEventDto: {
+            id: string;
+            serverId: string;
+            actorId?: Record<string, never> | null;
+            eventType: string;
+            /** @description JSON payload describing the audited action context. */
+            payloadJson?: Record<string, never> | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        StartServerPreparationDto: {
+            /**
+             * @description Reusable preparation profile. Explicit options override profile defaults.
+             * @default BASIC
+             * @enum {string}
+             */
+            profile?: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
+            /** @example true */
+            systemUpdate?: boolean;
+            /** @example true */
+            docker?: boolean;
+            /** @example true */
+            dockerComposePlugin?: boolean;
+            /** @example true */
+            nginx?: boolean;
+            /** @example false */
+            nodejs?: boolean;
+            /** @example false */
+            postgres?: boolean;
+            /**
+             * @deprecated
+             * @example false
+             */
+            postgresql?: boolean;
+            /** @example false */
+            redis?: boolean;
+            /** @example false */
+            gitlabRunner?: boolean;
+            /** @example true */
+            firewall?: boolean;
+            /** @example true */
+            fail2ban?: boolean;
+            /** @example false */
+            certbot?: boolean;
+            /**
+             * @deprecated
+             * @example false
+             */
+            ssl?: boolean;
+            /** @example true */
+            swap?: boolean;
+            /** @example false */
+            monitoring?: boolean;
+            /** @example false */
+            backup?: boolean;
+            /** @example true */
+            logrotate?: boolean;
+            /** @example true */
+            securityHardening?: boolean;
+            /** @example true */
+            autoUpdates?: boolean;
+            /**
+             * @description Executor mode for GitLab Runner. docker implies Docker dependency.
+             * @example docker
+             */
+            gitlabRunnerExecutor?: string;
+        };
+        ServerPreparationTaskDto: {
+            id: string;
+            preparationId: string;
+            roleKey: string;
+            taskName: string;
+            orderIndex: number;
+            /** @enum {string} */
+            status: "PENDING" | "SKIPPED" | "RUNNING" | "OK" | "CHANGED" | "FAILED" | "TIMEOUT";
+            /** Format: date-time */
+            startedAt?: Record<string, never> | null;
+            /** Format: date-time */
+            finishedAt?: Record<string, never> | null;
+            message?: Record<string, never> | null;
+        };
+        ServerPreparationDto: {
+            id: string;
+            serverId: string;
+            /** @enum {string} */
+            status: "QUEUED" | "RESOLVING_OPTIONS" | "WAITING_FOR_LOCK" | "RUNNING" | "SUCCEEDED" | "PARTIAL" | "FAILED" | "TIMEOUT" | "CANCELED";
+            /** @enum {string} */
+            profile: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
+            triggerSource: string;
+            requestedById?: Record<string, never> | null;
+            /** Format: date-time */
+            startedAt?: Record<string, never> | null;
+            /** Format: date-time */
+            finishedAt?: Record<string, never> | null;
+            summary?: Record<string, never> | null;
+            errorMessage?: Record<string, never> | null;
+            retryOfPreparationId?: Record<string, never> | null;
+            tasks: components["schemas"]["ServerPreparationTaskDto"][];
+        };
+        ServerPreparationReadinessChecksDto: {
+            serverActive: boolean;
+            serverNotDisabled: boolean;
+            sshValidated: boolean;
+            sshReachable: boolean;
+            authSucceeded: boolean;
+            sudoAvailable: boolean;
+            noActivePreparation: boolean;
+        };
+        ServerPreparationReadinessDto: {
+            serverId: string;
+            isReady: boolean;
+            checks: components["schemas"]["ServerPreparationReadinessChecksDto"];
+            blockingReasons: string[];
+            /** Format: date-time */
+            latestValidationAt?: string | null;
         };
         VerifyServerResponseDto: {
             serverId: string;
             /** @example Verification started, check status endpoint for updates */
             message: string;
             /** @enum {string} */
-            status: "NEW" | "VERIFYING" | "VERIFIED" | "FAILED";
+            status: "NEW" | "SSH_PENDING" | "SSH_VALIDATED" | "VALIDATION_FAILED" | "INFO_DETECTED" | "PREPARATION_PENDING" | "PREPARING" | "PREPARED" | "PARTIALLY_PREPARED" | "PREPARATION_FAILED" | "UNREACHABLE" | "DISABLED";
+        };
+        ServerPreparationLogDto: {
+            id: string;
+            preparationId: string;
+            /** @enum {string} */
+            level: "INFO" | "WARNING" | "ERROR";
+            source: string;
+            message: string;
+            lineNumber: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RetryServerPreparationDto: {
+            /** @example Retry after firewall package mirror outage */
+            reason?: string;
         };
         CreateEnvironmentDto: {
             /**
@@ -2767,6 +3385,124 @@ export interface operations {
             };
         };
     };
+    PlatformConfigController_listRegistries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformConfigController_createRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRegistryConfigDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformConfigController_updateRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRegistryConfigDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformConfigController_deleteRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformConfigController_testRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformConfigController_setDefaultRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     DeploymentsController_findAll: {
         parameters: {
             query?: {
@@ -3417,6 +4153,32 @@ export interface operations {
             };
         };
     };
+    ServersController_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateServerDto"];
+            };
+        };
+        responses: {
+            /** @description Serveur mis à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"];
+                };
+            };
+        };
+    };
     ServersController_verify: {
         parameters: {
             query?: never;
@@ -3467,6 +4229,58 @@ export interface operations {
             };
         };
     };
+    ServersController_validateSsh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateServerSshDto"];
+            };
+        };
+        responses: {
+            /** @description Validation SSH démarrée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"];
+                };
+            };
+        };
+    };
+    ServersController_detect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DetectServerDto"];
+            };
+        };
+        responses: {
+            /** @description Détection terminée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"];
+                };
+            };
+        };
+    };
     ServersController_install: {
         parameters: {
             query?: never;
@@ -3492,6 +4306,60 @@ export interface operations {
                 };
             };
             /** @description Installation distante échouée */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès réservé aux ADMIN */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Serveur non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServersController_prepare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepareServerDto"];
+            };
+        };
+        responses: {
+            /** @description Préparation du serveur démarrée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"];
+                };
+            };
+            /** @description Préparation échouée */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -3717,6 +4585,157 @@ export interface operations {
             };
         };
     };
+    ServersController_getCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerCapabilityDto"][];
+                };
+            };
+        };
+    };
+    ServersController_getInstalledTools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerInstalledToolDto"][];
+                };
+            };
+        };
+    };
+    ServersController_getValidationResults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerValidationResultDto"][];
+                };
+            };
+        };
+    };
+    ServersController_getAuditEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerAuditEventDto"][];
+                };
+            };
+        };
+    };
+    ServersController_listPreparations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationDto"][];
+                };
+            };
+        };
+    };
+    ServersController_startPreparation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartServerPreparationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationDto"];
+                };
+            };
+        };
+    };
+    ServersController_getPreparationReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationReadinessDto"];
+                };
+            };
+        };
+    };
     ServersController_retryVerification: {
         parameters: {
             query?: never;
@@ -3850,6 +4869,113 @@ export interface operations {
             };
             /** @description Serveur ou job non trouvé */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServerPreparationsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationDto"];
+                };
+            };
+        };
+    };
+    ServerPreparationsController_logs: {
+        parameters: {
+            query: {
+                afterLine: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationLogDto"][];
+                };
+            };
+        };
+    };
+    ServerPreparationsController_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryServerPreparationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationDto"];
+                };
+            };
+        };
+    };
+    ServerPreparationsController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationDto"];
+                };
+            };
+        };
+    };
+    ServerPreparationOptionsController_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4378,7 +5504,9 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -4460,6 +5588,41 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuditLogsController_findAll: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Logs d’audit paginés */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès réservé aux admins */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

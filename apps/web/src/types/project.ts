@@ -77,6 +77,14 @@ export type CreateProjectPayload = {
   name: string;
   description?: string;
   gitlabUrl?: string;
+  gitlabToken?: string;
+  providerId?: string;
+  gitlabId?: number;
+  gitlabGroupId?: number;
+  sourceType?: GitlabSourceType;
+  deployTokenUsername?: string;
+  deployTokenValue?: string;
+  registryUrl?: string;
   branch?: string;
   ownerId?: string;
 };

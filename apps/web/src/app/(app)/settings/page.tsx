@@ -1,16 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { 
-  Lock, 
-  GitBranch, 
-  Database, 
-  Key, 
-  BarChart3, 
+import {
+  GitBranch,
+  Database,
+  Key,
+  BarChart3,
   User,
-  TerminalSquare 
+  TerminalSquare,
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
+import { useAuth } from '@/hooks/useAuth';
 
 const SETTINGS_SECTIONS = [
   {
@@ -25,7 +25,7 @@ const SETTINGS_SECTIONS = [
     title: 'Fournisseurs Git',
     description: 'Configurez les connexions GitLab et les paramètres OAuth',
     href: '/settings/git',
-    color: 'bg-purple-500/10 text-purple-400',
+    color: 'bg-cyan-500/10 text-cyan-400',
   },
   {
     icon: <Database size={20} />,
@@ -33,6 +33,7 @@ const SETTINGS_SECTIONS = [
     description: 'Gérez vos registres de conteneurs (Docker Hub, ECR, GCR)',
     href: '/settings/registry',
     color: 'bg-green-500/10 text-green-400',
+    adminOnly: true,
   },
   {
     icon: <Key size={20} />,
@@ -44,7 +45,7 @@ const SETTINGS_SECTIONS = [
   {
     icon: <TerminalSquare size={20} />,
     title: 'Terminal',
-    description: 'Accédez rapidement aux logs de déploiement',
+    description: 'Choisissez un VPS et préparez rapidement votre connexion SSH',
     href: '/settings/terminal',
     color: 'bg-cyan-500/10 text-cyan-400',
   },
@@ -54,10 +55,16 @@ const SETTINGS_SECTIONS = [
     description: 'Consultez l\'historique des actions et des changements',
     href: '/settings/audit-logs',
     color: 'bg-yellow-500/10 text-yellow-400',
+    adminOnly: true,
   },
 ];
 
 export default function SettingsPage() {
+  const { isAdmin } = useAuth();
+  const visibleSections = SETTINGS_SECTIONS.filter(
+    (section) => !section.adminOnly || isAdmin,
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -67,7 +74,7 @@ export default function SettingsPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {SETTINGS_SECTIONS.map((section) => (
+        {visibleSections.map((section) => (
           <Link
             key={section.href}
             href={section.href}

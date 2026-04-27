@@ -104,19 +104,21 @@ export default function NewServerPage() {
     }
   };
 
-  const handleVerifyAndInstall = async () => {
+  const handleValidateAndDetect = async () => {
     if (!createdServer) return;
 
     setValidating(true);
     setValidateError(null);
 
     try {
-      await serversService.verify(createdServer.id);
-      await serversService.installTools(createdServer.id, {
-        docker: true,
-        ansible: true,
-        runner: true,
-      });
+      const validationResult = await serversService.verify(createdServer.id);
+      if (!validationResult.isVerified) {
+        throw new Error(
+          validationResult.verificationError ||
+            'Validation SSH incomplète: sudo sans mot de passe doit être validé.',
+        );
+      }
+      await serversService.detect(createdServer.id);
 
       const updated = await serversService.getById(createdServer.id);
       setCreatedServer(updated);
@@ -270,7 +272,7 @@ export default function NewServerPage() {
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/3 p-4">
             <p className="text-sm font-semibold text-[var(--text-primary)]">Vérification en cours...</p>
             <p className="mt-2 text-xs text-[var(--text-secondary)]">
-              Vérification SSH, Docker, Ansible...
+              Validation SSH, sudo et détection des informations serveur.
             </p>
           </div>
           {validateError && (
@@ -280,20 +282,21 @@ export default function NewServerPage() {
           )}
           <button
             type="button"
-            onClick={() => void handleVerifyAndInstall()}
+            onClick={() => void handleValidateAndDetect()}
             disabled={validating}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-60"
           >
             {validating ? (
               <Loader2 size={15} className="animate-spin" />
             ) : (
-              'Vérifier et installer'
+              'Valider SSH et détecter'
             )}
           </button>
           <ul className="list-inside list-disc space-y-1 text-xs text-[var(--text-secondary)]">
             <li>Vérifier la connexion SSH</li>
-            <li>Vérifier/installer Docker</li>
-            <li>Vérifier/installer Ansible et GitLab Runner</li>
+            <li>Vérifier sudo sans mot de passe</li>
+            <li>Détecter OS, Docker, Runner et capacités système</li>
+            <li>Ansible reste côté control node et n’est pas installé sur le VPS</li>
           </ul>
         </SectionCard>
       )}
@@ -326,7 +329,7 @@ export default function NewServerPage() {
                 </p>
                 <p className="inline-flex items-center gap-2">
                   <CheckCircle2 size={16} />
-                  Ansible: {createdServer.hasAnsible ? <strong>✅</strong> : '⏳'}
+                  Managed by Ansible from control node: <strong>✅</strong>
                 </p>
               </>
             )}

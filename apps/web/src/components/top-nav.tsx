@@ -86,7 +86,10 @@ export function TopNav() {
 
                 <div className="mt-1.5 space-y-0.5">
                   <button
-                    onClick={() => { setDropdownOpen(false); router.push('/profile'); }}
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      router.push('/settings/profile');
+                    }}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                   >
                     <User size={14} className="text-[var(--text-muted)]" />

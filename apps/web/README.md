@@ -131,7 +131,7 @@ Use generated types via `src/types/api-contract.ts` as the source of truth for r
 
 ### Sprint 1: Authentication & Login
 - Login page with email/password form
-- JWT storage in localStorage
+- Cookie-based session (HttpOnly)
 - Protected routes
 - User logout
 
@@ -180,13 +180,13 @@ Use generated types via `src/types/api-contract.ts` as the source of truth for r
 
 ## 🔐 Authentication
 
-The frontend uses JWT authentication:
+The frontend uses cookie session authentication:
 
 1. User logs in at `/login`
-2. Backend returns JWT token
-3. Token stored in localStorage
-4. API client automatically includes token in requests
-5. Protected routes redirect to `/login` if no token
+2. Backend sets an HttpOnly auth cookie
+3. Frontend reads current user via `/auth/me`
+4. API client sends cookies with `withCredentials: true`
+5. Protected routes redirect to `/login` if session is missing
 
 ## 🌐 API Integration
 
@@ -201,8 +201,8 @@ const data = response.data;
 ```
 
 The API client automatically:
-- Includes JWT in Authorization header
-- Handles 401 errors (expired tokens)
+- Sends authenticated cookies (`withCredentials`)
+- Handles 401 errors (expired/invalid session)
 - Sends proper Content-Type headers
 
 ## 📝 Contributing
@@ -231,7 +231,7 @@ npm run start:dev
 ```
 
 ### Token lost after refresh
-Token is automatically restored from localStorage on app load.
+Session is restored from auth cookie via `/auth/me` on app load.
 
 ## 📚 Resources
 

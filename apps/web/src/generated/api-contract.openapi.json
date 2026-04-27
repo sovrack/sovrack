@@ -1299,6 +1299,178 @@
         ]
       }
     },
+    "/admin/platform-config/registries": {
+      "get": {
+        "operationId": "PlatformConfigController_listRegistries",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les configurations de registre",
+        "tags": [
+          "Platform Config"
+        ]
+      },
+      "post": {
+        "operationId": "PlatformConfigController_createRegistry",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRegistryConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer une nouvelle configuration de registre",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/registries/{id}": {
+      "put": {
+        "operationId": "PlatformConfigController_updateRegistry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRegistryConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mettre à jour une configuration de registre",
+        "tags": [
+          "Platform Config"
+        ]
+      },
+      "delete": {
+        "operationId": "PlatformConfigController_deleteRegistry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer une configuration de registre",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/registries/{id}/test": {
+      "post": {
+        "operationId": "PlatformConfigController_testRegistry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tester la connexion à un registre",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/registries/{id}/set-default": {
+      "post": {
+        "operationId": "PlatformConfigController_setDefaultRegistry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Définir un registre comme registre par défaut",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
     "/deployments": {
       "post": {
         "operationId": "DeploymentsController_create",
@@ -1981,6 +2153,50 @@
           "Servers"
         ]
       },
+      "patch": {
+        "operationId": "ServersController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Serveur mis à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Modifier partiellement un serveur",
+        "tags": [
+          "Servers"
+        ]
+      },
       "delete": {
         "operationId": "ServersController_remove",
         "parameters": [
@@ -2030,6 +2246,7 @@
     },
     "/servers/{id}/verify": {
       "post": {
+        "description": "Ne vérifie pas Ansible sur le VPS. Ansible reste uniquement sur la machine de contrôle.",
         "operationId": "ServersController_verify",
         "parameters": [
           {
@@ -2070,7 +2287,100 @@
             "bearer": []
           }
         ],
-        "summary": "Vérifier SSH, Docker, Ansible et GitLab Runner",
+        "summary": "Alias déprécié: valider la connexion SSH du serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/validate-ssh": {
+      "post": {
+        "description": "Les VPS sont des cibles SSH agentless. Cette étape ne cherche jamais à installer Ansible sur le VPS.",
+        "operationId": "ServersController_validateSsh",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateServerSshDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Validation SSH démarrée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Valider la connexion SSH, auth, sudo et prérequis minimaux",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/detect": {
+      "post": {
+        "operationId": "ServersController_detect",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetectServerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Détection terminée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Détecter les informations système et outils installés",
         "tags": [
           "Servers"
         ]
@@ -2078,6 +2388,7 @@
     },
     "/servers/{id}/install": {
       "post": {
+        "description": "Compatibilité ancienne API. Le champ ansible est ignoré: Ansible n'est jamais installé sur le VPS cible.",
         "operationId": "ServersController_install",
         "parameters": [
           {
@@ -2128,7 +2439,66 @@
             "bearer": []
           }
         ],
-        "summary": "Installer les outils manquants sur le serveur cible",
+        "summary": "Déprécié: utiliser Prepare Server",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/prepare": {
+      "post": {
+        "description": "Lance le workflow ServerPreparation. Ansible est exécuté uniquement depuis la machine de contrôle.",
+        "operationId": "ServersController_prepare",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareServerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Préparation du serveur démarrée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Préparation échouée"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Alias: démarrer une préparation serveur suivie",
         "tags": [
           "Servers"
         ]
@@ -2351,6 +2721,281 @@
         ]
       }
     },
+    "/servers/{id}/capabilities": {
+      "get": {
+        "operationId": "ServersController_getCapabilities",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerCapabilityDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les capacités détectées du serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/installed-tools": {
+      "get": {
+        "operationId": "ServersController_getInstalledTools",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerInstalledToolDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les outils installés détectés",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/validation-results": {
+      "get": {
+        "operationId": "ServersController_getValidationResults",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerValidationResultDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les résultats de validation SSH",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/audit-events": {
+      "get": {
+        "operationId": "ServersController_getAuditEvents",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerAuditEventDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister l'audit des actions serveur sensibles",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/preparations": {
+      "post": {
+        "operationId": "ServersController_startPreparation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartServerPreparationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Démarrer une préparation serveur",
+        "tags": [
+          "Servers"
+        ]
+      },
+      "get": {
+        "operationId": "ServersController_listPreparations",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerPreparationDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister l'historique de préparation du serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/preparation-readiness": {
+      "get": {
+        "operationId": "ServersController_getPreparationReadiness",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationReadinessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vérifier si le serveur est prêt à lancer une préparation (SSH/sudo/état/verrou).",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
     "/servers/{id}/retry-verification": {
       "post": {
         "operationId": "ServersController_retryVerification",
@@ -2525,6 +3170,191 @@
         "summary": "Relancer un job serveur",
         "tags": [
           "Servers"
+        ]
+      }
+    },
+    "/preparations/{id}": {
+      "get": {
+        "operationId": "ServerPreparationsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Voir le détail d'une préparation serveur",
+        "tags": [
+          "Server Preparations"
+        ]
+      }
+    },
+    "/preparations/{id}/logs": {
+      "get": {
+        "operationId": "ServerPreparationsController_logs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "afterLine",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerPreparationLogDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lire les logs persistés d'une préparation",
+        "tags": [
+          "Server Preparations"
+        ]
+      }
+    },
+    "/preparations/{id}/retry": {
+      "post": {
+        "operationId": "ServerPreparationsController_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryServerPreparationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Relancer une préparation en créant un nouveau job lié",
+        "tags": [
+          "Server Preparations"
+        ]
+      }
+    },
+    "/preparations/{id}/cancel": {
+      "post": {
+        "operationId": "ServerPreparationsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Annuler une préparation si elle est encore active",
+        "tags": [
+          "Server Preparations"
+        ]
+      }
+    },
+    "/server-preparation-options": {
+      "get": {
+        "operationId": "ServerPreparationOptionsController_options",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les options et profils de préparation",
+        "tags": [
+          "Server Preparation Options"
         ]
       }
     },
@@ -3122,7 +3952,16 @@
     "/projects/{id}/build/templates": {
       "get": {
         "operationId": "BuildController_getTemplates",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -3227,6 +4066,54 @@
         ],
         "tags": [
           "SSH Keys"
+        ]
+      }
+    },
+    "/admin/audit-logs": {
+      "get": {
+        "operationId": "AuditLogsController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs d’audit paginés"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux admins"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les logs d’audit (admin)",
+        "tags": [
+          "Audit Logs"
         ]
       }
     }
@@ -3351,6 +4238,44 @@
             "type": "string",
             "example": "https://gitlab.com/test/ecommerce"
           },
+          "providerId": {
+            "type": "string",
+            "example": "b5073d11-f378-4c71-87da-093f3ecf20af",
+            "description": "Provider GitLab global. Si fourni, gitlabToken peut être omis."
+          },
+          "gitlabToken": {
+            "type": "string",
+            "example": "glpat-xxxxxxxxxxxxxxxxxxxx"
+          },
+          "gitlabId": {
+            "type": "number",
+            "example": 123
+          },
+          "gitlabGroupId": {
+            "type": "number",
+            "example": 44,
+            "description": "Group ID GitLab"
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "REPO",
+              "GROUP"
+            ],
+            "default": "REPO"
+          },
+          "deployTokenUsername": {
+            "type": "string",
+            "example": "gitlab+deploy-token-12"
+          },
+          "deployTokenValue": {
+            "type": "string",
+            "example": "glrt-xxxxxxxxxxxxxxxxxxxx"
+          },
+          "registryUrl": {
+            "type": "string",
+            "example": "registry.gitlab.example.com"
+          },
           "branch": {
             "type": "string",
             "example": "main",
@@ -3363,8 +4288,7 @@
           }
         },
         "required": [
-          "name",
-          "gitlabUrl"
+          "name"
         ]
       },
       "UpdateProjectDto": {
@@ -3475,6 +4399,14 @@
         "properties": {}
       },
       "UpdateGitlabProviderDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateRegistryConfigDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateRegistryConfigDto": {
         "type": "object",
         "properties": {}
       },
@@ -3850,10 +4782,43 @@
           "onboardingStep": {
             "type": "string"
           },
-          "hasDocker": {
-            "type": "boolean"
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "SSH_PENDING",
+              "SSH_VALIDATED",
+              "VALIDATION_FAILED",
+              "INFO_DETECTED",
+              "PREPARATION_PENDING",
+              "PREPARING",
+              "PREPARED",
+              "PARTIALLY_PREPARED",
+              "PREPARATION_FAILED",
+              "UNREACHABLE",
+              "DISABLED"
+            ]
           },
-          "hasAnsible": {
+          "verificationError": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastVerifiedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastDetectedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastPreparedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "hasDocker": {
             "type": "boolean"
           },
           "hasRunner": {
@@ -3878,8 +4843,8 @@
           "isActive",
           "isVerified",
           "onboardingStep",
+          "status",
           "hasDocker",
-          "hasAnsible",
           "hasRunner",
           "createdAt",
           "updatedAt"
@@ -3939,10 +4904,43 @@
           "onboardingStep": {
             "type": "string"
           },
-          "hasDocker": {
-            "type": "boolean"
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "SSH_PENDING",
+              "SSH_VALIDATED",
+              "VALIDATION_FAILED",
+              "INFO_DETECTED",
+              "PREPARATION_PENDING",
+              "PREPARING",
+              "PREPARED",
+              "PARTIALLY_PREPARED",
+              "PREPARATION_FAILED",
+              "UNREACHABLE",
+              "DISABLED"
+            ]
           },
-          "hasAnsible": {
+          "verificationError": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastVerifiedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastDetectedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastPreparedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "hasDocker": {
             "type": "boolean"
           },
           "hasRunner": {
@@ -3970,8 +4968,8 @@
           "isActive",
           "isVerified",
           "onboardingStep",
+          "status",
           "hasDocker",
-          "hasAnsible",
           "hasRunner",
           "createdAt",
           "updatedAt"
@@ -4021,6 +5019,7 @@
             "enum": [
               "VERIFY",
               "INSTALL_TOOLS",
+              "PREPARE_SERVER",
               "REGISTER_RUNNER"
             ]
           },
@@ -4237,11 +5236,26 @@
             "type": "boolean",
             "example": true
           },
-          "hasAnsible": {
+          "hasRunner": {
             "type": "boolean",
             "example": true
-          },
-          "hasRunner": {
+          }
+        }
+      },
+      "ValidateServerSshDto": {
+        "type": "object",
+        "properties": {
+          "refreshFingerprint": {
+            "type": "boolean",
+            "example": true,
+            "description": "When true, refresh host fingerprint metadata if the control node can read it."
+          }
+        }
+      },
+      "DetectServerDto": {
+        "type": "object",
+        "properties": {
+          "refreshTools": {
             "type": "boolean",
             "example": true
           }
@@ -4256,11 +5270,114 @@
           },
           "ansible": {
             "type": "boolean",
-            "example": true
+            "example": false,
+            "deprecated": true,
+            "description": "Ignored. Ansible is never installed on target VPS; it runs only from the control node."
           },
           "runner": {
             "type": "boolean",
             "example": true
+          }
+        }
+      },
+      "PrepareServerDto": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "enum": [
+              "BASIC",
+              "WEB",
+              "DATABASE",
+              "RUNNER",
+              "FULL",
+              "CUSTOM"
+            ],
+            "default": "BASIC",
+            "description": "Reusable preparation profile. Explicit options override profile defaults."
+          },
+          "systemUpdate": {
+            "type": "boolean",
+            "example": true
+          },
+          "docker": {
+            "type": "boolean",
+            "example": true
+          },
+          "dockerComposePlugin": {
+            "type": "boolean",
+            "example": true
+          },
+          "nginx": {
+            "type": "boolean",
+            "example": true
+          },
+          "nodejs": {
+            "type": "boolean",
+            "example": false
+          },
+          "postgres": {
+            "type": "boolean",
+            "example": false
+          },
+          "postgresql": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true
+          },
+          "redis": {
+            "type": "boolean",
+            "example": false
+          },
+          "gitlabRunner": {
+            "type": "boolean",
+            "example": false
+          },
+          "firewall": {
+            "type": "boolean",
+            "example": true
+          },
+          "fail2ban": {
+            "type": "boolean",
+            "example": true
+          },
+          "certbot": {
+            "type": "boolean",
+            "example": false
+          },
+          "ssl": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true
+          },
+          "swap": {
+            "type": "boolean",
+            "example": true
+          },
+          "monitoring": {
+            "type": "boolean",
+            "example": false
+          },
+          "backup": {
+            "type": "boolean",
+            "example": false
+          },
+          "logrotate": {
+            "type": "boolean",
+            "example": true
+          },
+          "securityHardening": {
+            "type": "boolean",
+            "example": true
+          },
+          "autoUpdates": {
+            "type": "boolean",
+            "example": true
+          },
+          "gitlabRunnerExecutor": {
+            "type": "string",
+            "example": "docker",
+            "description": "Executor mode for GitLab Runner. docker implies Docker dependency."
           }
         }
       },
@@ -4342,9 +5459,17 @@
             "type": "string",
             "enum": [
               "NEW",
-              "VERIFYING",
-              "VERIFIED",
-              "FAILED"
+              "SSH_PENDING",
+              "SSH_VALIDATED",
+              "VALIDATION_FAILED",
+              "INFO_DETECTED",
+              "PREPARATION_PENDING",
+              "PREPARING",
+              "PREPARED",
+              "PARTIALLY_PREPARED",
+              "PREPARATION_FAILED",
+              "UNREACHABLE",
+              "DISABLED"
             ]
           },
           "verificationError": {
@@ -4358,9 +5483,6 @@
             "type": "boolean"
           },
           "hasDocker": {
-            "type": "boolean"
-          },
-          "hasAnsible": {
             "type": "boolean"
           },
           "hasRunner": {
@@ -4379,9 +5501,475 @@
           "status",
           "isVerified",
           "hasDocker",
-          "hasAnsible",
           "hasRunner",
           "recentLogs"
+        ]
+      },
+      "ServerCapabilityDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "detectedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "key",
+          "value",
+          "source",
+          "detectedAt"
+        ]
+      },
+      "ServerInstalledToolDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "toolKey": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "version": {
+            "type": "object",
+            "nullable": true
+          },
+          "installedBy": {
+            "type": "object",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "INSTALLED",
+              "MISSING",
+              "FAILED",
+              "UNKNOWN"
+            ]
+          },
+          "installedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "toolKey",
+          "displayName",
+          "status"
+        ]
+      },
+      "ServerValidationResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "sshReachable": {
+            "type": "boolean"
+          },
+          "authSucceeded": {
+            "type": "boolean"
+          },
+          "sudoAvailable": {
+            "type": "boolean"
+          },
+          "fingerprint": {
+            "type": "object",
+            "nullable": true
+          },
+          "osName": {
+            "type": "object",
+            "nullable": true
+          },
+          "osVersion": {
+            "type": "object",
+            "nullable": true
+          },
+          "architecture": {
+            "type": "object",
+            "nullable": true
+          },
+          "pythonAvailable": {
+            "type": "boolean"
+          },
+          "validationMessage": {
+            "type": "object",
+            "nullable": true
+          },
+          "validatedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "sshReachable",
+          "authSucceeded",
+          "sudoAvailable",
+          "pythonAvailable"
+        ]
+      },
+      "ServerAuditEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "actorId": {
+            "type": "object",
+            "nullable": true
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "payloadJson": {
+            "type": "object",
+            "nullable": true,
+            "description": "JSON payload describing the audited action context."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "eventType",
+          "createdAt"
+        ]
+      },
+      "StartServerPreparationDto": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "enum": [
+              "BASIC",
+              "WEB",
+              "DATABASE",
+              "RUNNER",
+              "FULL",
+              "CUSTOM"
+            ],
+            "default": "BASIC",
+            "description": "Reusable preparation profile. Explicit options override profile defaults."
+          },
+          "systemUpdate": {
+            "type": "boolean",
+            "example": true
+          },
+          "docker": {
+            "type": "boolean",
+            "example": true
+          },
+          "dockerComposePlugin": {
+            "type": "boolean",
+            "example": true
+          },
+          "nginx": {
+            "type": "boolean",
+            "example": true
+          },
+          "nodejs": {
+            "type": "boolean",
+            "example": false
+          },
+          "postgres": {
+            "type": "boolean",
+            "example": false
+          },
+          "postgresql": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true
+          },
+          "redis": {
+            "type": "boolean",
+            "example": false
+          },
+          "gitlabRunner": {
+            "type": "boolean",
+            "example": false
+          },
+          "firewall": {
+            "type": "boolean",
+            "example": true
+          },
+          "fail2ban": {
+            "type": "boolean",
+            "example": true
+          },
+          "certbot": {
+            "type": "boolean",
+            "example": false
+          },
+          "ssl": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true
+          },
+          "swap": {
+            "type": "boolean",
+            "example": true
+          },
+          "monitoring": {
+            "type": "boolean",
+            "example": false
+          },
+          "backup": {
+            "type": "boolean",
+            "example": false
+          },
+          "logrotate": {
+            "type": "boolean",
+            "example": true
+          },
+          "securityHardening": {
+            "type": "boolean",
+            "example": true
+          },
+          "autoUpdates": {
+            "type": "boolean",
+            "example": true
+          },
+          "gitlabRunnerExecutor": {
+            "type": "string",
+            "example": "docker",
+            "description": "Executor mode for GitLab Runner. docker implies Docker dependency."
+          }
+        }
+      },
+      "ServerPreparationTaskDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "preparationId": {
+            "type": "string"
+          },
+          "roleKey": {
+            "type": "string"
+          },
+          "taskName": {
+            "type": "string"
+          },
+          "orderIndex": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SKIPPED",
+              "RUNNING",
+              "OK",
+              "CHANGED",
+              "FAILED",
+              "TIMEOUT"
+            ]
+          },
+          "startedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "message": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "preparationId",
+          "roleKey",
+          "taskName",
+          "orderIndex",
+          "status"
+        ]
+      },
+      "ServerPreparationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RESOLVING_OPTIONS",
+              "WAITING_FOR_LOCK",
+              "RUNNING",
+              "SUCCEEDED",
+              "PARTIAL",
+              "FAILED",
+              "TIMEOUT",
+              "CANCELED"
+            ]
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "BASIC",
+              "WEB",
+              "DATABASE",
+              "RUNNER",
+              "FULL",
+              "CUSTOM"
+            ]
+          },
+          "triggerSource": {
+            "type": "string"
+          },
+          "requestedById": {
+            "type": "object",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "object",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "object",
+            "nullable": true
+          },
+          "retryOfPreparationId": {
+            "type": "object",
+            "nullable": true
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServerPreparationTaskDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "status",
+          "profile",
+          "triggerSource",
+          "tasks"
+        ]
+      },
+      "ServerPreparationReadinessChecksDto": {
+        "type": "object",
+        "properties": {
+          "serverActive": {
+            "type": "boolean"
+          },
+          "serverNotDisabled": {
+            "type": "boolean"
+          },
+          "sshValidated": {
+            "type": "boolean"
+          },
+          "sshReachable": {
+            "type": "boolean"
+          },
+          "authSucceeded": {
+            "type": "boolean"
+          },
+          "sudoAvailable": {
+            "type": "boolean"
+          },
+          "noActivePreparation": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "serverActive",
+          "serverNotDisabled",
+          "sshValidated",
+          "sshReachable",
+          "authSucceeded",
+          "sudoAvailable",
+          "noActivePreparation"
+        ]
+      },
+      "ServerPreparationReadinessDto": {
+        "type": "object",
+        "properties": {
+          "serverId": {
+            "type": "string"
+          },
+          "isReady": {
+            "type": "boolean"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/ServerPreparationReadinessChecksDto"
+          },
+          "blockingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "latestValidationAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "serverId",
+          "isReady",
+          "checks",
+          "blockingReasons"
         ]
       },
       "VerifyServerResponseDto": {
@@ -4398,9 +5986,17 @@
             "type": "string",
             "enum": [
               "NEW",
-              "VERIFYING",
-              "VERIFIED",
-              "FAILED"
+              "SSH_PENDING",
+              "SSH_VALIDATED",
+              "VALIDATION_FAILED",
+              "INFO_DETECTED",
+              "PREPARATION_PENDING",
+              "PREPARING",
+              "PREPARED",
+              "PARTIALLY_PREPARED",
+              "PREPARATION_FAILED",
+              "UNREACHABLE",
+              "DISABLED"
             ]
           }
         },
@@ -4409,6 +6005,56 @@
           "message",
           "status"
         ]
+      },
+      "ServerPreparationLogDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "preparationId": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "INFO",
+              "WARNING",
+              "ERROR"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "lineNumber": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "preparationId",
+          "level",
+          "source",
+          "message",
+          "lineNumber",
+          "createdAt"
+        ]
+      },
+      "RetryServerPreparationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "Retry after firewall package mirror outage"
+          }
+        }
       },
       "CreateEnvironmentDto": {
         "type": "object",

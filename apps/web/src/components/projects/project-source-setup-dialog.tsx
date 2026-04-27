@@ -125,6 +125,17 @@ export function ProjectSourceSetupDialog({
 
     setSubmitting(true);
     try {
+      const normalizedGitlabUrl = gitlabUrl.trim();
+      const normalizedDefaultBranch = defaultBranch.trim() || 'main';
+      const connectPayload = {
+        providerId: providerId || undefined,
+        sourceType,
+        gitlabUrl: normalizedGitlabUrl,
+        defaultBranch: normalizedDefaultBranch,
+        gitlabId: sourceType === 'REPO' ? parsedId : undefined,
+        gitlabGroupId: sourceType === 'GROUP' ? parsedId : undefined,
+      };
+
       let targetProjectId = projectId ?? createdProjectId;
       if (!targetProjectId) {
         if (!projectDraft?.name?.trim()) {
@@ -136,19 +147,18 @@ export function ProjectSourceSetupDialog({
         const created = await projectsService.create({
           name: projectDraft.name.trim(),
           description: projectDraft.description?.trim() || undefined,
+          gitlabUrl: normalizedGitlabUrl,
+          branch: normalizedDefaultBranch,
+          providerId: providerId || undefined,
+          sourceType,
+          gitlabId: sourceType === 'REPO' ? parsedId : undefined,
+          gitlabGroupId: sourceType === 'GROUP' ? parsedId : undefined,
         });
         targetProjectId = created.id;
         setCreatedProjectId(created.id);
+      } else {
+        await projectsService.connectGitlab(targetProjectId, connectPayload);
       }
-
-      await projectsService.connectGitlab(targetProjectId, {
-        providerId: providerId || undefined,
-        sourceType,
-        gitlabUrl: gitlabUrl.trim(),
-        defaultBranch: defaultBranch.trim() || 'main',
-        gitlabId: sourceType === 'REPO' ? parsedId : undefined,
-        gitlabGroupId: sourceType === 'GROUP' ? parsedId : undefined,
-      });
 
       if (sourceType === 'REPO') {
         const branches = await projectsService.getBranches(targetProjectId);
