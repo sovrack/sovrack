@@ -126,7 +126,6 @@ export function useServerActions() {
   const getPrepareOptions = (server: ServerType): PrepareServerPayload => {
     return (
       prepareDrafts[server.id] ?? {
-        profile: 'BASIC',
         gitlabRunnerExecutor: 'docker',
       }
     );

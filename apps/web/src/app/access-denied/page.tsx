@@ -17,10 +17,10 @@ export default function AccessDeniedPage() {
             Back to Dashboard
           </Link>
           <Link
-            href="/profile"
+            href="/settings"
             className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-card)]/10"
           >
-            View Profile
+            Open Settings
           </Link>
         </div>
       </section>

@@ -71,12 +71,12 @@ export function ServerKeyInstallDialog({
         onSubmit={handleSubmit}
         className="relative z-10 max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl"
       >
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
               Infrastructure
             </p>
-            <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
+            <h2 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
               Install SSH Key
             </h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
@@ -152,7 +152,7 @@ export function ServerKeyInstallDialog({
           </div>
         </div>
 
-        <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--bg-card)] px-6 py-4">
+        <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
           <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
             Cancel
           </Button>

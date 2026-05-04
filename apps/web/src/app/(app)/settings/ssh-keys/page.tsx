@@ -116,12 +116,12 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
 
       <div className="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
               Settings
             </p>
-            <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Add SSH Key</h2>
+            <h2 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">Add SSH Key</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
               Generate or paste an SSH key pair to use for deployments.
             </p>
@@ -136,7 +136,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
           </button>
         </div>
 
-        <div className="space-y-5 px-6 py-5">
+        <div className="space-y-4 px-6 py-4">
           {error && <Alert tone="error">{error}</Alert>}
 
           {/* Generate buttons */}
@@ -259,7 +259,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--bg-card)] px-6 py-4">
+        <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
           <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
             Cancel
           </Button>

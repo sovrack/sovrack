@@ -36,9 +36,17 @@ export function getServerOverallStatus(server: Pick<Server, 'isActive' | 'status
     };
   }
 
+  if (server.status === 'UNREACHABLE') {
+    return {
+      label: 'Server unreachable',
+      description: 'Server is unreachable — check network and SSH credentials',
+      tone: 'error',
+    };
+  }
+
   if (server.status === 'PREPARED') {
     return {
-      label: 'Ready',
+      label: 'Server ready',
       description: 'Prepared from the control node with Ansible',
       tone: 'success',
     };
@@ -46,39 +54,23 @@ export function getServerOverallStatus(server: Pick<Server, 'isActive' | 'status
 
   if (server.status === 'PARTIALLY_PREPARED') {
     return {
-      label: 'Partial',
+      label: 'Preparation partial',
       description: 'Some preparation roles require attention',
       tone: 'warning',
-    };
-  }
-
-  if (server.status === 'VALIDATION_FAILED') {
-    return {
-      label: 'SSH validation failed',
-      description: 'SSH or sudo check failed — re-run Validate SSH',
-      tone: 'error',
     };
   }
 
   if (server.status === 'PREPARATION_FAILED') {
     return {
       label: 'Preparation failed',
-      description: 'Ansible preparation failed — view logs and retry',
-      tone: 'error',
-    };
-  }
-
-  if (server.status === 'UNREACHABLE') {
-    return {
-      label: 'Unreachable',
-      description: 'Server is unreachable — check IP address and SSH credentials',
+      description: 'Ansible preparation failed — view logs and retry preparation',
       tone: 'error',
     };
   }
 
   if (server.status === 'PREPARING' || server.status === 'PREPARATION_PENDING') {
     return {
-      label: 'Preparing',
+      label: 'Preparation running',
       description: 'Preparation job is running or queued',
       tone: 'info',
     };
@@ -86,22 +78,38 @@ export function getServerOverallStatus(server: Pick<Server, 'isActive' | 'status
 
   if (server.status === 'INFO_DETECTED') {
     return {
-      label: 'Detected',
-      description: 'Ready to choose preparation options',
+      label: 'Preparation required',
+      description: 'Detection completed — select options and run preparation',
       tone: 'info',
     };
   }
 
-  if (server.status === 'SSH_VALIDATED' || server.isVerified) {
+  if (server.status === 'SSH_VALIDATED') {
     return {
-      label: 'SSH validated',
-      description: 'Next step: detect server information',
+      label: 'Detection required',
+      description: 'SSH validated — run Detect Info before preparation',
+      tone: 'info',
+    };
+  }
+
+  if (server.status === 'VALIDATION_FAILED') {
+    return {
+      label: 'SSH validation required',
+      description: 'SSH validation failed — re-run Validate SSH',
+      tone: 'error',
+    };
+  }
+
+  if (server.isVerified) {
+    return {
+      label: 'Detection required',
+      description: 'SSH validated — run Detect Info before preparation',
       tone: 'info',
     };
   }
 
   return {
-    label: 'Needs validation',
+    label: 'SSH validation required',
     description: 'SSH connection has not been validated yet',
     tone: 'warning',
   };
@@ -145,4 +153,24 @@ export function ServerStatusBadge({ status }: { status: ServerStatus }) {
     return <Badge tone="info">{label}</Badge>;
   }
   return <Badge tone="default">{label}</Badge>;
+}
+
+export function formatPreparationBlockingReason(reason: string): string {
+  const normalized = reason.toLowerCase();
+  if (normalized.includes('validation ssh')) {
+    return 'SSH validation required';
+  }
+  if (normalized.includes('absente ou échouée') || normalized.includes('absente ou echouee')) {
+    return 'Server unreachable';
+  }
+  if (normalized.includes('sudo')) {
+    return 'Sudo access required';
+  }
+  if (normalized.includes('désactivé') || normalized.includes('desactive')) {
+    return 'Server disabled';
+  }
+  if (normalized.includes('déjà en cours') || normalized.includes('deja en cours')) {
+    return 'Preparation already running';
+  }
+  return reason;
 }

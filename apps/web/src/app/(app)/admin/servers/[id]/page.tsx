@@ -7,7 +7,11 @@ import { ArrowLeft, Loader2, Radar, Wrench, Zap } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { Button } from '@/components/ui/button';
-import { ServerOverallStatusBadge, ServerWorkflowBadges } from '@/components/servers/server-status-badges';
+import {
+  formatPreparationBlockingReason,
+  ServerOverallStatusBadge,
+  ServerWorkflowBadges,
+} from '@/components/servers/server-status-badges';
 import { ServerValidationCard } from '@/components/servers/server-validation-card';
 import { ServerCapabilitiesCard } from '@/components/servers/server-capabilities-card';
 import { InstalledToolsList } from '@/components/servers/installed-tools-list';
@@ -36,7 +40,6 @@ export default function AdminServerDetailPage() {
   const serverId = params.id as string;
   const [prepareOpen, setPrepareOpen] = useState(false);
   const [prepareOptions, setPrepareOptions] = useState<PrepareOptions>({
-    profile: 'BASIC',
     gitlabRunnerExecutor: 'docker',
   });
   const [selectedPreparation, setSelectedPreparation] = useState<ServerPreparation | null>(null);
@@ -160,9 +163,11 @@ export default function AdminServerDetailPage() {
                 }
                 loading={startPreparation.isPending}
               >
-                {server.status === 'PREPARED' || server.status === 'PARTIALLY_PREPARED'
-                  ? 'Re-prepare'
-                  : 'Prepare Server'}
+                {server.status === 'PREPARATION_FAILED'
+                  ? 'Retry Preparation'
+                  : server.status === 'PREPARED' || server.status === 'PARTIALLY_PREPARED'
+                    ? 'Re-prepare'
+                    : 'Prepare Server'}
               </Button>
             )}
           </>
@@ -180,7 +185,7 @@ export default function AdminServerDetailPage() {
             <p className="mb-1 font-semibold">Preparation blocked:</p>
             <ul className="space-y-0.5 list-disc list-inside">
               {readiness.blockingReasons.map((reason, i) => (
-                <li key={i}>{reason}</li>
+                <li key={i}>{formatPreparationBlockingReason(reason)}</li>
               ))}
             </ul>
           </div>

@@ -3,11 +3,38 @@ import api from '@/lib/api';
 export type BuildDetectResult = {
   type: string;
   confidence: 'high' | 'medium' | 'low';
+  language: string;
+  framework: string;
+  packageManager: string;
+  hasDockerfile: boolean;
+  hasDockerCompose: boolean;
+  hasCiConfig: boolean;
+  recommendedStrategy:
+    | 'docker'
+    | 'docker-multi-stage'
+    | 'buildpack'
+    | 'static-build'
+    | 'service-container';
+  recommendedBuildType: string;
+  recommendedStartCommand: string;
+  recommendedPort: number;
+  reasons: string[];
 };
 
 export type BuildPrepareResult = {
   type: string;
   confidence: string;
+  language: string;
+  framework: string;
+  packageManager: string;
+  recommendedStrategy: string;
+  recommendedBuildType: string;
+  recommendedStartCommand: string;
+  recommendedPort: number;
+  reasons: string[];
+  hasDockerfile: boolean;
+  hasDockerCompose: boolean;
+  hasCiConfig: boolean;
   dockerfileContent: string;
   gitlabCiContent: string;
 };
@@ -50,8 +77,10 @@ export const buildService = {
   },
 
   /** Récupérer les types de projets supportés */
-  async getTemplates(): Promise<BuildTemplates> {
-    const res = await api.get<BuildTemplates>('/projects/build/templates');
+  async getTemplates(projectId: string): Promise<BuildTemplates> {
+    const res = await api.get<BuildTemplates>(
+      `/projects/${projectId}/build/templates`,
+    );
     return res.data;
   },
 };

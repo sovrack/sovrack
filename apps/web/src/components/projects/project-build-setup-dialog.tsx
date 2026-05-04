@@ -44,6 +44,17 @@ const BUILD_MODE_OPTIONS: Array<{
 ];
 
 function mapDetectedTypeLabel(type: string): string {
+  if (type === 'nestjs') return 'NestJS detected';
+  if (type === 'nextjs') return 'Next.js detected';
+  if (type === 'react') return 'React detected';
+  if (type === 'go') return 'Go detected';
+  if (type === 'django') return 'Django detected';
+  if (type === 'laravel') return 'Laravel detected';
+  if (type === 'spring-boot') return 'Spring Boot detected';
+  if (type === 'dockerized') return 'Dockerized app detected';
+  if (type === 'static-frontend') return 'Static frontend detected';
+  if (type === 'postgres-service') return 'PostgreSQL service detected';
+  if (type === 'redis-service') return 'Redis service detected';
   if (type === 'nodejs') return 'Node.js 20 detected';
   if (type === 'python') return 'Python detected';
   if (type === 'php') return 'PHP detected';
@@ -92,22 +103,9 @@ export function ProjectBuildSetupDialog({
     buildService
       .detect(projectId)
       .then((result) => {
-        setDetectedType(result.type || 'nodejs');
-
-        if (result.type === 'python') {
-          setBuildPort('8000');
-          setStartCmd('python app.py');
-          return;
-        }
-
-        if (result.type === 'php') {
-          setBuildPort('8080');
-          setStartCmd('php -S 0.0.0.0:8080 -t public');
-          return;
-        }
-
-        setBuildPort('3000');
-        setStartCmd('npm start');
+        setDetectedType(result.recommendedBuildType || result.type || 'nodejs');
+        setBuildPort(String(result.recommendedPort || 3000));
+        setStartCmd(result.recommendedStartCommand || 'npm start');
       })
       .catch(() => {
         setDetectedType('nodejs');

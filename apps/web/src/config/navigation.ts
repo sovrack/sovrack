@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+  Activity,
   ClipboardList,
   Database,
   FolderGit2,
@@ -13,7 +14,6 @@ import {
   Settings,
   TerminalSquare,
   Wrench,
-  User,
   Users,
 } from 'lucide-react';
 
@@ -43,19 +43,19 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
       { href: '/admin/servers', label: 'Remote Servers', icon: Server, adminOnly: true },
       { href: '/terminal', label: 'Terminal', icon: TerminalSquare, adminOnly: true },
       { href: '/automation', label: 'Automation', icon: Wrench, adminOnly: true },
+      { href: '/monitoring', label: 'Monitoring', icon: Activity, adminOnly: true },
     ],
   },
   {
     id: 'settings',
     label: 'Settings',
     items: [
-      { href: '/settings/profile', label: 'Profile', icon: User },
+      { href: '/settings', label: 'Platform Settings', icon: Settings },
       { href: '/settings/ssh-keys', label: 'SSH Keys', icon: KeyRound },
-      { href: '/settings/git', label: 'Git Providers', icon: GitBranch },
+      { href: '/settings/git', label: 'Git Providers', icon: GitBranch, adminOnly: true },
       { href: '/settings/registry', label: 'Registry', icon: Database, adminOnly: true },
       { href: '/settings/audit-logs', label: 'Audit Logs', icon: ClipboardList, adminOnly: true },
       { href: '/admin/users', label: 'Users & Teams', icon: Users, adminOnly: true },
-      { href: '/admin/settings', label: 'Platform Settings', icon: Settings, adminOnly: true },
     ],
   },
 ];
@@ -66,9 +66,10 @@ export const APP_ROUTE_LABELS: Record<string, string> = {
   '/deployments': 'Deployments',
   '/pipelines': 'Pipelines',
   '/automation': 'Automation',
+  '/monitoring': 'Monitoring',
   '/builds': 'Builds',
   '/terminal': 'Terminal',
-  '/settings/profile': 'Profile',
+  '/settings': 'Platform Settings',
   '/settings/ssh-keys': 'SSH Keys',
   '/settings/git': 'Git Providers',
   '/settings/registry': 'Registry',

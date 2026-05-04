@@ -111,7 +111,7 @@ export function Sidebar() {
         })}
       </div>
 
-      {/* User card — click to go to profile */}
+      {/* User card — click to go to platform settings */}
       <div className="shrink-0 border-t border-zinc-200 p-3 dark:border-zinc-800">
         <div
           className={clsx(
@@ -120,8 +120,8 @@ export function Sidebar() {
           )}
         >
           <Link
-            href="/settings/profile"
-            title={collapsed ? 'Profile' : undefined}
+            href="/settings"
+            title={collapsed ? 'Platform Settings' : undefined}
             className={clsx('flex items-center gap-3 min-w-0 flex-1', collapsed && 'justify-center')}
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-[11px] font-bold text-zinc-50 dark:bg-zinc-800 dark:text-zinc-50">
@@ -142,8 +142,8 @@ export function Sidebar() {
           {!collapsed && (
             <div className="flex shrink-0 items-center gap-1">
               <Link
-                href="/settings/profile"
-                title="Profile settings"
+                href="/settings"
+                title="Platform settings"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100/80 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-50"
               >
                 <Settings size={14} />

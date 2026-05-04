@@ -1,102 +1,350 @@
 'use client';
 
-import Link from 'next/link';
-import {
-  GitBranch,
-  Database,
-  Key,
-  BarChart3,
-  User,
-  TerminalSquare,
-} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Building2, Loader2, Save, ShieldCheck, UserRound } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { getApiErrorMessage } from '@/lib/api';
+import { platformConfigService } from '@/services/platform-config.service';
+import { usersService } from '@/services/users.service';
+import type { PlatformConfigItem } from '@/types/platform-config';
 
-const SETTINGS_SECTIONS = [
-  {
-    icon: <User size={20} />,
-    title: 'Profil',
-    description: 'Gérez vos informations personnelles et votre mot de passe',
-    href: '/settings/profile',
-    color: 'bg-blue-500/10 text-blue-400',
-  },
-  {
-    icon: <GitBranch size={20} />,
-    title: 'Fournisseurs Git',
-    description: 'Configurez les connexions GitLab et les paramètres OAuth',
-    href: '/settings/git',
-    color: 'bg-cyan-500/10 text-cyan-400',
-  },
-  {
-    icon: <Database size={20} />,
-    title: 'Registres',
-    description: 'Gérez vos registres de conteneurs (Docker Hub, ECR, GCR)',
-    href: '/settings/registry',
-    color: 'bg-green-500/10 text-green-400',
-    adminOnly: true,
-  },
-  {
-    icon: <Key size={20} />,
-    title: 'Clés SSH',
-    description: 'Gérez vos clés SSH pour l\'accès aux serveurs',
-    href: '/settings/ssh-keys',
-    color: 'bg-orange-500/10 text-orange-400',
-  },
-  {
-    icon: <TerminalSquare size={20} />,
-    title: 'Terminal',
-    description: 'Choisissez un VPS et préparez rapidement votre connexion SSH',
-    href: '/settings/terminal',
-    color: 'bg-cyan-500/10 text-cyan-400',
-  },
-  {
-    icon: <BarChart3 size={20} />,
-    title: 'Journaux d\'Audit',
-    description: 'Consultez l\'historique des actions et des changements',
-    href: '/settings/audit-logs',
-    color: 'bg-yellow-500/10 text-yellow-400',
-    adminOnly: true,
-  },
-];
+const PLATFORM_NAME_KEY = 'PLATFORM_NAME';
+
+type Notice = {
+  tone: 'success' | 'error';
+  message: string;
+} | null;
 
 export default function SettingsPage() {
-  const { isAdmin } = useAuth();
-  const visibleSections = SETTINGS_SECTIONS.filter(
-    (section) => !section.adminOnly || isAdmin,
+  const { user, isAdmin, refreshUser } = useAuth();
+
+  const [notice, setNotice] = useState<Notice>(null);
+
+  const [loadingPlatform, setLoadingPlatform] = useState(false);
+  const [savingPlatform, setSavingPlatform] = useState(false);
+  const [platformName, setPlatformName] = useState('Deploy Automation');
+
+  const [fullName, setFullName] = useState(user?.fullName ?? '');
+  const [savingUserInfo, setSavingUserInfo] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  useEffect(() => {
+    if (user?.fullName) {
+      setFullName(user.fullName);
+    }
+  }, [user?.fullName]);
+
+  const loadPlatform = useCallback(async () => {
+    if (!isAdmin) {
+      return;
+    }
+
+    setLoadingPlatform(true);
+    try {
+      const rows = await platformConfigService.getAll();
+      const map = new Map<string, PlatformConfigItem>(
+        rows.map((item) => [item.key, item]),
+      );
+      setPlatformName(map.get(PLATFORM_NAME_KEY)?.value || 'Deploy Automation');
+    } catch (error) {
+      setNotice({ tone: 'error', message: getApiErrorMessage(error) });
+    } finally {
+      setLoadingPlatform(false);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    void loadPlatform();
+  }, [loadPlatform]);
+
+  const canSavePlatform = useMemo(
+    () => isAdmin && platformName.trim().length > 0 && !savingPlatform,
+    [isAdmin, platformName, savingPlatform],
   );
+
+  const canSaveUserInfo = useMemo(() => {
+    if (!user || savingUserInfo) {
+      return false;
+    }
+    return fullName.trim().length > 0 && fullName.trim() !== user.fullName.trim();
+  }, [fullName, savingUserInfo, user]);
+
+  const canSavePassword = useMemo(() => {
+    if (savingPassword) {
+      return false;
+    }
+    return (
+      currentPassword.length > 0 &&
+      newPassword.length >= 8 &&
+      confirmPassword.length > 0
+    );
+  }, [confirmPassword, currentPassword, newPassword, savingPassword]);
+
+  const handleSavePlatform = async () => {
+    if (!canSavePlatform) {
+      return;
+    }
+
+    setSavingPlatform(true);
+    setNotice(null);
+    try {
+      await platformConfigService.update(PLATFORM_NAME_KEY, {
+        value: platformName.trim(),
+        isSecret: false,
+      });
+      setNotice({ tone: 'success', message: 'Platform identity updated.' });
+    } catch (error) {
+      setNotice({ tone: 'error', message: getApiErrorMessage(error) });
+    } finally {
+      setSavingPlatform(false);
+    }
+  };
+
+  const handleSaveUserInfo = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!user) {
+      return;
+    }
+
+    const nextFullName = fullName.trim();
+    if (!nextFullName) {
+      setNotice({ tone: 'error', message: 'Full name is required.' });
+      return;
+    }
+
+    setSavingUserInfo(true);
+    setNotice(null);
+    try {
+      await usersService.update(user.id, { fullName: nextFullName });
+      await refreshUser();
+      setNotice({ tone: 'success', message: 'User information updated.' });
+    } catch (error) {
+      setNotice({ tone: 'error', message: getApiErrorMessage(error) });
+    } finally {
+      setSavingUserInfo(false);
+    }
+  };
+
+  const handleChangePassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (newPassword !== confirmPassword) {
+      setNotice({
+        tone: 'error',
+        message: 'Password confirmation does not match.',
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setNotice({
+        tone: 'error',
+        message: 'New password must contain at least 8 characters.',
+      });
+      return;
+    }
+
+    setSavingPassword(true);
+    setNotice(null);
+    try {
+      await usersService.changeMyPassword({
+        currentPassword,
+        newPassword,
+        confirmNewPassword: confirmPassword,
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setNotice({ tone: 'success', message: 'Password updated.' });
+    } catch (error) {
+      setNotice({ tone: 'error', message: getApiErrorMessage(error) });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Loader2 size={22} className="animate-spin text-[var(--text-secondary)]" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Paramètres"
-        title="Configuration"
-        description="Gérez vos paramètres personnels, vos intégrations et vos configurations de sécurité."
+        eyebrow="Settings"
+        title="Platform Settings"
+        description="Unified settings for platform identity, security, and connected user information."
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {visibleSections.map((section) => (
-          <Link
-            key={section.href}
-            href={section.href}
-            className="group flex flex-col rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-6 transition hover:border-[var(--text-primary)] hover:shadow-lg"
+      {notice && (
+        <Alert
+          tone={notice.tone}
+          title={notice.tone === 'success' ? 'Success' : 'Error'}
+        >
+          {notice.message}
+        </Alert>
+      )}
+
+      {isAdmin && (
+        <SectionCard
+          title="Platform"
+          description="Global platform identity and naming. This section is visible to administrators only."
+        >
+          <div className="space-y-4">
+            <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+              <div className="flex items-center gap-2 font-semibold text-blue-100">
+                <Building2 size={15} />
+                Platform identity
+              </div>
+              <p className="mt-1">
+                Keep this value stable. It is reused across admin screens and operational logs.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                Platform name
+              </label>
+              <input
+                type="text"
+                value={platformName}
+                onChange={(event) => setPlatformName(event.target.value)}
+                disabled={loadingPlatform || savingPlatform}
+                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-60"
+              />
+            </div>
+
+            <Button
+              onClick={() => void handleSavePlatform()}
+              disabled={!canSavePlatform}
+              loading={savingPlatform}
+              icon={savingPlatform ? undefined : <Save size={14} />}
+            >
+              Save Platform
+            </Button>
+          </div>
+        </SectionCard>
+      )}
+
+      <SectionCard
+        title="Security"
+        description="Update your session security by changing your password."
+      >
+        <form onSubmit={handleChangePassword} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+              Current password
+            </label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+              New password
+            </label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+              placeholder="At least 8 characters"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+              Confirm new password
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+            />
+          </div>
+
+          <div className="lg:col-span-3">
+            <Button
+              type="submit"
+              disabled={!canSavePassword}
+              loading={savingPassword}
+              icon={savingPassword ? undefined : <ShieldCheck size={14} />}
+            >
+              Change Password
+            </Button>
+          </div>
+        </form>
+      </SectionCard>
+
+      <SectionCard
+        title="Minimal User Info"
+        description="Core information for the connected user session."
+      >
+        <form onSubmit={handleSaveUserInfo} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                Email
+              </label>
+              <input
+                type="email"
+                value={user.email}
+                disabled
+                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-4 text-sm text-[var(--text-secondary)]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                Role
+              </label>
+              <input
+                type="text"
+                value={user.role}
+                disabled
+                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-4 text-sm text-[var(--text-secondary)]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                Full name
+              </label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+              />
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={!canSaveUserInfo}
+            loading={savingUserInfo}
+            icon={savingUserInfo ? undefined : <UserRound size={14} />}
           >
-            <div className={`mb-4 inline-flex w-fit rounded-lg ${section.color} p-3`}>
-              {section.icon}
-            </div>
-            <h3 className="mb-2 text-lg font-semibold text-[var(--text-primary)] group-hover:text-blue-400">
-              {section.title}
-            </h3>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {section.description}
-            </p>
-            <div className="mt-auto pt-4">
-              <span className="inline-flex items-center text-sm font-medium text-blue-400 opacity-0 group-hover:opacity-100">
-                Accéder →
-              </span>
-            </div>
-          </Link>
-        ))}
-      </div>
+            Save User Info
+          </Button>
+        </form>
+      </SectionCard>
     </div>
   );
 }

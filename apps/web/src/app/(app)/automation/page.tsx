@@ -21,6 +21,16 @@ import { useServers } from '@/hooks/useServers';
 import type { AutomationRun, AutomationRunLog, AutomationRunStatus } from '@/types/automation';
 
 const ACTIVE_RUN_STATUSES: AutomationRunStatus[] = ['QUEUED', 'RUNNING'];
+const AUTOMATION_STATUS_FILTERS: Array<'ALL' | AutomationRunStatus> = [
+  'ALL',
+  'QUEUED',
+  'RUNNING',
+  'SUCCEEDED',
+  'PARTIAL',
+  'FAILED',
+  'CANCELED',
+  'TIMEOUT',
+];
 
 function statusTone(status: AutomationRunStatus) {
   if (status === 'SUCCEEDED') return 'success' as const;
@@ -42,6 +52,8 @@ export default function AutomationPage() {
   const [gitlabRunnerExecutor, setGitlabRunnerExecutor] = useState('docker');
   const [error, setError] = useState<string | null>(null);
   const [streamedLogs, setStreamedLogs] = useState<AutomationRunLog[]>([]);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | AutomationRunStatus>('ALL');
+  const [actionFilter, setActionFilter] = useState<'ALL' | string>('ALL');
 
   const runs = runsQuery.data?.items;
   const actionList = actionsQuery.data;
@@ -89,6 +101,41 @@ export default function AutomationPage() {
     }
     return Array.from(map.values()).sort((a, b) => a.lineNumber - b.lineNumber);
   }, [selectedRun?.logs, selectedRunLogsQuery.data, streamedLogs]);
+
+  const actionOptions = useMemo(() => {
+    const source = runs ?? [];
+    return Array.from(new Set(source.map((run) => run.actionKey))).sort();
+  }, [runs]);
+
+  const filteredRuns = useMemo(() => {
+    const source = runs ?? [];
+    return source.filter((run) => {
+      const statusMatch = statusFilter === 'ALL' || run.status === statusFilter;
+      const actionMatch = actionFilter === 'ALL' || run.actionKey === actionFilter;
+      return statusMatch && actionMatch;
+    });
+  }, [actionFilter, runs, statusFilter]);
+
+  useEffect(() => {
+    if (!filteredRuns.length) {
+      return;
+    }
+    if (!selectedRunId || !filteredRuns.some((run) => run.id === selectedRunId)) {
+      setSelectedRunId(filteredRuns[0].id);
+    }
+  }, [filteredRuns, selectedRunId]);
+
+  const stats = useMemo(() => {
+    const source = runs ?? [];
+    return {
+      total: source.length,
+      running: source.filter((run) => ACTIVE_RUN_STATUSES.includes(run.status)).length,
+      succeeded: source.filter((run) => run.status === 'SUCCEEDED').length,
+      failed: source.filter((run) =>
+        run.status === 'FAILED' || run.status === 'CANCELED' || run.status === 'TIMEOUT',
+      ).length,
+    };
+  }, [runs]);
 
   const toggleServer = (serverId: string) => {
     setSelectedServerIds((prev) =>
@@ -157,6 +204,25 @@ export default function AutomationPage() {
           {error}
         </div>
       )}
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+          <p className="text-xs font-medium text-[var(--text-muted)]">Total runs</p>
+          <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{stats.total}</p>
+        </div>
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+          <p className="text-xs font-medium text-[var(--text-muted)]">Running</p>
+          <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{stats.running}</p>
+        </div>
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+          <p className="text-xs font-medium text-[var(--text-muted)]">Succeeded</p>
+          <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{stats.succeeded}</p>
+        </div>
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+          <p className="text-xs font-medium text-[var(--text-muted)]">Failed</p>
+          <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{stats.failed}</p>
+        </div>
+      </div>
 
       <SectionCard
         title="Launch Automation"
@@ -246,13 +312,45 @@ export default function AutomationPage() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <SectionCard title="Run History" description="Latest multi-server automation runs.">
+          <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+            <select
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as 'ALL' | AutomationRunStatus)
+              }
+              className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+            >
+              {AUTOMATION_STATUS_FILTERS.map((status) => (
+                <option key={status} value={status}>
+                  {status === 'ALL' ? 'All statuses' : status}
+                </option>
+              ))}
+            </select>
+            <select
+              value={actionFilter}
+              onChange={(event) => setActionFilter(event.target.value)}
+              className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+            >
+              <option value="ALL">All actions</option>
+              {actionOptions.map((actionKey) => (
+                <option key={actionKey} value={actionKey}>
+                  {actionKey}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {!runs || runs.length === 0 ? (
             <p className="text-sm text-[var(--text-secondary)]">
               No automation runs yet.
             </p>
+          ) : filteredRuns.length === 0 ? (
+            <p className="text-sm text-[var(--text-secondary)]">
+              No automation run matches the selected filters.
+            </p>
           ) : (
             <div className="space-y-2">
-              {runs.map((run) => (
+              {filteredRuns.map((run) => (
                 <button
                   key={run.id}
                   type="button"

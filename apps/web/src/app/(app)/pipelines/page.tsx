@@ -65,6 +65,9 @@ export default function PipelinesPage() {
   const [error, setError] = useState<string | null>(null);
   const [triggeringId, setTriggeringId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [commitFilter, setCommitFilter] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,10 +116,27 @@ export default function PipelinesPage() {
     }
   };
 
+  const statusOptions = useMemo(
+    () => Array.from(new Set(pipelines.map((pipeline) => pipeline.status))).sort(),
+    [pipelines],
+  );
+  const branchOptions = useMemo(
+    () => Array.from(new Set(pipelines.map((pipeline) => pipeline.ref))).sort(),
+    [pipelines],
+  );
+
   const filtered = useMemo(() => {
-    if (selectedProjectId === 'all') return pipelines;
-    return pipelines.filter((p) => p.project.id === selectedProjectId);
-  }, [pipelines, selectedProjectId]);
+    return pipelines.filter((pipeline) => {
+      const projectMatch =
+        selectedProjectId === 'all' || pipeline.project.id === selectedProjectId;
+      const statusMatch = statusFilter === 'all' || pipeline.status === statusFilter;
+      const branchMatch = branchFilter === 'all' || pipeline.ref === branchFilter;
+      const commitMatch =
+        commitFilter.trim().length === 0 ||
+        pipeline.sha.toLowerCase().includes(commitFilter.trim().toLowerCase());
+      return projectMatch && statusMatch && branchMatch && commitMatch;
+    });
+  }, [branchFilter, commitFilter, pipelines, selectedProjectId, statusFilter]);
 
   const stats = useMemo(() => ({
     total: pipelines.length,
@@ -165,8 +185,8 @@ export default function PipelinesPage() {
       )}
 
       {/* Filter */}
-      {projects.length > 1 && (
-        <SectionCard title="Filter" description="By project." contentClassName="pt-0">
+      <SectionCard title="Filter" description="Project, status, branch, commit." contentClassName="pt-0">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           <select
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
@@ -177,8 +197,41 @@ export default function PipelinesPage() {
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
-        </SectionCard>
-      )}
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+          >
+            <option value="all">All statuses</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
+            className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+          >
+            <option value="all">All branches</option>
+            {branchOptions.map((branch) => (
+              <option key={branch} value={branch}>
+                {branch}
+              </option>
+            ))}
+          </select>
+
+          <input
+            value={commitFilter}
+            onChange={(e) => setCommitFilter(e.target.value)}
+            placeholder="Commit SHA"
+            className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+          />
+        </div>
+      </SectionCard>
 
       {loading && (
         <div className="flex items-center justify-center py-16">
@@ -191,7 +244,11 @@ export default function PipelinesPage() {
           <EmptyState
             icon={GitMerge}
             title="No pipelines found"
-            description="Pipelines will appear here once your projects are connected to GitLab and CI runs."
+            description={
+              pipelines.length === 0
+                ? 'Pipelines will appear here once your projects are connected to GitLab and CI runs.'
+                : 'No pipeline matches the current filters.'
+            }
           />
         </SectionCard>
       )}

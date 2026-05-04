@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
+  Copy,
   Loader2,
   Pencil,
   Plus,
@@ -152,6 +153,7 @@ export default function GitSettingsPage() {
   const [runningDefaultId, setRunningDefaultId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<GitlabProvider | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [copiedRedirect, setCopiedRedirect] = useState(false);
 
   const fallbackRedirectUri = useMemo(() => {
     if (typeof window === 'undefined') return '';
@@ -232,10 +234,23 @@ export default function GitSettingsPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleCopyRedirectUri = async () => {
+    const value = (form.redirectUri || fallbackRedirectUri).trim();
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedRedirect(true);
+      window.setTimeout(() => setCopiedRedirect(false), 1200);
+    } catch {
+      setCopiedRedirect(false);
+    }
+  };
+
   const openCreateDialog = () => {
     setDialogMode('create');
     setForm(createEmptyForm(fallbackRedirectUri));
     setError(null);
+    setCopiedRedirect(false);
     setDialogOpen(true);
   };
 
@@ -243,12 +258,14 @@ export default function GitSettingsPage() {
     setDialogMode('edit');
     setForm(providerToForm(provider));
     setError(null);
+    setCopiedRedirect(false);
     setDialogOpen(true);
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
     setError(null);
+    setCopiedRedirect(false);
   };
 
   const handleSave = async () => {
@@ -265,12 +282,14 @@ export default function GitSettingsPage() {
     setError(null);
 
     try {
+      const effectiveRedirectUri = (form.redirectUri || fallbackRedirectUri).trim();
+
       if (dialogMode === 'create') {
         const payload: CreateGitlabProviderPayload = {
           name: form.name.trim(),
           gitlabUrl: form.gitlabUrl.trim(),
           internalUrl: form.internalUrl.trim(),
-          redirectUri: form.redirectUri.trim(),
+          redirectUri: effectiveRedirectUri,
           applicationId: form.applicationId.trim(),
           applicationSecret: form.applicationSecret.trim(),
           groupNames: form.groupNames.trim(),
@@ -289,7 +308,7 @@ export default function GitSettingsPage() {
           name: form.name.trim(),
           gitlabUrl: form.gitlabUrl.trim(),
           internalUrl: form.internalUrl.trim(),
-          redirectUri: form.redirectUri.trim(),
+          redirectUri: effectiveRedirectUri,
           applicationId: form.applicationId.trim(),
           groupNames: form.groupNames.trim(),
           isDefault: form.isDefault,
@@ -504,7 +523,7 @@ export default function GitSettingsPage() {
                       onClick={() => void handleTestProvider(provider.id)}
                       icon={<ShieldCheck size={13} />}
                     >
-                      Test
+                      Test connection
                     </Button>
                   )}
 
@@ -546,12 +565,12 @@ export default function GitSettingsPage() {
             aria-labelledby="gitlab-provider-dialog-title"
             className="relative z-10 max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl"
           >
-            <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-4">
+            <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-app)]">
                 <GitlabLogo />
               </div>
               <div>
-                <p id="gitlab-provider-dialog-title" className="text-sm font-semibold text-[var(--text-primary)]">
+                <p id="gitlab-provider-dialog-title" className="text-base font-semibold text-[var(--text-primary)]">
                   {dialogMode === 'create' ? 'Add GitLab Provider' : 'Edit GitLab Provider'}
                 </p>
                 <p className="text-xs text-[var(--text-secondary)]">
@@ -568,44 +587,53 @@ export default function GitSettingsPage() {
               </button>
             </div>
 
-            <div className="space-y-5 p-6">
+            <div className="space-y-4 px-6 py-5">
               {error && <Alert tone="error">{error}</Alert>}
 
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4 text-sm text-[var(--text-secondary)]">
-                <p className="font-semibold text-[var(--text-primary)]">
-                  Setup flow
-                </p>
-                <p className="mt-1">
-                  1. Create a GitLab OAuth application with scopes:
-                  <span className="ml-1 font-mono">api, read_user, read_repository</span>.
-                </p>
-                <p className="mt-1">
-                  2. Use redirect URI shown below.
-                </p>
-                <p className="mt-1">
-                  3. Save provider, then click Connect OAuth.
-                </p>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+                Ce formulaire configure un provider GitLab global de plateforme. Les repositories/projets restent gérés dans l’espace Projects.
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                    Name <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(event) => setFormValue('name', event.target.value)}
-                    placeholder="my-account"
-                    disabled={!isAdmin}
-                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                  />
+              <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Basic</h3>
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                  Identité du provider et URL GitLab publique utilisée par la plateforme.
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                      Provider name <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={(event) => setFormValue('name', event.target.value)}
+                      placeholder="GitLab Production"
+                      disabled={!isAdmin}
+                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
+                    />
+                    <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                      Libellé d’affichage dans la liste des providers.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                      GitLab URL <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.gitlabUrl}
+                      onChange={(event) => setFormValue('gitlabUrl', event.target.value)}
+                      placeholder="https://gitlab.com"
+                      disabled={!isAdmin}
+                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
+                    />
+                    <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                      URL publique de l’instance GitLab (sans chemin API).
+                    </p>
+                  </div>
                 </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                    Default provider
-                  </label>
+                <div className="mt-3">
                   <label className="flex h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)]">
                     <input
                       type="checkbox"
@@ -614,92 +642,115 @@ export default function GitSettingsPage() {
                       disabled={!isAdmin}
                       className="accent-zinc-500"
                     />
-                    Set as default
+                    Set as default provider
                   </label>
                 </div>
-              </div>
+              </section>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
+              <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">OAuth</h3>
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                  Application OAuth GitLab utilisée pour l’authentification de la plateforme.
+                </p>
+                <div className="mt-3">
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                    GitLab URL <span className="text-red-400">*</span>
+                    Redirect URI (read-only)
                   </label>
-                  <input
-                    type="text"
-                    value={form.gitlabUrl}
-                    onChange={(event) => setFormValue('gitlabUrl', event.target.value)}
-                    placeholder="https://gitlab.com"
-                    disabled={!isAdmin}
-                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={form.redirectUri || fallbackRedirectUri}
+                      readOnly
+                      className="h-11 flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      icon={<Copy size={13} />}
+                      onClick={() => void handleCopyRedirectUri()}
+                    >
+                      {copiedRedirect ? 'Copied' : 'Copy'}
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                    À copier dans l’application OAuth GitLab (scopes recommandés: <span className="font-mono">api, read_user, read_repository</span>).
+                  </p>
                 </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                    Internal URL
-                  </label>
-                  <input
-                    type="text"
-                    value={form.internalUrl}
-                    onChange={(event) => setFormValue('internalUrl', event.target.value)}
-                    placeholder="http://gitlab:80"
-                    disabled={!isAdmin}
-                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                  />
+                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                      Application ID
+                    </label>
+                    <input
+                      type="text"
+                      value={form.applicationId}
+                      onChange={(event) => setFormValue('applicationId', event.target.value)}
+                      placeholder="GitLab OAuth app id"
+                      disabled={!isAdmin}
+                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                      Application Secret
+                    </label>
+                    <input
+                      type="password"
+                      value={form.applicationSecret}
+                      onChange={(event) => setFormValue('applicationSecret', event.target.value)}
+                      placeholder={
+                        form.applicationSecretConfigured
+                          ? '••••••••  (leave empty to keep current)'
+                          : 'GitLab OAuth app secret'
+                      }
+                      disabled={!isAdmin}
+                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
+                    />
+                  </div>
                 </div>
-              </div>
+              </section>
 
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                  Redirect URI
-                </label>
-                <input
-                  type="text"
-                  value={form.redirectUri || fallbackRedirectUri}
-                  onChange={(event) => setFormValue('redirectUri', event.target.value)}
-                  disabled={!isAdmin}
-                  className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                    Application ID
-                  </label>
-                  <input
-                    type="text"
-                    value={form.applicationId}
-                    onChange={(event) => setFormValue('applicationId', event.target.value)}
-                    placeholder="Application ID"
-                    disabled={!isAdmin}
-                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                  />
+              <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Advanced</h3>
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                  Champs optionnels pour réseau interne, administration et filtrage des groupes.
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                      Internal URL (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={form.internalUrl}
+                      onChange={(event) => setFormValue('internalUrl', event.target.value)}
+                      placeholder="http://gitlab:80"
+                      disabled={!isAdmin}
+                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                      Admin Token (optional)
+                    </label>
+                    <input
+                      type="password"
+                      value={form.adminToken}
+                      onChange={(event) => setFormValue('adminToken', event.target.value)}
+                      placeholder={
+                        form.adminTokenConfigured
+                          ? '••••••••  (leave empty to keep current)'
+                          : 'glpat-xxxxxxxxxxxxxxxx'
+                      }
+                      disabled={!isAdmin}
+                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm font-mono text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
+                    />
+                  </div>
                 </div>
-
-                <div>
+                <div className="mt-3">
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                    Application Secret
-                  </label>
-                  <input
-                    type="password"
-                    value={form.applicationSecret}
-                    onChange={(event) => setFormValue('applicationSecret', event.target.value)}
-                    placeholder={
-                      form.applicationSecretConfigured
-                        ? '••••••••  (leave empty to keep current)'
-                        : 'Application Secret'
-                    }
-                    disabled={!isAdmin}
-                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                    Group Names
+                    Group Names (optional)
                   </label>
                   <input
                     type="text"
@@ -710,25 +761,7 @@ export default function GitSettingsPage() {
                     className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
                   />
                 </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                    Admin Token
-                  </label>
-                  <input
-                    type="password"
-                    value={form.adminToken}
-                    onChange={(event) => setFormValue('adminToken', event.target.value)}
-                    placeholder={
-                      form.adminTokenConfigured
-                        ? '••••••••  (leave empty to keep current)'
-                        : 'glpat-xxxxxxxxxxxxxxxx'
-                    }
-                    disabled={!isAdmin}
-                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm font-mono text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                  />
-                </div>
-              </div>
+              </section>
 
               {form.id && (
                 <p className="text-xs text-[var(--text-secondary)]">

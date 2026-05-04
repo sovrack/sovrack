@@ -9,6 +9,7 @@ import {
   Plus,
   Save,
   Trash2,
+  X,
   XCircle,
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
@@ -111,12 +112,14 @@ function RegistryForm({
   onSubmit,
   onCancel,
   isSubmitting,
+  withTopDivider = true,
 }: {
   initialData?: RegistryFormState;
   mode: DialogMode;
   onSubmit: (data: RegistryFormState) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
+  withTopDivider?: boolean;
 }) {
   const [form, setForm] = useState<RegistryFormState>(
     initialData ?? {
@@ -140,7 +143,10 @@ function RegistryForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 border-t border-[var(--border)] pt-4">
+    <form
+      onSubmit={handleSubmit}
+      className={`space-y-4 ${withTopDivider ? 'border-t border-[var(--border)] pt-4' : ''}`}
+    >
       <div>
         <label className="block text-sm font-medium text-[var(--text-primary)]">Nom</label>
         <input
@@ -479,20 +485,53 @@ export default function RegistrySettingsPage() {
       )}
 
       {dialogMode && (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-6">
-          <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
-            {dialogMode === 'create' ? 'Ajouter un registre' : 'Modifier le registre'}
-          </h3>
-          <RegistryForm
-            initialData={formData}
-            mode={dialogMode}
-            onSubmit={handleFormSubmit}
-            onCancel={() => {
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div
+            className="absolute inset-0"
+            onClick={() => {
+              if (isSubmitting) return;
               setDialogMode(null);
               setSelectedRegistry(null);
             }}
-            isSubmitting={isSubmitting}
+            aria-hidden
           />
+          <div className="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+                  Settings
+                </p>
+                <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+                  {dialogMode === 'create' ? 'Ajouter un registre' : 'Modifier le registre'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isSubmitting) return;
+                  setDialogMode(null);
+                  setSelectedRegistry(null);
+                }}
+                className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-6 py-4">
+              <RegistryForm
+                initialData={formData}
+                mode={dialogMode}
+                onSubmit={handleFormSubmit}
+                onCancel={() => {
+                  setDialogMode(null);
+                  setSelectedRegistry(null);
+                }}
+                isSubmitting={isSubmitting}
+                withTopDivider={false}
+              />
+            </div>
+          </div>
         </div>
       )}
 

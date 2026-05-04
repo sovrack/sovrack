@@ -108,7 +108,11 @@ export function ServerActions({
           loading={preparingId === server.id}
           icon={preparingId === server.id ? null : <Wrench size={13} />}
         >
-          {server.status === 'PREPARED' ? 'Re-prepare' : 'Prepare Server'}
+          {server.status === 'PREPARATION_FAILED'
+            ? 'Retry Preparation'
+            : server.status === 'PREPARED' || server.status === 'PARTIALLY_PREPARED'
+              ? 'Re-prepare'
+              : 'Prepare Server'}
         </Button>
       )}
 

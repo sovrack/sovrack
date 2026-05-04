@@ -18,12 +18,23 @@ import { buildService, type BuildDetectResult, type BuildPrepareResult } from '@
 import { getApiErrorMessage } from '@/lib/api';
 
 const PROJECT_TYPES = [
+  { value: 'nestjs', label: 'NestJS API' },
+  { value: 'nextjs', label: 'Next.js App' },
+  { value: 'react', label: 'React SPA' },
   { value: 'nodejs', label: 'Node.js' },
+  { value: 'go', label: 'Go Service' },
   { value: 'python', label: 'Python' },
+  { value: 'django', label: 'Django' },
+  { value: 'laravel', label: 'Laravel' },
+  { value: 'spring-boot', label: 'Spring Boot' },
   { value: 'php', label: 'PHP' },
   { value: 'ruby', label: 'Ruby' },
   { value: 'golang', label: 'Go' },
   { value: 'rust', label: 'Rust' },
+  { value: 'postgres-service', label: 'PostgreSQL Service' },
+  { value: 'redis-service', label: 'Redis Service' },
+  { value: 'dockerized', label: 'Dockerized App' },
+  { value: 'static-frontend', label: 'Static Frontend' },
   { value: 'static', label: 'Site statique' },
   { value: 'docker', label: 'Dockerfile existant' },
   { value: 'compose', label: 'Docker Compose' },
@@ -60,7 +71,9 @@ export function ProjectBuildTab({ projectId, isAdmin }: Props) {
     try {
       const result = await buildService.detect(projectId);
       setDetected(result);
-      setSelectedType(result.type);
+      setSelectedType(result.recommendedBuildType || result.type);
+      setPort(String(result.recommendedPort || 3000));
+      setStartCmd(result.recommendedStartCommand || 'node index.js');
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -152,9 +165,32 @@ export function ProjectBuildTab({ projectId, isAdmin }: Props) {
               Détecter automatiquement
             </Button>
             {detected && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-[var(--text-primary)]">{detected.type}</span>
-                {confidenceBadge(detected.confidence)}
+              <div className="w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">
+                    {detected.type}
+                  </span>
+                  {confidenceBadge(detected.confidence)}
+                  <Badge tone="default" size="sm">
+                    {detected.framework}
+                  </Badge>
+                  <Badge tone="default" size="sm">
+                    {detected.language}
+                  </Badge>
+                  <Badge tone="default" size="sm">
+                    {detected.packageManager}
+                  </Badge>
+                </div>
+                <p className="mt-2 text-xs text-[var(--text-secondary)]">
+                  Recommended strategy: <span className="font-semibold">{detected.recommendedStrategy}</span>
+                  {' '}· Port {detected.recommendedPort}
+                  {' '}· Start <code className="font-mono">{detected.recommendedStartCommand}</code>
+                </p>
+                {detected.reasons.length > 0 && (
+                  <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                    Signals: {detected.reasons.join(' · ')}
+                  </p>
+                )}
               </div>
             )}
           </div>

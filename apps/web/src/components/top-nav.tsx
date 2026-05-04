@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { Bell, ChevronDown, LogOut, User, Menu } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -47,6 +48,7 @@ export function TopNav() {
         </button>
 
         <div className="ml-auto flex items-center gap-1.5">
+          <LanguageSwitcher />
           <ThemeToggle />
 
           <button className="relative flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]">
@@ -88,12 +90,12 @@ export function TopNav() {
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
-                      router.push('/settings/profile');
+                      router.push('/settings');
                     }}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                   >
                     <User size={14} className="text-[var(--text-muted)]" />
-                    Profile
+                    Platform Settings
                   </button>
                   <button
                     onClick={handleLogout}
