@@ -3,6 +3,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -156,6 +157,8 @@ const LEGACY_GITLAB_KEYS = [
 
 @Injectable()
 export class PlatformConfigService {
+  private readonly logger = new Logger(PlatformConfigService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
@@ -621,8 +624,15 @@ export class PlatformConfigService {
         },
       });
 
+      // Sync legacy config separately — failure here must NOT undo the saved token
       if (provider.isDefault) {
-        await this.syncLegacyDefaultGitlabConfig();
+        try {
+          await this.syncLegacyDefaultGitlabConfig();
+        } catch (syncErr) {
+          this.logger.warn(
+            `syncLegacyDefaultGitlabConfig failed after token save (provider ${provider.id}): ${String(syncErr)}`,
+          );
+        }
       }
 
       return {
@@ -634,16 +644,37 @@ export class PlatformConfigService {
           provider.id,
         ),
       };
-    } catch {
-      return fail('Connexion OAuth GitLab échouée', provider.id);
+    } catch (err) {
+      // Extract a meaningful error from the GitLab HTTP response when available
+      const axiosData = (err as { response?: { data?: { error_description?: string; error?: string; message?: string } } })
+        ?.response?.data;
+      const gitlabMsg =
+        axiosData?.error_description ??
+        axiosData?.error ??
+        axiosData?.message;
+
+      const reason =
+        err instanceof Error ? err.message : String(err);
+      const displayReason = gitlabMsg || reason || 'Connexion OAuth GitLab échouée';
+
+      this.logger.error(
+        `OAuth callback failed for provider ${provider.id}: ${displayReason}`,
+        err instanceof Error ? err.stack : undefined,
+      );
+
+      return fail(displayReason, provider.id);
     } finally {
-      await this.prisma.gitProviderConfig.update({
-        where: { id: provider.id },
-        data: {
-          oauthState: null,
-          oauthStateExpiresAt: null,
-        },
-      });
+      // Always clear the one-time state regardless of outcome
+      await this.prisma.gitProviderConfig
+        .update({
+          where: { id: provider.id },
+          data: { oauthState: null, oauthStateExpiresAt: null },
+        })
+        .catch((finallyErr: unknown) => {
+          this.logger.warn(
+            `Failed to clear oauthState for provider ${provider.id}: ${String(finallyErr)}`,
+          );
+        });
     }
   }
 
