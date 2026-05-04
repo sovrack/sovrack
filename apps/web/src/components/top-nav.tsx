@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { useI18n } from '@/contexts/i18n-context';
 import { Bell, ChevronDown, LogOut, User, Menu } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -12,6 +13,7 @@ export function TopNav() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { toggleSidebar } = useSidebar();
+  const { t } = useI18n();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -95,14 +97,14 @@ export function TopNav() {
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                   >
                     <User size={14} className="text-[var(--text-muted)]" />
-                    Platform Settings
+                    {t.userMenu.settings}
                   </button>
                   <button
                     onClick={handleLogout}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-400"
                   >
                     <LogOut size={14} className="text-red-400" />
-                    Logout
+                    {t.userMenu.logout}
                   </button>
                 </div>
               </div>
