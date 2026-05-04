@@ -35,8 +35,10 @@ export class BuildGeneratorService {
     const rubyStartCmd =
       config.startCmd ??
       `bundle exec rails server -b 0.0.0.0 -p ${String(port)}`;
+    const normalizedType = type.toLowerCase();
 
-    switch (type) {
+    switch (normalizedType) {
+      case 'nestjs':
       case 'nodejs':
         return [
           'FROM node:20-alpine AS builder',
@@ -58,7 +60,32 @@ export class BuildGeneratorService {
           `CMD ["node", "${startCmd}"]`,
         ].join('\n');
 
+      case 'nextjs':
+        return [
+          'FROM node:20-alpine AS deps',
+          'WORKDIR /app',
+          'COPY package*.json ./',
+          'RUN npm ci',
+          '',
+          'FROM node:20-alpine AS builder',
+          'WORKDIR /app',
+          'COPY --from=deps /app/node_modules ./node_modules',
+          'COPY . .',
+          'RUN npm run build',
+          '',
+          'FROM node:20-alpine AS runner',
+          'WORKDIR /app',
+          'ENV NODE_ENV=production',
+          'COPY --from=builder /app/.next ./.next',
+          'COPY --from=builder /app/public ./public',
+          'COPY --from=builder /app/package*.json ./',
+          'COPY --from=builder /app/node_modules ./node_modules',
+          `EXPOSE ${port}`,
+          `CMD ["sh", "-c", "${config.startCmd ?? 'npm run start'}"]`,
+        ].join('\n');
+
       case 'python':
+      case 'django':
         return [
           'FROM python:3.11-slim',
           'WORKDIR /app',
@@ -67,16 +94,18 @@ export class BuildGeneratorService {
           'COPY . .',
           `EXPOSE ${port}`,
           `HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost:${port}/health || exit 1`,
-          `CMD ["python", "${config.startCmd ?? 'app.py'}"]`,
+          `CMD ["sh", "-c", "${config.startCmd ?? (normalizedType === 'django' ? 'gunicorn app.wsgi:application --bind 0.0.0.0:8000' : 'python app.py')}"]`,
         ].join('\n');
 
       case 'php':
+      case 'laravel':
         return [
           'FROM php:8.2-apache',
-          'COPY . /var/www/html/',
+          'WORKDIR /var/www/html',
+          'COPY . .',
           'RUN docker-php-ext-install pdo pdo_mysql',
-          'EXPOSE 80',
-          'HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost/health || exit 1',
+          `EXPOSE ${normalizedType === 'laravel' ? 8000 : 80}`,
+          `CMD ["sh", "-c", "${config.startCmd ?? (normalizedType === 'laravel' ? 'php artisan serve --host=0.0.0.0 --port=8000' : 'apache2-foreground')}"]`,
         ].join('\n');
 
       case 'ruby':
@@ -90,6 +119,7 @@ export class BuildGeneratorService {
           `CMD ["sh", "-c", "${rubyStartCmd}"]`,
         ].join('\n');
 
+      case 'go':
       case 'golang':
         return [
           'FROM golang:1.21-alpine AS builder',
@@ -106,6 +136,42 @@ export class BuildGeneratorService {
           'CMD ["./main"]',
         ].join('\n');
 
+      case 'spring-boot':
+      case 'java':
+        return [
+          'FROM eclipse-temurin:21-jdk AS builder',
+          'WORKDIR /app',
+          'COPY . .',
+          'RUN if [ -f ./mvnw ]; then ./mvnw -DskipTests package; else mvn -DskipTests package; fi',
+          '',
+          'FROM eclipse-temurin:21-jre',
+          'WORKDIR /app',
+          'COPY --from=builder /app/target/*.jar /app/app.jar',
+          `EXPOSE ${port}`,
+          `CMD ["sh", "-c", "${config.startCmd ?? 'java -jar /app/app.jar'}"]`,
+        ].join('\n');
+
+      case 'postgres-service':
+        return ['FROM postgres:16-alpine', 'EXPOSE 5432'].join('\n');
+
+      case 'redis-service':
+        return ['FROM redis:7-alpine', 'EXPOSE 6379'].join('\n');
+
+      case 'react':
+        return [
+          'FROM node:20-alpine AS builder',
+          'WORKDIR /app',
+          'COPY package*.json ./',
+          'RUN npm ci',
+          'COPY . .',
+          'RUN npm run build && if [ -d build ]; then cp -R build /tmp/web; elif [ -d dist ]; then cp -R dist /tmp/web; else mkdir -p /tmp/web; fi',
+          '',
+          'FROM nginx:alpine',
+          'COPY --from=builder /tmp/web /usr/share/nginx/html',
+          'EXPOSE 80',
+          'HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost || exit 1',
+        ].join('\n');
+
       case 'rust':
         return [
           'FROM rust:1.75-alpine AS builder',
@@ -120,7 +186,11 @@ export class BuildGeneratorService {
           'CMD ["./app"]',
         ].join('\n');
 
+      case 'static-frontend':
       case 'static':
+      case 'docker':
+      case 'dockerized':
+      case 'compose':
         return [
           'FROM nginx:alpine',
           'COPY . /usr/share/nginx/html',

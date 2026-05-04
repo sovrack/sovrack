@@ -19,6 +19,7 @@ import { SshKeysModule } from './modules/ssh-keys/ssh-keys.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { TerminalModule } from './modules/terminal/terminal.module';
 import { AutomationModule } from './modules/automation/automation.module';
+import { MonitoringModule } from './modules/monitoring/monitoring.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { AutomationModule } from './modules/automation/automation.module';
     AuditLogsModule,
     TerminalModule,
     AutomationModule,
+    MonitoringModule,
   ],
   controllers: [AppController],
   providers: [],

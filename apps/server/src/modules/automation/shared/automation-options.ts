@@ -109,11 +109,41 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
   },
   {
     key: 'install_monitoring',
-    label: 'Installer monitoring',
-    description: 'Installe les agents de monitoring (Node Exporter, etc.).',
+    label: 'Installer monitoring agent',
+    description:
+      'Installe l’agent léger de monitoring sur chaque VPS cible (node_exporter/sysstat).',
     playbookPath: 'prepare-server.yml',
     category: 'monitoring',
     roles: ['monitoring'],
+    requiresSshValidated: true,
+    requiresSudo: true,
+  },
+  {
+    key: 'install_monitoring_stack',
+    label: 'Installer monitoring stack',
+    description:
+      'Installe la stack Prometheus + Grafana + Alertmanager + exporters via le control node.',
+    playbookPath: 'prepare-server.yml',
+    category: 'monitoring',
+    roles: [
+      'docker',
+      'node_exporter',
+      'cadvisor',
+      'prometheus',
+      'grafana',
+      'alertmanager',
+    ],
+    requiresSshValidated: true,
+    requiresSudo: true,
+  },
+  {
+    key: 'install_prometheus_grafana',
+    label: 'Installer Prometheus + Grafana',
+    description:
+      'Installe Prometheus, Grafana et Node Exporter pour une observabilité de base.',
+    playbookPath: 'prepare-server.yml',
+    category: 'monitoring',
+    roles: ['docker', 'node_exporter', 'prometheus', 'grafana'],
     requiresSshValidated: true,
     requiresSudo: true,
   },

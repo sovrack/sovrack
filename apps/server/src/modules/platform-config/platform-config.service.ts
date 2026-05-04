@@ -646,16 +646,23 @@ export class PlatformConfigService {
       };
     } catch (err) {
       // Extract a meaningful error from the GitLab HTTP response when available
-      const axiosData = (err as { response?: { data?: { error_description?: string; error?: string; message?: string } } })
-        ?.response?.data;
+      const axiosData = (
+        err as {
+          response?: {
+            data?: {
+              error_description?: string;
+              error?: string;
+              message?: string;
+            };
+          };
+        }
+      )?.response?.data;
       const gitlabMsg =
-        axiosData?.error_description ??
-        axiosData?.error ??
-        axiosData?.message;
+        axiosData?.error_description ?? axiosData?.error ?? axiosData?.message;
 
-      const reason =
-        err instanceof Error ? err.message : String(err);
-      const displayReason = gitlabMsg || reason || 'Connexion OAuth GitLab échouée';
+      const reason = err instanceof Error ? err.message : String(err);
+      const displayReason =
+        gitlabMsg || reason || 'Connexion OAuth GitLab échouée';
 
       this.logger.error(
         `OAuth callback failed for provider ${provider.id}: ${displayReason}`,

@@ -32,6 +32,11 @@ export type PreparationRoleKey =
   | 'fail2ban'
   | 'ssl'
   | 'monitoring'
+  | 'node_exporter'
+  | 'cadvisor'
+  | 'prometheus'
+  | 'grafana'
+  | 'alertmanager'
   | 'backup'
   | 'logrotate'
   | 'swap'
@@ -68,6 +73,11 @@ const ROLE_ORDER: PreparationRoleKey[] = [
   'redis',
   'gitlab_runner',
   'monitoring',
+  'node_exporter',
+  'cadvisor',
+  'prometheus',
+  'grafana',
+  'alertmanager',
   'backup',
   'logrotate',
 ];

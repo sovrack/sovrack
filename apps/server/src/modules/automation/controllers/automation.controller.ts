@@ -1,12 +1,24 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { GetUser } from '../../../common/decorators/get-user.decorator';
 import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
 import { CreateAutomationRunDto } from '../dto/create-automation-run.dto';
 import { AutomationService } from '../services/automation.service';
 
 @Controller()
-@Roles('ADMIN')
+@Roles(Role.ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class AutomationController {
   constructor(private readonly automationService: AutomationService) {}
 

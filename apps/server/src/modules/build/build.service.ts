@@ -10,13 +10,25 @@ import { BuildGeneratorService } from './build-generator.service';
 import { CreateBuildConfigDto } from './dto/create-build-config.dto';
 
 const SUPPORTED_TYPES = [
+  'nestjs',
+  'nextjs',
+  'react',
   'nodejs',
+  'go',
   'python',
+  'django',
+  'laravel',
+  'spring-boot',
+  'java',
   'php',
   'ruby',
   'golang',
   'rust',
+  'postgres-service',
+  'redis-service',
+  'static-frontend',
   'static',
+  'dockerized',
   'compose',
   'docker',
   'unknown',
@@ -37,6 +49,17 @@ export class BuildService {
   ): Promise<{
     type: string;
     confidence: string;
+    language: string;
+    framework: string;
+    packageManager: string;
+    recommendedStrategy: string;
+    recommendedBuildType: string;
+    recommendedStartCommand: string;
+    recommendedPort: number;
+    reasons: string[];
+    hasDockerfile: boolean;
+    hasDockerCompose: boolean;
+    hasCiConfig: boolean;
     dockerfileContent: string;
     gitlabCiContent: string;
   }> {
@@ -51,9 +74,14 @@ export class BuildService {
 
     // Détection du type
     const detected = await this.detector.detectProjectType(projectId);
-    const type = detected.type;
-    const port = project.buildPort ?? project.port ?? 3000;
-    const startCmd = project.buildStartCmd ?? 'index.js';
+    const type =
+      project.projectType || detected.recommendedBuildType || detected.type;
+    const port =
+      project.buildPort ?? detected.recommendedPort ?? project.port ?? 3000;
+    const startCmd =
+      project.buildStartCmd ??
+      detected.recommendedStartCommand ??
+      'node index.js';
     const registryUrl = project.gitlabConfig?.registryUrl ?? undefined;
 
     // Génération des fichiers
@@ -89,6 +117,17 @@ export class BuildService {
     return {
       type,
       confidence: detected.confidence,
+      language: detected.language,
+      framework: detected.framework,
+      packageManager: detected.packageManager,
+      recommendedStrategy: detected.recommendedStrategy,
+      recommendedBuildType: detected.recommendedBuildType,
+      recommendedStartCommand: detected.recommendedStartCommand,
+      recommendedPort: detected.recommendedPort,
+      reasons: detected.reasons,
+      hasDockerfile: detected.hasDockerfile,
+      hasDockerCompose: detected.hasDockerCompose,
+      hasCiConfig: detected.hasCiConfig,
       dockerfileContent,
       gitlabCiContent,
     };
