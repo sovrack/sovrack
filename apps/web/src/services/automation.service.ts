@@ -37,6 +37,10 @@ export const automationService = {
     return res.data;
   },
 
+  async deleteRun(id: string): Promise<void> {
+    await api.delete(`/automation/runs/${id}`);
+  },
+
   async cancelRun(id: string): Promise<AutomationRun> {
     const res = await api.post<AutomationRun>(`/automation/runs/${id}/cancel`);
     return res.data;

@@ -7,13 +7,15 @@ import {
   CheckCircle, XCircle, RefreshCw,
 } from 'lucide-react';
 import { environmentsService } from '@/services/environments.service';
+import { projectsService } from '@/services/projects.service';
 import { serversService } from '@/services/servers.service';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import clsx from 'clsx';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import type { Environment, EnvName, CreateEnvironmentPayload } from '@/types/environment';
+import type { ProjectService } from '@/types/project';
 import type { Server } from '@/types/server';
 
 type Props = { params: Promise<{ id: string }> };
@@ -23,6 +25,7 @@ export default function EnvironmentsPage({ params }: Props) {
   const { isAdmin } = useAuth();
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [servers, setServers] = useState<Server[]>([]);
+  const [services, setServices] = useState<ProjectService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -35,20 +38,27 @@ export default function EnvironmentsPage({ params }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [autoDeployStates, setAutoDeployStates] = useState<Record<string, { autoDeploy: boolean; branch: string }>>({});
+  const [targetDrafts, setTargetDrafts] = useState<Record<string, Record<string, { serverId: string; port: string; domain: string }>>>({});
+  const [savingTargetsId, setSavingTargetsId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const envs = await environmentsService.getAll(projectId);
+      const [envs, projectServices] = await Promise.all([
+        environmentsService.getAll(projectId),
+        projectsService.getServices(projectId).catch(() => []),
+      ]);
       setEnvironments(envs);
+      setServices(projectServices);
       const states: Record<string, { autoDeploy: boolean; branch: string }> = {};
       envs.forEach((e) => { states[e.id] = { autoDeploy: e.autoDeploy, branch: e.autoDeployBranch ?? 'main' }; });
       setAutoDeployStates(states);
 
+      let verified: Server[] = [];
       if (isAdmin) {
         const svrs = await serversService.getAll();
-        const verified = svrs.filter((s) => s.isVerified);
+        verified = svrs.filter((s) => s.isVerified);
         setServers(verified);
         if (verified.length > 0) {
           setServerId(verified[0].id);
@@ -57,6 +67,20 @@ export default function EnvironmentsPage({ params }: Props) {
         setServers([]);
         setShowForm(false);
       }
+
+      const drafts: Record<string, Record<string, { serverId: string; port: string; domain: string }>> = {};
+      envs.forEach((env) => {
+        drafts[env.id] = {};
+        projectServices.forEach((service) => {
+          const target = env.serviceTargets?.find((item) => item.serviceId === service.id);
+          drafts[env.id][service.id] = {
+            serverId: target?.serverId ?? env.serverId ?? verified[0]?.id ?? '',
+            port: target?.port ? String(target.port) : '',
+            domain: target?.domain ?? '',
+          };
+        });
+      });
+      setTargetDrafts(drafts);
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -130,6 +154,55 @@ export default function EnvironmentsPage({ params }: Props) {
     }
   };
 
+  const handleTargetDraftChange = (
+    envId: string,
+    serviceId: string,
+    patch: Partial<{ serverId: string; port: string; domain: string }>,
+  ) => {
+    setTargetDrafts((prev) => ({
+      ...prev,
+      [envId]: {
+        ...prev[envId],
+        [serviceId]: {
+          ...(prev[envId]?.[serviceId] ?? { serverId: '', port: '', domain: '' }),
+          ...patch,
+        },
+      },
+    }));
+  };
+
+  const handleSaveTargets = async (env: Environment) => {
+    if (!isAdmin) return;
+    const drafts = targetDrafts[env.id] ?? {};
+    const targets = services.map((service) => {
+      const draft = drafts[service.id];
+      return {
+        serviceId: service.id,
+        serverId: draft?.serverId || env.serverId,
+        deploymentMode: 'DOCKER_COMPOSE' as const,
+        port: draft?.port ? Number(draft.port) : undefined,
+        domain: draft?.domain?.trim() || undefined,
+        healthcheckPath: '/health',
+        replicas: 1,
+      };
+    });
+
+    if (targets.some((target) => !target.serverId)) {
+      alert('Chaque service doit avoir un VPS cible.');
+      return;
+    }
+
+    setSavingTargetsId(env.id);
+    try {
+      await environmentsService.upsertTargets(projectId, env.id, targets);
+      await fetchData();
+    } catch (err) {
+      alert(getApiErrorMessage(err));
+    } finally {
+      setSavingTargetsId(null);
+    }
+  };
+
   const verifiedServers = servers;
 
   return (
@@ -182,6 +255,8 @@ export default function EnvironmentsPage({ params }: Props) {
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20">
                 <option value="STAGING">STAGING</option>
                 <option value="PRODUCTION">PRODUCTION</option>
+                <option value="TESTING">TESTING</option>
+                <option value="PREVIEW">PREVIEW</option>
               </select>
             </div>
 
@@ -302,6 +377,82 @@ export default function EnvironmentsPage({ params }: Props) {
                           className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/5 px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border)] focus:ring-1 focus:ring-zinc-500/20"
                         />
                       </div>
+                    )}
+                  </div>
+                )}
+                {services.length > 0 && (
+                  <div className="mt-3 border-t border-[var(--border)] pt-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold text-[var(--text-primary)]">Service targets</p>
+                        <p className="text-[10px] text-[var(--text-secondary)]">
+                          Same VPS is recommended for POC/low cost. Separate VPS gives better production isolation.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-[10px] font-semibold text-green-300">Recommended for POC</span>
+                        <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-300">Better isolation</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {services.map((service) => {
+                        const draft = targetDrafts[env.id]?.[service.id];
+                        const target = env.serviceTargets?.find((item) => item.serviceId === service.id);
+                        return (
+                          <div key={service.id} className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-3">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold text-[var(--text-primary)]">{service.name}</span>
+                              <span className="rounded-full bg-[var(--bg-card)]/20 px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">{service.type}</span>
+                            </div>
+                            {isAdmin ? (
+                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                <select
+                                  value={draft?.serverId ?? env.serverId}
+                                  onChange={(e) => handleTargetDraftChange(env.id, service.id, { serverId: e.target.value })}
+                                  className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/5 px-2 py-2 text-xs text-[var(--text-primary)] outline-none"
+                                >
+                                  {verifiedServers.map((server) => (
+                                    <option key={server.id} value={server.id}>{server.name} — {server.host}</option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={draft?.port ?? ''}
+                                  onChange={(e) => handleTargetDraftChange(env.id, service.id, { port: e.target.value })}
+                                  placeholder="Port"
+                                  className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/5 px-2 py-2 text-xs text-[var(--text-primary)] outline-none"
+                                />
+                                <input
+                                  type="text"
+                                  value={draft?.domain ?? ''}
+                                  onChange={(e) => handleTargetDraftChange(env.id, service.id, { domain: e.target.value })}
+                                  placeholder="service.example.com"
+                                  className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/5 px-2 py-2 text-xs text-[var(--text-primary)] outline-none"
+                                />
+                              </div>
+                            ) : (
+                              <p className="text-[11px] text-[var(--text-secondary)]">
+                                {target
+                                  ? `${target.server.name} · ${target.domain ?? env.domain ?? 'no domain'} · ${target.port ?? 'default port'}`
+                                  : 'No service target configured'}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveTargets(env)}
+                        disabled={savingTargetsId === env.id || verifiedServers.length === 0}
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-3 py-2 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-60"
+                      >
+                        {savingTargetsId === env.id && <Loader2 size={13} className="animate-spin" />}
+                        Save service targets
+                      </button>
                     )}
                   </div>
                 )}

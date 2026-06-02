@@ -3,8 +3,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePreparationLogStream } from '@/hooks/usePreparationLogStream';
-import { usePreparation, usePreparationLogs } from '@/hooks/useServers';
+import { usePreparationLogStream } from '@/hooks/servers/use-preparation-log-stream';
+import { usePreparation, usePreparationLogs } from '@/hooks/servers/use-servers';
 import type { ServerPreparation, ServerPreparationLog } from '@/types/server';
 
 type Props = {

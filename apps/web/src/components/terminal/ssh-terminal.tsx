@@ -5,6 +5,7 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { io, type Socket } from 'socket.io-client';
+import api from '@/lib/api';
 import '@xterm/xterm/css/xterm.css';
 
 type Props = {
@@ -13,6 +14,15 @@ type Props = {
 };
 
 type ConnectionState = 'idle' | 'connecting' | 'connected' | 'error' | 'closed';
+
+async function fetchWsToken(): Promise<string | null> {
+  try {
+    const res = await api.get<{ wsToken: string }>('/auth/ws-token');
+    return res.data.wsToken;
+  } catch {
+    return null;
+  }
+}
 
 export function SshTerminal({ serverId, onClose }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -76,70 +86,93 @@ export function SshTerminal({ serverId, onClose }: Props) {
     fitRef.current = fitAddon;
 
     setState('connecting');
-    term.writeln('\x1b[90mConnexion SSH en cours...\x1b[0m');
+    term.writeln('\x1b[90mObtention du jeton WebSocket...\x1b[0m');
 
     const backendUrl =
       process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
 
-    const socket = io(`${backendUrl}/terminal`, {
-      transports: ['websocket'],
-      withCredentials: true,
-    });
+    let cancelled = false;
 
-    socketRef.current = socket;
+    void (async () => {
+      const wsToken = await fetchWsToken();
+      if (cancelled) return;
 
-    socket.on('connect', () => {
-      const { cols, rows } = term;
-      socket.emit('terminal:connect', { serverId, cols, rows });
-    });
+      if (!wsToken) {
+        setState('error');
+        setErrorMsg('Impossible d\'obtenir le jeton WebSocket');
+        term.writeln('\x1b[31m✗ Impossible d\'obtenir le jeton WebSocket. Vérifiez votre session.\x1b[0m');
+        return;
+      }
 
-    socket.on('terminal:ready', () => {
-      setState('connected');
-      term.writeln('\x1b[32mConnecté.\x1b[0m\r\n');
+      term.writeln('\x1b[90mConnexion SSH en cours...\x1b[0m');
 
-      term.onData((data) => socket.emit('terminal:data', data));
-
-      term.onResize(({ cols, rows }) => {
-        socket.emit('terminal:resize', { cols, rows });
+      const socket = io(`${backendUrl}/terminal`, {
+        transports: ['websocket'],
+        withCredentials: true,
+        auth: { token: wsToken },
       });
-    });
 
-    socket.on('terminal:data', (data: string) => {
-      term.write(data);
-    });
+      socketRef.current = socket;
 
-    socket.on('terminal:error', (msg: string) => {
-      setState('error');
-      setErrorMsg(msg);
-      term.writeln(`\r\n\x1b[31m✗ Erreur: ${msg}\x1b[0m`);
-    });
+      socket.on('connect', () => {
+        const { cols, rows } = term;
+        socket.emit('terminal:connect', { serverId, cols, rows });
+      });
 
-    socket.on('terminal:close', ({ code }: { code: number | null }) => {
-      setState('closed');
-      term.writeln(`\r\n\x1b[90mSession fermée (code: ${String(code ?? 0)}).\x1b[0m`);
-      socket.disconnect();
-    });
+      socket.on('terminal:ready', () => {
+        setState('connected');
+        term.writeln('\x1b[32mConnecté.\x1b[0m\r\n');
 
-    socket.on('disconnect', () => {
-      term.writeln('\r\n\x1b[33mDéconnecté du serveur.\x1b[0m');
-      setState('closed');
-    });
+        term.onData((data) => socket.emit('terminal:data', data));
 
-    const onResize = () => fitAddon.fit();
+        term.onResize(({ cols, rows }) => {
+          socket.emit('terminal:resize', { cols, rows });
+        });
+      });
+
+      socket.on('terminal:data', (data: string) => {
+        term.write(data);
+      });
+
+      socket.on('terminal:error', (msg: string) => {
+        setState('error');
+        setErrorMsg(msg);
+        term.writeln(`\r\n\x1b[31m✗ Erreur: ${msg}\x1b[0m`);
+      });
+
+      socket.on('terminal:close', ({ code }: { code: number | null }) => {
+        setState('closed');
+        term.writeln(`\r\n\x1b[90mSession fermée (code: ${String(code ?? 0)}).\x1b[0m`);
+        socket.disconnect();
+      });
+
+      socket.on('disconnect', () => {
+        term.writeln('\r\n\x1b[33mDéconnecté du serveur.\x1b[0m');
+        setState('closed');
+      });
+
+      socket.on('connect_error', (err: Error) => {
+        setState('error');
+        setErrorMsg(err.message);
+        term.writeln(`\r\n\x1b[31m✗ Connexion échouée: ${err.message}\x1b[0m`);
+      });
+    })();
+
+    const onResize = () => fitRef.current?.fit();
     window.addEventListener('resize', onResize);
 
     return () => {
+      cancelled = true;
       window.removeEventListener('resize', onResize);
-      socket.disconnect();
+      socketRef.current?.disconnect();
+      socketRef.current = null;
       term.dispose();
       termRef.current = null;
-      socketRef.current = null;
     };
   }, [serverId]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-zinc-950">
-      {/* Toolbar */}
       <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2">
         <div className="flex items-center gap-2">
           <span
@@ -171,7 +204,6 @@ export function SshTerminal({ serverId, onClose }: Props) {
         </button>
       </div>
 
-      {/* Terminal container */}
       <div ref={containerRef} className="flex-1 overflow-hidden p-2" />
     </div>
   );

@@ -20,7 +20,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { teamsService } from '@/services/teams.service';
 import { usersService } from '@/services/users.service';
 import { getApiErrorMessage } from '@/lib/api';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import type { Team } from '@/types/team';
 import type { UserListItem } from '@/types/user';
 

@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useState } from 'react';
 import { Key, Plus, Trash2, Loader2, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { configsService } from '@/services/configs.service';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import clsx from 'clsx';
 import { PageHeader } from '@/components/layout/page-header';

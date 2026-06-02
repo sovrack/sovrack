@@ -81,6 +81,42 @@ export const platformConfigService = {
     return res.data;
   },
 
+  // ============= GitHub Provider Methods =============
+
+  async listGithubProviders(): Promise<GitlabProvider[]> {
+    const res = await api.get<GitlabProvider[]>('/admin/platform-config/github/providers');
+    return res.data;
+  },
+
+  async createGithubProvider(payload: CreateGitlabProviderPayload): Promise<GitlabProvider> {
+    const res = await api.post<GitlabProvider>('/admin/platform-config/github/providers', payload);
+    return res.data;
+  },
+
+  async updateGithubProvider(id: string, payload: UpdateGitlabProviderPayload): Promise<GitlabProvider> {
+    const res = await api.put<GitlabProvider>(`/admin/platform-config/github/providers/${encodeURIComponent(id)}`, payload);
+    return res.data;
+  },
+
+  async deleteGithubProvider(id: string): Promise<void> {
+    await api.delete(`/admin/platform-config/github/providers/${encodeURIComponent(id)}`);
+  },
+
+  async setDefaultGithubProvider(id: string): Promise<GitlabProvider> {
+    const res = await api.post<GitlabProvider>(`/admin/platform-config/github/providers/${encodeURIComponent(id)}/default`);
+    return res.data;
+  },
+
+  async testGithubProvider(id: string): Promise<GitlabTestResult> {
+    const res = await api.post<GitlabTestResult>(`/admin/platform-config/github/providers/${encodeURIComponent(id)}/test`);
+    return res.data;
+  },
+
+  async listGithubRepos(id: string): Promise<{ id: number; name: string; fullName: string; httpUrl: string; defaultBranch: string }[]> {
+    const res = await api.get(`/admin/platform-config/github/providers/${encodeURIComponent(id)}/repos`);
+    return res.data as { id: number; name: string; fullName: string; httpUrl: string; defaultBranch: string }[];
+  },
+
   // ============= Registry Configuration Methods =============
 
   async listRegistryConfigs(): Promise<RegistryConfig[]> {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
 import type {
@@ -46,6 +46,7 @@ export function useProjectGitlab({
   const [deployTokenUsername, setDeployTokenUsername] = useState('');
   const [deployTokenValue, setDeployTokenValue] = useState('');
   const [registryUrl, setRegistryUrl] = useState('');
+  const loadedProjectRef = useRef<string | null>(null);
 
   const loadProviders = useCallback(async (): Promise<GitlabProviderOption[]> => {
     try {
@@ -81,11 +82,23 @@ export function useProjectGitlab({
       setRegistryUrl(config.registryUrl ?? '');
 
       if (config.sourceType === 'GROUP') {
+        if (!config.gitlabGroupId) {
+          setRepos([]);
+          setBranches([]);
+          setPipelines([]);
+          return;
+        }
         const nextRepos = await projectsService.getRepos(projectId);
         setRepos(nextRepos);
         setBranches([]);
         setPipelines([]);
       } else {
+        if (!config.gitlabId) {
+          setBranches([]);
+          setPipelines([]);
+          setRepos([]);
+          return;
+        }
         const [nextBranches, nextPipelines] = await Promise.all([
           projectsService.getBranches(projectId),
           projectsService.getPipelines(projectId),
@@ -132,8 +145,12 @@ export function useProjectGitlab({
   }, [project]);
 
   useEffect(() => {
+    if (loadedProjectRef.current === projectId) {
+      return;
+    }
+    loadedProjectRef.current = projectId;
     void loadGitlabData();
-  }, [loadGitlabData]);
+  }, [loadGitlabData, projectId]);
 
   const handleConnectGitlab = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

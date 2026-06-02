@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { useI18n } from '@/contexts/i18n-context';
 import { LogOut, Rocket, Settings } from 'lucide-react';
@@ -61,8 +61,6 @@ const SECTION_I18N = {
 const NAV_ITEM_I18N: Record<string, keyof ReturnType<typeof useI18n>['t']['nav']> = {
   '/dashboard': 'dashboard',
   '/projects': 'projects',
-  '/builds': 'builds',
-  '/pipelines': 'pipelines',
   '/deployments': 'deployments',
   '/admin/servers': 'remoteServers',
   '/terminal': 'terminal',
@@ -104,7 +102,7 @@ export function Sidebar() {
           </div>
           {!collapsed && (
             <span className="truncate text-[17px] font-semibold text-zinc-900 dark:text-white">
-              Vaytek
+              platform
             </span>
           )}
         </Link>

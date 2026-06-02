@@ -10,14 +10,13 @@ import {
   Workflow,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useProjects } from '@/hooks/useProjects';
-import { usePagination } from '@/hooks/usePagination';
+import { useProjects } from '@/hooks/projects/use-projects';
+import { usePagination } from '@/hooks/shared/use-pagination';
 import { Pagination } from '@/components/ui/pagination';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { ProjectCard } from '@/components/projects/project-card';
 import { ProjectsEmpty } from '@/components/projects/projects-empty';
-import { ProjectCreateDialog } from '@/components/projects/project-create-dialog';
-import { ProjectSourceSetupDialog } from '@/components/projects/project-source-setup-dialog';
+import { ProjectSetupWizard } from '@/components/projects/project-setup-wizard';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import type { ProjectListItem } from '@/types/project';
@@ -39,11 +38,6 @@ export default function ProjectsPage() {
   const { isAdmin } = useAuth();
   const [search, setSearch] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [sourceDialogOpen, setSourceDialogOpen] = useState(false);
-  const [draftProject, setDraftProject] = useState<{
-    name: string;
-    description?: string;
-  } | null>(null);
 
   const filtered = projects.filter(
     (p) =>
@@ -77,26 +71,11 @@ export default function ProjectsPage() {
     clearDialogQuery();
   };
 
-  const handleNextCreateDialog = async (payload: {
-    name: string;
-    description?: string;
-  }) => {
-    setDraftProject(payload);
-    setCreateDialogOpen(false);
-    setSourceDialogOpen(true);
-    clearDialogQuery();
-  };
-
-  const handleCloseSourceDialog = () => {
-    setSourceDialogOpen(false);
-    setDraftProject(null);
-  };
-
-  const handleSourceNext = async (projectId: string) => {
+  const handleWizardCreated = async (projectId: string) => {
     await refresh();
-    setSourceDialogOpen(false);
-    setDraftProject(null);
-    router.push(`/projects/${projectId}?dialog=build-setup&tab=build`);
+    setCreateDialogOpen(false);
+    clearDialogQuery();
+    router.push(`/projects/${projectId}`);
   };
 
   const gitlabConnectedCount = projects.filter(isProjectGitlabConnected).length;
@@ -249,19 +228,10 @@ export default function ProjectsPage() {
         </>
       )}
 
-      <ProjectCreateDialog
+      <ProjectSetupWizard
         open={createDialogOpen}
         onClose={handleCloseCreateDialog}
-        onNext={handleNextCreateDialog}
-      />
-
-      <ProjectSourceSetupDialog
-        open={sourceDialogOpen}
-        projectDraft={draftProject}
-        initialGitlabUrl="https://gitlab.com"
-        initialDefaultBranch="main"
-        onClose={handleCloseSourceDialog}
-        onNext={handleSourceNext}
+        onCreated={(id) => void handleWizardCreated(id)}
       />
     </div>
   );

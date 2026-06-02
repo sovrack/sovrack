@@ -1,5 +1,128 @@
-import { redirect } from 'next/navigation';
+'use client';
 
-export default function AdminTeamsRedirectPage() {
-  redirect('/admin/users');
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Plus, Users2 } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
+import { SectionCard } from '@/components/layout/section-card';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { TeamCreateDialog } from '@/components/users/team-create-dialog';
+import { getApiErrorMessage } from '@/lib/api';
+import { teamsService } from '@/services/teams.service';
+import type { Team } from '@/types/team';
+
+export default function AdminTeamsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('dialog') === 'create-team') {
+      setDialogOpen(true);
+    }
+  }, [searchParams]);
+
+  const closeDialog = useCallback(() => {
+    setDialogOpen(false);
+    const next = new URLSearchParams(searchParams.toString());
+    if (next.has('dialog')) {
+      next.delete('dialog');
+      const queryString = next.toString();
+      router.replace(queryString ? `/admin/teams?${queryString}` : '/admin/teams');
+    }
+  }, [router, searchParams]);
+
+  const fetchTeams = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await teamsService.getAll();
+      setTeams(data);
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchTeams();
+  }, [fetchTeams]);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Admin"
+        title="Équipes"
+        description="Organisez les utilisateurs en équipes pour gérer les accès aux projets."
+        actions={
+          <Button onClick={() => setDialogOpen(true)} icon={<Plus size={14} />}>
+            Créer une équipe
+          </Button>
+        }
+      />
+
+      {error && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-[var(--text-secondary)]">Chargement…</p>
+      ) : teams.length === 0 ? (
+        <EmptyState
+          icon={Users2}
+          title="Aucune équipe"
+          description="Créez votre première équipe pour regrouper des utilisateurs et gérer les accès en masse."
+          action={
+            <Button onClick={() => setDialogOpen(true)} icon={<Plus size={14} />}>
+              Créer une équipe
+            </Button>
+          }
+        />
+      ) : (
+        <SectionCard
+          title={`${teams.length} équipe${teams.length > 1 ? 's' : ''}`}
+          contentClassName="space-y-2"
+        >
+          {teams.map((team) => (
+            <div
+              key={team.id}
+              className="rounded-lg border border-[var(--border)] bg-[var(--hover)] px-4 py-3"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                    {team.name}
+                  </p>
+                  {team.description && (
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)] line-clamp-2">
+                      {team.description}
+                    </p>
+                  )}
+                </div>
+                <span className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
+                  {team.members.length} membre{team.members.length > 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+          ))}
+        </SectionCard>
+      )}
+
+      <TeamCreateDialog
+        open={dialogOpen}
+        onClose={closeDialog}
+        onCreated={async () => {
+          closeDialog();
+          await fetchTeams();
+        }}
+      />
+    </div>
+  );
 }

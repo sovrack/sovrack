@@ -3,6 +3,8 @@ import type {
   Environment,
   CreateEnvironmentPayload,
   UpdateEnvironmentPayload,
+  EnvironmentServiceTarget,
+  UpsertEnvironmentServiceTargetPayload,
 } from '@/types/environment';
 
 export const environmentsService = {
@@ -23,5 +25,27 @@ export const environmentsService = {
 
   async remove(projectId: string, envId: string): Promise<void> {
     await api.delete(`/projects/${projectId}/environments/${envId}`);
+  },
+
+  async getTargets(
+    projectId: string,
+    envId: string,
+  ): Promise<EnvironmentServiceTarget[]> {
+    const res = await api.get<EnvironmentServiceTarget[]>(
+      `/projects/${projectId}/environments/${envId}/targets`,
+    );
+    return res.data;
+  },
+
+  async upsertTargets(
+    projectId: string,
+    envId: string,
+    targets: UpsertEnvironmentServiceTargetPayload[],
+  ): Promise<EnvironmentServiceTarget[]> {
+    const res = await api.put<EnvironmentServiceTarget[]>(
+      `/projects/${projectId}/environments/${envId}/targets`,
+      { targets },
+    );
+    return res.data;
   },
 };

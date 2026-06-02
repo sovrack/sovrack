@@ -20,8 +20,8 @@ import {
   useAutomationRun,
   useAutomationRunLogs,
   useCancelAutomationRun,
-} from '@/hooks/useAutomation';
-import { useAutomationLogStream } from '@/hooks/useAutomationLogStream';
+} from '@/hooks/automation/use-automation';
+import { useAutomationLogStream } from '@/hooks/automation/use-automation-log-stream';
 import type { AutomationRun, AutomationRunLog, AutomationRunStatus, AutomationTargetStatus } from '@/types/automation';
 
 type Props = { params: Promise<{ id: string }> };

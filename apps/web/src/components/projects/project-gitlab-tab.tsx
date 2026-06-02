@@ -5,7 +5,7 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react';
-import { UseProjectGitlabReturn } from '@/hooks/useProjectGitlab';
+import { UseProjectGitlabReturn } from '@/hooks/projects/use-project-gitlab';
 import { Button } from '@/components/ui/button';
 
 type ProjectGitlabTabProps = {

@@ -6,7 +6,9 @@ import {
   ArrowLeft,
   Boxes,
   GitBranch,
+  Globe,
   Hammer,
+  ListTree,
   Loader2,
   Rocket,
   Settings,
@@ -15,41 +17,52 @@ import {
   Wrench,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { useAuth } from '@/hooks/useAuth';
-import { useProject } from '@/hooks/useProjects';
-import { useProjectDeployments } from '@/hooks/useProjectDeployments';
-import { useProjectGitlab } from '@/hooks/useProjectGitlab';
-import { useProjectMembers } from '@/hooks/useProjectMembers';
+import { useAuth } from '@/hooks/auth/use-auth';
+import { useProject } from '@/hooks/projects/use-projects';
+import { useProjectDeployments } from '@/hooks/projects/use-project-deployments';
+import { useProjectGitlab } from '@/hooks/projects/use-project-gitlab';
+import { useProjectMembers } from '@/hooks/projects/use-project-members';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { ProjectConfigsTab } from '@/components/projects/project-configs-tab';
 import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
+import { ProjectDnsTab } from '@/components/projects/project-dns-tab';
 import { ProjectEnvironmentsTab } from '@/components/projects/project-environments-tab';
 import { ProjectBuildTab } from '@/components/projects/project-build-tab';
 import { ProjectBuildSetupDialog } from '@/components/projects/project-build-setup-dialog';
 import { ProjectGitlabTab } from '@/components/projects/project-gitlab-tab';
 import { ProjectMembersTab } from '@/components/projects/project-members-tab';
 import { ProjectOverview } from '@/components/projects/project-overview';
+import { ProjectPipelinesTab } from '@/components/projects/project-pipelines-tab';
+import { ProjectServicesTab } from '@/components/projects/project-services-tab';
 import { ProjectSourceSetupDialog } from '@/components/projects/project-source-setup-dialog';
 import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
+import { environmentsService } from '@/services/environments.service';
+import type { Environment } from '@/types/environment';
 
 type Tab =
   | 'overview'
+  | 'services'
   | 'members'
   | 'gitlab'
   | 'environments'
   | 'configs'
   | 'build'
+  | 'pipelines'
+  | 'dns'
   | 'deployments';
 
 const TAB_VALUES: Tab[] = [
   'overview',
+  'services',
   'members',
   'gitlab',
   'environments',
   'configs',
   'build',
+  'pipelines',
+  'dns',
   'deployments',
 ];
 
@@ -78,6 +91,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'overview');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [sourceDialogOpen, setSourceDialogOpen] = useState(false);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
   const [buildDialogOpen, setBuildDialogOpen] = useState(false);
 
   const members = useProjectMembers({
@@ -91,6 +105,10 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     refreshProject: refresh,
   });
   const projectDeployments = useProjectDeployments(id);
+
+  useEffect(() => {
+    environmentsService.getAll(id).then(setEnvironments).catch(() => setEnvironments([]));
+  }, [id]);
 
   useEffect(() => {
     const requestedTab = parseTab(searchParams.get('tab'));
@@ -200,12 +218,15 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   };
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'overview', label: 'Overview', icon: Rocket },
+    { id: 'services', label: 'Services', icon: ListTree },
     { id: 'members', label: `Members (${project.members.length})`, icon: Users },
     { id: 'gitlab', label: 'Source', icon: GitBranch },
     { id: 'environments', label: 'Environments', icon: Boxes },
-    { id: 'configs', label: 'Configs', icon: Wrench },
+    { id: 'configs', label: 'Variables', icon: Wrench },
     { id: 'build', label: 'Build', icon: Hammer },
+    { id: 'pipelines', label: 'Pipelines', icon: GitBranch },
     { id: 'deployments', label: 'Deployments', icon: Settings },
+    { id: 'dns', label: 'Domains/DNS', icon: Globe },
   ];
 
   return (
@@ -283,7 +304,18 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           ))}
         </nav>
       </div>
-      {tab === 'overview' && <ProjectOverview project={project} />}
+      {tab === 'overview' && (
+        <ProjectOverview
+          project={project}
+          lastDeployment={projectDeployments.deployments[0] ?? null}
+          gitlabConfig={gitlab.gitlabConfig}
+          environments={environments}
+          onRollbackDone={() => void projectDeployments.refresh()}
+          onTabChange={(t) => setTab(t as typeof tab)}
+          onOpenBuild={() => { setTab('build'); openBuildSetupDialog(); }}
+        />
+      )}
+      {tab === 'services' && <ProjectServicesTab projectId={id} />}
       {tab === 'members' && (
         <ProjectMembersTab
           project={project}
@@ -310,7 +342,12 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           onOpenSourceSetupDialog={openSourceSetupDialog}
         />
       )}
-      {tab === 'environments' && <ProjectEnvironmentsTab projectId={id} />}
+      {tab === 'environments' && (
+        <ProjectEnvironmentsTab
+          projectId={id}
+          onChanged={() => environmentsService.getAll(id).then(setEnvironments).catch(() => {})}
+        />
+      )}
       {tab === 'configs' && <ProjectConfigsTab projectId={id} />}
       {tab === 'deployments' && (
         <ProjectDeploymentsTab
@@ -320,7 +357,22 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           error={projectDeployments.error}
         />
       )}
-      {tab === 'build' && <ProjectBuildTab projectId={id} isAdmin={isAdmin} />}
+      {tab === 'pipelines' && (
+        <ProjectPipelinesTab
+          projectId={id}
+          gitlabConfig={gitlab.gitlabConfig}
+        />
+      )}
+      {tab === 'dns' && <ProjectDnsTab projectId={id} />}
+      {tab === 'build' && (
+        <ProjectBuildTab
+          projectId={id}
+          isAdmin={isAdmin}
+          sourceType={gitlab.gitlabConfig?.sourceType ?? null}
+          hasEnvironment={environments.length > 0}
+          onGoToEnvironments={() => setTab('environments')}
+        />
+      )}
 
       <ProjectSourceSetupDialog
         open={sourceDialogOpen}

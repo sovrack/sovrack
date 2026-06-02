@@ -101,8 +101,16 @@ export function ProjectBuildSetupDialog({
 
     setDetectLoading(true);
     buildService
-      .detect(projectId)
-      .then((result) => {
+      .getBuildStatus(projectId)
+      .then(async (status) => {
+        if (status.sourceType === 'GROUP') {
+          setDetectedType('nodejs');
+          setBuildPort('3000');
+          setStartCmd('npm start');
+          return;
+        }
+
+        const result = await buildService.detect(projectId);
         setDetectedType(result.recommendedBuildType || result.type || 'nodejs');
         setBuildPort(String(result.recommendedPort || 3000));
         setStartCmd(result.recommendedStartCommand || 'npm start');

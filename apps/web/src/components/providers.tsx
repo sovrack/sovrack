@@ -2,7 +2,7 @@
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { AuthProvider } from '@/contexts/auth-context';
+import { AuthSessionManager } from '@/components/auth/auth-session-manager';
 import { I18nProvider } from '@/contexts/i18n-context';
 import { SidebarProvider } from '@/contexts/sidebar-context';
 import { ThemeProvider } from '@/contexts/theme-context';
@@ -13,9 +13,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <I18nProvider>
-          <AuthProvider>
+          <AuthSessionManager>
             <SidebarProvider>{children}</SidebarProvider>
-          </AuthProvider>
+          </AuthSessionManager>
         </I18nProvider>
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />

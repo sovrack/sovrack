@@ -20,14 +20,14 @@ import {
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { Pagination } from '@/components/ui/pagination';
-import { usePagination } from '@/hooks/usePagination';
+import { usePagination } from '@/hooks/shared/use-pagination';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { UserCreateDialog } from '@/components/users/user-create-dialog';
 import { TeamCreateDialog } from '@/components/users/team-create-dialog';
 import { usersService } from '@/services/users.service';
 import { teamsService } from '@/services/teams.service';
 import { getApiErrorMessage } from '@/lib/api';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import type { UserListItem } from '@/types/user';
 import type { Team } from '@/types/team';
 

@@ -83,6 +83,22 @@ export const serversService = {
     return res.data;
   },
 
+  async setRole(id: string, role: string): Promise<Server> {
+    return await this.update(id, { infraRole: role } as UpdateServerPayload);
+  },
+
+  async ping(id: string): Promise<{ ok: boolean; message: string }> {
+    try {
+      const server = await this.verify(id);
+      return {
+        ok: Boolean(server.isVerified),
+        message: server.verificationError ?? 'Connexion validée',
+      };
+    } catch (err) {
+      return { ok: false, message: err instanceof Error ? err.message : 'Erreur de connexion' };
+    }
+  },
+
   async detect(id: string): Promise<Server> {
     const res = await api.post<Server>(`/servers/${id}/detect`, {});
     return res.data;

@@ -1546,6 +1546,7 @@ export interface components {
             dockerImage?: string | null;
             branch: string;
             environmentId: string;
+            serviceId?: string | null;
             projectId: string;
             userId: string;
             /** Format: date-time */
@@ -1556,6 +1557,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** GitLab pipeline ID as string */
+            gitlabPipelineId?: string | null;
         };
         DeploymentProjectSummaryDto: {
             id: string;
@@ -1578,6 +1581,11 @@ export interface components {
             email: string;
             fullName: string;
         };
+        DeploymentServiceSummaryDto: {
+            id: string;
+            name: string;
+            type?: string | null;
+        };
         DeploymentDetailedResponseDto: {
             id: string;
             /** @enum {string} */
@@ -1586,6 +1594,7 @@ export interface components {
             dockerImage?: string | null;
             branch: string;
             environmentId: string;
+            serviceId?: string | null;
             projectId: string;
             userId: string;
             /** Format: date-time */
@@ -1599,6 +1608,11 @@ export interface components {
             project: components["schemas"]["DeploymentProjectSummaryDto"];
             environment: components["schemas"]["DeploymentEnvironmentSummaryDto"];
             user: components["schemas"]["DeploymentUserSummaryDto"];
+            service?: components["schemas"]["DeploymentServiceSummaryDto"] | null;
+            /** Computed public URL for the deployed service */
+            publicUrl?: string | null;
+            /** GitLab pipeline ID as string */
+            gitlabPipelineId?: string | null;
         };
         PaginatedDeploymentsResponseDto: {
             data: components["schemas"]["DeploymentDetailedResponseDto"][];

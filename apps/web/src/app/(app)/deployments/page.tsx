@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   RotateCcw,
   Loader2,
+  ExternalLink,
+  GitMerge,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deploymentsService } from '@/services/deployments.service';
@@ -22,9 +24,9 @@ import { DeploymentStatusBadge } from '@/components/deployments/deployment-statu
 import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
-import { useAuthContext } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/auth/use-auth';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
-import { usePagination } from '@/hooks/usePagination';
+import { usePagination } from '@/hooks/shared/use-pagination';
 import { Pagination } from '@/components/ui/pagination';
 import type { ProjectRole } from '@/types/project';
 
@@ -50,7 +52,7 @@ const STATUS_OPTIONS: { label: string; value: DeploymentStatus | 'ALL' }[] = [
 export default function DeploymentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAdmin } = useAuthContext();
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<DeploymentStatus | 'ALL'>('ALL');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -291,6 +293,7 @@ export default function DeploymentsPage() {
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Project</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Environment</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Branch</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Pipeline</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Status</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Triggered by</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">When</th>
@@ -315,6 +318,22 @@ export default function DeploymentsPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-primary)]">{dep.branch}</td>
+                  <td className="px-5 py-3.5">
+                    {dep.gitlabPipelineId && dep.project.gitlabUrl ? (
+                      <a
+                        href={`${dep.project.gitlabUrl}/-/pipelines/${dep.gitlabPipelineId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 font-mono text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                      >
+                        <GitMerge size={11} />
+                        #{dep.gitlabPipelineId}
+                        <ExternalLink size={9} className="opacity-60" />
+                      </a>
+                    ) : (
+                      <span className="text-xs text-[var(--text-muted)]">—</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3.5">
                     <DeploymentStatusBadge status={dep.status} size="sm" />
                   </td>

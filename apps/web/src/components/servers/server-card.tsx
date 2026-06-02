@@ -1,4 +1,4 @@
-import { CheckCircle, Server } from 'lucide-react';
+import { CheckCircle, Circle, Server } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   ServerOverallStatusBadge,
@@ -114,6 +114,18 @@ export function ServerCard({
             <ServerOverallStatusBadge server={server} />
             <ServerWorkflowBadges server={server} />
           </div>
+          {server.lastDetectedAt && (
+            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
+              <span className={`flex items-center gap-1 text-[11px] ${server.hasDocker ? 'text-green-500' : 'text-[var(--text-muted)]'}`}>
+                {server.hasDocker ? <CheckCircle size={10} /> : <Circle size={10} />}
+                Docker
+              </span>
+              <span className={`flex items-center gap-1 text-[11px] ${server.hasRunner ? 'text-green-500' : 'text-[var(--text-muted)]'}`}>
+                {server.hasRunner ? <CheckCircle size={10} /> : <Circle size={10} />}
+                Runner
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col items-end gap-2">

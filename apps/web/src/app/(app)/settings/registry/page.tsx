@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   CheckCircle2,
@@ -16,7 +17,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import { platformConfigService } from '@/services/platform-config.service';
 import type {
@@ -43,6 +44,7 @@ type RegistryFormState = {
 const REGISTRY_TYPE_LABELS: Record<RegistryProviderType, string> = {
   DOCKER_HUB: 'Docker Hub',
   DOCKER_REGISTRY: 'Docker Registry',
+  GITLAB: 'GitLab Container Registry',
   ECR: 'AWS ECR',
   GCR: 'Google Container Registry',
 };
@@ -50,6 +52,7 @@ const REGISTRY_TYPE_LABELS: Record<RegistryProviderType, string> = {
 const REGISTRY_TYPE_OPTIONS: RegistryProviderType[] = [
   'DOCKER_HUB',
   'DOCKER_REGISTRY',
+  'GITLAB',
   'ECR',
   'GCR',
 ];
@@ -183,7 +186,9 @@ function RegistryForm({
         </select>
       </div>
 
-      {(form.type === 'DOCKER_HUB' || form.type === 'DOCKER_REGISTRY') && (
+      {(form.type === 'DOCKER_HUB' ||
+        form.type === 'DOCKER_REGISTRY' ||
+        form.type === 'GITLAB') && (
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)]">
             Nom d&apos;utilisateur
@@ -200,7 +205,9 @@ function RegistryForm({
         </div>
       )}
 
-      {(form.type === 'DOCKER_HUB' || form.type === 'DOCKER_REGISTRY') && (
+      {(form.type === 'DOCKER_HUB' ||
+        form.type === 'DOCKER_REGISTRY' ||
+        form.type === 'GITLAB') && (
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)]">
             Mot de passe / token
@@ -217,7 +224,7 @@ function RegistryForm({
         </div>
       )}
 
-      {form.type === 'DOCKER_REGISTRY' && (
+      {(form.type === 'DOCKER_REGISTRY' || form.type === 'GITLAB') && (
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)]">
             URL du registre
@@ -269,9 +276,7 @@ function RegistryForm({
 
 export default function RegistrySettingsPage() {
   const { isAdmin } = useAuth();
-  const [registries, setRegistries] = useState<RegistryConfig[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [selectedRegistry, setSelectedRegistry] = useState<RegistryConfig | null>(null);
@@ -280,6 +285,17 @@ export default function RegistrySettingsPage() {
   const [testingId, setTestingId] = useState<string | null>(null);
   const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
 
+  const { data: registries = [], isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['registry-configs'],
+    queryFn: () => platformConfigService.listRegistryConfigs(),
+    enabled: isAdmin,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+
+  const error = queryError ? getApiErrorMessage(queryError) : null;
+  const invalidate = useCallback(() => queryClient.invalidateQueries({ queryKey: ['registry-configs'] }), [queryClient]);
+
   const addToast = useCallback((message: string, tone: ToastTone) => {
     const id = Date.now() + Math.floor(Math.random() * 1000);
     setToasts((previous) => [...previous, { id, message, tone }]);
@@ -287,29 +303,6 @@ export default function RegistrySettingsPage() {
       setToasts((previous) => previous.filter((item) => item.id !== id));
     }, 5000);
   }, []);
-
-  const load = useCallback(async () => {
-    if (!isAdmin) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await platformConfigService.listRegistryConfigs();
-      setRegistries(data);
-    } catch (loadError) {
-      setError(getApiErrorMessage(loadError));
-    } finally {
-      setLoading(false);
-    }
-  }, [isAdmin]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const formData = useMemo(() => {
     if (!selectedRegistry) {
@@ -362,14 +355,14 @@ export default function RegistrySettingsPage() {
 
         setDialogMode(null);
         setSelectedRegistry(null);
-        await load();
+        await invalidate();
       } catch (submitError) {
         addToast(getApiErrorMessage(submitError), 'error');
       } finally {
         setIsSubmitting(false);
       }
     },
-    [addToast, dialogMode, load],
+    [addToast, dialogMode, invalidate],
   );
 
   const handleDelete = useCallback(async () => {
@@ -381,11 +374,11 @@ export default function RegistrySettingsPage() {
       await platformConfigService.deleteRegistryConfig(deleteId);
       addToast('Registre supprime avec succes.', 'success');
       setDeleteId(null);
-      await load();
+      await invalidate();
     } catch (deleteError) {
       addToast(getApiErrorMessage(deleteError), 'error');
     }
-  }, [addToast, deleteId, load]);
+  }, [addToast, deleteId, invalidate]);
 
   const handleTest = useCallback(
     async (id: string) => {
@@ -394,14 +387,14 @@ export default function RegistrySettingsPage() {
       try {
         const result = await platformConfigService.testRegistryConnection(id);
         addToast(result.message, result.ok ? 'success' : 'error');
-        await load();
+        await invalidate();
       } catch (testError) {
         addToast(getApiErrorMessage(testError), 'error');
       } finally {
         setTestingId(null);
       }
     },
-    [addToast, load],
+    [addToast, invalidate],
   );
 
   const handleSetDefault = useCallback(
@@ -411,14 +404,14 @@ export default function RegistrySettingsPage() {
       try {
         await platformConfigService.setDefaultRegistryConfig(id);
         addToast('Registre par defaut defini.', 'success');
-        await load();
+        await invalidate();
       } catch (setDefaultError) {
         addToast(getApiErrorMessage(setDefaultError), 'error');
       } finally {
         setSettingDefaultId(null);
       }
     },
-    [addToast, load],
+    [addToast, invalidate],
   );
 
   if (!isAdmin) {

@@ -1,18 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
+  Activity,
   CheckCircle,
   ExternalLink,
   GitBranch,
-  GitMerge,
   Loader2,
   Play,
   RefreshCw,
   XCircle,
   Clock,
 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { Badge } from '@/components/ui/badge';
@@ -59,58 +60,46 @@ function formatRelative(dateStr: string): string {
 }
 
 export default function PipelinesPage() {
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
-  const [pipelines, setPipelines] = useState<PipelineWithProject[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [triggeringId, setTriggeringId] = useState<string | null>(null);
+  const [triggerError, setTriggerError] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [commitFilter, setCommitFilter] = useState('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ['pipelines-all'],
+    queryFn: async () => {
       const allProjects = await projectsService.getAll();
-      setProjects(allProjects);
-
       const results = await Promise.allSettled(
         allProjects.map(async (p) => {
           const items = await projectsService.getPipelines(p.id);
           return items.map((item) => ({ ...item, project: { id: p.id, name: p.name } }));
         }),
       );
-
       const merged: PipelineWithProject[] = [];
       for (const result of results) {
-        if (result.status === 'fulfilled') {
-          merged.push(...result.value);
-        }
+        if (result.status === 'fulfilled') merged.push(...result.value);
       }
-      merged.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
-      setPipelines(merged);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return { projects: allProjects, pipelines: merged };
+    },
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const projects = useMemo<ProjectListItem[]>(() => data?.projects ?? [], [data]);
+  const pipelines = useMemo<PipelineWithProject[]>(() => data?.pipelines ?? [], [data]);
 
   const handleTrigger = async (projectId: string, ref: string) => {
     setTriggeringId(`${projectId}-${ref}`);
+    setTriggerError(null);
     try {
       await projectsService.triggerPipeline(projectId, ref);
-      await load();
+      await queryClient.invalidateQueries({ queryKey: ['pipelines-all'] });
     } catch (err) {
-      setError(getApiErrorMessage(err));
+      setTriggerError(getApiErrorMessage(err));
     } finally {
       setTriggeringId(null);
     }
@@ -154,9 +143,9 @@ export default function PipelinesPage() {
         actions={
           <Button
             variant="secondary"
-            icon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
-            onClick={() => void load()}
-            disabled={loading}
+            icon={<RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />}
+            onClick={() => void refetch()}
+            disabled={isFetching}
           >
             Refresh
           </Button>
@@ -178,9 +167,9 @@ export default function PipelinesPage() {
         ))}
       </div>
 
-      {error && (
+      {(error ?? triggerError) && (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-          {error}
+          {error ? getApiErrorMessage(error) : triggerError}
         </div>
       )}
 
@@ -233,16 +222,16 @@ export default function PipelinesPage() {
         </div>
       </SectionCard>
 
-      {loading && (
+      {isLoading && (
         <div className="flex items-center justify-center py-16">
           <Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" />
         </div>
       )}
 
-      {!loading && filtered.length === 0 && (
+      {!isLoading && filtered.length === 0 && (
         <SectionCard>
           <EmptyState
-            icon={GitMerge}
+            icon={Activity}
             title="No pipelines found"
             description={
               pipelines.length === 0
@@ -253,7 +242,7 @@ export default function PipelinesPage() {
         </SectionCard>
       )}
 
-      {!loading && filtered.length > 0 && (
+      {!isLoading && filtered.length > 0 && (
         <div className="space-y-3">
           {filtered.map((pipeline) => {
             const triggerKey = `${pipeline.project.id}-${pipeline.ref}`;

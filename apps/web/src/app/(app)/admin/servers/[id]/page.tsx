@@ -32,7 +32,7 @@ import {
   useServerValidationResults,
   useStartServerPreparation,
   useValidateServerSsh,
-} from '@/hooks/useServers';
+} from '@/hooks/servers/use-servers';
 import type { Server, ServerPreparation } from '@/types/server';
 
 export default function AdminServerDetailPage() {
@@ -64,7 +64,7 @@ export default function AdminServerDetailPage() {
   const onFieldChange = (
     _server: Server,
     field: keyof PrepareOptions,
-    value: boolean | string,
+    value: boolean | string | string[],
   ) => {
     setPrepareOptions((prev) => ({
       ...prev,
@@ -219,6 +219,7 @@ export default function AdminServerDetailPage() {
         prepareOptions={prepareOptions}
         isBusy={startPreparation.isPending}
         preparingId={startPreparation.isPending ? server.id : null}
+        installedTools={toolsQuery.data ?? []}
         onClose={() => setPrepareOpen(false)}
         onFieldChange={onFieldChange}
         onPrepare={() => onPrepare()}

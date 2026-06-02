@@ -21,7 +21,11 @@ export const serverKeys = {
 };
 
 export function useServers() {
-  return useQuery({ queryKey: serverKeys.list(), queryFn: () => serversService.getAll() });
+  return useQuery({
+    queryKey: serverKeys.list(),
+    queryFn: () => serversService.getAll(),
+    staleTime: 10_000,
+  });
 }
 
 export function useServer(id: string) {
@@ -29,6 +33,7 @@ export function useServer(id: string) {
     queryKey: serverKeys.detail(id),
     queryFn: () => serversService.getById(id),
     enabled: Boolean(id),
+    staleTime: 10_000,
   });
 }
 

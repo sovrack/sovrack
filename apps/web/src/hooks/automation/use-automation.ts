@@ -70,3 +70,13 @@ export function useCancelAutomationRun() {
     },
   });
 }
+
+export function useDeleteAutomationRun() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => automationService.deleteRun(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: automationKeys.all });
+    },
+  });
+}

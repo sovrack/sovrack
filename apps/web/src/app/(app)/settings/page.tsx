@@ -1,18 +1,31 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Building2, Loader2, Save, ShieldCheck, UserRound } from 'lucide-react';
+import { Bell, Building2, Loader2, Save, ShieldCheck, UserRound } from 'lucide-react';
+import api from '@/lib/api';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import { platformConfigService } from '@/services/platform-config.service';
 import { usersService } from '@/services/users.service';
 import type { PlatformConfigItem } from '@/types/platform-config';
 
 const PLATFORM_NAME_KEY = 'PLATFORM_NAME';
+
+type NotifSettings = {
+  slackWebhookUrl: string;
+  notifyOnSuccess: boolean;
+  notifyOnFailure: boolean;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpPass: string;
+  smtpFrom: string;
+  smtpTo: string;
+};
 
 type Notice = {
   tone: 'success' | 'error';
@@ -27,6 +40,12 @@ export default function SettingsPage() {
   const [loadingPlatform, setLoadingPlatform] = useState(false);
   const [savingPlatform, setSavingPlatform] = useState(false);
   const [platformName, setPlatformName] = useState('Deploy Automation');
+
+  const [notifSettings, setNotifSettings] = useState<NotifSettings>({
+    slackWebhookUrl: '', notifyOnSuccess: true, notifyOnFailure: true,
+    smtpHost: '', smtpPort: 587, smtpUser: '', smtpPass: '', smtpFrom: '', smtpTo: '',
+  });
+  const [savingNotif, setSavingNotif] = useState(false);
 
   const [fullName, setFullName] = useState(user?.fullName ?? '');
   const [savingUserInfo, setSavingUserInfo] = useState(false);
@@ -64,6 +83,23 @@ export default function SettingsPage() {
   useEffect(() => {
     void loadPlatform();
   }, [loadPlatform]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    api.get<NotifSettings>('/notifications/settings').then((r) => setNotifSettings(r.data)).catch(() => {});
+  }, [isAdmin]);
+
+  const handleSaveNotif = async () => {
+    setSavingNotif(true);
+    try {
+      await api.put('/notifications/settings', notifSettings);
+      setNotice({ tone: 'success', message: 'Paramètres de notification sauvegardés.' });
+    } catch (err) {
+      setNotice({ tone: 'error', message: getApiErrorMessage(err) });
+    } finally {
+      setSavingNotif(false);
+    }
+  };
 
   const canSavePlatform = useMemo(
     () => isAdmin && platformName.trim().length > 0 && !savingPlatform,
@@ -345,6 +381,87 @@ export default function SettingsPage() {
           </Button>
         </form>
       </SectionCard>
+
+      {isAdmin && (
+        <SectionCard
+          title="Notifications"
+          description="Alertes de déploiement via Slack et email SMTP."
+        >
+          <div className="space-y-6">
+            {/* Slack */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Slack</p>
+              <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+                <Bell size={15} className="shrink-0" />
+                <span>Webhook Slack entrant pour recevoir des alertes en temps réel.</span>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                  Slack Webhook URL
+                </label>
+                <input
+                  type="url"
+                  value={notifSettings.slackWebhookUrl}
+                  onChange={(e) => setNotifSettings((p) => ({ ...p, slackWebhookUrl: e.target.value }))}
+                  placeholder="https://hooks.slack.com/services/..."
+                  className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 font-mono text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+                />
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Laissez vide pour désactiver Slack.</p>
+              </div>
+            </div>
+
+            {/* Email SMTP */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Email SMTP</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Hôte SMTP</label>
+                  <input type="text" value={notifSettings.smtpHost} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpHost: e.target.value }))} placeholder="smtp.gmail.com" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Port</label>
+                  <input type="number" value={notifSettings.smtpPort} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpPort: parseInt(e.target.value, 10) || 587 }))} placeholder="587" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Utilisateur SMTP</label>
+                  <input type="text" value={notifSettings.smtpUser} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpUser: e.target.value }))} placeholder="user@gmail.com" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Mot de passe SMTP</label>
+                  <input type="password" value={notifSettings.smtpPass} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpPass: e.target.value }))} placeholder="••••••••" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Expéditeur (From)</label>
+                  <input type="text" value={notifSettings.smtpFrom} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpFrom: e.target.value }))} placeholder="Vaytek Deploy <noreply@vaytek.com>" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Destinataire (To)</label>
+                  <input type="text" value={notifSettings.smtpTo} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpTo: e.target.value }))} placeholder="team@vaytek.com" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                </div>
+              </div>
+              <p className="text-xs text-[var(--text-muted)]">Laissez tous les champs SMTP vides pour désactiver les emails.</p>
+            </div>
+
+            {/* Triggers */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Déclencheurs</p>
+              {[
+                { key: 'notifyOnSuccess' as const, label: 'Notifier sur succès', color: 'text-green-400' },
+                { key: 'notifyOnFailure' as const, label: 'Notifier sur échec / annulation', color: 'text-red-400' },
+              ].map(({ key, label, color }) => (
+                <label key={key} className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+                  <input type="checkbox" checked={notifSettings[key]} onChange={(e) => setNotifSettings((p) => ({ ...p, [key]: e.target.checked }))} className="h-4 w-4 rounded accent-current" />
+                  <span className={`text-sm font-medium ${color}`}>{label}</span>
+                </label>
+              ))}
+            </div>
+
+            <Button onClick={() => void handleSaveNotif()} disabled={savingNotif} loading={savingNotif} icon={savingNotif ? undefined : <Save size={14} />}>
+              Sauvegarder les notifications
+            </Button>
+          </div>
+        </SectionCard>
+      )}
     </div>
   );
 }

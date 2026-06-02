@@ -4,7 +4,7 @@ import { use, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useProject } from '@/hooks/useProjects';
+import { useProject } from '@/hooks/projects/use-projects';
 import { ProjectForm } from '@/components/projects/project-form';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';

@@ -1,13 +1,173 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useI18n } from '@/contexts/i18n-context';
-import { Bell, ChevronDown, LogOut, User, Menu } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { deploymentsService } from '@/services/deployments.service';
+import {
+  Bell,
+  CheckCircle2,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Settings,
+  User,
+  XCircle,
+  Loader2,
+  Rocket,
+} from 'lucide-react';
+import clsx from 'clsx';
+import type { Deployment } from '@/types/deployment';
+
+/* ─── Notification bell ─────────────────────────────────────────────────── */
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'à l\'instant';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}j`;
+}
+
+function statusIcon(status: Deployment['status']) {
+  if (status === 'SUCCESS') return <CheckCircle2 size={13} className="shrink-0 text-green-400" />;
+  if (status === 'FAILED' || status === 'CANCELED') return <XCircle size={13} className="shrink-0 text-red-400" />;
+  return <Loader2 size={13} className="shrink-0 animate-spin text-blue-400" />;
+}
+
+function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const [lastSeen, setLastSeen] = useState<string>(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('notif_last_seen') ?? new Date(0).toISOString();
+    return new Date(0).toISOString();
+  });
+  const ref = useRef<HTMLDivElement>(null);
+
+  const { data: deployments = [] } = useQuery({
+    queryKey: ['notif-deployments'],
+    queryFn: () => deploymentsService.getAll(),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    select: (list) =>
+      list
+        .filter((d) => ['SUCCESS', 'FAILED', 'CANCELED', 'RUNNING'].includes(d.status))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 8),
+  });
+
+  const unseen = deployments.filter((d) => new Date(d.createdAt) > new Date(lastSeen));
+  const hasUnread = unseen.length > 0;
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleOpen = () => {
+    setOpen((v) => !v);
+    if (!open) {
+      const now = new Date().toISOString();
+      setLastSeen(now);
+      localStorage.setItem('notif_last_seen', now);
+    }
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={handleOpen}
+        className="relative flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+        title="Notifications"
+      >
+        <Bell size={17} />
+        {hasUnread && (
+          <span className="absolute right-2 top-2 flex h-2 w-2 items-center justify-center rounded-full bg-red-500 ring-2 ring-[var(--bg-app)]" />
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-80 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl z-50">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Activité récente</span>
+            <Link
+              href="/settings"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] transition hover:text-[var(--text-secondary)]"
+            >
+              <Settings size={10} /> Configurer
+            </Link>
+          </div>
+
+          {/* List */}
+          <div className="max-h-80 overflow-y-auto divide-y divide-[var(--border)]">
+            {deployments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+                <Rocket size={20} className="mb-2 text-[var(--text-muted)]" />
+                <p className="text-xs text-[var(--text-secondary)]">Aucune activité récente</p>
+              </div>
+            ) : (
+              deployments.map((dep) => {
+                const isNew = new Date(dep.createdAt) > new Date(lastSeen);
+                return (
+                  <Link
+                    key={dep.id}
+                    href={`/deployments/${dep.id}`}
+                    onClick={() => setOpen(false)}
+                    className={clsx(
+                      'flex items-start gap-3 px-4 py-3 text-left transition hover:bg-[var(--hover)]',
+                      isNew && 'bg-blue-500/5',
+                    )}
+                  >
+                    <div className="mt-0.5">{statusIcon(dep.status)}</div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-[var(--text-primary)]">
+                        {dep.project.name}
+                        {isNew && (
+                          <span className="ml-2 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-400">Nouveau</span>
+                        )}
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                        {dep.environment.name} · {dep.branch} · {dep.status}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-[10px] text-[var(--text-muted)]">{timeAgo(dep.createdAt)}</span>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-[var(--border)] px-4 py-2.5">
+            <Link
+              href="/deployments"
+              onClick={() => setOpen(false)}
+              className="text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+            >
+              Voir tous les déploiements →
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Top nav ───────────────────────────────────────────────────────────── */
 
 export function TopNav() {
   const router = useRouter();
@@ -52,11 +212,7 @@ export function TopNav() {
         <div className="ml-auto flex items-center gap-1.5">
           <LanguageSwitcher />
           <ThemeToggle />
-
-          <button className="relative flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]">
-            <Bell size={17} />
-            <span className="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-[var(--text-muted)]" />
-          </button>
+          <NotificationBell />
 
           <div ref={dropdownRef} className="relative">
             <button
@@ -78,7 +234,7 @@ export function TopNav() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-2 shadow-2xl">
+              <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-2 shadow-2xl z-50">
                 <div className="rounded-lg bg-[var(--hover)] px-3 py-2.5">
                   <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
                     {user?.fullName}
@@ -90,10 +246,7 @@ export function TopNav() {
 
                 <div className="mt-1.5 space-y-0.5">
                   <button
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      router.push('/settings');
-                    }}
+                    onClick={() => { setDropdownOpen(false); router.push('/settings'); }}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                   >
                     <User size={14} className="text-[var(--text-muted)]" />

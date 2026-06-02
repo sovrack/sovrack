@@ -9,13 +9,18 @@ import { projectsService } from '@/services/projects.service';
 import { environmentsService } from '@/services/environments.service';
 import { deploymentsService } from '@/services/deployments.service';
 import { getApiErrorMessage } from '@/lib/api';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import type {
   ProjectListItem,
   GitlabBranch,
   GitlabConfig,
   GitlabRepo,
+  ProjectService,
 } from '@/types/project';
+import type {
+  DeploymentBuildMode,
+  DeploymentStrategy,
+} from '@/types/deployment';
 import type { Environment } from '@/types/environment';
 
 type DeploymentCreateDialogProps = {
@@ -35,12 +40,17 @@ export function DeploymentCreateDialog({
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [branches, setBranches] = useState<GitlabBranch[]>([]);
   const [groupRepos, setGroupRepos] = useState<GitlabRepo[]>([]);
+  const [services, setServices] = useState<ProjectService[]>([]);
   const [gitlabConfig, setGitlabConfig] = useState<GitlabConfig | null>(null);
 
   const [projectId, setProjectId] = useState('');
   const [environmentId, setEnvironmentId] = useState('');
   const [branch, setBranch] = useState('');
   const [selectedRepoId, setSelectedRepoId] = useState('');
+  const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [strategy, setStrategy] = useState<DeploymentStrategy>('standard');
+  const [buildMode, setBuildMode] = useState<DeploymentBuildMode>('registry');
+  const [overrideImage, setOverrideImage] = useState('');
 
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingEnvs, setLoadingEnvs] = useState(false);
@@ -65,11 +75,16 @@ export function DeploymentCreateDialog({
     setEnvironments([]);
     setBranches([]);
     setGroupRepos([]);
+    setServices([]);
     setGitlabConfig(null);
     setProjectId('');
     setEnvironmentId('');
     setBranch('');
     setSelectedRepoId('');
+    setSelectedServiceId('');
+    setStrategy('standard');
+    setBuildMode('registry');
+    setOverrideImage('');
     setError(null);
     setFormError(null);
     setEnvError(null);
@@ -115,10 +130,12 @@ export function DeploymentCreateDialog({
     setEnvironments([]);
     setBranches([]);
     setGroupRepos([]);
+    setServices([]);
     setGitlabConfig(null);
     setEnvironmentId('');
     setBranch('');
     setSelectedRepoId('');
+    setSelectedServiceId('');
     setEnvError(null);
     setBranchError(null);
     setRepoError(null);
@@ -144,6 +161,27 @@ export function DeploymentCreateDialog({
       .finally(() => {
         if (!isCancelled) {
           setLoadingEnvs(false);
+        }
+      });
+
+    projectsService
+      .getServices(projectId)
+      .then((items) => {
+        if (isCancelled) {
+          return;
+        }
+        setServices(items);
+        const firstService = items[0];
+        if (firstService) {
+          setSelectedServiceId(firstService.id);
+          if (firstService.gitlabProjectId) {
+            setSelectedRepoId(String(firstService.gitlabProjectId));
+          }
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setServices([]);
         }
       });
 
@@ -282,6 +320,19 @@ export function DeploymentCreateDialog({
 
   const isGroupSource = gitlabConfig?.sourceType === 'GROUP';
 
+  // overrideImage est indépendant du buildMode — une image externe remplace tout flux de build
+
+  const handleServiceChange = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    const service = services.find((item) => item.id === serviceId);
+    if (service?.gitlabProjectId) {
+      setSelectedRepoId(String(service.gitlabProjectId));
+    }
+    if (service?.defaultBranch) {
+      setBranch(service.defaultBranch);
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -301,8 +352,12 @@ export function DeploymentCreateDialog({
     try {
       const created = await deploymentsService.create({
         projectId,
+        serviceId: selectedServiceId || undefined,
         environmentId,
         branch: branch || undefined,
+        strategy,
+        buildMode,
+        overrideImage: overrideImage.trim().length > 0 ? overrideImage.trim() : undefined,
         repoId: isGroupSource ? parsedRepoId : undefined,
       });
       onClose();
@@ -404,6 +459,26 @@ export function DeploymentCreateDialog({
                   </select>
                 </div>
 
+                {services.length > 0 && (
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] text-[var(--text-secondary)]">
+                      Service
+                    </label>
+                    <select
+                      value={selectedServiceId}
+                      onChange={(event) => handleServiceChange(event.target.value)}
+                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-100 border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]"
+                    >
+                      <option value="">Whole project / legacy mode</option>
+                      {services.map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {service.name} — {service.type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {isGroupSource && (
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] text-[var(--text-secondary)]">
@@ -411,6 +486,30 @@ export function DeploymentCreateDialog({
                     </label>
                     {loadingRepos ? (
                       <div className="h-12 animate-pulse rounded-xl bg-[var(--hover)] bg-[var(--bg-card)]" />
+                    ) : services.length > 0 ? (
+                      <select
+                        value={selectedRepoId}
+                        onChange={(event) => {
+                          const repoId = event.target.value;
+                          setSelectedRepoId(repoId);
+                          const service = services.find(
+                            (item) => String(item.gitlabProjectId) === repoId,
+                          );
+                          if (service) {
+                            setSelectedServiceId(service.id);
+                          }
+                        }}
+                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-100 border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]"
+                      >
+                        <option value="">Select service repository</option>
+                        {services
+                          .filter((service) => service.gitlabProjectId)
+                          .map((service) => (
+                            <option key={service.id} value={String(service.gitlabProjectId)}>
+                              {service.name} — {service.repositoryPath ?? service.gitlabProjectId}
+                            </option>
+                          ))}
+                      </select>
                     ) : groupRepos.length === 0 ? (
                       <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-xs text-yellow-700">
                         Aucun repository trouvé dans ce groupe GitLab.
@@ -484,6 +583,62 @@ export function DeploymentCreateDialog({
                     </p>
                   )}
                 </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                      Strategy
+                    </label>
+                    <select
+                      name="strategy"
+                      value={strategy}
+                      onChange={(event) => setStrategy(event.target.value as DeploymentStrategy)}
+                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-100"
+                    >
+                      <option value="standard">Standard</option>
+                      <option value="blue-green">Blue-Green (Zero Downtime)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                      Build Mode
+                    </label>
+                    <select
+                      name="buildMode"
+                      value={buildMode}
+                      onChange={(event) => setBuildMode(event.target.value as DeploymentBuildMode)}
+                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-100"
+                    >
+                      <option value="registry">GitLab Registry (CI/CD)</option>
+                      <option value="local">Build local sur VPS</option>
+                      <option value="compose">Docker Compose</option>
+                    </select>
+                    {buildMode === 'compose' && (
+                      <p className="mt-2 text-xs text-[var(--text-secondary)]">
+                        Le fichier <span className="font-mono">docker-compose.yml</span> de votre repo
+                        sera déployé tel quel sur le serveur cible. Aucun build Docker n&apos;est lancé.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Image externe — disponible quel que soit le mode de build */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                    Image Docker externe (optionnel)
+                  </label>
+                  <input
+                    name="overrideImage"
+                    value={overrideImage}
+                    onChange={(event) => setOverrideImage(event.target.value)}
+                    placeholder="docker.io/org/app:tag ou registry.gitlab.com/..."
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 font-mono text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-100"
+                  />
+                  <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                    Si renseigné, cette image est utilisée directement sans passer par le build CI/CD
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--hover)]/70 p-4 border-[var(--border)]">
@@ -503,9 +658,20 @@ export function DeploymentCreateDialog({
                   {loadingEnvs ? (
                     <div className="h-12 animate-pulse rounded-xl bg-[var(--hover)] bg-[var(--bg-card)]" />
                   ) : environments.length === 0 ? (
-                    <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-xs text-yellow-700">
-                      No environments configured for this project.
-                      {isAdmin ? ' Configure one from project environments.' : ''}
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-semibold text-amber-300">Aucun environnement configuré</p>
+                        <p className="text-xs text-amber-400/70">Associez un VPS à ce projet avant de déployer.</p>
+                      </div>
+                      {projectId && (
+                        <Link
+                          href={`/projects/${projectId}?tab=environments`}
+                          onClick={onClose}
+                          className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-500/30"
+                        >
+                          Configurer →
+                        </Link>
+                      )}
                     </div>
                   ) : (
                     <select

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Play, RefreshCw, StopCircle } from 'lucide-react';
+import { ExternalLink, Play, RefreshCw, StopCircle, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { Badge } from '@/components/ui/badge';
@@ -14,10 +14,11 @@ import {
   useAutomationRunLogs,
   useAutomationRuns,
   useCancelAutomationRun,
+  useDeleteAutomationRun,
   useStartAutomationRun,
-} from '@/hooks/useAutomation';
-import { useAutomationLogStream } from '@/hooks/useAutomationLogStream';
-import { useServers } from '@/hooks/useServers';
+} from '@/hooks/automation/use-automation';
+import { useAutomationLogStream } from '@/hooks/automation/use-automation-log-stream';
+import { useServers } from '@/hooks/servers/use-servers';
 import type { AutomationRun, AutomationRunLog, AutomationRunStatus } from '@/types/automation';
 
 const ACTIVE_RUN_STATUSES: AutomationRunStatus[] = ['QUEUED', 'RUNNING'];
@@ -45,6 +46,8 @@ export default function AutomationPage() {
   const runsQuery = useAutomationRuns(1, 25);
   const startRun = useStartAutomationRun();
   const cancelRun = useCancelAutomationRun();
+  const deleteRun = useDeleteAutomationRun();
+  const [showHistory, setShowHistory] = useState(false);
 
   const [selectedActionKey, setSelectedActionKey] = useState('');
   const [selectedServerIds, setSelectedServerIds] = useState<string[]>([]);
@@ -310,7 +313,21 @@ export default function AutomationPage() {
         </div>
       </SectionCard>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      {/* History toggle button */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-[var(--text-muted)]">
+          {runs && runs.length > 0 ? `${runs.length} run(s) in history` : 'No history yet'}
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowHistory((v) => !v)}
+          className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+        >
+          {showHistory ? 'Masquer l\'historique' : 'Voir l\'historique'}
+        </button>
+      </div>
+
+      {showHistory && <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <SectionCard title="Run History" description="Latest multi-server automation runs.">
           <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-2">
             <select
@@ -377,6 +394,21 @@ export default function AutomationPage() {
                       >
                         <ExternalLink size={12} />
                       </Link>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('Supprimer ce run ?')) {
+                            void deleteRun.mutateAsync(run.id).then(() => {
+                              if (selectedRunId === run.id) setSelectedRunId(null);
+                            });
+                          }
+                        }}
+                        className="rounded p-0.5 text-[var(--text-muted)] hover:text-red-400 transition"
+                        title="Supprimer"
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
                   </div>
                   <p className="mt-1 text-xs text-[var(--text-secondary)]">
@@ -470,7 +502,7 @@ export default function AutomationPage() {
             </div>
           )}
         </SectionCard>
-      </div>
+      </div>}
     </div>
   );
 }

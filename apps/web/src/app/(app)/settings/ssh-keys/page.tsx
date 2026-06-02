@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Download, KeyRound, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -139,6 +140,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
         <div className="space-y-4 px-6 py-4">
           {error && <Alert tone="error">{error}</Alert>}
 
+
           {/* Generate buttons */}
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
@@ -273,44 +275,41 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
 }
 
 export default function SshKeysPage() {
-  const [keys, setKeys] = useState<SshKey[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [mutationError, setMutationError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const fetchKeys = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await sshKeysService.getAll();
-      setKeys(data);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: keys = [], isLoading, error: queryError } = useQuery({
+    queryKey: ['ssh-keys'],
+    queryFn: () => sshKeysService.getAll(),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => { void fetchKeys(); }, [fetchKeys]);
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['ssh-keys'] });
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
+    setMutationError(null);
     try {
       await sshKeysService.remove(id);
-      setKeys((prev) => prev.filter((k) => k.id !== id));
+      await invalidate();
     } catch (err) {
-      setError(getApiErrorMessage(err));
+      setMutationError(getApiErrorMessage(err));
     } finally {
       setDeletingId(null);
     }
   };
 
-  const handleCreated = (key: SshKey) => {
-    setKeys((prev) => [key, ...prev]);
+  const handleCreated = async () => {
     setDialogOpen(false);
+    await invalidate();
   };
 
-  if (loading) {
+  const error = mutationError ?? (queryError ? getApiErrorMessage(queryError) : null);
+
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <div className="h-8 w-48 animate-pulse rounded-lg bg-[var(--hover)]" />
@@ -334,6 +333,7 @@ export default function SshKeysPage() {
       />
 
       {error && <Alert tone="error">{error}</Alert>}
+
 
       {keys.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-card)] py-16">
@@ -391,7 +391,7 @@ export default function SshKeysPage() {
       <AddSshKeyDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        onCreated={handleCreated}
+        onCreated={() => void handleCreated()}
       />
     </div>
   );

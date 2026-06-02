@@ -7,6 +7,7 @@ import type {
   DeploymentFinishedEvent,
   DeploymentJoinedEvent,
   DeploymentLogEvent,
+  DeploymentLogReplayEvent,
   DeploymentStatus,
   DeploymentStatusEvent,
   LogLevel,
@@ -139,6 +140,52 @@ export function useDeploymentSocket({
         return;
       }
       hasJoinedRoom.current = true;
+      // After joining (initial connect OR reconnect), ask the gateway to
+      // replay any buffered logs we may have missed during disconnection.
+      deploymentSocket.emit('deployment:request-replay', { deploymentId });
+    };
+
+    const onLogReplay = (payload: DeploymentLogReplayEvent) => {
+      if (!hasJoinedRoom.current) {
+        return;
+      }
+      if (payload.deploymentId !== deploymentId) {
+        return;
+      }
+      if (!payload.logs || payload.logs.length === 0) {
+        return;
+      }
+
+      const replayedLines: LogLine[] = payload.logs
+        .map((entry) => entry.message?.trim())
+        .filter((message): message is string => Boolean(message))
+        .map((message, index) => {
+          const source = payload.logs[index];
+          return {
+            timestamp: source.timestamp || new Date().toISOString(),
+            message,
+            level: source.level ?? inferLogLevel(message),
+            isReplayed: true,
+          };
+        });
+
+      if (replayedLines.length === 0) {
+        return;
+      }
+
+      setLogs((previous) => {
+        // Dedup against any log already present (same timestamp+message).
+        const existingKeys = new Set(
+          previous.map((line) => `${line.timestamp}::${line.message}`),
+        );
+        const uniqueReplayed = replayedLines.filter(
+          (line) => !existingKeys.has(`${line.timestamp}::${line.message}`),
+        );
+        if (uniqueReplayed.length === 0) {
+          return previous;
+        }
+        return [...uniqueReplayed, ...previous];
+      });
     };
 
     const onRoomError = (payload: DeploymentErrorEvent) => {
@@ -209,6 +256,7 @@ export function useDeploymentSocket({
 
       if (isDeploymentStatus(payload.status) && !isActiveStatus(payload.status)) {
         deploymentSocket.off('deployment:log', onLog);
+        deploymentSocket.off('deployment:log-replay', onLogReplay);
         deploymentSocket.off('deployment:status', onStatus);
         deploymentSocket.off('deployment:finished', onFinished);
         deploymentSocket.disconnect();
@@ -220,6 +268,7 @@ export function useDeploymentSocket({
     deploymentSocket.on('deployment:joined', onJoined);
     deploymentSocket.on('deployment:error', onRoomError);
     deploymentSocket.on('deployment:log', onLog);
+    deploymentSocket.on('deployment:log-replay', onLogReplay);
     deploymentSocket.on('deployment:status', onStatus);
     deploymentSocket.on('deployment:finished', onFinished);
 
@@ -237,6 +286,7 @@ export function useDeploymentSocket({
       deploymentSocket.off('deployment:joined', onJoined);
       deploymentSocket.off('deployment:error', onRoomError);
       deploymentSocket.off('deployment:log', onLog);
+      deploymentSocket.off('deployment:log-replay', onLogReplay);
       deploymentSocket.off('deployment:status', onStatus);
       deploymentSocket.off('deployment:finished', onFinished);
       deploymentSocket.disconnect();

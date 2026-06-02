@@ -1,139 +1,162 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Copy,
-  Loader2,
-  Pencil,
-  Plus,
-  Save,
-  ShieldCheck,
-  Star,
-  Trash2,
-  X,
-  XCircle,
-} from 'lucide-react';
+import { GitBranch, Globe, Info, Plus, Puzzle } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
-import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { useAuth } from '@/hooks/useAuth';
+import { ProviderCard } from '@/components/git-providers/provider-card';
+import { AddProviderDialog } from '@/components/git-providers/add-provider-dialog';
+import { GitLabLogo, GitHubLogo } from '@/components/git-providers/provider-meta';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import { platformConfigService } from '@/services/platform-config.service';
 import type {
   CreateGitlabProviderPayload,
-  GitProviderStatus,
   GitlabProvider,
   UpdateGitlabProviderPayload,
 } from '@/types/platform-config';
 
+/* ─── Toast ─────────────────────────────────────────────────────────────── */
+
 type ToastTone = 'success' | 'error';
 type ToastItem = { id: number; message: string; tone: ToastTone };
-type DialogMode = 'create' | 'edit';
 
-type ProviderFormState = {
-  id?: string;
-  name: string;
-  gitlabUrl: string;
-  internalUrl: string;
-  redirectUri: string;
-  applicationId: string;
-  applicationSecret: string;
-  groupNames: string;
-  adminToken: string;
-  isDefault: boolean;
-  applicationSecretConfigured: boolean;
-  adminTokenConfigured: boolean;
-  oauthTokenConfigured: boolean;
-  oauthExpiresAt: string | null;
-};
-
-function GitlabLogo() {
+function Toast({ item, onRemove }: { item: ToastItem; onRemove: (id: number) => void }) {
   return (
-    <svg viewBox="0 0 380 380" className="h-5 w-5" fill="none">
-      <path d="M282.83 170.73l-.27-.69-26.14-68.22a6.81 6.81 0 00-2.69-3.24 7 7 0 00-8 .43 7 7 0 00-2.32 3.52l-17.65 54H154.29l-17.65-54a6.86 6.86 0 00-2.32-3.52 7 7 0 00-8-.43 6.85 6.85 0 00-2.69 3.24L97.44 170l-.26.69a48.54 48.54 0 0016.1 56.1l.09.07.24.17 39.82 29.82 19.7 14.91 12 9.06a8.07 8.07 0 009.76 0l12-9.06 19.7-14.91 40.06-30 .1-.08a48.56 48.56 0 0016.08-56.04z" fill="#E24329"/>
-      <path d="M282.83 170.73l-.27-.69a88.3 88.3 0 00-35.15 15.8L190 229.25c19.55 14.79 36.57 27.64 36.57 27.64l40.06-30 .1-.08a48.56 48.56 0 0016.1-56.08z" fill="#FC6D26"/>
-      <path d="M153.43 256.89l19.7 14.91 12 9.06a8.07 8.07 0 009.76 0l12-9.06 19.7-14.91S209.55 244 190 229.25c-19.55 14.79-36.57 27.64-36.57 27.64z" fill="#FCA326"/>
-      <path d="M132.58 185.84A88.19 88.19 0 0097.44 170l-.26.69a48.54 48.54 0 0016.1 56.1l.09.07.24.17 39.82 29.82s17-12.85 36.57-27.64z" fill="#FC6D26"/>
-    </svg>
+    <div
+      className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-sm transition-all ${
+        item.tone === 'success'
+          ? 'border-green-500/20 bg-green-500/10 text-green-300'
+          : 'border-red-500/20 bg-red-500/10 text-red-300'
+      }`}
+    >
+      <span className="flex-1">{item.message}</span>
+      <button
+        type="button"
+        onClick={() => onRemove(item.id)}
+        className="shrink-0 opacity-60 hover:opacity-100"
+      >
+        ×
+      </button>
+    </div>
   );
 }
 
-function StatusBadge({ status }: { status: GitProviderStatus }) {
-  if (status === 'CONFIGURED') {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-400">
-        <CheckCircle2 size={12} />
-        Configured
-      </span>
-    );
-  }
+/* ─── Empty state ────────────────────────────────────────────────────────── */
 
-  if (status === 'ACTION_REQUIRED') {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300">
-        <AlertTriangle size={12} />
-        Action Required
-      </span>
-    );
-  }
-
+function EmptyProviders({ isAdmin, onAdd }: { isAdmin: boolean; onAdd: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-1 text-xs font-semibold text-[var(--text-secondary)]">
-      <XCircle size={12} />
-      Not Configured
-    </span>
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-app)] py-16 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-orange-500/20 bg-orange-500/10">
+        <GitLabLogo className="h-7 w-7" />
+      </div>
+      <h3 className="text-base font-semibold text-[var(--text-primary)]">
+        No Git Providers Connected
+      </h3>
+      <p className="mt-1.5 max-w-sm text-sm text-[var(--text-secondary)]">
+        Connect a Git provider to import repositories, trigger pipelines, and enable
+        automatic deployments across your projects.
+      </p>
+      {isAdmin && (
+        <Button className="mt-5" onClick={onAdd} icon={<Plus size={14} />}>
+          Connect first provider
+        </Button>
+      )}
+    </div>
   );
 }
 
-function formatDateTime(value: string | null): string {
-  if (!value) return '-';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '-';
-  return new Intl.DateTimeFormat('fr-FR', {
-    dateStyle: 'short',
-    timeStyle: 'medium',
-  }).format(parsed);
+/* ─── Info banner ────────────────────────────────────────────────────────── */
+
+function InfoBanner() {
+  return (
+    <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-[var(--text-secondary)]">
+      <Info size={15} className="mt-0.5 shrink-0 text-blue-400" />
+      <div>
+        <span className="font-semibold text-[var(--text-primary)]">Global platform integration.</span>{' '}
+        Git providers defined here are reusable across all projects. When you connect a repository
+        or group to a project, you select which provider to use.
+      </div>
+    </div>
+  );
 }
 
-function providerToForm(provider: GitlabProvider): ProviderFormState {
-  return {
-    id: provider.id,
-    name: provider.name,
-    gitlabUrl: provider.gitlabUrl,
-    internalUrl: provider.internalUrl,
-    redirectUri: provider.redirectUri,
-    applicationId: provider.applicationId,
-    applicationSecret: '',
-    groupNames: provider.groupNames,
-    adminToken: '',
-    isDefault: provider.isDefault,
-    applicationSecretConfigured: provider.applicationSecretConfigured,
-    adminTokenConfigured: provider.adminTokenConfigured,
-    oauthTokenConfigured: provider.oauthTokenConfigured,
-    oauthExpiresAt: provider.oauthExpiresAt,
-  };
+/* ─── Upcoming providers teaser ─────────────────────────────────────────── */
+
+function UpcomingProviders() {
+  const upcoming = [
+    { name: 'Gitea', icon: '🟢', desc: 'Self-hosted Gitea instances' },
+    { name: 'Bitbucket', icon: '🔵', desc: 'Bitbucket Cloud & Server' },
+    { name: 'Azure DevOps', icon: '🔷', desc: 'Azure Repos & Pipelines' },
+  ];
+
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)]">
+      <div className="flex items-center gap-2 border-b border-[var(--border)] px-5 py-4">
+        <Puzzle size={14} className="text-[var(--text-muted)]" />
+        <p className="text-sm font-semibold text-[var(--text-secondary)]">Coming Soon</p>
+      </div>
+      <div className="flex flex-wrap gap-0 divide-x divide-[var(--border)]">
+        {upcoming.map((p) => (
+          <div key={p.name} className="flex min-w-[160px] flex-1 flex-col gap-0.5 px-5 py-4">
+            <div className="flex items-center gap-2">
+              <span className="text-base">{p.icon}</span>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">{p.name}</p>
+              <span className="rounded-full border border-[var(--border)] px-1.5 py-0.5 text-[9px] font-semibold uppercase text-[var(--text-muted)]">
+                Soon
+              </span>
+            </div>
+            <p className="text-xs text-[var(--text-muted)]">{p.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function createEmptyForm(fallbackRedirectUri: string): ProviderFormState {
-  return {
-    name: 'GitLab',
-    gitlabUrl: '',
-    internalUrl: '',
-    redirectUri: fallbackRedirectUri,
-    applicationId: '',
-    applicationSecret: '',
-    groupNames: '',
-    adminToken: '',
-    isDefault: false,
-    applicationSecretConfigured: false,
-    adminTokenConfigured: false,
-    oauthTokenConfigured: false,
-    oauthExpiresAt: null,
-  };
+/* ─── Loading skeleton ───────────────────────────────────────────────────── */
+
+function Skeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2].map((i) => (
+        <div key={i} className="h-40 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--hover)]" />
+      ))}
+    </div>
+  );
 }
+
+/* ─── Stats bar ──────────────────────────────────────────────────────────── */
+
+function StatsBar({ providers }: { providers: GitlabProvider[] }) {
+  if (providers.length === 0) return null;
+  const configured = providers.filter((p) => p.status === 'CONFIGURED').length;
+  const withOAuth = providers.filter((p) => p.oauthTokenConfigured).length;
+  const withPat = providers.filter((p) => p.adminTokenConfigured).length;
+  const defaults = providers.filter((p) => p.isDefault).length;
+
+  return (
+    <div className="flex flex-wrap gap-0 divide-x divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--bg-app)]">
+      {[
+        { icon: <Globe size={13} />, label: 'Total', value: providers.length },
+        { icon: null, label: 'Connected', value: configured },
+        { icon: null, label: 'OAuth', value: withOAuth },
+        { icon: null, label: 'PAT', value: withPat },
+        { icon: null, label: 'Default', value: defaults },
+      ].map((s) => (
+        <div key={s.label} className="flex flex-1 flex-col items-center gap-0.5 px-4 py-3 text-center">
+          <p className="text-lg font-bold text-[var(--text-primary)]">{s.value}</p>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+            {s.label}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Page ───────────────────────────────────────────────────────────────── */
 
 export default function GitSettingsPage() {
   const { isAdmin } = useAuth();
@@ -141,12 +164,13 @@ export default function GitSettingsPage() {
   const [providers, setProviders] = useState<GitlabProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [dialogError, setDialogError] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<DialogMode>('create');
-  const [form, setForm] = useState<ProviderFormState>(() => createEmptyForm(''));
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
+  const [editingProvider, setEditingProvider] = useState<GitlabProvider | null>(null);
+  const [dialogProviderType, setDialogProviderType] = useState<'GITLAB' | 'GITHUB'>('GITLAB');
 
   const [runningTestId, setRunningTestId] = useState<string | null>(null);
   const [runningOAuthId, setRunningOAuthId] = useState<string | null>(null);
@@ -158,225 +182,158 @@ export default function GitSettingsPage() {
   const fallbackRedirectUri = useMemo(() => {
     if (typeof window === 'undefined') return '';
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
-    if (apiBase) {
-      return `${apiBase}/providers/gitlab/callback`;
-    }
-    return `${window.location.origin.replace(/\/+$/, '')}/providers/gitlab/callback`;
+    return apiBase
+      ? `${apiBase}/providers/gitlab/callback`
+      : `${window.location.origin}/providers/gitlab/callback`;
   }, []);
 
   const showToast = useCallback((message: string, tone: ToastTone) => {
     const id = Date.now() + Math.floor(Math.random() * 1000);
     setToasts((prev) => [...prev, { id, message, tone }]);
-    window.setTimeout(() => {
-      setToasts((prev) => prev.filter((item) => item.id !== id));
-    }, 2800);
+    window.setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
   }, []);
 
   const loadProviders = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      const list = await platformConfigService.listGitlabProviders();
-      setProviders(list);
-    } catch (loadError) {
-      const message = getApiErrorMessage(loadError);
-      setError(message);
-      showToast(message, 'error');
+      const [gitlabList, githubList] = await Promise.allSettled([
+        platformConfigService.listGitlabProviders(),
+        platformConfigService.listGithubProviders(),
+      ]);
+      const gitlab = gitlabList.status === 'fulfilled' ? gitlabList.value.map((p) => ({ ...p, providerType: 'GITLAB' as const })) : [];
+      const github = githubList.status === 'fulfilled' ? githubList.value.map((p) => ({ ...p, providerType: 'GITHUB' as const })) : [];
+      setProviders([...gitlab, ...github]);
+    } catch (err) {
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setLoading(false);
     }
   }, [showToast]);
 
-  useEffect(() => {
-    void loadProviders();
-  }, [loadProviders]);
+  useEffect(() => { void loadProviders(); }, [loadProviders]);
 
+  // Handle OAuth callback query params
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
     const params = new URLSearchParams(window.location.search);
     const oauth = params.get('oauth');
     if (!oauth) return;
 
-    const oauthMessage = params.get('oauth_message');
-    if (oauth === 'success') {
-      showToast(oauthMessage || 'Connexion OAuth GitLab réussie', 'success');
-    } else {
-      showToast(oauthMessage || 'Connexion OAuth GitLab échouée', 'error');
-    }
+    const msg = params.get('oauth_message');
+    showToast(
+      msg || (oauth === 'success' ? 'OAuth connected successfully' : 'OAuth connection failed'),
+      oauth === 'success' ? 'success' : 'error',
+    );
 
     params.delete('oauth');
     params.delete('oauth_message');
     params.delete('provider_id');
-    const nextQuery = params.toString();
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
-    window.history.replaceState({}, '', nextUrl);
-
+    const q = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${q ? `?${q}` : ''}`);
     void loadProviders();
   }, [loadProviders, showToast]);
 
-  useEffect(() => {
-    if (!dialogOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setDialogOpen(false);
-        setError(null);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [dialogOpen]);
-
-  const setFormValue = <K extends keyof ProviderFormState>(
-    key: K,
-    value: ProviderFormState[K],
-  ) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleCopyRedirectUri = async () => {
-    const value = (form.redirectUri || fallbackRedirectUri).trim();
-    if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedRedirect(true);
-      window.setTimeout(() => setCopiedRedirect(false), 1200);
-    } catch {
-      setCopiedRedirect(false);
-    }
-  };
-
-  const openCreateDialog = () => {
+  const openCreate = (type: 'GITLAB' | 'GITHUB' = 'GITLAB') => {
+    setDialogProviderType(type);
     setDialogMode('create');
-    setForm(createEmptyForm(fallbackRedirectUri));
-    setError(null);
+    setEditingProvider(null);
+    setDialogError(null);
     setCopiedRedirect(false);
     setDialogOpen(true);
   };
 
-  const openEditDialog = (provider: GitlabProvider) => {
+  const openEdit = (provider: GitlabProvider) => {
     setDialogMode('edit');
-    setForm(providerToForm(provider));
-    setError(null);
+    setEditingProvider(provider);
+    setDialogError(null);
     setCopiedRedirect(false);
     setDialogOpen(true);
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
-    setError(null);
-    setCopiedRedirect(false);
+    setDialogError(null);
   };
 
-  const handleSave = async () => {
-    if (!form.name.trim()) {
-      setError('Name est requis');
-      return;
-    }
-    if (!form.gitlabUrl.trim()) {
-      setError('GitLab URL est requis');
-      return;
-    }
+  const isGithubProvider = (p: GitlabProvider) => p.providerType === 'GITHUB';
 
+  const handleSave = async (
+    payload: CreateGitlabProviderPayload | UpdateGitlabProviderPayload,
+    providerType?: 'GITLAB' | 'GITHUB',
+  ) => {
     setSaving(true);
-    setError(null);
-
+    setDialogError(null);
+    const type = providerType ?? dialogProviderType;
     try {
-      const effectiveRedirectUri = (form.redirectUri || fallbackRedirectUri).trim();
-
       if (dialogMode === 'create') {
-        const payload: CreateGitlabProviderPayload = {
-          name: form.name.trim(),
-          gitlabUrl: form.gitlabUrl.trim(),
-          internalUrl: form.internalUrl.trim(),
-          redirectUri: effectiveRedirectUri,
-          applicationId: form.applicationId.trim(),
-          applicationSecret: form.applicationSecret.trim(),
-          groupNames: form.groupNames.trim(),
-          adminToken: form.adminToken.trim(),
-          isDefault: form.isDefault,
-        };
-        await platformConfigService.createGitlabProvider(payload);
-        showToast('Provider GitLab créé', 'success');
-      } else {
-        if (!form.id) {
-          setError('Provider invalide');
-          return;
+        if (type === 'GITHUB') {
+          await platformConfigService.createGithubProvider(payload as CreateGitlabProviderPayload);
+        } else {
+          await platformConfigService.createGitlabProvider(payload as CreateGitlabProviderPayload);
         }
-
-        const payload: UpdateGitlabProviderPayload = {
-          name: form.name.trim(),
-          gitlabUrl: form.gitlabUrl.trim(),
-          internalUrl: form.internalUrl.trim(),
-          redirectUri: effectiveRedirectUri,
-          applicationId: form.applicationId.trim(),
-          groupNames: form.groupNames.trim(),
-          isDefault: form.isDefault,
-        };
-
-        if (form.applicationSecret.trim()) {
-          payload.applicationSecret = form.applicationSecret.trim();
+        showToast('Git provider connected successfully', 'success');
+      } else if (editingProvider) {
+        if (isGithubProvider(editingProvider)) {
+          await platformConfigService.updateGithubProvider(editingProvider.id, payload as UpdateGitlabProviderPayload);
+        } else {
+          await platformConfigService.updateGitlabProvider(editingProvider.id, payload as UpdateGitlabProviderPayload);
         }
-
-        if (form.adminToken.trim()) {
-          payload.adminToken = form.adminToken.trim();
-        }
-
-        await platformConfigService.updateGitlabProvider(form.id, payload);
-        showToast('Provider GitLab mis à jour', 'success');
+        showToast('Provider updated', 'success');
       }
-
       await loadProviders();
       closeDialog();
-    } catch (saveError) {
-      const message = getApiErrorMessage(saveError);
-      setError(message);
-      showToast(message, 'error');
+    } catch (err) {
+      setDialogError(getApiErrorMessage(err));
     } finally {
       setSaving(false);
     }
   };
 
-  const handleTestProvider = async (providerId: string) => {
-    setRunningTestId(providerId);
-    setError(null);
+  const handleTest = async (id: string) => {
+    setRunningTestId(id);
     try {
-      const result = await platformConfigService.testGitlabProvider(providerId);
+      const provider = providers.find((p) => p.id === id);
+      const result = provider && isGithubProvider(provider)
+        ? await platformConfigService.testGithubProvider(id)
+        : await platformConfigService.testGitlabProvider(id);
       showToast(result.message, result.ok ? 'success' : 'error');
       await loadProviders();
-    } catch (testError) {
-      const message = getApiErrorMessage(testError);
-      showToast(message, 'error');
+    } catch (err) {
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setRunningTestId(null);
     }
   };
 
-  const handleConnectOAuth = async (providerId: string) => {
-    setRunningOAuthId(providerId);
-    setError(null);
+  const handleOAuth = async (id: string) => {
+    const provider = providers.find((p) => p.id === id);
+    if (provider && isGithubProvider(provider)) {
+      showToast('OAuth GitHub non encore disponible — utilisez un PAT', 'error');
+      return;
+    }
+    setRunningOAuthId(id);
     try {
-      const start = await platformConfigService.startGitlabOAuthForProvider(providerId);
+      const start = await platformConfigService.startGitlabOAuthForProvider(id);
       window.location.assign(start.authorizeUrl);
-    } catch (oauthError) {
-      const message = getApiErrorMessage(oauthError);
-      setError(message);
-      showToast(message, 'error');
+    } catch (err) {
+      showToast(getApiErrorMessage(err), 'error');
       setRunningOAuthId(null);
     }
   };
 
-  const handleSetDefault = async (providerId: string) => {
-    setRunningDefaultId(providerId);
-    setError(null);
+  const handleSetDefault = async (id: string) => {
+    setRunningDefaultId(id);
     try {
-      await platformConfigService.setDefaultGitlabProvider(providerId);
-      showToast('Provider défini par défaut', 'success');
+      const provider = providers.find((p) => p.id === id);
+      if (provider && isGithubProvider(provider)) {
+        await platformConfigService.setDefaultGithubProvider(id);
+      } else {
+        await platformConfigService.setDefaultGitlabProvider(id);
+      }
+      showToast('Default provider updated', 'success');
       await loadProviders();
-    } catch (defaultError) {
-      const message = getApiErrorMessage(defaultError);
-      setError(message);
-      showToast(message, 'error');
+    } catch (err) {
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setRunningDefaultId(null);
     }
@@ -385,456 +342,127 @@ export default function GitSettingsPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    setError(null);
     try {
-      await platformConfigService.deleteGitlabProvider(deleteTarget.id);
-      showToast('Provider supprimé', 'success');
+      if (isGithubProvider(deleteTarget)) {
+        await platformConfigService.deleteGithubProvider(deleteTarget.id);
+      } else {
+        await platformConfigService.deleteGitlabProvider(deleteTarget.id);
+      }
+      showToast('Provider removed', 'success');
       setDeleteTarget(null);
       await loadProviders();
-    } catch (deleteError) {
-      const message = getApiErrorMessage(deleteError);
-      setError(message);
-      showToast(message, 'error');
+    } catch (err) {
+      showToast(getApiErrorMessage(err), 'error');
     } finally {
       setDeleting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-[var(--hover)]" />
-        <div className="h-40 animate-pulse rounded-2xl bg-[var(--hover)]" />
-      </div>
-    );
-  }
+  const handleCopyRedirect = (value: string) => {
+    void navigator.clipboard.writeText(value).then(() => {
+      setCopiedRedirect(true);
+      window.setTimeout(() => setCopiedRedirect(false), 1200);
+    });
+  };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Settings"
-        title="GitLab Providers"
-        description="Manage multiple GitLab providers with status, OAuth, and secure credentials."
-      />
-
-      {error && <Alert tone="error">{error}</Alert>}
-
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
-          <div>
-            <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
-              GitLab Integration
-            </h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              This platform supports multiple GitLab providers.
-            </p>
-          </div>
-          {isAdmin && (
-            <Button onClick={openCreateDialog} icon={<Plus size={14} />}>
-              Add provider
-            </Button>
-          )}
-        </div>
-
-        <div className="space-y-3 p-6">
-          {providers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-app)] py-14">
-              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-                <GitlabLogo />
-              </div>
-              <p className="text-sm text-[var(--text-secondary)]">
-                No GitLab provider configured.
-              </p>
-              {isAdmin && (
-                <Button className="mt-4" onClick={openCreateDialog}>
-                  Configure first provider
+    <>
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Settings"
+          title="Git Providers"
+          description="Global reusable Git integrations. Projects reference these providers to import repositories, trigger builds, and deploy automatically."
+          actions={
+            isAdmin && (
+              <div className="flex items-center gap-2">
+                <Button onClick={() => openCreate('GITLAB')} icon={<GitLabLogo className="h-3.5 w-3.5" />}>
+                  GitLab
                 </Button>
-              )}
-            </div>
-          ) : (
-            providers.map((provider) => (
-              <div
-                key={provider.id}
-                className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4 md:flex-row md:items-center"
-              >
-                <button
-                  type="button"
-                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                  onClick={() => openEditDialog(provider)}
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-                    <GitlabLogo />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                      {provider.name}
-                    </p>
-                    <p className="truncate text-xs text-[var(--text-secondary)]">
-                      {provider.gitlabUrl}
-                    </p>
-                    <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-                      Updated {formatDateTime(provider.updatedAt)}
-                    </p>
-                    <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-                      {provider.oauthTokenConfigured
-                        ? `OAuth connected${provider.oauthExpiresAt ? ` • expires ${formatDateTime(provider.oauthExpiresAt)}` : ''}`
-                        : 'OAuth not connected'}
-                    </p>
-                  </div>
-                </button>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {provider.isDefault && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-                      <Star size={12} />
-                      Default
-                    </span>
-                  )}
-                  <StatusBadge status={provider.status} />
-
-                  {isAdmin && !provider.isDefault && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      loading={runningDefaultId === provider.id}
-                      onClick={() => void handleSetDefault(provider.id)}
-                    >
-                      Set default
-                    </Button>
-                  )}
-
-                  {isAdmin && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      loading={runningOAuthId === provider.id}
-                      onClick={() => void handleConnectOAuth(provider.id)}
-                    >
-                      Connect OAuth
-                    </Button>
-                  )}
-
-                  {isAdmin && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      loading={runningTestId === provider.id}
-                      onClick={() => void handleTestProvider(provider.id)}
-                      icon={<ShieldCheck size={13} />}
-                    >
-                      Test connection
-                    </Button>
-                  )}
-
-                  {isAdmin && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={<Pencil size={13} />}
-                      onClick={() => openEditDialog(provider)}
-                    >
-                      Edit
-                    </Button>
-                  )}
-
-                  {isAdmin && (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      icon={<Trash2 size={13} />}
-                      onClick={() => setDeleteTarget(provider)}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </div>
+                <Button onClick={() => openCreate('GITHUB')} icon={<GitHubLogo className="h-3.5 w-3.5" />}>
+                  GitHub
+                </Button>
               </div>
-            ))
-          )}
-        </div>
+            )
+          }
+        />
+
+        {loading ? (
+          <Skeleton />
+        ) : (
+          <>
+            {providers.length === 0 ? (
+              <EmptyProviders isAdmin={isAdmin} onAdd={openCreate} />
+            ) : (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)]">
+                    <GitBranch size={14} />
+                    Connected Providers
+                    <span className="rounded-full border border-[var(--border)] bg-[var(--hover)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-muted)]">
+                      {providers.length}
+                    </span>
+                  </h2>
+                </div>
+
+                {providers.map((p) => (
+                  <ProviderCard
+                    key={p.id}
+                    provider={p}
+                    onEdit={openEdit}
+                    onDelete={(provider) => setDeleteTarget(provider)}
+                    onTest={handleTest}
+                    onOAuth={handleOAuth}
+                    onSetDefault={handleSetDefault}
+                    isAdmin={isAdmin}
+                    runningTestId={runningTestId}
+                    runningOAuthId={runningOAuthId}
+                    runningDefaultId={runningDefaultId}
+                  />
+                ))}
+              </section>
+            )}
+
+          </>
+        )}
       </div>
 
-      {dialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="absolute inset-0" onClick={closeDialog} aria-hidden />
+      {/* Add / Edit dialog */}
+      <AddProviderDialog
+        open={dialogOpen}
+        mode={dialogMode}
+        existingProvider={editingProvider}
+        initialProviderType={editingProvider?.providerType === 'GITHUB' ? 'GITHUB' : dialogProviderType}
+        fallbackRedirectUri={fallbackRedirectUri}
+        saving={saving}
+        error={dialogError}
+        copiedRedirect={copiedRedirect}
+        onSave={handleSave}
+        onClose={closeDialog}
+        onCopyRedirectUri={handleCopyRedirect}
+      />
 
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="gitlab-provider-dialog-title"
-            className="relative z-10 max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl"
-          >
-            <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-app)]">
-                <GitlabLogo />
-              </div>
-              <div>
-                <p id="gitlab-provider-dialog-title" className="text-base font-semibold text-[var(--text-primary)]">
-                  {dialogMode === 'create' ? 'Add GitLab Provider' : 'Edit GitLab Provider'}
-                </p>
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Configure OAuth credentials and provider access.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closeDialog}
-                className="ml-auto rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="space-y-4 px-6 py-5">
-              {error && <Alert tone="error">{error}</Alert>}
-
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-                Ce formulaire configure un provider GitLab global de plateforme. Les repositories/projets restent gérés dans l’espace Projects.
-              </div>
-
-              <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Basic</h3>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  Identité du provider et URL GitLab publique utilisée par la plateforme.
-                </p>
-                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                      Provider name <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={form.name}
-                      onChange={(event) => setFormValue('name', event.target.value)}
-                      placeholder="GitLab Production"
-                      disabled={!isAdmin}
-                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                    />
-                    <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                      Libellé d’affichage dans la liste des providers.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                      GitLab URL <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={form.gitlabUrl}
-                      onChange={(event) => setFormValue('gitlabUrl', event.target.value)}
-                      placeholder="https://gitlab.com"
-                      disabled={!isAdmin}
-                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                    />
-                    <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                      URL publique de l’instance GitLab (sans chemin API).
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <label className="flex h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)]">
-                    <input
-                      type="checkbox"
-                      checked={form.isDefault}
-                      onChange={(event) => setFormValue('isDefault', event.target.checked)}
-                      disabled={!isAdmin}
-                      className="accent-zinc-500"
-                    />
-                    Set as default provider
-                  </label>
-                </div>
-              </section>
-
-              <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">OAuth</h3>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  Application OAuth GitLab utilisée pour l’authentification de la plateforme.
-                </p>
-                <div className="mt-3">
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                    Redirect URI (read-only)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={form.redirectUri || fallbackRedirectUri}
-                      readOnly
-                      className="h-11 flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none"
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      icon={<Copy size={13} />}
-                      onClick={() => void handleCopyRedirectUri()}
-                    >
-                      {copiedRedirect ? 'Copied' : 'Copy'}
-                    </Button>
-                  </div>
-                  <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                    À copier dans l’application OAuth GitLab (scopes recommandés: <span className="font-mono">api, read_user, read_repository</span>).
-                  </p>
-                </div>
-                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                      Application ID
-                    </label>
-                    <input
-                      type="text"
-                      value={form.applicationId}
-                      onChange={(event) => setFormValue('applicationId', event.target.value)}
-                      placeholder="GitLab OAuth app id"
-                      disabled={!isAdmin}
-                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                      Application Secret
-                    </label>
-                    <input
-                      type="password"
-                      value={form.applicationSecret}
-                      onChange={(event) => setFormValue('applicationSecret', event.target.value)}
-                      placeholder={
-                        form.applicationSecretConfigured
-                          ? '••••••••  (leave empty to keep current)'
-                          : 'GitLab OAuth app secret'
-                      }
-                      disabled={!isAdmin}
-                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Advanced</h3>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  Champs optionnels pour réseau interne, administration et filtrage des groupes.
-                </p>
-                <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                      Internal URL (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={form.internalUrl}
-                      onChange={(event) => setFormValue('internalUrl', event.target.value)}
-                      placeholder="http://gitlab:80"
-                      disabled={!isAdmin}
-                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                      Admin Token (optional)
-                    </label>
-                    <input
-                      type="password"
-                      value={form.adminToken}
-                      onChange={(event) => setFormValue('adminToken', event.target.value)}
-                      placeholder={
-                        form.adminTokenConfigured
-                          ? '••••••••  (leave empty to keep current)'
-                          : 'glpat-xxxxxxxxxxxxxxxx'
-                      }
-                      disabled={!isAdmin}
-                      className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm font-mono text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                    Group Names (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={form.groupNames}
-                    onChange={(event) => setFormValue('groupNames', event.target.value)}
-                    placeholder="my-org,dev-team"
-                    disabled={!isAdmin}
-                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-                  />
-                </div>
-              </section>
-
-              {form.id && (
-                <p className="text-xs text-[var(--text-secondary)]">
-                  OAuth status: {form.oauthTokenConfigured ? 'Connected' : 'Not connected'}
-                  {form.oauthExpiresAt ? ` • expires ${formatDateTime(form.oauthExpiresAt)}` : ''}
-                </p>
-              )}
-
-              {isAdmin ? (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <Button onClick={() => void handleSave()} disabled={saving}>
-                    {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                    {dialogMode === 'create' ? 'Create provider' : 'Save changes'}
-                  </Button>
-
-                  {dialogMode === 'edit' && form.id && (
-                    <Button
-                      variant="secondary"
-                      loading={runningOAuthId === form.id}
-                      onClick={() => void handleConnectOAuth(form.id!)}
-                    >
-                      Connect OAuth
-                    </Button>
-                  )}
-
-                  {dialogMode === 'edit' && form.id && (
-                    <Button
-                      variant="secondary"
-                      loading={runningTestId === form.id}
-                      onClick={() => void handleTestProvider(form.id!)}
-                      icon={<ShieldCheck size={13} />}
-                    >
-                      Test connection
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Contact an administrator to manage providers.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Delete confirmation */}
       <ConfirmDialog
         open={Boolean(deleteTarget)}
-        title="Delete GitLab provider"
-        description={`Delete provider "${deleteTarget?.name ?? ''}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        variant="danger"
-        loading={deleting}
+        title={`Remove "${deleteTarget?.name ?? ''}"?`}
+        description="This will remove the provider from the platform. Projects already using it will lose access to pipelines and source operations."
+        confirmLabel={deleting ? 'Removing…' : 'Remove provider'}
         onConfirm={() => void handleDelete()}
-        onCancel={() => {
-          if (deleting) return;
-          setDeleteTarget(null);
-        }}
+        onCancel={() => setDeleteTarget(null)}
       />
 
-      <div className="pointer-events-none fixed right-4 top-4 z-[100] space-y-2">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${
-              toast.tone === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-            }`}
-          >
-            {toast.message}
-          </div>
-        ))}
-      </div>
-    </div>
+      {/* Toast stack */}
+      {toasts.length > 0 && (
+        <div className="fixed bottom-5 right-5 z-50 space-y-2 w-80">
+          {toasts.map((t) => (
+            <Toast
+              key={t.id}
+              item={t}
+              onRemove={(id) => setToasts((prev) => prev.filter((x) => x.id !== id))}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 }

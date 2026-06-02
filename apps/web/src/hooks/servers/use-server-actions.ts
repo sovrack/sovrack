@@ -48,6 +48,7 @@ export function useServerActions() {
   } = useQuery({
     queryKey: ADMIN_SERVERS_QUERY_KEY,
     queryFn: async () => await serversService.getAll(),
+    staleTime: 10_000,
   });
 
   const error = queryError ? getApiErrorMessage(queryError) : null;
@@ -134,7 +135,7 @@ export function useServerActions() {
   const handlePrepareOptionChange = (
     server: ServerType,
     field: keyof PrepareServerPayload,
-    value: boolean | string,
+    value: boolean | string | string[],
   ) => {
     const current = getPrepareOptions(server);
     setPrepareDrafts((prev) => ({
