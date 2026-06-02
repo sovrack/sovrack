@@ -48,6 +48,7 @@ export type ResolvedPreparation = {
   roles: PreparationRoleKey[];
   warnings: string[];
   gitlabRunnerExecutor: string;
+  reinstallOptions: Set<string>;
 };
 
 export type PreparationOptionDefinition = {
@@ -350,11 +351,14 @@ export function resolvePreparationOptions(
 
   const roles = ROLE_ORDER.filter((role) => roleSet.has(role));
 
+  const reinstallOptions = new Set<string>(dto?.reinstallOptions ?? []);
+
   return {
     profile,
     selectedOptions: selected,
     roles,
     warnings: [],
     gitlabRunnerExecutor,
+    reinstallOptions,
   };
 }

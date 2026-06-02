@@ -1,0 +1,269 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { Role } from '@prisma/client';
+import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { PrismaService } from '../../../core/database/prisma.service';
+import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
+import {
+  extractTokenFromCookieHeader,
+  AUTH_COOKIE_NAME_DEFAULT,
+} from '../../../core/http/auth-cookie.util';
+import { resolveGatewayCorsOrigins } from '../../../core/http/cors-origins.util';
+
+type DeploymentLogLevel = 'info' | 'error' | 'success';
+
+type DeploymentStartedPayload = {
+  deploymentId: string;
+  projectId?: string;
+  environmentId?: string;
+  status?: string;
+  startedAt?: Date | null;
+  initiatorRole?: string;
+};
+
+type DeploymentLogPayload = {
+  deploymentId: string;
+  message: string;
+  level: DeploymentLogLevel;
+  timestamp: string;
+};
+
+type DeploymentStatusPayload = {
+  deploymentId: string;
+  status: string;
+};
+
+type DeploymentFinishedPayload = {
+  deploymentId: string;
+  status: string;
+  finishedAt?: Date | null;
+};
+
+type JoinDeploymentPayload = {
+  deploymentId?: string;
+};
+
+type RequestReplayPayload = {
+  deploymentId?: string;
+};
+
+type DeploymentLogReplayPayload = {
+  deploymentId: string;
+  logs: DeploymentLogPayload[];
+};
+
+@Injectable()
+@WebSocketGateway({
+  namespace: '/deployments',
+  cors: {
+    origin: resolveGatewayCorsOrigins(),
+    credentials: true,
+  },
+})
+export class DeploymentsGateway implements OnGatewayConnection {
+  private readonly logger = new Logger(DeploymentsGateway.name);
+
+  @WebSocketServer()
+  server!: Server;
+
+  // In-memory ring buffer per deployment for replay after reconnection.
+  // Cleared on emitFinished — persisted logs remain in DB for cold access.
+  private readonly MAX_BUFFER_SIZE = 200;
+  private readonly logBuffer = new Map<string, DeploymentLogPayload[]>();
+
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  // Vérifie le token JWT à chaque nouvelle connexion WebSocket.
+  // Les clients sans token valide sont immédiatement déconnectés.
+  handleConnection(client: Socket): void {
+    const authData = client.handshake.auth as Record<string, unknown>;
+    const cookieName = this.configService.get<string>('AUTH_COOKIE_NAME', AUTH_COOKIE_NAME_DEFAULT);
+    const cookieToken = extractTokenFromCookieHeader(
+      client.handshake.headers.cookie,
+      cookieName,
+    );
+    const rawToken =
+      cookieToken ??
+      (authData.token as string | undefined) ??
+      client.handshake.headers.authorization;
+
+    // Supprimer le préfixe "Bearer " si présent.
+    const token =
+      typeof rawToken === 'string'
+        ? rawToken.replace(/^Bearer\s+/i, '').trim()
+        : null;
+
+    if (!token) {
+      this.logger.warn(
+        `WebSocket: connexion rejetée — token absent (id: ${client.id})`,
+      );
+      client.disconnect();
+      return;
+    }
+
+    try {
+      const payload = this.jwtService.verify<JwtPayload>(token);
+      // Stocker l'utilisateur décodé pour usage ultérieur dans les événements.
+      (client.data as { user: JwtPayload }).user = payload;
+      this.logger.debug(
+        `WebSocket: connexion acceptée — user ${payload.email} (id: ${client.id})`,
+      );
+    } catch {
+      this.logger.warn(
+        `WebSocket: connexion rejetée — token invalide (id: ${client.id})`,
+      );
+      client.disconnect();
+    }
+  }
+
+  @SubscribeMessage('join:deployment')
+  async handleJoinDeployment(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: JoinDeploymentPayload,
+  ): Promise<{ ok: boolean; deploymentId?: string; error?: string }> {
+    const deploymentId = payload?.deploymentId?.trim();
+    if (!deploymentId) {
+      const message = 'deploymentId manquant';
+      client.emit('deployment:error', { message });
+      return { ok: false, error: message };
+    }
+
+    const user = (client.data as { user?: JwtPayload }).user;
+    if (!user) {
+      const message = 'Utilisateur non authentifié';
+      client.emit('deployment:error', { deploymentId, message });
+      return { ok: false, deploymentId, error: message };
+    }
+
+    const hasAccess = await this.canAccessDeployment(user, deploymentId);
+    if (!hasAccess) {
+      const message = 'Accès non autorisé à ce déploiement';
+      client.emit('deployment:error', { deploymentId, message });
+      return { ok: false, deploymentId, error: message };
+    }
+
+    await client.join(this.roomName(deploymentId));
+    client.emit('deployment:joined', { deploymentId });
+    return { ok: true, deploymentId };
+  }
+
+  emitStarted(payload: DeploymentStartedPayload): void {
+    this.server
+      .to(this.roomName(payload.deploymentId))
+      .emit('deployment:started', payload);
+  }
+
+  emitLog(payload: DeploymentLogPayload): void {
+    this.appendToBuffer(payload);
+    this.server
+      .to(this.roomName(payload.deploymentId))
+      .emit('deployment:log', payload);
+  }
+
+  emitStatus(payload: DeploymentStatusPayload): void {
+    this.server
+      .to(this.roomName(payload.deploymentId))
+      .emit('deployment:status', payload);
+  }
+
+  emitFinished(payload: DeploymentFinishedPayload): void {
+    this.server
+      .to(this.roomName(payload.deploymentId))
+      .emit('deployment:finished', payload);
+    // Buffer no longer needed once deployment ends — DB holds the full history.
+    this.logBuffer.delete(payload.deploymentId);
+  }
+
+  @SubscribeMessage('deployment:request-replay')
+  async handleReplayRequest(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: RequestReplayPayload,
+  ): Promise<{ ok: boolean; count?: number; error?: string }> {
+    const deploymentId = payload?.deploymentId?.trim();
+    if (!deploymentId) {
+      return { ok: false, error: 'deploymentId manquant' };
+    }
+
+    const user = (client.data as { user?: JwtPayload }).user;
+    if (!user) {
+      return { ok: false, error: 'Utilisateur non authentifié' };
+    }
+
+    // Re-check authorization to avoid sending replay to a client that
+    // never joined / lost access between events.
+    const hasAccess = await this.canAccessDeployment(user, deploymentId);
+    if (!hasAccess) {
+      return { ok: false, error: 'Accès non autorisé à ce déploiement' };
+    }
+
+    const buffer = this.logBuffer.get(deploymentId);
+    if (!buffer || buffer.length === 0) {
+      return { ok: true, count: 0 };
+    }
+
+    const replayPayload: DeploymentLogReplayPayload = {
+      deploymentId,
+      logs: buffer.slice(),
+    };
+    client.emit('deployment:log-replay', replayPayload);
+    return { ok: true, count: buffer.length };
+  }
+
+  private appendToBuffer(payload: DeploymentLogPayload): void {
+    let buffer = this.logBuffer.get(payload.deploymentId);
+    if (!buffer) {
+      buffer = [];
+      this.logBuffer.set(payload.deploymentId, buffer);
+    }
+    buffer.push(payload);
+    if (buffer.length > this.MAX_BUFFER_SIZE) {
+      buffer.shift();
+    }
+  }
+
+  private roomName(deploymentId: string): string {
+    return `deployment:${deploymentId}`;
+  }
+
+  private async canAccessDeployment(
+    user: JwtPayload,
+    deploymentId: string,
+  ): Promise<boolean> {
+    if (user.role === Role.ADMIN) {
+      return true;
+    }
+
+    const deployment = await this.prisma.deployment.findUnique({
+      where: { id: deploymentId },
+      select: { projectId: true },
+    });
+    if (!deployment) {
+      return false;
+    }
+
+    const member = await this.prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId: deployment.projectId,
+          userId: user.id,
+        },
+      },
+      select: { id: true },
+    });
+
+    return Boolean(member);
+  }
+}

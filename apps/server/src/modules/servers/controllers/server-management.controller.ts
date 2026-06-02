@@ -20,14 +20,14 @@ import {
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
-import { Role } from '@prisma/client';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { GetUser } from '../../../common/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../common/guards/roles.guard';
-import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { Role, ServerInfraRole } from '@prisma/client';
+import { Roles } from '../../../core/decorators/roles.decorator';
+import { GetUser } from '../../../core/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../core/guards/roles.guard';
+import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
+import { PaginationDto } from '../../../core/http/pagination.dto';
 import { CreateServerDto } from '../dto/create-server.dto';
 import {
   CreateServerResponseDto,
@@ -40,6 +40,12 @@ import {
 } from '../dto/server-response.dto';
 import { UpdateServerDto } from '../dto/update-server.dto';
 import { ServersCoreService } from '../services';
+
+class SetServerRoleDto {
+  @IsEnum(ServerInfraRole, { message: 'Rôle invalide' })
+  @IsNotEmpty()
+  infraRole!: ServerInfraRole;
+}
 
 class RegisterRunnerDto {
   @IsString({ message: "L'URL GitLab doit être une chaîne de caractères" })
@@ -193,5 +199,37 @@ export class ServerManagementController {
   })
   async listJobs(@Param('id') id: string, @Query() pagination: PaginationDto) {
     return await this.core.listJobs(id, pagination);
+  }
+
+  @Patch(':id/role')
+  @ApiOperation({ summary: 'Définir le rôle infrastructure de ce serveur' })
+  @ApiOkResponse({ description: 'Rôle mis à jour' })
+  async setServerRole(
+    @Param('id') id: string,
+    @Body() dto: SetServerRoleDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.core.setServerInfraRole(id, dto.infraRole, user.id);
+  }
+
+  @Get('infra-environments')
+  @ApiOperation({ summary: 'Lister les serveurs configurés comme STAGING ou PRODUCTION' })
+  @ApiOkResponse({ description: 'Serveurs avec rôle infra' })
+  async listInfraEnvironments() {
+    return await this.core.listInfraEnvironments();
+  }
+
+  @Get(':id/environments')
+  @ApiOperation({ summary: 'Lister les environnements assignés à ce serveur (tous projets)' })
+  @ApiOkResponse({ description: 'Environnements utilisant ce serveur' })
+  async listServerEnvironments(@Param('id') id: string) {
+    return await this.core.listEnvironmentsForServer(id);
+  }
+
+  @Post(':id/ping')
+  @ApiOperation({ summary: 'Tester rapidement la connectivité SSH du serveur' })
+  @ApiOkResponse({ description: 'Résultat du test de connexion' })
+  async pingServer(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    return await this.core.pingServer(id, user.id);
   }
 }

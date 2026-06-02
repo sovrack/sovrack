@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   AutomationRunStatus,
   AutomationTargetStatus,
@@ -6,8 +7,8 @@ import {
   Server,
   ServerLogLevel,
 } from '@prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { AnsibleExecutionService } from '../../servers/services/ansible-execution.service';
+import { PrismaService } from '../../../core/database/prisma.service';
+import { ServersCoreService } from '../../servers/services/servers-core.service';
 import type { PreparationRoleKey } from '../../servers/shared/server-preparation-options';
 import { AutomationGateway } from '../automation.gateway';
 
@@ -36,8 +37,9 @@ export class AutomationRunnerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly ansible: AnsibleExecutionService,
+    private readonly servers: ServersCoreService,
     private readonly gateway: AutomationGateway,
+    private readonly configService: ConfigService,
   ) {}
 
   executeInBackground(runId: string): void {
@@ -168,7 +170,7 @@ export class AutomationRunnerService {
         });
 
         try {
-          await this.ansible.runPreparation(
+          await this.servers.runPreparationWithAnsible(
             server,
             {
               roles: cfg.roles,
@@ -334,7 +336,7 @@ export class AutomationRunnerService {
     },
   ): Promise<void> {
     const created = await this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`automation-log:${runId}`}))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`automation-log:${runId}`}))`;
       const lastLine = await tx.automationRunLog.findFirst({
         where: { runId },
         orderBy: { lineNumber: 'desc' },
@@ -390,7 +392,7 @@ export class AutomationRunnerService {
   }
 
   private resolveTargetTimeoutMs(): number {
-    const raw = Number(process.env.AUTOMATION_TARGET_TIMEOUT_MS);
+    const raw = Number(this.configService.get<string>('AUTOMATION_TARGET_TIMEOUT_MS', '300000'));
     if (Number.isFinite(raw) && raw >= 60_000) {
       return Math.floor(raw);
     }

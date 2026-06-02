@@ -8,7 +8,7 @@ import {
   AutomationTargetStatus,
   Prisma,
 } from '@prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../core/database/prisma.service';
 import { CreateAutomationRunDto } from '../dto/create-automation-run.dto';
 import {
   AUTOMATION_ACTIONS,
@@ -196,5 +196,16 @@ export class AutomationService {
     }
 
     return await this.getRun(id);
+  }
+
+  async deleteRun(id: string) {
+    const run = await this.prisma.automationRun.findUnique({ where: { id } });
+    if (!run) throw new NotFoundException('Automation run not found');
+    if (ACTIVE_RUN_STATUSES.includes(run.status)) {
+      throw new BadRequestException('Cannot delete an active run. Cancel it first.');
+    }
+    await this.prisma.automationRunLog.deleteMany({ where: { runId: id } });
+    await this.prisma.automationRun.delete({ where: { id } });
+    return { deleted: true };
   }
 }

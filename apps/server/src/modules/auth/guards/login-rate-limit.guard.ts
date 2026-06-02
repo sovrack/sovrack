@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
+import type { Request } from 'express';
 
 type RateLimitState = {
   count: number;
@@ -12,33 +13,32 @@ type RateLimitState = {
 };
 
 /**
- * Rate limiter simple en mémoire pour limiter les tentatives de login.
- * Note: adapté au dev et mono-instance; en prod distribuée, utiliser Redis.
+ * Rate limiter login par IP.
+ * En développement et single-instance: en mémoire.
+ * Pour production multi-pod: remplacer par throttler Redis (@nestjs/throttler + ThrottlerStorageRedisService).
  */
 @Injectable()
 export class LoginRateLimitGuard implements CanActivate {
   private readonly attempts = new Map<string, RateLimitState>();
   private readonly maxAttempts = 5;
   private readonly windowMs = 60 * 1000;
+  private lastCleanup = Date.now();
+  private readonly cleanupIntervalMs = 5 * 60 * 1000;
 
   canActivate(context: ExecutionContext): boolean {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const request = context.switchToHttp().getRequest();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const forwardedFor = request.headers?.['x-forwarded-for'];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const request = context.switchToHttp().getRequest<Request>();
+    const forwardedFor = request.headers['x-forwarded-for'];
     const ip =
-      (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) ||
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      request.ip ||
+      (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) ??
+      request.ip ??
       'unknown-ip';
 
+    this.cleanupExpiredEntries();
+
     const now = Date.now();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const state = this.attempts.get(ip);
 
     if (!state || now - state.windowStart > this.windowMs) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       this.attempts.set(ip, { count: 1, windowStart: now });
       return true;
     }
@@ -51,8 +51,18 @@ export class LoginRateLimitGuard implements CanActivate {
     }
 
     state.count += 1;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.attempts.set(ip, state);
     return true;
+  }
+
+  private cleanupExpiredEntries(): void {
+    const now = Date.now();
+    if (now - this.lastCleanup < this.cleanupIntervalMs) return;
+    this.lastCleanup = now;
+    for (const [ip, state] of this.attempts.entries()) {
+      if (now - state.windowStart > this.windowMs) {
+        this.attempts.delete(ip);
+      }
+    }
   }
 }

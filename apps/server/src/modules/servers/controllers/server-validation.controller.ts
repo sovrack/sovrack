@@ -15,11 +15,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { GetUser } from '../../../common/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../common/guards/roles.guard';
-import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
+import { Roles } from '../../../core/decorators/roles.decorator';
+import { GetUser } from '../../../core/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../core/guards/roles.guard';
+import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
 import { ValidateServerSshDto } from '../dto';
 import {
   ServerLogDto,
@@ -27,7 +27,7 @@ import {
   ServerValidationResultDto,
   ServerVerificationStatusDto,
 } from '../dto/server-response.dto';
-import { ServerVerificationService, ServersCoreService } from '../services';
+import { ServersCoreService } from '../services';
 
 @ApiTags('Servers Validation')
 @ApiBearerAuth()
@@ -35,10 +35,7 @@ import { ServerVerificationService, ServersCoreService } from '../services';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class ServerValidationController {
-  constructor(
-    private readonly core: ServersCoreService,
-    private readonly verification: ServerVerificationService,
-  ) {}
+  constructor(private readonly core: ServersCoreService) {}
 
   @Post(':id/validate-ssh')
   @ApiOperation({
@@ -67,7 +64,7 @@ export class ServerValidationController {
   })
   async getVerificationStatus(@Param('id') id: string) {
     const server = await this.core.findOne(id);
-    const recentLogs = await this.verification.getRecentLogs(id, 10);
+    const recentLogs = await this.core.getRecentVerificationLogs(id, 10);
 
     return {
       id: server.id,
@@ -100,8 +97,7 @@ export class ServerValidationController {
     @Param('id') id: string,
     @Query('limit') limit?: string,
   ) {
-    await this.core.findOne(id);
-    const logs = await this.verification.getRecentLogs(
+    const logs = await this.core.getRecentVerificationLogs(
       id,
       limit ? Number.parseInt(limit, 10) : 50,
     );

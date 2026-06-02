@@ -1,5 +1,5 @@
 import type { Server, ServerJob } from '@prisma/client';
-import type { PaginatedResult } from '../../../common/dto/pagination.dto';
+import type { PaginatedResult } from '../../../core/http/pagination.dto';
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
 
 export type ServerPublic = Omit<

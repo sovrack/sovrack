@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { SshKeysController } from './ssh-keys.controller';
 import { SshKeysService } from './ssh-keys.service';
-import { ServersModule } from '../servers/servers.module';
+import { ServersSharedModule } from '../servers/servers-shared.module';
 
 @Module({
-  imports: [ServersModule],
+  imports: [ServersSharedModule],
   controllers: [SshKeysController],
   providers: [SshKeysService],
 })

@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtModule, type JwtModuleOptions } from '@nestjs/jwt';
-import { PrismaModule } from '../../prisma/prisma.module';
+import { PrismaModule } from '../../core/database/prisma.module';
 import { ServerPreparationGateway } from './server-preparation.gateway';
 import {
   AnsibleExecutionService,
@@ -16,24 +14,13 @@ import {
   ServersJobsService,
   ServersSshService,
 } from './services';
+import { ServerPreparationStateService } from './services/preparation/server-preparation-state.service';
+import { AppJwtModule } from '../../core/jwt/jwt.module';
 
 @Module({
   imports: [
-    ConfigModule,
     PrismaModule,
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService): JwtModuleOptions => {
-        const secret = configService.get<string>('JWT_SECRET');
-        if (!secret) {
-          throw new Error(
-            "JWT_SECRET non configuré dans les variables d'environnement",
-          );
-        }
-        return { secret };
-      },
-    }),
+    AppJwtModule,
   ],
   providers: [
     ServersCoreService,
@@ -45,6 +32,7 @@ import {
     ServerVerificationService,
     ServerDetectionService,
     ServerPreparationService,
+    ServerPreparationStateService,
     ServerAuditService,
     ServerLegacyApiService,
     ServerPreparationGateway,
@@ -54,13 +42,6 @@ import {
     ServersCryptoService,
     ServerHostKeyService,
     ServersSshService,
-    AnsibleExecutionService,
-    ServersJobsService,
-    ServerVerificationService,
-    ServerDetectionService,
-    ServerPreparationService,
-    ServerAuditService,
-    ServerLegacyApiService,
     ServerPreparationGateway,
   ],
 })

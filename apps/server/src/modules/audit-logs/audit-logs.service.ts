@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../core/database/prisma.service';
 import {
   type PaginatedResult,
   type PaginationDto,
   paginate,
-} from '../../common/dto/pagination.dto';
+} from '../../core/http/pagination.dto';
 
 export type AuditLogListItem = {
   id: string;

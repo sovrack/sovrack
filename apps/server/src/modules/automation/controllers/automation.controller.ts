@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -8,11 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { GetUser } from '../../../common/decorators/get-user.decorator';
-import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../common/guards/roles.guard';
+import { GetUser } from '../../../core/decorators/get-user.decorator';
+import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
+import { Roles } from '../../../core/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../core/guards/roles.guard';
 import { CreateAutomationRunDto } from '../dto/create-automation-run.dto';
 import { AutomationService } from '../services/automation.service';
 
@@ -57,5 +58,10 @@ export class AutomationController {
   @Post('automation/runs/:id/cancel')
   cancelRun(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return this.automationService.cancelRun(id, user.id);
+  }
+
+  @Delete('automation/runs/:id')
+  deleteRun(@Param('id') id: string) {
+    return this.automationService.deleteRun(id);
   }
 }

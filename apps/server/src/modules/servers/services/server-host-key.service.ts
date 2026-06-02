@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Server } from '@prisma/client';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
@@ -27,6 +28,8 @@ const KEY_TYPE_PRIORITY = [
 @Injectable()
 export class ServerHostKeyService {
   private readonly logger = new Logger(ServerHostKeyService.name);
+
+  constructor(private readonly configService: ConfigService) {}
 
   async resolveForConnection(
     server: Server,
@@ -69,7 +72,7 @@ export class ServerHostKeyService {
   }
 
   resolveStrictHostKeyChecking(): 'yes' | 'no' | 'ask' | 'accept-new' {
-    const raw = process.env.ANSIBLE_STRICT_HOST_KEY_CHECKING?.trim();
+    const raw = this.configService.get<string>('ANSIBLE_STRICT_HOST_KEY_CHECKING', 'true').trim();
     if (raw) {
       const value = raw.toLowerCase();
       if (
@@ -98,7 +101,7 @@ export class ServerHostKeyService {
   }
 
   resolveKnownHostsPath(): string {
-    const configured = process.env.ANSIBLE_KNOWN_HOSTS_PATH?.trim();
+    const configured = this.configService.get<string>('ANSIBLE_KNOWN_HOSTS_PATH', '').trim();
     if (configured) {
       return resolve(configured.replace(/[\n\r"'\\;|&$`]/g, '').trim());
     }
@@ -314,6 +317,6 @@ export class ServerHostKeyService {
   }
 
   private isProduction(): boolean {
-    return (process.env.NODE_ENV ?? '').toLowerCase() === 'production';
+    return this.configService.get<string>('NODE_ENV', 'development').toLowerCase() === 'production';
   }
 }

@@ -1,31 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
-import { generateKeyPairSync } from 'crypto';
 import * as CryptoJS from 'crypto-js';
+import { generateKeyPairSync } from 'crypto';
 import { ServersCryptoService } from './servers-crypto.service';
+import { CryptoService } from '../../../core/crypto/crypto.service';
 
 describe('ServersCryptoService', () => {
   let service: ServersCryptoService;
 
   beforeEach(async () => {
+    process.env.CONFIG_SECRET =
+      'this-is-a-test-secret-key-that-is-at-least-32-char';
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ServersCryptoService,
-        {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn((key: string) => {
-              if (key === 'CONFIG_SECRET') {
-                return 'this-is-a-test-secret-key-that-is-at-least-32-char';
-              }
-              return null;
-            }),
-          },
-        },
-      ],
+      providers: [ServersCryptoService, CryptoService],
     }).compile();
 
     service = module.get<ServersCryptoService>(ServersCryptoService);
+  });
+
+  afterEach(() => {
+    delete process.env.CONFIG_SECRET;
   });
 
   describe('resolveSshMaterial', () => {
@@ -51,14 +45,12 @@ describe('ServersCryptoService', () => {
     });
 
     it('should use provided private key when supplied', () => {
-      // Generate a valid key first to use as custom key
       const validKeyPair = service.resolveSshMaterial();
       const customKey = validKeyPair.privateKey;
 
       const result = service.resolveSshMaterial(customKey);
 
       expect(result.privateKey).toContain('OPENSSH PRIVATE KEY');
-      // Public key should be derived from provided private key
       expect(result.publicKey).toBeDefined();
       expect(result.publicKey).toContain('ssh-ed25519');
     });
@@ -98,9 +90,7 @@ describe('ServersCryptoService', () => {
       const encrypted1 = service.encrypt(plaintext);
       const encrypted2 = service.encrypt(plaintext);
 
-      // Different IVs = different ciphertexts
       expect(encrypted1).not.toBe(encrypted2);
-      // But same plaintext
       expect(service.decrypt(encrypted1)).toBe(plaintext);
       expect(service.decrypt(encrypted2)).toBe(plaintext);
     });
@@ -114,10 +104,7 @@ describe('ServersCryptoService', () => {
     it('should decrypt legacy CryptoJS ciphertexts', () => {
       const plaintext = 'legacy-secret-data';
       const secret = 'this-is-a-test-secret-key-that-is-at-least-32-char';
-      const legacyEncrypted = CryptoJS.AES.encrypt(
-        plaintext,
-        secret,
-      ).toString();
+      const legacyEncrypted = CryptoJS.AES.encrypt(plaintext, secret).toString();
 
       const decrypted = service.decrypt(legacyEncrypted);
       expect(decrypted).toBe(plaintext);
@@ -149,14 +136,8 @@ describe('ServersCryptoService', () => {
 
     it('should normalize PKCS8 key to OpenSSH format', () => {
       const { privateKey: pkcs8Key } = generateKeyPairSync('ed25519', {
-        publicKeyEncoding: {
-          type: 'spki',
-          format: 'pem',
-        },
-        privateKeyEncoding: {
-          type: 'pkcs8',
-          format: 'pem',
-        },
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
       });
 
       const result = service.normalizePrivateKeyFormat(pkcs8Key);

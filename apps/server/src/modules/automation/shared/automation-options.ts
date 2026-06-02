@@ -157,6 +157,26 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
     requiresSshValidated: true,
     requiresSudo: true,
   },
+  {
+    key: 'enable_ssl',
+    label: 'Activer SSL / HTTPS (Let\'s Encrypt)',
+    description: 'Installe Certbot et obtient un certificat Let\'s Encrypt pour les domaines configurés. Renouvellement automatique activé.',
+    playbookPath: 'prepare-server.yml',
+    category: 'web',
+    roles: ['ssl'],
+    requiresSshValidated: true,
+    requiresSudo: true,
+  },
+  {
+    key: 'install_nodejs',
+    label: 'Installer Node.js',
+    description: 'Installe Node.js LTS via NodeSource.',
+    playbookPath: 'prepare-server.yml',
+    category: 'system',
+    roles: ['nodejs'],
+    requiresSshValidated: true,
+    requiresSudo: true,
+  },
 ];
 
 export function getAutomationAction(key: string): AutomationAction | undefined {

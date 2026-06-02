@@ -1,8 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '../../prisma/prisma.service';
-import { GitlabCryptoService } from '../gitlab/gitlab-crypto.service';
+import { PrismaService } from '../../core/database/prisma.service';
+import { GitlabCryptoService } from '../git-providers/gitlab/gitlab-crypto.service';
 
 type DetectConfidence = 'high' | 'medium' | 'low';
 
@@ -59,7 +63,10 @@ export class BuildDetectorService {
     private readonly crypto: GitlabCryptoService,
   ) {}
 
-  async detectProjectType(projectId: string): Promise<DetectResult> {
+  async detectProjectType(
+    projectId: string,
+    serviceId?: string,
+  ): Promise<DetectResult> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: { gitlabConfig: true },
@@ -75,8 +82,36 @@ export class BuildDetectorService {
     const config = project.gitlabConfig;
     const token = this.crypto.decryptConfigToken(config.gitlabToken);
     const baseUrl = config.gitlabUrl.replace(/\/$/, '');
-    const gitlabId = config.gitlabId ?? project.gitlabId;
-    const ref = config.defaultBranch || project.branch || 'main';
+    let ref = config.defaultBranch || project.branch || 'main';
+
+    let gitlabId: bigint | null = config.gitlabId ?? project.gitlabId ?? null;
+
+    if (config.sourceType === 'GROUP' && !serviceId) {
+      throw new BadRequestException(
+        'serviceId est requis pour la détection build en mode GROUP.',
+      );
+    }
+
+    if (serviceId) {
+      const service = await this.prisma.projectService.findUnique({
+        where: { id: serviceId },
+      });
+      if (!service || service.projectId !== projectId) {
+        throw new NotFoundException('Service introuvable');
+      }
+      if (service.gitlabProjectId) {
+        gitlabId = service.gitlabProjectId;
+      }
+      if (service.defaultBranch) {
+        ref = service.defaultBranch;
+      }
+    }
+
+    if (config.sourceType === 'GROUP' && !gitlabId) {
+      throw new BadRequestException(
+        'GitLab project ID manquant sur ce service GROUP.',
+      );
+    }
 
     if (!gitlabId) {
       throw new NotFoundException('ID GitLab du projet introuvable');

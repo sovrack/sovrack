@@ -4,10 +4,11 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Server, ServerConnectionMode, ServerStatus } from '@prisma/client';
 import { chmod, rm, writeFile } from 'fs/promises';
 import { NodeSSH } from 'node-ssh';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../core/database/prisma.service';
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
 import { ServersCryptoService } from './servers-crypto.service';
 import { ServerHostKeyService } from './server-host-key.service';
@@ -41,6 +42,7 @@ export class ServersSshService {
     private readonly crypto: ServersCryptoService,
     private readonly hostKeys: ServerHostKeyService,
     private readonly verification: ServerVerificationService,
+    private readonly configService: ConfigService,
   ) {}
 
   mapConnectionMode(mode?: ServerConnectionModeDto): ServerConnectionMode {
@@ -509,7 +511,7 @@ export class ServersSshService {
   }
 
   private isAutoSudoersEnabled(): boolean {
-    const raw = (process.env.SERVER_AUTO_CONFIGURE_SUDOERS ?? 'false')
+    const raw = (this.configService.get<string>('SERVER_AUTO_CONFIGURE_SUDOERS', 'false'))
       .trim()
       .toLowerCase();
     return raw === '1' || raw === 'true' || raw === 'yes';
@@ -529,7 +531,7 @@ export class ServersSshService {
   }
 
   private isTrustOnFirstUseEnabled(): boolean {
-    const raw = process.env.ANSIBLE_HOST_KEY_TRUST_ON_FIRST_USE?.trim();
+    const raw = this.configService.get<string>('ANSIBLE_HOST_KEY_TRUST_ON_FIRST_USE', 'false').trim();
     if (raw) {
       const normalized = raw.toLowerCase();
       return (
@@ -537,7 +539,7 @@ export class ServersSshService {
       );
     }
 
-    const nodeEnv = (process.env.NODE_ENV ?? '').toLowerCase();
+    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development').toLowerCase();
     return nodeEnv !== 'production';
   }
 }

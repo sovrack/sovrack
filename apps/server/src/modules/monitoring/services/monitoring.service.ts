@@ -3,12 +3,14 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { DeploymentStatus, PipelineStatus, ServerStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { PlatformConfigService } from '../../platform-config/platform-config.service';
+import { PrismaService } from '../../../core/database/prisma.service';
+import { PlatformService } from '../../platform/platform.service';
 import { CreateAutomationRunDto } from '../../automation/dto/create-automation-run.dto';
 import { AUTOMATION_ACTIONS } from '../../automation/shared/automation-options';
 import { AutomationService } from '../../automation/services/automation.service';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
+import { MonitoringStatsService } from './monitoring-stats.service';
+import { MonitoringPrometheusService } from './monitoring-prometheus.service';
 
 type MonitoringHealth = 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';
 
@@ -45,8 +47,10 @@ export class MonitoringService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
-    private readonly platformConfig: PlatformConfigService,
+    private readonly platformConfig: PlatformService,
     private readonly automation: AutomationService,
+    private readonly statsService: MonitoringStatsService,
+    private readonly prometheusService: MonitoringPrometheusService,
   ) {}
 
   async getOverview() {
@@ -81,280 +85,20 @@ export class MonitoringService {
   }
 
   async getServerMonitoring() {
-    const servers = await this.prisma.server.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      include: {
-        environments: {
-          select: {
-            projectId: true,
-            project: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    const [metricByHost, deploymentStatsByServer] = await Promise.all([
-      this.fetchPrometheusMetricsByHost(),
-      this.fetchDeploymentStatsByServer(),
-    ]);
-
-    return servers.map((server) => {
-      const metrics =
-        metricByHost.get(server.host) ?? this.emptyMetricSnapshot();
-      const deploymentStats = deploymentStatsByServer.get(server.id) ?? {
-        lastStatus: null,
-        lastDeploymentAt: null,
-        failedInLast7d: 0,
-        successInLast7d: 0,
-      };
-
-      const blockingReasons = this.resolveBlockingReasons(server);
-      const monitoringStatus = this.resolveServerHealth(
-        server.status,
-        server.isVerified,
-        metrics,
-      );
-
-      return {
-        serverId: server.id,
-        name: server.name,
-        host: server.host,
-        platformStatus: server.status,
-        monitoringStatus,
-        lastCheckAt:
-          metrics.up !== null ||
-          metrics.cpuPercent !== null ||
-          metrics.memoryPercent !== null ||
-          metrics.diskPercent !== null
-            ? new Date().toISOString()
-            : null,
-        metrics,
-        docker: {
-          enabled: server.hasDocker,
-          runnerEnabled: server.hasRunner,
-        },
-        linkedProjects: server.environments.map((env) => ({
-          id: env.project.id,
-          name: env.project.name,
-        })),
-        deployment: deploymentStats,
-        blockingReasons,
-      };
-    });
+    const metricByHost = await this.prometheusService.fetchPrometheusMetricsByHost();
+    return await this.statsService.getServerMonitoring(metricByHost);
   }
 
   async getProjectMonitoring() {
-    const projects = await this.prisma.project.findMany({
-      orderBy: { name: 'asc' },
-      include: {
-        environments: {
-          select: {
-            id: true,
-            serverId: true,
-          },
-        },
-        deployments: {
-          orderBy: { createdAt: 'desc' },
-          select: {
-            status: true,
-            createdAt: true,
-          },
-        },
-        pipelines: {
-          orderBy: { createdAt: 'desc' },
-          take: 25,
-          select: {
-            status: true,
-          },
-        },
-      },
-    });
-
-    const sevenDaysAgo = this.daysAgo(7);
-
-    return projects.map((project) => {
-      const latestDeployment = project.deployments[0] ?? null;
-      const deploymentsLast7d = project.deployments.filter(
-        (deployment) => deployment.createdAt >= sevenDaysAgo,
-      );
-      const failedDeployments7d = deploymentsLast7d.filter(
-        (deployment) =>
-          deployment.status === DeploymentStatus.FAILED ||
-          deployment.status === DeploymentStatus.CANCELED,
-      ).length;
-      const successDeployments7d = deploymentsLast7d.filter(
-        (deployment) => deployment.status === DeploymentStatus.SUCCESS,
-      ).length;
-      const successRate7d =
-        deploymentsLast7d.length > 0
-          ? Math.round((successDeployments7d / deploymentsLast7d.length) * 100)
-          : null;
-
-      const pipelineStatusCounts = project.pipelines.reduce(
-        (acc, pipeline) => {
-          acc[pipeline.status] = (acc[pipeline.status] ?? 0) + 1;
-          return acc;
-        },
-        {} as Record<PipelineStatus, number>,
-      );
-
-      const health = this.resolveProjectHealth(
-        latestDeployment?.status ?? null,
-        failedDeployments7d,
-      );
-
-      return {
-        projectId: project.id,
-        name: project.name,
-        linkedServers: Array.from(
-          new Set(project.environments.map((env) => env.serverId)),
-        ).length,
-        latestDeploymentStatus: latestDeployment?.status ?? null,
-        latestDeploymentAt: latestDeployment?.createdAt.toISOString() ?? null,
-        deploymentsLast7d: deploymentsLast7d.length,
-        failedDeployments7d,
-        successRate7d,
-        pipelineStatusCounts,
-        health,
-      };
-    });
+    return await this.statsService.getProjectMonitoring();
   }
 
   async getDeploymentMonitoring() {
-    const deployments = await this.prisma.deployment.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-      include: {
-        project: {
-          select: { id: true, name: true },
-        },
-        environment: {
-          select: {
-            id: true,
-            name: true,
-            server: {
-              select: { id: true, name: true, host: true },
-            },
-          },
-        },
-      },
-    });
-
-    const sevenDaysAgo = this.daysAgo(7);
-    const deploymentsLast7d = deployments.filter(
-      (deployment) => deployment.createdAt >= sevenDaysAgo,
-    );
-    const success7d = deploymentsLast7d.filter(
-      (deployment) => deployment.status === DeploymentStatus.SUCCESS,
-    ).length;
-
-    const stats = {
-      total: deployments.length,
-      pending: deployments.filter((d) => d.status === DeploymentStatus.PENDING)
-        .length,
-      running: deployments.filter((d) => d.status === DeploymentStatus.RUNNING)
-        .length,
-      succeeded: deployments.filter(
-        (d) => d.status === DeploymentStatus.SUCCESS,
-      ).length,
-      failed: deployments.filter((d) => d.status === DeploymentStatus.FAILED)
-        .length,
-      canceled: deployments.filter(
-        (d) => d.status === DeploymentStatus.CANCELED,
-      ).length,
-      successRate7d:
-        deploymentsLast7d.length > 0
-          ? Math.round((success7d / deploymentsLast7d.length) * 100)
-          : null,
-    };
-
-    return {
-      generatedAt: new Date().toISOString(),
-      stats,
-      recent: deployments.map((deployment) => ({
-        id: deployment.id,
-        status: deployment.status,
-        buildStatus: deployment.buildStatus,
-        branch: deployment.branch,
-        dockerImage: deployment.dockerImage,
-        createdAt: deployment.createdAt.toISOString(),
-        startedAt: deployment.startedAt?.toISOString() ?? null,
-        finishedAt: deployment.finishedAt?.toISOString() ?? null,
-        project: deployment.project,
-        environment: {
-          id: deployment.environment.id,
-          name: deployment.environment.name,
-        },
-        server: deployment.environment.server,
-      })),
-    };
+    return await this.statsService.getDeploymentMonitoring();
   }
 
   async getPrometheusStatus() {
-    const prometheusUrl = await this.getConfigValue(
-      'MONITORING_PROMETHEUS_URL',
-    );
-    if (!prometheusUrl) {
-      return {
-        configured: false,
-        reachable: false,
-        url: null,
-        message: 'Prometheus URL is not configured.',
-        totalTargets: 0,
-        upTargets: 0,
-        downTargets: 0,
-      };
-    }
-
-    const normalizedUrl = this.trimTrailingSlash(prometheusUrl);
-
-    try {
-      await firstValueFrom(
-        this.httpService.get(`${normalizedUrl}/-/ready`, {
-          timeout: 4_000,
-        }),
-      );
-
-      const targetsRes = await firstValueFrom(
-        this.httpService.get<{
-          data?: { activeTargets?: Array<{ health?: string }> };
-        }>(`${normalizedUrl}/api/v1/targets`, {
-          timeout: 5_000,
-        }),
-      );
-
-      const targets = targetsRes.data?.data?.activeTargets ?? [];
-      const upTargets = targets.filter(
-        (target) => target.health === 'up',
-      ).length;
-      const downTargets = Math.max(targets.length - upTargets, 0);
-
-      return {
-        configured: true,
-        reachable: true,
-        url: normalizedUrl,
-        message: 'Prometheus is reachable.',
-        totalTargets: targets.length,
-        upTargets,
-        downTargets,
-      };
-    } catch (error) {
-      return {
-        configured: true,
-        reachable: false,
-        url: normalizedUrl,
-        message: `Prometheus is unreachable: ${this.errorMessage(error)}`,
-        totalTargets: 0,
-        upTargets: 0,
-        downTargets: 0,
-      };
-    }
+    return await this.prometheusService.getPrometheusStatus();
   }
 
   async getGrafanaStatus() {
@@ -471,31 +215,11 @@ export class MonitoringService {
       }
     }
 
-    return await this.getDerivedAlerts();
+    return await this.statsService.getDerivedAlerts();
   }
 
   async getInstallOptions() {
-    const actions = AUTOMATION_ACTIONS.filter(
-      (action) => action.category === 'monitoring',
-    );
-    const servers = await this.prisma.server.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        host: true,
-        status: true,
-        isVerified: true,
-      },
-    });
-
-    return {
-      executionModel:
-        'Control node only (Ansible remains on backend). Target VPS hosts remain agentless SSH targets.',
-      actions,
-      servers,
-    };
+    return await this.statsService.getInstallOptions();
   }
 
   async installMonitoring(

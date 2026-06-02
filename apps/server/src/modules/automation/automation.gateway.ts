@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 import {
@@ -10,24 +11,13 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { PrismaService } from '../../core/database/prisma.service';
+import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
 import {
   AUTH_COOKIE_NAME_DEFAULT,
   extractTokenFromCookieHeader,
-} from '../../common/auth/auth-cookie.util';
-
-function resolveGatewayCorsOrigins(): string[] {
-  const envOrigins = [process.env.FRONTEND_URLS, process.env.FRONTEND_URL]
-    .filter((value): value is string => Boolean(value))
-    .flatMap((value) => value.split(','))
-    .map((value) => value.trim())
-    .filter((value) => value.length > 0);
-
-  return envOrigins.length > 0
-    ? Array.from(new Set(envOrigins))
-    : ['http://localhost:3000', 'http://localhost:3002'];
-}
+} from '../../core/http/auth-cookie.util';
+import { resolveGatewayCorsOrigins } from '../../core/http/cors-origins.util';
 
 type JoinRunPayload = {
   runId?: string;
@@ -50,11 +40,12 @@ export class AutomationGateway implements OnGatewayConnection {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
   ) {}
 
   handleConnection(client: Socket): void {
     const authData = client.handshake.auth as Record<string, unknown>;
-    const cookieName = process.env.AUTH_COOKIE_NAME || AUTH_COOKIE_NAME_DEFAULT;
+    const cookieName = this.configService.get<string>('AUTH_COOKIE_NAME', AUTH_COOKIE_NAME_DEFAULT);
     const cookieToken = extractTokenFromCookieHeader(
       client.handshake.headers.cookie,
       cookieName,

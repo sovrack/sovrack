@@ -79,6 +79,9 @@ export class ServerResponseDto {
   @ApiProperty()
   hasRunner!: boolean;
 
+  @ApiPropertyOptional({ type: String, description: 'Infrastructure role: NONE | STAGING | PRODUCTION | DATABASE | RUNNER | MONITORING' })
+  infraRole?: string;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;
 

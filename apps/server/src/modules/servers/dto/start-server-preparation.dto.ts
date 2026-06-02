@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsOptional,
@@ -143,4 +144,15 @@ export class StartServerPreparationDto {
   @IsString()
   @MaxLength(32)
   gitlabRunnerExecutor?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['docker', 'nginx'],
+    description:
+      'Option keys that should be forced-reinstalled even if the tool is already detected as installed. By default, roles for already-installed tools still run (idempotent), but this flag signals explicit user intent to reinstall/reconfigure.',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  reinstallOptions?: string[];
 }

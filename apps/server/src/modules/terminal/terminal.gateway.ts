@@ -12,7 +12,8 @@ import { Server, Socket } from 'socket.io';
 import {
   AUTH_COOKIE_NAME_DEFAULT,
   extractTokenFromCookieHeader,
-} from '../../common/auth/auth-cookie.util';
+} from '../../core/http/auth-cookie.util';
+import { resolveGatewayCorsOrigins } from '../../core/http/cors-origins.util';
 import { TerminalService } from './terminal.service';
 
 type JwtPayload = {
@@ -28,7 +29,10 @@ type SessionEntry = {
 
 @WebSocketGateway({
   namespace: '/terminal',
-  cors: { origin: '*', credentials: true },
+  cors: {
+    origin: resolveGatewayCorsOrigins(),
+    credentials: true,
+  },
 })
 export class TerminalGateway implements OnGatewayDisconnect {
   @WebSocketServer()

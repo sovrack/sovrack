@@ -1,13 +1,14 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { GetUser } from '../../../common/decorators/get-user.decorator';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../common/guards/roles.guard';
-import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
+import { GetUser } from '../../../core/decorators/get-user.decorator';
+import { Roles } from '../../../core/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../core/guards/roles.guard';
+import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringService } from '../services/monitoring.service';
+import { ContainerMonitoringService } from '../services/container-monitoring.service';
 
 @ApiTags('Monitoring')
 @ApiBearerAuth()
@@ -15,7 +16,10 @@ import { MonitoringService } from '../services/monitoring.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class MonitoringController {
-  constructor(private readonly monitoringService: MonitoringService) {}
+  constructor(
+    private readonly monitoringService: MonitoringService,
+    private readonly containerMonitoring: ContainerMonitoringService,
+  ) {}
 
   @Get('overview')
   @ApiOperation({ summary: 'Monitoring overview for platform operations' })
@@ -81,5 +85,25 @@ export class MonitoringController {
     @GetUser() user: JwtPayload,
   ) {
     return await this.monitoringService.installMonitoring(dto, user.id);
+  }
+
+  /* ── Container monitoring ────────────────────────────────────────────── */
+
+  @Get('containers/deployment/:deploymentId')
+  @ApiOperation({ summary: 'Get container stats and logs for a deployment' })
+  async containerInfo(
+    @Param('deploymentId') deploymentId: string,
+    @Query('tail', new DefaultValuePipe(200), ParseIntPipe) tail: number,
+  ) {
+    return await this.containerMonitoring.getContainerInfo(deploymentId, tail);
+  }
+
+  @Get('containers/project/:projectId')
+  @ApiOperation({ summary: 'List running containers for a project on a server' })
+  async projectContainers(
+    @Param('projectId') projectId: string,
+    @Query('serverId') serverId: string,
+  ) {
+    return await this.containerMonitoring.listProjectContainers(projectId, serverId);
   }
 }

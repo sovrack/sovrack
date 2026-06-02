@@ -4,6 +4,7 @@ import {
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Server, ServerLogLevel } from '@prisma/client';
 import { ChildProcess, spawn } from 'child_process';
 import { existsSync } from 'fs';
@@ -29,6 +30,7 @@ export type RunPreparationInput = {
   roles: PreparationRoleKey[];
   selectedOptions: Record<string, boolean>;
   gitlabRunnerExecutor: string;
+  reinstallOptions?: string[];
 };
 
 export type RunPreparationCallbacks = {
@@ -40,6 +42,8 @@ type RunOptions = {
   timeoutMs: number;
 };
 
+export type RunPreparationOptions = RunOptions;
+
 @Injectable()
 export class AnsibleExecutionService {
   private readonly logger = new Logger(AnsibleExecutionService.name);
@@ -48,6 +52,7 @@ export class AnsibleExecutionService {
     private readonly crypto: ServersCryptoService,
     private readonly hostKeys: ServerHostKeyService,
     private readonly ssh: ServersSshService,
+    private readonly configService: ConfigService,
   ) {}
 
   async runPreparation(
@@ -95,6 +100,7 @@ export class AnsibleExecutionService {
         selected_roles: input.roles,
         preparation_options: input.selectedOptions,
         gitlab_runner_executor: input.gitlabRunnerExecutor,
+        reinstall_options: input.reinstallOptions ?? [],
         managed_by: 'internal-devops-platform-control-node',
       });
 
@@ -127,7 +133,7 @@ export class AnsibleExecutionService {
   }
 
   resolveAnsiblePlaybookCommand(): string {
-    const configuredVenvPath = process.env.ANSIBLE_VENV_PATH?.trim();
+    const configuredVenvPath = this.configService.get<string>('ANSIBLE_VENV_PATH', '').trim() || undefined;
     if (!configuredVenvPath) {
       return 'ansible-playbook';
     }
@@ -143,7 +149,7 @@ export class AnsibleExecutionService {
   }
 
   resolvePlaybooksRoot(): string {
-    const configuredPlaybooksPath = process.env.ANSIBLE_PLAYBOOKS_PATH?.trim();
+    const configuredPlaybooksPath = this.configService.get<string>('ANSIBLE_PLAYBOOKS_PATH', '').trim() || undefined;
     return configuredPlaybooksPath
       ? resolve(configuredPlaybooksPath)
       : resolve(process.cwd(), '../devops/ansible/playbooks');

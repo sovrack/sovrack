@@ -1,18 +1,13 @@
 import {
   BadRequestException,
   Injectable,
-  InternalServerErrorException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as CryptoJS from 'crypto-js';
 import * as sshpk from 'sshpk';
 import {
-  createCipheriv,
-  createDecipheriv,
   createHash,
   generateKeyPairSync,
-  randomBytes,
 } from 'crypto';
+import { CryptoService } from '../../../core/crypto/crypto.service';
 
 @Injectable()
 export class ServersCryptoService {
@@ -28,10 +23,22 @@ export class ServersCryptoService {
     };
   };
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly crypto: CryptoService) {}
+
+  // ─── Encrypt / Decrypt — delegated to shared CryptoService ──────────────
+
+  encrypt(value: string): string {
+    return this.crypto.encrypt(value);
+  }
+
+  decrypt(encryptedValue: string): string {
+    return this.crypto.decrypt(encryptedValue);
+  }
+
+  // ─── SSH helpers ─────────────────────────────────────────────────────────
 
   hashToken(token: string): string {
-    return CryptoJS.SHA256(token).toString();
+    return createHash('sha256').update(token).digest('hex');
   }
 
   resolveSshMaterial(providedPrivateKey?: string): {
@@ -79,97 +86,15 @@ export class ServersCryptoService {
     }
   }
 
-  encrypt(value: string): string {
-    const secret = this.getConfigSecret();
-
-    const key = createHash('sha256')
-      .update(`${secret}::encryption::key`)
-      .digest();
-
-    const iv = randomBytes(16);
-    const cipher = createCipheriv('aes-256-cbc', key, iv);
-
-    const valueBuffer = Buffer.from(value, 'utf8');
-    let encrypted = cipher.update(valueBuffer);
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-
-    return Buffer.concat([iv, encrypted]).toString('base64');
-  }
-
-  decrypt(encryptedValue: string): string {
-    const secret = this.getConfigSecret();
-
-    try {
-      const key = createHash('sha256')
-        .update(`${secret}::encryption::key`)
-        .digest();
-
-      const buffer = Buffer.from(encryptedValue, 'base64');
-      const iv = buffer.subarray(0, 16);
-      const encrypted = buffer.subarray(16);
-
-      const decipher = createDecipheriv('aes-256-cbc', key, iv);
-      let decrypted = decipher.update(encrypted);
-      decrypted = Buffer.concat([decrypted, decipher.final()]);
-
-      return decrypted.toString('utf8');
-    } catch {
-      const legacy = this.tryLegacyDecrypt(encryptedValue, secret);
-      if (legacy) {
-        return legacy;
-      }
-
-      throw new InternalServerErrorException(
-        'Décryptage a échoué. Vérifiez CONFIG_SECRET et régénérez la clé SSH si nécessaire.',
-      );
-    }
-  }
-
-  private tryLegacyDecrypt(
-    encryptedValue: string,
-    secret: string,
-  ): string | null {
-    try {
-      const decrypted = CryptoJS.AES.decrypt(encryptedValue, secret).toString(
-        CryptoJS.enc.Utf8,
-      );
-      if (decrypted.trim().length === 0) {
-        return null;
-      }
-      return decrypted;
-    } catch {
-      return null;
-    }
-  }
-
   private generateSshKeyPair(): { privateKey: string; publicKey: string } {
     const { privateKey: rawPrivateKey } = generateKeyPairSync('ed25519', {
-      publicKeyEncoding: {
-        type: 'spki',
-        format: 'pem',
-      },
-      privateKeyEncoding: {
-        type: 'pkcs8',
-        format: 'pem',
-      },
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
     });
 
     const privateKey = this.normalizePrivateKeyFormat(rawPrivateKey);
     const publicKey = this.deriveOpenSshPublicKey(privateKey);
 
-    return {
-      privateKey,
-      publicKey,
-    };
-  }
-
-  private getConfigSecret(): string {
-    const secret = this.configService.get<string>('CONFIG_SECRET');
-    if (!secret || secret.length < 32) {
-      throw new InternalServerErrorException(
-        'CONFIG_SECRET doit contenir au moins 32 caractères',
-      );
-    }
-    return secret;
+    return { privateKey, publicKey };
   }
 }

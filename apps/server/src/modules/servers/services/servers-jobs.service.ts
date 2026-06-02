@@ -3,14 +3,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   Prisma,
   ServerJob,
   ServerJobStatus,
   ServerJobType,
 } from '@prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { PaginationDto, paginate } from '../../../common/dto/pagination.dto';
+import { PrismaService } from '../../../core/database/prisma.service';
+import { PaginationDto, paginate } from '../../../core/http/pagination.dto';
 import { ServersSshService } from './servers-ssh.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';
 import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
@@ -22,13 +23,16 @@ import {
 
 @Injectable()
 export class ServersJobsService {
-  private readonly defaultJobTimeoutMs = this.resolveDefaultJobTimeoutMs();
+  private readonly defaultJobTimeoutMs: number;
   private readonly defaultJobMaxAttempts = 3;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly ssh: ServersSshService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.defaultJobTimeoutMs = this.resolveDefaultJobTimeoutMs();
+  }
 
   async listJobs(
     id: string,
@@ -234,7 +238,7 @@ export class ServersJobsService {
   }
 
   private resolveDefaultJobTimeoutMs(): number {
-    const candidate = Number(process.env.SERVER_JOB_TIMEOUT_MS);
+    const candidate = Number(this.configService.get<string>('SERVER_JOB_TIMEOUT_MS', '300000'));
     if (Number.isFinite(candidate) && candidate >= 10_000) {
       return Math.floor(candidate);
     }

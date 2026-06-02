@@ -5,7 +5,7 @@ import {
   ServerInstalledToolStatus,
   ServerStatus,
 } from '@prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../core/database/prisma.service';
 import { ServerAuditService } from './server-audit.service';
 import { ServerVerificationService } from './server-verification.service';
 import { ServersSshService } from './servers-ssh.service';
@@ -37,6 +37,12 @@ const DETECTION_TOOLS: DetectionTool[] = [
     command: 'nginx -v',
   },
   {
+    key: 'nodejs',
+    displayName: 'Node.js',
+    capabilityKey: 'nodejs.installed',
+    command: 'node --version',
+  },
+  {
     key: 'postgres',
     displayName: 'PostgreSQL',
     capabilityKey: 'postgres.installed',
@@ -59,6 +65,12 @@ const DETECTION_TOOLS: DetectionTool[] = [
     displayName: 'UFW Firewall',
     capabilityKey: 'ufw.available',
     command: 'ufw --version',
+  },
+  {
+    key: 'fail2ban',
+    displayName: 'Fail2ban',
+    capabilityKey: 'fail2ban.installed',
+    command: 'fail2ban-server --version',
   },
   {
     key: 'certbot',

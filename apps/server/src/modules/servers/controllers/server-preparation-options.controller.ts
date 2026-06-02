@@ -1,10 +1,10 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../common/guards/roles.guard';
-import { ServerPreparationService } from '../services';
+import { Roles } from '../../../core/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../core/guards/roles.guard';
+import { ServersCoreService } from '../services';
 
 @ApiTags('Server Preparation Options')
 @ApiBearerAuth()
@@ -12,11 +12,11 @@ import { ServerPreparationService } from '../services';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class ServerPreparationOptionsController {
-  constructor(private readonly preparations: ServerPreparationService) {}
+  constructor(private readonly core: ServersCoreService) {}
 
   @Get()
   @ApiOperation({ summary: 'Lister les options et profils de préparation' })
   options() {
-    return this.preparations.getOptions();
+    return this.core.getPreparationOptions();
   }
 }

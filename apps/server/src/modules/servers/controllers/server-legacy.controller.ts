@@ -8,22 +8,18 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import type { Response } from 'express';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { GetUser } from '../../../common/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../common/guards/roles.guard';
-import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
+import { Roles } from '../../../core/decorators/roles.decorator';
+import { GetUser } from '../../../core/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../core/guards/roles.guard';
+import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
 import { InstallToolsDto } from '../dto/install-tools.dto';
 import { PrepareServerDto } from '../dto/prepare-server.dto';
 import {
   ServerResponseDto,
   VerifyServerResponseDto,
 } from '../dto/server-response.dto';
-import {
-  ServerLegacyApiService,
-  ServerVerificationService,
-  ServersCoreService,
-} from '../services';
+import { ServersCoreService } from '../services';
 
 @ApiTags('Servers Legacy (Deprecated)')
 @ApiBearerAuth()
@@ -31,11 +27,7 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class ServerLegacyController {
-  constructor(
-    private readonly core: ServersCoreService,
-    private readonly verification: ServerVerificationService,
-    private readonly legacy: ServerLegacyApiService,
-  ) {}
+  constructor(private readonly core: ServersCoreService) {}
 
   @Post(':id/verify')
   @ApiOperation({
@@ -107,7 +99,7 @@ export class ServerLegacyController {
       user.id,
       res,
     );
-    await this.verification.resetStatus(id);
+    await this.core.resetVerificationStatus(id);
     const result = await this.core.verifyServer(id, user.id);
 
     return {
@@ -145,10 +137,8 @@ export class ServerLegacyController {
     actorId: string,
     res: Response,
   ): Promise<void> {
-    this.legacy.applyDeprecationHeaders((name, value) => {
+    await this.core.guardLegacyEndpoint(endpoint, serverId, actorId, (name, value) => {
       res.setHeader(name, value);
     });
-    this.legacy.assertEndpointAvailable(endpoint);
-    await this.legacy.trackUsage(serverId, endpoint, actorId);
   }
 }

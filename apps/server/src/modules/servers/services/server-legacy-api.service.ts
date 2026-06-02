@@ -1,11 +1,15 @@
 import { GoneException, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ServerAuditService } from './server-audit.service';
 
 @Injectable()
 export class ServerLegacyApiService {
   private readonly logger = new Logger(ServerLegacyApiService.name);
 
-  constructor(private readonly audit: ServerAuditService) {}
+  constructor(
+    private readonly audit: ServerAuditService,
+    private readonly configService: ConfigService,
+  ) {}
 
   applyDeprecationHeaders(
     setHeader: (name: string, value: string) => void,
@@ -51,14 +55,14 @@ export class ServerLegacyApiService {
   }
 
   private isLegacyApiEnabled(): boolean {
-    const raw = (process.env.SERVER_LEGACY_API_ENABLED ?? 'true')
+    const raw = (this.configService.get<string>('SERVER_LEGACY_API_ENABLED', 'true'))
       .trim()
       .toLowerCase();
     return raw !== '0' && raw !== 'false' && raw !== 'no';
   }
 
   private resolveSunsetDate(): Date {
-    const raw = process.env.SERVER_LEGACY_API_SUNSET_DATE?.trim();
+    const raw = this.configService.get<string>('SERVER_LEGACY_API_SUNSET_DATE', '').trim() || undefined;
     if (raw) {
       const parsed = new Date(raw);
       if (!Number.isNaN(parsed.getTime())) {

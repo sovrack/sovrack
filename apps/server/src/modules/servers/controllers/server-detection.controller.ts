@@ -7,11 +7,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { Roles } from '../../../common/decorators/roles.decorator';
-import { GetUser } from '../../../common/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../common/guards/roles.guard';
-import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
+import { Roles } from '../../../core/decorators/roles.decorator';
+import { GetUser } from '../../../core/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../core/guards/roles.guard';
+import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
 import { DetectServerDto } from '../dto';
 import {
   ServerCapabilityDto,

@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   Prisma,
   Server,
@@ -15,7 +16,7 @@ import {
   ServerPreparationTaskStatus,
   ServerStatus,
 } from '@prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../core/database/prisma.service';
 import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
 import { RetryServerPreparationDto } from '../dto/retry-server-preparation.dto';
 import {
@@ -31,6 +32,10 @@ import { ServerPreparationGateway } from '../server-preparation.gateway';
 import { ServerVerificationService } from './server-verification.service';
 import { ServersJobsService } from './servers-jobs.service';
 import { ServersSshService } from './servers-ssh.service';
+import {
+  ACTIVE_PREPARATION_STATUSES as STATE_ACTIVE_PREPARATION_STATUSES,
+  ServerPreparationStateService,
+} from './preparation/server-preparation-state.service';
 
 type StartPreparationOptions = {
   retryOfPreparationId?: string;
@@ -54,44 +59,7 @@ type ServerPreparationReadiness = {
   latestValidationAt: Date | null;
 };
 
-const ACTIVE_PREPARATION_STATUSES: ServerPreparationStatus[] = [
-  ServerPreparationStatus.QUEUED,
-  ServerPreparationStatus.RESOLVING_OPTIONS,
-  ServerPreparationStatus.WAITING_FOR_LOCK,
-  ServerPreparationStatus.RUNNING,
-];
-
-const ALLOWED_PREPARATION_TRANSITIONS: Record<
-  ServerPreparationStatus,
-  ServerPreparationStatus[]
-> = {
-  [ServerPreparationStatus.QUEUED]: [
-    ServerPreparationStatus.RESOLVING_OPTIONS,
-    ServerPreparationStatus.CANCELED,
-  ],
-  [ServerPreparationStatus.RESOLVING_OPTIONS]: [
-    ServerPreparationStatus.WAITING_FOR_LOCK,
-    ServerPreparationStatus.FAILED,
-    ServerPreparationStatus.CANCELED,
-  ],
-  [ServerPreparationStatus.WAITING_FOR_LOCK]: [
-    ServerPreparationStatus.RUNNING,
-    ServerPreparationStatus.FAILED,
-    ServerPreparationStatus.CANCELED,
-  ],
-  [ServerPreparationStatus.RUNNING]: [
-    ServerPreparationStatus.SUCCEEDED,
-    ServerPreparationStatus.PARTIAL,
-    ServerPreparationStatus.FAILED,
-    ServerPreparationStatus.TIMEOUT,
-    ServerPreparationStatus.CANCELED,
-  ],
-  [ServerPreparationStatus.SUCCEEDED]: [],
-  [ServerPreparationStatus.PARTIAL]: [],
-  [ServerPreparationStatus.FAILED]: [],
-  [ServerPreparationStatus.TIMEOUT]: [],
-  [ServerPreparationStatus.CANCELED]: [],
-};
+const ACTIVE_PREPARATION_STATUSES = STATE_ACTIVE_PREPARATION_STATUSES;
 
 @Injectable()
 export class ServerPreparationService {
@@ -133,6 +101,8 @@ export class ServerPreparationService {
     private readonly detection: ServerDetectionService,
     private readonly audit: ServerAuditService,
     private readonly gateway: ServerPreparationGateway,
+    private readonly configService: ConfigService,
+    private readonly state: ServerPreparationStateService,
   ) {}
 
   getOptions() {
@@ -220,7 +190,7 @@ export class ServerPreparationService {
     let preparation!: ServerPreparation;
     try {
       preparation = await this.prisma.$transaction(async (tx) => {
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${server.id}))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${server.id}))`;
         const active = await tx.serverPreparation.count({
           where: {
             serverId: server.id,
@@ -243,6 +213,7 @@ export class ServerPreparationService {
             selectedOptionsJson: {
               ...resolved.selectedOptions,
               _gitlabRunnerExecutor: resolved.gitlabRunnerExecutor,
+              _reinstallOptions: [...(resolved.reinstallOptions ?? [])],
             } as Prisma.InputJsonValue,
             resolvedRolesJson: resolvedRoles as Prisma.InputJsonValue,
             retryOfPreparationId: options?.retryOfPreparationId,
@@ -395,7 +366,7 @@ export class ServerPreparationService {
       );
     }
 
-    await this.transitionPreparation(id, ServerPreparationStatus.CANCELED, {
+    await this.state.transitionPreparation(id, ServerPreparationStatus.CANCELED, {
       finishedAt: new Date(),
       summary: 'Préparation annulée par un administrateur.',
     });
@@ -445,11 +416,11 @@ export class ServerPreparationService {
     this.runningControllers.set(preparationId, abortController);
 
     try {
-      await this.transitionPreparation(
+      await this.state.transitionPreparation(
         preparationId,
         ServerPreparationStatus.RESOLVING_OPTIONS,
       );
-      await this.transitionPreparation(
+      await this.state.transitionPreparation(
         preparationId,
         ServerPreparationStatus.WAITING_FOR_LOCK,
       );
@@ -458,7 +429,7 @@ export class ServerPreparationService {
         where: { id: jobId },
       });
       await this.jobs.assertJobLock(job);
-      await this.transitionPreparation(
+      await this.state.transitionPreparation(
         preparationId,
         ServerPreparationStatus.RUNNING,
       );
@@ -491,13 +462,19 @@ export class ServerPreparationService {
         string,
         unknown
       >;
-      const { _gitlabRunnerExecutor, ...boolOptions } = rawOptions;
+      const { _gitlabRunnerExecutor, _reinstallOptions, ...boolOptions } =
+        rawOptions;
       const selectedOptions = boolOptions as Record<string, boolean>;
       const gitlabRunnerExecutor =
         typeof _gitlabRunnerExecutor === 'string' &&
         _gitlabRunnerExecutor.length > 0
           ? _gitlabRunnerExecutor
           : 'docker';
+      const reinstallOptions = Array.isArray(_reinstallOptions)
+        ? (_reinstallOptions as string[]).filter(
+            (v): v is string => typeof v === 'string',
+          )
+        : [];
 
       await this.ssh.withTimeout(
         async () =>
@@ -507,6 +484,7 @@ export class ServerPreparationService {
               roles,
               selectedOptions,
               gitlabRunnerExecutor,
+              reinstallOptions,
             },
             { signal: abortController.signal, timeoutMs },
             {
@@ -525,11 +503,11 @@ export class ServerPreparationService {
         () => abortController.abort(),
       );
 
-      await this.markAllRemainingTasks(
+      await this.state.markAllRemainingTasks(
         preparationId,
         ServerPreparationTaskStatus.OK,
       );
-      await this.transitionPreparation(
+      await this.state.transitionPreparation(
         preparationId,
         ServerPreparationStatus.SUCCEEDED,
         {
@@ -601,7 +579,7 @@ export class ServerPreparationService {
 
     const message = error instanceof Error ? error.message : String(error);
     const isTimeout = message.startsWith('JOB_TIMEOUT_');
-    await this.markFailedRunningTasks(preparationId, isTimeout);
+    await this.state.markFailedRunningTasks(preparationId, isTimeout);
     const hasSuccessfulTask =
       (await this.prisma.serverPreparationTask.count({
         where: {
@@ -623,7 +601,7 @@ export class ServerPreparationService {
       ? ServerStatus.PARTIALLY_PREPARED
       : ServerStatus.PREPARATION_FAILED;
 
-    await this.transitionPreparation(preparationId, prepStatus, {
+    await this.state.transitionPreparation(preparationId, prepStatus, {
       finishedAt: new Date(),
       errorMessage: this.redactSecrets(message),
       summary: hasSuccessfulTask
@@ -662,7 +640,7 @@ export class ServerPreparationService {
     message: string,
   ): Promise<void> {
     const created = await this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`prep-log:${preparationId}`}))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`prep-log:${preparationId}`}))`;
       const lastLine = await tx.serverPreparationLog.findFirst({
         where: { preparationId },
         orderBy: { lineNumber: 'desc' },
@@ -721,84 +699,6 @@ export class ServerPreparationService {
     });
   }
 
-  private async transitionPreparation(
-    preparationId: string,
-    status: ServerPreparationStatus,
-    extra?: Prisma.ServerPreparationUpdateInput,
-  ): Promise<void> {
-    const current = await this.prisma.serverPreparation.findUnique({
-      where: { id: preparationId },
-      select: { status: true },
-    });
-    if (!current) {
-      throw new NotFoundException('Préparation serveur introuvable');
-    }
-
-    if (
-      current.status !== status &&
-      !ALLOWED_PREPARATION_TRANSITIONS[current.status].includes(status)
-    ) {
-      throw new BadRequestException(
-        `Transition invalide de ${current.status} vers ${status}`,
-      );
-    }
-
-    await this.prisma.serverPreparation.update({
-      where: { id: preparationId },
-      data: {
-        status,
-        ...(status === ServerPreparationStatus.RUNNING
-          ? { startedAt: new Date() }
-          : {}),
-        ...extra,
-      },
-    });
-    this.gateway.emitStatus({ preparationId, status });
-  }
-
-  private async markAllRemainingTasks(
-    preparationId: string,
-    status: ServerPreparationTaskStatus,
-  ): Promise<void> {
-    await this.prisma.serverPreparationTask.updateMany({
-      where: {
-        preparationId,
-        status: {
-          in: [
-            ServerPreparationTaskStatus.PENDING,
-            ServerPreparationTaskStatus.RUNNING,
-          ],
-        },
-      },
-      data: { status, finishedAt: new Date() },
-    });
-  }
-
-  private async markFailedRunningTasks(
-    preparationId: string,
-    timeout: boolean,
-  ): Promise<void> {
-    await this.prisma.serverPreparationTask.updateMany({
-      where: {
-        preparationId,
-        status: ServerPreparationTaskStatus.RUNNING,
-      },
-      data: {
-        status: timeout
-          ? ServerPreparationTaskStatus.TIMEOUT
-          : ServerPreparationTaskStatus.FAILED,
-        finishedAt: new Date(),
-      },
-    });
-    await this.prisma.serverPreparationTask.updateMany({
-      where: {
-        preparationId,
-        status: ServerPreparationTaskStatus.PENDING,
-      },
-      data: { status: ServerPreparationTaskStatus.SKIPPED },
-    });
-  }
-
   private async refreshDetectionAfterPreparation(
     server: Server,
     preparationId: string,
@@ -841,7 +741,7 @@ export class ServerPreparationService {
   }
 
   private resolvePreparationTimeoutMs(): number {
-    const candidate = Number(process.env.SERVER_PREPARATION_TIMEOUT_MS);
+    const candidate = Number(this.configService.get<string>('SERVER_PREPARATION_TIMEOUT_MS', '900000'));
     if (Number.isFinite(candidate) && candidate >= 60_000) {
       return Math.floor(candidate);
     }

@@ -6,9 +6,11 @@ describe('ServersSshService', () => {
   const prismaMock = {};
   const cryptoMock = {};
   const verificationMock = {};
+  const hostKeyMock = {};
   const service = new ServersSshService(
     prismaMock as never,
     cryptoMock as never,
+    hostKeyMock as never,
     verificationMock as never,
   );
 

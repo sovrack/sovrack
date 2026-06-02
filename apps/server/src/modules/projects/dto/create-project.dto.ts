@@ -3,7 +3,6 @@ import { GitlabSourceType } from '@prisma/client';
 import {
   IsEnum,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   IsUrl,
@@ -45,13 +44,14 @@ export class CreateProjectDto {
 
   @ApiPropertyOptional({ example: 123 })
   @IsOptional()
-  @IsNumber({}, { message: 'gitlabId doit être un nombre' })
-  gitlabId?: number;
+  gitlabId?: number | string;
 
-  @ApiPropertyOptional({ example: 44, description: 'Group ID GitLab' })
+  @ApiPropertyOptional({
+    example: 'platform/apps',
+    description: 'Group ID numerique ou chemin GitLab',
+  })
   @IsOptional()
-  @IsNumber({}, { message: 'gitlabGroupId doit être un nombre' })
-  gitlabGroupId?: number;
+  gitlabGroupId?: number | string;
 
   @ApiPropertyOptional({
     enum: GitlabSourceType,

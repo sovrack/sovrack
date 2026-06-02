@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import {
   ApiBearerAuth,
@@ -8,24 +9,25 @@ import {
 } from '@nestjs/swagger';
 import { AuthService, AuthResponse } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../core/guards/roles.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
-import { GetUser } from '../../common/decorators/get-user.decorator';
-import { Roles } from '../../common/decorators/roles.decorator';
-import type { JwtPayload } from './strategies/jwt.strategy';
+import { GetUser } from '../../core/decorators/get-user.decorator';
+import { Roles } from '../../core/decorators/roles.decorator';
+import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
 import { Role, User } from '@prisma/client';
 import type { Response } from 'express';
 import {
   buildAuthCookieClearOptions,
   buildAuthCookieOptions,
   resolveAuthCookieName,
-} from '../../common/auth/auth-cookie.util';
+} from '../../core/http/auth-cookie.util';
 
 /**
  * Contrôleur d'authentification
  * Gère les routes de connexion et profil utilisateur
  */
+@SkipThrottle()
 @Controller('auth')
 @ApiTags('Auth')
 export class AuthController {
@@ -41,6 +43,7 @@ export class AuthController {
    * @returns Token JWT et utilisateur
    */
   @Post('login')
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @UseGuards(LoginRateLimitGuard)
   @ApiOperation({ summary: 'Connexion utilisateur' })
   @ApiResponse({
@@ -75,6 +78,21 @@ export class AuthController {
    * @param user - Payload JWT de l'utilisateur
    * @returns Informations de l'utilisateur
    */
+  @Get('ws-token')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Retourne un jeton court durée pour les connexions WebSocket',
+  })
+  @ApiResponse({ status: 200, description: 'Jeton WebSocket généré' })
+  @ApiResponse({ status: 401, description: 'Non authentifié' })
+  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
+  getWsToken(@GetUser() user: JwtPayload): { wsToken: string } {
+    const wsToken = this.authService.generateWsToken(user.id, user.role);
+    return { wsToken };
+  }
+
   @Get('me')
   @Roles(Role.ADMIN, Role.DEVELOPER)
   @UseGuards(JwtAuthGuard, RolesGuard)

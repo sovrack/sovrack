@@ -11,8 +11,8 @@ import {
   ServerJobType,
   ServerStatus,
 } from '@prisma/client';
-import { PaginationDto, paginate } from '../../../common/dto/pagination.dto';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PaginationDto, paginate } from '../../../core/http/pagination.dto';
+import { PrismaService } from '../../../core/database/prisma.service';
 import {
   CreateServerDto,
   ServerConnectionModeDto,
@@ -28,6 +28,14 @@ import { ServerDetectionService } from './server-detection.service';
 import { ServerPreparationService } from './server-preparation.service';
 import { ServerVerificationService } from './server-verification.service';
 import { ServerAuditService } from './server-audit.service';
+import { ServerLegacyApiService } from './server-legacy-api.service';
+import {
+  AnsibleExecutionService,
+  type RunPreparationCallbacks,
+  type RunPreparationInput,
+  type RunPreparationOptions,
+} from './ansible-execution.service';
+import type { ServerInfraRole } from '@prisma/client';
 import {
   CreateServerResult,
   ServerJobsListResult,
@@ -49,6 +57,8 @@ export class ServersCoreService {
     private readonly preparation: ServerPreparationService,
     private readonly verification: ServerVerificationService,
     private readonly audit: ServerAuditService,
+    private readonly ansible: AnsibleExecutionService,
+    private readonly legacy: ServerLegacyApiService,
   ) {}
 
   async create(
@@ -497,6 +507,135 @@ export class ServersCoreService {
       });
     } catch {
       // Le journal d'audit reste non bloquant.
+    }
+  }
+
+  // ─── Delegations vers ServerPreparationService ────────────────────────────
+
+  getPreparationOptions() {
+    return this.preparation.getOptions();
+  }
+
+  async getPreparation(id: string) {
+    return await this.preparation.getPreparation(id);
+  }
+
+  async getPreparationLogs(id: string, afterLine?: number) {
+    return await this.preparation.getPreparationLogs(id, afterLine);
+  }
+
+  async retryPreparation(
+    id: string,
+    dto: Parameters<ServerPreparationService['retryPreparation']>[1],
+    actorId: string,
+  ) {
+    return await this.preparation.retryPreparation(id, dto, actorId);
+  }
+
+  async cancelPreparation(id: string, actorId: string) {
+    return await this.preparation.cancelPreparation(id, actorId);
+  }
+
+  // ─── Delegations vers ServerVerificationService ──────────────────────────
+
+  async resetVerificationStatus(id: string) {
+    return await this.verification.resetStatus(id);
+  }
+
+  async getRecentVerificationLogs(id: string, limit = 50) {
+    return await this.verification.getRecentLogs(id, limit);
+  }
+
+  // ─── Legacy endpoint guard (utilise ServerLegacyApiService) ──────────────
+
+  async guardLegacyEndpoint(
+    endpoint: string,
+    serverId: string,
+    actorId: string,
+    setHeader: (name: string, value: string) => void,
+  ): Promise<void> {
+    this.legacy.assertEndpointAvailable(endpoint);
+    this.legacy.applyDeprecationHeaders(setHeader);
+    await this.legacy.trackUsage(endpoint, serverId, actorId);
+  }
+
+  // ─── Ansible execution (delegation) ───────────────────────────────────────
+
+  async runPreparationWithAnsible(
+    server: Server,
+    input: RunPreparationInput,
+    options: RunPreparationOptions,
+    callbacks?: RunPreparationCallbacks,
+  ): Promise<void> {
+    await this.ansible.runPreparation(server, input, options, callbacks);
+  }
+
+  // ─── Infrastructure roles & environments ─────────────────────────────────
+
+  async setServerInfraRole(
+    id: string,
+    infraRole: ServerInfraRole,
+    actorUserId: string,
+  ): Promise<ServerPublic> {
+    const existing = await this.prisma.server.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`Serveur "${id}" non trouvé`);
+    }
+
+    const updated = await this.prisma.server.update({
+      where: { id },
+      data: { infraRole } as Prisma.ServerUpdateInput,
+    });
+
+    await this.recordAuditLog(actorUserId, 'SERVER_SET_INFRA_ROLE', updated.id, {
+      infraRole,
+    });
+
+    return this.toPublic(updated);
+  }
+
+  async listInfraEnvironments(): Promise<ServerPublic[]> {
+    const servers = await this.prisma.server.findMany({
+      where: {
+        infraRole: { in: ['STAGING', 'PRODUCTION'] as ServerInfraRole[] },
+      } as Prisma.ServerWhereInput,
+      orderBy: { name: 'asc' },
+    });
+    return servers.map((server) => this.toPublic(server));
+  }
+
+  async listEnvironmentsForServer(id: string) {
+    const server = await this.prisma.server.findUnique({ where: { id } });
+    if (!server) {
+      throw new NotFoundException(`Serveur "${id}" non trouvé`);
+    }
+    return await this.prisma.environment.findMany({
+      where: { serverId: id },
+      include: { project: { select: { id: true, name: true } } },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  // ─── Ping (test SSH rapide) ───────────────────────────────────────────────
+
+  async pingServer(id: string, actorUserId: string): Promise<{ ok: boolean; message: string }> {
+    const server = await this.prisma.server.findUnique({ where: { id } });
+    if (!server) {
+      throw new NotFoundException(`Serveur "${id}" non trouvé`);
+    }
+
+    try {
+      await this.verification.startVerification(id);
+      const result = await this.verifyServer(id, actorUserId);
+      return {
+        ok: Boolean(result.isVerified),
+        message: result.verificationError ?? 'Connexion SSH validée',
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        message: this.toErrorMessage(err),
+      };
     }
   }
 }

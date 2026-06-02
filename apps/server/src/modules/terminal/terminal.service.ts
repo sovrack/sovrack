@@ -4,7 +4,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../core/database/prisma.service';
 import { ServerHostKeyService } from '../servers/services/server-host-key.service';
 import { ServersCryptoService } from '../servers/services/servers-crypto.service';
 import { SshSessionService } from './ssh-session.service';
@@ -31,6 +32,7 @@ export class TerminalService {
     private readonly hostKeys: ServerHostKeyService,
     private readonly sshSessions: SshSessionService,
     private readonly audit: TerminalAuditService,
+    private readonly configService: ConfigService,
   ) {}
 
   async openSession(
@@ -114,7 +116,7 @@ export class TerminalService {
   }
 
   private resolveInactivityTimeoutMs(): number {
-    const raw = Number(process.env.TERMINAL_SSH_INACTIVITY_TIMEOUT_MS);
+    const raw = Number(this.configService.get<string>('TERMINAL_SSH_INACTIVITY_TIMEOUT_MS', '300000'));
     if (Number.isFinite(raw) && raw >= 60_000) {
       return Math.floor(raw);
     }

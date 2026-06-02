@@ -17,10 +17,10 @@ import {
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { GetUser } from '../../common/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import type { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { GetUser } from '../../core/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
+import { PaginationDto } from '../../core/http/pagination.dto';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import {
   DeploymentDetailedResponseDto,
@@ -146,5 +146,16 @@ export class DeploymentsController {
   @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
   async rollback(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.deploymentsService.rollback(id, user.id, user.role);
+  }
+
+  @Get(':id/container-logs')
+  @ApiOperation({ summary: 'Récupérer les logs du conteneur Docker du déploiement' })
+  async containerLogs(
+    @Param('id') id: string,
+    @Query('tail') tail: string | undefined,
+    @GetUser() user: JwtPayload,
+  ) {
+    const tailNum = tail ? parseInt(tail, 10) : 300;
+    return await this.deploymentsService.getContainerLogs(id, user.id, user.role, tailNum);
   }
 }
