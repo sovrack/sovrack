@@ -1,34 +1,26 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from '../../prisma/prisma.module';
-import { ServersAnsibleService } from './servers-ansible.service';
-import { ServersCoreService } from './servers-core.service';
-import { ServersController } from './servers.controller';
-import { ServersCryptoService } from './servers-crypto.service';
-import { ServersJobsService } from './servers-jobs.service';
-import { ServersRunnerService } from './servers-runner.service';
-import { ServersService } from './servers.service';
-import { ServersSshService } from './servers-ssh.service';
+import {
+  ServerAuditModule,
+  ServerDetectionModule,
+  ServerLegacyModule,
+  ServerManagementModule,
+  ServerPreparationModule,
+  ServerValidationModule,
+} from './modules';
+import { ServersSharedModule } from './servers-shared.module';
+import { AppJwtModule } from '../../core/jwt/jwt.module';
 
 @Module({
-  imports: [ConfigModule, PrismaModule],
-  controllers: [ServersController],
-  providers: [
-    ServersService,
-    ServersCoreService,
-    ServersCryptoService,
-    ServersSshService,
-    ServersAnsibleService,
-    ServersJobsService,
-    ServersRunnerService,
+  imports: [
+    AppJwtModule,
+    ServersSharedModule,
+    ServerManagementModule,
+    ServerValidationModule,
+    ServerDetectionModule,
+    ServerPreparationModule,
+    ServerAuditModule,
+    ServerLegacyModule,
   ],
-  exports: [
-    ServersService,
-    ServersCryptoService,
-    ServersSshService,
-    ServersAnsibleService,
-    ServersJobsService,
-    ServersRunnerService,
-  ],
+  exports: [ServersSharedModule],
 })
 export class ServersModule {}

@@ -29,4 +29,12 @@ export class CreateBuildConfigDto {
   @IsOptional()
   @IsString()
   gitlabCiContent?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  overwriteDockerfile?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  overwriteGitlabCi?: boolean;
 }

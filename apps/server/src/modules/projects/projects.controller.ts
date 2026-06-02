@@ -16,16 +16,19 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { GetUser } from '../../common/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import type { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { Roles } from '../../core/decorators/roles.decorator';
+import { GetUser } from '../../core/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../core/guards/roles.guard';
+import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
+import { PaginationDto } from '../../core/http/pagination.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { ImportGitlabGroupDto } from './dto/import-gitlab-group.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
+import { ProjectImportService } from './services/project-import.service';
+import { ProjectMembersService } from './services/project-members.service';
 
 /**
  * Contrôleur de gestion des projets.
@@ -35,10 +38,14 @@ import { ProjectsService } from './projects.service';
 @Controller('projects')
 @UseGuards(JwtAuthGuard)
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly membersService: ProjectMembersService,
+    private readonly importService: ProjectImportService,
+  ) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Créer un projet' })
   @ApiResponse({ status: 201, description: 'Projet créé avec succès' })
@@ -48,14 +55,36 @@ export class ProjectsController {
     description: 'Action réservée aux administrateurs',
   })
   async create(@GetUser() user: JwtPayload, @Body() dto: CreateProjectDto) {
-    return await this.projectsService.create(user.id, dto);
+    return await this.projectsService.create(user.id, user.role, dto);
+  }
+
+  @Post('import/gitlab-group')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({
+    summary:
+      'Importer des repositories GitLab Group en application multi-services ou projets séparés',
+  })
+  @ApiResponse({ status: 201, description: 'Import GitLab Group terminé' })
+  async importGitlabGroup(
+    @GetUser() user: JwtPayload,
+    @Body() dto: ImportGitlabGroupDto,
+  ) {
+    return await this.importService.importGitlabGroup(
+      user.id,
+      user.role,
+      dto,
+    );
   }
 
   @Get()
   @ApiOperation({ summary: 'Lister les projets selon le rôle utilisateur' })
   @ApiResponse({ status: 200, description: 'Liste des projets' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  async findAll(@GetUser() user: JwtPayload, @Query() pagination: PaginationDto) {
+  async findAll(
+    @GetUser() user: JwtPayload,
+    @Query() pagination: PaginationDto,
+  ) {
     return await this.projectsService.findAll(user.id, user.role, pagination);
   }
 
@@ -108,7 +137,7 @@ export class ProjectsController {
     @GetUser() user: JwtPayload,
     @Body() dto: AddMemberDto,
   ) {
-    return await this.projectsService.addMember(id, user.id, user.role, dto);
+    return await this.membersService.addMember(id, user.id, user.role, dto);
   }
 
   @Get(':id/members')
@@ -118,7 +147,7 @@ export class ProjectsController {
   @ApiResponse({ status: 403, description: 'Accès non autorisé au projet' })
   @ApiResponse({ status: 404, description: 'Projet non trouvé' })
   async getMembers(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.projectsService.getMembers(id, user.id, user.role);
+    return await this.membersService.getMembers(id, user.id, user.role);
   }
 
   @Delete(':id/members/:userId')
@@ -132,7 +161,7 @@ export class ProjectsController {
     @Param('userId') targetUserId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.projectsService.removeMember(
+    return await this.membersService.removeMember(
       id,
       user.id,
       user.role,

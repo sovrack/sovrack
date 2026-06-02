@@ -11,13 +11,21 @@ import {
   Prisma,
   Role,
 } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { PaginationDto, PaginatedResult, paginate } from '../../common/dto/pagination.dto';
-import { AddMemberDto } from './dto/add-member.dto';
+import { PrismaService } from '../../core/database/prisma.service';
+import {
+  PaginationDto,
+  PaginatedResult,
+  paginate,
+} from '../../core/http/pagination.dto';
+import { ConnectGitlabDto } from '../git-providers/gitlab/dto/connect-gitlab.dto';
+import { GitlabService } from '../git-providers/gitlab/gitlab.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
 const projectWithMembersInclude = {
+  services: {
+    orderBy: { createdAt: 'asc' as const },
+  },
   members: {
     orderBy: { joinedAt: 'asc' as const },
     include: {
@@ -43,6 +51,7 @@ type ProjectWithMembers = Prisma.ProjectGetPayload<{
 type ProjectListItem = Project & {
   memberCount: number;
   environmentCount: number;
+  serviceCount: number;
   hasGitlabConfig: boolean;
   gitlabSourceType: GitlabSourceType | null;
   gitlabGroupId: number | null;
@@ -54,18 +63,28 @@ type ProjectListItem = Project & {
  */
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gitlabService: GitlabService,
+  ) {}
 
   /**
    * Crée un projet et ajoute automatiquement son créateur en OWNER.
    */
   async create(
     userId: string,
+    userRole: Role,
     dto: CreateProjectDto,
   ): Promise<ProjectWithMembers> {
     const ownerId = dto.ownerId ?? userId;
 
     if (dto.ownerId) {
+      if (userRole !== Role.ADMIN && dto.ownerId !== userId) {
+        throw new ForbiddenException(
+          'Seul un administrateur peut assigner un owner différent',
+        );
+      }
+
       const ownerUser = await this.prisma.user.findUnique({
         where: { id: dto.ownerId },
       });
@@ -81,11 +100,18 @@ export class ProjectsService {
       }
     }
 
+    const shouldConnectGitlab = this.shouldConnectGitlabOnCreate(dto);
+    const connectGitlabDto = this.toConnectGitlabDto(dto);
+
+    if (shouldConnectGitlab) {
+      await this.gitlabService.verifyConnectionInput(connectGitlabDto);
+    }
+
     const project = await this.prisma.project.create({
       data: {
         name: dto.name,
         description: dto.description,
-        gitlabUrl: dto.gitlabUrl,
+        gitlabUrl: dto.gitlabUrl?.trim() ?? '',
         branch: dto.branch ?? 'main',
         members: {
           create: {
@@ -97,13 +123,42 @@ export class ProjectsService {
       include: projectWithMembersInclude,
     });
 
+    try {
+      if (shouldConnectGitlab) {
+        await this.gitlabService.connectProject(
+          project.id,
+          connectGitlabDto,
+          userId,
+          userRole,
+        );
+      }
+    } catch (error) {
+      try {
+        await this.prisma.project.delete({
+          where: { id: project.id },
+        });
+      } catch {
+        // Ne pas masquer l'erreur métier initiale de connexion provider.
+      }
+      throw error;
+    }
+
+    const finalProject = shouldConnectGitlab
+      ? await this.prisma.project.findUniqueOrThrow({
+          where: { id: project.id },
+          include: projectWithMembersInclude,
+        })
+      : project;
+
     await this.recordAuditLog(userId, 'PROJECT_CREATE', 'Project', project.id, {
       name: project.name,
       ownerId,
+      sourceConnected: shouldConnectGitlab,
     });
 
-    return project;
+    return finalProject;
   }
+
 
   /**
    * Liste les projets selon le rôle utilisateur.
@@ -114,32 +169,31 @@ export class ProjectsService {
     pagination?: PaginationDto,
   ): Promise<ProjectListItem[] | PaginatedResult<ProjectListItem>> {
     const where: Prisma.ProjectWhereInput | undefined =
-      userRole === Role.ADMIN
-        ? undefined
-        : { members: { some: { userId } } };
+      userRole === Role.ADMIN ? undefined : { members: { some: { userId } } };
 
     const queryInclude = {
       gitlabConfig: { select: { sourceType: true, gitlabGroupId: true } },
       members: { where: { userId }, select: { role: true }, take: 1 },
-      _count: { select: { members: true, environments: true } },
+      _count: { select: { members: true, environments: true, services: true } },
     };
 
     const page = pagination?.page;
     const limit = pagination?.limit;
 
-    const rawProjects = page && limit
-      ? await this.prisma.project.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          include: queryInclude,
-          skip: (page - 1) * limit,
-          take: limit,
-        })
-      : await this.prisma.project.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          include: queryInclude,
-        });
+    const rawProjects =
+      page && limit
+        ? await this.prisma.project.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            include: queryInclude,
+            skip: (page - 1) * limit,
+            take: limit,
+          })
+        : await this.prisma.project.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            include: queryInclude,
+          });
 
     const projects = rawProjects.map((project) => ({
       id: project.id,
@@ -161,6 +215,7 @@ export class ProjectsService {
       updatedAt: project.updatedAt,
       memberCount: project._count.members,
       environmentCount: project._count.environments,
+      serviceCount: project._count.services,
       hasGitlabConfig: Boolean(project.gitlabConfig),
       gitlabSourceType: project.gitlabConfig?.sourceType ?? null,
       gitlabGroupId: project.gitlabConfig?.gitlabGroupId
@@ -230,137 +285,71 @@ export class ProjectsService {
     await this.ensureProjectExists(projectId);
     this.assertAdminRole(userRole);
 
-    await this.prisma.project.delete({ where: { id: projectId } });
+    await this.prisma.$transaction(async (tx) => {
+      // Compatibility cleanup for databases where some FKs are still RESTRICT.
+      await tx.deployment.deleteMany({ where: { projectId } });
+      await tx.dnsRecord.deleteMany({
+        where: {
+          OR: [
+            { service: { projectId } },
+            { environment: { projectId } },
+            { domain: { projectId } },
+          ],
+        },
+      });
+      await tx.domain.deleteMany({ where: { projectId } });
+      await tx.environmentServiceTarget.deleteMany({
+        where: {
+          OR: [{ environment: { projectId } }, { service: { projectId } }],
+        },
+      });
+      await tx.config.deleteMany({ where: { projectId } });
+      await tx.environment.deleteMany({ where: { projectId } });
+      await tx.pipeline.deleteMany({ where: { projectId } });
+      await tx.gitlabConfig.deleteMany({ where: { projectId } });
+      await tx.projectService.deleteMany({ where: { projectId } });
+      await tx.projectMember.deleteMany({ where: { projectId } });
+      await tx.project.deleteMany({ where: { id: projectId } });
+    });
     await this.recordAuditLog(userId, 'PROJECT_DELETE', 'Project', projectId);
   }
 
   /**
    * Ajoute un membre à un projet.
    */
-  async addMember(
-    projectId: string,
-    userId: string,
-    userRole: Role,
-    dto: AddMemberDto,
-  ): Promise<ProjectWithMembers> {
-    await this.assertCanManageProject(projectId, userId, userRole);
 
-    const lookup = dto.userId
-      ? { id: dto.userId }
-      : dto.email
-        ? { email: dto.email.toLowerCase() }
-        : null;
-
-    if (!lookup) {
-      throw new NotFoundException('Utilisateur non trouvé');
-    }
-
-    const targetUser = await this.prisma.user.findUnique({
-      where: lookup,
-    });
-    if (!targetUser) {
-      throw new NotFoundException('Utilisateur non trouvé');
-    }
-
-    const existingMembership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId: targetUser.id,
-        },
-      },
-    });
-
-    if (existingMembership) {
-      throw new ConflictException('Utilisateur déjà membre de ce projet');
-    }
-
-    await this.prisma.projectMember.create({
-      data: {
-        projectId,
-        userId: targetUser.id,
-        role: dto.role ?? ProjectRole.DEVELOPER,
-      },
-    });
-
-    return await this.findOne(projectId, userId, userRole);
+  private shouldConnectGitlabOnCreate(dto: CreateProjectDto): boolean {
+    return Boolean(
+      dto.providerId?.trim() ||
+      dto.gitlabToken?.trim() ||
+      dto.gitlabId !== undefined ||
+      dto.gitlabGroupId !== undefined ||
+      dto.deployTokenUsername?.trim() ||
+      dto.deployTokenValue?.trim() ||
+      dto.registryUrl?.trim(),
+    );
   }
 
-  /**
-   * Retire un membre du projet (sauf OWNER).
-   */
-  async removeMember(
-    projectId: string,
-    userId: string,
-    userRole: Role,
-    targetUserId: string,
-  ): Promise<ProjectWithMembers> {
-    await this.assertCanManageProject(projectId, userId, userRole);
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId: targetUserId,
-        },
-      },
-    });
-
-    if (!membership) {
-      throw new NotFoundException('Membre non trouvé dans ce projet');
-    }
-
-    if (membership.role === ProjectRole.OWNER) {
-      throw new ForbiddenException('Impossible de retirer le OWNER du projet');
-    }
-
-    await this.prisma.projectMember.delete({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId: targetUserId,
-        },
-      },
-    });
-
-    return await this.findOne(projectId, userId, userRole);
+  private toConnectGitlabDto(dto: CreateProjectDto): ConnectGitlabDto {
+    return {
+      providerId: dto.providerId?.trim() || undefined,
+      gitlabUrl: dto.gitlabUrl?.trim() || undefined,
+      gitlabToken: dto.gitlabToken?.trim() || undefined,
+      gitlabId: dto.gitlabId,
+      defaultBranch: dto.branch?.trim() || 'main',
+      sourceType: dto.sourceType,
+      gitlabGroupId: dto.gitlabGroupId,
+      deployTokenUsername: dto.deployTokenUsername?.trim() || undefined,
+      deployTokenValue: dto.deployTokenValue?.trim() || undefined,
+      registryUrl: dto.registryUrl?.trim() || undefined,
+    } as ConnectGitlabDto;
   }
 
-  /**
-   * Retourne les membres d'un projet si l'utilisateur y a accès.
-   */
-  async getMembers(
-    projectId: string,
-    userId: string,
-    userRole: Role,
-  ): Promise<ProjectWithMembers['members']> {
-    await this.assertCanAccessProject(projectId, userId, userRole);
-
-    const members = await this.prisma.projectMember.findMany({
-      where: { projectId },
-      orderBy: { joinedAt: 'asc' },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            fullName: true,
-            role: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-      },
-    });
-
-    return members;
-  }
 
   /**
    * Vérifie si l'utilisateur peut voir le projet.
    */
-  private async assertCanAccessProject(
+  async assertCanAccessProject(
     projectId: string,
     userId: string,
     userRole: Role,
@@ -388,7 +377,7 @@ export class ProjectsService {
   /**
    * Vérifie si l'utilisateur peut gérer le projet (OWNER ou ADMIN).
    */
-  private async assertCanManageProject(
+  async assertCanManageProject(
     projectId: string,
     userId: string,
     userRole: Role,
@@ -421,7 +410,7 @@ export class ProjectsService {
     }
   }
 
-  private async recordAuditLog(
+  async recordAuditLog(
     userId: string,
     action: string,
     resourceType: string,
@@ -446,7 +435,7 @@ export class ProjectsService {
   /**
    * Vérifie l'existence du projet.
    */
-  private async ensureProjectExists(projectId: string): Promise<void> {
+  async ensureProjectExists(projectId: string): Promise<void> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });

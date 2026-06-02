@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { GitlabSourceType } from '@prisma/client';
 import {
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -21,10 +23,60 @@ export class CreateProjectDto {
   @IsString({ message: 'La description doit être une chaîne de caractères' })
   description?: string;
 
-  @ApiProperty({ example: 'https://gitlab.com/test/ecommerce' })
+  @ApiPropertyOptional({ example: 'https://gitlab.com/test/ecommerce' })
+  @IsOptional()
   @IsUrl({}, { message: 'URL GitLab invalide' })
-  @IsNotEmpty({ message: 'URL GitLab requise' })
-  gitlabUrl: string;
+  gitlabUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'b5073d11-f378-4c71-87da-093f3ecf20af',
+    description:
+      'Provider GitLab global. Si fourni, gitlabToken peut être omis.',
+  })
+  @IsOptional()
+  @IsString({ message: 'providerId doit être une chaîne de caractères' })
+  providerId?: string;
+
+  @ApiPropertyOptional({ example: 'glpat-xxxxxxxxxxxxxxxxxxxx' })
+  @IsOptional()
+  @IsString({ message: 'Le token GitLab doit être une chaîne de caractères' })
+  gitlabToken?: string;
+
+  @ApiPropertyOptional({ example: 123 })
+  @IsOptional()
+  gitlabId?: number | string;
+
+  @ApiPropertyOptional({
+    example: 'platform/apps',
+    description: 'Group ID numerique ou chemin GitLab',
+  })
+  @IsOptional()
+  gitlabGroupId?: number | string;
+
+  @ApiPropertyOptional({
+    enum: GitlabSourceType,
+    default: GitlabSourceType.REPO,
+  })
+  @IsOptional()
+  @IsEnum(GitlabSourceType)
+  sourceType?: GitlabSourceType;
+
+  @ApiPropertyOptional({ example: 'gitlab+deploy-token-12' })
+  @IsOptional()
+  @IsString({
+    message: 'deployTokenUsername doit être une chaîne de caractères',
+  })
+  deployTokenUsername?: string;
+
+  @ApiPropertyOptional({ example: 'glrt-xxxxxxxxxxxxxxxxxxxx' })
+  @IsOptional()
+  @IsString({ message: 'deployTokenValue doit être une chaîne de caractères' })
+  deployTokenValue?: string;
+
+  @ApiPropertyOptional({ example: 'registry.gitlab.example.com' })
+  @IsOptional()
+  @IsString({ message: 'registryUrl doit être une chaîne de caractères' })
+  registryUrl?: string;
 
   @ApiPropertyOptional({ example: 'main', default: 'main' })
   @IsOptional()

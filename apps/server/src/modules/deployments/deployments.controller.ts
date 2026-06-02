@@ -1,19 +1,41 @@
-import { Controller, Get, Param, Post, Body, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Body,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiExtraModels,
+  ApiOkResponse,
   ApiOperation,
   ApiResponse,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
-import { GetUser } from '../../common/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import type { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { GetUser } from '../../core/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
+import { PaginationDto } from '../../core/http/pagination.dto';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
+import {
+  DeploymentDetailedResponseDto,
+  DeploymentResponseDto,
+  PaginatedDeploymentsResponseDto,
+} from './dto/deployment-response.dto';
 import { DeploymentsService } from './deployments.service';
 
 @ApiTags('Deployments')
 @ApiBearerAuth()
+@ApiExtraModels(
+  DeploymentResponseDto,
+  DeploymentDetailedResponseDto,
+  PaginatedDeploymentsResponseDto,
+)
 @Controller('deployments')
 @UseGuards(JwtAuthGuard)
 export class DeploymentsController {
@@ -21,7 +43,10 @@ export class DeploymentsController {
 
   @Post()
   @ApiOperation({ summary: 'Lancer un déploiement' })
-  @ApiResponse({ status: 201, description: 'Déploiement créé' })
+  @ApiCreatedResponse({
+    description: 'Déploiement créé',
+    type: DeploymentResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Préconditions de déploiement invalides',
@@ -34,17 +59,36 @@ export class DeploymentsController {
 
   @Get()
   @ApiOperation({ summary: 'Lister les déploiements (filtrés par rôle)' })
-  @ApiResponse({ status: 200, description: 'Liste des déploiements' })
+  @ApiOkResponse({
+    description: 'Liste des déploiements',
+    schema: {
+      oneOf: [
+        {
+          type: 'array',
+          items: { $ref: getSchemaPath(DeploymentDetailedResponseDto) },
+        },
+        { $ref: getSchemaPath(PaginatedDeploymentsResponseDto) },
+      ],
+    },
+  })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  async findAll(@GetUser() user: JwtPayload, @Query() pagination: PaginationDto) {
-    return await this.deploymentsService.findAll(user.id, user.role, pagination);
+  async findAll(
+    @GetUser() user: JwtPayload,
+    @Query() pagination: PaginationDto,
+  ) {
+    return await this.deploymentsService.findAll(
+      user.id,
+      user.role,
+      pagination,
+    );
   }
 
   @Get('project/:projectId')
   @ApiOperation({ summary: "Lister l'historique d'un projet" })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Historique des déploiements du projet',
+    type: DeploymentDetailedResponseDto,
+    isArray: true,
   })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès non autorisé au projet' })
@@ -62,7 +106,10 @@ export class DeploymentsController {
 
   @Get(':id')
   @ApiOperation({ summary: "Détail d'un déploiement" })
-  @ApiResponse({ status: 200, description: 'Détail du déploiement' })
+  @ApiOkResponse({
+    description: 'Détail du déploiement',
+    type: DeploymentDetailedResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès non autorisé' })
   @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
@@ -72,7 +119,10 @@ export class DeploymentsController {
 
   @Post(':id/cancel')
   @ApiOperation({ summary: 'Annuler un déploiement' })
-  @ApiResponse({ status: 201, description: 'Déploiement annulé' })
+  @ApiCreatedResponse({
+    description: 'Déploiement annulé',
+    type: DeploymentResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'État du déploiement non annulable',
@@ -86,12 +136,26 @@ export class DeploymentsController {
 
   @Post(':id/rollback')
   @ApiOperation({ summary: 'Rollback sur la dernière image stable' })
-  @ApiResponse({ status: 201, description: 'Rollback lancé' })
+  @ApiCreatedResponse({
+    description: 'Rollback lancé',
+    type: DeploymentResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Rollback impossible' })
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès non autorisé' })
   @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
   async rollback(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.deploymentsService.rollback(id, user.id, user.role);
+  }
+
+  @Get(':id/container-logs')
+  @ApiOperation({ summary: 'Récupérer les logs du conteneur Docker du déploiement' })
+  async containerLogs(
+    @Param('id') id: string,
+    @Query('tail') tail: string | undefined,
+    @GetUser() user: JwtPayload,
+  ) {
+    const tailNum = tail ? parseInt(tail, 10) : 300;
+    return await this.deploymentsService.getContainerLogs(id, user.id, user.role, tailNum);
   }
 }

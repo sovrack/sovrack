@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   UnauthorizedException,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,7 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { Prisma, User } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../core/database/prisma.service';
 
 /**
  * Réponse d'authentification
@@ -20,6 +21,8 @@ export interface AuthResponse {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -97,6 +100,11 @@ export class AuthService {
    * @param user - Utilisateur pour lequel générer le token
    * @returns Token JWT
    */
+  generateWsToken(userId: string, role: string): string {
+    const payload = { sub: userId, role };
+    return this.jwtService.sign(payload, { expiresIn: '5m' });
+  }
+
   private generateToken(user: User): string {
     const payload = {
       id: user.id,
@@ -122,8 +130,12 @@ export class AuthService {
           ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
         },
       });
-    } catch {
-      // Le log d'audit ne doit pas bloquer l'authentification.
+    } catch (err) {
+      // Non-blocking: audit log failure must not affect authentication
+      this.logger.warn(
+        `Audit log failed for action "${action}": ${err instanceof Error ? err.message : String(err)}`,
+        'AuthService',
+      );
     }
   }
 }

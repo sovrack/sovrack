@@ -16,13 +16,14 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role, User } from '@prisma/client';
-import { GetUser } from '../../common/decorators/get-user.decorator';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import type { JwtPayload } from '../auth/strategies/jwt.strategy';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { GetUser } from '../../core/decorators/get-user.decorator';
+import { Roles } from '../../core/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../core/guards/roles.guard';
+import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
+import { PaginationDto } from '../../core/http/pagination.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ChangeMyPasswordDto } from './dto/change-my-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 
@@ -54,6 +55,24 @@ export class UsersController {
   @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
   async findAll(@Query() pagination: PaginationDto) {
     return await this.usersService.findAll(pagination);
+  }
+
+  @Put('me/password')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @ApiOperation({
+    summary: 'Changer le mot de passe de la session courante',
+  })
+  @ApiResponse({ status: 200, description: 'Mot de passe mis à jour' })
+  @ApiResponse({ status: 400, description: 'Payload invalide' })
+  @ApiResponse({
+    status: 401,
+    description: 'Token JWT invalide/expiré ou mot de passe actuel incorrect',
+  })
+  async changeMyPassword(
+    @GetUser() user: JwtPayload,
+    @Body() dto: ChangeMyPasswordDto,
+  ): Promise<Omit<User, 'password'>> {
+    return await this.usersService.changeMyPassword(user.id, dto);
   }
 
   @Get(':id')

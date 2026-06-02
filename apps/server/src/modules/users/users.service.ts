@@ -8,8 +8,13 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { Prisma, Role, User } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { PaginationDto, PaginatedResult, paginate } from '../../common/dto/pagination.dto';
+import { PrismaService } from '../../core/database/prisma.service';
+import {
+  PaginationDto,
+  PaginatedResult,
+  paginate,
+} from '../../core/http/pagination.dto';
+import { ChangeMyPasswordDto } from './dto/change-my-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -68,7 +73,9 @@ export class UsersService {
    */
   async findAll(
     pagination?: PaginationDto,
-  ): Promise<Array<Omit<User, 'password'>> | PaginatedResult<Omit<User, 'password'>>> {
+  ): Promise<
+    Array<Omit<User, 'password'>> | PaginatedResult<Omit<User, 'password'>>
+  > {
     const page = pagination?.page;
     const limit = pagination?.limit;
 
@@ -81,10 +88,17 @@ export class UsersService {
         }),
         this.prisma.user.count(),
       ]);
-      return paginate(users.map((u) => this.removePassword(u)), total, page, limit);
+      return paginate(
+        users.map((u) => this.removePassword(u)),
+        total,
+        page,
+        limit,
+      );
     }
 
-    const users = await this.prisma.user.findMany({ orderBy: { createdAt: 'desc' } });
+    const users = await this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
     return users.map((user) => this.removePassword(user));
   }
 
@@ -181,6 +195,39 @@ export class UsersService {
     }
 
     const updatedUser = await this.prisma.user.update({ where: { id }, data });
+    return this.removePassword(updatedUser);
+  }
+
+  async changeMyPassword(
+    userId: string,
+    dto: ChangeMyPasswordDto,
+  ): Promise<Omit<User, 'password'>> {
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+
+    if (dto.newPassword !== dto.confirmNewPassword) {
+      throw new BadRequestException(
+        'La confirmation du nouveau mot de passe ne correspond pas',
+      );
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.password,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Mot de passe actuel incorrect');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
     return this.removePassword(updatedUser);
   }
 
