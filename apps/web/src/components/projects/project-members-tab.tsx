@@ -45,7 +45,7 @@ export function ProjectMembersTab({
         <div className="flex justify-end">
           <button
             onClick={() => setAddMemberOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-indigo-700"
+            className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90"
           >
             <Plus size={15} />
             Add Member
@@ -67,19 +67,19 @@ export function ProjectMembersTab({
       />
 
       {isAdmin && teams.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-slate-900">Ajouter une équipe</h3>
-          <p className="mt-1 text-xs text-slate-500">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Ajouter une équipe</h3>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">
             Ajoute tous les membres d&apos;une équipe au projet.
           </p>
 
           {addTeamSuccess && (
-            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            <div className="mt-3 rounded-xl border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-300">
               {addTeamSuccess}
             </div>
           )}
           {addTeamError && (
-            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
               {addTeamError}
             </div>
           )}
@@ -88,7 +88,7 @@ export function ProjectMembersTab({
             <select
               value={selectedTeamId}
               onChange={(event) => setSelectedTeamId(event.target.value)}
-              className="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+              className="h-11 flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)]/10 focus:ring-2 focus:ring-zinc-500/20"
             >
               <option value="">Sélectionner une équipe...</option>
               {teams.map((team) => (
@@ -102,7 +102,7 @@ export function ProjectMembersTab({
               type="button"
               onClick={() => void onAddTeam()}
               disabled={!selectedTeamId || addTeamLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50"
             >
               {addTeamLoading ? (
                 <Loader2 size={15} className="animate-spin" />

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Rocket,
   Plus,
@@ -10,18 +11,24 @@ import {
   Activity,
   CheckCircle2,
   AlertTriangle,
+  RotateCcw,
+  Loader2,
+  ExternalLink,
+  GitMerge,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deploymentsService } from '@/services/deployments.service';
 import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
+import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
-import { useAuthContext } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/auth/use-auth';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
-import { usePagination } from '@/hooks/usePagination';
+import { usePagination } from '@/hooks/shared/use-pagination';
 import { Pagination } from '@/components/ui/pagination';
+import type { ProjectRole } from '@/types/project';
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -43,9 +50,14 @@ const STATUS_OPTIONS: { label: string; value: DeploymentStatus | 'ALL' }[] = [
 ];
 
 export default function DeploymentsPage() {
-  const { isAdmin } = useAuthContext();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<DeploymentStatus | 'ALL'>('ALL');
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [rollingBackId, setRollingBackId] = useState<string | null>(null);
 
   const { data, isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['deployments-page'],
@@ -75,9 +87,73 @@ export default function DeploymentsPage() {
     ? deployments
     : deployments.filter((d) => d.status === statusFilter);
 
+  const projectRoleByProjectId = new Map<string, ProjectRole | null>(
+    (data?.projects ?? []).map((project) => [
+      project.id,
+      project.currentUserProjectRole,
+    ]),
+  );
+
   const { page, totalPages, paged: pagedDeployments, goToPage, reset: resetPage } = usePagination(filtered, { pageSize: 20 });
 
   useEffect(() => { resetPage(); }, [statusFilter, resetPage]);
+
+  useEffect(() => {
+    if (searchParams.get('dialog') === 'create-deployment') {
+      setCreateDialogOpen(true);
+    }
+  }, [searchParams]);
+
+  const clearDialogQuery = () => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (!next.has('dialog')) {
+      return;
+    }
+
+    next.delete('dialog');
+    const query = next.toString();
+    router.replace(query ? `/deployments?${query}` : '/deployments');
+  };
+
+  const handleCloseCreateDialog = () => {
+    setCreateDialogOpen(false);
+    clearDialogQuery();
+  };
+
+  const handleCreatedDeployment = async (deploymentId: string) => {
+    await fetchDeployments();
+    router.push(`/deployments/${deploymentId}`);
+  };
+
+  const canRollbackFromList = (deployment: Deployment): boolean => {
+    if (deployment.status !== 'SUCCESS' && deployment.status !== 'FAILED') {
+      return false;
+    }
+
+    if (isAdmin) {
+      return true;
+    }
+
+    return projectRoleByProjectId.get(deployment.project.id) === 'OWNER';
+  };
+
+  const handleRollbackFromList = async (deploymentId: string) => {
+    if (!confirm('Rollback vers la dernière image stable ?')) {
+      return;
+    }
+
+    setActionError(null);
+    setRollingBackId(deploymentId);
+    try {
+      const rollbackDeployment = await deploymentsService.rollback(deploymentId);
+      await fetchDeployments();
+      router.push(`/deployments/${rollbackDeployment.id}`);
+    } catch (rollbackError) {
+      setActionError(getApiErrorMessage(rollbackError));
+    } finally {
+      setRollingBackId(null);
+    }
+  };
 
   const runningCount = deployments.filter((d) => d.status === 'RUNNING').length;
   const successCount = deployments.filter((d) => d.status === 'SUCCESS').length;
@@ -94,17 +170,18 @@ export default function DeploymentsPage() {
             <button
               onClick={() => void fetchDeployments()}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10 disabled:opacity-50"
             >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
             {canCreateDeployment && (
-              <Link
-                href="/deployments/new"
-                className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
+              <button
+                type="button"
+                onClick={() => setCreateDialogOpen(true)}
+                className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:bg-[var(--text-primary)]"
               >
                 <Plus size={16} /> New Deployment
-              </Link>
+              </button>
             )}
           </>
         }
@@ -112,27 +189,27 @@ export default function DeploymentsPage() {
 
       <SectionCard contentClassName="!p-6">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-medium text-slate-500">Total</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+            <p className="text-xs font-medium text-[var(--text-muted)]">Total</p>
+            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {deployments.length}
             </p>
           </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-medium text-emerald-700">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]">
               <CheckCircle2 size={14} />
               Successful
             </div>
-            <p className="mt-1 text-2xl font-semibold text-emerald-800">
+            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {successCount}
             </p>
           </div>
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-medium text-amber-700">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]">
               <Activity size={14} />
               Running / Failed
             </div>
-            <p className="mt-1 text-2xl font-semibold text-amber-800">
+            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {runningCount + failedCount}
             </p>
           </div>
@@ -140,15 +217,22 @@ export default function DeploymentsPage() {
       </SectionCard>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           <AlertTriangle size={16} className="mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
+      {actionError && (
+        <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <span>{actionError}</span>
+        </div>
+      )}
+
       <SectionCard contentClassName="!p-3">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-          <span className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-500">
+          <span className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/5 px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)]">
             <Filter size={13} />
             Status
           </span>
@@ -158,8 +242,8 @@ export default function DeploymentsPage() {
               onClick={() => setStatusFilter(opt.value)}
               className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 statusFilter === opt.value
-                  ? 'bg-brand-500 text-white'
-                  : 'text-slate-500 hover:bg-slate-100'
+                  ? 'bg-[var(--text-primary)] text-[var(--bg-app)]'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]/10 hover:text-[var(--text-primary)]'
               }`}
             >
               {opt.label}
@@ -171,31 +255,32 @@ export default function DeploymentsPage() {
       {loading && (
         <div className="space-y-2">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-100" />
+            <div key={i} className="h-16 animate-pulse rounded-xl bg-[var(--bg-card)]/10" />
           ))}
         </div>
       )}
 
       {!loading && filtered.length === 0 && !error && (
         <SectionCard contentClassName="!py-16 text-center" className="border-dashed">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50">
-            <Rocket size={28} className="text-brand-500" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--text-primary)]/15">
+            <Rocket size={28} className="text-[var(--text-secondary)]" />
           </div>
-          <h3 className="mt-4 text-base font-semibold text-slate-900">
+          <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)]">
             No deployments found
           </h3>
-          <p className="mt-2 max-w-xs text-sm text-slate-500">
+          <p className="mt-2 max-w-xs text-sm text-[var(--text-secondary)]">
             {statusFilter === 'ALL'
               ? 'No deployments yet. Launch your first deployment.'
               : `No deployments with status "${statusFilter}".`}
           </p>
           {statusFilter === 'ALL' && canCreateDeployment && (
-            <Link
-              href="/deployments/new"
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
+            <button
+              type="button"
+              onClick={() => setCreateDialogOpen(true)}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:bg-[var(--text-primary)]"
             >
               <Plus size={16} /> Deploy
-            </Link>
+            </button>
           )}
         </SectionCard>
       )}
@@ -204,46 +289,80 @@ export default function DeploymentsPage() {
         <SectionCard contentClassName="!p-0" className="overflow-hidden">
           <table className="w-full min-w-[960px] text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80">
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Project</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Environment</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Branch</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Triggered by</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">When</th>
+              <tr className="border-b border-[var(--border)] bg-[var(--bg-card)]/5">
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Project</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Environment</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Branch</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Pipeline</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Status</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Triggered by</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">When</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-white/10">
               {pagedDeployments.map((dep) => (
-                <tr key={dep.id} className="hover:bg-slate-50 transition">
-                  <td className="px-5 py-3.5 font-semibold text-slate-900">
-                    <Link href={`/projects/${dep.project.id}`} className="transition hover:text-brand-600">
+                <tr key={dep.id} className="transition hover:bg-[var(--bg-card)]/5">
+                  <td className="px-5 py-3.5 font-semibold text-[var(--text-primary)]">
+                    <Link href={`/projects/${dep.project.id}`} className="transition hover:text-[var(--text-secondary)]">
                       {dep.project.name}
                     </Link>
                   </td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                       dep.environment.name === 'PRODUCTION'
-                        ? 'bg-red-50 text-red-600'
-                        : 'bg-blue-50 text-blue-600'
+                        ? 'bg-red-500/15 text-red-300'
+                        : 'bg-[var(--text-primary)]/15 text-[var(--text-secondary)]'
                     }`}>
                       {dep.environment.name}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 font-mono text-xs text-slate-600">{dep.branch}</td>
+                  <td className="px-5 py-3.5 font-mono text-xs text-[var(--text-primary)]">{dep.branch}</td>
+                  <td className="px-5 py-3.5">
+                    {dep.gitlabPipelineId && dep.project.gitlabUrl ? (
+                      <a
+                        href={`${dep.project.gitlabUrl}/-/pipelines/${dep.gitlabPipelineId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 font-mono text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                      >
+                        <GitMerge size={11} />
+                        #{dep.gitlabPipelineId}
+                        <ExternalLink size={9} className="opacity-60" />
+                      </a>
+                    ) : (
+                      <span className="text-xs text-[var(--text-muted)]">—</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3.5">
                     <DeploymentStatusBadge status={dep.status} size="sm" />
                   </td>
-                  <td className="px-5 py-3.5 text-slate-500 text-xs">{dep.user.fullName}</td>
-                  <td className="px-5 py-3.5 text-slate-400 text-xs">{timeAgo(dep.createdAt)}</td>
+                  <td className="px-5 py-3.5 text-xs text-[var(--text-secondary)]">{dep.user.fullName}</td>
+                  <td className="px-5 py-3.5 text-xs text-[var(--text-secondary)]">{timeAgo(dep.createdAt)}</td>
                   <td className="px-5 py-3.5">
-                    <Link
-                      href={`/deployments/${dep.id}`}
-                      className="text-xs font-semibold text-brand-600 transition hover:text-brand-700"
-                    >
-                      View →
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      {canRollbackFromList(dep) && (
+                        <button
+                          type="button"
+                          onClick={() => void handleRollbackFromList(dep.id)}
+                          disabled={rollingBackId !== null}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] disabled:opacity-50"
+                        >
+                          {rollingBackId === dep.id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <RotateCcw size={12} />
+                          )}
+                          Rollback
+                        </button>
+                      )}
+                      <Link
+                        href={`/deployments/${dep.id}`}
+                        className="text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                      >
+                        View →
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -254,6 +373,12 @@ export default function DeploymentsPage() {
       {!loading && totalPages > 1 && (
         <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} />
       )}
+
+      <DeploymentCreateDialog
+        open={createDialogOpen}
+        onClose={handleCloseCreateDialog}
+        onCreated={handleCreatedDeployment}
+      />
     </div>
   );
 }

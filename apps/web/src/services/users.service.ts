@@ -1,5 +1,6 @@
 import api from '@/lib/api';
 import type {
+  ChangeMyPasswordPayload,
   CreateUserPayload,
   UpdateUserPayload,
   UserListItem,
@@ -23,6 +24,11 @@ export const usersService = {
 
   async update(id: string, data: UpdateUserPayload): Promise<UserListItem> {
     const res = await api.put<UserListItem>(`/users/${id}`, data);
+    return res.data;
+  },
+
+  async changeMyPassword(data: ChangeMyPasswordPayload): Promise<UserListItem> {
+    const res = await api.put<UserListItem>('/users/me/password', data);
     return res.data;
   },
 

@@ -1,0 +1,6139 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "AppController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service opérationnel"
+          }
+        },
+        "summary": "Vérification de santé de la plateforme",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/users": {
+      "post": {
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Utilisateur créé avec succès"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Rôle insuffisant"
+          },
+          "409": {
+            "description": "Email déjà utilisé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer un nouveau compte développeur",
+        "tags": [
+          "Users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des utilisateurs"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Rôle insuffisant"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister tous les utilisateurs sans mot de passe",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/me/password": {
+      "put": {
+        "operationId": "UsersController_changeMyPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeMyPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mot de passe mis à jour"
+          },
+          "400": {
+            "description": "Payload invalide"
+          },
+          "401": {
+            "description": "Token JWT invalide/expiré ou mot de passe actuel incorrect"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Changer le mot de passe de la session courante",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Utilisateur trouvé"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Rôle insuffisant"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Récupérer le détail d'un utilisateur",
+        "tags": [
+          "Users"
+        ]
+      },
+      "put": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Utilisateur mis à jour"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Rôle insuffisant"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Modifier un utilisateur",
+        "tags": [
+          "Users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Utilisateur supprimé"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Rôle insuffisant"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer un utilisateur",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/{id}/toggle-active": {
+      "put": {
+        "operationId": "UsersController_toggleActive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statut du compte mis à jour"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Rôle insuffisant"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activer ou désactiver un compte utilisateur",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connexion réussie avec token JWT"
+          },
+          "401": {
+            "description": "Email ou mot de passe incorrect"
+          },
+          "429": {
+            "description": "Trop de tentatives de connexion"
+          }
+        },
+        "summary": "Connexion utilisateur",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Profil utilisateur récupéré avec succès"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Rôle insuffisant"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Récupérer le profil de l'utilisateur connecté",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Déconnexion enregistrée"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Déconnexion utilisateur (audit)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/projects": {
+      "post": {
+        "operationId": "ProjectsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Projet créé avec succès"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action réservée aux administrateurs"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer un projet",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des projets"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les projets selon le rôle utilisateur",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "operationId": "ProjectsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Détail du projet récupéré"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé au projet"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Récupérer le détail d’un projet",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "put": {
+        "operationId": "ProjectsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Projet mis à jour"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action non autorisée"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Modifier un projet",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Projet supprimé"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action non autorisée"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer un projet",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}/members": {
+      "post": {
+        "operationId": "ProjectsController_addMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Membre ajouté au projet"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action non autorisée"
+          },
+          "404": {
+            "description": "Projet ou utilisateur non trouvé"
+          },
+          "409": {
+            "description": "Utilisateur déjà membre"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ajouter un membre au projet",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController_getMembers",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des membres du projet"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé au projet"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les membres du projet",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}/members/{userId}": {
+      "delete": {
+        "operationId": "ProjectsController_removeMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Membre retiré du projet"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action non autorisée"
+          },
+          "404": {
+            "description": "Projet ou membre non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retirer un membre du projet",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/gitlab/providers": {
+      "get": {
+        "operationId": "GitlabController_listProviders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Providers GitLab disponibles"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les providers GitLab disponibles pour la configuration projet",
+        "tags": [
+          "GitLab"
+        ]
+      }
+    },
+    "/projects/{id}/gitlab/connect": {
+      "post": {
+        "operationId": "GitlabController_connectProject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectGitlabDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Configuration GitLab enregistrée"
+          },
+          "400": {
+            "description": "Connexion GitLab échouée"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connecter un projet à GitLab",
+        "tags": [
+          "GitLab"
+        ]
+      }
+    },
+    "/projects/{id}/gitlab/branches": {
+      "get": {
+        "operationId": "GitlabController_getBranches",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Branches GitLab récupérées"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Projet ou config GitLab non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les branches GitLab disponibles",
+        "tags": [
+          "GitLab"
+        ]
+      }
+    },
+    "/projects/{id}/gitlab/pipelines": {
+      "get": {
+        "operationId": "GitlabController_getPipelines",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pipelines GitLab récupérés"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Projet ou config GitLab non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les pipelines GitLab",
+        "tags": [
+          "GitLab"
+        ]
+      }
+    },
+    "/projects/{id}/gitlab/repos": {
+      "get": {
+        "operationId": "GitlabController_getRepos",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Repositories GitLab récupérés"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Projet ou config GitLab non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les repositories (REPO/GROUP)",
+        "tags": [
+          "GitLab"
+        ]
+      }
+    },
+    "/projects/{id}/gitlab/pipelines/trigger": {
+      "post": {
+        "operationId": "GitlabController_triggerPipeline",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerPipelineDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pipeline GitLab déclenché"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Projet ou config GitLab non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Déclencher un pipeline GitLab manuellement",
+        "tags": [
+          "GitLab"
+        ]
+      }
+    },
+    "/gitlab/webhook": {
+      "post": {
+        "operationId": "GitlabController_handleWebhook",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Webhook traité avec succès"
+          },
+          "403": {
+            "description": "Token webhook invalide"
+          }
+        },
+        "summary": "Recevoir les événements GitLab (webhook)",
+        "tags": [
+          "GitLab"
+        ]
+      }
+    },
+    "/projects/{id}/gitlab/config": {
+      "get": {
+        "operationId": "GitlabController_getGitlabConfig",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration GitLab retournée"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Projet ou config GitLab non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Voir la configuration GitLab d’un projet",
+        "tags": [
+          "GitLab"
+        ]
+      }
+    },
+    "/admin/platform-config": {
+      "get": {
+        "operationId": "PlatformConfigController_getAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Liste retournée (secrets masqués)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister toutes les configurations globales",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/{key}": {
+      "put": {
+        "operationId": "PlatformConfigController_setConfig",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlatformConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration mise à jour"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mettre à jour une configuration globale",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/gitlab/providers": {
+      "get": {
+        "operationId": "PlatformConfigController_listGitlabProviders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les providers GitLab",
+        "tags": [
+          "Platform Config"
+        ]
+      },
+      "post": {
+        "operationId": "PlatformConfigController_createGitlabProvider",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGitlabProviderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer un provider GitLab",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/gitlab/providers/{id}": {
+      "put": {
+        "operationId": "PlatformConfigController_updateGitlabProvider",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGitlabProviderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mettre à jour un provider GitLab",
+        "tags": [
+          "Platform Config"
+        ]
+      },
+      "delete": {
+        "operationId": "PlatformConfigController_deleteGitlabProvider",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer un provider GitLab",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/gitlab/providers/{id}/default": {
+      "post": {
+        "operationId": "PlatformConfigController_setDefaultGitlabProvider",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Définir un provider GitLab par défaut",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/gitlab/providers/{id}/test": {
+      "post": {
+        "operationId": "PlatformConfigController_testGitlabProvider",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tester la connexion GitLab pour un provider",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/gitlab/providers/{id}/oauth/start": {
+      "post": {
+        "operationId": "PlatformConfigController_startGitlabOAuthForProvider",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Démarrer OAuth GitLab pour un provider",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/test-gitlab": {
+      "post": {
+        "operationId": "PlatformConfigController_testGitlab",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tester la connexion GitLab globale (default provider)",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/gitlab/oauth/start": {
+      "post": {
+        "operationId": "PlatformConfigController_startGitlabOAuth",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Démarrer OAuth GitLab global (default provider)",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/registries": {
+      "get": {
+        "operationId": "PlatformConfigController_listRegistries",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les configurations de registre",
+        "tags": [
+          "Platform Config"
+        ]
+      },
+      "post": {
+        "operationId": "PlatformConfigController_createRegistry",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRegistryConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer une nouvelle configuration de registre",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/registries/{id}": {
+      "put": {
+        "operationId": "PlatformConfigController_updateRegistry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRegistryConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mettre à jour une configuration de registre",
+        "tags": [
+          "Platform Config"
+        ]
+      },
+      "delete": {
+        "operationId": "PlatformConfigController_deleteRegistry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer une configuration de registre",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/registries/{id}/test": {
+      "post": {
+        "operationId": "PlatformConfigController_testRegistry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tester la connexion à un registre",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/admin/platform-config/registries/{id}/set-default": {
+      "post": {
+        "operationId": "PlatformConfigController_setDefaultRegistry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Définir un registre comme registre par défaut",
+        "tags": [
+          "Platform Config"
+        ]
+      }
+    },
+    "/deployments": {
+      "post": {
+        "operationId": "DeploymentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeploymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Déploiement créé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeploymentResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Préconditions de déploiement invalides"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé au projet"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lancer un déploiement",
+        "tags": [
+          "Deployments"
+        ]
+      },
+      "get": {
+        "operationId": "DeploymentsController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des déploiements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DeploymentDetailedResponseDto"
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/PaginatedDeploymentsResponseDto"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les déploiements (filtrés par rôle)",
+        "tags": [
+          "Deployments"
+        ]
+      }
+    },
+    "/deployments/project/{projectId}": {
+      "get": {
+        "operationId": "DeploymentsController_findByProject",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historique des déploiements du projet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeploymentDetailedResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé au projet"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister l'historique d'un projet",
+        "tags": [
+          "Deployments"
+        ]
+      }
+    },
+    "/deployments/{id}": {
+      "get": {
+        "operationId": "DeploymentsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Détail du déploiement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeploymentDetailedResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Déploiement non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Détail d'un déploiement",
+        "tags": [
+          "Deployments"
+        ]
+      }
+    },
+    "/deployments/{id}/cancel": {
+      "post": {
+        "operationId": "DeploymentsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Déploiement annulé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeploymentResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "État du déploiement non annulable"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Déploiement non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Annuler un déploiement",
+        "tags": [
+          "Deployments"
+        ]
+      }
+    },
+    "/deployments/{id}/rollback": {
+      "post": {
+        "operationId": "DeploymentsController_rollback",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Rollback lancé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeploymentResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Rollback impossible"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Déploiement non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rollback sur la dernière image stable",
+        "tags": [
+          "Deployments"
+        ]
+      }
+    },
+    "/projects/{id}/configs": {
+      "post": {
+        "operationId": "ConfigsController_create",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Configuration créée"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action non autorisée"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer une configuration projet",
+        "tags": [
+          "Configs"
+        ]
+      },
+      "get": {
+        "operationId": "ConfigsController_findAll",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des configurations"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les configurations projet (secrets masqués)",
+        "tags": [
+          "Configs"
+        ]
+      }
+    },
+    "/projects/{id}/configs/{configId}": {
+      "put": {
+        "operationId": "ConfigsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "configId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration mise à jour"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action non autorisée"
+          },
+          "404": {
+            "description": "Projet ou configuration non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mettre à jour une configuration projet",
+        "tags": [
+          "Configs"
+        ]
+      },
+      "delete": {
+        "operationId": "ConfigsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "configId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration supprimée"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action non autorisée"
+          },
+          "404": {
+            "description": "Projet ou configuration non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer une configuration projet",
+        "tags": [
+          "Configs"
+        ]
+      }
+    },
+    "/servers": {
+      "post": {
+        "operationId": "ServersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Serveur créé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateServerResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer un serveur (onboarding SSH: installation de clé via mot de passe temporaire, puis vérification)",
+        "tags": [
+          "Servers"
+        ]
+      },
+      "get": {
+        "operationId": "ServersController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des serveurs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ServerResponseDto"
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/PaginatedServersResponseDto"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister tous les serveurs (sshKey masquée)",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}": {
+      "get": {
+        "operationId": "ServersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Serveur trouvé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Voir le détail d'un serveur",
+        "tags": [
+          "Servers"
+        ]
+      },
+      "put": {
+        "operationId": "ServersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Serveur mis à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Modifier un serveur",
+        "tags": [
+          "Servers"
+        ]
+      },
+      "patch": {
+        "operationId": "ServersController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Serveur mis à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Modifier partiellement un serveur",
+        "tags": [
+          "Servers"
+        ]
+      },
+      "delete": {
+        "operationId": "ServersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Serveur supprimé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteServerResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Serveur utilisé par un environnement actif"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer un serveur si aucun environnement actif",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/verify": {
+      "post": {
+        "description": "Ne vérifie pas Ansible sur le VPS. Ansible reste uniquement sur la machine de contrôle.",
+        "operationId": "ServersController_verify",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Vérification serveur terminée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Connexion SSH ou vérification échouée"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Alias déprécié: valider la connexion SSH du serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/validate-ssh": {
+      "post": {
+        "description": "Les VPS sont des cibles SSH agentless. Cette étape ne cherche jamais à installer Ansible sur le VPS.",
+        "operationId": "ServersController_validateSsh",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateServerSshDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Validation SSH démarrée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Valider la connexion SSH, auth, sudo et prérequis minimaux",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/detect": {
+      "post": {
+        "operationId": "ServersController_detect",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetectServerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Détection terminée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Détecter les informations système et outils installés",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/install": {
+      "post": {
+        "description": "Compatibilité ancienne API. Le champ ansible est ignoré: Ansible n'est jamais installé sur le VPS cible.",
+        "operationId": "ServersController_install",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallToolsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Installation terminée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Installation distante échouée"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Déprécié: utiliser Prepare Server",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/prepare": {
+      "post": {
+        "description": "Lance le workflow ServerPreparation. Ansible est exécuté uniquement depuis la machine de contrôle.",
+        "operationId": "ServersController_prepare",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareServerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Préparation du serveur démarrée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Préparation échouée"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Alias: démarrer une préparation serveur suivie",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/register-runner": {
+      "post": {
+        "operationId": "ServersController_registerRunner",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRunnerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Runner enregistré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Échec enregistrement runner"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Enregistrer le GitLab Runner sur ce serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/install-key": {
+      "post": {
+        "operationId": "ServersController_installKey",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Clé SSH installée et validée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallKeyResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Installation de clé impossible pour ce serveur"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Installer la clé publique SSH via mot de passe temporaire",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/status": {
+      "get": {
+        "operationId": "ServersController_getVerificationStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statut de vérification du serveur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerVerificationStatusDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Récupérer le statut de vérification du serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/logs": {
+      "get": {
+        "operationId": "ServersController_getVerificationLogs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs de vérification du serveur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerLogDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Récupérer les logs de vérification du serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/capabilities": {
+      "get": {
+        "operationId": "ServersController_getCapabilities",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerCapabilityDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les capacités détectées du serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/installed-tools": {
+      "get": {
+        "operationId": "ServersController_getInstalledTools",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerInstalledToolDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les outils installés détectés",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/validation-results": {
+      "get": {
+        "operationId": "ServersController_getValidationResults",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerValidationResultDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les résultats de validation SSH",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/audit-events": {
+      "get": {
+        "operationId": "ServersController_getAuditEvents",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerAuditEventDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister l'audit des actions serveur sensibles",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/preparations": {
+      "post": {
+        "operationId": "ServersController_startPreparation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartServerPreparationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Démarrer une préparation serveur",
+        "tags": [
+          "Servers"
+        ]
+      },
+      "get": {
+        "operationId": "ServersController_listPreparations",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerPreparationDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister l'historique de préparation du serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/preparation-readiness": {
+      "get": {
+        "operationId": "ServersController_getPreparationReadiness",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationReadinessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vérifier si le serveur est prêt à lancer une préparation (SSH/sudo/état/verrou).",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/retry-verification": {
+      "post": {
+        "operationId": "ServersController_retryVerification",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Vérification relancée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyServerResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Relancer la vérification du serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/jobs": {
+      "get": {
+        "operationId": "ServersController_listJobs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des jobs serveur",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ServerJobResponseDto"
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/PaginatedServerJobsResponseDto"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister l'historique des jobs serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/servers/{id}/jobs/{jobId}/retry": {
+      "post": {
+        "operationId": "ServersController_retryJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Job relancé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Job non rejouable"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux ADMIN"
+          },
+          "404": {
+            "description": "Serveur ou job non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Relancer un job serveur",
+        "tags": [
+          "Servers"
+        ]
+      }
+    },
+    "/preparations/{id}": {
+      "get": {
+        "operationId": "ServerPreparationsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Voir le détail d'une préparation serveur",
+        "tags": [
+          "Server Preparations"
+        ]
+      }
+    },
+    "/preparations/{id}/logs": {
+      "get": {
+        "operationId": "ServerPreparationsController_logs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "afterLine",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerPreparationLogDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lire les logs persistés d'une préparation",
+        "tags": [
+          "Server Preparations"
+        ]
+      }
+    },
+    "/preparations/{id}/retry": {
+      "post": {
+        "operationId": "ServerPreparationsController_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryServerPreparationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Relancer une préparation en créant un nouveau job lié",
+        "tags": [
+          "Server Preparations"
+        ]
+      }
+    },
+    "/preparations/{id}/cancel": {
+      "post": {
+        "operationId": "ServerPreparationsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Annuler une préparation si elle est encore active",
+        "tags": [
+          "Server Preparations"
+        ]
+      }
+    },
+    "/server-preparation-options": {
+      "get": {
+        "operationId": "ServerPreparationOptionsController_options",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les options et profils de préparation",
+        "tags": [
+          "Server Preparation Options"
+        ]
+      }
+    },
+    "/projects/{id}/environments": {
+      "post": {
+        "operationId": "EnvironmentsController_create",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnvironmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Environnement créé avec succès"
+          },
+          "400": {
+            "description": "Serveur non vérifié"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action non autorisée"
+          },
+          "404": {
+            "description": "Projet ou serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer un environnement pour un projet",
+        "tags": [
+          "Environments"
+        ]
+      },
+      "get": {
+        "operationId": "EnvironmentsController_findAll",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des environnements"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Projet non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les environnements d'un projet",
+        "tags": [
+          "Environments"
+        ]
+      }
+    },
+    "/projects/{id}/environments/{envId}": {
+      "get": {
+        "operationId": "EnvironmentsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "envId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Détail environnement"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès non autorisé"
+          },
+          "404": {
+            "description": "Projet ou environnement non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Détail d'un environnement de projet",
+        "tags": [
+          "Environments"
+        ]
+      },
+      "put": {
+        "operationId": "EnvironmentsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "envId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEnvironmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Environnement mis à jour"
+          },
+          "400": {
+            "description": "Serveur non vérifié"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action non autorisée"
+          },
+          "404": {
+            "description": "Projet, environnement ou serveur non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mettre à jour un environnement de projet",
+        "tags": [
+          "Environments"
+        ]
+      },
+      "delete": {
+        "operationId": "EnvironmentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "envId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Environnement supprimé"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Action non autorisée"
+          },
+          "404": {
+            "description": "Projet ou environnement non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer un environnement de projet",
+        "tags": [
+          "Environments"
+        ]
+      }
+    },
+    "/teams": {
+      "get": {
+        "operationId": "TeamsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Liste des équipes"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister toutes les équipes",
+        "tags": [
+          "Teams"
+        ]
+      },
+      "post": {
+        "operationId": "TeamsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Équipe créée avec succès"
+          },
+          "409": {
+            "description": "Nom déjà utilisé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer une équipe",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/teams/{id}": {
+      "get": {
+        "operationId": "TeamsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Équipe trouvée"
+          },
+          "404": {
+            "description": "Équipe introuvable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Récupérer une équipe par ID",
+        "tags": [
+          "Teams"
+        ]
+      },
+      "put": {
+        "operationId": "TeamsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Équipe mise à jour"
+          },
+          "404": {
+            "description": "Équipe introuvable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Modifier une équipe",
+        "tags": [
+          "Teams"
+        ]
+      },
+      "delete": {
+        "operationId": "TeamsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Équipe supprimée"
+          },
+          "404": {
+            "description": "Équipe introuvable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer une équipe",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/teams/{id}/members": {
+      "post": {
+        "operationId": "TeamsController_addMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTeamMemberDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Membre ajouté"
+          },
+          "404": {
+            "description": "Équipe ou utilisateur introuvable"
+          },
+          "409": {
+            "description": "Déjà membre de cette équipe"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ajouter un membre à une équipe",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/teams/{id}/members/{userId}": {
+      "delete": {
+        "operationId": "TeamsController_removeMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Membre retiré"
+          },
+          "404": {
+            "description": "Équipe ou membre introuvable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retirer un membre d'une équipe",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/projects/{projectId}/teams/{teamId}": {
+      "post": {
+        "operationId": "ProjectTeamsController_addTeamToProject",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "teamId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Membres de l'équipe ajoutés au projet"
+          },
+          "404": {
+            "description": "Projet ou équipe introuvable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ajouter tous les membres d'une équipe à un projet",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}/build/prepare": {
+      "post": {
+        "operationId": "BuildController_prepare",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Build"
+        ]
+      }
+    },
+    "/projects/{id}/build/detect": {
+      "get": {
+        "operationId": "BuildController_detect",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Build"
+        ]
+      }
+    },
+    "/projects/{id}/build/config": {
+      "put": {
+        "operationId": "BuildController_updateConfig",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBuildConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Build"
+        ]
+      }
+    },
+    "/projects/{id}/build/templates": {
+      "get": {
+        "operationId": "BuildController_getTemplates",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Build"
+        ]
+      }
+    },
+    "/projects/{id}/build/push-files": {
+      "post": {
+        "operationId": "BuildController_pushFiles",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Build"
+        ]
+      }
+    },
+    "/ssh-keys": {
+      "get": {
+        "operationId": "SshKeysController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "SSH Keys"
+        ]
+      },
+      "post": {
+        "operationId": "SshKeysController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSshKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "SSH Keys"
+        ]
+      }
+    },
+    "/ssh-keys/{id}": {
+      "delete": {
+        "operationId": "SshKeysController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "SSH Keys"
+        ]
+      }
+    },
+    "/admin/audit-logs": {
+      "get": {
+        "operationId": "AuditLogsController_findAll",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs d’audit paginés"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "403": {
+            "description": "Accès réservé aux admins"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les logs d’audit (admin)",
+        "tags": [
+          "Audit Logs"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "DevOps Platform API",
+    "description": "API de la plateforme centralisée de déploiement",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "dev@devops.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "StrongPassword123!"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "John Developer"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "DEVELOPER"
+            ],
+            "default": "DEVELOPER"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "fullName"
+        ]
+      },
+      "ChangeMyPasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "example": "AncienMotDePasse123!"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NouveauMotDePasse123!"
+          },
+          "confirmNewPassword": {
+            "type": "string",
+            "example": "NouveauMotDePasse123!"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword",
+          "confirmNewPassword"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "example": "John Updated"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "DEVELOPER"
+            ]
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "currentPassword": {
+            "type": "string",
+            "example": "AncienMotDePasse123!"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "NouveauMotDePasse123!"
+          },
+          "confirmNewPassword": {
+            "type": "string",
+            "example": "NouveauMotDePasse123!"
+          }
+        }
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateProjectDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "App E-commerce"
+          },
+          "description": {
+            "type": "string",
+            "example": "Application e-commerce interne"
+          },
+          "gitlabUrl": {
+            "type": "string",
+            "example": "https://gitlab.com/test/ecommerce"
+          },
+          "providerId": {
+            "type": "string",
+            "example": "b5073d11-f378-4c71-87da-093f3ecf20af",
+            "description": "Provider GitLab global. Si fourni, gitlabToken peut être omis."
+          },
+          "gitlabToken": {
+            "type": "string",
+            "example": "glpat-xxxxxxxxxxxxxxxxxxxx"
+          },
+          "gitlabId": {
+            "type": "number",
+            "example": 123
+          },
+          "gitlabGroupId": {
+            "type": "number",
+            "example": 44,
+            "description": "Group ID GitLab"
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "REPO",
+              "GROUP"
+            ],
+            "default": "REPO"
+          },
+          "deployTokenUsername": {
+            "type": "string",
+            "example": "gitlab+deploy-token-12"
+          },
+          "deployTokenValue": {
+            "type": "string",
+            "example": "glrt-xxxxxxxxxxxxxxxxxxxx"
+          },
+          "registryUrl": {
+            "type": "string",
+            "example": "registry.gitlab.example.com"
+          },
+          "branch": {
+            "type": "string",
+            "example": "main",
+            "default": "main"
+          },
+          "ownerId": {
+            "type": "string",
+            "example": "0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd",
+            "description": "Utilisateur DEVELOPER à assigner comme OWNER"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateProjectDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "App E-commerce V2"
+          },
+          "description": {
+            "type": "string",
+            "example": "Description mise à jour"
+          },
+          "gitlabUrl": {
+            "type": "string",
+            "example": "https://gitlab.com/test/ecommerce"
+          },
+          "branch": {
+            "type": "string",
+            "example": "develop"
+          }
+        }
+      },
+      "AddMemberDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "uuid-user"
+          },
+          "email": {
+            "type": "string",
+            "example": "dev@devops.com"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "DEVELOPER",
+              "VIEWER"
+            ],
+            "default": "DEVELOPER"
+          }
+        }
+      },
+      "ConnectGitlabDto": {
+        "type": "object",
+        "properties": {
+          "gitlabUrl": {
+            "type": "string",
+            "example": "https://gitlab.example.com"
+          },
+          "gitlabToken": {
+            "type": "string",
+            "example": "glpat-xxxxxxxxxxxxxxxxxxxx"
+          },
+          "providerId": {
+            "type": "string",
+            "example": "b5073d11-f378-4c71-87da-093f3ecf20af",
+            "description": "Provider GitLab global (Platform Config). Si fourni, URL/token peuvent être omis."
+          },
+          "gitlabId": {
+            "type": "number",
+            "example": 123
+          },
+          "defaultBranch": {
+            "type": "string",
+            "example": "main",
+            "default": "main"
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "REPO",
+              "GROUP"
+            ],
+            "default": "REPO"
+          },
+          "gitlabGroupId": {
+            "type": "number",
+            "example": 44,
+            "description": "Group ID GitLab"
+          },
+          "deployTokenUsername": {
+            "type": "string",
+            "example": "gitlab+deploy-token-12"
+          },
+          "deployTokenValue": {
+            "type": "string",
+            "example": "glrt-xxxxxxxxxxxxxxxxxxxx"
+          },
+          "registryUrl": {
+            "type": "string",
+            "example": "registry.gitlab.example.com"
+          }
+        }
+      },
+      "TriggerPipelineDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdatePlatformConfigDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateGitlabProviderDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateGitlabProviderDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateRegistryConfigDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateRegistryConfigDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DeploymentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "SUCCESS",
+              "FAILED",
+              "CANCELED"
+            ]
+          },
+          "logs": {
+            "type": "string",
+            "nullable": true
+          },
+          "dockerImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "branch": {
+            "type": "string"
+          },
+          "environmentId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "branch",
+          "environmentId",
+          "projectId",
+          "userId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DeploymentProjectSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "gitlabUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "DeploymentServerSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "host"
+        ]
+      },
+      "DeploymentEnvironmentSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "enum": [
+              "STAGING",
+              "PRODUCTION"
+            ]
+          },
+          "server": {
+            "$ref": "#/components/schemas/DeploymentServerSummaryDto"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "server"
+        ]
+      },
+      "DeploymentUserSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "fullName"
+        ]
+      },
+      "DeploymentDetailedResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "SUCCESS",
+              "FAILED",
+              "CANCELED"
+            ]
+          },
+          "logs": {
+            "type": "string",
+            "nullable": true
+          },
+          "dockerImage": {
+            "type": "string",
+            "nullable": true
+          },
+          "branch": {
+            "type": "string"
+          },
+          "environmentId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "project": {
+            "$ref": "#/components/schemas/DeploymentProjectSummaryDto"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/DeploymentEnvironmentSummaryDto"
+          },
+          "user": {
+            "$ref": "#/components/schemas/DeploymentUserSummaryDto"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "branch",
+          "environmentId",
+          "projectId",
+          "userId",
+          "createdAt",
+          "updatedAt",
+          "project",
+          "environment",
+          "user"
+        ]
+      },
+      "PaginatedDeploymentsResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeploymentDetailedResponseDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "data",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "CreateDeploymentDto": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "example": "project-uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "example": "environment-uuid"
+          },
+          "branch": {
+            "type": "string",
+            "example": "main"
+          },
+          "repoId": {
+            "type": "number",
+            "example": 42,
+            "description": "Repository GitLab ciblé (recommandé pour source GROUP, optionnel pour REPO)"
+          }
+        },
+        "required": [
+          "projectId",
+          "environmentId"
+        ]
+      },
+      "CreateConfigDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "DATABASE_URL"
+          },
+          "value": {
+            "type": "string",
+            "example": "postgresql://user:pass@host:5432/db"
+          },
+          "isSecret": {
+            "type": "boolean",
+            "example": false,
+            "default": false
+          }
+        },
+        "required": [
+          "key",
+          "value"
+        ]
+      },
+      "UpdateConfigDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "REDIS_URL"
+          },
+          "value": {
+            "type": "string",
+            "example": "redis://localhost:6379"
+          },
+          "isSecret": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ServerResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "number"
+          },
+          "username": {
+            "type": "string"
+          },
+          "sshPublicKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "connectionMode": {
+            "type": "string",
+            "enum": [
+              "ssh"
+            ]
+          },
+          "bastionHost": {
+            "type": "string",
+            "nullable": true
+          },
+          "bastionPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "bastionUsername": {
+            "type": "string",
+            "nullable": true
+          },
+          "agentLastSeenAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "onboardingStep": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "SSH_PENDING",
+              "SSH_VALIDATED",
+              "VALIDATION_FAILED",
+              "INFO_DETECTED",
+              "PREPARATION_PENDING",
+              "PREPARING",
+              "PREPARED",
+              "PARTIALLY_PREPARED",
+              "PREPARATION_FAILED",
+              "UNREACHABLE",
+              "DISABLED"
+            ]
+          },
+          "verificationError": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastVerifiedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastDetectedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastPreparedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "hasDocker": {
+            "type": "boolean"
+          },
+          "hasRunner": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "host",
+          "port",
+          "username",
+          "connectionMode",
+          "isActive",
+          "isVerified",
+          "onboardingStep",
+          "status",
+          "hasDocker",
+          "hasRunner",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateServerResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "number"
+          },
+          "username": {
+            "type": "string"
+          },
+          "sshPublicKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "connectionMode": {
+            "type": "string",
+            "enum": [
+              "ssh"
+            ]
+          },
+          "bastionHost": {
+            "type": "string",
+            "nullable": true
+          },
+          "bastionPort": {
+            "type": "number",
+            "nullable": true
+          },
+          "bastionUsername": {
+            "type": "string",
+            "nullable": true
+          },
+          "agentLastSeenAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "onboardingStep": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "SSH_PENDING",
+              "SSH_VALIDATED",
+              "VALIDATION_FAILED",
+              "INFO_DETECTED",
+              "PREPARATION_PENDING",
+              "PREPARING",
+              "PREPARED",
+              "PARTIALLY_PREPARED",
+              "PREPARATION_FAILED",
+              "UNREACHABLE",
+              "DISABLED"
+            ]
+          },
+          "verificationError": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastVerifiedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastDetectedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastPreparedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "hasDocker": {
+            "type": "boolean"
+          },
+          "hasRunner": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "agentBootstrapToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "host",
+          "port",
+          "username",
+          "connectionMode",
+          "isActive",
+          "isVerified",
+          "onboardingStep",
+          "status",
+          "hasDocker",
+          "hasRunner",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaginatedServersResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServerResponseDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "data",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "ServerJobResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "VERIFY",
+              "INSTALL_TOOLS",
+              "PREPARE_SERVER",
+              "REGISTER_RUNNER"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "SUCCESS",
+              "FAILED",
+              "TIMEOUT",
+              "BLOCKED"
+            ]
+          },
+          "output": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "attempts": {
+            "type": "number"
+          },
+          "maxAttempts": {
+            "type": "number"
+          },
+          "timeoutMs": {
+            "type": "number"
+          },
+          "startedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "type",
+          "status",
+          "attempts",
+          "maxAttempts",
+          "timeoutMs",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PaginatedServerJobsResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServerJobResponseDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "data",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "DeleteServerResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Serveur supprimé avec succès"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "InstallKeyResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Clé publique SSH installée avec succès"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
+      "CreateServerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Production VPS"
+          },
+          "host": {
+            "type": "string",
+            "example": "192.168.1.100"
+          },
+          "port": {
+            "type": "number",
+            "example": 22,
+            "default": 22
+          },
+          "username": {
+            "type": "string",
+            "example": "ubuntu",
+            "default": "ubuntu"
+          },
+          "sshKey": {
+            "type": "string",
+            "example": "-----BEGIN OPENSSH PRIVATE KEY-----\n...",
+            "description": "Clé privée SSH (OpenSSH ou PKCS8). Si absente, la plateforme génère automatiquement une paire de clés."
+          },
+          "verificationMode": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "ssh"
+            ],
+            "default": "manual",
+            "description": "Déprécié: ce champ est ignoré. Le serveur est créé puis la clé SSH doit être installée via /servers/:id/install-key.",
+            "deprecated": true
+          },
+          "sshKeyId": {
+            "type": "string",
+            "description": "ID of an existing SshKey to use for this server connection."
+          },
+          "connectionMode": {
+            "type": "string",
+            "enum": [
+              "ssh"
+            ],
+            "default": "ssh",
+            "description": "Mode de connexion : ssh (direct SSH)"
+          }
+        },
+        "required": [
+          "name",
+          "host"
+        ]
+      },
+      "UpdateServerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Production VPS"
+          },
+          "host": {
+            "type": "string",
+            "example": "10.0.0.10"
+          },
+          "port": {
+            "type": "number",
+            "example": 22
+          },
+          "username": {
+            "type": "string",
+            "example": "ubuntu"
+          },
+          "sshKey": {
+            "type": "string",
+            "example": "-----BEGIN OPENSSH PRIVATE KEY-----\n..."
+          },
+          "connectionMode": {
+            "type": "string",
+            "enum": [
+              "ssh"
+            ]
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "isVerified": {
+            "type": "boolean",
+            "example": true
+          },
+          "hasDocker": {
+            "type": "boolean",
+            "example": true
+          },
+          "hasRunner": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ValidateServerSshDto": {
+        "type": "object",
+        "properties": {
+          "refreshFingerprint": {
+            "type": "boolean",
+            "example": true,
+            "description": "When true, refresh host fingerprint metadata if the control node can read it."
+          }
+        }
+      },
+      "DetectServerDto": {
+        "type": "object",
+        "properties": {
+          "refreshTools": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "InstallToolsDto": {
+        "type": "object",
+        "properties": {
+          "docker": {
+            "type": "boolean",
+            "example": true
+          },
+          "ansible": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true,
+            "description": "Ignored. Ansible is never installed on target VPS; it runs only from the control node."
+          },
+          "runner": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "PrepareServerDto": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "enum": [
+              "BASIC",
+              "WEB",
+              "DATABASE",
+              "RUNNER",
+              "FULL",
+              "CUSTOM"
+            ],
+            "default": "BASIC",
+            "description": "Reusable preparation profile. Explicit options override profile defaults."
+          },
+          "systemUpdate": {
+            "type": "boolean",
+            "example": true
+          },
+          "docker": {
+            "type": "boolean",
+            "example": true
+          },
+          "dockerComposePlugin": {
+            "type": "boolean",
+            "example": true
+          },
+          "nginx": {
+            "type": "boolean",
+            "example": true
+          },
+          "nodejs": {
+            "type": "boolean",
+            "example": false
+          },
+          "postgres": {
+            "type": "boolean",
+            "example": false
+          },
+          "postgresql": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true
+          },
+          "redis": {
+            "type": "boolean",
+            "example": false
+          },
+          "gitlabRunner": {
+            "type": "boolean",
+            "example": false
+          },
+          "firewall": {
+            "type": "boolean",
+            "example": true
+          },
+          "fail2ban": {
+            "type": "boolean",
+            "example": true
+          },
+          "certbot": {
+            "type": "boolean",
+            "example": false
+          },
+          "ssl": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true
+          },
+          "swap": {
+            "type": "boolean",
+            "example": true
+          },
+          "monitoring": {
+            "type": "boolean",
+            "example": false
+          },
+          "backup": {
+            "type": "boolean",
+            "example": false
+          },
+          "logrotate": {
+            "type": "boolean",
+            "example": true
+          },
+          "securityHardening": {
+            "type": "boolean",
+            "example": true
+          },
+          "autoUpdates": {
+            "type": "boolean",
+            "example": true
+          },
+          "gitlabRunnerExecutor": {
+            "type": "string",
+            "example": "docker",
+            "description": "Executor mode for GitLab Runner. docker implies Docker dependency."
+          }
+        }
+      },
+      "RegisterRunnerDto": {
+        "type": "object",
+        "properties": {
+          "gitlabUrl": {
+            "type": "string",
+            "example": "https://gitlab.example.com"
+          },
+          "token": {
+            "type": "string",
+            "example": "GR1345xyz"
+          }
+        },
+        "required": [
+          "gitlabUrl",
+          "token"
+        ]
+      },
+      "InstallKeyDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "example": "MyTempPassword123!"
+          }
+        },
+        "required": [
+          "password"
+        ]
+      },
+      "ServerLogDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "INFO",
+              "WARNING",
+              "ERROR"
+            ]
+          },
+          "context": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "message",
+          "level",
+          "createdAt"
+        ]
+      },
+      "ServerVerificationStatusDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "SSH_PENDING",
+              "SSH_VALIDATED",
+              "VALIDATION_FAILED",
+              "INFO_DETECTED",
+              "PREPARATION_PENDING",
+              "PREPARING",
+              "PREPARED",
+              "PARTIALLY_PREPARED",
+              "PREPARATION_FAILED",
+              "UNREACHABLE",
+              "DISABLED"
+            ]
+          },
+          "verificationError": {
+            "type": "string"
+          },
+          "lastVerifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isVerified": {
+            "type": "boolean"
+          },
+          "hasDocker": {
+            "type": "boolean"
+          },
+          "hasRunner": {
+            "type": "boolean"
+          },
+          "recentLogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServerLogDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "isVerified",
+          "hasDocker",
+          "hasRunner",
+          "recentLogs"
+        ]
+      },
+      "ServerCapabilityDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "detectedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "key",
+          "value",
+          "source",
+          "detectedAt"
+        ]
+      },
+      "ServerInstalledToolDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "toolKey": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "version": {
+            "type": "object",
+            "nullable": true
+          },
+          "installedBy": {
+            "type": "object",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "INSTALLED",
+              "MISSING",
+              "FAILED",
+              "UNKNOWN"
+            ]
+          },
+          "installedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "toolKey",
+          "displayName",
+          "status"
+        ]
+      },
+      "ServerValidationResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "sshReachable": {
+            "type": "boolean"
+          },
+          "authSucceeded": {
+            "type": "boolean"
+          },
+          "sudoAvailable": {
+            "type": "boolean"
+          },
+          "fingerprint": {
+            "type": "object",
+            "nullable": true
+          },
+          "osName": {
+            "type": "object",
+            "nullable": true
+          },
+          "osVersion": {
+            "type": "object",
+            "nullable": true
+          },
+          "architecture": {
+            "type": "object",
+            "nullable": true
+          },
+          "pythonAvailable": {
+            "type": "boolean"
+          },
+          "validationMessage": {
+            "type": "object",
+            "nullable": true
+          },
+          "validatedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "sshReachable",
+          "authSucceeded",
+          "sudoAvailable",
+          "pythonAvailable"
+        ]
+      },
+      "ServerAuditEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "actorId": {
+            "type": "object",
+            "nullable": true
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "payloadJson": {
+            "type": "object",
+            "nullable": true,
+            "description": "JSON payload describing the audited action context."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "eventType",
+          "createdAt"
+        ]
+      },
+      "StartServerPreparationDto": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "enum": [
+              "BASIC",
+              "WEB",
+              "DATABASE",
+              "RUNNER",
+              "FULL",
+              "CUSTOM"
+            ],
+            "default": "BASIC",
+            "description": "Reusable preparation profile. Explicit options override profile defaults."
+          },
+          "systemUpdate": {
+            "type": "boolean",
+            "example": true
+          },
+          "docker": {
+            "type": "boolean",
+            "example": true
+          },
+          "dockerComposePlugin": {
+            "type": "boolean",
+            "example": true
+          },
+          "nginx": {
+            "type": "boolean",
+            "example": true
+          },
+          "nodejs": {
+            "type": "boolean",
+            "example": false
+          },
+          "postgres": {
+            "type": "boolean",
+            "example": false
+          },
+          "postgresql": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true
+          },
+          "redis": {
+            "type": "boolean",
+            "example": false
+          },
+          "gitlabRunner": {
+            "type": "boolean",
+            "example": false
+          },
+          "firewall": {
+            "type": "boolean",
+            "example": true
+          },
+          "fail2ban": {
+            "type": "boolean",
+            "example": true
+          },
+          "certbot": {
+            "type": "boolean",
+            "example": false
+          },
+          "ssl": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true
+          },
+          "swap": {
+            "type": "boolean",
+            "example": true
+          },
+          "monitoring": {
+            "type": "boolean",
+            "example": false
+          },
+          "backup": {
+            "type": "boolean",
+            "example": false
+          },
+          "logrotate": {
+            "type": "boolean",
+            "example": true
+          },
+          "securityHardening": {
+            "type": "boolean",
+            "example": true
+          },
+          "autoUpdates": {
+            "type": "boolean",
+            "example": true
+          },
+          "gitlabRunnerExecutor": {
+            "type": "string",
+            "example": "docker",
+            "description": "Executor mode for GitLab Runner. docker implies Docker dependency."
+          }
+        }
+      },
+      "ServerPreparationTaskDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "preparationId": {
+            "type": "string"
+          },
+          "roleKey": {
+            "type": "string"
+          },
+          "taskName": {
+            "type": "string"
+          },
+          "orderIndex": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SKIPPED",
+              "RUNNING",
+              "OK",
+              "CHANGED",
+              "FAILED",
+              "TIMEOUT"
+            ]
+          },
+          "startedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "message": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "preparationId",
+          "roleKey",
+          "taskName",
+          "orderIndex",
+          "status"
+        ]
+      },
+      "ServerPreparationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RESOLVING_OPTIONS",
+              "WAITING_FOR_LOCK",
+              "RUNNING",
+              "SUCCEEDED",
+              "PARTIAL",
+              "FAILED",
+              "TIMEOUT",
+              "CANCELED"
+            ]
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "BASIC",
+              "WEB",
+              "DATABASE",
+              "RUNNER",
+              "FULL",
+              "CUSTOM"
+            ]
+          },
+          "triggerSource": {
+            "type": "string"
+          },
+          "requestedById": {
+            "type": "object",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "object",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "object",
+            "nullable": true
+          },
+          "retryOfPreparationId": {
+            "type": "object",
+            "nullable": true
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServerPreparationTaskDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "status",
+          "profile",
+          "triggerSource",
+          "tasks"
+        ]
+      },
+      "ServerPreparationReadinessChecksDto": {
+        "type": "object",
+        "properties": {
+          "serverActive": {
+            "type": "boolean"
+          },
+          "serverNotDisabled": {
+            "type": "boolean"
+          },
+          "sshValidated": {
+            "type": "boolean"
+          },
+          "sshReachable": {
+            "type": "boolean"
+          },
+          "authSucceeded": {
+            "type": "boolean"
+          },
+          "sudoAvailable": {
+            "type": "boolean"
+          },
+          "noActivePreparation": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "serverActive",
+          "serverNotDisabled",
+          "sshValidated",
+          "sshReachable",
+          "authSucceeded",
+          "sudoAvailable",
+          "noActivePreparation"
+        ]
+      },
+      "ServerPreparationReadinessDto": {
+        "type": "object",
+        "properties": {
+          "serverId": {
+            "type": "string"
+          },
+          "isReady": {
+            "type": "boolean"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/ServerPreparationReadinessChecksDto"
+          },
+          "blockingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "latestValidationAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "serverId",
+          "isReady",
+          "checks",
+          "blockingReasons"
+        ]
+      },
+      "VerifyServerResponseDto": {
+        "type": "object",
+        "properties": {
+          "serverId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "example": "Verification started, check status endpoint for updates"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "SSH_PENDING",
+              "SSH_VALIDATED",
+              "VALIDATION_FAILED",
+              "INFO_DETECTED",
+              "PREPARATION_PENDING",
+              "PREPARING",
+              "PREPARED",
+              "PARTIALLY_PREPARED",
+              "PREPARATION_FAILED",
+              "UNREACHABLE",
+              "DISABLED"
+            ]
+          }
+        },
+        "required": [
+          "serverId",
+          "message",
+          "status"
+        ]
+      },
+      "ServerPreparationLogDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "preparationId": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "INFO",
+              "WARNING",
+              "ERROR"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "lineNumber": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "preparationId",
+          "level",
+          "source",
+          "message",
+          "lineNumber",
+          "createdAt"
+        ]
+      },
+      "RetryServerPreparationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "Retry after firewall package mirror outage"
+          }
+        }
+      },
+      "CreateEnvironmentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "STAGING",
+              "PRODUCTION"
+            ],
+            "example": "STAGING"
+          },
+          "serverId": {
+            "type": "string",
+            "example": "server-uuid"
+          },
+          "domain": {
+            "type": "string",
+            "example": "staging.example.com"
+          }
+        },
+        "required": [
+          "name",
+          "serverId"
+        ]
+      },
+      "UpdateEnvironmentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "STAGING",
+              "PRODUCTION"
+            ],
+            "example": "PRODUCTION"
+          },
+          "serverId": {
+            "type": "string",
+            "example": "server-uuid"
+          },
+          "domain": {
+            "type": "string",
+            "example": "app.example.com"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          },
+          "autoDeploy": {
+            "type": "boolean",
+            "example": true
+          },
+          "autoDeployBranch": {
+            "type": "string",
+            "example": "main"
+          }
+        }
+      },
+      "CreateTeamDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateTeamDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AddTeamMemberDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateBuildConfigDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateSshKeyDto": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  }
+}

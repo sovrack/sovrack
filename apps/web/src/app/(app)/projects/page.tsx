@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Plus,
   RefreshCw,
@@ -10,12 +10,13 @@ import {
   Workflow,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useProjects } from '@/hooks/useProjects';
-import { usePagination } from '@/hooks/usePagination';
+import { useProjects } from '@/hooks/projects/use-projects';
+import { usePagination } from '@/hooks/shared/use-pagination';
 import { Pagination } from '@/components/ui/pagination';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 import { ProjectCard } from '@/components/projects/project-card';
 import { ProjectsEmpty } from '@/components/projects/projects-empty';
+import { ProjectSetupWizard } from '@/components/projects/project-setup-wizard';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import type { ProjectListItem } from '@/types/project';
@@ -31,9 +32,12 @@ function isProjectGitlabConnected(project: ProjectListItem): boolean {
 }
 
 export default function ProjectsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { projects, loading, error, refresh } = useProjects();
   const { isAdmin } = useAuth();
   const [search, setSearch] = useState('');
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const filtered = projects.filter(
     (p) =>
@@ -44,6 +48,36 @@ export default function ProjectsPage() {
   const { page, totalPages, paged: pagedProjects, goToPage, reset: resetPage } = usePagination(filtered, { pageSize: 12 });
 
   useEffect(() => { resetPage(); }, [search, resetPage]);
+
+  useEffect(() => {
+    if (searchParams.get('dialog') === 'create-project') {
+      setCreateDialogOpen(true);
+    }
+  }, [searchParams]);
+
+  const clearDialogQuery = () => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (!next.has('dialog')) {
+      return;
+    }
+
+    next.delete('dialog');
+    const query = next.toString();
+    router.replace(query ? `/projects?${query}` : '/projects');
+  };
+
+  const handleCloseCreateDialog = () => {
+    setCreateDialogOpen(false);
+    clearDialogQuery();
+  };
+
+  const handleWizardCreated = async (projectId: string) => {
+    await refresh();
+    setCreateDialogOpen(false);
+    clearDialogQuery();
+    router.push(`/projects/${projectId}`);
+  };
+
   const gitlabConnectedCount = projects.filter(isProjectGitlabConnected).length;
   const readyForDeployCount = projects.filter(
     (project) =>
@@ -62,18 +96,19 @@ export default function ProjectsPage() {
             <button
               onClick={() => void refresh()}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50 border-[var(--border)] text-[var(--text-primary)]"
             >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
             {isAdmin && (
-              <Link
-                href="/projects/new"
-                className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
+              <button
+                type="button"
+                onClick={() => setCreateDialogOpen(true)}
+                className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90 text-[var(--bg-app)]"
               >
                 <Plus size={16} />
                 New Project
-              </Link>
+              </button>
             )}
           </>
         }
@@ -84,27 +119,27 @@ export default function ProjectsPage() {
         contentClassName="!p-0"
       >
         <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-medium text-slate-500">Total projects</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 border-[var(--border)] bg-[var(--bg-card)]">
+            <p className="text-xs font-medium text-[var(--text-secondary)] text-[var(--text-secondary)]">Total projects</p>
+            <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
               {projects.length}
             </p>
           </div>
-          <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-medium text-blue-700">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 border-[var(--border)] bg-[var(--bg-card)]">
+            <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)] text-[var(--text-primary)]">
               <Link2 size={14} />
               GitLab connected
             </div>
-            <p className="mt-1 text-2xl font-semibold text-blue-800">
+            <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
               {gitlabConnectedCount}
             </p>
           </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-medium text-emerald-700">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 border-[var(--border)] bg-[var(--bg-card)]">
+            <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)] text-[var(--text-primary)]">
               <Workflow size={14} />
               Ready for deploy
             </div>
-            <p className="mt-1 text-2xl font-semibold text-emerald-800">
+            <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
               {readyForDeployCount}
             </p>
           </div>
@@ -116,14 +151,14 @@ export default function ProjectsPage() {
           <div className="relative max-w-sm">
             <Search
               size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
             />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search projects..."
-              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm text-slate-700 outline-none transition focus:border-brand-300 focus:bg-white focus:ring-2 focus:ring-brand-100"
+              className="h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] pl-9 pr-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-1 focus:ring-zinc-400"
             />
           </div>
         </SectionCard>
@@ -136,19 +171,19 @@ export default function ProjectsPage() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="animate-pulse rounded-2xl border border-slate-100 bg-white p-5"
+              className="animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 border-[var(--border)]"
             >
               <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-xl bg-slate-200" />
+                <div className="h-10 w-10 rounded-xl bg-[var(--hover)]" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 rounded bg-slate-200" />
-                  <div className="h-3 w-24 rounded bg-slate-200" />
+                  <div className="h-4 w-32 rounded bg-[var(--hover)]" />
+                  <div className="h-3 w-24 rounded bg-[var(--hover)]" />
                 </div>
               </div>
-              <div className="mt-4 h-3 w-20 rounded bg-slate-200" />
-              <div className="mt-4 flex gap-4 border-t border-slate-100 pt-3">
-                <div className="h-3 w-16 rounded bg-slate-200" />
-                <div className="h-3 w-16 rounded bg-slate-200" />
+              <div className="mt-4 h-3 w-20 rounded bg-[var(--hover)]" />
+              <div className="mt-4 flex gap-4 border-t border-[var(--border)] pt-3 border-[var(--border)]">
+                <div className="h-3 w-16 rounded bg-[var(--hover)]" />
+                <div className="h-3 w-16 rounded bg-[var(--hover)]" />
               </div>
             </div>
           ))}
@@ -156,17 +191,20 @@ export default function ProjectsPage() {
       )}
 
       {!loading && projects.length === 0 && !error && (
-        <ProjectsEmpty canCreate={isAdmin} />
+        <ProjectsEmpty
+          canCreate={isAdmin}
+          onCreate={isAdmin ? () => setCreateDialogOpen(true) : undefined}
+        />
       )}
 
       {!loading && projects.length > 0 && filtered.length === 0 && (
         <SectionCard contentClassName="!py-12 text-center" className="border-dashed">
-          <p className="text-sm font-medium text-slate-500">
+          <p className="text-sm font-medium text-[var(--text-secondary)]">
             No projects match &quot;{search}&quot;
           </p>
           <button
             onClick={() => setSearch('')}
-            className="mt-2 text-xs text-brand-600 hover:underline"
+            className="mt-2 text-xs text-[var(--text-secondary)] hover:underline text-[var(--text-secondary)]"
           >
             Clear search
           </button>
@@ -175,8 +213,8 @@ export default function ProjectsPage() {
 
       {!loading && filtered.length > 0 && (
         <>
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <FolderGit2 size={14} className="text-brand-500" />
+          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <FolderGit2 size={14} className="text-[var(--text-secondary)]" />
             <span>
               {filtered.length} project{filtered.length !== 1 ? 's' : ''} shown
             </span>
@@ -189,6 +227,12 @@ export default function ProjectsPage() {
           <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} />
         </>
       )}
+
+      <ProjectSetupWizard
+        open={createDialogOpen}
+        onClose={handleCloseCreateDialog}
+        onCreated={(id) => void handleWizardCreated(id)}
+      />
     </div>
   );
 }

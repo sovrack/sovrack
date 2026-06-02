@@ -15,18 +15,19 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantMap: Record<ButtonVariant, string> = {
   primary:
-    'bg-brand-500 text-white shadow hover:bg-brand-600 disabled:opacity-60',
+    'bg-[var(--text-primary)] text-[var(--bg-app)] hover:opacity-90 disabled:opacity-60 shadow-sm',
   secondary:
-    'border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60',
-  ghost: 'text-slate-600 hover:bg-slate-100 disabled:opacity-60',
+    'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--hover)] disabled:opacity-60',
+  ghost:
+    'text-[var(--text-secondary)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-60',
   danger:
-    'bg-red-500 text-white shadow hover:bg-red-600 disabled:opacity-60',
+    'border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/15 disabled:opacity-60',
 };
 
 const sizeMap: Record<ButtonSize, string> = {
   sm: 'h-8 px-3 text-xs gap-1.5 rounded-lg',
-  md: 'h-10 px-4 text-sm gap-2 rounded-xl',
-  lg: 'h-11 px-5 text-sm gap-2 rounded-xl',
+  md: 'h-9 px-4 text-sm gap-2 rounded-lg',
+  lg: 'h-10 px-5 text-sm gap-2 rounded-xl',
 };
 
 export function Button({
@@ -44,7 +45,7 @@ export function Button({
       {...rest}
       disabled={disabled || loading}
       className={clsx(
-        'inline-flex items-center justify-center font-semibold transition-all duration-150 focus:outline-none',
+        'inline-flex items-center justify-center font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/40',
         variantMap[variant],
         sizeMap[size],
         className,

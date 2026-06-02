@@ -1,372 +1,309 @@
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
-import { StatsCard } from '@/components/stats-card';
-import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { DeploymentsChart } from '@/components/dashboard/deployments-chart';
-import { SuccessGauge } from '@/components/dashboard/success-gauge';
-import { RecentDeployments } from '@/components/dashboard/recent-deployments';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import {
-  FolderGit2,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  GitMerge,
+  Plus,
+  RefreshCw,
   Rocket,
   Server,
-  CheckCircle,
-  RefreshCw,
-  ArrowRight,
-  Shield,
-  Activity,
-  GitBranch,
-  Users,
-  UserCheck,
+  Zap,
 } from 'lucide-react';
-import Link from 'next/link';
+import { useAuth } from '@/hooks/auth/use-auth';
+import { getApiErrorMessage } from '@/lib/api';
+import { dashboardService } from '@/services/dashboard.service';
+import { ActivityChart } from '@/components/dashboard/ActivityChart';
+import { ServerHealthCard } from '@/components/dashboard/ServerHealthCard';
+import { TopProjectsCard } from '@/components/dashboard/TopProjectsCard';
+import { PageHeader } from '@/components/layout/page-header';
+import { Alert } from '@/components/ui/alert';
 
-function toPercent(value: number, total: number): number {
-  if (total <= 0) {
-    return 0;
-  }
+function formatRelative(value: string): string {
+  const diff = Date.now() - new Date(value).getTime();
+  if (diff < 60_000) return 'just now';
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return `${Math.floor(diff / 86_400_000)}d ago`;
+}
 
-  return Math.round((value / total) * 100);
+function formatDuration(seconds: number | null): string {
+  if (seconds === null) return '—';
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
+type KpiCardProps = {
+  title: string;
+  value: string | number;
+  subtitle: string;
+  icon?: React.ReactNode;
+  tone?: 'default' | 'success' | 'error' | 'warning';
+};
+
+function KpiCard({ title, value, subtitle, icon, tone = 'default' }: KpiCardProps) {
+  const valueColor =
+    tone === 'success'
+      ? 'text-emerald-400'
+      : tone === 'error'
+        ? 'text-red-400'
+        : tone === 'warning'
+          ? 'text-amber-400'
+          : 'text-[var(--text-primary)]';
+
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-4">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+        {icon}
+        {title}
+      </p>
+      <p className={`mt-3 text-4xl font-semibold leading-none ${valueColor}`}>
+        {value}
+      </p>
+      <p className="mt-3 text-sm text-[var(--text-secondary)]">{subtitle}</p>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
-  const { stats, recentDeployments, deploymentsChart, loading, error, refresh } =
-    useDashboardStats();
 
-  const totalServers = typeof stats.servers === 'number' ? stats.servers : 0;
-  const verifiedServers =
-    typeof stats.verifiedServers === 'number' ? stats.verifiedServers : 0;
-  const serverVerificationRate = toPercent(verifiedServers, totalServers);
-  const gitlabConnectionRate = toPercent(
-    stats.gitlabConnectedProjects,
-    stats.projects,
-  );
-  const readyProjectsRate = toPercent(stats.readyProjects, stats.projects);
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ['dashboard-stats-v2'],
+    queryFn: () => dashboardService.getStats(),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
 
-  const platformProgressItems = [
-    {
-      label: 'Projets connectés GitLab',
-      pct: gitlabConnectionRate,
-      detail: `${stats.gitlabConnectedProjects}/${stats.projects}`,
-    },
-    {
-      label: 'Projets prêts à déployer',
-      pct: readyProjectsRate,
-      detail: `${stats.readyProjects}/${stats.projects}`,
-    },
-    {
-      label: 'Serveurs vérifiés',
-      pct: isAdmin ? serverVerificationRate : 0,
-      detail: isAdmin ? `${verifiedServers}/${totalServers}` : 'N/A (admin)',
-    },
-    {
-      label: 'Déploiements réussis',
-      pct: stats.successRate,
-      detail: `${stats.successRate}%`,
-    },
-  ];
+  const queryError = error ? getApiErrorMessage(error) : null;
+
+  const kpis = data?.kpis;
+  const successRateTone =
+    kpis && kpis.successRate7d >= 80
+      ? 'success'
+      : kpis && kpis.successRate7d >= 50
+        ? 'warning'
+        : kpis && kpis.deploymentsLast7d > 0
+          ? 'error'
+          : 'default';
 
   return (
-    <div className="space-y-6">
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
+    <div className="space-y-5">
       <PageHeader
-        eyebrow="Operations Center"
-        title={`${user?.fullName ?? 'Developer'}, welcome back.`}
-        description="Pilot your projects, monitor deployment activity and keep the
-              platform healthy from one shared workspace inspired by TailAdmin."
+        eyebrow="Home"
+        title={`Bonjour, ${user?.fullName ?? 'Admin'}`}
+        description="Vue d'ensemble des projets et de l'activité de déploiement."
         actions={
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => void refresh()}
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
+              type="button"
+              onClick={() => void refetch()}
+              disabled={isFetching}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
+              aria-label="Rafraîchir"
             >
-              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-              Refresh dashboard
+              <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} />
             </button>
             <Link
-              href="/deployments"
-              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              href="/projects"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
             >
-              Open deployments
-              <ArrowRight size={15} />
+              Projets <ArrowRight size={14} />
             </Link>
           </div>
         }
       />
 
-      <SectionCard contentClassName="!pt-0">
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-              <Shield size={14} />
-              {isAdmin ? 'Administrator workspace' : 'Developer workspace'}
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-              <Activity size={14} />
-              API + dashboard connected
-            </span>
-          </div>
+      {queryError && (
+        <Alert tone="error" title="Impossible de charger les données">
+          {queryError}
+        </Alert>
+      )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/60">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-                Current role
-              </p>
-              <p className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-900 dark:text-white">
-                {isAdmin ? 'Admin Control' : 'Developer Control'}
-              </p>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                {isAdmin
-                  ? 'Manage servers and infrastructure settings.'
-                  : 'Choose a project, a branch and an environment to deploy.'}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/60">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-                Current focus
-              </p>
-              <div className="mt-3 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                <div className="flex items-center gap-2">
-                  <GitBranch size={15} className="text-brand-500" />
-                  <span>Projects connected to GitLab</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Rocket size={15} className="text-brand-500" />
-                  <span>Deployments visible in one flow</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Server size={15} className="text-brand-500" />
-                  <span>Servers reserved to admin operations</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </SectionCard>
-
-      <div
-        className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${
-          isAdmin ? 'xl:grid-cols-6' : 'xl:grid-cols-4'
-        }`}
-      >
-        <StatsCard
-          title="Projects"
-          value={loading ? '–' : stats.projects}
-          hint="Accessible projects"
-          tone="brand"
-          icon={FolderGit2}
-          trend={stats.projects > 0 ? { value: 12, direction: 'up' } : undefined}
-        />
-        <StatsCard
-          title="Deployments"
-          value={loading ? '–' : stats.deployments}
-          hint="Total deployment records"
-          tone="purple"
-          icon={Rocket}
-          trend={
-            stats.deployments > 0 ? { value: 8, direction: 'up' } : undefined
-          }
-        />
-        {isAdmin && (
-          <StatsCard
-            title="Utilisateurs"
-            value={loading ? '–' : stats.usersTotal}
-            hint="Comptes enregistrés"
-            tone="brand"
-            icon={Users}
-          />
-        )}
-        {isAdmin && (
-          <StatsCard
-            title="Devs Actifs"
-            value={loading ? '–' : stats.activeDevelopers}
-            hint="Développeurs actifs"
-            tone="ok"
-            icon={UserCheck}
-          />
-        )}
-        <StatsCard
-          title="Servers"
-          value={loading ? '–' : stats.servers}
-          hint={isAdmin ? 'Registered VPS' : 'Admin only'}
-          tone="accent"
-          icon={Server}
-        />
-        <StatsCard
-          title="Success Rate"
-          value={loading ? '–' : `${stats.successRate}%`}
-          hint="Deployments succeeded"
-          tone="ok"
-          icon={CheckCircle}
-          trend={
-            stats.successRate > 0
-              ? {
-                  value: stats.successRate >= 80 ? 5 : 0,
-                  direction: stats.successRate >= 80 ? 'up' : 'down',
-                }
-              : undefined
-          }
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(330px,0.95fr)]">
-        <SectionCard
-          title="Deployment activity"
-          description="Total deployments versus successful runs over the last 7 days."
-          actions={
-            <span className="rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-              This week
-            </span>
-          }
-        >
-          <DeploymentsChart data={deploymentsChart} />
-        </SectionCard>
-
-        <SectionCard
-          title="Success overview"
-          description="Instant health indicator for completed deployments."
-        >
-
-          <div className="flex items-center justify-center rounded-2xl border border-gray-200 bg-slate-50 py-5">
-            <SuccessGauge
-              percentage={loading ? 0 : stats.successRate}
-              label="Success Rate"
-            />
-          </div>
-
-          <div className="mt-5 space-y-3 border-t border-gray-200 pt-5">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Total Deployments</span>
-              <span className="font-semibold text-slate-900">
-                {stats.deployments}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Projects Active</span>
-              <span className="font-semibold text-slate-900">{stats.projects}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Visible Servers</span>
-              <span className="font-semibold text-slate-900">{stats.servers}</span>
-            </div>
-          </div>
-        </SectionCard>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
-        <SectionCard
-          title="Recent Deployments"
-          actions={
-            <Link
-              href="/deployments"
-              className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
-            >
-              View deployments <ArrowRight size={12} />
+      {/* Alerts banners */}
+      {kpis && kpis.runningCount > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
+          <Zap size={15} className="shrink-0 text-blue-400 animate-pulse" />
+          <p className="text-sm text-[var(--text-secondary)]">
+            <span className="font-semibold text-blue-400">
+              {kpis.runningCount} déploiement{kpis.runningCount > 1 ? 's' : ''} en cours
+            </span>{' '}
+            —{' '}
+            <Link href="/deployments" className="underline hover:text-[var(--text-primary)]">
+              Surveiller
             </Link>
-          }
-        >
-          <RecentDeployments
-            deployments={recentDeployments}
-            loading={loading}
+          </p>
+        </div>
+      )}
+      {data && data.recentFailures.length > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0 text-red-400" />
+          <div className="text-sm text-[var(--text-secondary)]">
+            <span className="font-semibold text-red-400">
+              {data.recentFailures.length} échec{data.recentFailures.length > 1 ? 's' : ''} récent{data.recentFailures.length > 1 ? 's' : ''}
+            </span>{' '}
+            — {data.recentFailures[0].projectName} · {data.recentFailures[0].environmentName} ·{' '}
+            {formatRelative(data.recentFailures[0].createdAt)}{' '}
+            <Link
+              href={`/deployments/${data.recentFailures[0].id}`}
+              className="underline hover:text-[var(--text-primary)]"
+            >
+              voir
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Quick actions (admin) */}
+      {isAdmin && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { label: 'Nouveau projet', icon: <Plus size={15} />, href: '/projects?dialog=create-project', primary: true },
+            { label: 'Déployer', icon: <Rocket size={15} />, href: '/deployments?dialog=create-deployment', primary: false },
+            { label: 'Pipelines', icon: <GitMerge size={15} />, href: '/pipelines', primary: false },
+            { label: 'Serveurs', icon: <Server size={15} />, href: '/admin/servers', primary: false },
+          ].map((action) => (
+            <Link
+              key={action.label}
+              href={action.href}
+              className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition hover:opacity-90 ${
+                action.primary
+                  ? 'bg-[var(--text-primary)] text-[var(--bg-app)]'
+                  : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]'
+              }`}
+            >
+              {action.icon}
+              {action.label}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* KPI row */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-28 animate-pulse rounded-xl bg-[var(--hover)]" />
+          ))}
+        </div>
+      ) : kpis ? (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard
+            title="Projets"
+            value={kpis.totalProjects}
+            subtitle={`${kpis.totalEnvironments} environnements`}
           />
-        </SectionCard>
+          <KpiCard
+            title="Deploys / 7j"
+            value={kpis.deploymentsLast7d}
+            subtitle={`${kpis.deploymentsLast30d} ce mois-ci`}
+          />
+          <KpiCard
+            title="Taux de succès"
+            value={kpis.deploymentsLast7d > 0 ? `${kpis.successRate7d}%` : '—'}
+            subtitle="7 derniers jours"
+            icon={<CheckCircle2 size={11} />}
+            tone={successRateTone}
+          />
+          <KpiCard
+            title="Durée moyenne"
+            value={formatDuration(kpis.avgDurationSeconds)}
+            subtitle="par déploiement (30j)"
+            icon={<Clock size={11} />}
+          />
+        </div>
+      ) : null}
 
-        <div className="space-y-6">
-          <SectionCard title="Quick Actions">
-            <div className="space-y-3">
-              {isAdmin && (
-                <Link
-                  href="/projects/new"
-                  className="flex items-center gap-3 rounded-2xl border border-gray-200 p-4 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50">
-                    <FolderGit2 size={18} className="text-brand-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-800">New Project</p>
-                    <p className="text-xs text-slate-500">Connect a GitLab repository</p>
-                  </div>
-                </Link>
-              )}
-
-              <Link
-                href="/deployments"
-                className="flex items-center gap-3 rounded-2xl border border-gray-200 p-4 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50">
-                  <Rocket size={18} className="text-brand-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-slate-800">New Deployment</p>
-                  <p className="text-xs text-slate-500">Launch a deployment flow</p>
-                </div>
-              </Link>
-
-              {isAdmin && (
-                <Link
-                  href="/admin/servers"
-                  className="flex items-center gap-3 rounded-2xl border border-gray-200 p-4 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50">
-                    <Server size={18} className="text-brand-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-800">Manage Servers</p>
-                    <p className="text-xs text-slate-500">
-                      Register and verify a target machine
-                    </p>
-                  </div>
-                </Link>
-              )}
-              {isAdmin && (
-                <Link
-                  href="/admin/users"
-                  className="flex items-center gap-3 rounded-2xl border border-gray-200 p-4 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50">
-                    <Users size={18} className="text-brand-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-slate-800">Gérer les utilisateurs</p>
-                    <p className="text-xs text-slate-500">
-                      Activer, modifier ou supprimer un compte
-                    </p>
-                  </div>
-                </Link>
-              )}
-            </div>
-          </SectionCard>
-
-          <SectionCard title="Platform Progress">
-            {platformProgressItems.map((item) => (
-              <div key={item.label} className="mb-4 last:mb-0">
-                <div className="mb-1.5 flex justify-between text-xs">
-                  <span className="text-slate-500">{item.label}</span>
-                  <span className="font-medium text-slate-700">
-                    {item.detail}
+      {/* Status summary + Activity chart */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        {/* Status card */}
+        {kpis && (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+            <p className="mb-3 text-sm font-semibold text-[var(--text-primary)]">
+              État actuel
+            </p>
+            <ul className="space-y-2.5">
+              {[
+                { label: 'En cours', value: kpis.runningCount, color: 'bg-blue-400' },
+                { label: 'Échecs (7j)', value: kpis.failedCount, color: 'bg-red-400' },
+                { label: 'Projets inactifs', value: kpis.idleProjectsCount, color: 'bg-zinc-500' },
+              ].map((item) => (
+                <li key={item.label} className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 text-[var(--text-secondary)]">
+                    <span className={`h-2 w-2 rounded-full ${item.color}`} />
+                    {item.label}
                   </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-2 rounded-full bg-brand-500 transition-all"
-                    style={{ width: `${item.pct}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </SectionCard>
+                  <span className="font-semibold text-[var(--text-primary)]">{item.value}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Activity chart */}
+        <div className="lg:col-span-2">
+          {data?.activity ? (
+            <ActivityChart data={data.activity} />
+          ) : (
+            <div className="h-full min-h-[140px] animate-pulse rounded-xl bg-[var(--hover)]" />
+          )}
         </div>
       </div>
+
+      {/* Top projects + Server health */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {data?.topProjects && data.topProjects.length > 0 && (
+          <TopProjectsCard projects={data.topProjects} />
+        )}
+        {data?.servers && isAdmin && data.servers.total > 0 && (
+          <ServerHealthCard servers={data.servers} isAdmin={isAdmin} />
+        )}
+      </div>
+
+      {/* Recent failures detail */}
+      {data && data.recentFailures.length > 1 && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+          <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+            <AlertTriangle size={14} className="text-red-400" />
+            Déploiements en échec — 7 jours
+          </p>
+          <ul className="space-y-2">
+            {data.recentFailures.map((f) => (
+              <li
+                key={f.id}
+                className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
+              >
+                <div>
+                  <span className="font-semibold text-[var(--text-primary)]">
+                    {f.projectName}
+                  </span>
+                  <span className="mx-1 text-[var(--text-secondary)]">·</span>
+                  <span className="text-[var(--text-secondary)]">{f.environmentName}</span>
+                  <span className="mx-1 text-[var(--text-secondary)]">·</span>
+                  <code className="text-xs text-[var(--text-secondary)]">{f.branch}</code>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-[var(--text-secondary)]">
+                    {formatRelative(f.createdAt)}
+                  </span>
+                  <Link
+                    href={`/deployments/${f.id}`}
+                    className="text-xs font-semibold text-red-400 hover:underline"
+                  >
+                    voir →
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

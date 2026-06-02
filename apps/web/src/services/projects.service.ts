@@ -10,6 +10,11 @@ import type {
   GitlabConfig,
   GitlabPipeline,
   GitlabRepo,
+  GitlabProviderOption,
+  GitlabGroupRepositoriesResponse,
+  ImportGitlabGroupPayload,
+  CreateProjectServicePayload,
+  ProjectService,
 } from '@/types/project';
 
 export const projectsService = {
@@ -28,6 +33,17 @@ export const projectsService = {
   /** Create a new project */
   async create(payload: CreateProjectPayload): Promise<ProjectDetail> {
     const res = await api.post<ProjectDetail>('/projects', payload);
+    return res.data;
+  },
+
+  async importGitlabGroup(payload: ImportGitlabGroupPayload): Promise<{
+    mode: string;
+    projects: ProjectDetail[];
+  }> {
+    const res = await api.post<{ mode: string; projects: ProjectDetail[] }>(
+      '/projects/import/gitlab-group',
+      payload,
+    );
     return res.data;
   },
 
@@ -105,6 +121,84 @@ export const projectsService = {
   /** Get repositories from REPO/GROUP source */
   async getRepos(projectId: string): Promise<GitlabRepo[]> {
     const res = await api.get<GitlabRepo[]>(`/projects/${projectId}/gitlab/repos`);
+    return res.data;
+  },
+
+  async fetchGitlabGroupRepositories(params: {
+    providerId?: string;
+    groupId: string;
+    gitlabUrl?: string;
+    gitlabToken?: string;
+    page?: number;
+    perPage?: number;
+    search?: string;
+    visibility?: string;
+    archived?: boolean;
+  }): Promise<GitlabGroupRepositoriesResponse> {
+    const providerId = params.providerId || 'default';
+    const res = await api.get<GitlabGroupRepositoriesResponse>(
+      `/gitlab/providers/${encodeURIComponent(providerId)}/groups/${encodeURIComponent(params.groupId)}/repositories`,
+      {
+        params: {
+          gitlabUrl: params.gitlabUrl,
+          gitlabToken: params.gitlabToken,
+          page: params.page,
+          perPage: params.perPage,
+          search: params.search,
+          visibility: params.visibility,
+          archived:
+            typeof params.archived === 'boolean'
+              ? String(params.archived)
+              : undefined,
+        },
+      },
+    );
+    return res.data;
+  },
+
+  async fetchGitlabProjectBranches(params: {
+    providerId?: string;
+    gitlabProjectId: number | string;
+    gitlabUrl?: string;
+    gitlabToken?: string;
+  }): Promise<GitlabBranch[]> {
+    const providerId = params.providerId || 'default';
+    const res = await api.get<GitlabBranch[]>(
+      `/gitlab/providers/${encodeURIComponent(providerId)}/projects/${encodeURIComponent(String(params.gitlabProjectId))}/branches`,
+      {
+        params: {
+          gitlabUrl: params.gitlabUrl,
+          gitlabToken: params.gitlabToken,
+        },
+      },
+    );
+    return res.data;
+  },
+
+  async getServices(projectId: string): Promise<ProjectService[]> {
+    const res = await api.get<ProjectService[]>(`/projects/${projectId}/services`);
+    return res.data;
+  },
+
+  async createService(
+    projectId: string,
+    payload: CreateProjectServicePayload,
+  ): Promise<ProjectService> {
+    const res = await api.post<ProjectService>(
+      `/projects/${projectId}/services`,
+      payload,
+    );
+    return res.data;
+  },
+
+  async getServicePipelines(projectId: string, serviceId: string): Promise<GitlabPipeline[]> {
+    const res = await api.get<GitlabPipeline[]>(`/projects/${projectId}/services/${serviceId}/pipelines`);
+    return res.data;
+  },
+
+  /** List global GitLab providers available for project-level connection */
+  async getGitlabProviders(): Promise<GitlabProviderOption[]> {
+    const res = await api.get<GitlabProviderOption[]>('/gitlab/providers');
     return res.data;
   },
 };

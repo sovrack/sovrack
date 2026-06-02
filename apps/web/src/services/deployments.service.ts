@@ -1,5 +1,9 @@
 import api from '@/lib/api';
-import type { Deployment, CreateDeploymentPayload } from '@/types/deployment';
+import type {
+  CreateDeploymentPayload,
+  Deployment,
+  DeploymentMutation,
+} from '@/types/deployment';
 
 export const deploymentsService = {
   async getAll(): Promise<Deployment[]> {
@@ -17,18 +21,41 @@ export const deploymentsService = {
     return res.data;
   },
 
-  async create(payload: CreateDeploymentPayload): Promise<Deployment> {
-    const res = await api.post<Deployment>('/deployments', payload);
+  async create({
+    projectId,
+    environmentId,
+    branch,
+    strategy,
+    buildMode,
+    overrideImage,
+    serviceId,
+    repoId,
+  }: CreateDeploymentPayload): Promise<DeploymentMutation> {
+    const res = await api.post<DeploymentMutation>('/deployments', {
+      projectId,
+      environmentId,
+      branch,
+      strategy,
+      buildMode,
+      overrideImage,
+      serviceId,
+      repoId,
+    });
     return res.data;
   },
 
-  async cancel(id: string): Promise<Deployment> {
-    const res = await api.post<Deployment>(`/deployments/${id}/cancel`);
+  async cancel(id: string): Promise<DeploymentMutation> {
+    const res = await api.post<DeploymentMutation>(`/deployments/${id}/cancel`);
     return res.data;
   },
 
-  async rollback(id: string): Promise<Deployment> {
-    const res = await api.post<Deployment>(`/deployments/${id}/rollback`);
+  async rollback(id: string): Promise<DeploymentMutation> {
+    const res = await api.post<DeploymentMutation>(`/deployments/${id}/rollback`);
     return res.data;
+  },
+
+  async getContainerLogs(id: string, tail = 300): Promise<string> {
+    const res = await api.get<{ logs: string }>(`/deployments/${id}/container-logs`, { params: { tail } });
+    return res.data.logs;
   },
 };

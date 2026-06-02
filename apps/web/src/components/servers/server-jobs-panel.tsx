@@ -27,15 +27,15 @@ export function ServerJobsPanel({
   onRetryJob,
 }: ServerJobsPanelProps) {
   return (
-    <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50 p-3">
+    <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--hover)] p-3 border-[var(--border)] bg-[var(--bg-card)]">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-700">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)] text-[var(--text-secondary)]">
           Job History
         </p>
         <button
           onClick={() => void onRefreshJobs(serverId)}
           disabled={isBusy}
-          className="inline-flex items-center gap-1 rounded-lg border border-violet-200 bg-white px-2 py-1 text-[11px] font-semibold text-violet-700 transition hover:bg-violet-100 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50 border-[var(--border)] text-[var(--text-secondary)]"
         >
           {jobsLoading ? (
             <Loader2 size={12} className="animate-spin" />
@@ -47,16 +47,16 @@ export function ServerJobsPanel({
       </div>
 
       {jobs.length === 0 && !jobsLoading && (
-        <p className="mt-2 text-xs text-violet-700/80">No jobs yet for this server.</p>
+        <p className="mt-2 text-xs text-[var(--text-secondary)]">No jobs yet for this server.</p>
       )}
 
       <div className="mt-2 space-y-2">
         {jobs.slice(0, 5).map((job) => (
-          <div key={job.id} className="rounded-lg border border-violet-100 bg-white/80 p-2">
+          <div key={job.id} className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-2 border-[var(--border)]">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold text-slate-800">{formatJobType(job.type)}</p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-xs font-semibold text-[var(--text-primary)] text-[var(--text-primary)]">{formatJobType(job.type)}</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                   {new Date(job.createdAt).toLocaleString()} · attempts {job.attempts}/
                   {job.maxAttempts}
                 </p>
@@ -73,7 +73,7 @@ export function ServerJobsPanel({
                   <button
                     onClick={() => void onRetryJob(serverId, job.id)}
                     disabled={isBusy || retryingJobId === job.id}
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50 border-[var(--border)] text-[var(--text-secondary)]"
                   >
                     {retryingJobId === job.id ? (
                       <Loader2 size={11} className="animate-spin" />
@@ -85,8 +85,8 @@ export function ServerJobsPanel({
                 )}
               </div>
             </div>
-            {job.output && <p className="mt-1 line-clamp-2 text-[11px] text-slate-600">{job.output}</p>}
-            {job.error && <p className="mt-1 line-clamp-2 text-[11px] text-red-600">{job.error}</p>}
+            {job.output && <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-secondary)]">{job.output}</p>}
+            {job.error && <p className="mt-1 line-clamp-2 text-[11px] text-red-400">{job.error}</p>}
           </div>
         ))}
       </div>

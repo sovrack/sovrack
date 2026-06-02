@@ -26,14 +26,14 @@ export function Input({
       {label && (
         <label
           htmlFor={inputId}
-          className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-500"
+          className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
         >
           {label}
         </label>
       )}
       <div className="relative">
         {leftIcon && (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
             {leftIcon}
           </span>
         )}
@@ -41,26 +41,26 @@ export function Input({
           {...rest}
           id={inputId}
           className={clsx(
-            'w-full rounded-xl border bg-white py-2.5 text-sm text-slate-900 outline-none transition',
-            'focus:border-brand-400 focus:ring-2 focus:ring-brand-100',
-            'disabled:bg-slate-50 disabled:cursor-not-allowed',
-            'placeholder:text-slate-400',
+            'w-full rounded-md border border-[var(--border)] bg-[var(--bg-card)] py-2.5 text-sm text-[var(--text-primary)] outline-none transition',
+            'placeholder:text-[var(--text-muted)]',
+            'focus:outline-none focus:ring-1 focus:ring-zinc-400',
+            'disabled:cursor-not-allowed disabled:opacity-50',
             error
-              ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-              : 'border-slate-200',
-            leftIcon ? 'pl-9' : 'pl-4',
-            rightIcon ? 'pr-9' : 'pr-4',
+              ? 'border-red-500/40 focus:ring-red-500/40'
+              : '',
+            leftIcon ? 'pl-9' : 'pl-3.5',
+            rightIcon ? 'pr-9' : 'pr-3.5',
             className,
           )}
         />
         {rightIcon && (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
             {rightIcon}
           </span>
         )}
       </div>
-      {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
-      {hint && !error && <p className="mt-1.5 text-xs text-slate-500">{hint}</p>}
+      {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
+      {hint && !error && <p className="mt-1.5 text-xs text-[var(--text-secondary)]">{hint}</p>}
     </div>
   );
 }

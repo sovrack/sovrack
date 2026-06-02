@@ -140,7 +140,7 @@ export default function EditUserPage({ params }: Props) {
       setToast({
         message:
           parsed.data.password.trim().length > 0
-            ? 'Profil mis à jour. Le changement de mot de passe sera disponible dans une API dédiée.'
+            ? 'Profil mis à jour. Le mot de passe se change depuis la page Profil utilisateur.'
             : 'Utilisateur modifié avec succès',
         tone: 'success',
       });
@@ -164,7 +164,7 @@ export default function EditUserPage({ params }: Props) {
         {[1, 2, 3].map((index) => (
           <div
             key={index}
-            className="h-14 animate-pulse rounded-xl border border-slate-200 bg-white"
+            className="h-14 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--bg-card)]"
           />
         ))}
       </div>
@@ -180,7 +180,7 @@ export default function EditUserPage({ params }: Props) {
         actions={
           <Link
             href="/admin/users"
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-secondary)]"
           >
             <ArrowLeft size={15} />
             Retour à la liste
@@ -192,7 +192,7 @@ export default function EditUserPage({ params }: Props) {
         <div
           className={`rounded-xl px-4 py-3 text-sm font-medium ${
             toast.tone === 'success'
-              ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+              ? 'border border-green-200 bg-green-50 text-green-700'
               : 'border border-red-200 bg-red-50 text-red-700'
           }`}
         >
@@ -204,13 +204,13 @@ export default function EditUserPage({ params }: Props) {
         <form onSubmit={handleSubmit} className="space-y-0">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
               Prénom
             </label>
             <input
               value={form.firstName}
               onChange={(event) => setField('firstName', event.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100"
             />
             {errors.firstName && (
               <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>
@@ -218,13 +218,13 @@ export default function EditUserPage({ params }: Props) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
               Nom
             </label>
             <input
               value={form.lastName}
               onChange={(event) => setField('lastName', event.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100"
             />
             {errors.lastName && (
               <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>
@@ -232,17 +232,17 @@ export default function EditUserPage({ params }: Props) {
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
               Email
             </label>
             <input
               type="email"
               value={form.email}
               onChange={(event) => setField('email', event.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 text-sm text-slate-700 outline-none"
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 text-sm text-[var(--text-secondary)] outline-none"
               disabled
             />
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">
               L’email est affiché en lecture seule.
             </p>
             {errors.email && (
@@ -251,17 +251,17 @@ export default function EditUserPage({ params }: Props) {
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
               Mot de passe (optionnel)
             </label>
             <input
               type="password"
               value={form.password}
               onChange={(event) => setField('password', event.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100"
               placeholder="Laisser vide pour ne pas changer"
             />
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">
               Le backend actuel ne fournit pas encore de route de mise à jour du mot
               de passe.
             </p>
@@ -271,7 +271,7 @@ export default function EditUserPage({ params }: Props) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
               Rôle
             </label>
             <select
@@ -279,7 +279,7 @@ export default function EditUserPage({ params }: Props) {
               onChange={(event) =>
                 setField('role', event.target.value as FormData['role'])
               }
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-100"
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100"
             >
               <option value="DEVELOPER">DEVELOPER</option>
               <option value="ADMIN">ADMIN</option>
@@ -287,14 +287,14 @@ export default function EditUserPage({ params }: Props) {
           </div>
 
           <div className="flex items-end">
-            <label className="inline-flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+            <label className="inline-flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-2.5">
               <input
                 type="checkbox"
                 checked={form.isActive}
                 onChange={(event) => setField('isActive', event.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-300"
+                className="h-4 w-4 rounded border-[var(--border)] text-[var(--text-secondary)] focus:ring-zinc-300"
               />
-              <span className="text-sm text-slate-700">Compte actif</span>
+              <span className="text-sm text-[var(--text-secondary)]">Compte actif</span>
             </label>
           </div>
         </div>
@@ -302,14 +302,14 @@ export default function EditUserPage({ params }: Props) {
           <div className="mt-6 flex gap-3">
           <Link
             href="/admin/users"
-            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)]"
           >
             Annuler
           </Link>
           <button
             type="submit"
             disabled={saving || !canSubmit}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)] disabled:opacity-60"
           >
             {saving ? (
               <Loader2 size={15} className="animate-spin" />

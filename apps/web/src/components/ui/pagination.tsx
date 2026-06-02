@@ -31,14 +31,14 @@ export function Pagination({ page, totalPages, onPageChange, className }: Pagina
       <button
         onClick={() => onPageChange(page - 1)}
         disabled={page === 1}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:opacity-40"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-40"
       >
         <ChevronLeft size={16} />
       </button>
 
       {withEllipsis.map((item, idx) =>
         item === '...' ? (
-          <span key={`e-${idx}`} className="px-1 text-sm text-slate-400">
+          <span key={`e-${idx}`} className="px-1 text-sm text-[var(--text-muted)]">
             …
           </span>
         ) : (
@@ -48,8 +48,8 @@ export function Pagination({ page, totalPages, onPageChange, className }: Pagina
             className={clsx(
               'flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition',
               item === page
-                ? 'bg-brand-500 text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100',
+                ? 'bg-[var(--text-primary)] text-[var(--bg-app)] shadow'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]',
             )}
           >
             {item}
@@ -60,7 +60,7 @@ export function Pagination({ page, totalPages, onPageChange, className }: Pagina
       <button
         onClick={() => onPageChange(page + 1)}
         disabled={page === totalPages}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:opacity-40"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-40"
       >
         <ChevronRight size={16} />
       </button>

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/auth/use-auth';
 
 export default function Home() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export default function Home() {
     <div className="flex items-center justify-center min-h-screen">
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-4">DevOps Platform</h1>
-        <p className="text-gray-600">Loading...</p>
+        <p className="text-[var(--text-secondary)]">Loading...</p>
       </div>
     </div>
   );

@@ -1,159 +1,470 @@
 'use client';
 
-import Link from 'next/link';
-import { Plus, RefreshCw, Server, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Activity,
+  CheckCircle2,
+  Container,
+  GitMerge,
+  HelpCircle,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Server,
+  ShieldCheck,
+  Wifi,
+  WifiOff,
+  XCircle,
+} from 'lucide-react';
+import clsx from 'clsx';
+import type { Server as ServerType, ServerInfraRole } from '@/types/server';
+import { serversService } from '@/services/servers.service';
+import { getApiErrorMessage } from '@/lib/api';
 import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { ServerCard } from '@/components/servers/server-card';
-import { ServerRunnerModal } from '@/components/servers/server-runner-modal';
-import { useServerActions } from '@/hooks/useServerActions';
-import { usePagination } from '@/hooks/usePagination';
+import { ServerDetailsDialog } from '@/components/servers/server-details-dialog';
+import { ServerKeyInstallDialog } from '@/components/servers/server-key-install-dialog';
+import { ServerPrepareDialog } from '@/components/servers/server-prepare-dialog';
+import {
+  ServerUpsertDialog,
+  type CreateServerOptions,
+} from '@/components/servers/server-upsert-dialog';
+import { useServerActions } from '@/hooks/servers/use-server-actions';
+import { useInstalledTools } from '@/hooks/servers/use-servers';
+import { usePagination } from '@/hooks/shared/use-pagination';
 import { Pagination } from '@/components/ui/pagination';
+
+/* ─── Types ─────────────────────────────────────────────────────────────── */
+
+type PingResult = { ok: boolean; message: string };
+type PingMap = Record<string, PingResult | 'loading'>;
+
+type ServerRole = 'APP' | 'CI_RUNNER' | 'APP_CI' | 'GENERAL';
+
+function deriveRole(s: ServerType): ServerRole {
+  if (s.hasDocker && s.hasRunner) return 'APP_CI';
+  if (s.hasDocker) return 'APP';
+  if (s.hasRunner) return 'CI_RUNNER';
+  return 'GENERAL';
+}
+
+const ROLE_META: Record<ServerRole, { label: string; color: string; icon: React.ReactNode }> = {
+  APP: { label: 'App Server', color: 'border-blue-500/20 bg-blue-500/10 text-blue-400', icon: <Container size={10} /> },
+  CI_RUNNER: { label: 'CI Runner', color: 'border-purple-500/20 bg-purple-500/10 text-purple-400', icon: <GitMerge size={10} /> },
+  APP_CI: { label: 'App + CI', color: 'border-green-500/20 bg-green-500/10 text-green-400', icon: <Activity size={10} /> },
+  GENERAL: { label: 'General', color: 'border-[var(--border)] bg-[var(--hover)] text-[var(--text-muted)]', icon: <HelpCircle size={10} /> },
+};
+
+/* ─── Connection status badge ─────────────────────────────────────────────── */
+
+function ConnectionBadge({ server, ping }: { server: ServerType; ping?: PingResult | 'loading' }) {
+  if (ping === 'loading') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--hover)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">
+        <Loader2 size={9} className="animate-spin" /> Testing…
+      </span>
+    );
+  }
+
+  if (ping) {
+    return ping.ok ? (
+      <span className="inline-flex items-center gap-1 rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">
+        <Wifi size={9} /> Connected
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-400" title={ping.message}>
+        <WifiOff size={9} /> Unreachable
+      </span>
+    );
+  }
+
+  if (server.isVerified) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">
+        <ShieldCheck size={9} /> SSH OK
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+      <XCircle size={9} /> Not verified
+    </span>
+  );
+}
+
+/* ─── Page ────────────────────────────────────────────────────────────────── */
 
 export default function AdminServersPage() {
   const servers = useServerActions();
+  const [pingMap, setPingMap] = useState<PingMap>({});
+  const [pingingId, setPingingId] = useState<string | null>(null);
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [editServer, setEditServer] = useState<ServerType | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [installKeyServer, setInstallKeyServer] = useState<ServerType | null>(null);
+  const [installKeyError, setInstallKeyError] = useState<string | null>(null);
+  const [prepareServer, setPrepareServer] = useState<ServerType | null>(null);
+  const prepareToolsQuery = useInstalledTools(prepareServer?.id ?? '');
+  const [detailsServer, setDetailsServer] = useState<ServerType | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ServerType | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const { page, totalPages, paged: pagedServers, goToPage } = usePagination(servers.servers, { pageSize: 10 });
+
+  // Auto-ping all verified servers on load
+  const runAutoTests = useCallback(async (serverList: ServerType[]) => {
+    const toTest = serverList.filter((s) => s.isVerified || s.lastVerifiedAt);
+    if (toTest.length === 0) return;
+
+    setPingMap((prev) => {
+      const next = { ...prev };
+      for (const s of toTest) next[s.id] = 'loading';
+      return next;
+    });
+
+    await Promise.allSettled(
+      toTest.map(async (s) => {
+        try {
+          const result = await serversService.ping(s.id);
+          setPingMap((prev) => ({ ...prev, [s.id]: { ok: result.ok, message: result.message } }));
+        } catch {
+          setPingMap((prev) => ({ ...prev, [s.id]: { ok: false, message: 'Erreur de connexion' } }));
+        }
+      }),
+    );
+  }, []);
+
+  useEffect(() => {
+    if (servers.servers.length > 0 && !servers.loading) {
+      void runAutoTests(servers.servers);
+    }
+  }, [servers.servers.length, servers.loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePing = async (server: ServerType) => {
+    setPingingId(server.id);
+    setPingMap((prev) => ({ ...prev, [server.id]: 'loading' }));
+    try {
+      const result = await serversService.ping(server.id);
+      setPingMap((prev) => ({ ...prev, [server.id]: { ok: result.ok, message: result.message } }));
+      // Refresh server list to get updated status
+      await servers.fetchServers();
+    } catch (e) {
+      setPingMap((prev) => ({ ...prev, [server.id]: { ok: false, message: getApiErrorMessage(e) } }));
+    } finally {
+      setPingingId(null);
+    }
+  };
+
+  const handleSetRole = async (id: string, role: ServerInfraRole) => {
+    await serversService.setRole(id, role);
+    await servers.fetchServers();
+  };
+
+  const resolveLiveServer = (target: ServerType | null) =>
+    target ? (servers.servers.find((s) => s.id === target.id) ?? target) : null;
+
+  const getServerBusy = (target: ServerType | null): boolean => {
+    if (!target) return false;
+    return [
+      servers.verifyingId, servers.detectingId, servers.preparingId,
+      servers.installingKeyId, servers.deletingId, servers.updatingId,
+    ].includes(target.id) || Boolean(servers.loadingJobsByServer[target.id]);
+  };
+
+  const activePrepareServer = resolveLiveServer(prepareServer);
+  const activeDetailsServer = resolveLiveServer(detailsServer);
+  const activePrepareOptions = activePrepareServer ? servers.getPrepareOptions(activePrepareServer) : {};
+  const activeDetailsJobs = activeDetailsServer ? (servers.jobsByServer[activeDetailsServer.id] ?? []) : [];
+  const activeDetailsJobsLoading = activeDetailsServer ? Boolean(servers.loadingJobsByServer[activeDetailsServer.id]) : false;
+
+  const handleCreateSubmit = async (
+    payload: Parameters<typeof servers.handleCreate>[0],
+    options?: CreateServerOptions,
+  ) => {
+    setCreateError(null);
+    try {
+      const created = await servers.handleCreate(payload);
+      setCreateOpen(false);
+      let installKeyErrorMessage: string | null = null;
+      if (created.connectionMode === 'ssh' && options?.temporaryPassword) {
+        try {
+          await servers.handleInstallKey(created.id, options.temporaryPassword);
+          return;
+        } catch (error) {
+          installKeyErrorMessage = getApiErrorMessage(error);
+        }
+      }
+      if (created.connectionMode === 'ssh') {
+        setInstallKeyError(installKeyErrorMessage);
+        setInstallKeyServer(created);
+      }
+    } catch (error) {
+      setCreateError(getApiErrorMessage(error));
+    }
+  };
+
+  const handleUpdateSubmit = async (serverId: string, payload: Parameters<typeof servers.handleUpdate>[1]) => {
+    setEditError(null);
+    try {
+      await servers.handleUpdate(serverId, payload);
+      setEditServer(null);
+    } catch (error) {
+      setEditError(getApiErrorMessage(error));
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    try {
+      await servers.handleDelete(deleteTarget.id, deleteTarget.name);
+      setDeleteTarget(null);
+    } catch (error) {
+      setDeleteError(getApiErrorMessage(error));
+    }
+  };
+
+  const handleInstallKeySubmit = async (serverId: string, password: string) => {
+    setInstallKeyError(null);
+    try {
+      await servers.handleInstallKey(serverId, password);
+      setInstallKeyServer(null);
+    } catch (error) {
+      setInstallKeyError(getApiErrorMessage(error));
+    }
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Infrastructure"
-        title="Servers"
-        description="Configure servers with manual checklist updates or SSH auto-verification before linking them to environments."
+        title="Remote Servers"
+        description="Gérez vos VPS — validation SSH, détection des capacités, préparation Ansible et assignation d'environnements. Tous les serveurs sont des cibles agentless identiques."
         actions={
           <>
-            <button
-              onClick={() => void servers.fetchServers()}
+            <Button
+              variant="secondary"
+              icon={<RefreshCw size={15} className={servers.loading ? 'animate-spin' : ''} />}
+              onClick={async () => {
+                await servers.fetchServers();
+                void runAutoTests(servers.servers);
+              }}
               disabled={servers.loading}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
             >
-              <RefreshCw size={15} className={servers.loading ? 'animate-spin' : ''} />
-            </button>
-            <Link
-              href="/admin/servers/new"
-              className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
-            >
-              <Plus size={16} /> Add Server
-            </Link>
+              Refresh
+            </Button>
+            <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>
+              Add Server
+            </Button>
           </>
         }
       />
 
+      {/* Stats */}
       <SectionCard contentClassName="p-0">
-        <div className="grid grid-cols-1 gap-3 border-b border-slate-200 p-5 sm:grid-cols-3 dark:border-slate-800">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/70">
-            <p className="text-xs font-medium text-slate-500">Total servers</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-              {servers.servers.length}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-medium text-emerald-700">
-              <ShieldCheck size={14} /> Verified
+        <div className="grid grid-cols-2 gap-3 border-b border-[var(--border)] p-5 sm:grid-cols-4">
+          {[
+            { label: 'Total', value: servers.servers.length },
+            { label: 'SSH validé', value: servers.verifiedCount },
+            {
+              label: 'En ligne',
+              value: Object.values(pingMap).filter((r) => r !== 'loading' && r.ok).length,
+            },
+            { label: 'Préparés', value: servers.readyCount },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+              <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
+              <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{value}</p>
             </div>
-            <p className="mt-1 text-2xl font-semibold text-emerald-800">{servers.verifiedCount}</p>
-          </div>
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-medium text-amber-700">
-              <AlertTriangle size={14} /> Pending verification
-            </div>
-            <p className="mt-1 text-2xl font-semibold text-amber-800">{servers.unverifiedCount}</p>
-          </div>
+          ))}
         </div>
       </SectionCard>
 
       {servers.error && <Alert tone="error">{servers.error}</Alert>}
 
+
       {!servers.loading && servers.servers.length === 0 && !servers.error && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white shadow-theme-xs">
+        <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--hover)]">
           <EmptyState
             icon={Server}
-            title="No servers yet"
-            description="Add a VPS and choose manual or SSH verification workflow."
+            title="Aucun serveur"
+            description="Ajoutez votre premier VPS pour démarrer la validation SSH et la préparation."
             action={
-              <Link
-                href="/admin/servers/new"
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
-              >
-                <Plus size={16} /> Add Server
-              </Link>
+              <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>
+                Add Server
+              </Button>
             }
           />
         </div>
       )}
 
       {!servers.loading && servers.servers.length > 0 && (
-        <div className="space-y-3">
-          {pagedServers.map((server) => {
-            const checklist = servers.getChecklist(server);
-            const installOptions = servers.getInstallOptions(server);
-            const jobs = servers.jobsByServer[server.id] ?? [];
-            const jobsLoading = Boolean(servers.loadingJobsByServer[server.id]);
-            const isBusy =
-              servers.verifyingId === server.id ||
-              servers.installingId === server.id ||
-              servers.deletingId === server.id ||
-              servers.savingManualId === server.id ||
-              servers.registeringId === server.id ||
-              jobsLoading;
+            <>
+            <div className="space-y-3">
+              {pagedServers.map((server) => {
+                const ping = pingMap[server.id];
+                const isBusy = getServerBusy(server);
+                return (
+                  <div key={server.id} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] transition hover:shadow-sm">
+                    {/* Connection status bar */}
+                    <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-2">
+                      <ConnectionBadge server={server} ping={ping} />
+                      <div className="flex items-center gap-2">
+                        {server.lastDetectedAt && (
+                          <span className={clsx(
+                            'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase',
+                            ROLE_META[deriveRole(server)].color,
+                          )}>
+                            {ROLE_META[deriveRole(server)].icon}
+                            {ROLE_META[deriveRole(server)].label}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          disabled={pingingId === server.id || ping === 'loading'}
+                          onClick={() => void handlePing(server)}
+                          title="Tester la connexion"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-400 disabled:opacity-40"
+                        >
+                          {pingingId === server.id || ping === 'loading' ? (
+                            <Loader2 size={10} className="animate-spin" />
+                          ) : ping && typeof ping === 'object' && ping.ok ? (
+                            <CheckCircle2 size={10} className="text-green-400" />
+                          ) : (
+                            <Wifi size={10} />
+                          )}
+                          Test
+                        </button>
+                      </div>
+                    </div>
 
-            return (
-              <ServerCard
-                key={server.id}
-                server={server}
-                checklist={checklist}
-                installOptions={installOptions}
-                jobs={jobs}
-                jobsLoading={jobsLoading}
-                isBusy={isBusy}
-                verifyingId={servers.verifyingId}
-                installingId={servers.installingId}
-                deletingId={servers.deletingId}
-                savingManualId={servers.savingManualId}
-                registeringId={servers.registeringId}
-                retryingJobId={servers.retryingJobId}
-                formatConnectionMode={servers.formatConnectionMode}
-                formatJobType={servers.formatJobType}
-                canRetryJob={servers.canRetryJob}
-                getJobStatusClassName={servers.getJobStatusClassName}
-                onVerify={servers.handleVerify}
-                onOpenRunner={servers.openRunnerModal}
-                onDelete={servers.handleDelete}
-                onInstallOptionChange={servers.handleInstallOptionChange}
-                onInstall={servers.handleInstall}
-                onChecklistChange={servers.handleChecklistChange}
-                onManualSave={servers.handleManualSave}
-                onMarkReady={servers.handleMarkReady}
-                onRefreshJobs={servers.refreshJobs}
-                onRetryJob={servers.handleRetryJob}
-              />
-            );
-          })}
-          <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} className="mt-2" />
-        </div>
+                    {/* Server card content */}
+                    <div className="p-4">
+                      <ServerCard
+                        server={server}
+                        isBusy={isBusy}
+                        verifyingId={servers.verifyingId}
+                        detectingId={servers.detectingId}
+                        preparingId={servers.preparingId}
+                        installingKeyId={servers.installingKeyId}
+                        deletingId={servers.deletingId}
+                        updatingId={servers.updatingId}
+                        formatConnectionMode={servers.formatConnectionMode}
+                        onVerify={servers.handleVerify}
+                        onDetect={servers.handleDetect}
+                        onInstallKey={(s) => { setInstallKeyError(null); setInstallKeyServer(s); }}
+                        onOpenPrepare={setPrepareServer}
+                        onOpenDetails={setDetailsServer}
+                        onEdit={(s) => { setEditError(null); setEditServer(s); }}
+                        onDelete={(s) => { setDeleteError(null); setDeleteTarget(s); }}
+                      />
+                    </div>
+
+                    {/* Ping result message */}
+                    {ping && ping !== 'loading' && !ping.ok && (
+                      <div className="border-t border-red-500/10 bg-red-500/5 px-5 py-2 text-xs text-red-400">
+                        {ping.message}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} className="mt-2" />
+            </div>
+        </>
       )}
 
-      <ServerRunnerModal
-        openServerId={servers.runnerModal}
-        gitlabUrl={servers.runnerGitlabUrl}
-        onGitlabUrlChange={servers.setRunnerGitlabUrl}
-        token={servers.runnerToken}
-        onTokenChange={servers.setRunnerToken}
-        error={servers.runnerError}
-        registeringId={servers.registeringId}
-        onClose={servers.closeRunnerModal}
-        onSubmit={servers.handleRegisterRunner}
+      {/* ─── Environments tab ─── */}
+
+      {/* ─── Overview tab ─── */}
+
+      {/* ─── Dialogs ─── */}
+      <ServerKeyInstallDialog
+        open={Boolean(installKeyServer)}
+        server={installKeyServer}
+        loading={Boolean(installKeyServer && servers.installingKeyId === installKeyServer.id)}
+        error={installKeyError}
+        onClose={() => { setInstallKeyError(null); setInstallKeyServer(null); }}
+        onSubmit={handleInstallKeySubmit}
       />
 
+      <ServerPrepareDialog
+        open={Boolean(activePrepareServer)}
+        server={activePrepareServer}
+        prepareOptions={activePrepareOptions}
+        isBusy={getServerBusy(activePrepareServer)}
+        preparingId={servers.preparingId}
+        installedTools={prepareToolsQuery.data ?? []}
+        onClose={() => setPrepareServer(null)}
+        onFieldChange={servers.handlePrepareOptionChange}
+        onPrepare={servers.handlePrepare}
+      />
+
+      <ServerDetailsDialog
+        open={Boolean(activeDetailsServer)}
+        server={activeDetailsServer}
+        jobs={activeDetailsJobs}
+        jobsLoading={activeDetailsJobsLoading}
+        isBusy={getServerBusy(activeDetailsServer)}
+        retryingJobId={servers.retryingJobId}
+        formatJobType={servers.formatJobType}
+        canRetryJob={servers.canRetryJob}
+        getJobStatusClassName={servers.getJobStatusClassName}
+        onClose={() => setDetailsServer(null)}
+        onRefreshJobs={servers.refreshJobs}
+        onRetryJob={servers.handleRetryJob}
+      />
+
+      <ServerUpsertDialog
+        open={createOpen}
+        mode="create"
+        loading={servers.creating}
+        error={createError}
+        onClose={() => setCreateOpen(false)}
+        onCreate={handleCreateSubmit}
+        onUpdate={handleUpdateSubmit}
+      />
+
+      <ServerUpsertDialog
+        open={Boolean(editServer)}
+        mode="edit"
+        server={editServer}
+        loading={Boolean(editServer && servers.updatingId === editServer.id)}
+        error={editError}
+        onClose={() => setEditServer(null)}
+        onCreate={handleCreateSubmit}
+        onUpdate={handleUpdateSubmit}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title={deleteTarget ? `Delete ${deleteTarget.name}?` : 'Delete server?'}
+        description="Action irréversible — supprime le serveur et ses métadonnées."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={Boolean(deleteTarget && servers.deletingId === deleteTarget.id)}
+        onConfirm={() => { void handleDeleteConfirm(); }}
+        onCancel={() => { setDeleteError(null); setDeleteTarget(null); }}
+      >
+        {deleteError && <Alert tone="error">{deleteError}</Alert>}
+      </ConfirmDialog>
+
+      {/* Toasts */}
       <div className="pointer-events-none fixed right-4 top-4 z-[100] space-y-2">
         {servers.toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${
-              toast.tone === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
-            }`}
+            className={`pointer-events-auto rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-xl ${toast.tone === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`}
           >
             {toast.message}
           </div>

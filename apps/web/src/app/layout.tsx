@@ -1,20 +1,7 @@
 import type { Metadata } from 'next';
-import { Outfit, IBM_Plex_Mono } from 'next/font/google';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Providers } from '@/components/providers';
 import '@/styles/globals.css';
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit',
-  weight: ['400', '500', '600', '700'],
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  variable: '--font-plex-mono',
-  weight: ['400', '500'],
-});
 
 export const metadata: Metadata = {
   title: 'platform Deploy Platform',
@@ -31,9 +18,29 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const themeScript = `
+    (function () {
+      try {
+        var key = 'deploy-automation-theme';
+        var saved = localStorage.getItem(key);
+        var theme = saved === 'light' || saved === 'dark' ? saved : 'dark';
+        var root = document.documentElement;
+        root.classList.remove('light', 'dark');
+        root.classList.add(theme);
+        root.style.colorScheme = theme;
+      } catch (_error) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.style.colorScheme = 'dark';
+      }
+    })();
+  `;
+
   return (
-    <html lang="en">
-      <body className={`${outfit.variable} ${plexMono.variable} app-shell`}>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="app-shell">
         <Providers>
           <ErrorBoundary>{children}</ErrorBoundary>
         </Providers>
