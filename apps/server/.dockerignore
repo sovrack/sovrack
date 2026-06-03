@@ -1,0 +1,14 @@
+.git
+.gitlab
+.github
+node_modules
+dist
+build
+.next
+.turbo
+coverage
+.env
+.env.*
+*.log
+tmp
+.DS_Store
