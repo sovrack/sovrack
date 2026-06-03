@@ -1,43 +1,17 @@
-# ── Build stage ──────────────────────────────────────────────────────────────
-FROM node:22-alpine AS builder
-
+FROM node:20-alpine AS builder
 WORKDIR /app
-
 COPY package*.json ./
 RUN npm ci
-
-COPY prisma ./prisma
-RUN npx prisma generate
-
 COPY . .
 RUN npm run build
 
-# ── Production stage ──────────────────────────────────────────────────────────
-FROM node:22-alpine AS runner
-
-RUN apk add --no-cache python3 ansible openssh-client
-
+FROM node:20-alpine AS production
 WORKDIR /app
-
-# Only production deps
-COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-
-# Prisma client
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-# Built app
+RUN addgroup -S app && adduser -S app -G app
 COPY --from=builder /app/dist ./dist
-
-# Prisma schema for migrations
-COPY prisma ./prisma
-
-# Ansible playbooks (mounted at runtime via volume or baked in)
-COPY ../devops/ansible ./devops/ansible 2>/dev/null || true
-
-EXPOSE 3001
-
-ENV NODE_ENV=production
-
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+COPY --from=builder /app/node_modules ./node_modules
+COPY package*.json ./
+USER app
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://localhost:3000/health || exit 1
+CMD ["node", "node dist/main.js"]
