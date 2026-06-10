@@ -6,6 +6,8 @@ import {
   Body,
   UseGuards,
   Query,
+  Delete,
+  HttpCode,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -23,11 +25,16 @@ import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
 import { PaginationDto } from '../../core/http/pagination.dto';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import {
+  ValidateDeploymentDto,
+  ValidationResultDto,
+} from './dto/validate-deployment.dto';
+import {
   DeploymentDetailedResponseDto,
   DeploymentResponseDto,
   PaginatedDeploymentsResponseDto,
 } from './dto/deployment-response.dto';
 import { DeploymentsService } from './deployments.service';
+import { DeploymentsValidationService } from './services/deployments-validation.service';
 
 @ApiTags('Deployments')
 @ApiBearerAuth()
@@ -39,7 +46,29 @@ import { DeploymentsService } from './deployments.service';
 @Controller('deployments')
 @UseGuards(JwtAuthGuard)
 export class DeploymentsController {
-  constructor(private readonly deploymentsService: DeploymentsService) {}
+  constructor(
+    private readonly deploymentsService: DeploymentsService,
+    private readonly validationService: DeploymentsValidationService,
+  ) {}
+
+  @Post('validate')
+  @ApiOperation({ summary: 'Valider les prérequis avant déploiement' })
+  @ApiCreatedResponse({
+    description: 'Résultat de la validation outillage',
+    type: ValidationResultDto,
+  })
+  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  async validate(
+    @Body() dto: ValidateDeploymentDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.validationService.validate(
+      dto.projectId,
+      dto.environmentId,
+      (dto.buildSource ?? 'DOCKERFILE_LOCAL') as any,
+      user.id,
+    );
+  }
 
   @Post()
   @ApiOperation({ summary: 'Lancer un déploiement' })
@@ -146,6 +175,17 @@ export class DeploymentsController {
   @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
   async rollback(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.deploymentsService.rollback(id, user.id, user.role);
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Supprimer un déploiement' })
+  @ApiResponse({ status: 204, description: 'Déploiement supprimé' })
+  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
+  @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
+  async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    await this.deploymentsService.remove(id, user.id, user.role);
   }
 
   @Get(':id/container-logs')

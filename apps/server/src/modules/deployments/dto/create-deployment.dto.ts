@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   Min,
@@ -54,23 +55,97 @@ export class CreateDeploymentDto {
   strategy?: 'standard' | 'blue-green';
 
   @ApiPropertyOptional({
-    enum: ['registry', 'local', 'compose'],
-    example: 'registry',
-    description:
-      'Mode de build: registry (GitLab CI), local (build sur le VPS) ou compose (déploiement docker-compose)',
+    enum: [
+      'DOCKERFILE_REGISTRY',
+      'DOCKERFILE_LOCAL',
+      'NIXPACKS_REGISTRY',
+      'NIXPACKS_LOCAL',
+      'DOCKER_COMPOSE',
+      'STATIC',
+      'EXTERNAL_IMAGE',
+    ],
+    example: 'DOCKERFILE_LOCAL',
+    description: [
+      'Source de build — un seul champ remplace buildPack + buildMode :',
+      '  DOCKERFILE_REGISTRY — Dockerfile buildé par CI GitLab/GitHub → registry → pull sur VPS',
+      '  DOCKERFILE_LOCAL    — Dockerfile buildé directement sur le VPS (pas de registry)',
+      '  NIXPACKS_REGISTRY   — Nixpacks buildé par CI → registry → pull sur VPS',
+      '  NIXPACKS_LOCAL      — Nixpacks buildé directement sur le VPS',
+      '  DOCKER_COMPOSE      — docker-compose.yml exécuté sur le VPS',
+      '  STATIC              — Site statique servi par Nginx sur le VPS',
+      '  EXTERNAL_IMAGE      — Image Docker externe fournie via overrideImage',
+    ].join('\n'),
   })
   @IsOptional()
-  @IsEnum(['registry', 'local', 'compose'], {
-    message: 'buildMode doit être "registry", "local" ou "compose"',
-  })
-  buildMode?: 'registry' | 'local' | 'compose';
+  @IsEnum(
+    [
+      'DOCKERFILE_REGISTRY',
+      'DOCKERFILE_LOCAL',
+      'NIXPACKS_REGISTRY',
+      'NIXPACKS_LOCAL',
+      'DOCKER_COMPOSE',
+      'STATIC',
+      'EXTERNAL_IMAGE',
+    ],
+    { message: 'buildSource invalide' },
+  )
+  buildSource?:
+    | 'DOCKERFILE_REGISTRY'
+    | 'DOCKERFILE_LOCAL'
+    | 'NIXPACKS_REGISTRY'
+    | 'NIXPACKS_LOCAL'
+    | 'DOCKER_COMPOSE'
+    | 'STATIC'
+    | 'EXTERNAL_IMAGE';
 
   @ApiPropertyOptional({
     example: 'docker.io/myorg/myapp:latest',
-    description:
-      'Image Docker externe à utiliser (au lieu de construire depuis GitLab)',
+    description: 'Image Docker externe (obligatoire si buildSource=EXTERNAL_IMAGE)',
   })
   @IsOptional()
   @IsString({ message: 'overrideImage doit être une chaîne de caractères' })
   overrideImage?: string;
+
+  /**
+   * Nixpacks-specific configuration (used when buildStrategy=NIXPACKS).
+   */
+  @ApiPropertyOptional({
+    description: 'Nixpacks configuration: build env, runtime env, port, etc.',
+    example: {
+      buildEnv: { NODE_ENV: 'production' },
+      runtimeEnv: { PORT: '3000' },
+      port: 3000,
+    },
+  })
+  @IsOptional()
+  @IsObject()
+  nixpacksConfig?: {
+    buildEnv?: Record<string, string>;
+    runtimeEnv?: Record<string, string>;
+    buildCommand?: string;
+    startCommand?: string;
+    port?: number;
+    nixpacksVersion?: string;
+  };
+
+  /**
+   * Static site configuration (used when buildStrategy=STATIC).
+   */
+  @ApiPropertyOptional({
+    description: 'Static site configuration: source dir, build cmd, SPA mode, etc.',
+    example: {
+      sourceDir: 'dist',
+      buildCommand: 'npm run build',
+      spaFallback: true,
+    },
+  })
+  @IsOptional()
+  @IsObject()
+  staticConfig?: {
+    sourceDir?: string;
+    buildCommand?: string;
+    buildDir?: string;
+    spaFallback?: boolean;
+    page404?: string;
+  };
 }

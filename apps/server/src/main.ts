@@ -141,7 +141,7 @@ function reportWebhookConfiguration(logger: LoggerService): void {
   const rawWebhookUrl = (process.env.WEBHOOK_URL ?? '').trim();
   if (!rawWebhookUrl) {
     logger.warn(
-      'WEBHOOK_URL non configurée: les webhooks GitLab resteront en attente tant qu’aucune URL publique backend n’est définie.',
+      'WEBHOOK_URL non définie dans l\'env. Les webhooks GitLab/GitHub utiliseront PlatformConfig.WEBHOOK_BASE_URL (DB, modifiable via UI Réglages).',
       'Bootstrap',
     );
     return;

@@ -1,6 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { DeploymentStatus, PipelineStatus, ServerStatus } from '@prisma/client';
+import { DeploymentStatus, ServerStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../core/database/prisma.service';

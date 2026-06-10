@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DeploymentStatus, EnvName } from '@prisma/client';
+import { DeploymentStatus } from '@prisma/client';
 
 export class DeploymentResponseDto {
   @ApiProperty()
@@ -13,6 +13,21 @@ export class DeploymentResponseDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   dockerImage!: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true, description: 'Immutable image digest (sha256:…) — the rollback target.' })
+  imageSha?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Immutable Release: frozen desired state captured at deploy time (source, build).' })
+  specSnapshot?: Record<string, unknown> | null;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Concrete refs this deployment resolved to (server, environment).' })
+  resolvedRefs?: Record<string, unknown> | null;
+
+  @ApiPropertyOptional({ isArray: true, description: 'Structured reconciliation status (Progressing/Ready/Degraded with reason+message).' })
+  conditions?: Record<string, unknown>[] | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  observedGeneration?: number | null;
 
   @ApiProperty()
   branch!: string;
@@ -41,8 +56,8 @@ export class DeploymentResponseDto {
   @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
 
-  @ApiPropertyOptional({ type: String, nullable: true, description: 'GitLab pipeline ID as string' })
-  gitlabPipelineId?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true, description: 'External pipeline ID (GitLab or GitHub)' })
+  externalPipelineId?: string | null;
 }
 
 export class DeploymentProjectSummaryDto {
@@ -53,7 +68,7 @@ export class DeploymentProjectSummaryDto {
   name!: string;
 
   @ApiPropertyOptional({ type: String })
-  gitlabUrl?: string;
+  repoUrl?: string;
 }
 
 export class DeploymentServerSummaryDto {
@@ -88,8 +103,8 @@ export class DeploymentEnvironmentSummaryDto {
   @ApiProperty()
   id!: string;
 
-  @ApiProperty({ enum: EnvName })
-  name!: EnvName;
+  @ApiProperty({ example: 'production' })
+  name!: string;
 
   @ApiProperty({ type: () => DeploymentServerSummaryDto })
   server!: DeploymentServerSummaryDto;

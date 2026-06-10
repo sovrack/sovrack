@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { GitlabSourceType } from '@prisma/client';
+import { AppSourceType } from '@prisma/client';
 import {
   IsEnum,
   IsNotEmpty,
@@ -42,24 +42,29 @@ export class CreateProjectDto {
   @IsString({ message: 'Le token GitLab doit être une chaîne de caractères' })
   gitlabToken?: string;
 
-  @ApiPropertyOptional({ example: 123 })
+  @ApiPropertyOptional({
+    example: 'group/project',
+    type: String,
+    description: 'Repository path "group/project" (recommended, provider-agnostic) or numeric ID.',
+  })
   @IsOptional()
   gitlabId?: number | string;
 
   @ApiPropertyOptional({
     example: 'platform/apps',
     description: 'Group ID numerique ou chemin GitLab',
+    type: String,
   })
   @IsOptional()
   gitlabGroupId?: number | string;
 
   @ApiPropertyOptional({
-    enum: GitlabSourceType,
-    default: GitlabSourceType.REPO,
+    enum: AppSourceType,
+    default: AppSourceType.REPO,
   })
   @IsOptional()
-  @IsEnum(GitlabSourceType)
-  sourceType?: GitlabSourceType;
+  @IsEnum(AppSourceType)
+  sourceType?: AppSourceType;
 
   @ApiPropertyOptional({ example: 'gitlab+deploy-token-12' })
   @IsOptional()

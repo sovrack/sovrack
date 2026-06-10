@@ -8,6 +8,7 @@ import {
   Prisma,
   Server,
   ServerConnectionMode,
+  ServerJobStatus,
   ServerJobType,
   ServerStatus,
 } from '@prisma/client';
@@ -20,29 +21,30 @@ import {
 import { UpdateServerDto } from '../dto/update-server.dto';
 import { ServersCryptoService } from './servers-crypto.service';
 import { ServersJobsService } from './servers-jobs.service';
-import { ServersSshService } from './servers-ssh.service';
+import { ServersConnectionService } from './servers-connection.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';
 import { PrepareServerDto } from '../dto/prepare-server.dto';
 import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
-import { ServerDetectionService } from './server-detection.service';
-import { ServerPreparationService } from './server-preparation.service';
+import { ServersDetectionService } from './servers-detection.service';
+import { ServerPreparationService } from '../../infrastructure/services/infra-preparation.service';
 import { ServerVerificationService } from './server-verification.service';
-import { ServerAuditService } from './server-audit.service';
-import { ServerLegacyApiService } from './server-legacy-api.service';
-import {
-  AnsibleExecutionService,
-  type RunPreparationCallbacks,
-  type RunPreparationInput,
-  type RunPreparationOptions,
-} from './ansible-execution.service';
+import { ServersAuditService } from './servers-audit.service';
+import { AuditService } from '../../audit/audit.service';
 import type { ServerInfraRole } from '@prisma/client';
 import {
   CreateServerResult,
+  ServerActiveJob,
   ServerJobsListResult,
   ServerListResult,
   RegisterRunnerPayload,
   ServerPublic,
 } from '../shared/servers.types';
+
+const ACTIVE_JOB_STATUSES: ServerJobStatus[] = [
+  ServerJobStatus.RUNNING,
+  ServerJobStatus.PENDING,
+  ServerJobStatus.BLOCKED,
+];
 
 @Injectable()
 export class ServersCoreService {
@@ -51,14 +53,13 @@ export class ServersCoreService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: ServersCryptoService,
-    private readonly ssh: ServersSshService,
+    private readonly ssh: ServersConnectionService,
     private readonly jobs: ServersJobsService,
-    private readonly detection: ServerDetectionService,
+    private readonly detection: ServersDetectionService,
     private readonly preparation: ServerPreparationService,
     private readonly verification: ServerVerificationService,
-    private readonly audit: ServerAuditService,
-    private readonly ansible: AnsibleExecutionService,
-    private readonly legacy: ServerLegacyApiService,
+    private readonly audit: ServersAuditService,
+    private readonly auditService: AuditService,
   ) {}
 
   async create(
@@ -102,7 +103,7 @@ export class ServersCoreService {
       },
     });
 
-    await this.recordAuditLog(actorUserId, 'SERVER_CREATE', server.id, {
+    await this.auditService.record(actorUserId, 'SERVER_CREATE', 'Server', server.id, {
       name: server.name,
       host: server.host,
       connectionMode: server.connectionMode,
@@ -121,7 +122,10 @@ export class ServersCoreService {
       const servers = await this.prisma.server.findMany({
         orderBy: { createdAt: 'desc' },
       });
-      return servers.map((server) => this.toPublic(server));
+      const activeJobs = await this.loadActiveJobs(servers.map((s) => s.id));
+      return servers.map((server) =>
+        this.toPublic(server, activeJobs.get(server.id) ?? null),
+      );
     }
 
     const page = pagination.page;
@@ -137,8 +141,12 @@ export class ServersCoreService {
       this.prisma.server.count(),
     ]);
 
+    const activeJobs = await this.loadActiveJobs(servers.map((s) => s.id));
+
     return paginate(
-      servers.map((server) => this.toPublic(server)),
+      servers.map((server) =>
+        this.toPublic(server, activeJobs.get(server.id) ?? null),
+      ),
       total,
       page,
       limit,
@@ -147,7 +155,55 @@ export class ServersCoreService {
 
   async findOne(id: string): Promise<ServerPublic> {
     const server = await this.getServerById(id);
-    return this.toPublic(server);
+    const activeJobs = await this.loadActiveJobs([id]);
+    return this.toPublic(server, activeJobs.get(id) ?? null);
+  }
+
+  /**
+   * Batch-loads the latest active (RUNNING/PENDING/BLOCKED) job per server so
+   * the servers list response carries lock state without the client polling
+   * `GET /servers/:id/jobs` separately for each server.
+   */
+  private async loadActiveJobs(
+    serverIds: string[],
+  ): Promise<Map<string, ServerActiveJob>> {
+    const result = new Map<string, ServerActiveJob>();
+    if (serverIds.length === 0) {
+      return result;
+    }
+
+    const jobs = await this.prisma.serverJob.findMany({
+      where: {
+        serverId: { in: serverIds },
+        status: { in: ACTIVE_JOB_STATUSES },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        serverId: true,
+        type: true,
+        status: true,
+        startedAt: true,
+        createdAt: true,
+        error: true,
+      },
+    });
+
+    for (const job of jobs) {
+      // findMany is ordered desc, so the first job seen per server is the latest
+      if (!result.has(job.serverId)) {
+        result.set(job.serverId, {
+          id: job.id,
+          type: job.type,
+          status: job.status,
+          startedAt: job.startedAt,
+          createdAt: job.createdAt,
+          error: job.error,
+        });
+      }
+    }
+
+    return result;
   }
 
   async update(
@@ -220,7 +276,7 @@ export class ServersCoreService {
       data,
     });
 
-    await this.recordAuditLog(actorUserId, 'SERVER_UPDATE', updated.id, {
+    await this.auditService.record(actorUserId, 'SERVER_UPDATE', 'Server', updated.id, {
       changedFields: Object.keys(dto),
     });
     await this.audit.record(updated.id, 'SERVER_EDIT', actorUserId, {
@@ -247,7 +303,7 @@ export class ServersCoreService {
     }
 
     await this.prisma.server.delete({ where: { id } });
-    await this.recordAuditLog(actorUserId, 'SERVER_DELETE', id);
+    await this.auditService.record(actorUserId, 'SERVER_DELETE', 'Server', id);
   }
 
   async listJobs(
@@ -255,6 +311,10 @@ export class ServersCoreService {
     pagination?: PaginationDto,
   ): Promise<ServerJobsListResult> {
     return await this.jobs.listJobs(id, pagination);
+  }
+
+  async cancelJob(serverId: string, jobId: string) {
+    return await this.jobs.forceFailJob(serverId, jobId);
   }
 
   async retryJob(id: string, jobId: string): Promise<ServerPublic> {
@@ -274,6 +334,7 @@ export class ServersCoreService {
       );
     }
 
+    await this.jobs.assertNoActiveJob(server.id);
     const job = await this.jobs.createJob(server.id, ServerJobType.VERIFY);
     await this.audit.record(server.id, 'SERVER_VALIDATE_SSH', actorUserId, {
       jobId: job.id,
@@ -372,6 +433,7 @@ export class ServersCoreService {
     token: string,
   ): Promise<ServerPublic> {
     const server = await this.getServerById(id);
+    await this.jobs.assertNoActiveJob(server.id);
     const job = await this.jobs.createJob(
       server.id,
       ServerJobType.REGISTER_RUNNER,
@@ -480,34 +542,17 @@ export class ServersCoreService {
     return 'KEY_INSTALLED';
   }
 
-  private toPublic(server: Server): ServerPublic {
+  private toPublic(
+    server: Server,
+    activeJob: ServerActiveJob | null = null,
+  ): ServerPublic {
     const { sshKey, ...publicServer } = server;
     void sshKey;
     return {
       ...publicServer,
       connectionMode: this.toConnectionModeDto(server.connectionMode),
+      activeJob,
     };
-  }
-
-  private async recordAuditLog(
-    userId: string,
-    action: string,
-    resourceId: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<void> {
-    try {
-      await this.prisma.auditLog.create({
-        data: {
-          userId,
-          action,
-          resourceType: 'Server',
-          resourceId,
-          ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
-        },
-      });
-    } catch {
-      // Le journal d'audit reste non bloquant.
-    }
   }
 
   // ─── Delegations vers ServerPreparationService ────────────────────────────
@@ -546,30 +591,6 @@ export class ServersCoreService {
     return await this.verification.getRecentLogs(id, limit);
   }
 
-  // ─── Legacy endpoint guard (utilise ServerLegacyApiService) ──────────────
-
-  async guardLegacyEndpoint(
-    endpoint: string,
-    serverId: string,
-    actorId: string,
-    setHeader: (name: string, value: string) => void,
-  ): Promise<void> {
-    this.legacy.assertEndpointAvailable(endpoint);
-    this.legacy.applyDeprecationHeaders(setHeader);
-    await this.legacy.trackUsage(endpoint, serverId, actorId);
-  }
-
-  // ─── Ansible execution (delegation) ───────────────────────────────────────
-
-  async runPreparationWithAnsible(
-    server: Server,
-    input: RunPreparationInput,
-    options: RunPreparationOptions,
-    callbacks?: RunPreparationCallbacks,
-  ): Promise<void> {
-    await this.ansible.runPreparation(server, input, options, callbacks);
-  }
-
   // ─── Infrastructure roles & environments ─────────────────────────────────
 
   async setServerInfraRole(
@@ -587,7 +608,7 @@ export class ServersCoreService {
       data: { infraRole } as Prisma.ServerUpdateInput,
     });
 
-    await this.recordAuditLog(actorUserId, 'SERVER_SET_INFRA_ROLE', updated.id, {
+    await this.auditService.record(actorUserId, 'SERVER_SET_INFRA_ROLE', 'Server', updated.id, {
       infraRole,
     });
 

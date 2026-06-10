@@ -3,14 +3,24 @@ import eslint from '@eslint/js';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import noSkipWithoutTrigger from './tools/eslint-plugins/no-skip-without-trigger.cjs';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: ['eslint.config.mjs', 'tools/eslint-plugins/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   eslintPluginPrettierRecommended,
+  {
+    plugins: {
+      'platform-safety': {
+        rules: {
+          'no-skip-without-trigger': noSkipWithoutTrigger,
+        },
+      },
+    },
+  },
   {
     languageOptions: {
       globals: {
@@ -30,6 +40,9 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
       "prettier/prettier": ["error", { endOfLine: "auto" }],
+      // P1-07 safety net: catches `if (skipX) return;` early-return patterns
+      // in service files. Anti-pattern that led to the original bug class.
+      'platform-safety/no-skip-without-trigger': 'warn',
     },
   },
 );

@@ -6,6 +6,7 @@ import {
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -18,6 +19,7 @@ import {
   AUTH_COOKIE_NAME_DEFAULT,
 } from '../../../core/http/auth-cookie.util';
 import { resolveGatewayCorsOrigins } from '../../../core/http/cors-origins.util';
+import { DeploymentsLogStreamService } from '../services/deployments-log-stream.service';
 
 type DeploymentLogLevel = 'info' | 'error' | 'success';
 
@@ -69,7 +71,9 @@ type DeploymentLogReplayPayload = {
     credentials: true,
   },
 })
-export class DeploymentsGateway implements OnGatewayConnection {
+export class DeploymentsGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   private readonly logger = new Logger(DeploymentsGateway.name);
 
   @WebSocketServer()
@@ -84,6 +88,7 @@ export class DeploymentsGateway implements OnGatewayConnection {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly logStreamService: DeploymentsLogStreamService,
   ) {}
 
   // Vérifie le token JWT à chaque nouvelle connexion WebSocket.
@@ -126,6 +131,20 @@ export class DeploymentsGateway implements OnGatewayConnection {
         `WebSocket: connexion rejetée — token invalide (id: ${client.id})`,
       );
       client.disconnect();
+    }
+  }
+
+  /**
+   * On client disconnect, cancel any active log subscriptions for
+   * this socket. The underlying TLS streams would otherwise stay
+   * open until the next emit / timeout.
+   */
+  handleDisconnect(client: Socket): void {
+    const cancelled = this.logStreamService.unsubscribeAll(client.id);
+    if (cancelled > 0) {
+      this.logger.debug(
+        `WebSocket: déconnecté — ${cancelled} flux de logs annulés (id: ${client.id})`,
+      );
     }
   }
 
@@ -220,6 +239,67 @@ export class DeploymentsGateway implements OnGatewayConnection {
     };
     client.emit('deployment:log-replay', replayPayload);
     return { ok: true, count: buffer.length };
+  }
+
+  @SubscribeMessage('logs:subscribe')
+  async handleLogsSubscribe(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    payload: {
+      deploymentId?: string;
+      serverId?: string;
+      containerName?: string;
+      tail?: number;
+    },
+  ): Promise<{ ok: boolean; subscriptionKey?: string; error?: string }> {
+    const deploymentId = payload?.deploymentId?.trim();
+    const serverId = payload?.serverId?.trim();
+    const containerName = payload?.containerName?.trim();
+    if (!deploymentId || !serverId || !containerName) {
+      return {
+        ok: false,
+        error: 'deploymentId, serverId et containerName sont requis',
+      };
+    }
+
+    const user = (client.data as { user?: JwtPayload }).user;
+    if (!user) {
+      return { ok: false, error: 'Utilisateur non authentifié' };
+    }
+    const hasAccess = await this.canAccessDeployment(user, deploymentId);
+    if (!hasAccess) {
+      return { ok: false, error: 'Accès non autorisé à ce déploiement' };
+    }
+
+    try {
+      const key = await this.logStreamService.subscribe(client, {
+        deploymentId,
+        serverId,
+        containerName,
+        tail: payload.tail,
+      });
+      if (!key) {
+        return {
+          ok: false,
+          error:
+            'Streaming indisponible (DockerConnection non configurée ou container introuvable)',
+        };
+      }
+      return { ok: true, subscriptionKey: key };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Erreur inconnue';
+      return { ok: false, error: message };
+    }
+  }
+
+  @SubscribeMessage('logs:unsubscribe')
+  handleLogsUnsubscribe(
+    @MessageBody() payload: { subscriptionKey?: string },
+  ): { ok: boolean; cancelled?: boolean } {
+    const key = payload?.subscriptionKey;
+    if (!key) return { ok: false };
+    return { ok: true, cancelled: this.logStreamService.unsubscribe(key) };
   }
 
   private appendToBuffer(payload: DeploymentLogPayload): void {

@@ -20,7 +20,11 @@ describe('ServersJobsService', () => {
       withTimeout: jest.fn(),
     };
 
-    const service = new ServersJobsService(prisma as never, ssh as never);
+    const service = new ServersJobsService(
+      prisma as never,
+      ssh as never,
+      { get: jest.fn() } as never,
+    );
 
     return { service, prisma, ssh };
   }

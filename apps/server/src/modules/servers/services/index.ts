@@ -1,11 +1,9 @@
 export { ServersCoreService } from './servers-core.service';
-export { ServersSshService } from './servers-ssh.service';
-export { AnsibleExecutionService } from './ansible-execution.service';
+export { ServersConnectionService } from './servers-connection.service';
 export { ServersJobsService } from './servers-jobs.service';
 export { ServersCryptoService } from './servers-crypto.service';
 export { ServerVerificationService } from './server-verification.service';
-export { ServerDetectionService } from './server-detection.service';
-export { ServerPreparationService } from './server-preparation.service';
-export { ServerAuditService } from './server-audit.service';
-export { ServerLegacyApiService } from './server-legacy-api.service';
+export { ServersDetectionService } from './servers-detection.service';
+export { ServersAuditService } from './servers-audit.service';
 export { ServerHostKeyService } from './server-host-key.service';
+export { DockerConnectionNotificationsListener } from './docker-connection-notifications.listener';

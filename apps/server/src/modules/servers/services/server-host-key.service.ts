@@ -13,6 +13,8 @@ type KnownHostEntry = {
   knownHostsLine: string;
 };
 
+type ServerHostInfo = Pick<Server, 'host' | 'port'>;
+
 type ResolveForConnectionOptions = {
   allowTrustOnFirstUse: boolean;
 };
@@ -32,7 +34,7 @@ export class ServerHostKeyService {
   constructor(private readonly configService: ConfigService) {}
 
   async resolveForConnection(
-    server: Server,
+    server: Pick<Server, 'host' | 'port'>,
     options: ResolveForConnectionOptions,
   ): Promise<KnownHostEntry> {
     const scanned = await this.scanHostKey(server);
@@ -62,7 +64,7 @@ export class ServerHostKeyService {
     return scanned;
   }
 
-  async collectFingerprint(server: Server): Promise<string | null> {
+  async collectFingerprint(server: ServerHostInfo): Promise<string | null> {
     try {
       const scanned = await this.scanHostKey(server);
       return scanned.knownHostsLine;
@@ -72,7 +74,7 @@ export class ServerHostKeyService {
   }
 
   resolveStrictHostKeyChecking(): 'yes' | 'no' | 'ask' | 'accept-new' {
-    const raw = this.configService.get<string>('ANSIBLE_STRICT_HOST_KEY_CHECKING', 'true').trim();
+    const raw = this.configService.get<string>('ANSIBLE_STRICT_HOST_KEY_CHECKING', 'accept-new').trim();
     if (raw) {
       const value = raw.toLowerCase();
       if (
@@ -139,7 +141,7 @@ export class ServerHostKeyService {
   }
 
   private async readPinnedEntry(
-    server: Server,
+    server: ServerHostInfo,
   ): Promise<KnownHostEntry | null> {
     const knownHostsPath = this.resolveKnownHostsPath();
     if (!existsSync(knownHostsPath)) {
@@ -199,7 +201,7 @@ export class ServerHostKeyService {
     await chmod(knownHostsPath, 0o600);
   }
 
-  private async scanHostKey(server: Server): Promise<KnownHostEntry> {
+  private async scanHostKey(server: ServerHostInfo): Promise<KnownHostEntry> {
     const sanitizedHost = this.sanitizeHost(server.host);
     const sanitizedPort = this.sanitizePort(server.port);
 
@@ -310,7 +312,7 @@ export class ServerHostKeyService {
     return port;
   }
 
-  private knownHostMarker(server: Server): string {
+  private knownHostMarker(server: ServerHostInfo): string {
     const host = this.sanitizeHost(server.host);
     const cleanHost = host.replace(/^\[/, '').replace(/\]$/, '');
     return `[${cleanHost}]:${String(this.sanitizePort(server.port))}`;

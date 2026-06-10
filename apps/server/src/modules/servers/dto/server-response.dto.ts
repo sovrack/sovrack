@@ -11,6 +11,26 @@ import {
 } from '@prisma/client';
 import { ServerConnectionModeDto } from './create-server.dto';
 
+export class ServerActiveJobDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({ enum: ServerJobType })
+  type!: ServerJobType;
+
+  @ApiProperty({ enum: ServerJobStatus })
+  status!: ServerJobStatus;
+
+  @ApiPropertyOptional({ type: String, nullable: true, format: 'date-time' })
+  startedAt!: string | null;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  error!: string | null;
+}
+
 export class ServerResponseDto {
   @ApiProperty()
   id!: string;
@@ -87,6 +107,13 @@ export class ServerResponseDto {
 
   @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
+
+  @ApiPropertyOptional({
+    type: () => ServerActiveJobDto,
+    nullable: true,
+    description: 'Job actuellement actif (RUNNING/PENDING/BLOCKED) verrouillant ce serveur, sinon null.',
+  })
+  activeJob?: ServerActiveJobDto | null;
 }
 
 export class CreateServerResponseDto extends ServerResponseDto {

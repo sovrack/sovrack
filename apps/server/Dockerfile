@@ -15,7 +15,7 @@ RUN npm run build
 # ── Production stage ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
 
-RUN apk add --no-cache python3 ansible openssh-client
+RUN apk add --no-cache python3 ansible openssh-client curl ca-certificates
 
 WORKDIR /app
 
@@ -35,6 +35,22 @@ COPY prisma ./prisma
 
 # Ansible playbooks (mounted at runtime via volume or baked in)
 COPY ../devops/ansible ./devops/ansible 2>/dev/null || true
+
+# ── Install Nixpacks (used by NixpacksService for local builds + plan generation) ──
+# Nixpacks is a single static binary (~50MB) — no runtime deps, no Nix daemon required.
+# It auto-detects the language/framework and generates a Dockerfile.
+# See: https://github.com/railwayapp/nixpacks
+ARG NIXPACKS_VERSION=1.30.0
+RUN arch=$(uname -m) && \
+    case "$arch" in \
+      x86_64) NIXPACKS_ARCH="amd64" ;; \
+      aarch64) NIXPACKS_ARCH="arm64" ;; \
+      *) echo "Unsupported arch: $arch" && exit 1 ;; \
+    esac && \
+    curl -fsSL "https://github.com/railwayapp/nixpacks/releases/download/v${NIXPACKS_VERSION}/nixpacks-linux-${NIXPACKS_ARCH}.tar.gz" \
+      | tar -xz -C /usr/local/bin nixpacks && \
+    chmod +x /usr/local/bin/nixpacks && \
+    nixpacks --version
 
 EXPOSE 3001
 

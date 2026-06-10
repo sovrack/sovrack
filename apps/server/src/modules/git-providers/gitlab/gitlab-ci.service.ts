@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { GitProviderType, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import {
   GitlabApiService,
@@ -52,7 +52,7 @@ export class GitlabCiService {
       select: {
         id: true,
         projectId: true,
-        gitlabProjectId: true,
+        externalRepoId: true,
         defaultBranch: true,
       },
     });
@@ -61,20 +61,20 @@ export class GitlabCiService {
       throw new NotFoundException('Service introuvable');
     }
 
-    if (!service.gitlabProjectId) {
-      return this.prisma.pipeline
+    if (!service.externalRepoId) {
+      return this.prisma.pipelineRun
         .findMany({
-          where: { projectId, serviceId },
+          where: { projectId, serviceId, provider: GitProviderType.GITLAB },
           orderBy: { createdAt: 'desc' },
           take: 20,
         })
         .then((rows) =>
           rows.map((p) => ({
-            id: Number(p.gitlabId),
+            id: Number(p.externalId),
             status: p.status.toLowerCase(),
-            ref: p.ref,
-            sha: p.sha,
-            web_url: p.webUrl,
+            ref: p.branch ?? '',
+            sha: p.commitSha ?? '',
+            web_url: p.webUrl ?? '',
           })),
         );
     }
@@ -82,7 +82,7 @@ export class GitlabCiService {
     const config = await this.core.getProjectConfig(projectId);
     const pipelines = await this.apiService.getPipelines(
       config,
-      Number(service.gitlabProjectId),
+      Number(service.externalRepoId),
       (url) => this.core.normalizeUrl(url),
     );
 

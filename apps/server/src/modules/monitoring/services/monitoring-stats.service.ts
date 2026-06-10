@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DeploymentStatus, PipelineStatus, ServerStatus } from '@prisma/client';
+import { DeploymentStatus, PipelineRunStatus, ServerStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { AUTOMATION_ACTIONS } from '../../automation/shared/automation-options';
@@ -112,7 +112,7 @@ export class MonitoringStatsService {
             createdAt: true,
           },
         },
-        pipelines: {
+        pipelineRuns: {
           orderBy: { createdAt: 'desc' },
           take: 25,
           select: {
@@ -142,12 +142,12 @@ export class MonitoringStatsService {
           ? Math.round((successDeployments7d / deploymentsLast7d.length) * 100)
           : null;
 
-      const pipelineStatusCounts = project.pipelines.reduce(
-        (acc, pipeline) => {
-          acc[pipeline.status] = (acc[pipeline.status] ?? 0) + 1;
+      const pipelineStatusCounts = project.pipelineRuns.reduce(
+        (acc, run) => {
+          acc[run.status] = (acc[run.status] ?? 0) + 1;
           return acc;
         },
-        {} as Record<PipelineStatus, number>,
+        {} as Record<PipelineRunStatus, number>,
       );
 
       const health = this.resolveProjectHealth(
@@ -177,6 +177,7 @@ export class MonitoringStatsService {
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: {
+        build: { select: { status: true } },
         project: {
           select: { id: true, name: true },
         },
@@ -224,7 +225,7 @@ export class MonitoringStatsService {
       recent: deployments.map((deployment) => ({
         id: deployment.id,
         status: deployment.status,
-        buildStatus: deployment.buildStatus,
+        buildStatus: deployment.build?.status ?? null,
         branch: deployment.branch,
         dockerImage: deployment.dockerImage,
         createdAt: deployment.createdAt.toISOString(),

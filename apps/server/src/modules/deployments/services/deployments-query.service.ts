@@ -5,13 +5,13 @@ import { PaginationDto, PaginatedResult, paginate } from '../../../core/http/pag
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 
 export const deploymentRelationsInclude = {
-  project: { select: { id: true, name: true, gitlabUrl: true } },
+  project: { select: { id: true, name: true, repoUrl: true } },
   service: {
     select: {
       id: true,
       name: true,
       type: true,
-      gitlabProjectId: true,
+      externalRepoId: true,
       repositoryPath: true,
       defaultBranch: true,
     },

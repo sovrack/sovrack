@@ -23,7 +23,7 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
     description: 'Met à jour tous les packages du système (apt upgrade).',
     playbookPath: 'prepare-server.yml',
     category: 'system',
-    roles: ['common'],
+    roles: ['system_base'],
     requiresSshValidated: true,
     requiresSudo: true,
   },

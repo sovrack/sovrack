@@ -3,12 +3,13 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { Deployment, DeploymentStatus, Prisma, Role } from '@prisma/client';
+import { Deployment, DeploymentStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { AuditService } from '../../audit/audit.service';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { DeploymentsQueryService } from './deployments-query.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
-import { DeploymentsAnsibleService } from './deployments-ansible.service';
+import { DeploymentsExecutorService } from './deployments-executor.service';
 
 @Injectable()
 export class DeploymentsRollbackService {
@@ -19,7 +20,8 @@ export class DeploymentsRollbackService {
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly queryService: DeploymentsQueryService,
     private readonly gateway: DeploymentsGateway,
-    private readonly ansibleService: DeploymentsAnsibleService,
+    private readonly ansibleService: DeploymentsExecutorService,
+    private readonly auditService: AuditService,
   ) {}
 
   async rollback(
@@ -58,6 +60,14 @@ export class DeploymentsRollbackService {
 
     const actor = await this.authorizationService.getActor(userId);
 
+    // Prefer imageSha (immutable digest) over dockerImage (mutable tag).
+    // If the original deploy used a `:latest` tag, the tag may now point to
+    // a different image, so pinning to the recorded digest is the only way
+    // to guarantee we redeploy the exact same content. The mutable tag is
+    // still persisted on the new record for human readability.
+    const rollbackImageRef =
+      previousSuccess.imageSha ?? previousSuccess.dockerImage;
+
     const rollbackDeployment = await this.prisma.deployment.create({
       data: {
         projectId: deployment.projectId,
@@ -66,20 +76,28 @@ export class DeploymentsRollbackService {
         branch: previousSuccess.branch,
         status: DeploymentStatus.RUNNING,
         dockerImage: previousSuccess.dockerImage,
+        imageSha: previousSuccess.imageSha,
+        isRollback: true,
+        rolledBackAt: new Date(),
         previousDeploymentId: previousSuccess.id,
         startedAt: new Date(),
-        logs: `Rollback depuis ${previousSuccess.id}`,
+        logs: `Rollback depuis ${previousSuccess.id}` +
+          (previousSuccess.imageSha
+            ? ` (pinned to sha ${previousSuccess.imageSha})`
+            : ''),
       },
     });
 
-    await this.recordAuditLog(
+    await this.auditService.record(
       userId,
       'DEPLOYMENT_ROLLBACK',
+      'Deployment',
       rollbackDeployment.id,
       {
         projectId: rollbackDeployment.projectId,
         environmentId: rollbackDeployment.environmentId,
         sourceDeploymentId: previousSuccess.id,
+        usedDigest: previousSuccess.imageSha ?? null,
       },
     );
 
@@ -94,32 +112,8 @@ export class DeploymentsRollbackService {
 
     return await this.ansibleService.deployWithAnsible(
       rollbackDeployment.id,
-      previousSuccess.dockerImage,
+      rollbackImageRef,
     );
   }
 
-  private async recordAuditLog(
-    userId: string,
-    action: string,
-    resourceId: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<void> {
-    try {
-      await this.prisma.auditLog.create({
-        data: {
-          userId,
-          action,
-          resourceType: 'Deployment',
-          resourceId,
-          ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
-        },
-      });
-    } catch (error) {
-      this.logger.warn(
-        `Audit log ignoré (${action}) : ${
-          error instanceof Error ? error.message : 'erreur inconnue'
-        }`,
-      );
-    }
-  }
 }

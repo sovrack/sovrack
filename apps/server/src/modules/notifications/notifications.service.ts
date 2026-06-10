@@ -25,6 +25,20 @@ export type DeploymentNotificationPayload = {
   pipelineUrl?: string | null;
 };
 
+export type DockerConnectionDownPayload = {
+  serverId: string;
+  serverName?: string;
+  endpoint: string;
+  lastError: string;
+  failedSince: Date;
+};
+
+export type DockerConnectionRecoveredPayload = {
+  serverId: string;
+  serverName?: string;
+  endpoint: string;
+};
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -63,6 +77,33 @@ export class NotificationsService {
     await Promise.allSettled([
       this.sendSlackNotification(payload),
       this.sendEmailNotification(payload),
+    ]);
+  }
+
+  /**
+   * Fired by the DockerConnectionHealthService on reachable → unreachable
+   * transition. Uses the same Slack + email channels as deployment
+   * notifications, with a different template (server name, endpoint, error).
+   */
+  async notifyDockerConnectionDown(
+    payload: DockerConnectionDownPayload,
+  ): Promise<void> {
+    await Promise.allSettled([
+      this.sendDockerConnectionSlackNotification(payload, false),
+      this.sendDockerConnectionEmailNotification(payload, false),
+    ]);
+  }
+
+  /**
+   * Fired by the DockerConnectionHealthService on unreachable → reachable
+   * transition (recovery). Same channels, recovery template.
+   */
+  async notifyDockerConnectionRecovered(
+    payload: DockerConnectionRecoveredPayload,
+  ): Promise<void> {
+    await Promise.allSettled([
+      this.sendDockerConnectionSlackNotification(payload, true),
+      this.sendDockerConnectionEmailNotification(payload, true),
     ]);
   }
 
@@ -222,5 +263,99 @@ export class NotificationsService {
       deleteIfEmpty(SMTP_FROM_KEY, settings.smtpFrom),
       deleteIfEmpty(SMTP_TO_KEY, settings.smtpTo),
     ]);
+  }
+
+  private async sendDockerConnectionSlackNotification(
+    payload: DockerConnectionDownPayload | DockerConnectionRecoveredPayload,
+    recovered: boolean,
+  ): Promise<void> {
+    try {
+      const webhookUrl = await this.getConfig(SLACK_WEBHOOK_KEY);
+      if (!webhookUrl) return;
+
+      const isDown = !recovered;
+      const emoji = isDown ? '🔴' : '🟢';
+      const verb = isDown ? 'INJOIGNABLE' : 'RÉCUPÉRÉ';
+      const downPayload = payload as DockerConnectionDownPayload;
+      const fields = [
+        { type: 'mrkdwn', text: `*Serveur:*\n${downPayload.serverName ?? downPayload.serverId}` },
+        { type: 'mrkdwn', text: `*Endpoint Docker:*\n${payload.endpoint}` },
+        ...(isDown
+          ? [
+              {
+                type: 'mrkdwn',
+                text: `*Erreur:*\n\`\`\`${(downPayload as DockerConnectionDownPayload).lastError.slice(0, 300)}\`\`\``,
+              },
+            ]
+          : []),
+      ];
+
+      await firstValueFrom(
+        this.httpService.post(webhookUrl, {
+          blocks: [
+            {
+              type: 'section',
+              text: { type: 'mrkdwn', text: `${emoji} *Connexion Docker ${verb}*` },
+            },
+            { type: 'section', fields },
+          ],
+        }),
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Docker connection Slack notification failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  private async sendDockerConnectionEmailNotification(
+    payload: DockerConnectionDownPayload | DockerConnectionRecoveredPayload,
+    recovered: boolean,
+  ): Promise<void> {
+    try {
+      const [smtpHost, smtpPortStr, smtpUser, smtpPass, smtpFrom, smtpTo] =
+        await Promise.all([
+          this.getConfig(SMTP_HOST_KEY),
+          this.getConfig(SMTP_PORT_KEY),
+          this.getConfig(SMTP_USER_KEY),
+          this.getConfig(SMTP_PASS_KEY),
+          this.getConfig(SMTP_FROM_KEY),
+          this.getConfig(SMTP_TO_KEY),
+        ]);
+      if (!smtpHost || !smtpTo) return;
+      const port = smtpPortStr ? Number(smtpPortStr) : 587;
+      if (!Number.isInteger(port)) return;
+      const user = smtpUser ?? '';
+      const pass = smtpPass ?? '';
+      const from = smtpFrom ?? user;
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port,
+        secure: port === 465,
+        auth: user ? { user, pass } : undefined,
+      });
+      const isDown = !recovered;
+      const emoji = isDown ? '🔴' : '🟢';
+      const verb = isDown ? 'INJOIGNABLE' : 'RÉCUPÉRÉ';
+      const downPayload = payload as DockerConnectionDownPayload;
+      const subject = `${emoji} Docker ${verb} — ${downPayload.serverName ?? downPayload.serverId}`;
+      const html = `
+        <h2>${emoji} Connexion Docker ${verb}</h2>
+        <table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
+          <tr><td style="padding:6px 12px;font-weight:bold">Serveur</td><td style="padding:6px 12px">${downPayload.serverName ?? downPayload.serverId}</td></tr>
+          <tr><td style="padding:6px 12px;font-weight:bold">Endpoint</td><td style="padding:6px 12px">${payload.endpoint}</td></tr>
+          ${isDown ? `<tr><td style="padding:6px 12px;font-weight:bold">Erreur</td><td style="padding:6px 12px"><code>${(downPayload as DockerConnectionDownPayload).lastError.slice(0, 1000).replace(/</g, '&lt;')}</code></td></tr>` : ''}
+        </table>
+      `;
+      await transporter.sendMail({ from: from ?? user, to: smtpTo, subject, html });
+    } catch (err) {
+      this.logger.warn(
+        `Docker connection email notification failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 }

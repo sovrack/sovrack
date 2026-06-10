@@ -6,6 +6,7 @@ import { UsersModule } from '../users/users.module';
 import { RolesGuard } from '../../core/guards/roles.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import { AppJwtModule } from '../../core/jwt/jwt.module';
+import { AuditModule } from '../audit/audit.module';
 
 /**
  * Module d'authentification
@@ -16,6 +17,7 @@ import { AppJwtModule } from '../../core/jwt/jwt.module';
     UsersModule,
     PassportModule,
     AppJwtModule,
+    AuditModule,
   ],
   providers: [AuthService, RolesGuard, LoginRateLimitGuard],
   controllers: [AuthController],
