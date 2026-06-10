@@ -109,6 +109,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/ws-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retourne un jeton court durée pour les connexions WebSocket */
+        get: operations["AuthController_getWsToken"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/me": {
         parameters: {
             query?: never;
@@ -143,62 +160,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/projects": {
+    "/admin/audit-logs": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Lister les projets selon le rôle utilisateur */
-        get: operations["ProjectsController_findAll"];
+        /** Lister les logs d’audit (admin) */
+        get: operations["AuditController_findAll"];
         put?: never;
-        /** Créer un projet */
-        post: operations["ProjectsController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Récupérer le détail d’un projet */
-        get: operations["ProjectsController_findOne"];
-        /** Modifier un projet */
-        put: operations["ProjectsController_update"];
         post?: never;
-        /** Supprimer un projet */
-        delete: operations["ProjectsController_remove"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{id}/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lister les membres du projet */
-        get: operations["ProjectsController_getMembers"];
-        put?: never;
-        /** Ajouter un membre au projet */
-        post: operations["ProjectsController_addMember"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/projects/{id}/members/{userId}": {
+    "/projects/{id}/build/prepare": {
         parameters: {
             query?: never;
             header?: never;
@@ -207,9 +186,392 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        post: operations["BuildController_prepare"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/detect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BuildController_detect"];
+        put?: never;
         post?: never;
-        /** Retirer un membre du projet */
-        delete: operations["ProjectsController_removeMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["BuildController_updateConfig"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BuildController_getTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/push-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BuildController_pushFiles"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/prepare-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BuildController_prepareAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/reconcile-webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BuildController_reconcileWebhooks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BuildController_getBuildStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/extract-compose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BuildController_extractComposeFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/engines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BuildController_getAvailableEngines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BuildController_listBuilds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/build/history/{buildId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["BuildController_getBuild"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/gitlab/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les providers GitLab */
+        get: operations["GitProvidersController_listGitlabProviders"];
+        put?: never;
+        /** Créer un provider GitLab */
+        post: operations["GitProvidersController_createGitlabProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/gitlab/providers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mettre à jour un provider GitLab */
+        put: operations["GitProvidersController_updateGitlabProvider"];
+        post?: never;
+        /** Supprimer un provider GitLab */
+        delete: operations["GitProvidersController_deleteGitlabProvider"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/gitlab/providers/{id}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Définir un provider GitLab par défaut */
+        post: operations["GitProvidersController_setDefaultGitlabProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/gitlab/providers/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tester la connexion GitLab pour un provider */
+        post: operations["GitProvidersController_testGitlabProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/gitlab/providers/{id}/oauth/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Démarrer OAuth GitLab pour un provider */
+        post: operations["GitProvidersController_startGitlabOAuthForProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/test-gitlab": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tester la connexion GitLab globale (default provider) */
+        post: operations["GitProvidersController_testGitlab"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/gitlab/oauth/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Démarrer OAuth GitLab global (default provider) */
+        post: operations["GitProvidersController_startGitlabOAuth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/github/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les providers GitHub */
+        get: operations["GitProvidersController_listGithubProviders"];
+        put?: never;
+        /** Créer un provider GitHub */
+        post: operations["GitProvidersController_createGithubProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/github/providers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mettre à jour un provider GitHub */
+        put: operations["GitProvidersController_updateGithubProvider"];
+        post?: never;
+        /** Supprimer un provider GitHub */
+        delete: operations["GitProvidersController_deleteGithubProvider"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/github/providers/{id}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Définir un provider GitHub par défaut */
+        post: operations["GitProvidersController_setDefaultGithubProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/github/providers/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tester la connexion GitHub pour un provider */
+        post: operations["GitProvidersController_testGithubProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/github/providers/{id}/repos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les repos GitHub accessibles via ce provider */
+        get: operations["GitProvidersController_listGithubRepos"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -224,6 +586,40 @@ export interface paths {
         };
         /** Lister les providers GitLab disponibles pour la configuration projet */
         get: operations["GitlabController_listProviders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gitlab/providers/{providerId}/groups/{groupId}/repositories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les repositories accessibles dans un groupe GitLab */
+        get: operations["GitlabController_listGroupRepositories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gitlab/providers/{providerId}/projects/{gitlabProjectId}/branches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les branches avant création projet/service */
+        get: operations["GitlabController_listProjectBranchesByProvider"];
         put?: never;
         post?: never;
         delete?: never;
@@ -351,6 +747,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/github/webhook/{providerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive GitHub webhook events (provider-aware URL) */
+        post: operations["GithubController_handleWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/github/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive GitHub webhook events (legacy — repo lookup) */
+        post: operations["GithubController_handleLegacyWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/github/repos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List GitHub repositories for a project */
+        get: operations["GithubController_listRepos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/github/repos/{repoId}/branches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List branches for a GitHub repository */
+        get: operations["GithubController_listBranches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/github/pipelines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List recent GitHub Actions workflow runs */
+        get: operations["GithubController_listPipelines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/platform-config": {
         parameters: {
             query?: never;
@@ -359,7 +840,7 @@ export interface paths {
             cookie?: never;
         };
         /** Lister toutes les configurations globales */
-        get: operations["PlatformConfigController_getAll"];
+        get: operations["PlatformController_getAll"];
         put?: never;
         post?: never;
         delete?: never;
@@ -377,7 +858,7 @@ export interface paths {
         };
         get?: never;
         /** Mettre à jour une configuration globale */
-        put: operations["PlatformConfigController_setConfig"];
+        put: operations["PlatformController_setConfig"];
         post?: never;
         delete?: never;
         options?: never;
@@ -385,224 +866,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/platform-config/gitlab/providers": {
+    "/projects/{id}/webhooks/endpoints": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Lister les providers GitLab */
-        get: operations["PlatformConfigController_listGitlabProviders"];
-        put?: never;
-        /** Créer un provider GitLab */
-        post: operations["PlatformConfigController_createGitlabProvider"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/platform-config/gitlab/providers/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Mettre à jour un provider GitLab */
-        put: operations["PlatformConfigController_updateGitlabProvider"];
-        post?: never;
-        /** Supprimer un provider GitLab */
-        delete: operations["PlatformConfigController_deleteGitlabProvider"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/platform-config/gitlab/providers/{id}/default": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Définir un provider GitLab par défaut */
-        post: operations["PlatformConfigController_setDefaultGitlabProvider"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/platform-config/gitlab/providers/{id}/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Tester la connexion GitLab pour un provider */
-        post: operations["PlatformConfigController_testGitlabProvider"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/platform-config/gitlab/providers/{id}/oauth/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Démarrer OAuth GitLab pour un provider */
-        post: operations["PlatformConfigController_startGitlabOAuthForProvider"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/platform-config/test-gitlab": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Tester la connexion GitLab globale (default provider) */
-        post: operations["PlatformConfigController_testGitlab"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/platform-config/gitlab/oauth/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Démarrer OAuth GitLab global (default provider) */
-        post: operations["PlatformConfigController_startGitlabOAuth"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/platform-config/registries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lister les configurations de registre */
-        get: operations["PlatformConfigController_listRegistries"];
-        put?: never;
-        /** Créer une nouvelle configuration de registre */
-        post: operations["PlatformConfigController_createRegistry"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/platform-config/registries/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Mettre à jour une configuration de registre */
-        put: operations["PlatformConfigController_updateRegistry"];
-        post?: never;
-        /** Supprimer une configuration de registre */
-        delete: operations["PlatformConfigController_deleteRegistry"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/platform-config/registries/{id}/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Tester la connexion à un registre */
-        post: operations["PlatformConfigController_testRegistry"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/platform-config/registries/{id}/set-default": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Définir un registre comme registre par défaut */
-        post: operations["PlatformConfigController_setDefaultRegistry"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/deployments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lister les déploiements (filtrés par rôle) */
-        get: operations["DeploymentsController_findAll"];
-        put?: never;
-        /** Lancer un déploiement */
-        post: operations["DeploymentsController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/deployments/project/{projectId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lister l'historique d'un projet */
-        get: operations["DeploymentsController_findByProject"];
+        get: operations["WebhooksController_listEndpoints"];
         put?: never;
         post?: never;
         delete?: never;
@@ -611,15 +882,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/deployments/{id}": {
+    "/projects/{id}/webhooks/events": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Détail d'un déploiement */
-        get: operations["DeploymentsController_findOne"];
+        get: operations["WebhooksController_listEvents"];
         put?: never;
         post?: never;
         delete?: never;
@@ -628,254 +898,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/deployments/{id}/cancel": {
+    "/projects/{id}/webhooks/events/{eventId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Annuler un déploiement */
-        post: operations["DeploymentsController_cancel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/deployments/{id}/rollback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Rollback sur la dernière image stable */
-        post: operations["DeploymentsController_rollback"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{id}/configs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lister les configurations projet (secrets masqués) */
-        get: operations["ConfigsController_findAll"];
-        put?: never;
-        /** Créer une configuration projet */
-        post: operations["ConfigsController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{id}/configs/{configId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Mettre à jour une configuration projet */
-        put: operations["ConfigsController_update"];
-        post?: never;
-        /** Supprimer une configuration projet */
-        delete: operations["ConfigsController_remove"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lister tous les serveurs (sshKey masquée) */
-        get: operations["ServersController_findAll"];
-        put?: never;
-        /** Créer un serveur (onboarding SSH: installation de clé via mot de passe temporaire, puis vérification) */
-        post: operations["ServersController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Voir le détail d'un serveur */
-        get: operations["ServersController_findOne"];
-        /** Modifier un serveur */
-        put: operations["ServersController_update"];
-        post?: never;
-        /** Supprimer un serveur si aucun environnement actif */
-        delete: operations["ServersController_remove"];
-        options?: never;
-        head?: never;
-        /** Modifier partiellement un serveur */
-        patch: operations["ServersController_patch"];
-        trace?: never;
-    };
-    "/servers/{id}/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Alias déprécié: valider la connexion SSH du serveur
-         * @description Ne vérifie pas Ansible sur le VPS. Ansible reste uniquement sur la machine de contrôle.
-         */
-        post: operations["ServersController_verify"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}/validate-ssh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Valider la connexion SSH, auth, sudo et prérequis minimaux
-         * @description Les VPS sont des cibles SSH agentless. Cette étape ne cherche jamais à installer Ansible sur le VPS.
-         */
-        post: operations["ServersController_validateSsh"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}/detect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Détecter les informations système et outils installés */
-        post: operations["ServersController_detect"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}/install": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Déprécié: utiliser Prepare Server
-         * @description Compatibilité ancienne API. Le champ ansible est ignoré: Ansible n'est jamais installé sur le VPS cible.
-         */
-        post: operations["ServersController_install"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}/prepare": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Alias: démarrer une préparation serveur suivie
-         * @description Lance le workflow ServerPreparation. Ansible est exécuté uniquement depuis la machine de contrôle.
-         */
-        post: operations["ServersController_prepare"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}/register-runner": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Enregistrer le GitLab Runner sur ce serveur */
-        post: operations["ServersController_registerRunner"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}/install-key": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Installer la clé publique SSH via mot de passe temporaire */
-        post: operations["ServersController_installKey"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Récupérer le statut de vérification du serveur */
-        get: operations["ServersController_getVerificationStatus"];
+        get: operations["WebhooksController_getEvent"];
         put?: never;
         post?: never;
         delete?: never;
@@ -884,15 +914,151 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/servers/{id}/logs": {
+    "/projects/{id}/webhooks/endpoints/{endpointId}/enabled": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Récupérer les logs de vérification du serveur */
-        get: operations["ServersController_getVerificationLogs"];
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["WebhooksController_setEnabled"];
+        trace?: never;
+    };
+    "/webhooks/incoming/{webhookToken}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["IncomingWebhookController_handle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les projets selon le rôle utilisateur */
+        get: operations["ProjectsController_findAll"];
+        put?: never;
+        /** Créer un projet */
+        post: operations["ProjectsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/import/gitlab-group": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Importer des repositories GitLab Group en application multi-services ou projets séparés */
+        post: operations["ProjectsController_importGitlabGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Récupérer le détail d’un projet */
+        get: operations["ProjectsController_findOne"];
+        /** Modifier un projet */
+        put: operations["ProjectsController_update"];
+        post?: never;
+        /** Supprimer un projet */
+        delete: operations["ProjectsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les membres du projet */
+        get: operations["ProjectsController_getMembers"];
+        put?: never;
+        /** Ajouter un membre au projet */
+        post: operations["ProjectsController_addMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retirer un membre du projet */
+        delete: operations["ProjectsController_removeMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/webhook/configure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ProjectWebhookController_configure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/webhook/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ProjectWebhookController_status"];
         put?: never;
         post?: never;
         delete?: never;
@@ -901,15 +1067,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/servers/{id}/capabilities": {
+    "/projects/{projectId}/webhook/pause": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Lister les capacités détectées du serveur */
-        get: operations["ServersController_getCapabilities"];
+        get?: never;
+        put?: never;
+        post: operations["ProjectWebhookController_pause"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/webhook/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ProjectWebhookController_resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les services d'un projet/application */
+        get: operations["ProjectServicesController_findAll"];
+        put?: never;
+        /** Créer un service deployable dans le projet */
+        post: operations["ProjectServicesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/services/{serviceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mettre à jour un service deployable */
+        put: operations["ProjectServicesController_update"];
+        post?: never;
+        /** Supprimer un service deployable */
+        delete: operations["ProjectServicesController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/services/{serviceId}/pipelines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pipelines GitLab pour un service spécifique */
+        get: operations["ProjectServicesController_getPipelinesForService"];
         put?: never;
         post?: never;
         delete?: never;
@@ -918,50 +1152,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/servers/{id}/installed-tools": {
+    "/projects/{id}/environments": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Lister les outils installés détectés */
-        get: operations["ServersController_getInstalledTools"];
+        /** Lister les environnements d'un projet */
+        get: operations["EnvironmentsController_findAll"];
         put?: never;
-        post?: never;
+        /** Créer un environnement pour un projet */
+        post: operations["EnvironmentsController_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/servers/{id}/validation-results": {
+    "/projects/{id}/environments/{envId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Lister les résultats de validation SSH */
-        get: operations["ServersController_getValidationResults"];
-        put?: never;
+        /** Détail d'un environnement de projet */
+        get: operations["EnvironmentsController_findOne"];
+        /** Mettre à jour un environnement de projet */
+        put: operations["EnvironmentsController_update"];
         post?: never;
-        delete?: never;
+        /** Supprimer un environnement de projet */
+        delete: operations["EnvironmentsController_remove"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/servers/{id}/audit-events": {
+    "/projects/{id}/environments/{envId}/targets": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Lister l'audit des actions serveur sensibles */
-        get: operations["ServersController_getAuditEvents"];
-        put?: never;
+        /** Lister les cibles VPS par service pour l'environnement */
+        get: operations["EnvironmentsController_findServiceTargets"];
+        /** Configurer les cibles VPS par service pour l'environnement */
+        put: operations["EnvironmentsController_upsertServiceTargets"];
         post?: never;
         delete?: never;
         options?: never;
@@ -977,10 +1215,10 @@ export interface paths {
             cookie?: never;
         };
         /** Lister l'historique de préparation du serveur */
-        get: operations["ServersController_listPreparations"];
+        get: operations["ServerPreparationController_listPreparations"];
         put?: never;
         /** Démarrer une préparation serveur */
-        post: operations["ServersController_startPreparation"];
+        post: operations["ServerPreparationController_startPreparation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -995,60 +1233,9 @@ export interface paths {
             cookie?: never;
         };
         /** Vérifier si le serveur est prêt à lancer une préparation (SSH/sudo/état/verrou). */
-        get: operations["ServersController_getPreparationReadiness"];
+        get: operations["ServerPreparationController_getPreparationReadiness"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}/retry-verification": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Relancer la vérification du serveur */
-        post: operations["ServersController_retryVerification"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}/jobs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lister l'historique des jobs serveur */
-        get: operations["ServersController_listJobs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{id}/jobs/{jobId}/retry": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Relancer un job serveur */
-        post: operations["ServersController_retryJob"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1140,38 +1327,560 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/projects/{id}/environments": {
+    "/servers": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Lister les environnements d'un projet */
-        get: operations["EnvironmentsController_findAll"];
+        /** Lister tous les serveurs (sshKey masquée) */
+        get: operations["ServerManagementController_findAll"];
         put?: never;
-        /** Créer un environnement pour un projet */
-        post: operations["EnvironmentsController_create"];
+        /** Créer un serveur */
+        post: operations["ServerManagementController_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/projects/{id}/environments/{envId}": {
+    "/servers/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Détail d'un environnement de projet */
-        get: operations["EnvironmentsController_findOne"];
-        /** Mettre à jour un environnement de projet */
-        put: operations["EnvironmentsController_update"];
+        /** Voir le détail d'un serveur */
+        get: operations["ServerManagementController_findOne"];
+        /** Modifier un serveur */
+        put: operations["ServerManagementController_update"];
         post?: never;
-        /** Supprimer un environnement de projet */
-        delete: operations["EnvironmentsController_remove"];
+        /** Supprimer un serveur si aucun environnement actif */
+        delete: operations["ServerManagementController_remove"];
+        options?: never;
+        head?: never;
+        /** Modifier partiellement un serveur */
+        patch: operations["ServerManagementController_patch"];
+        trace?: never;
+    };
+    "/servers/{id}/install-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Installer la clé publique SSH via mot de passe temporaire */
+        post: operations["ServerManagementController_installKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/register-runner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enregistrer le GitLab Runner sur ce serveur */
+        post: operations["ServerManagementController_registerRunner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister l'historique des jobs serveur */
+        get: operations["ServerManagementController_listJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Définir le rôle infrastructure de ce serveur */
+        patch: operations["ServerManagementController_setServerRole"];
+        trace?: never;
+    };
+    "/servers/infra-environments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les serveurs configurés comme STAGING ou PRODUCTION */
+        get: operations["ServerManagementController_listInfraEnvironments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/environments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les environnements assignés à ce serveur (tous projets) */
+        get: operations["ServerManagementController_listServerEnvironments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/ping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tester rapidement la connectivité SSH du serveur */
+        post: operations["ServerManagementController_pingServer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/jobs/{jobId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Forcer la fin d'un job bloqué ou fantôme */
+        post: operations["ServerManagementController_cancelJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{serverId}/docker-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lire la config Docker (chiffrée) pour un serveur */
+        get: operations["DockerConnectionController_get"];
+        put?: never;
+        /** Créer ou remplacer la connexion Docker d'un serveur */
+        post: operations["DockerConnectionController_upsert"];
+        /** Supprimer la connexion Docker configurée pour ce serveur */
+        delete: operations["DockerConnectionController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{serverId}/docker-connection/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tester la connexion Docker (handshake TLS + ping) */
+        post: operations["DockerConnectionController_probe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Récupérer les paramètres de notification */
+        get: operations["NotificationsController_getSettings"];
+        /** Sauvegarder les paramètres de notification */
+        put: operations["NotificationsController_saveSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/validate-ssh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Valider la connexion SSH, auth, sudo et prérequis minimaux
+         * @description Les VPS sont des cibles SSH agentless. Cette étape ne cherche jamais à installer Ansible sur le VPS.
+         */
+        post: operations["ServerValidationController_validateSsh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Récupérer le statut de vérification du serveur */
+        get: operations["ServerValidationController_getVerificationStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Récupérer les logs de vérification du serveur */
+        get: operations["ServerValidationController_getVerificationLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/validation-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les résultats de validation SSH */
+        get: operations["ServerValidationController_getValidationResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/detect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Détecter les informations système et outils installés */
+        post: operations["ServerDetectionController_detect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les capacités détectées du serveur */
+        get: operations["ServerDetectionController_getCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/installed-tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les outils installés détectés */
+        get: operations["ServerDetectionController_getInstalledTools"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{id}/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister l'audit des actions serveur sensibles */
+        get: operations["ServerAuditController_getAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les configurations projet (secrets masqués) */
+        get: operations["ConfigsController_findAll"];
+        put?: never;
+        /** Créer une configuration projet */
+        post: operations["ConfigsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/configs/{configId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mettre à jour une configuration projet */
+        put: operations["ConfigsController_update"];
+        post?: never;
+        /** Supprimer une configuration projet */
+        delete: operations["ConfigsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/environments/{envId}/configs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les configs d'un environnement (secrets masqués) */
+        get: operations["EnvConfigsController_findAll"];
+        /** Créer ou mettre à jour une config par environnement */
+        put: operations["EnvConfigsController_upsert"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/environments/{envId}/configs/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Supprimer une config par environnement */
+        delete: operations["EnvConfigsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deployments/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Valider les prérequis avant déploiement */
+        post: operations["DeploymentsController_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deployments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les déploiements (filtrés par rôle) */
+        get: operations["DeploymentsController_findAll"];
+        put?: never;
+        /** Lancer un déploiement */
+        post: operations["DeploymentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deployments/project/{projectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister l'historique d'un projet */
+        get: operations["DeploymentsController_findByProject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deployments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Détail d'un déploiement */
+        get: operations["DeploymentsController_findOne"];
+        put?: never;
+        post?: never;
+        /** Supprimer un déploiement */
+        delete: operations["DeploymentsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deployments/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Annuler un déploiement */
+        post: operations["DeploymentsController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deployments/{id}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rollback sur la dernière image stable */
+        post: operations["DeploymentsController_rollback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deployments/{id}/container-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Récupérer les logs du conteneur Docker du déploiement */
+        get: operations["DeploymentsController_containerLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1265,86 +1974,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/projects/{id}/build/prepare": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["BuildController_prepare"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{id}/build/detect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["BuildController_detect"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{id}/build/config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["BuildController_updateConfig"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{id}/build/templates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["BuildController_getTemplates"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{id}/build/push-files": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["BuildController_pushFiles"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/ssh-keys": {
         parameters: {
             query?: never;
@@ -1377,15 +2006,834 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/audit-logs": {
+    "/automation/actions": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Lister les logs d’audit (admin) */
-        get: operations["AuditLogsController_findAll"];
+        get: operations["AutomationController_getActions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/automation/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutomationController_getRuns"];
+        put?: never;
+        post: operations["AutomationController_startRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/automation/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutomationController_getRun"];
+        put?: never;
+        post?: never;
+        delete: operations["AutomationController_deleteRun"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/automation/runs/{id}/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["AutomationController_getRunLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/automation/runs/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AutomationController_cancelRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monitoring overview for platform operations */
+        get: operations["MonitoringController_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Server monitoring status and metric snapshots */
+        get: operations["MonitoringController_servers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Project monitoring linked to deployments/pipelines */
+        get: operations["MonitoringController_projects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/deployments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Deployment health and history monitoring */
+        get: operations["MonitoringController_deployments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/prometheus/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prometheus connectivity and target status */
+        get: operations["MonitoringController_prometheusStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/grafana/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Grafana connectivity and access status */
+        get: operations["MonitoringController_grafanaStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monitoring alerts (Alertmanager or derived alerts) */
+        get: operations["MonitoringController_alerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/install/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monitoring installation actions and eligible servers */
+        get: operations["MonitoringController_installOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Install monitoring components through allowlisted automation actions */
+        post: operations["MonitoringController_install"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/containers/deployment/{deploymentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get container stats and logs for a deployment */
+        get: operations["MonitoringController_containerInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/containers/project/{projectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List running containers for a project on a server */
+        get: operations["MonitoringController_projectContainers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/containers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List tracked containers */
+        get: operations["ContainersController_findAll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/containers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a container by ID */
+        get: operations["ContainersController_findOne"];
+        put?: never;
+        post?: never;
+        /** Remove a container */
+        delete: operations["ContainersController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/containers/{id}/inspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect a running container via Docker API */
+        get: operations["ContainersController_inspect"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/containers/{id}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get container resource stats */
+        get: operations["ContainersController_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/containers/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a container */
+        post: operations["ContainersController_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/containers/{id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop a container */
+        post: operations["ContainersController_stop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/containers/{id}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restart a container */
+        post: operations["ContainersController_restart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/containers/sync/{serverId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync containers from a Docker host */
+        post: operations["ContainersController_sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les providers DNS */
+        get: operations["DomainsController_listProviders"];
+        put?: never;
+        /** Créer un provider DNS */
+        post: operations["DomainsController_createProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/providers/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tester un provider DNS */
+        post: operations["DomainsController_testProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/domains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les domaines DNS */
+        get: operations["DomainsController_listDomains"];
+        put?: never;
+        /** Ajouter un domaine DNS */
+        post: operations["DomainsController_createDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/domains/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vérifier un domaine DNS */
+        post: operations["DomainsController_verifyDomain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/domains/{domainId}/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les records DNS d’un domaine */
+        get: operations["DomainsController_listRecords"];
+        put?: never;
+        /** Créer un record DNS */
+        post: operations["DomainsController_createRecord"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/records/{recordId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mettre à jour un record DNS */
+        put: operations["DomainsController_updateRecord"];
+        post?: never;
+        /** Supprimer un record DNS */
+        delete: operations["DomainsController_removeRecord"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/registries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les configurations de registre */
+        get: operations["ContainerRegistriesController_listContainerRegistries"];
+        put?: never;
+        /** Créer une nouvelle configuration de registre */
+        post: operations["ContainerRegistriesController_createRegistry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/registries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mettre à jour une configuration de registre */
+        put: operations["ContainerRegistriesController_updateRegistry"];
+        post?: never;
+        /** Supprimer une configuration de registre */
+        delete: operations["ContainerRegistriesController_deleteRegistry"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/registries/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tester la connexion à un registre */
+        post: operations["ContainerRegistriesController_testRegistry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/registries/{id}/set-default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Définir un registre comme registre par défaut */
+        post: operations["ContainerRegistriesController_setDefaultRegistry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Statistiques agrégées du dashboard */
+        get: operations["DashboardController_getStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/proxy/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List proxy rules */
+        get: operations["ProxyController_findAll"];
+        put?: never;
+        /** Create a proxy rule */
+        post: operations["ProxyController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/proxy/rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a proxy rule by ID */
+        get: operations["ProxyController_findOne"];
+        put?: never;
+        post?: never;
+        /** Delete a proxy rule */
+        delete: operations["ProxyController_remove"];
+        options?: never;
+        head?: never;
+        /** Update a proxy rule */
+        patch: operations["ProxyController_update"];
+        trace?: never;
+    };
+    "/proxy/rules/{id}/toggle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Toggle rule active/inactive */
+        post: operations["ProxyController_toggle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/managed-services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List managed services */
+        get: operations["ManagedServicesController_findAll"];
+        put?: never;
+        /** Provision a managed service */
+        post: operations["ManagedServicesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/managed-services/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a managed service */
+        get: operations["ManagedServicesController_findOne"];
+        put?: never;
+        post?: never;
+        /** Remove a managed service */
+        delete: operations["ManagedServicesController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/volumes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List volumes */
+        get: operations["VolumesController_findAll"];
+        put?: never;
+        /** Create a persistent volume */
+        post: operations["VolumesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/volumes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a volume by ID */
+        get: operations["VolumesController_findOne"];
+        put?: never;
+        post?: never;
+        /** Delete a volume */
+        delete: operations["VolumesController_remove"];
+        options?: never;
+        head?: never;
+        /** Update a volume */
+        patch: operations["VolumesController_update"];
+        trace?: never;
+    };
+    "/ssl/certificates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SslController_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ssl/certificates/{domainName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["SslController_revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ssl/certificates/expiring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SslController_getExpiring"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/managed-databases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ManagedDatabasesController_provision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/managed-databases/{containerName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["ManagedDatabasesController_stop"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/managed-databases/{containerName}/backup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ManagedDatabasesController_createBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/managed-databases/{containerName}/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ManagedDatabasesController_listBackups"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1434,6 +2882,48 @@ export interface components {
             confirmNewPassword?: string;
         };
         LoginDto: Record<string, never>;
+        CreateBuildConfigDto: Record<string, never>;
+        CreateGitlabProviderDto: Record<string, never>;
+        UpdateGitlabProviderDto: Record<string, never>;
+        ConnectGitlabDto: {
+            /** @example https://gitlab.example.com */
+            gitlabUrl?: string;
+            /** @example glpat-xxxxxxxxxxxxxxxxxxxx */
+            gitlabToken?: string;
+            /**
+             * @description Provider GitLab global (Platform Config). Si fourni, URL/token peuvent être omis.
+             * @example b5073d11-f378-4c71-87da-093f3ecf20af
+             */
+            providerId?: string;
+            /**
+             * @description Repository path "group/project" (recommended, provider-agnostic) or numeric ID.
+             * @example group/project
+             */
+            gitlabId?: string;
+            /**
+             * @default main
+             * @example main
+             */
+            defaultBranch?: string;
+            /**
+             * @default REPO
+             * @enum {string}
+             */
+            sourceType?: "REPO" | "GROUP";
+            /**
+             * @description Group ID numerique ou chemin GitLab
+             * @example my-group/subgroup
+             */
+            gitlabGroupId?: string;
+            /** @example gitlab+deploy-token-12 */
+            deployTokenUsername?: string;
+            /** @example glrt-xxxxxxxxxxxxxxxxxxxx */
+            deployTokenValue?: string;
+            /** @example registry.gitlab.example.com */
+            registryUrl?: string;
+        };
+        TriggerPipelineDto: Record<string, never>;
+        UpdatePlatformConfigDto: Record<string, never>;
         CreateProjectDto: {
             /** @example App E-commerce */
             name: string;
@@ -1448,13 +2938,16 @@ export interface components {
             providerId?: string;
             /** @example glpat-xxxxxxxxxxxxxxxxxxxx */
             gitlabToken?: string;
-            /** @example 123 */
-            gitlabId?: number;
             /**
-             * @description Group ID GitLab
-             * @example 44
+             * @description Repository path "group/project" (recommended, provider-agnostic) or numeric ID.
+             * @example group/project
              */
-            gitlabGroupId?: number;
+            gitlabId?: string;
+            /**
+             * @description Group ID numerique ou chemin GitLab
+             * @example platform/apps
+             */
+            gitlabGroupId?: string;
             /**
              * @default REPO
              * @enum {string}
@@ -1471,6 +2964,45 @@ export interface components {
              * @example main
              */
             branch?: string;
+            /**
+             * @description Utilisateur DEVELOPER à assigner comme OWNER
+             * @example 0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd
+             */
+            ownerId?: string;
+        };
+        GitlabGroupImportRepositoryDto: {
+            /** @example 123456 */
+            id: number;
+            /** @example frontend */
+            name: string;
+            /** @example company/my-app/frontend */
+            pathWithNamespace: string;
+            /** @example main */
+            defaultBranch: string;
+            /** @example frontend */
+            serviceName?: string;
+            /** @enum {string} */
+            serviceType?: "FRONTEND" | "BACKEND" | "WORKER" | "DATABASE" | "STATIC" | "API" | "OTHER";
+        };
+        ImportGitlabGroupDto: {
+            /** @example my-app */
+            name: string;
+            /** @example Application imported from GitLab group */
+            description?: string;
+            /** @example provider-uuid */
+            providerId?: string;
+            /** @example https://gitlab.com */
+            gitlabUrl?: string;
+            /** @example glpat-xxxxxxxxxxxxxxxxxxxx */
+            gitlabToken?: string;
+            /** @example company/my-apps */
+            groupId: string;
+            /**
+             * @example ONE_APPLICATION
+             * @enum {string}
+             */
+            importMode: "ONE_APPLICATION" | "SEPARATE_PROJECTS";
+            repositories: components["schemas"]["GitlabGroupImportRepositoryDto"][];
             /**
              * @description Utilisateur DEVELOPER à assigner comme OWNER
              * @example 0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd
@@ -1498,160 +3030,280 @@ export interface components {
              */
             role?: "OWNER" | "DEVELOPER" | "VIEWER";
         };
-        ConnectGitlabDto: {
-            /** @example https://gitlab.example.com */
-            gitlabUrl?: string;
-            /** @example glpat-xxxxxxxxxxxxxxxxxxxx */
-            gitlabToken?: string;
+        CreateProjectServiceDto: {
+            /** @example frontend */
+            name: string;
             /**
-             * @description Provider GitLab global (Platform Config). Si fourni, URL/token peuvent être omis.
-             * @example b5073d11-f378-4c71-87da-093f3ecf20af
-             */
-            providerId?: string;
-            /** @example 123 */
-            gitlabId?: number;
-            /**
-             * @default main
-             * @example main
-             */
-            defaultBranch?: string;
-            /**
-             * @default REPO
+             * @example FRONTEND
              * @enum {string}
              */
-            sourceType?: "REPO" | "GROUP";
-            /**
-             * @description Group ID GitLab
-             * @example 44
-             */
-            gitlabGroupId?: number;
-            /** @example gitlab+deploy-token-12 */
-            deployTokenUsername?: string;
-            /** @example glrt-xxxxxxxxxxxxxxxxxxxx */
-            deployTokenValue?: string;
-            /** @example registry.gitlab.example.com */
-            registryUrl?: string;
-        };
-        TriggerPipelineDto: Record<string, never>;
-        UpdatePlatformConfigDto: Record<string, never>;
-        CreateGitlabProviderDto: Record<string, never>;
-        UpdateGitlabProviderDto: Record<string, never>;
-        CreateRegistryConfigDto: Record<string, never>;
-        UpdateRegistryConfigDto: Record<string, never>;
-        DeploymentResponseDto: {
-            id: string;
-            /** @enum {string} */
-            status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "CANCELED";
-            logs?: string | null;
-            dockerImage?: string | null;
-            branch: string;
-            environmentId: string;
-            serviceId?: string | null;
-            projectId: string;
-            userId: string;
-            /** Format: date-time */
-            startedAt?: string | null;
-            /** Format: date-time */
-            finishedAt?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-            /** GitLab pipeline ID as string */
-            gitlabPipelineId?: string | null;
-        };
-        DeploymentProjectSummaryDto: {
-            id: string;
-            name: string;
-            gitlabUrl?: string;
-        };
-        DeploymentServerSummaryDto: {
-            id: string;
-            name: string;
-            host: string;
-        };
-        DeploymentEnvironmentSummaryDto: {
-            id: string;
-            /** @enum {string} */
-            name: "STAGING" | "PRODUCTION";
-            server: components["schemas"]["DeploymentServerSummaryDto"];
-        };
-        DeploymentUserSummaryDto: {
-            id: string;
-            email: string;
-            fullName: string;
-        };
-        DeploymentServiceSummaryDto: {
-            id: string;
-            name: string;
-            type?: string | null;
-        };
-        DeploymentDetailedResponseDto: {
-            id: string;
-            /** @enum {string} */
-            status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "CANCELED";
-            logs?: string | null;
-            dockerImage?: string | null;
-            branch: string;
-            environmentId: string;
-            serviceId?: string | null;
-            projectId: string;
-            userId: string;
-            /** Format: date-time */
-            startedAt?: string | null;
-            /** Format: date-time */
-            finishedAt?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-            project: components["schemas"]["DeploymentProjectSummaryDto"];
-            environment: components["schemas"]["DeploymentEnvironmentSummaryDto"];
-            user: components["schemas"]["DeploymentUserSummaryDto"];
-            service?: components["schemas"]["DeploymentServiceSummaryDto"] | null;
-            /** Computed public URL for the deployed service */
-            publicUrl?: string | null;
-            /** GitLab pipeline ID as string */
-            gitlabPipelineId?: string | null;
-        };
-        PaginatedDeploymentsResponseDto: {
-            data: components["schemas"]["DeploymentDetailedResponseDto"][];
-            total: number;
-            page: number;
-            limit: number;
-            totalPages: number;
-        };
-        CreateDeploymentDto: {
-            /** @example project-uuid */
-            projectId: string;
-            /** @example environment-uuid */
-            environmentId: string;
+            type?: "FRONTEND" | "BACKEND" | "WORKER" | "DATABASE" | "STATIC" | "API" | "OTHER";
+            /** @example git-provider-uuid */
+            sourceProviderId?: string;
+            /** @example 123456 */
+            gitlabProjectId?: number;
+            /** @example company/my-app/frontend */
+            repositoryPath?: string;
             /** @example main */
-            branch?: string;
+            defaultBranch?: string;
             /**
-             * @description Repository GitLab ciblé (recommandé pour source GROUP, optionnel pour REPO)
-             * @example 42
+             * @example DOCKERFILE
+             * @enum {string}
              */
-            repoId?: number;
-        };
-        CreateConfigDto: {
-            /** @example DATABASE_URL */
-            key: string;
-            /** @example postgresql://user:pass@host:5432/db */
-            value: string;
+            buildPack?: "NIXPACKS" | "BUILDPACK" | "DOCKERFILE" | "DOCKER_COMPOSE" | "STATIC" | "NONE";
+            /** @example Dockerfile */
+            dockerfilePath?: string;
+            /** @example api */
+            composeServiceName?: string;
             /**
-             * @default false
+             * @example version: "3.8"
+             *     services:
+             *     ...
+             */
+            dockerComposeContent?: string;
+            /**
+             * @example {
+             *       "installCommand": "npm install"
+             *     }
+             */
+            nixpacksConfig?: Record<string, never>;
+            /**
+             * @example {
+             *       "outputFolder": "dist"
+             *     }
+             */
+            staticConfig?: Record<string, never>;
+        };
+        UpdateProjectServiceDto: {
+            /** @example frontend */
+            name?: string;
+            /**
+             * @example FRONTEND
+             * @enum {string}
+             */
+            type?: "FRONTEND" | "BACKEND" | "WORKER" | "DATABASE" | "STATIC" | "API" | "OTHER";
+            /** @example git-provider-uuid */
+            sourceProviderId?: string;
+            /** @example 123456 */
+            gitlabProjectId?: number;
+            /** @example company/my-app/frontend */
+            repositoryPath?: string;
+            /** @example main */
+            defaultBranch?: string;
+            /**
+             * @example DOCKERFILE
+             * @enum {string}
+             */
+            buildPack?: "NIXPACKS" | "BUILDPACK" | "DOCKERFILE" | "DOCKER_COMPOSE" | "STATIC" | "NONE";
+            /** @example Dockerfile */
+            dockerfilePath?: string;
+            /** @example api */
+            composeServiceName?: string;
+            /**
+             * @example version: "3.8"
+             *     services:
+             *     ...
+             */
+            dockerComposeContent?: string;
+            /**
+             * @example {
+             *       "installCommand": "npm install"
+             *     }
+             */
+            nixpacksConfig?: Record<string, never>;
+            /**
+             * @example {
+             *       "outputFolder": "dist"
+             *     }
+             */
+            staticConfig?: Record<string, never>;
+        };
+        CreateEnvironmentDto: {
+            /** @example staging */
+            name: string;
+            /** @example server-uuid */
+            serverId: string;
+            /** @example staging.example.com */
+            domain?: string;
+        };
+        UpdateEnvironmentDto: {
+            /** @example production */
+            name?: string;
+            /** @example server-uuid */
+            serverId?: string;
+            /** @example app.example.com */
+            domain?: string;
+            /** @example true */
+            isActive?: boolean;
+            /** @example true */
+            autoDeploy?: boolean;
+            /** @example main */
+            autoDeployBranch?: string;
+        };
+        UpsertEnvironmentServiceTargetItemDto: {
+            /** @example service-uuid */
+            serviceId: string;
+            /** @example server-uuid */
+            serverId: string;
+            /**
+             * @example DOCKER_COMPOSE
+             * @enum {string}
+             */
+            deploymentMode?: "DOCKER" | "DOCKER_COMPOSE";
+            /** @example 3000 */
+            port?: number;
+            /** @example api-staging.example.com */
+            domain?: string;
+            /** @example /health */
+            healthcheckPath?: string;
+            /** @example 1 */
+            replicas?: number;
+        };
+        UpsertEnvironmentServiceTargetsDto: {
+            targets: components["schemas"]["UpsertEnvironmentServiceTargetItemDto"][];
+        };
+        StartServerPreparationDto: {
+            /**
+             * @description Reusable preparation profile. Explicit options override profile defaults.
+             * @default BASIC
+             * @enum {string}
+             */
+            profile?: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
+            /** @example true */
+            systemUpdate?: boolean;
+            /** @example true */
+            docker?: boolean;
+            /** @example true */
+            dockerComposePlugin?: boolean;
+            /** @example true */
+            nginx?: boolean;
+            /** @example false */
+            nixpacks?: boolean;
+            /** @example false */
+            nodejs?: boolean;
+            /** @example false */
+            postgres?: boolean;
+            /**
+             * @deprecated
              * @example false
              */
-            isSecret?: boolean;
-        };
-        UpdateConfigDto: {
-            /** @example REDIS_URL */
-            key?: string;
-            /** @example redis://localhost:6379 */
-            value?: string;
+            postgresql?: boolean;
+            /** @example false */
+            redis?: boolean;
+            /** @example false */
+            gitlabRunner?: boolean;
             /** @example true */
-            isSecret?: boolean;
+            firewall?: boolean;
+            /** @example true */
+            fail2ban?: boolean;
+            /** @example false */
+            certbot?: boolean;
+            /**
+             * @deprecated
+             * @example false
+             */
+            ssl?: boolean;
+            /** @example true */
+            swap?: boolean;
+            /** @example false */
+            monitoring?: boolean;
+            /** @example false */
+            backup?: boolean;
+            /** @example true */
+            logrotate?: boolean;
+            /** @example true */
+            securityHardening?: boolean;
+            /** @example true */
+            autoUpdates?: boolean;
+            /**
+             * @description Executor mode for GitLab Runner. docker implies Docker dependency.
+             * @example docker
+             */
+            gitlabRunnerExecutor?: string;
+            /**
+             * @description Option keys that should be forced-reinstalled even if the tool is already detected as installed. By default, roles for already-installed tools still run (idempotent), but this flag signals explicit user intent to reinstall/reconfigure.
+             * @example [
+             *       "docker",
+             *       "nginx"
+             *     ]
+             */
+            reinstallOptions?: string[];
+        };
+        ServerPreparationTaskDto: {
+            id: string;
+            preparationId: string;
+            roleKey: string;
+            taskName: string;
+            orderIndex: number;
+            /** @enum {string} */
+            status: "PENDING" | "SKIPPED" | "RUNNING" | "OK" | "CHANGED" | "FAILED" | "TIMEOUT";
+            /** Format: date-time */
+            startedAt?: Record<string, never> | null;
+            /** Format: date-time */
+            finishedAt?: Record<string, never> | null;
+            message?: Record<string, never> | null;
+        };
+        ServerPreparationDto: {
+            id: string;
+            serverId: string;
+            /** @enum {string} */
+            status: "QUEUED" | "RESOLVING_OPTIONS" | "WAITING_FOR_LOCK" | "RUNNING" | "SUCCEEDED" | "PARTIAL" | "FAILED" | "TIMEOUT" | "CANCELED";
+            /** @enum {string} */
+            profile: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
+            triggerSource: string;
+            requestedById?: Record<string, never> | null;
+            /** Format: date-time */
+            startedAt?: Record<string, never> | null;
+            /** Format: date-time */
+            finishedAt?: Record<string, never> | null;
+            summary?: Record<string, never> | null;
+            errorMessage?: Record<string, never> | null;
+            retryOfPreparationId?: Record<string, never> | null;
+            tasks: components["schemas"]["ServerPreparationTaskDto"][];
+        };
+        ServerPreparationReadinessChecksDto: {
+            serverActive: boolean;
+            serverNotDisabled: boolean;
+            sshValidated: boolean;
+            sshReachable: boolean;
+            authSucceeded: boolean;
+            sudoAvailable: boolean;
+            noActivePreparation: boolean;
+        };
+        ServerPreparationReadinessDto: {
+            serverId: string;
+            isReady: boolean;
+            checks: components["schemas"]["ServerPreparationReadinessChecksDto"];
+            blockingReasons: string[];
+            /** Format: date-time */
+            latestValidationAt?: string | null;
+        };
+        ServerPreparationLogDto: {
+            id: string;
+            preparationId: string;
+            /** @enum {string} */
+            level: "INFO" | "WARNING" | "ERROR";
+            source: string;
+            message: string;
+            lineNumber: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RetryServerPreparationDto: {
+            /** @example Retry after firewall package mirror outage */
+            reason?: string;
+        };
+        ServerActiveJobDto: {
+            id: string;
+            /** @enum {string} */
+            type: "VERIFY" | "INSTALL_TOOLS" | "PREPARE_SERVER" | "REGISTER_RUNNER";
+            /** @enum {string} */
+            status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "TIMEOUT" | "BLOCKED";
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            error?: string | null;
         };
         ServerResponseDto: {
             id: string;
@@ -1681,10 +3333,14 @@ export interface components {
             lastPreparedAt?: string | null;
             hasDocker: boolean;
             hasRunner: boolean;
+            /** @description Infrastructure role: NONE | STAGING | PRODUCTION | DATABASE | RUNNER | MONITORING */
+            infraRole?: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description Job actuellement actif (RUNNING/PENDING/BLOCKED) verrouillant ce serveur, sinon null. */
+            activeJob?: components["schemas"]["ServerActiveJobDto"] | null;
         };
         CreateServerResponseDto: {
             id: string;
@@ -1714,10 +3370,14 @@ export interface components {
             lastPreparedAt?: string | null;
             hasDocker: boolean;
             hasRunner: boolean;
+            /** @description Infrastructure role: NONE | STAGING | PRODUCTION | DATABASE | RUNNER | MONITORING */
+            infraRole?: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description Job actuellement actif (RUNNING/PENDING/BLOCKED) verrouillant ce serveur, sinon null. */
+            activeJob?: components["schemas"]["ServerActiveJobDto"] | null;
             agentBootstrapToken?: string;
         };
         PaginatedServersResponseDto: {
@@ -1827,95 +3487,20 @@ export interface components {
             /** @example true */
             hasRunner?: boolean;
         };
+        InstallKeyDto: {
+            /** @example temporary-ssh-password */
+            password: string;
+        };
+        RegisterRunnerDto: Record<string, never>;
+        SetServerRoleDto: Record<string, never>;
+        UpsertDockerConnectionDto: Record<string, never>;
+        UpdateNotificationSettingsDto: Record<string, never>;
         ValidateServerSshDto: {
             /**
              * @description When true, refresh host fingerprint metadata if the control node can read it.
              * @example true
              */
             refreshFingerprint?: boolean;
-        };
-        DetectServerDto: {
-            /** @example true */
-            refreshTools?: boolean;
-        };
-        InstallToolsDto: {
-            /** @example true */
-            docker?: boolean;
-            /**
-             * @deprecated
-             * @description Ignored. Ansible is never installed on target VPS; it runs only from the control node.
-             * @example false
-             */
-            ansible?: boolean;
-            /** @example true */
-            runner?: boolean;
-        };
-        PrepareServerDto: {
-            /**
-             * @description Reusable preparation profile. Explicit options override profile defaults.
-             * @default BASIC
-             * @enum {string}
-             */
-            profile?: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
-            /** @example true */
-            systemUpdate?: boolean;
-            /** @example true */
-            docker?: boolean;
-            /** @example true */
-            dockerComposePlugin?: boolean;
-            /** @example true */
-            nginx?: boolean;
-            /** @example false */
-            nodejs?: boolean;
-            /** @example false */
-            postgres?: boolean;
-            /**
-             * @deprecated
-             * @example false
-             */
-            postgresql?: boolean;
-            /** @example false */
-            redis?: boolean;
-            /** @example false */
-            gitlabRunner?: boolean;
-            /** @example true */
-            firewall?: boolean;
-            /** @example true */
-            fail2ban?: boolean;
-            /** @example false */
-            certbot?: boolean;
-            /**
-             * @deprecated
-             * @example false
-             */
-            ssl?: boolean;
-            /** @example true */
-            swap?: boolean;
-            /** @example false */
-            monitoring?: boolean;
-            /** @example false */
-            backup?: boolean;
-            /** @example true */
-            logrotate?: boolean;
-            /** @example true */
-            securityHardening?: boolean;
-            /** @example true */
-            autoUpdates?: boolean;
-            /**
-             * @description Executor mode for GitLab Runner. docker implies Docker dependency.
-             * @example docker
-             */
-            gitlabRunnerExecutor?: string;
-        };
-        RegisterRunnerDto: {
-            /** @example https://gitlab.example.com */
-            gitlabUrl: string;
-            /** @example GR1345xyz */
-            token: string;
-        };
-        InstallKeyDto: {
-            /** @example MyTempPassword123! */
-            password: string;
         };
         ServerLogDto: {
             id: string;
@@ -1940,6 +3525,25 @@ export interface components {
             hasRunner: boolean;
             recentLogs: components["schemas"]["ServerLogDto"][];
         };
+        ServerValidationResultDto: {
+            id: string;
+            serverId: string;
+            sshReachable: boolean;
+            authSucceeded: boolean;
+            sudoAvailable: boolean;
+            fingerprint?: Record<string, never> | null;
+            osName?: Record<string, never> | null;
+            osVersion?: Record<string, never> | null;
+            architecture?: Record<string, never> | null;
+            pythonAvailable: boolean;
+            validationMessage?: Record<string, never> | null;
+            /** Format: date-time */
+            validatedAt?: Record<string, never> | null;
+        };
+        DetectServerDto: {
+            /** @example true */
+            refreshTools?: boolean;
+        };
         ServerCapabilityDto: {
             id: string;
             serverId: string;
@@ -1961,21 +3565,6 @@ export interface components {
             /** Format: date-time */
             installedAt?: Record<string, never> | null;
         };
-        ServerValidationResultDto: {
-            id: string;
-            serverId: string;
-            sshReachable: boolean;
-            authSucceeded: boolean;
-            sudoAvailable: boolean;
-            fingerprint?: Record<string, never> | null;
-            osName?: Record<string, never> | null;
-            osVersion?: Record<string, never> | null;
-            architecture?: Record<string, never> | null;
-            pythonAvailable: boolean;
-            validationMessage?: Record<string, never> | null;
-            /** Format: date-time */
-            validatedAt?: Record<string, never> | null;
-        };
         ServerAuditEventDto: {
             id: string;
             serverId: string;
@@ -1986,167 +3575,353 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
-        StartServerPreparationDto: {
+        CreateConfigDto: {
+            /** @example DATABASE_URL */
+            key: string;
+            /** @example postgresql://user:pass@host:5432/db */
+            value: string;
             /**
-             * @description Reusable preparation profile. Explicit options override profile defaults.
-             * @default BASIC
-             * @enum {string}
-             */
-            profile?: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
-            /** @example true */
-            systemUpdate?: boolean;
-            /** @example true */
-            docker?: boolean;
-            /** @example true */
-            dockerComposePlugin?: boolean;
-            /** @example true */
-            nginx?: boolean;
-            /** @example false */
-            nodejs?: boolean;
-            /** @example false */
-            postgres?: boolean;
-            /**
-             * @deprecated
+             * @default false
              * @example false
              */
-            postgresql?: boolean;
-            /** @example false */
-            redis?: boolean;
-            /** @example false */
-            gitlabRunner?: boolean;
+            isSecret?: boolean;
+        };
+        UpdateConfigDto: {
+            /** @example REDIS_URL */
+            key?: string;
+            /** @example redis://localhost:6379 */
+            value?: string;
             /** @example true */
-            firewall?: boolean;
-            /** @example true */
-            fail2ban?: boolean;
-            /** @example false */
-            certbot?: boolean;
+            isSecret?: boolean;
+        };
+        UpsertEnvConfigDto: {
+            /** @example DATABASE_URL */
+            key: string;
+            /** @example postgresql://user:pass@prod-host:5432/db */
+            value: string;
             /**
-             * @deprecated
+             * @default false
              * @example false
              */
-            ssl?: boolean;
-            /** @example true */
-            swap?: boolean;
-            /** @example false */
-            monitoring?: boolean;
-            /** @example false */
-            backup?: boolean;
-            /** @example true */
-            logrotate?: boolean;
-            /** @example true */
-            securityHardening?: boolean;
-            /** @example true */
-            autoUpdates?: boolean;
-            /**
-             * @description Executor mode for GitLab Runner. docker implies Docker dependency.
-             * @example docker
-             */
-            gitlabRunnerExecutor?: string;
+            isSecret?: boolean;
         };
-        ServerPreparationTaskDto: {
+        DeploymentResponseDto: {
             id: string;
-            preparationId: string;
-            roleKey: string;
-            taskName: string;
-            orderIndex: number;
             /** @enum {string} */
-            status: "PENDING" | "SKIPPED" | "RUNNING" | "OK" | "CHANGED" | "FAILED" | "TIMEOUT";
+            status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "CANCELED";
+            logs?: string | null;
+            dockerImage?: string | null;
+            /** @description Immutable image digest (sha256:…) — the rollback target. */
+            imageSha?: string | null;
+            /** @description Immutable Release: frozen desired state captured at deploy time (source, build). */
+            specSnapshot?: Record<string, never> | null;
+            /** @description Concrete refs this deployment resolved to (server, environment). */
+            resolvedRefs?: Record<string, never> | null;
+            /** @description Structured reconciliation status (Progressing/Ready/Degraded with reason+message). */
+            conditions?: Record<string, never>[];
+            observedGeneration?: number | null;
+            branch: string;
+            environmentId: string;
+            serviceId?: string | null;
+            projectId: string;
+            userId: string;
             /** Format: date-time */
-            startedAt?: Record<string, never> | null;
+            startedAt?: string | null;
             /** Format: date-time */
-            finishedAt?: Record<string, never> | null;
-            message?: Record<string, never> | null;
-        };
-        ServerPreparationDto: {
-            id: string;
-            serverId: string;
-            /** @enum {string} */
-            status: "QUEUED" | "RESOLVING_OPTIONS" | "WAITING_FOR_LOCK" | "RUNNING" | "SUCCEEDED" | "PARTIAL" | "FAILED" | "TIMEOUT" | "CANCELED";
-            /** @enum {string} */
-            profile: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
-            triggerSource: string;
-            requestedById?: Record<string, never> | null;
-            /** Format: date-time */
-            startedAt?: Record<string, never> | null;
-            /** Format: date-time */
-            finishedAt?: Record<string, never> | null;
-            summary?: Record<string, never> | null;
-            errorMessage?: Record<string, never> | null;
-            retryOfPreparationId?: Record<string, never> | null;
-            tasks: components["schemas"]["ServerPreparationTaskDto"][];
-        };
-        ServerPreparationReadinessChecksDto: {
-            serverActive: boolean;
-            serverNotDisabled: boolean;
-            sshValidated: boolean;
-            sshReachable: boolean;
-            authSucceeded: boolean;
-            sudoAvailable: boolean;
-            noActivePreparation: boolean;
-        };
-        ServerPreparationReadinessDto: {
-            serverId: string;
-            isReady: boolean;
-            checks: components["schemas"]["ServerPreparationReadinessChecksDto"];
-            blockingReasons: string[];
-            /** Format: date-time */
-            latestValidationAt?: string | null;
-        };
-        VerifyServerResponseDto: {
-            serverId: string;
-            /** @example Verification started, check status endpoint for updates */
-            message: string;
-            /** @enum {string} */
-            status: "NEW" | "SSH_PENDING" | "SSH_VALIDATED" | "VALIDATION_FAILED" | "INFO_DETECTED" | "PREPARATION_PENDING" | "PREPARING" | "PREPARED" | "PARTIALLY_PREPARED" | "PREPARATION_FAILED" | "UNREACHABLE" | "DISABLED";
-        };
-        ServerPreparationLogDto: {
-            id: string;
-            preparationId: string;
-            /** @enum {string} */
-            level: "INFO" | "WARNING" | "ERROR";
-            source: string;
-            message: string;
-            lineNumber: number;
+            finishedAt?: string | null;
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** @description External pipeline ID (GitLab or GitHub) */
+            externalPipelineId?: string | null;
         };
-        RetryServerPreparationDto: {
-            /** @example Retry after firewall package mirror outage */
-            reason?: string;
+        DeploymentProjectSummaryDto: {
+            id: string;
+            name: string;
+            repoUrl?: string;
         };
-        CreateEnvironmentDto: {
-            /**
-             * @example STAGING
-             * @enum {string}
-             */
-            name: "STAGING" | "PRODUCTION";
-            /** @example server-uuid */
-            serverId: string;
-            /** @example staging.example.com */
-            domain?: string;
+        DeploymentServerSummaryDto: {
+            id: string;
+            name: string;
+            host: string;
         };
-        UpdateEnvironmentDto: {
-            /**
-             * @example PRODUCTION
-             * @enum {string}
-             */
-            name?: "STAGING" | "PRODUCTION";
-            /** @example server-uuid */
-            serverId?: string;
-            /** @example app.example.com */
-            domain?: string;
-            /** @example true */
-            isActive?: boolean;
-            /** @example true */
-            autoDeploy?: boolean;
+        DeploymentServiceTargetSummaryDto: {
+            id: string;
+            serviceId?: string | null;
+            port?: number | null;
+            domain?: string | null;
+            server: components["schemas"]["DeploymentServerSummaryDto"];
+        };
+        DeploymentEnvironmentSummaryDto: {
+            id: string;
+            /** @example production */
+            name: string;
+            server: components["schemas"]["DeploymentServerSummaryDto"];
+            serviceTargets?: components["schemas"]["DeploymentServiceTargetSummaryDto"][];
+        };
+        DeploymentUserSummaryDto: {
+            id: string;
+            email: string;
+            fullName: string;
+        };
+        DeploymentServiceSummaryDto: {
+            id: string;
+            name: string;
+            type?: string | null;
+        };
+        DeploymentDetailedResponseDto: {
+            id: string;
+            /** @enum {string} */
+            status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "CANCELED";
+            logs?: string | null;
+            dockerImage?: string | null;
+            /** @description Immutable image digest (sha256:…) — the rollback target. */
+            imageSha?: string | null;
+            /** @description Immutable Release: frozen desired state captured at deploy time (source, build). */
+            specSnapshot?: Record<string, never> | null;
+            /** @description Concrete refs this deployment resolved to (server, environment). */
+            resolvedRefs?: Record<string, never> | null;
+            /** @description Structured reconciliation status (Progressing/Ready/Degraded with reason+message). */
+            conditions?: Record<string, never>[];
+            observedGeneration?: number | null;
+            branch: string;
+            environmentId: string;
+            serviceId?: string | null;
+            projectId: string;
+            userId: string;
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** Format: date-time */
+            finishedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** @description External pipeline ID (GitLab or GitHub) */
+            externalPipelineId?: string | null;
+            project: components["schemas"]["DeploymentProjectSummaryDto"];
+            environment: components["schemas"]["DeploymentEnvironmentSummaryDto"];
+            user: components["schemas"]["DeploymentUserSummaryDto"];
+            service?: components["schemas"]["DeploymentServiceSummaryDto"] | null;
+            /** @description Computed public URL for the deployed service */
+            publicUrl?: string | null;
+        };
+        PaginatedDeploymentsResponseDto: {
+            data: components["schemas"]["DeploymentDetailedResponseDto"][];
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+        };
+        ValidateDeploymentDto: {
+            /** @example project-uuid */
+            projectId: string;
+            /** @example environment-uuid */
+            environmentId: string;
+            /** @enum {string} */
+            buildSource?: "DOCKERFILE_REGISTRY" | "DOCKERFILE_LOCAL" | "NIXPACKS_REGISTRY" | "NIXPACKS_LOCAL" | "DOCKER_COMPOSE" | "STATIC" | "EXTERNAL_IMAGE";
+        };
+        ValidationResultDto: {
+            ready: boolean;
+            missing: {
+                binary?: string;
+                label?: string;
+                role?: string;
+            }[];
+            required: {
+                binary?: string;
+                label?: string;
+                role?: string;
+            }[];
+            serverName: string;
+            buildSource: string;
+        };
+        CreateDeploymentDto: {
+            /** @example project-uuid */
+            projectId: string;
+            /** @example service-uuid */
+            serviceId?: string;
+            /** @example environment-uuid */
+            environmentId: string;
             /** @example main */
-            autoDeployBranch?: string;
+            branch?: string;
+            /**
+             * @description Repository GitLab ciblé (recommandé pour source GROUP, optionnel pour REPO)
+             * @example 42
+             */
+            repoId?: number;
+            /**
+             * @description Strategy de déploiement: standard (simple restart) ou blue-green (zero-downtime)
+             * @example standard
+             * @enum {string}
+             */
+            strategy?: "standard" | "blue-green";
+            /**
+             * @description Source de build — un seul champ remplace buildPack + buildMode :
+             *       DOCKERFILE_REGISTRY — Dockerfile buildé par CI GitLab/GitHub → registry → pull sur VPS
+             *       DOCKERFILE_LOCAL    — Dockerfile buildé directement sur le VPS (pas de registry)
+             *       NIXPACKS_REGISTRY   — Nixpacks buildé par CI → registry → pull sur VPS
+             *       NIXPACKS_LOCAL      — Nixpacks buildé directement sur le VPS
+             *       DOCKER_COMPOSE      — docker-compose.yml exécuté sur le VPS
+             *       STATIC              — Site statique servi par Nginx sur le VPS
+             *       EXTERNAL_IMAGE      — Image Docker externe fournie via overrideImage
+             * @example DOCKERFILE_LOCAL
+             * @enum {string}
+             */
+            buildSource?: "DOCKERFILE_REGISTRY" | "DOCKERFILE_LOCAL" | "NIXPACKS_REGISTRY" | "NIXPACKS_LOCAL" | "DOCKER_COMPOSE" | "STATIC" | "EXTERNAL_IMAGE";
+            /**
+             * @description Image Docker externe (obligatoire si buildSource=EXTERNAL_IMAGE)
+             * @example docker.io/myorg/myapp:latest
+             */
+            overrideImage?: string;
+            /**
+             * @description Nixpacks configuration: build env, runtime env, port, etc.
+             * @example {
+             *       "buildEnv": {
+             *         "NODE_ENV": "production"
+             *       },
+             *       "runtimeEnv": {
+             *         "PORT": "3000"
+             *       },
+             *       "port": 3000
+             *     }
+             */
+            nixpacksConfig?: Record<string, never>;
+            /**
+             * @description Static site configuration: source dir, build cmd, SPA mode, etc.
+             * @example {
+             *       "sourceDir": "dist",
+             *       "buildCommand": "npm run build",
+             *       "spaFallback": true
+             *     }
+             */
+            staticConfig?: Record<string, never>;
         };
         CreateTeamDto: Record<string, never>;
         UpdateTeamDto: Record<string, never>;
         AddTeamMemberDto: Record<string, never>;
-        CreateBuildConfigDto: Record<string, never>;
         CreateSshKeyDto: Record<string, never>;
+        CreateAutomationRunDto: Record<string, never>;
+        InstallMonitoringDto: Record<string, never>;
+        CreateDnsProviderDto: {
+            /** @example Manual DNS */
+            name: string;
+            /**
+             * @example MANUAL
+             * @enum {string}
+             */
+            type: "CLOUDFLARE" | "DIGITALOCEAN" | "OVH" | "MANUAL";
+            /** @example cloudflare-api-token */
+            apiToken?: string;
+            /** @example account-id */
+            accountId?: string;
+            /** @example zone-id */
+            zoneId?: string;
+        };
+        CreateDomainDto: {
+            /** @example example.com */
+            name: string;
+            /** @example dns-provider-uuid */
+            providerId?: string;
+            /** @example project-uuid */
+            projectId?: string;
+        };
+        UpsertDnsRecordDto: {
+            /**
+             * @example A
+             * @enum {string}
+             */
+            type: "A" | "CNAME" | "TXT";
+            /** @example api-staging */
+            name: string;
+            /** @example 203.0.113.10 */
+            value: string;
+            /** @example 300 */
+            ttl?: number;
+            /** @example false */
+            proxied?: boolean;
+            /** @example service-uuid */
+            serviceId?: string;
+            /** @example environment-uuid */
+            environmentId?: string;
+        };
+        CreateRegistryConfigDto: Record<string, never>;
+        UpdateRegistryConfigDto: Record<string, never>;
+        CreateProxyRuleDto: {
+            /** @example app.example.com */
+            domain: string;
+            /** @example 3000 */
+            targetPort: number;
+            /** @example srv_xxx */
+            serverId: string;
+            /**
+             * @default true
+             * @example true
+             */
+            sslEnabled?: boolean;
+            /**
+             * @default LETS_ENCRYPT
+             * @enum {string}
+             */
+            certType?: "LETS_ENCRYPT" | "CUSTOM" | "SELF_SIGNED" | "NONE";
+            /** @example svc_xxx */
+            serviceId?: string;
+            /** @example env_xxx */
+            environmentId?: string;
+        };
+        UpdateProxyRuleDto: {
+            /** @example 3001 */
+            targetPort?: number;
+            /** @example false */
+            sslEnabled?: boolean;
+            /** @enum {string} */
+            certType?: "LETS_ENCRYPT" | "CUSTOM" | "SELF_SIGNED" | "NONE";
+            /** @example true */
+            isActive?: boolean;
+        };
+        CreateManagedServiceDto: {
+            /** @example prod-postgres */
+            name: string;
+            /**
+             * @example POSTGRES
+             * @enum {string}
+             */
+            type: "POSTGRES" | "MYSQL" | "REDIS" | "MONGODB" | "RABBITMQ";
+            /** @example 15 */
+            version?: string;
+            /** @example 5432 */
+            port: number;
+            /** @example proj_xxx */
+            projectId: string;
+            /** @example env_xxx */
+            environmentId: string;
+            /** @example srv_xxx */
+            serverId: string;
+        };
+        CreateVolumeDto: {
+            /** @example postgres-data */
+            name: string;
+            /** @example srv_xxx */
+            serverId: string;
+            /** @example /var/lib/postgresql/data */
+            mountPath?: string;
+            /**
+             * @description Taille en Go
+             * @example 10
+             */
+            sizeGb?: number;
+            /** @example svc_xxx */
+            serviceId?: string;
+            /** @example ms_xxx */
+            managedServiceId?: string;
+        };
+        UpdateVolumeDto: {
+            /** @example /data */
+            mountPath?: string;
+            /** @example 20 */
+            sizeGb?: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -2492,6 +4267,38 @@ export interface operations {
             };
         };
     };
+    AuthController_getWsToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Jeton WebSocket généré */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Non authentifié */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rôle insuffisant */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AuthController_getMe: {
         parameters: {
             query?: never;
@@ -2549,7 +4356,7 @@ export interface operations {
             };
         };
     };
-    ProjectsController_findAll: {
+    AuditController_findAll: {
         parameters: {
             query?: {
                 page?: number;
@@ -2561,7 +4368,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Liste des projets */
+            /** @description Logs d’audit paginés */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2575,9 +4382,279 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Accès réservé aux admins */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
-    ProjectsController_create: {
+    BuildController_prepare: {
+        parameters: {
+            query: {
+                serviceId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBuildConfigDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_detect: {
+        parameters: {
+            query: {
+                serviceId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_updateConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBuildConfigDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_getTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_pushFiles: {
+        parameters: {
+            query: {
+                serviceId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_prepareAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_reconcileWebhooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_getBuildStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_extractComposeFile: {
+        parameters: {
+            query: {
+                serviceId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_getAvailableEngines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_listBuilds: {
+        parameters: {
+            query: {
+                status: string;
+                branch: string;
+                limit: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BuildController_getBuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                buildId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitProvidersController_listGitlabProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitProvidersController_createGitlabProvider: {
         parameters: {
             query?: never;
             header?: never;
@@ -2586,75 +4663,19 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateProjectDto"];
+                "application/json": components["schemas"]["CreateGitlabProviderDto"];
             };
         };
         responses: {
-            /** @description Projet créé avec succès */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Action réservée aux administrateurs */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
         };
     };
-    ProjectsController_findOne: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Détail du projet récupéré */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès non autorisé au projet */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Projet non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ProjectsController_update: {
+    GitProvidersController_updateGitlabProvider: {
         parameters: {
             query?: never;
             header?: never;
@@ -2665,33 +4686,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateProjectDto"];
+                "application/json": components["schemas"]["UpdateGitlabProviderDto"];
             };
         };
         responses: {
-            /** @description Projet mis à jour */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Action non autorisée */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Projet non trouvé */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2699,7 +4698,7 @@ export interface operations {
             };
         };
     };
-    ProjectsController_remove: {
+    GitProvidersController_deleteGitlabProvider: {
         parameters: {
             query?: never;
             header?: never;
@@ -2710,29 +4709,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Projet supprimé */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Action non autorisée */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Projet non trouvé */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2740,7 +4717,7 @@ export interface operations {
             };
         };
     };
-    ProjectsController_getMembers: {
+    GitProvidersController_setDefaultGitlabProvider: {
         parameters: {
             query?: never;
             header?: never;
@@ -2751,29 +4728,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Liste des membres du projet */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès non autorisé au projet */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Projet non trouvé */
-            404: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2781,7 +4736,117 @@ export interface operations {
             };
         };
     };
-    ProjectsController_addMember: {
+    GitProvidersController_testGitlabProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitProvidersController_startGitlabOAuthForProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitProvidersController_testGitlab: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitProvidersController_startGitlabOAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitProvidersController_listGithubProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitProvidersController_createGithubProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGitlabProviderDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitProvidersController_updateGithubProvider: {
         parameters: {
             query?: never;
             header?: never;
@@ -2792,40 +4857,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AddMemberDto"];
+                "application/json": components["schemas"]["UpdateGitlabProviderDto"];
             };
         };
         responses: {
-            /** @description Membre ajouté au projet */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Action non autorisée */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Projet ou utilisateur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Utilisateur déjà membre */
-            409: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2833,41 +4869,75 @@ export interface operations {
             };
         };
     };
-    ProjectsController_removeMember: {
+    GitProvidersController_deleteGithubProvider: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
-                userId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Membre retiré du projet */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
-            401: {
+        };
+    };
+    GitProvidersController_setDefaultGithubProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Action non autorisée */
-            403: {
+        };
+    };
+    GitProvidersController_testGithubProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet ou membre non trouvé */
-            404: {
+        };
+    };
+    GitProvidersController_listGithubRepos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2893,6 +4963,48 @@ export interface operations {
             };
             /** @description Token JWT invalide ou expiré */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitlabController_listGroupRepositories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Repositories du groupe GitLab */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitlabController_listProjectBranchesByProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+                gitlabProjectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Branches du repository GitLab */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3186,7 +5298,117 @@ export interface operations {
             };
         };
     };
-    PlatformConfigController_getAll: {
+    GithubController_handleWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Event processed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid HMAC signature */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GithubController_handleLegacyWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Event processed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid HMAC signature */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GithubController_listRepos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GithubController_listBranches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                repoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GithubController_listPipelines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformController_getAll: {
         parameters: {
             query?: never;
             header?: never;
@@ -3204,7 +5426,7 @@ export interface operations {
             };
         };
     };
-    PlatformConfigController_setConfig: {
+    PlatformController_setConfig: {
         parameters: {
             query?: never;
             header?: never;
@@ -3228,68 +5450,7 @@ export interface operations {
             };
         };
     };
-    PlatformConfigController_listGitlabProviders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_createGitlabProvider: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateGitlabProviderDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_updateGitlabProvider: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateGitlabProviderDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_deleteGitlabProvider: {
+    WebhooksController_listEndpoints: {
         parameters: {
             query?: never;
             header?: never;
@@ -3308,1255 +5469,10 @@ export interface operations {
             };
         };
     };
-    PlatformConfigController_setDefaultGitlabProvider: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_testGitlabProvider: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_startGitlabOAuthForProvider: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_testGitlab: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_startGitlabOAuth: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_listRegistries: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_createRegistry: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateRegistryConfigDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_updateRegistry: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateRegistryConfigDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_deleteRegistry: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_testRegistry: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PlatformConfigController_setDefaultRegistry: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    DeploymentsController_findAll: {
-        parameters: {
-            query?: {
-                page?: number;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Liste des déploiements */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeploymentDetailedResponseDto"][] | components["schemas"]["PaginatedDeploymentsResponseDto"];
-                };
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    DeploymentsController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDeploymentDto"];
-            };
-        };
-        responses: {
-            /** @description Déploiement créé */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeploymentResponseDto"];
-                };
-            };
-            /** @description Préconditions de déploiement invalides */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès non autorisé au projet */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    DeploymentsController_findByProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Historique des déploiements du projet */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeploymentDetailedResponseDto"][];
-                };
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès non autorisé au projet */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Projet non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    DeploymentsController_findOne: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Détail du déploiement */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeploymentDetailedResponseDto"];
-                };
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès non autorisé */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Déploiement non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    DeploymentsController_cancel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Déploiement annulé */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeploymentResponseDto"];
-                };
-            };
-            /** @description État du déploiement non annulable */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès non autorisé */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Déploiement non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    DeploymentsController_rollback: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Rollback lancé */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeploymentResponseDto"];
-                };
-            };
-            /** @description Rollback impossible */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès non autorisé */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Déploiement non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ConfigsController_findAll: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Liste des configurations */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès non autorisé */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Projet non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ConfigsController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateConfigDto"];
-            };
-        };
-        responses: {
-            /** @description Configuration créée */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Action non autorisée */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Projet non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ConfigsController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                configId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateConfigDto"];
-            };
-        };
-        responses: {
-            /** @description Configuration mise à jour */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Action non autorisée */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Projet ou configuration non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ConfigsController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                configId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Configuration supprimée */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Action non autorisée */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Projet ou configuration non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_findAll: {
-        parameters: {
-            query?: {
-                page?: number;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Liste des serveurs */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"][] | components["schemas"]["PaginatedServersResponseDto"];
-                };
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateServerDto"];
-            };
-        };
-        responses: {
-            /** @description Serveur créé avec succès */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CreateServerResponseDto"];
-                };
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_findOne: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Serveur trouvé */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"];
-                };
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateServerDto"];
-            };
-        };
-        responses: {
-            /** @description Serveur mis à jour */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"];
-                };
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Serveur supprimé */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeleteServerResponseDto"];
-                };
-            };
-            /** @description Serveur utilisé par un environnement actif */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateServerDto"];
-            };
-        };
-        responses: {
-            /** @description Serveur mis à jour */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"];
-                };
-            };
-        };
-    };
-    ServersController_verify: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Vérification serveur terminée */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"];
-                };
-            };
-            /** @description Connexion SSH ou vérification échouée */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_validateSsh: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ValidateServerSshDto"];
-            };
-        };
-        responses: {
-            /** @description Validation SSH démarrée */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"];
-                };
-            };
-        };
-    };
-    ServersController_detect: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DetectServerDto"];
-            };
-        };
-        responses: {
-            /** @description Détection terminée */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"];
-                };
-            };
-        };
-    };
-    ServersController_install: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InstallToolsDto"];
-            };
-        };
-        responses: {
-            /** @description Installation terminée */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"];
-                };
-            };
-            /** @description Installation distante échouée */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_prepare: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PrepareServerDto"];
-            };
-        };
-        responses: {
-            /** @description Préparation du serveur démarrée */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"];
-                };
-            };
-            /** @description Préparation échouée */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_registerRunner: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterRunnerDto"];
-            };
-        };
-        responses: {
-            /** @description Runner enregistré */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"];
-                };
-            };
-            /** @description Échec enregistrement runner */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_installKey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InstallKeyDto"];
-            };
-        };
-        responses: {
-            /** @description Clé SSH installée et validée */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InstallKeyResponseDto"];
-                };
-            };
-            /** @description Installation de clé impossible pour ce serveur */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_getVerificationStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Statut de vérification du serveur */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerVerificationStatusDto"];
-                };
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ServersController_getVerificationLogs: {
+    WebhooksController_listEvents: {
         parameters: {
             query: {
+                status: string;
                 limit: string;
             };
             header?: never;
@@ -4567,31 +5483,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Logs de vérification du serveur */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerLogDto"][];
-                };
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4599,193 +5491,18 @@ export interface operations {
             };
         };
     };
-    ServersController_getCapabilities: {
+    WebhooksController_getEvent: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                eventId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerCapabilityDto"][];
-                };
-            };
-        };
-    };
-    ServersController_getInstalledTools: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerInstalledToolDto"][];
-                };
-            };
-        };
-    };
-    ServersController_getValidationResults: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerValidationResultDto"][];
-                };
-            };
-        };
-    };
-    ServersController_getAuditEvents: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerAuditEventDto"][];
-                };
-            };
-        };
-    };
-    ServersController_listPreparations: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerPreparationDto"][];
-                };
-            };
-        };
-    };
-    ServersController_startPreparation: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StartServerPreparationDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerPreparationDto"];
-                };
-            };
-        };
-    };
-    ServersController_getPreparationReadiness: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerPreparationReadinessDto"];
-                };
-            };
-        };
-    };
-    ServersController_retryVerification: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Vérification relancée */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VerifyServerResponseDto"];
-                };
-            };
-            /** @description Token JWT invalide ou expiré */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4793,28 +5510,63 @@ export interface operations {
             };
         };
     };
-    ServersController_listJobs: {
+    WebhooksController_setEnabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                endpointId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    IncomingWebhookController_handle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                webhookToken: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectsController_findAll: {
         parameters: {
             query?: {
                 page?: number;
                 limit?: number;
             };
             header?: never;
-            path: {
-                id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Liste des jobs serveur */
+            /** @description Liste des projets */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["ServerJobResponseDto"][] | components["schemas"]["PaginatedServerJobsResponseDto"];
-                };
+                content?: never;
             };
             /** @description Token JWT invalide ou expiré */
             401: {
@@ -4823,45 +5575,79 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Accès réservé aux ADMIN */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Serveur non trouvé */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
         };
     };
-    ServersController_retryJob: {
+    ProjectsController_create: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                id: string;
-                jobId: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProjectDto"];
+            };
+        };
         responses: {
-            /** @description Job relancé */
+            /** @description Projet créé avec succès */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["ServerResponseDto"];
-                };
+                content?: never;
             };
-            /** @description Job non rejouable */
-            400: {
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Action réservée aux administrateurs */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectsController_importGitlabGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportGitlabGroupDto"];
+            };
+        };
+        responses: {
+            /** @description Import GitLab Group terminé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Détail du projet récupéré */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4874,14 +5660,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Accès réservé aux ADMIN */
+            /** @description Accès non autorisé au projet */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Serveur ou job non trouvé */
+            /** @description Projet non trouvé */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4890,51 +5676,7 @@ export interface operations {
             };
         };
     };
-    ServerPreparationsController_findOne: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerPreparationDto"];
-                };
-            };
-        };
-    };
-    ServerPreparationsController_logs: {
-        parameters: {
-            query: {
-                afterLine: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ServerPreparationLogDto"][];
-                };
-            };
-        };
-    };
-    ServerPreparationsController_retry: {
+    ProjectsController_update: {
         parameters: {
             query?: never;
             header?: never;
@@ -4945,21 +5687,41 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RetryServerPreparationDto"];
+                "application/json": components["schemas"]["UpdateProjectDto"];
             };
         };
         responses: {
-            201: {
+            /** @description Projet mis à jour */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["ServerPreparationDto"];
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
                 };
+                content?: never;
+            };
+            /** @description Action non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Projet non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
-    ServerPreparationsController_cancel: {
+    ProjectsController_remove: {
         parameters: {
             query?: never;
             header?: never;
@@ -4970,25 +5732,358 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Projet supprimé */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["ServerPreparationDto"];
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
                 };
+                content?: never;
+            };
+            /** @description Action non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Projet non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
-    ServerPreparationOptionsController_options: {
+    ProjectsController_getMembers: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Liste des membres du projet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès non autorisé au projet */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Projet non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectsController_addMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddMemberDto"];
+            };
+        };
+        responses: {
+            /** @description Membre ajouté au projet */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Action non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Projet ou utilisateur non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Utilisateur déjà membre */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectsController_removeMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Membre retiré du projet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Action non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Projet ou membre non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectWebhookController_configure: {
+        parameters: {
+            query: {
+                serviceId: string;
+            };
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectWebhookController_status: {
+        parameters: {
+            query: {
+                serviceId: string;
+            };
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectWebhookController_pause: {
+        parameters: {
+            query: {
+                serviceId: string;
+            };
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectWebhookController_resume: {
+        parameters: {
+            query: {
+                serviceId: string;
+            };
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectServicesController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Services du projet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectServicesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProjectServiceDto"];
+            };
+        };
+        responses: {
+            /** @description Service créé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectServicesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProjectServiceDto"];
+            };
+        };
+        responses: {
+            /** @description Service mis à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectServicesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Service supprimé */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectServicesController_getPipelinesForService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pipelines du service */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5227,6 +6322,1494 @@ export interface operations {
             };
         };
     };
+    EnvironmentsController_findServiceTargets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                envId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cibles service/VPS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EnvironmentsController_upsertServiceTargets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                envId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertEnvironmentServiceTargetsDto"];
+            };
+        };
+        responses: {
+            /** @description Cibles service/VPS mises à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServerPreparationController_listPreparations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationDto"][];
+                };
+            };
+        };
+    };
+    ServerPreparationController_startPreparation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartServerPreparationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationDto"];
+                };
+            };
+        };
+    };
+    ServerPreparationController_getPreparationReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationReadinessDto"];
+                };
+            };
+        };
+    };
+    ServerPreparationsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationDto"];
+                };
+            };
+        };
+    };
+    ServerPreparationsController_logs: {
+        parameters: {
+            query: {
+                afterLine: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationLogDto"][];
+                };
+            };
+        };
+    };
+    ServerPreparationsController_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryServerPreparationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationDto"];
+                };
+            };
+        };
+    };
+    ServerPreparationsController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerPreparationDto"];
+                };
+            };
+        };
+    };
+    ServerPreparationOptionsController_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServerManagementController_findAll: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste des serveurs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"][] | components["schemas"]["PaginatedServersResponseDto"];
+                };
+            };
+        };
+    };
+    ServerManagementController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateServerDto"];
+            };
+        };
+        responses: {
+            /** @description Serveur créé avec succès */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateServerResponseDto"];
+                };
+            };
+        };
+    };
+    ServerManagementController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Serveur trouvé */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"];
+                };
+            };
+        };
+    };
+    ServerManagementController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateServerDto"];
+            };
+        };
+        responses: {
+            /** @description Serveur mis à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"];
+                };
+            };
+        };
+    };
+    ServerManagementController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Serveur supprimé */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteServerResponseDto"];
+                };
+            };
+            /** @description Serveur utilisé par un environnement actif */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServerManagementController_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateServerDto"];
+            };
+        };
+        responses: {
+            /** @description Serveur mis à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"];
+                };
+            };
+        };
+    };
+    ServerManagementController_installKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstallKeyDto"];
+            };
+        };
+        responses: {
+            /** @description Clé SSH installée et validée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallKeyResponseDto"];
+                };
+            };
+        };
+    };
+    ServerManagementController_registerRunner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterRunnerDto"];
+            };
+        };
+        responses: {
+            /** @description Runner enregistré */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"];
+                };
+            };
+        };
+    };
+    ServerManagementController_listJobs: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste des jobs serveur */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerJobResponseDto"][] | components["schemas"]["PaginatedServerJobsResponseDto"];
+                };
+            };
+        };
+    };
+    ServerManagementController_setServerRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetServerRoleDto"];
+            };
+        };
+        responses: {
+            /** @description Rôle mis à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServerManagementController_listInfraEnvironments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Serveurs avec rôle infra */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServerManagementController_listServerEnvironments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Environnements utilisant ce serveur */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServerManagementController_pingServer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Résultat du test de connexion */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServerManagementController_cancelJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Job marqué comme échoué */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerJobResponseDto"];
+                };
+            };
+        };
+    };
+    DockerConnectionController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DockerConnectionController_upsert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertDockerConnectionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DockerConnectionController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DockerConnectionController_probe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    NotificationsController_saveSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateNotificationSettingsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServerValidationController_validateSsh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateServerSshDto"];
+            };
+        };
+        responses: {
+            /** @description Validation SSH démarrée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"];
+                };
+            };
+        };
+    };
+    ServerValidationController_getVerificationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Statut de vérification du serveur */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerVerificationStatusDto"];
+                };
+            };
+        };
+    };
+    ServerValidationController_getVerificationLogs: {
+        parameters: {
+            query: {
+                limit: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Logs de vérification du serveur */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerLogDto"][];
+                };
+            };
+        };
+    };
+    ServerValidationController_getValidationResults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerValidationResultDto"][];
+                };
+            };
+        };
+    };
+    ServerDetectionController_detect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DetectServerDto"];
+            };
+        };
+        responses: {
+            /** @description Détection terminée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerResponseDto"];
+                };
+            };
+        };
+    };
+    ServerDetectionController_getCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerCapabilityDto"][];
+                };
+            };
+        };
+    };
+    ServerDetectionController_getInstalledTools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerInstalledToolDto"][];
+                };
+            };
+        };
+    };
+    ServerAuditController_getAuditEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerAuditEventDto"][];
+                };
+            };
+        };
+    };
+    ConfigsController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste des configurations */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès non autorisé */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Projet non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ConfigsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateConfigDto"];
+            };
+        };
+        responses: {
+            /** @description Configuration créée */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Action non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Projet non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ConfigsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                configId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateConfigDto"];
+            };
+        };
+        responses: {
+            /** @description Configuration mise à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Action non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Projet ou configuration non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ConfigsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                configId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configuration supprimée */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Action non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Projet ou configuration non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EnvConfigsController_findAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                envId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste des configs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès non autorisé */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Environnement ou projet introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EnvConfigsController_upsert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                envId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertEnvConfigDto"];
+            };
+        };
+        responses: {
+            /** @description Config upsertée */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Action non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Environnement ou projet introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EnvConfigsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                envId: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Config supprimée */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Action non autorisée */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Environnement ou projet introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeploymentsController_validate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateDeploymentDto"];
+            };
+        };
+        responses: {
+            /** @description Résultat de la validation outillage */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationResultDto"];
+                };
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeploymentsController_findAll: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liste des déploiements */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeploymentDetailedResponseDto"][] | components["schemas"]["PaginatedDeploymentsResponseDto"];
+                };
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeploymentsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeploymentDto"];
+            };
+        };
+        responses: {
+            /** @description Déploiement créé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeploymentResponseDto"];
+                };
+            };
+            /** @description Préconditions de déploiement invalides */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès non autorisé au projet */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeploymentsController_findByProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Historique des déploiements du projet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeploymentDetailedResponseDto"][];
+                };
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès non autorisé au projet */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Projet non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeploymentsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Détail du déploiement */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeploymentDetailedResponseDto"];
+                };
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès non autorisé */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Déploiement non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeploymentsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Déploiement supprimé */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès non autorisé */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Déploiement non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeploymentsController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Déploiement annulé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeploymentResponseDto"];
+                };
+            };
+            /** @description État du déploiement non annulable */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès non autorisé */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Déploiement non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeploymentsController_rollback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rollback lancé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeploymentResponseDto"];
+                };
+            };
+            /** @description Rollback impossible */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT invalide ou expiré */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Accès non autorisé */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Déploiement non trouvé */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeploymentsController_containerLogs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     TeamsController_findAll: {
         parameters: {
             query?: never;
@@ -5453,105 +8036,6 @@ export interface operations {
             };
         };
     };
-    BuildController_prepare: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    BuildController_detect: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    BuildController_updateConfig: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateBuildConfigDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    BuildController_getTemplates: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    BuildController_pushFiles: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     SshKeysController_findAll: {
         parameters: {
             query?: never;
@@ -5609,11 +8093,28 @@ export interface operations {
             };
         };
     };
-    AuditLogsController_findAll: {
+    AutomationController_getActions: {
         parameters: {
-            query?: {
-                page?: number;
-                limit?: number;
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AutomationController_getRuns: {
+        parameters: {
+            query: {
+                page: string;
+                pageSize: string;
             };
             header?: never;
             path?: never;
@@ -5621,22 +8122,1254 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Logs d’audit paginés */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
-            401: {
+        };
+    };
+    AutomationController_startRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAutomationRunDto"];
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès réservé aux admins */
-            403: {
+        };
+    };
+    AutomationController_getRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AutomationController_deleteRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AutomationController_getRunLogs: {
+        parameters: {
+            query: {
+                afterLine: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AutomationController_cancelRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_servers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_projects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_deployments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_prometheusStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_grafanaStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_alerts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_installOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_install: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstallMonitoringDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_containerInfo: {
+        parameters: {
+            query: {
+                tail: number;
+            };
+            header?: never;
+            path: {
+                deploymentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_projectContainers: {
+        parameters: {
+            query: {
+                serverId: string;
+            };
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainersController_findAll: {
+        parameters: {
+            query?: {
+                serverId?: string;
+                serviceId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainersController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainersController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainersController_inspect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainersController_stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainersController_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainersController_stop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainersController_restart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainersController_sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serverId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_listProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Providers DNS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_createProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDnsProviderDto"];
+            };
+        };
+        responses: {
+            /** @description Provider DNS créé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_testProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Résultat du test DNS */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_listDomains: {
+        parameters: {
+            query: {
+                projectId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Domaines DNS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_createDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDomainDto"];
+            };
+        };
+        responses: {
+            /** @description Domaine DNS créé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_verifyDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Domaine vérifié */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_listRecords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                domainId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Records DNS */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_createRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                domainId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertDnsRecordDto"];
+            };
+        };
+        responses: {
+            /** @description Record DNS créé */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_updateRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertDnsRecordDto"];
+            };
+        };
+        responses: {
+            /** @description Record DNS mis à jour */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_removeRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Record DNS supprimé */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainerRegistriesController_listContainerRegistries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainerRegistriesController_createRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRegistryConfigDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainerRegistriesController_updateRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRegistryConfigDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainerRegistriesController_deleteRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainerRegistriesController_testRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ContainerRegistriesController_setDefaultRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DashboardController_getStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProxyController_findAll: {
+        parameters: {
+            query: {
+                serverId: string;
+                serviceId: string;
+                environmentId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProxyController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProxyRuleDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProxyController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProxyController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProxyController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProxyRuleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProxyController_toggle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ManagedServicesController_findAll: {
+        parameters: {
+            query: {
+                projectId: string;
+                environmentId: string;
+                serverId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ManagedServicesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateManagedServiceDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ManagedServicesController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ManagedServicesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    VolumesController_findAll: {
+        parameters: {
+            query: {
+                serverId: string;
+                serviceId: string;
+                managedServiceId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    VolumesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateVolumeDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    VolumesController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    VolumesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    VolumesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateVolumeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SslController_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SslController_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                domainName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SslController_getExpiring: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ManagedDatabasesController_provision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ManagedDatabasesController_stop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                containerName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ManagedDatabasesController_createBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                containerName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ManagedDatabasesController_listBackups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                containerName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

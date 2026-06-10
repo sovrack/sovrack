@@ -17,12 +17,15 @@ type ServerDetailsDialogProps = {
   jobsLoading: boolean;
   isBusy: boolean;
   retryingJobId: string | null;
+  cancelingJobId?: string | null;
   formatJobType: (type: ServerJob['type']) => string;
   canRetryJob: (job: ServerJob) => boolean;
+  canCancelJob?: (job: ServerJob) => boolean;
   getJobStatusClassName: (status: ServerJob['status']) => string;
   onClose: () => void;
   onRefreshJobs: (serverId: string) => Promise<void>;
   onRetryJob: (serverId: string, jobId: string) => Promise<void>;
+  onCancelJob?: (serverId: string, jobId: string) => Promise<void>;
 };
 
 export function ServerDetailsDialog({
@@ -32,12 +35,15 @@ export function ServerDetailsDialog({
   jobsLoading,
   isBusy,
   retryingJobId,
+  cancelingJobId,
   formatJobType,
   canRetryJob,
+  canCancelJob,
   getJobStatusClassName,
   onClose,
   onRefreshJobs,
   onRetryJob,
+  onCancelJob,
 }: ServerDetailsDialogProps) {
   useEffect(() => {
     if (!open || !server) {
@@ -132,11 +138,14 @@ export function ServerDetailsDialog({
             jobsLoading={jobsLoading}
             isBusy={isBusy}
             retryingJobId={retryingJobId}
+            cancelingJobId={cancelingJobId}
             formatJobType={formatJobType}
             canRetryJob={canRetryJob}
+            canCancelJob={canCancelJob}
             getJobStatusClassName={getJobStatusClassName}
             onRefreshJobs={onRefreshJobs}
             onRetryJob={onRetryJob}
+            onCancelJob={onCancelJob}
           />
         </div>
 

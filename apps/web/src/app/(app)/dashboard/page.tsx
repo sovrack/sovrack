@@ -7,7 +7,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
-  GitMerge,
+  GitBranch,
   Plus,
   RefreshCw,
   Rocket,
@@ -166,7 +166,7 @@ export default function DashboardPage() {
           {[
             { label: 'Nouveau projet', icon: <Plus size={15} />, href: '/projects?dialog=create-project', primary: true },
             { label: 'Déployer', icon: <Rocket size={15} />, href: '/deployments?dialog=create-deployment', primary: false },
-            { label: 'Pipelines', icon: <GitMerge size={15} />, href: '/pipelines', primary: false },
+            { label: 'Projets', icon: <GitBranch size={15} />, href: '/projects', primary: false },
             { label: 'Serveurs', icon: <Server size={15} />, href: '/admin/servers', primary: false },
           ].map((action) => (
             <Link

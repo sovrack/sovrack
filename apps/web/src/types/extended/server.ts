@@ -22,6 +22,8 @@ export type ServerInfraRole =
   | 'RUNNER'
   | 'MONITORING';
 
+export type ServerActiveJob = ApiSchema['ServerActiveJobDto'];
+
 export type Server = ApiSchema['ServerResponseDto'] & {
   infraRole?: ServerInfraRole;
   description?: string;
@@ -52,7 +54,7 @@ export type UpdateServerPayload = ApiSchema['UpdateServerDto'] & {
   description?: string;
 };
 
-export type InstallToolsPayload = ApiSchema['InstallToolsDto'];
+export type InstallToolsPayload = Record<string, unknown>;
 
 export type StartServerPreparationPayload = ApiSchema['StartServerPreparationDto'] & {
   reinstallOptions?: string[];

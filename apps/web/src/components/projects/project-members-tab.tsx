@@ -1,4 +1,4 @@
-import { Loader2, Plus } from 'lucide-react';
+import { AlertTriangle, Loader2, Plus, Trash2 } from 'lucide-react';
 import { AddMemberModal } from '@/components/projects/add-member-modal';
 import { MembersList } from '@/components/projects/members-list';
 import type { ProjectDetail } from '@/types/project';
@@ -20,6 +20,8 @@ type ProjectMembersTabProps = {
   onAddMember: (email: string, role: 'OWNER' | 'DEVELOPER' | 'VIEWER') => Promise<void>;
   onRemoveMember: (userId: string) => Promise<void>;
   onAddTeam: () => Promise<void>;
+  onDeleteProject?: () => void;
+  deleteLoading?: boolean;
 };
 
 export function ProjectMembersTab({
@@ -38,6 +40,8 @@ export function ProjectMembersTab({
   onAddMember,
   onRemoveMember,
   onAddTeam,
+  onDeleteProject,
+  deleteLoading = false,
 }: ProjectMembersTabProps) {
   return (
     <div className="space-y-4">
@@ -65,6 +69,39 @@ export function ProjectMembersTab({
         onClose={() => setAddMemberOpen(false)}
         onAdd={onAddMember}
       />
+
+      {isOwner && onDeleteProject && (
+        <div className="overflow-hidden rounded-2xl border border-red-500/20 bg-[var(--bg-card)]">
+          <div className="flex items-center gap-3 border-b border-red-500/20 px-5 py-4">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
+              <AlertTriangle size={15} className="text-red-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-red-300">Danger Zone</p>
+              <p className="text-xs text-[var(--text-muted)]">Irreversible actions — proceed with caution</p>
+            </div>
+          </div>
+          <div className="px-5 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">Delete this project</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                  Removes all environments, deployments, configs and files permanently. This cannot be undone.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onDeleteProject}
+                disabled={deleteLoading}
+                className="flex shrink-0 items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+              >
+                {deleteLoading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Delete project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isAdmin && teams.length > 0 && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">

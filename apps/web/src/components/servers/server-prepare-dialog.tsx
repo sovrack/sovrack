@@ -27,7 +27,7 @@ type ServerPrepareDialogProps = {
 };
 
 function resolveGroup(role: string | null): OptionGroup {
-  if (!role || role === 'common') return 'Core';
+  if (!role || role === 'system_base') return 'Core';
   if (['docker', 'nginx', 'nodejs', 'postgres', 'redis', 'gitlab_runner'].includes(role)) {
     return 'Runtime';
   }

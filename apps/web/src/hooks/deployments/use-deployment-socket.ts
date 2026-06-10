@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getSocket } from '@/lib/socket';
+import { io } from 'socket.io-client';
+import { resolveWsBaseUrl } from '@/lib/socket';
 import type {
   DeploymentErrorEvent,
   DeploymentFinishedEvent,
@@ -87,18 +88,22 @@ export function useDeploymentSocket({
   const previousDeploymentId = useRef<string | null>(null);
   const hasJoinedRoom = useRef(false);
 
-  // Réinitialise les données locales quand on change de déploiement.
+  // Réinitialise la connexion quand on change de déploiement.
   useEffect(() => {
-    if (previousDeploymentId.current === deploymentId) {
-      return;
-    }
-
+    if (previousDeploymentId.current === deploymentId) return;
     previousDeploymentId.current = deploymentId;
-    setLogs(parseStaticLogs(initialLogs));
     setStatus(initialStatus);
     setIsConnected(false);
     hasJoinedRoom.current = false;
-  }, [deploymentId, initialLogs, initialStatus]);
+  }, [deploymentId, initialStatus]);
+
+  // Met à jour les logs quand initialLogs arrive (fetch async post-ouverture).
+  // Si le socket a déjà reçu plus de lignes, on garde les siennes.
+  useEffect(() => {
+    const staticLogs = parseStaticLogs(initialLogs);
+    if (staticLogs.length === 0) return;
+    setLogs((prev) => (prev.length >= staticLogs.length ? prev : staticLogs));
+  }, [initialLogs]);
 
   // Quand le live est désactivé, on garde uniquement la vue statique.
   useEffect(() => {
@@ -113,16 +118,25 @@ export function useDeploymentSocket({
   }, [enabled, initialLogs, initialStatus]);
 
   useEffect(() => {
-    if (!enabled) {
+    const wsBase = resolveWsBaseUrl();
+    if (!enabled || !wsBase) {
       return;
     }
 
-    const rootSocket = getSocket();
-    const deploymentSocket = rootSocket.io.socket('/deployments');
-
-    deploymentSocket.io.opts.reconnection = true;
-    deploymentSocket.io.opts.reconnectionDelay = 1000;
-    deploymentSocket.io.opts.reconnectionDelayMax = 5000;
+    // Fresh, authenticated namespace connection — mirrors the automation and
+    // server-preparation streams. Reusing the shared root manager
+    // (`getSocket().io.socket('/deployments')`) dropped the auth cookie on the
+    // `/deployments` handshake, so the gateway rejected it ("token absent") and
+    // live logs never streamed. `withCredentials: true` lets the browser send
+    // the httpOnly auth cookie on the handshake.
+    const deploymentSocket = io(`${wsBase}/deployments`, {
+      autoConnect: false,
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+    });
 
     const onConnect = () => {
       setIsConnected(true);

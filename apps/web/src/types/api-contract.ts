@@ -6,7 +6,6 @@ export type ServerApi = ApiSchema['ServerResponseDto'];
 export type CreateServerApiPayload = ApiSchema['CreateServerDto'];
 export type CreateServerApiResult = ApiSchema['CreateServerResponseDto'];
 export type UpdateServerApiPayload = ApiSchema['UpdateServerDto'];
-export type InstallToolsApiPayload = ApiSchema['InstallToolsDto'];
 export type RegisterRunnerApiPayload = ApiSchema['RegisterRunnerDto'];
 export type InstallServerKeyApiPayload = ApiSchema['InstallKeyDto'];
 export type InstallServerKeyApiResult = ApiSchema['InstallKeyResponseDto'];

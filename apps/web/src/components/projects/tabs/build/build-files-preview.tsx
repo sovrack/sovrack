@@ -16,14 +16,12 @@ export type BuildFilesPreviewProps = {
   gitlabCiContent: string;
   preparing: boolean;
   pushing: boolean;
-  reconcileRunning: boolean;
   savingFiles: boolean;
   onDockerfileChange: (value: string) => void;
   onGitlabCiChange: (value: string) => void;
   onSaveFiles: () => void;
   onPrepare: () => void;
   onPush: () => void;
-  onReconcile: () => void;
 };
 
 export function BuildFilesPreview({
@@ -35,23 +33,19 @@ export function BuildFilesPreview({
   gitlabCiContent,
   preparing,
   pushing,
-  reconcileRunning,
   savingFiles,
   onDockerfileChange,
   onGitlabCiChange,
   onSaveFiles,
   onPrepare,
   onPush,
-  onReconcile,
 }: BuildFilesPreviewProps) {
-  if (!isVisible) {
-    return null;
-  }
+  if (!isVisible) return null;
 
   return (
     <SectionCard
       title="Fichiers générés"
-      description="Modifiez les fichiers générés puis poussez-les dans votre repo GitLab."
+      description="Modifiez puis poussez dans votre repo GitLab. Ces fichiers permettent à GitLab CI de builder votre image Docker."
       contentClassName="space-y-5"
     >
       <DockerfileEditor
@@ -74,13 +68,12 @@ export function BuildFilesPreview({
           loading={savingFiles}
           icon={savingFiles ? undefined : <Code2 size={14} />}
         >
-          Sauvegarder les modifications
+          Sauvegarder
         </Button>
         <BuildActions
           onPrepare={onPrepare}
           onPush={onPush}
-          onReconcile={onReconcile}
-          isLoading={preparing || pushing || reconcileRunning}
+          isLoading={preparing || pushing}
           disabled={!isAdmin || (isGroupSource && !selectedServiceReady)}
         />
       </div>

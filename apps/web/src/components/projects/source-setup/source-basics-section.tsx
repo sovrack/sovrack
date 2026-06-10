@@ -1,12 +1,12 @@
 'use client';
 
 import type {
-  GitlabProviderOption,
+  SourceProviderOption,
   GitlabSourceType,
 } from '@/types/project';
 
 export type SourceBasicsSectionProps = {
-  providers: GitlabProviderOption[];
+  providers: SourceProviderOption[];
   providerId: string;
   defaultProviderId: string;
   loadingProviders: boolean;
@@ -51,7 +51,7 @@ export function SourceBasicsSection({
           <option value="">Use default provider</option>
           {providers.map((provider) => (
             <option key={provider.id} value={provider.id}>
-              {provider.name}
+              {provider.name} · {provider.type === 'GITHUB' ? 'GitHub' : 'GitLab'}
               {provider.id === defaultProviderId ? ' (default)' : ''}
             </option>
           ))}
@@ -87,7 +87,7 @@ export function SourceBasicsSection({
 
       <div>
         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-          GitLab URL
+          URL du provider
         </label>
         <input
           type="url"
@@ -101,17 +101,19 @@ export function SourceBasicsSection({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-            {sourceType === 'REPO' ? 'Project ID' : 'Group ID or path'}
+            {sourceType === 'REPO' ? 'Dépôt (chemin ou ID)' : 'Groupe (chemin ou ID)'}
           </label>
           <input
-            type={sourceType === 'REPO' ? 'number' : 'text'}
-            min={sourceType === 'REPO' ? 1 : undefined}
+            type="text"
             value={sourceId}
             onChange={(event) => onSourceIdChange(event.target.value)}
-            placeholder={sourceType === 'REPO' ? '123456' : 'company/my-apps'}
+            placeholder={sourceType === 'REPO' ? 'groupe/projet' : 'company/my-apps'}
             required
             className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20"
           />
+          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+            Recommandé : le chemin <span className="font-mono">groupe/projet</span> (provider-agnostic). L&apos;ID numérique reste accepté.
+          </p>
         </div>
         {sourceType === 'REPO' && (
           <div>

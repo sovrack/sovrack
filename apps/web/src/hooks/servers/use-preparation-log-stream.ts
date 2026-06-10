@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { resolveWsBaseUrl } from '@/lib/socket';
 import type { ServerPreparationLog } from '@/types/server';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL;
 
 type UsePreparationLogStreamOptions = {
   preparationId: string | null;
@@ -20,11 +20,12 @@ export function usePreparationLogStream({
   onFinished,
 }: UsePreparationLogStreamOptions) {
   useEffect(() => {
-    if (!preparationId || !SOCKET_URL) {
+    const wsBase = resolveWsBaseUrl();
+    if (!preparationId || !wsBase) {
       return;
     }
 
-    const socket: Socket = io(`${SOCKET_URL}/server-preparations`, {
+    const socket: Socket = io(`${wsBase}/server-preparations`, {
       autoConnect: true,
       transports: ['websocket'],
       withCredentials: true,

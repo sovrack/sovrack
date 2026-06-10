@@ -156,16 +156,17 @@ export function useProjectGitlab({
     event.preventDefault();
     setGitlabError(null);
 
-    let parsedRepoId: number | undefined;
+    // Provider-agnostic: a repo is identified by its PATH ("group/project")
+    // or its numeric ID — both resolved by the backend.
+    let repoIdentifier: string | undefined;
     let parsedGroupId: number | undefined;
 
     if (sourceType === 'REPO') {
-      const repoId = Number(gitlabProjectId);
-      if (!Number.isFinite(repoId) || repoId <= 0) {
-        setGitlabError('GitLab Project ID invalide.');
+      repoIdentifier = String(gitlabProjectId).trim();
+      if (!repoIdentifier) {
+        setGitlabError('Dépôt requis (chemin "groupe/projet" ou ID numérique).');
         return;
       }
-      parsedRepoId = repoId;
     } else {
       const groupId = Number(gitlabGroupId);
       if (!Number.isFinite(groupId) || groupId <= 0) {
@@ -181,7 +182,7 @@ export function useProjectGitlab({
       providerId: providerId.trim() || undefined,
       defaultBranch: defaultBranch.trim() || 'main',
       sourceType,
-      gitlabId: parsedRepoId,
+      gitlabId: repoIdentifier,
       gitlabGroupId: parsedGroupId,
       deployTokenUsername: deployTokenUsername.trim() || undefined,
       deployTokenValue: deployTokenValue.trim() || undefined,

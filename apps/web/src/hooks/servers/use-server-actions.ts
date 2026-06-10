@@ -29,6 +29,7 @@ export function useServerActions() {
   const [loadingJobsByServer, setLoadingJobsByServer] = useState<Record<string, boolean>>({});
   const [jobsByServer, setJobsByServer] = useState<Record<string, ServerJob[]>>({});
   const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
+  const [cancelingJobId, setCancelingJobId] = useState<string | null>(null);
   const [prepareDrafts, setPrepareDrafts] = useState<Record<string, PrepareServerPayload>>({});
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -59,47 +60,69 @@ export function useServerActions() {
   }, [queryClient, refetchServers]);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const prevJobStatusRef = useRef<Record<string, ServerJob['status']>>({});
+  // Tracks the active job (id + type) seen per server on the previous render so
+  // we can fire a completion toast when it clears, with a single targeted fetch.
+  const prevActiveJobRef = useRef<
+    Record<string, { jobId: string; type: ServerJob['type'] }>
+  >({});
 
   useEffect(() => {
-    const hasRunningJob = Object.values(jobsByServer).some((jobs) =>
-      jobs.some((job) => job.status === 'RUNNING' || job.status === 'PENDING'),
-    );
+    const serversWithActiveJob = servers.filter((s) => s.activeJob);
+    const activeServerIds = new Set(serversWithActiveJob.map((s) => s.id));
 
-    if (hasRunningJob && !pollingRef.current) {
+    // Detect transitions: a server that HAD an active job but no longer does.
+    // Fetch that server's jobs once to report the final status accurately.
+    for (const [serverId, prev] of Object.entries(prevActiveJobRef.current)) {
+      if (!activeServerIds.has(serverId)) {
+        delete prevActiveJobRef.current[serverId];
+        serversService
+          .getJobs(serverId)
+          .then((jobs) => {
+            const finished = jobs.find((j) => j.id === prev.jobId);
+            if (finished?.status === 'SUCCESS') {
+              showToast(`${formatJobType(prev.type)} completed`, 'success');
+            } else if (
+              finished?.status === 'FAILED' ||
+              finished?.status === 'TIMEOUT'
+            ) {
+              showToast(`${formatJobType(prev.type)} failed`, 'error');
+            }
+            setJobsByServer((cur) => ({ ...cur, [serverId]: jobs }));
+          })
+          .catch(() => {});
+      }
+    }
+
+    // Record current active jobs for next comparison
+    for (const s of serversWithActiveJob) {
+      if (s.activeJob) {
+        prevActiveJobRef.current[s.id] = {
+          jobId: s.activeJob.id,
+          type: s.activeJob.type,
+        };
+      }
+    }
+
+    const hasActiveJob = serversWithActiveJob.length > 0;
+
+    // While any server is locked, poll the servers list (single request that
+    // already carries activeJob) instead of polling jobs per server.
+    if (hasActiveJob && !pollingRef.current) {
       pollingRef.current = setInterval(() => {
-        const serverIds = Object.entries(jobsByServer)
-          .filter(([, jobs]) =>
-            jobs.some((job) => job.status === 'RUNNING' || job.status === 'PENDING'),
-          )
-          .map(([id]) => id);
-
-        for (const id of serverIds) {
-          serversService
-            .getJobs(id)
-            .then((updatedJobs) => {
-              for (const job of updatedJobs) {
-                const prevStatus = prevJobStatusRef.current[job.id];
-                if (prevStatus === 'RUNNING' || prevStatus === 'PENDING') {
-                  if (job.status === 'SUCCESS') {
-                    showToast(`${formatJobType(job.type)} completed`, 'success');
-                  } else if (job.status === 'FAILED' || job.status === 'TIMEOUT') {
-                    showToast(`${formatJobType(job.type)} failed`, 'error');
-                  }
-                }
-                prevJobStatusRef.current[job.id] = job.status;
-              }
-
-              setJobsByServer((prev) => ({ ...prev, [id]: updatedJobs }));
-            })
-            .catch(() => {});
-        }
-
         void queryClient.invalidateQueries({ queryKey: ADMIN_SERVERS_QUERY_KEY });
+        // Keep the open details dialog's full job history fresh, if loaded.
+        for (const id of activeServerIds) {
+          if (jobsByServer[id]) {
+            serversService
+              .getJobs(id)
+              .then((jobs) => setJobsByServer((prev) => ({ ...prev, [id]: jobs })))
+              .catch(() => {});
+          }
+        }
       }, 3_000);
     }
 
-    if (!hasRunningJob && pollingRef.current) {
+    if (!hasActiveJob && pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
@@ -110,7 +133,7 @@ export function useServerActions() {
         pollingRef.current = null;
       }
     };
-  }, [jobsByServer, queryClient, showToast]);
+  }, [servers, jobsByServer, queryClient, showToast]);
 
   const refreshJobs = async (serverId: string) => {
     setLoadingJobsByServer((prev) => ({ ...prev, [serverId]: true }));
@@ -275,11 +298,30 @@ export function useServerActions() {
     }
   };
 
+  const handleCancelJob = async (serverId: string, jobId: string) => {
+    setCancelingJobId(jobId);
+    try {
+      await serversService.cancelJob(serverId, jobId);
+      showToast('Job annulé — le serveur est de nouveau disponible', 'success');
+      await refreshJobs(serverId);
+      await fetchServers();
+    } catch (err) {
+      showToast(getApiErrorMessage(err), 'error');
+    } finally {
+      setCancelingJobId(null);
+    }
+  };
+
   const formatConnectionMode = (mode: ServerType['connectionMode']) => mode.toUpperCase();
 
   const canRetryJob = (job: ServerJob) => {
     const retryableStatuses: ServerJob['status'][] = ['FAILED', 'TIMEOUT', 'BLOCKED'];
     return retryableStatuses.includes(job.status) && job.type !== 'REGISTER_RUNNER';
+  };
+
+  const canCancelJob = (job: ServerJob) => {
+    const cancelableStatuses: ServerJob['status'][] = ['RUNNING', 'PENDING', 'BLOCKED'];
+    return cancelableStatuses.includes(job.status);
   };
 
   const getJobStatusClassName = (status: ServerJob['status']) => {
@@ -319,6 +361,7 @@ export function useServerActions() {
     loadingJobsByServer,
     jobsByServer,
     retryingJobId,
+    cancelingJobId,
     toasts,
     fetchServers,
     refreshJobs,
@@ -332,9 +375,11 @@ export function useServerActions() {
     handleInstallKey,
     handleDelete,
     handleRetryJob,
+    handleCancelJob,
     formatConnectionMode,
     formatJobType,
     canRetryJob,
+    canCancelJob,
     getJobStatusClassName,
     verifiedCount,
     readyCount,

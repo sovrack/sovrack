@@ -19,6 +19,7 @@ export type ProjectServiceType =
 export type BuildStrategy =
   | 'DOCKERFILE'
   | 'DOCKER_COMPOSE'
+  | 'NIXPACKS'
   | 'BUILDPACK'
   | 'STATIC'
   | 'NONE';
@@ -60,6 +61,16 @@ export type GitlabProviderOption = {
   status: 'NOT_CONFIGURED' | 'ACTION_REQUIRED' | 'CONFIGURED';
 };
 
+// Provider-agnostic source provider (GitHub + GitLab) for the unified picker.
+export type SourceProviderOption = {
+  id: string;
+  name: string;
+  type: 'GITLAB' | 'GITHUB';
+  url: string;
+  isDefault: boolean;
+  status: 'NOT_CONFIGURED' | 'ACTION_REQUIRED' | 'CONFIGURED';
+};
+
 export type ProjectListItem = {
   id: string;
   name: string;
@@ -89,6 +100,10 @@ export type ProjectDetail = {
   branch: string;
   dockerfile: string;
   port: number;
+  buildPort?: number | null;
+  buildStartCmd?: string | null;
+  projectType?: string | null;
+  defaultBuildSource?: string | null;
   createdAt: string;
   updatedAt: string;
   members: ProjectMember[];
@@ -108,6 +123,21 @@ export type AddMemberPayload = Omit<ApiSchema['AddMemberDto'], 'role'> & {
 
 export type ConnectGitlabPayload = Omit<ApiSchema['ConnectGitlabDto'], 'gitlabGroupId'> & {
   gitlabGroupId?: number | string;
+};
+
+export type ConnectSourcePayload = {
+  provider: 'GITLAB' | 'GITHUB';
+  repoPath?: string;
+  defaultBranch?: string;
+  sourceType?: GitlabSourceType;
+  providerId?: string;
+  gitlabUrl?: string;
+  gitlabToken?: string;
+  gitlabId?: number | string;
+  gitlabGroupId?: number | string;
+  githubToken?: string;
+  repoFullName?: string;
+  registryUrl?: string;
 };
 
 export type GitlabBranch = {
@@ -182,7 +212,7 @@ export type ProjectService = {
   gitlabProjectId: number | string | null;
   repositoryPath: string | null;
   defaultBranch: string;
-  buildStrategy: BuildStrategy;
+  buildPack: BuildStrategy;
   dockerfilePath: string;
   composeServiceName: string | null;
   createdAt: string;
@@ -196,7 +226,7 @@ export type CreateProjectServicePayload = {
   gitlabProjectId?: number;
   repositoryPath?: string;
   defaultBranch?: string;
-  buildStrategy?: BuildStrategy;
+  buildPack?: BuildStrategy;
   dockerfilePath?: string;
   composeServiceName?: string;
 };

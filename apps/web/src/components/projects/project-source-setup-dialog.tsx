@@ -9,7 +9,7 @@ import { projectsService } from '@/services/projects.service';
 import type {
   GitlabBranch,
   GitlabGroupImportMode,
-  GitlabProviderOption,
+  SourceProviderOption,
   GitlabRepo,
   GitlabSourceType,
   ProjectServiceType,
@@ -68,7 +68,7 @@ export function ProjectSourceSetupDialog({
   onClose,
   onNext,
 }: ProjectSourceSetupDialogProps) {
-  const [providers, setProviders] = useState<GitlabProviderOption[]>([]);
+  const [providers, setProviders] = useState<SourceProviderOption[]>([]);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [providerId, setProviderId] = useState('');
   const [sourceType, setSourceType] = useState<GitlabSourceType>('REPO');
@@ -131,7 +131,7 @@ export function ProjectSourceSetupDialog({
 
     setLoadingProviders(true);
     projectsService
-      .getGitlabProviders()
+      .getSourceProviders()
       .then((nextProviders) => {
         setProviders(nextProviders);
         setProviderId(
@@ -249,18 +249,15 @@ export function ProjectSourceSetupDialog({
     event.preventDefault();
     setError(null);
 
-    const parsedId = Number(sourceId);
-    if (
-      sourceType === 'REPO' &&
-      (!Number.isFinite(parsedId) || parsedId <= 0)
-    ) {
-      setError(
-        'Project ID invalide.',
-      );
+    // Provider-agnostic: accept a repo PATH ("group/project") or a numeric ID.
+    // The backend resolves both (GitLab API accepts an url-encoded path).
+    const sourceIdentifier = sourceId.trim();
+    if (sourceType === 'REPO' && !sourceIdentifier) {
+      setError('Dépôt requis (chemin "groupe/projet" ou ID numérique).');
       return;
     }
 
-    if (sourceType === 'GROUP' && !sourceId.trim()) {
+    if (sourceType === 'GROUP' && !sourceIdentifier) {
       setError('Group ID or path is required.');
       return;
     }
@@ -290,8 +287,8 @@ export function ProjectSourceSetupDialog({
         gitlabUrl: normalizedGitlabUrl,
         defaultBranch:
           sourceType === 'REPO' ? normalizedDefaultBranch : undefined,
-        gitlabId: sourceType === 'REPO' ? parsedId : undefined,
-        gitlabGroupId: sourceType === 'GROUP' ? sourceId.trim() : undefined,
+        gitlabId: sourceType === 'REPO' ? sourceIdentifier : undefined,
+        gitlabGroupId: sourceType === 'GROUP' ? sourceIdentifier : undefined,
         // Optional PAT — overrides the provider token for this connection
         gitlabToken: gitlabToken.trim() || undefined,
       };
@@ -328,7 +325,7 @@ export function ProjectSourceSetupDialog({
             branch: normalizedDefaultBranch,
             providerId: providerId || undefined,
             sourceType,
-            gitlabId: parsedId,
+            gitlabId: sourceIdentifier,
             // Pass PAT so backend can authenticate GitLab during project creation
             gitlabToken: gitlabToken.trim() || undefined,
           });
@@ -336,7 +333,16 @@ export function ProjectSourceSetupDialog({
           setCreatedProjectId(created.id);
         }
       } else {
-        await projectsService.connectGitlab(targetProjectId, connectPayload);
+        // Route through the unified, provider-agnostic endpoint. The provider
+        // type comes from the SELECTED provider (GitHub or GitLab). `repoPath`
+        // is the canonical identifier ("group/project" | "owner/repo").
+        const selectedProvider = providers.find((p) => p.id === providerId);
+        await projectsService.connectSource(targetProjectId, {
+          provider: selectedProvider?.type ?? 'GITLAB',
+          repoPath: sourceType === 'REPO' ? sourceIdentifier : undefined,
+          githubToken: selectedProvider?.type === 'GITHUB' ? (gitlabToken.trim() || undefined) : undefined,
+          ...connectPayload,
+        });
         if (sourceType === 'GROUP') {
           for (const repository of groupRepositoriesPayload) {
             await projectsService.createService(targetProjectId, {
@@ -390,13 +396,13 @@ export function ProjectSourceSetupDialog({
         <div className="shrink-0 flex items-start justify-between border-b border-[var(--border)] px-6 py-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
-              Step 2 / 3
+              Source
             </p>
             <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
-              Connect GitLab Source
+              Connecter la source
             </h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Choose provider, source type, and repository/group identifier.
+              Choisissez le provider, le type de source et le dépôt (chemin « groupe/projet »).
             </p>
           </div>
           <button

@@ -2,7 +2,8 @@
 
 import { use, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Globe, Rocket, XCircle, RotateCcw, Loader2, Clock, ExternalLink, Terminal, RefreshCw, Activity } from 'lucide-react';
+import { ArrowLeft, Globe, Rocket, XCircle, RotateCcw, Loader2, Clock, ExternalLink, Terminal, RefreshCw, Activity, FolderGit2 } from 'lucide-react';
+import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
 import { deploymentsService } from '@/services/deployments.service';
 import { projectsService } from '@/services/projects.service';
 import { monitoringService, type ContainerInfo } from '@/services/monitoring.service';
@@ -254,6 +255,7 @@ export default function DeploymentDetailPage({ params }: Props) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [canceling, setCanceling] = useState(false);
   const [rollingBack, setRollingBack] = useState(false);
+  const [redeployOpen, setRedeployOpen] = useState(false);
 
   const fetchDeployment = useCallback(async () => {
     try {
@@ -387,8 +389,17 @@ export default function DeploymentDetailPage({ params }: Props) {
               className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
             >
               <ArrowLeft size={15} />
-              Back to Deployments
+              Déploiements
             </Link>
+            {deployment && (
+              <Link
+                href={`/projects/${deployment.project.id}`}
+                className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+              >
+                <FolderGit2 size={15} />
+                {deployment.project.name}
+              </Link>
+            )}
             {resolvedStatus && <DeploymentStatusBadge status={resolvedStatus} />}
           </>
         }
@@ -510,10 +521,13 @@ export default function DeploymentDetailPage({ params }: Props) {
                 </button>
                 )}
               {!isActive && canManageDeployment && (
-                <Link href="/deployments?dialog=create-deployment"
-                  className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
-                  <Rocket size={14} /> Deploy Again
-                </Link>
+                <button
+                  type="button"
+                  onClick={() => setRedeployOpen(true)}
+                  className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+                >
+                  <Rocket size={14} /> Re-déployer
+                </button>
               )}
             </div>
           </SectionCard>
@@ -541,6 +555,15 @@ export default function DeploymentDetailPage({ params }: Props) {
             <ContainerLogsSection deploymentId={id} />
           )}
         </>
+      )}
+
+      {deployment && (
+        <DeploymentCreateDialog
+          open={redeployOpen}
+          initialProjectId={deployment.project.id}
+          onClose={() => setRedeployOpen(false)}
+          onCreated={async () => { setRedeployOpen(false); }}
+        />
       )}
     </div>
   );

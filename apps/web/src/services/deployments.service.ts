@@ -3,6 +3,7 @@ import type {
   CreateDeploymentPayload,
   Deployment,
   DeploymentMutation,
+  DeployValidationResult,
 } from '@/types/deployment';
 
 export const deploymentsService = {
@@ -26,7 +27,7 @@ export const deploymentsService = {
     environmentId,
     branch,
     strategy,
-    buildMode,
+    buildSource,
     overrideImage,
     serviceId,
     repoId,
@@ -36,7 +37,7 @@ export const deploymentsService = {
       environmentId,
       branch,
       strategy,
-      buildMode,
+      buildSource,
       overrideImage,
       serviceId,
       repoId,
@@ -52,6 +53,19 @@ export const deploymentsService = {
   async rollback(id: string): Promise<DeploymentMutation> {
     const res = await api.post<DeploymentMutation>(`/deployments/${id}/rollback`);
     return res.data;
+  },
+
+  async validate(projectId: string, environmentId: string, buildSource?: string): Promise<DeployValidationResult> {
+    const res = await api.post<DeployValidationResult>('/deployments/validate', {
+      projectId,
+      environmentId,
+      buildSource,
+    });
+    return res.data;
+  },
+
+  async delete(id: string): Promise<void> {
+    await api.delete(`/deployments/${id}`);
   },
 
   async getContainerLogs(id: string, tail = 300): Promise<string> {

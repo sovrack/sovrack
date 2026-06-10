@@ -1,20 +1,18 @@
 'use client';
+
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  Activity,
   ArrowLeft,
-  Boxes,
-  GitBranch,
-  Globe,
-  Hammer,
-  ListTree,
+  BarChart2,
+  Container,
+  Layers,
   Loader2,
   Rocket,
   Settings,
-  Trash2,
-  Users,
-  Wrench,
+  Settings2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '@/hooks/auth/use-auth';
@@ -23,19 +21,15 @@ import { useProjectDeployments } from '@/hooks/projects/use-project-deployments'
 import { useProjectGitlab } from '@/hooks/projects/use-project-gitlab';
 import { useProjectMembers } from '@/hooks/projects/use-project-members';
 import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { ProjectConfigsTab } from '@/components/projects/project-configs-tab';
 import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
-import { ProjectDnsTab } from '@/components/projects/project-dns-tab';
-import { ProjectEnvironmentsTab } from '@/components/projects/project-environments-tab';
-import { ProjectBuildTab } from '@/components/projects/project-build-tab';
+import { ConfigurationTab } from '@/components/projects/project-build-tab';
 import { ProjectBuildSetupDialog } from '@/components/projects/project-build-setup-dialog';
-import { ProjectGitlabTab } from '@/components/projects/project-gitlab-tab';
+import { DeployDialog } from '@/components/deployments/deploy-dialog';
 import { ProjectMembersTab } from '@/components/projects/project-members-tab';
 import { ProjectOverview } from '@/components/projects/project-overview';
-import { ProjectPipelinesTab } from '@/components/projects/project-pipelines-tab';
-import { ProjectServicesTab } from '@/components/projects/project-services-tab';
 import { ProjectSourceSetupDialog } from '@/components/projects/project-source-setup-dialog';
+import { ContainersTab } from '@/components/projects/tabs/containers/containers-tab';
+import { MonitoringTab } from '@/components/projects/tabs/monitoring/monitoring-tab';
 import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
 import { environmentsService } from '@/services/environments.service';
@@ -43,38 +37,20 @@ import type { Environment } from '@/types/environment';
 
 type Tab =
   | 'overview'
-  | 'services'
-  | 'members'
-  | 'gitlab'
+  | 'application'
   | 'environments'
-  | 'configs'
-  | 'build'
-  | 'pipelines'
-  | 'dns'
-  | 'deployments';
+  | 'deployments'
+  | 'containers'
+  | 'monitoring'
+  | 'settings';
 
 const TAB_VALUES: Tab[] = [
-  'overview',
-  'services',
-  'members',
-  'gitlab',
-  'environments',
-  'configs',
-  'build',
-  'pipelines',
-  'dns',
-  'deployments',
+  'overview', 'application', 'environments', 'deployments', 'containers', 'monitoring', 'settings',
 ];
 
 function parseTab(value: string | null): Tab | null {
-  if (!value) {
-    return null;
-  }
-
-  if (TAB_VALUES.includes(value as Tab)) {
-    return value as Tab;
-  }
-
+  if (!value) return null;
+  if (TAB_VALUES.includes(value as Tab)) return value as Tab;
   return null;
 }
 
@@ -89,21 +65,17 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const { user, isAdmin } = useAuth();
   const { project, loading, error, refresh } = useProject(id);
   const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'overview');
+
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [sourceDialogOpen, setSourceDialogOpen] = useState(false);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [buildDialogOpen, setBuildDialogOpen] = useState(false);
+  const [deployOpen, setDeployOpen] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>(undefined);
+  const [selectedEnvId, setSelectedEnvId] = useState<string | undefined>(undefined);
 
-  const members = useProjectMembers({
-    projectId: id,
-    isAdmin,
-    refreshProject: refresh,
-  });
-  const gitlab = useProjectGitlab({
-    projectId: id,
-    project,
-    refreshProject: refresh,
-  });
+  const members = useProjectMembers({ projectId: id, isAdmin, refreshProject: refresh });
+  const gitlab = useProjectGitlab({ projectId: id, project, refreshProject: refresh });
   const projectDeployments = useProjectDeployments(id);
 
   useEffect(() => {
@@ -113,68 +85,42 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   useEffect(() => {
     const requestedTab = parseTab(searchParams.get('tab'));
     const dialog = searchParams.get('dialog');
-
     if (requestedTab) {
       setTab(requestedTab);
-    } else if (dialog === 'source-setup') {
-      setTab('gitlab');
-    } else if (dialog === 'build-setup') {
-      setTab('build');
+    } else if (dialog === 'source-setup' || dialog === 'build-setup') {
+      setTab('application');
     }
-
     setSourceDialogOpen(dialog === 'source-setup');
     setBuildDialogOpen(dialog === 'build-setup');
   }, [searchParams]);
 
   const replaceProjectQuery = (updates: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams.toString());
-
     Object.entries(updates).forEach(([key, value]) => {
-      if (!value) {
-        next.delete(key);
-        return;
-      }
-
+      if (!value) { next.delete(key); return; }
       next.set(key, value);
     });
-
     const query = next.toString();
     router.replace(query ? `/projects/${id}?${query}` : `/projects/${id}`);
   };
 
   const openSourceSetupDialog = () => {
-    setTab('gitlab');
-    setSourceDialogOpen(true);
-    setBuildDialogOpen(false);
-    replaceProjectQuery({ tab: 'gitlab', dialog: 'source-setup' });
+    setTab('application'); setSourceDialogOpen(true); setBuildDialogOpen(false);
+    replaceProjectQuery({ tab: 'application', dialog: 'source-setup' });
   };
 
   const openBuildSetupDialog = () => {
-    setTab('build');
-    setBuildDialogOpen(true);
-    setSourceDialogOpen(false);
-    replaceProjectQuery({ tab: 'build', dialog: 'build-setup' });
+    setTab('application'); setBuildDialogOpen(true); setSourceDialogOpen(false);
+    replaceProjectQuery({ tab: 'application', dialog: 'build-setup' });
   };
 
-  const closeSourceDialog = () => {
-    setSourceDialogOpen(false);
-    replaceProjectQuery({ dialog: null });
-  };
+  const closeSourceDialog = () => { setSourceDialogOpen(false); replaceProjectQuery({ dialog: null }); };
+  const closeBuildDialog  = () => { setBuildDialogOpen(false);  replaceProjectQuery({ dialog: null }); };
 
-  const closeBuildDialog = () => {
-    setBuildDialogOpen(false);
-    replaceProjectQuery({ dialog: null });
-  };
-
-  const handleSourceNext = async () => {
-    await refresh();
-    openBuildSetupDialog();
-  };
-
-  const handleBuildDone = async () => {
-    await refresh();
-    setBuildDialogOpen(false);
-    replaceProjectQuery({ tab: 'build', dialog: null });
+  const handleSourceNext = async () => { await refresh(); openBuildSetupDialog(); };
+  const handleBuildDone  = async () => {
+    await refresh(); setBuildDialogOpen(false);
+    replaceProjectQuery({ tab: 'application', dialog: null });
   };
 
   const handleTabChange = (nextTab: Tab) => {
@@ -182,31 +128,14 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     replaceProjectQuery({ tab: nextTab, dialog: null });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" />
-      </div>
-    );
-  }
-  if (error || !project) {
-    return (
-      <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center text-sm text-red-300">
-        {error ?? 'Project not found.'}
-        <div className="mt-3">
-          <Link href="/projects" className="text-xs text-red-300 underline">
-            Back to Projects
-          </Link>
-        </div>
-      </div>
-    );
-  }
-  const currentMember = project.members.find((member) => member.user.id === user?.id);
-  const isOwner = isAdmin || currentMember?.role === 'OWNER';
+  const handleDeployCreated = () => {
+    setTab('deployments');
+    replaceProjectQuery({ tab: 'deployments' });
+    projectDeployments.refresh();
+  };
+
   const handleDelete = async () => {
-    if (!confirm(`Delete "${project.name}"? This action cannot be undone.`)) {
-      return;
-    }
+    if (!confirm(`Delete "${project?.name}"? This action cannot be undone.`)) return;
     setDeleteLoading(true);
     try {
       await projectsService.remove(id);
@@ -216,17 +145,33 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       setDeleteLoading(false);
     }
   };
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" />
+    </div>
+  );
+
+  if (error || !project) return (
+    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center text-sm text-red-300">
+      {error ?? 'Project not found.'}
+      <div className="mt-3">
+        <Link href="/projects" className="text-xs text-red-300 underline">Back to Projects</Link>
+      </div>
+    </div>
+  );
+
+  const currentMember = project.members.find((m) => m.user.id === user?.id);
+  const isOwner = isAdmin || currentMember?.role === 'OWNER';
+
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'overview', label: 'Overview', icon: Rocket },
-    { id: 'services', label: 'Services', icon: ListTree },
-    { id: 'members', label: `Members (${project.members.length})`, icon: Users },
-    { id: 'gitlab', label: 'Source', icon: GitBranch },
-    { id: 'environments', label: 'Environments', icon: Boxes },
-    { id: 'configs', label: 'Variables', icon: Wrench },
-    { id: 'build', label: 'Build', icon: Hammer },
-    { id: 'pipelines', label: 'Pipelines', icon: GitBranch },
-    { id: 'deployments', label: 'Deployments', icon: Settings },
-    { id: 'dns', label: 'Domains/DNS', icon: Globe },
+    { id: 'overview',       label: 'Overview',       icon: Rocket },
+    { id: 'application',    label: 'Application',    icon: Settings2 },
+    { id: 'environments',   label: 'Environnements',  icon: Layers },
+    { id: 'deployments',    label: 'Deployments',    icon: Activity },
+    { id: 'containers',     label: 'Containers',     icon: Container },
+    { id: 'monitoring',     label: 'Monitoring',     icon: BarChart2 },
+    { id: 'settings',       label: 'Settings',       icon: Settings },
   ];
 
   return (
@@ -237,73 +182,56 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         description={project.description ?? 'No description'}
         actions={
           <>
-            <Link
-              href="/projects"
-              className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
-            >
-              <ArrowLeft size={15} />
-              Projects
+            <Link href="/projects"
+              className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+              <ArrowLeft size={15} /> Projects
             </Link>
-            {isOwner && (
-              <>
-                <button
-                  type="button"
-                  onClick={openSourceSetupDialog}
-                  className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10"
-                >
-                  <GitBranch size={15} /> Source setup
-                </button>
-                <button
-                  type="button"
-                  onClick={openBuildSetupDialog}
-                  className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10"
-                >
-                  <Hammer size={15} /> Build setup
-                </button>
-                <Link
-                  href={`/projects/${id}/edit`}
-                  className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10"
-                >
-                  <Settings size={15} /> Edit
-                </Link>
-                <button
-                  onClick={() => void handleDelete()}
-                  disabled={deleteLoading}
-                  className="flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
-                >
-                  {deleteLoading ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
-                  Delete
-                </button>
-              </>
-            )}
+            <button type="button" onClick={() => setDeployOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
+              <Rocket size={15} /> Deploy
+            </button>
           </>
         }
       />
-      <SectionCard contentClassName="py-4">
-        <div className="flex flex-wrap gap-2">
-          <span className={clsx('inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold', gitlab.gitlabConfig ? 'bg-green-500/15 text-green-300' : 'bg-[var(--bg-card)]/10 text-[var(--text-primary)]')}>
-            {gitlab.gitlabConfig ? 'Source Connected' : 'Source Not Connected'}
+
+      {/* Status badges */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={clsx(
+          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
+          gitlab.gitlabConfig
+            ? 'border-green-500/20 bg-green-500/10 text-green-400'
+            : 'border-amber-500/20 bg-amber-500/10 text-amber-400',
+        )}>
+          {gitlab.gitlabConfig ? '● Source connected' : '○ Source not connected'}
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--hover)] px-2.5 py-1 text-xs text-[var(--text-muted)]">
+          {environments.length} environment{environments.length !== 1 ? 's' : ''}
+        </span>
+        {currentMember && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--hover)] px-2.5 py-1 text-xs text-[var(--text-muted)]">
+            {currentMember.role}
           </span>
-          {currentMember && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--text-primary)]/15 px-3 py-1 text-xs font-semibold text-[var(--text-secondary)]">
-              You are {currentMember.role}
-            </span>
-          )}
-        </div>
-      </SectionCard>
+        )}
+      </div>
+
+      {/* Tabs nav */}
       <div className="border-b border-[var(--border)]">
         <nav className="flex flex-wrap gap-1">
           {tabs.map(({ id: tabId, label, icon: Icon }) => (
-            <button
-              key={tabId}
-              onClick={() => handleTabChange(tabId)}
-              className={clsx('flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition', tab === tabId ? 'border-[var(--border)] text-[var(--text-secondary)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]')}
-            >
+            <button key={tabId} onClick={() => handleTabChange(tabId)}
+              className={clsx(
+                'flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition',
+                tab === tabId
+                  ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+              )}>
               <Icon size={15} /> {label}
             </button>
           ))}
         </nav>
       </div>
+
+      {/* Tab panels */}
       {tab === 'overview' && (
         <ProjectOverview
           project={project}
@@ -311,12 +239,64 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           gitlabConfig={gitlab.gitlabConfig}
           environments={environments}
           onRollbackDone={() => void projectDeployments.refresh()}
-          onTabChange={(t) => setTab(t as typeof tab)}
-          onOpenBuild={() => { setTab('build'); openBuildSetupDialog(); }}
+          onTabChange={(t) => setTab(t as Tab)}
+          onOpenBuild={() => { setTab('application'); openBuildSetupDialog(); }}
+          onDeploy={() => { setSelectedServiceId(undefined); setDeployOpen(true); }}
         />
       )}
-      {tab === 'services' && <ProjectServicesTab projectId={id} />}
-      {tab === 'members' && (
+
+      {tab === 'application' && (
+        <ConfigurationTab
+          projectId={id}
+          project={project}
+          isAdmin={isAdmin}
+          isOwner={isOwner}
+          sourceType={gitlab.gitlabConfig?.sourceType ?? null}
+          hasEnvironment={environments.length > 0}
+          gitlab={gitlab}
+          scope="application"
+          onDeploy={() => { setSelectedServiceId(undefined); setDeployOpen(true); }}
+          onDeployService={(svcId) => { setSelectedServiceId(svcId); setDeployOpen(true); }}
+          onOpenSourceSetupDialog={openSourceSetupDialog}
+        />
+      )}
+
+      {tab === 'environments' && (
+        <ConfigurationTab
+          projectId={id}
+          project={project}
+          isAdmin={isAdmin}
+          isOwner={isOwner}
+          sourceType={gitlab.gitlabConfig?.sourceType ?? null}
+          hasEnvironment={environments.length > 0}
+          gitlab={gitlab}
+          scope="environments"
+          onDeploy={() => { setSelectedServiceId(undefined); setDeployOpen(true); }}
+          onDeployService={(svcId) => { setSelectedServiceId(svcId); setDeployOpen(true); }}
+          onOpenSourceSetupDialog={openSourceSetupDialog}
+        />
+      )}
+
+      {tab === 'deployments' && (
+        <ProjectDeploymentsTab
+          projectId={id}
+          deployments={projectDeployments.deployments}
+          loading={projectDeployments.loading}
+          error={projectDeployments.error}
+          onCreateClick={() => setDeployOpen(true)}
+          onRefresh={() => void projectDeployments.refresh()}
+        />
+      )}
+
+      {tab === 'containers' && (
+        <ContainersTab projectId={id} />
+      )}
+
+      {tab === 'monitoring' && (
+        <MonitoringTab projectId={id} />
+      )}
+
+      {tab === 'settings' && (
         <ProjectMembersTab
           project={project}
           isOwner={isOwner}
@@ -333,52 +313,16 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           onAddMember={members.handleAddMember}
           onRemoveMember={members.handleRemoveMember}
           onAddTeam={members.handleAddTeam}
-        />
-      )}
-      {tab === 'gitlab' && (
-        <ProjectGitlabTab
-          isOwner={isOwner}
-          gitlab={gitlab}
-          onOpenSourceSetupDialog={openSourceSetupDialog}
-        />
-      )}
-      {tab === 'environments' && (
-        <ProjectEnvironmentsTab
-          projectId={id}
-          onChanged={() => environmentsService.getAll(id).then(setEnvironments).catch(() => {})}
-        />
-      )}
-      {tab === 'configs' && <ProjectConfigsTab projectId={id} />}
-      {tab === 'deployments' && (
-        <ProjectDeploymentsTab
-          projectId={id}
-          deployments={projectDeployments.deployments}
-          loading={projectDeployments.loading}
-          error={projectDeployments.error}
-        />
-      )}
-      {tab === 'pipelines' && (
-        <ProjectPipelinesTab
-          projectId={id}
-          gitlabConfig={gitlab.gitlabConfig}
-        />
-      )}
-      {tab === 'dns' && <ProjectDnsTab projectId={id} />}
-      {tab === 'build' && (
-        <ProjectBuildTab
-          projectId={id}
-          isAdmin={isAdmin}
-          sourceType={gitlab.gitlabConfig?.sourceType ?? null}
-          hasEnvironment={environments.length > 0}
-          onGoToEnvironments={() => setTab('environments')}
+          onDeleteProject={isOwner ? handleDelete : undefined}
+          deleteLoading={deleteLoading}
         />
       )}
 
       <ProjectSourceSetupDialog
         open={sourceDialogOpen}
         projectId={id}
-        initialGitlabUrl={project.gitlabUrl}
-        initialDefaultBranch={project.branch}
+        initialGitlabUrl={project.gitlabUrl ?? null}
+        initialDefaultBranch={project.branch ?? null}
         initialProviderId={gitlab.gitlabConfig?.providerId ?? null}
         initialSourceType={gitlab.gitlabConfig?.sourceType ?? null}
         initialProjectId={gitlab.gitlabConfig?.gitlabId ?? null}
@@ -392,6 +336,19 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         projectId={id}
         onClose={closeBuildDialog}
         onDone={handleBuildDone}
+      />
+
+      <DeployDialog
+        open={deployOpen}
+        projectId={id}
+        services={project?.services ?? []}
+        initialServiceId={selectedServiceId}
+        initialEnvironmentId={selectedEnvId}
+        defaultBuildSource={project.defaultBuildSource}
+        buildPort={project.buildPort}
+        buildStartCmd={project.buildStartCmd}
+        onClose={() => { setDeployOpen(false); setSelectedServiceId(undefined); setSelectedEnvId(undefined); }}
+        onCreated={handleDeployCreated}
       />
     </div>
   );
