@@ -26,6 +26,28 @@ frontières imposées par l'outillage.
 `core/` = technique pur (crypto, db, jwt, ssh, events, queue, provisioning,
 container-runtime…). Ne connaît **aucun** contexte métier.
 
+## 1bis. Invariants du modèle de données (à respecter absolument)
+
+**Le provider Git est lié au SERVICE, jamais au PROJET.**
+
+```
+Project  =  regroupement de Services (l'application).  ⛔ PAS de provider.
+Service  =  unité déployable.  ✅ porte SON provider (Service.providerId?).
+```
+
+Conséquences (non négociables) :
+- Un même `Project` peut contenir des services de **providers différents**
+  (un service GitLab + un service GitHub dans le même projet).
+- La résolution correcte du provider est **par service** : `forService(serviceId)`.
+- `forProject(projectId)` est une **commodité valable UNIQUEMENT pour un projet
+  mono-provider** : elle résout vers le provider du *premier* service trouvé.
+  ⚠️ **Dette tracée** : 8 appels (`build`, `deployments`, `webhooks`) utilisent
+  `forProject` et sont donc faux pour un projet multi-provider → à migrer vers
+  `forService` lorsqu'on traitera l'unification `source/` (runtime requis).
+
+> Règle de conception : tout nouveau code qui a besoin du provider doit partir
+> d'un **serviceId** (→ `forService`), jamais d'un projectId.
+
 ## 2. Les lois d'architecture (non négociables)
 
 1. **Sens des dépendances** : `core ◄ shared ◄ contextes`. `core/` n'importe

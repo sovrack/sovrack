@@ -83,7 +83,12 @@ export class SourceProvidersService {
   }
 
   /**
-   * Résout le provider approprié pour un projet donné (recherche via les services du projet).
+   * Résout le provider via le PREMIER service du projet qui a un providerId.
+   *
+   * ⚠️ INVARIANT : le provider est lié au SERVICE, pas au projet. Un projet
+   * peut mélanger des providers (GitLab + GitHub). Cette méthode n'est donc
+   * correcte que pour un projet MONO-provider. Tout nouveau code doit partir
+   * d'un serviceId et utiliser `forService()`. Voir docs/ARCHITECTURE.md §1bis.
    */
   async forProject(projectId: string): Promise<IGitProvider> {
     const svc = await this.prisma.service.findFirst({
