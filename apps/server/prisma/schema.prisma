@@ -490,7 +490,6 @@ model ServiceEnvironment {
   startCommand    String?
   replicas        Int?
   healthcheckPath String?
-  repoPath        String?
   buildPack       BuildPack?
   env             String?     @db.Text // JSON — merge final: this > Environment.env > Service.env
 

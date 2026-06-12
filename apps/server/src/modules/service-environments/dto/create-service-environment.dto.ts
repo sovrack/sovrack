@@ -50,11 +50,6 @@ export class CreateServiceEnvironmentDto {
   @IsString()
   healthcheckPath?: string;
 
-  @ApiPropertyOptional({ example: 'https://github.com/org/repo.git' })
-  @IsOptional()
-  @IsString()
-  repoPath?: string;
-
   @ApiPropertyOptional({ enum: BuildPack, example: BuildPack.DOCKERFILE })
   @IsOptional()
   @IsEnum(BuildPack)
