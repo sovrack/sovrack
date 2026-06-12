@@ -11,7 +11,7 @@ import { DockerfileGenerator } from './generators/config-files/dockerfile.genera
 import { DockerignoreGenerator } from './generators/config-files/dockerignore.generator';
 import { CiGeneratorFactory } from './generators/ci/ci-generator.factory';
 import { SourceProvidersService } from '../source-providers/source-providers.service';
-import type { RepoWriteResult } from '../source-providers/interfaces/source-provider.interface';
+import type { RepoWriteResult } from '../source-providers/contracts/git-provider.contract';
 import type {
   BuildArtifactStatus,
   BuildPrepareStatus,

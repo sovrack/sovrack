@@ -12,7 +12,7 @@ import type {
   RepoItem,
   BranchItem,
   PipelineItem,
-} from './interfaces/source-provider.interface';
+} from './contracts/git-provider.contract';
 
 /** Provider-agnostic source option for the unified "Connect source" UI. */
 export type SourceProviderOption = {

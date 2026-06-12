@@ -18,7 +18,7 @@ import { DeploymentsAuthorizationService } from './deployments-authorization.ser
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
-import type { PipelineItem } from '../../source-providers/interfaces/source-provider.interface';
+import type { PipelineItem } from '../../source-providers/contracts/git-provider.contract';
 import { BuildLifecycleService } from '../../build/services/build-lifecycle.service';
 import { BuildStrategyResolver } from '../../build/strategies/build-strategy.resolver';
 import { AuditService } from '../../audit/audit.service';

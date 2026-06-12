@@ -16,7 +16,7 @@ import type {
   GitCredentials,
   RepoWriteResult,
   WebhookConfigResult,
-} from '../../interfaces/source-provider.interface';
+} from '../../contracts/git-provider.contract';
 
 export type ConnectGithubDto = {
   gitlabToken: string;

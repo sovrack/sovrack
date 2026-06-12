@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-import type { RepoItem, BranchItem, PipelineItem } from '../../interfaces/source-provider.interface';
+import type { RepoItem, BranchItem, PipelineItem } from '../../contracts/git-provider.contract';
 
 type GithubRepoRaw = {
   id: number;

@@ -13,7 +13,7 @@ import { PrismaService } from '../../../../core/database/prisma.service';
 import { ALLOWED_PUSH_FILES } from '../../../../core/utils/file-constants';
 import { GitProviderConfigService } from '../../config/git-provider-config.service';
 import { GithubApiService } from './github-api.service';
-import type { RepoWriteResult, GitCredentials } from '../../interfaces/source-provider.interface';
+import type { RepoWriteResult, GitCredentials } from '../../contracts/git-provider.contract';
 
 /**
  * Low-level GitHub file I/O:

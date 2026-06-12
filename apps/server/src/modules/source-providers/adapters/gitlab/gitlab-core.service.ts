@@ -38,7 +38,7 @@ import type {
   GitCredentials,
   RepoWriteResult,
   WebhookConfigResult,
-} from '../../interfaces/source-provider.interface';
+} from '../../contracts/git-provider.contract';
 
 @Injectable()
 export class GitlabCoreService implements IGitProvider {
