@@ -15,7 +15,6 @@ export type DeploymentConfig = {
   buildSource: BuildSource;
   isLocalBuild: boolean;
   dockerImage: string;
-  mergedConfigs: Record<string, unknown>;
   resolvedNixpacksConfig: Prisma.InputJsonValue | null;
   resolvedStaticConfig: Prisma.InputJsonValue | null;
 };
@@ -36,8 +35,6 @@ export class DeploymentsConfigResolver {
     const buildSource = this.resolveBuildSource(dto, service);
     const isLocalBuild = this.isLocalBuildSource(buildSource);
 
-    const mergedConfigs = this.mergeConfigs(service.env, project.env, null);
-
     const branch = dto.branch ?? service.branch ?? 'main';
 
     const dockerImage = await this.resolveDockerImage(dto, buildSource, service, project, branch);
@@ -57,22 +54,9 @@ export class DeploymentsConfigResolver {
       buildSource,
       isLocalBuild,
       dockerImage,
-      mergedConfigs,
       resolvedNixpacksConfig,
       resolvedStaticConfig,
     };
-  }
-
-  private mergeConfigs(...configs: (string | null | undefined)[]): Record<string, unknown> {
-    const merged: Record<string, unknown> = {};
-    const safeParse = (raw: string | null | undefined): Record<string, unknown> => {
-      if (!raw) return {};
-      try { return JSON.parse(raw); } catch { return {}; }
-    };
-    for (const config of configs) {
-      Object.assign(merged, safeParse(config));
-    }
-    return merged;
   }
 
   private async resolveDockerImage(

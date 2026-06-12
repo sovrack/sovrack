@@ -221,7 +221,6 @@ model Project {
   id               String            @id @default(uuid())
   name             String
   description      String?
-  env              String?           @db.Text // JSON — project env vars inherited by all environments/services
   members          ProjectMember[]
   environments     Environment[]
   services         Service[]

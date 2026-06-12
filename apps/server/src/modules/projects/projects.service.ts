@@ -155,7 +155,6 @@ export class ProjectsService {
       id: project.id,
       name: project.name,
       description: project.description,
-      env: project.env,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       memberCount: project._count.members,
