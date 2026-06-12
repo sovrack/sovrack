@@ -56,21 +56,36 @@ export class ServiceEnvironmentsService {
         },
       },
     });
-    if (existing) {
+    if (existing && existing.archivedAt === null) {
       throw new ConflictException('Ce service est déjà lié à cet environnement');
+    }
+
+    const overrides = {
+      branch: dto.branch,
+      port: dto.port,
+      startCommand: dto.startCommand,
+      replicas: dto.replicas,
+      healthcheckPath: dto.healthcheckPath,
+      buildPack: dto.buildPack,
+      env: dto.env,
+    };
+
+    // Lien déjà existant mais archivé → on RÉACTIVE la même ligne (archivedAt
+    // = null) plutôt que d'en créer une nouvelle : préserve son historique et
+    // respecte @@unique([serviceId, environmentId]).
+    if (existing) {
+      return this.prisma.serviceEnvironment.update({
+        where: { id: existing.id },
+        data: { ...overrides, archivedAt: null },
+        include: serviceEnvInclude,
+      });
     }
 
     return this.prisma.serviceEnvironment.create({
       data: {
         serviceId: dto.serviceId,
         environmentId: dto.environmentId,
-        branch: dto.branch,
-        port: dto.port,
-        startCommand: dto.startCommand,
-        replicas: dto.replicas,
-        healthcheckPath: dto.healthcheckPath,
-        buildPack: dto.buildPack,
-        env: dto.env,
+        ...overrides,
       },
       include: serviceEnvInclude,
     });
@@ -85,7 +100,7 @@ export class ServiceEnvironmentsService {
     await this.assertCanAccessProject(projectId, userId, userRole);
 
     return this.prisma.serviceEnvironment.findMany({
-      where: { serviceId, service: { projectId } },
+      where: { serviceId, service: { projectId }, archivedAt: null },
       include: serviceEnvInclude,
       orderBy: { environment: { name: 'asc' } },
     });
@@ -100,7 +115,7 @@ export class ServiceEnvironmentsService {
     await this.assertCanAccessProject(projectId, userId, userRole);
 
     return this.prisma.serviceEnvironment.findMany({
-      where: { environmentId, environment: { projectId } },
+      where: { environmentId, environment: { projectId }, archivedAt: null },
       include: serviceEnvInclude,
       orderBy: { service: { name: 'asc' } },
     });
@@ -160,7 +175,20 @@ export class ServiceEnvironmentsService {
     await this.assertCanManageProject(projectId, userId, userRole);
     await this.ensureExists(projectId, id);
 
-    await this.prisma.serviceEnvironment.delete({ where: { id } });
+    // Intégrité réseau : ne pas laisser un domaine public router vers un
+    // service archivé — exiger le détachement préalable des domaines.
+    const activeDomains = await this.prisma.domain.count({ where: { serviceEnvId: id } });
+    if (activeDomains > 0) {
+      throw new ConflictException(
+        `Impossible d'archiver : ${activeDomains} domaine(s) pointent encore vers ce service. Détachez-les d'abord.`,
+      );
+    }
+
+    // Soft-delete : préserve l'historique Deployment/Build qui référence ce lien.
+    await this.prisma.serviceEnvironment.update({
+      where: { id },
+      data: { archivedAt: new Date() },
+    });
   }
 
   async linkServiceToAllEnvs(
@@ -184,6 +212,14 @@ export class ServiceEnvironmentsService {
       if (!existing) {
         const link = await this.prisma.serviceEnvironment.create({
           data: { serviceId, environmentId: env.id },
+          include: serviceEnvInclude,
+        });
+        results.push(link);
+      } else if (existing.archivedAt !== null) {
+        // Réactive un lien précédemment archivé au lieu de le laisser de côté.
+        const link = await this.prisma.serviceEnvironment.update({
+          where: { id: existing.id },
+          data: { archivedAt: null },
           include: serviceEnvInclude,
         });
         results.push(link);

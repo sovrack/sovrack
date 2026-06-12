@@ -496,6 +496,12 @@ model ServiceEnvironment {
   buildPack       BuildPack?
   env             String?     @db.Text // JSON — merge final: this > Environment.env > Service.env
 
+  // Soft-delete : "retirer" un service d'un environnement pose archivedAt au
+  // lieu de DELETE, ce qui préserve l'historique (Deployment/Build) qui pointe
+  // encore vers cette ligne. Réactiver = repasser archivedAt à null (même
+  // ligne réutilisée pour respecter @@unique([serviceId, environmentId])).
+  archivedAt      DateTime?
+
   deployments      Deployment[]
   containers       Container[]
   volumes          Volume[]
