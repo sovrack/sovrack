@@ -57,7 +57,10 @@ export class BuildOrchestratorService {
       throw new NotFoundException('Projet non trouvé');
     }
 
-    const provider = await this.gitProvidersService.forProject(projectId);
+    // Invariant : provider lié au SERVICE — résolution par service si dispo.
+    const provider = serviceId
+      ? await this.gitProvidersService.forService(serviceId)
+      : await this.gitProvidersService.forProject(projectId);
     await provider.writeFiles(
       projectId,
       {
@@ -165,7 +168,10 @@ export class BuildOrchestratorService {
 
     let pushResult: RepoWriteResult | null = null;
     if (Object.keys(filesToPush).length > 0) {
-      const provider = await this.gitProvidersService.forProject(projectId);
+      // Invariant : provider lié au SERVICE — résolution par service si dispo.
+      const provider = serviceId
+        ? await this.gitProvidersService.forService(serviceId)
+        : await this.gitProvidersService.forProject(projectId);
       pushResult = await provider.writeFiles(projectId, filesToPush, serviceId);
     }
 

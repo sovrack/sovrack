@@ -344,7 +344,10 @@ export class BuildSetupService {
       }
     }
 
-    const provider = await this.gitProvidersService.forProject(projectId);
+    // Invariant : provider lié au SERVICE — résolution par service si dispo.
+    const provider = serviceId
+      ? await this.gitProvidersService.forService(serviceId)
+      : await this.gitProvidersService.forProject(projectId);
 
     const candidates = [
       'docker-compose.yml',

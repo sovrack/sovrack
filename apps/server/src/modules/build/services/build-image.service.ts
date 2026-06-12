@@ -29,7 +29,11 @@ export class BuildImageService {
     serviceId?: string;
   }): Promise<string> {
     try {
-      const provider = await this.gitProvidersService.forProject(projectId);
+      // Invariant : le provider est lié au SERVICE. On résout par service
+      // quand on l'a (correct en multi-provider), sinon fallback projet.
+      const provider = serviceId
+        ? await this.gitProvidersService.forService(serviceId)
+        : await this.gitProvidersService.forProject(projectId);
       return await provider.resolveDockerImageRef(projectId, branch, serviceId);
     } catch (err: unknown) {
       this.logger.warn(

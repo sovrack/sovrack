@@ -207,7 +207,10 @@ export class DeploymentsValidationService {
   ): Promise<void> {
     let askpassPath: string | null = null;
     try {
-      const provider = await this.gitProvidersService.forProject(projectId);
+      // Invariant : provider lié au SERVICE — résolution par service si dispo.
+      const provider = serviceId
+        ? await this.gitProvidersService.forService(serviceId)
+        : await this.gitProvidersService.forProject(projectId);
       const creds = await provider.resolveGitCredentials(projectId, serviceId);
 
       let host = '';
