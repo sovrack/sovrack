@@ -12,26 +12,26 @@ import { ProjectsModule, ServicesModule, ServiceEnvironmentsModule } from './mod
 import { ServersModule, InfrastructureModule, ContainersModule, VolumesModule } from './modules/infrastructure';
 import { DomainsModule, ProxyModule, SslModule } from './modules/networking';
 import { MonitoringModule, DashboardModule } from './modules/observability';
-// Contextes standalone + core
+// Contextes standalone — importés via leur porte publique (barrel index.ts)
+import { GitlabModule, SourceProvidersModule } from './modules/source-providers';
+import { WebhooksModule } from './modules/webhooks';
+import { BuildModule } from './modules/build';
+import { DeploymentsModule } from './modules/deployments';
+import { PlatformModule } from './modules/platform';
+import { AuditModule } from './modules/audit';
+import { TerminalModule } from './modules/terminal';
+import { AutomationModule } from './modules/automation';
+import { ContainerRegistriesModule } from './modules/container-registries';
+// Core (technique)
 import { PrismaModule } from './core/database/prisma.module';
-import { GitlabModule } from './modules/source-providers/gitlab/gitlab.module';
-import { SourceProvidersModule } from './modules/source-providers/source-providers.module';
-import { WebhooksModule } from './modules/webhooks/webhooks.module';
-import { BuildModule } from './modules/build/build.module';
-import { DeploymentsModule } from './modules/deployments/deployments.module';
-import { PlatformModule } from './modules/platform/platform.module';
 import { LoggerModule } from './core/logger/logger.module';
 import { validateEnv } from './core/config/env.validation';
-import { AuditModule } from './modules/audit/audit.module';
-import { TerminalModule } from './modules/terminal/terminal.module';
-import { AutomationModule } from './modules/automation/automation.module';
 import { CryptoModule } from './core/crypto/crypto.module';
 import { AnsibleModule } from './core/provisioning/ansible.module';
 import { DockerModule } from './core/container-runtime/docker.module';
 import { SshModule } from './core/ssh/ssh.module';
 import { EventsModule } from './core/events/events.module';
 import { QueueModule } from './core/queue/queue.module';
-import { ContainerRegistriesModule } from './modules/container-registries/container-registries.module';
 
 @Module({
   imports: [
