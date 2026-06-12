@@ -16,9 +16,9 @@ import {
 } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
-import { GetUser } from '../../../core/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
-import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
+import { GetUser } from '../../../../core/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../../../core/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../../../core/jwt/dto/jwt-payload.dto';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
 import { GitlabCoreService } from './gitlab-core.service';
 

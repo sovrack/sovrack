@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
-import type { RegistryCredentials } from '../interfaces/source-provider.interface';
+import { PrismaService } from '../../../../core/database/prisma.service';
+import { CryptoService } from '../../../../core/crypto/crypto.service';
+import type { RegistryCredentials } from '../../interfaces/source-provider.interface';
 
 @Injectable()
 export class GitlabCredentialService {

@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { SourceType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
-import { CryptoService } from '../../../core/crypto/crypto.service';
+import { CryptoService } from '../../../../core/crypto/crypto.service';
 
 export type GitlabPipelineItem = {
   id: number;

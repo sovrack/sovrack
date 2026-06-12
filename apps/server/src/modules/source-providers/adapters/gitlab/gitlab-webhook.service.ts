@@ -1,19 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GitProviderType, PipelineRunStatus } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../../core/database/prisma.service';
 import { GitlabPipelineItem } from './gitlab-api.service';
 import {
   DEPLOYMENT_PIPELINE_UPDATED,
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
   type PipelineUpdatedEvent,
   type AutoDeployTriggerEvent,
-} from '../../deployments/events/deployment.events';
+} from '../../../deployments/events/deployment.events';
 import {
   IWebhookHandler,
   WebhookEndpointContext,
   WebhookHandleResult,
-} from '../../webhooks/interfaces/webhook-handler.interface';
+} from '../../../webhooks/interfaces/webhook-handler.interface';
 
 export type GitlabWebhookPayload = {
   object_kind?: string;

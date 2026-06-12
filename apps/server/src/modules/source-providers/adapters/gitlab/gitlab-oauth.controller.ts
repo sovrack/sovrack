@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { GitProviderOauthService } from '../config/git-provider-oauth.service';
+import { GitProviderOauthService } from '../../config/git-provider-oauth.service';
 
 @ApiExcludeController()
 @Controller('gitlab')

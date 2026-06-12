@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { Prisma, ProjectRole, Role, SourceType, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../../core/database/prisma.service';
-import { ConnectGitlabDto } from '../../../source-providers/gitlab/dto/connect-gitlab.dto';
-import { GitlabCoreService } from '../../../source-providers/gitlab/gitlab-core.service';
+import { ConnectGitlabDto } from '../../../source-providers/adapters/gitlab/dto/connect-gitlab.dto';
+import { GitlabCoreService } from '../../../source-providers/adapters/gitlab/gitlab-core.service';
 import {
   GitlabGroupImportRepositoryDto,
   ImportGitlabGroupDto,

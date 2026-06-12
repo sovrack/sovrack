@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { GithubFileService } from './github-file.service';
-import type { WebhookConfigResult } from '../interfaces/source-provider.interface';
+import type { WebhookConfigResult } from '../../interfaces/source-provider.interface';
 
 /**
  * Registers (or updates) a webhook on the GitHub repository side.

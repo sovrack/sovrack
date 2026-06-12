@@ -12,10 +12,10 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { SourceType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
-import { ALLOWED_PUSH_FILES } from '../../../core/utils/file-constants';
-import type { RepoWriteResult, GitCredentials } from '../interfaces/source-provider.interface';
+import { PrismaService } from '../../../../core/database/prisma.service';
+import { CryptoService } from '../../../../core/crypto/crypto.service';
+import { ALLOWED_PUSH_FILES } from '../../../../core/utils/file-constants';
+import type { RepoWriteResult, GitCredentials } from '../../interfaces/source-provider.interface';
 
 type GitlabFilePayload = {
   branch: string;

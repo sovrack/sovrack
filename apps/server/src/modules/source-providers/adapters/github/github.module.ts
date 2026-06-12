@@ -1,8 +1,8 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../../core/database/prisma.module';
-import { GitProviderConfigModule } from '../config/git-provider-config.module';
-import { PlatformModule } from '../../platform';
+import { PrismaModule } from '../../../../core/database/prisma.module';
+import { GitProviderConfigModule } from '../../config/git-provider-config.module';
+import { PlatformModule } from '../../../platform';
 import { GithubApiService } from './github-api.service';
 import { GithubController } from './github.controller';
 import { GithubService } from './github.service';

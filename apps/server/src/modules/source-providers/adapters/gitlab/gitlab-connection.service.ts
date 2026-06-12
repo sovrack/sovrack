@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { GitProviderConfigService } from '../config/git-provider-config.service';
+import { GitProviderConfigService } from '../../config/git-provider-config.service';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
 import { PublicGitlabConfig } from './gitlab.types';
 

@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Role, GitProviderType, SourceType } from '@prisma/client';
 import { randomBytes } from 'crypto';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
-import { sanitizeDockerTag } from '../../../core/utils/docker-tag.util';
-import { GitProviderConfigService } from '../config/git-provider-config.service';
+import { PrismaService } from '../../../../core/database/prisma.service';
+import { CryptoService } from '../../../../core/crypto/crypto.service';
+import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
+import { GitProviderConfigService } from '../../config/git-provider-config.service';
 import { GithubApiService } from './github-api.service';
 import { GithubFileService } from './github-file.service';
 import { GithubWebhookConfiguratorService } from './github-webhook-configurator.service';
@@ -16,7 +16,7 @@ import type {
   GitCredentials,
   RepoWriteResult,
   WebhookConfigResult,
-} from '../interfaces/source-provider.interface';
+} from '../../interfaces/source-provider.interface';
 
 export type ConnectGithubDto = {
   gitlabToken: string;

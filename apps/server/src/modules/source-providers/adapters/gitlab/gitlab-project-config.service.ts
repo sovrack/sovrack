@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { SourceType } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../../core/database/prisma.service';
 import { GitlabApiService } from './gitlab-api.service';
 import { GitlabConnectionService } from './gitlab-connection.service';
 

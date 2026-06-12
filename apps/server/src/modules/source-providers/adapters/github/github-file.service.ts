@@ -9,11 +9,11 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { GitProviderType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { ALLOWED_PUSH_FILES } from '../../../core/utils/file-constants';
-import { GitProviderConfigService } from '../config/git-provider-config.service';
+import { PrismaService } from '../../../../core/database/prisma.service';
+import { ALLOWED_PUSH_FILES } from '../../../../core/utils/file-constants';
+import { GitProviderConfigService } from '../../config/git-provider-config.service';
 import { GithubApiService } from './github-api.service';
-import type { RepoWriteResult, GitCredentials } from '../interfaces/source-provider.interface';
+import type { RepoWriteResult, GitCredentials } from '../../interfaces/source-provider.interface';
 
 /**
  * Low-level GitHub file I/O:

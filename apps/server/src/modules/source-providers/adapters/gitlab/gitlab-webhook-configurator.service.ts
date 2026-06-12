@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { GitlabFileService } from './gitlab-file.service';
-import type { WebhookConfigResult } from '../interfaces/source-provider.interface';
+import type { WebhookConfigResult } from '../../interfaces/source-provider.interface';
 
 /**
  * Registers (or updates) a webhook on the GitLab project side.

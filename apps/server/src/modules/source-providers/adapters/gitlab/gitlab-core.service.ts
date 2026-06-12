@@ -5,8 +5,8 @@ import {
   Role,
 } from '@prisma/client';
 import { randomBytes } from 'crypto';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { sanitizeDockerTag } from '../../../core/utils/docker-tag.util';
+import { PrismaService } from '../../../../core/database/prisma.service';
+import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
 import {
   GitlabApiService,
@@ -16,12 +16,12 @@ import {
   GitlabPipelineItem,
   GitlabRepoItem,
 } from './gitlab-api.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
+import { CryptoService } from '../../../../core/crypto/crypto.service';
 import { PublicGitlabConfig } from './gitlab.types';
 import {
   GitProviderConfigService,
   type GitlabProviderProjectOption,
-} from '../config/git-provider-config.service';
+} from '../../config/git-provider-config.service';
 import { GitlabAuthorizationService } from './gitlab-authorization.service';
 import { GitlabCiService } from './gitlab-ci.service';
 import { GitlabProjectConfigService } from './gitlab-project-config.service';
@@ -38,7 +38,7 @@ import type {
   GitCredentials,
   RepoWriteResult,
   WebhookConfigResult,
-} from '../interfaces/source-provider.interface';
+} from '../../interfaces/source-provider.interface';
 
 @Injectable()
 export class GitlabCoreService implements IGitProvider {

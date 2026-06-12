@@ -1,5 +1,5 @@
 import { DockerDeployExecutorService } from '../../src/modules/deployments/services/docker-deploy-executor.service';
-import { GitlabCoreService } from '../../src/modules/source-providers/gitlab/gitlab-core.service';
+import { GitlabCoreService } from '../../src/modules/source-providers/adapters/gitlab/gitlab-core.service';
 
 export type AnsibleMockHandle = {
   executeDeploy: jest.Mock;
