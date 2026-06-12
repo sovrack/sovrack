@@ -24,6 +24,7 @@ import { DeploymentContainerInspectorService } from './services/deployment-conta
 import { DeploymentsStaleRecoveryService } from './services/deployments-stale-recovery.service';
 import { DeploymentsValidationService } from './services/deployments-validation.service';
 import { DeploymentsConfigResolver } from './services/deployments-config-resolver.service';
+import { DeploymentsProcessor } from './processors/deployments.processor';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { DeploymentsConfigResolver } from './services/deployments-config-resolve
     DeploymentsStaleRecoveryService,
     DeploymentsValidationService,
     DeploymentsConfigResolver,
+    DeploymentsProcessor,
   ],
   exports: [
     DeploymentsQueryService,
