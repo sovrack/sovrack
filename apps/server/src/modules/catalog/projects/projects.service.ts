@@ -10,13 +10,13 @@ import {
   Prisma,
   Role,
 } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
-import { AuditService } from '../audit/audit.service';
+import { PrismaService } from '../../../core/database/prisma.service';
+import { AuditService } from '../../audit/audit.service';
 import {
   PaginationDto,
   PaginatedResult,
   paginate,
-} from '../../core/http/pagination.dto';
+} from '../../../core/http/pagination.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 

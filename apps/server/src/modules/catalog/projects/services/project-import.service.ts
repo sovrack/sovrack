@@ -5,15 +5,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, ProjectRole, Role, SourceType, ServiceType } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { ConnectGitlabDto } from '../../source-providers/gitlab/dto/connect-gitlab.dto';
-import { GitlabCoreService } from '../../source-providers/gitlab/gitlab-core.service';
+import { PrismaService } from '../../../../core/database/prisma.service';
+import { ConnectGitlabDto } from '../../../source-providers/gitlab/dto/connect-gitlab.dto';
+import { GitlabCoreService } from '../../../source-providers/gitlab/gitlab-core.service';
 import {
   GitlabGroupImportRepositoryDto,
   ImportGitlabGroupDto,
 } from '../dto/import-gitlab-group.dto';
 import { ProjectsService } from '../projects.service';
-import { AuditService } from '../../audit/audit.service';
+import { AuditService } from '../../../audit/audit.service';
 
 const projectWithMembersInclude = {
   members: {
