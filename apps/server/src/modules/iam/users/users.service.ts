@@ -8,12 +8,12 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { Prisma, Role, User } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '../../../core/database/prisma.service';
 import {
   PaginationDto,
   PaginatedResult,
   paginate,
-} from '../../core/http/pagination.dto';
+} from '../../../core/http/pagination.dto';
 import { ChangeMyPasswordDto } from './dto/change-my-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';

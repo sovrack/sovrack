@@ -16,12 +16,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role, User } from '@prisma/client';
-import { GetUser } from '../../core/decorators/get-user.decorator';
-import { Roles } from '../../core/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../core/guards/roles.guard';
-import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
-import { PaginationDto } from '../../core/http/pagination.dto';
+import { GetUser } from '../../../core/decorators/get-user.decorator';
+import { Roles } from '../../../core/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../core/guards/roles.guard';
+import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
+import { PaginationDto } from '../../../core/http/pagination.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChangeMyPasswordDto } from './dto/change-my-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';

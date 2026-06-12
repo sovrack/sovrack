@@ -3,10 +3,10 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
-import { RolesGuard } from '../../core/guards/roles.guard';
+import { RolesGuard } from '../../../core/guards/roles.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
-import { AppJwtModule } from '../../core/jwt/jwt.module';
-import { AuditModule } from '../audit/audit.module';
+import { AppJwtModule } from '../../../core/jwt/jwt.module';
+import { AuditModule } from '../../audit/audit.module';
 
 /**
  * Module d'authentification

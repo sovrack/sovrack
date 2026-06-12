@@ -9,19 +9,19 @@ import {
 } from '@nestjs/swagger';
 import { AuthService, AuthResponse } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../core/guards/roles.guard';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../core/guards/roles.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
-import { GetUser } from '../../core/decorators/get-user.decorator';
-import { Roles } from '../../core/decorators/roles.decorator';
-import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
+import { GetUser } from '../../../core/decorators/get-user.decorator';
+import { Roles } from '../../../core/decorators/roles.decorator';
+import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
 import { Role, User } from '@prisma/client';
 import type { Response } from 'express';
 import {
   buildAuthCookieClearOptions,
   buildAuthCookieOptions,
   resolveAuthCookieName,
-} from '../../core/http/auth-cookie.util';
+} from '../../../core/http/auth-cookie.util';
 
 /**
  * Contrôleur d'authentification

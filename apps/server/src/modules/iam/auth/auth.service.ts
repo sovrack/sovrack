@@ -9,8 +9,8 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { User } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
-import { AuditService } from '../audit/audit.service';
+import { PrismaService } from '../../../core/database/prisma.service';
+import { AuditService } from '../../audit/audit.service';
 
 /**
  * Réponse d'authentification
