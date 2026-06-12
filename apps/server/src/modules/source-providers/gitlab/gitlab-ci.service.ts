@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { GitProviderType, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import {
@@ -6,7 +6,7 @@ import {
   GitlabPipelineItem,
 } from './gitlab-api.service';
 import { GitlabAuthorizationService } from './gitlab-authorization.service';
-import { GitlabCoreService } from './gitlab-core.service';
+import { GitlabProjectConfigService } from './gitlab-project-config.service';
 import { GitlabWebhookService } from './gitlab-webhook.service';
 
 @Injectable()
@@ -15,8 +15,7 @@ export class GitlabCiService {
     private readonly prisma: PrismaService,
     private readonly apiService: GitlabApiService,
     private readonly webhookService: GitlabWebhookService,
-    @Inject(forwardRef(() => GitlabCoreService))
-    private readonly core: GitlabCoreService,
+    private readonly projectConfig: GitlabProjectConfigService,
     private readonly auth: GitlabAuthorizationService,
   ) {}
 
@@ -26,13 +25,13 @@ export class GitlabCiService {
     userRole: Role,
   ): Promise<GitlabPipelineItem[]> {
     await this.auth.assertCanAccessProject(projectId, userId, userRole);
-    const config = await this.core.getProjectConfig(projectId);
-    const repoId = this.core.assertRepoSource(config, 'récupération des pipelines');
+    const config = await this.projectConfig.getProjectConfig(projectId);
+    const repoId = this.projectConfig.assertRepoSource(config, 'récupération des pipelines');
 
     const pipelines = await this.apiService.getPipelines(
       config,
       repoId,
-      (url) => this.core.normalizeUrl(url),
+      (url) => this.projectConfig.normalizeUrl(url),
     );
 
     for (const pipeline of pipelines) {
@@ -85,11 +84,11 @@ export class GitlabCiService {
         );
     }
 
-    const config = await this.core.getProjectConfig(projectId);
+    const config = await this.projectConfig.getProjectConfig(projectId);
     const pipelines = await this.apiService.getPipelines(
       config,
       repoLink.repoPath,
-      (url) => this.core.normalizeUrl(url),
+      (url) => this.projectConfig.normalizeUrl(url),
     );
 
     for (const pipeline of pipelines) {
@@ -107,8 +106,8 @@ export class GitlabCiService {
     preferredRepoId?: number,
   ): Promise<GitlabPipelineItem> {
     await this.auth.assertCanAccessProject(projectId, userId, userRole);
-    const config = await this.core.getProjectConfig(projectId);
-    const repoId = await this.core.resolveRepoIdForAction(
+    const config = await this.projectConfig.getProjectConfig(projectId);
+    const repoId = await this.projectConfig.resolveRepoIdForAction(
       config,
       'déclenchement du pipeline',
       preferredRepoId,
@@ -118,7 +117,7 @@ export class GitlabCiService {
       config,
       repoId,
       branch,
-      (url) => this.core.normalizeUrl(url),
+      (url) => this.projectConfig.normalizeUrl(url),
     );
 
     await this.webhookService.upsertPipeline(projectId, pipeline);

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   GitProviderType,
   SourceType,
@@ -24,6 +24,7 @@ import {
 } from '../config/git-provider-config.service';
 import { GitlabAuthorizationService } from './gitlab-authorization.service';
 import { GitlabCiService } from './gitlab-ci.service';
+import { GitlabProjectConfigService } from './gitlab-project-config.service';
 import { GitlabConnectionService } from './gitlab-connection.service';
 import { GitlabCredentialService } from './gitlab-credential.service';
 import { GitlabFileService } from './gitlab-file.service';
@@ -48,13 +49,15 @@ export class GitlabCoreService implements IGitProvider {
     private readonly apiService: GitlabApiService,
     private readonly cryptoService: CryptoService,
     private readonly gitProviderRegistry: GitProviderConfigService,
-    @Inject(forwardRef(() => GitlabCiService))
+    // Plus de forwardRef : le cycle core↔ci est cassé (ci ne dépend plus de
+    // core, voir GitlabProjectConfigService). Injection directe.
     private readonly ci: GitlabCiService,
     private readonly fileService: GitlabFileService,
     private readonly webhookConfigurator: GitlabWebhookConfiguratorService,
     private readonly auth: GitlabAuthorizationService,
     private readonly connection: GitlabConnectionService,
     private readonly credential: GitlabCredentialService,
+    private readonly projectConfig: GitlabProjectConfigService,
   ) {}
 
   async connectProject(
@@ -277,8 +280,8 @@ export class GitlabCoreService implements IGitProvider {
     preferredRepoId?: number,
   ): Promise<GitlabBranchItem[]> {
     await this.auth.assertCanAccessProject(projectId, userId, userRole);
-    const config = await this.getProjectConfig(projectId);
-    const repoId = await this.resolveRepoIdForAction(
+    const config = await this.projectConfig.getProjectConfig(projectId);
+    const repoId = await this.projectConfig.resolveRepoIdForAction(
       config,
       'récupération des branches',
       preferredRepoId,
@@ -295,7 +298,7 @@ export class GitlabCoreService implements IGitProvider {
     userRole: Role,
   ): Promise<GitlabRepoItem[]> {
     await this.auth.assertCanAccessProject(projectId, userId, userRole);
-    const config = await this.getProjectConfig(projectId);
+    const config = await this.projectConfig.getProjectConfig(projectId);
 
     if (config.sourceType === SourceType.GIT) {
       return await this.apiService.fetchGroupRepositories(config, (url) =>
@@ -303,7 +306,7 @@ export class GitlabCoreService implements IGitProvider {
       );
     }
 
-    const repoId = this.assertRepoSource(config, 'récupération du repository');
+    const repoId = this.projectConfig.assertRepoSource(config, 'récupération du repository');
     return await this.apiService.getRepos(config, repoId, (url) =>
       this.connection.normalizeUrl(url),
     );
@@ -370,7 +373,7 @@ export class GitlabCoreService implements IGitProvider {
     userRole: Role,
   ): Promise<PublicGitlabConfig> {
     await this.auth.assertCanAccessProject(projectId, userId, userRole);
-    const config = await this.getProjectConfig(projectId);
+    const config = await this.projectConfig.getProjectConfig(projectId);
     return this.connection.toPublicConfig(config);
   }
 
@@ -390,48 +393,12 @@ export class GitlabCoreService implements IGitProvider {
       normalizeRepositoryPath: (value) => this.connection.normalizeRepositoryPath(value),
       normalizeUrl: (value) => this.connection.normalizeUrl(value),
       resolveRepoIdForAction: async (candidateConfig, action, selectedRepoId) =>
-        await this.resolveRepoIdForAction(
+        await this.projectConfig.resolveRepoIdForAction(
           candidateConfig,
           action,
           selectedRepoId,
         ),
     });
-  }
-
-  async getProjectConfig(projectId: string): Promise<any> {
-    const svc = await this.prisma.service.findFirst({
-      where: { projectId, providerId: { not: null } },
-    });
-    if (!svc?.providerId) {
-      throw new NotFoundException(
-        'Configuration GitLab non trouvée pour ce projet',
-      );
-    }
-    const gitProviderConfig = await this.prisma.gitProviderConfig.findUnique({
-      where: { id: svc.providerId },
-    });
-    if (!gitProviderConfig) {
-      throw new NotFoundException(
-        'Configuration GitLab non trouvée pour ce projet',
-      );
-    }
-    // Return combined data as any for backward compatibility
-    return {
-      ...gitProviderConfig,
-      projectId,
-      providerUrl: gitProviderConfig.providerUrl,
-      providerToken: gitProviderConfig.adminToken || gitProviderConfig.oauthAccessToken || '',
-      sourceType: svc.sourceType,
-      defaultBranch: svc.branch,
-      externalId: null,
-      repoPathNamespace: null,
-      externalGroupId: null,
-      deployTokenUsername: null,
-      deployTokenValue: null,
-      webhookSecret: null,
-      registryUrl: null,
-      providerId: gitProviderConfig.id,
-    } as any;
   }
 
   // ─── IGitProvider interface methods ───────────────────────────────────────
@@ -673,69 +640,6 @@ export class GitlabCoreService implements IGitProvider {
         : repoPath;
 
     return `${registryHost}/${finalPath}:${tag}`;
-  }
-
-  // ─── Private helpers ──────────────────────────────────────────────────────
-
-  /** @deprecated Use connection.normalizeUrl() instead. Kept for GitlabCiService compat. */
-  normalizeUrl(url: string): string {
-    return this.connection.normalizeUrl(url);
-  }
-
-  assertRepoSource(config: any, action: string): number {
-    if (config.sourceType !== SourceType.GIT || !config.repoPath) {
-      throw new BadRequestException(
-        `Action indisponible pour une source GROUP (${action})`,
-      );
-    }
-
-    return Number(config.externalId);
-  }
-
-  async resolveRepoIdForAction(
-    config: any,
-    action: string,
-    preferredRepoId?: number,
-  ): Promise<number> {
-    if (config.sourceType === SourceType.GIT) {
-      return this.assertRepoSource(config, action);
-    }
-
-    const repos = await this.apiService.fetchGroupRepositories(config, (url) =>
-      this.connection.normalizeUrl(url),
-    );
-    const repoIds = repos
-      .map((repo) => repo.id)
-      .filter(
-        (id): id is number =>
-          typeof id === 'number' && Number.isInteger(id) && id > 0,
-      );
-
-    if (repoIds.length === 0) {
-      throw new BadRequestException(
-        `Aucun repository disponible dans le groupe (${action})`,
-      );
-    }
-
-    if (
-      Number.isInteger(preferredRepoId) &&
-      preferredRepoId !== undefined &&
-      preferredRepoId > 0
-    ) {
-      if (repoIds.includes(preferredRepoId)) {
-        return preferredRepoId;
-      }
-
-      throw new BadRequestException(
-        `Repository ${String(preferredRepoId)} introuvable dans ce groupe (${action})`,
-      );
-    }
-
-    if (config.externalId && repoIds.includes(Number(config.externalId))) {
-      return Number(config.externalId);
-    }
-
-    return repoIds[0];
   }
 
 }
