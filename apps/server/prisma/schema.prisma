@@ -234,9 +234,6 @@ model Project {
   deployments      Deployment[]
   builds           Build[]
   pipelineRuns     PipelineRun[]
-  // Legacy build/source fields removed (Phase 1 — refactoring).
-
-  // Source and build config now live on the Service model.
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -253,14 +250,6 @@ model ProjectMember {
   @@unique([projectId, userId])
   @@index([userId, projectId])
 }
-
-// ============================================================================
-// AppProviderLink REMOVED (Phase 1 — refactoring).
-
-// Replaced by Service.repoPath + Service.providerId.
-
-// Data was migrated via backfill-service-model.ts.
-// ============================================================================
 
 model Server {
   id                String                   @id @default(uuid())
@@ -516,13 +505,6 @@ model ServiceEnvironment {
   @@index([environmentId])
 }
 
-// ============================================================================
-// Config and EnvironmentConfig REMOVED (Phase 1 — refactoring).
-
-// Replaced by Project.env and Environment.env (JSON).
-
-// Data was migrated via backfill-service-model.ts.
-// ============================================================================
 
 model Deployment {
   id                 String             @id @default(uuid())
@@ -742,13 +724,6 @@ model ProxyRule {
   @@index([serviceEnvId])
 }
 
-// ============================================================================
-// ManagedService REMOVED (Phase 1 — refactoring).
-
-// Replaced by Service.type = DATABASE.
-
-// Data was migrated via backfill-service-model.ts.
-// ============================================================================
 
 model Team {
   id          String       @id @default(uuid())
@@ -874,13 +849,6 @@ model RegistryConfig {
   @@index([type, isDefault])
 }
 
-// ============================================================================
-// ProjectService + EnvironmentServiceTarget REMOVED (Phase 1 — refactoring).
-
-// Replaced by Service (unified model, attached to Environment via join table).
-
-// Data was migrated via backfill-service-model.ts.
-// ============================================================================
 
 model DnsProvider {
   id        String          @id @default(uuid())

@@ -51,6 +51,29 @@ Conséquences (non négociables) :
 > Règle de conception : tout nouveau code qui a besoin du provider doit partir
 > d'un **serviceId** (→ `forService`), jamais d'un projectId.
 
+## 1ter. Build & Deploy : l'unité déployée est le ServiceEnvironment
+
+```
+Service             = LE QUOI (le code, le repo, les défauts).  ⛔ ne tourne jamais seul.
+Environment         = LE OÙ (staging / prod).                   ⛔ ne tourne jamais seul.
+ServiceEnvironment  = L'INSTANCE (ce service, sur cette cible). ✅ c'est ÇA qu'on build et déploie.
+Build               = l'ARTEFACT (image) produit depuis le code du Service.
+Deployment          = l'ACTE : « lancer ce Build sur ce ServiceEnvironment ».
+```
+
+- `Deployment.serviceEnvId` + `Deployment.buildId` sont la **source de vérité**.
+  `serviceId`/`environmentId`/`projectId` à côté = **snapshots dénormalisés**
+  (requêtes/perf), jamais la primitive de résolution.
+- Un `ServiceEnvironment` est l'unité atomique de build **et** de déploiement.
+
+### Cible « Build once, promote » (standard release entreprise)
+Aujourd'hui : 1 Build par ServiceEnvironment (rebuild pour staging puis prod).
+Cible : builder l'image **une seule fois** (niveau Service + commit), puis
+**promouvoir le MÊME artefact** vers staging → prod via des `Deployment`.
+Garantit que staging et prod exécutent l'image **identique**. Le modèle le
+permet déjà (`Build.deployments[]` : un Build → plusieurs Deployments) ; le
+flux de création reste à faire évoluer (runtime requis).
+
 ## 2. Les lois d'architecture (non négociables)
 
 1. **Sens des dépendances** : `core ◄ shared ◄ contextes`. `core/` n'importe
