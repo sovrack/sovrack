@@ -57,16 +57,24 @@ export class SslCertificateService {
     );
 
     const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+    const certificatePath = `/etc/letsencrypt/live/${request.domainName}/fullchain.pem`;
+    const keyPath = `/etc/letsencrypt/live/${request.domainName}/privkey.pem`;
 
-    await this.prisma.$executeRaw`
-      INSERT INTO "SslCertificate" ("domainId", "domainName", "certificatePath", "keyPath", "expiresAt", "autoRenewal", "createdAt")
-      VALUES (${request.domainId}, ${request.domainName},
-              ${`/etc/letsencrypt/live/${request.domainName}/fullchain.pem`},
-              ${`/etc/letsencrypt/live/${request.domainName}/privkey.pem`},
-              ${expiresAt}, true, NOW())
-      ON CONFLICT ("domainName") DO UPDATE
-      SET "expiresAt" = EXCLUDED."expiresAt", "autoRenewal" = true
-    `;
+    await this.prisma.sslCertificate.upsert({
+      where: { domainName: request.domainName },
+      create: {
+        domainId: request.domainId,
+        domainName: request.domainName,
+        certificatePath,
+        keyPath,
+        expiresAt,
+        autoRenewal: true,
+      },
+      update: {
+        expiresAt,
+        autoRenewal: true,
+      },
+    });
 
     return {
       domain: request.domainName,
@@ -95,11 +103,10 @@ export class SslCertificateService {
 
   async getExpiringCertificates(withinDays = 30): Promise<Array<{ domainName: string; expiresAt: Date }>> {
     const threshold = new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000);
-    const rows = await this.prisma.$queryRaw<Array<{ domainName: string; expiresAt: Date }>>`
-      SELECT "domainName", "expiresAt" FROM "SslCertificate"
-      WHERE "expiresAt" < ${threshold} AND "autoRenewal" = true
-      ORDER BY "expiresAt" ASC
-    `;
-    return rows;
+    return this.prisma.sslCertificate.findMany({
+      where: { expiresAt: { lt: threshold }, autoRenewal: true },
+      orderBy: { expiresAt: 'asc' },
+      select: { domainName: true, expiresAt: true },
+    });
   }
 }

@@ -901,6 +901,7 @@ model Domain {
   serviceEnv   ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
   verified     Boolean             @default(false)
   records      DnsRecord[]
+  sslCertificate SslCertificate?
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
@@ -908,6 +909,31 @@ model Domain {
   @@index([providerId])
   @@index([projectId])
   @@index([serviceEnvId])
+}
+
+// ============================================================================
+// SslCertificate — métadonnées d'un certificat TLS Let's Encrypt émis pour un
+// Domain. Auparavant manipulée en SQL brut sur une table INEXISTANTE (le cron
+// de renouvellement crashait : relation "SslCertificate" does not exist).
+// Modélisée ici pour des accès Prisma typés.
+// ============================================================================
+model SslCertificate {
+  id              String   @id @default(uuid())
+  domainId        String   @unique
+  domain          Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  // Dénormalisé depuis Domain.name : le cron de renouvellement filtre dessus
+  // sans jointure, et c'est la clé d'upsert (un certificat par nom d'hôte).
+  domainName      String   @unique
+  certificatePath String
+  keyPath         String
+  expiresAt       DateTime
+  autoRenewal     Boolean  @default(true)
+  lastRenewalAttemptAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Sert la requête getExpiringCertificates (expiresAt < seuil AND autoRenewal).
+  @@index([autoRenewal, expiresAt])
 }
 
 model DnsRecord {
