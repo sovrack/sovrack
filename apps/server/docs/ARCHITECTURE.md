@@ -74,6 +74,41 @@ Garantit que staging et prod exécutent l'image **identique**. Le modèle le
 permet déjà (`Build.deployments[]` : un Build → plusieurs Deployments) ; le
 flux de création reste à faire évoluer (runtime requis).
 
+## 1quater. Architecture `source/` (intégration multi-provider)
+
+Pattern adapter **complet**, en 3 couches :
+
+```
+1. CONTRATS génériques (écrits une fois) :
+   - IGitProvider      → opérations repo/pipeline/fichiers (listRepos, triggerPipeline, writeFiles…)
+   - IWebhookHandler   → réception d'un webhook entrant
+
+2. ROUTAGE générique :
+   - source-providers.service : REGISTRE (registeredProviders) → forType/forService (Open/Closed)
+   - webhooks/incoming-webhook.controller : reçoit, identifie l'endpoint, dispatche au bon handler
+
+3. ADAPTERS spécifiques par provider (github/, gitlab/) :
+   - chacun implémente IGitProvider + IWebhookHandler avec SON API.
+```
+
+**Pourquoi github/ et gitlab/ ont du code différent (ce n'est PAS de la
+duplication à fusionner)** : ce sont deux **modèles d'intégration distincts** —
+- GitHub : `push` → la plateforme déclenche elle-même build/deploy.
+- GitLab : GitLab CI exécute le pipeline → nous **réagissons** à son statut.
+Forcer une fusion serait l'anti-pattern. Chaque API (endpoints, auth, payloads)
+est légitimement spécifique → c'est exactement le rôle d'un adapter.
+
+**État** :
+- ✅ Cycle `gitlab-core ↔ gitlab-ci` **cassé** (extraction `GitlabProjectConfigService`).
+- ✅ Résolution par registre (ajouter un provider = +1 adapter, cf.
+  `docs/ADDING-A-GIT-PROVIDER.md`).
+- ⏳ Mineur (optionnel) : la résolution `endpoint → service` (~15 l.) est
+  encore présente dans les 2 handlers → extractible en un helper partagé
+  (faible valeur, flux webhook critique → à faire avec runtime).
+
+→ `source/` est **architecturalement complet et correct**. Le « gros » restant
+(faire évoluer les *flux* build/deploy) est comportemental → runtime requis.
+
 ## 2. Les lois d'architecture (non négociables)
 
 1. **Sens des dépendances** : `core ◄ shared ◄ contextes`. `core/` n'importe
