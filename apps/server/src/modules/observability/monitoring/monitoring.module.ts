@@ -1,10 +1,10 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../core/database/prisma.module';
-import { AutomationModule } from '../automation/automation.module';
-import { PlatformModule } from '../platform/platform.module';
-import { ServersModule } from '../servers/servers.module';
-import { ContainersModule } from '../containers/containers.module';
+import { PrismaModule } from '../../../core/database/prisma.module';
+import { AutomationModule } from '../../automation/automation.module';
+import { PlatformModule } from '../../platform/platform.module';
+import { ServersModule } from '../../servers/servers.module';
+import { ContainersModule } from '../../containers/containers.module';
 import { MonitoringController } from './controllers/monitoring.controller';
 import { MonitoringService } from './services/monitoring.service';
 import { MonitoringStatsService } from './services/monitoring-stats.service';

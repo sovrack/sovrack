@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DeploymentStatus, ServerStatus } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '../../../core/database/prisma.service';
 
 export type DayActivity = { date: string; total: number; success: number; failed: number };
 

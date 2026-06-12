@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-import { PlatformService } from '../../platform/platform.service';
+import { PlatformService } from '../../../platform/platform.service';
 
 export type MonitoringMetricSnapshot = {
   up: number | null;

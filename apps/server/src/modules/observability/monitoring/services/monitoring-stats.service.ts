@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DeploymentStatus, PipelineRunStatus, ServerStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { AUTOMATION_ACTIONS } from '../../automation/shared/automation-options';
+import { PrismaService } from '../../../../core/database/prisma.service';
+import { AUTOMATION_ACTIONS } from '../../../automation/shared/automation-options';
 import type { MonitoringMetricSnapshot } from './monitoring-prometheus.service';
 
 type MonitoringHealth = 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';

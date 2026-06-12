@@ -1,14 +1,14 @@
 import { Body, Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { GetUser } from '../../../core/decorators/get-user.decorator';
-import { Roles } from '../../../core/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../core/guards/roles.guard';
-import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
+import { GetUser } from '../../../../core/decorators/get-user.decorator';
+import { Roles } from '../../../../core/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../../core/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../../core/guards/roles.guard';
+import type { JwtPayload } from '../../../../core/jwt/dto/jwt-payload.dto';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringService } from '../services/monitoring.service';
-import { ContainerStatsService } from '../../containers/services/container-stats.service';
+import { ContainerStatsService } from '../../../containers/services/container-stats.service';
 
 @ApiTags('Monitoring')
 @ApiBearerAuth()
