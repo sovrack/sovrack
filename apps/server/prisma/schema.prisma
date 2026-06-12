@@ -123,6 +123,10 @@ enum BuildStatus {
   BUILDING
   SUCCESS
   FAILED
+  // Aucun build n'était nécessaire (service à image externe / base de
+  // données managée / statique) — fait explicite et requêtable, distinct
+  // d'un build simplement absent ("pas encore tenté").
+  SKIPPED
 }
 
 enum DeploymentStrategy {
@@ -1222,6 +1226,10 @@ model Service {
   // Source (APPLICATION)
   sourceType SourceType? @default(GIT)
   repoPath   String?
+  // CONFIG niveau 1 (défaut du service) : branche par défaut, SURCHARGEABLE
+  // par ServiceEnvironment.branch (null = hérite de cette valeur). À ne pas
+  // confondre avec Build.branch / Deployment.branch qui sont des SNAPSHOTS
+  // immuables (la branche réellement construite/déployée à un instant T).
   branch     String?     @default("main")
   provider   GitProviderConfig? @relation(fields: [providerId], references: [id], onDelete: SetNull)
   providerId String?
