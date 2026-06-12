@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/database/prisma.module';
-import { PlatformModule } from '../platform/platform.module';
+import { PlatformModule } from '../platform';
 import { GitlabModule } from '../source-providers/gitlab/gitlab.module';
 import { GithubModule } from '../source-providers/github/github.module';
-import { SourceProvidersModule } from '../source-providers/source-providers.module';
+import { SourceProvidersModule } from '../source-providers';
 import { GitlabWebhookService } from '../source-providers/gitlab/gitlab-webhook.service';
 import { GithubWebhookService } from '../source-providers/github/github-webhook.service';
 import { WebhooksService } from './webhooks.service';

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
-import { BuildModule } from '../build/build.module';
-import { SourceProvidersModule } from '../source-providers/source-providers.module';
-import { NotificationsModule } from '../notifications/notifications.module';
+import { BuildModule } from '../build';
+import { SourceProvidersModule } from '../source-providers';
+import { NotificationsModule } from '../notifications';
 import { PrismaModule } from '../../core/database/prisma.module';
-import { AuditModule } from '../audit/audit.module';
+import { AuditModule } from '../audit';
 import { ServersModule } from '../infrastructure/servers/servers.module';
 import { DockerDeployExecutorService } from './services/docker-deploy-executor.service';
 import { DeploymentsAuthorizationService } from './services/deployments-authorization.service';

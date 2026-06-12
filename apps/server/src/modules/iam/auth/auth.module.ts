@@ -6,7 +6,7 @@ import { UsersModule } from '../users/users.module';
 import { RolesGuard } from '../../../core/guards/roles.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import { AppJwtModule } from '../../../core/jwt/jwt.module';
-import { AuditModule } from '../../audit/audit.module';
+import { AuditModule } from '../../audit';
 
 /**
  * Module d'authentification

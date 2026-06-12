@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { PrismaModule } from '../../../core/database/prisma.module';
 import { AppJwtModule } from '../../../core/jwt/jwt.module';
 import { InfrastructureModule } from '../preparation/infrastructure.module';
-import { AuditModule } from '../../audit/audit.module';
+import { AuditModule } from '../../audit';
 import {
   ServersAuditService,
   ServersDetectionService,
