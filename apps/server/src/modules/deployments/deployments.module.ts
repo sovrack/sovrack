@@ -6,7 +6,7 @@ import { SourceProvidersModule } from '../source-providers/source-providers.modu
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PrismaModule } from '../../core/database/prisma.module';
 import { AuditModule } from '../audit/audit.module';
-import { ServersModule } from '../servers/servers.module';
+import { ServersModule } from '../infrastructure/servers/servers.module';
 import { DockerDeployExecutorService } from './services/docker-deploy-executor.service';
 import { DeploymentsAuthorizationService } from './services/deployments-authorization.service';
 import { DeploymentsHealthcheckService } from './services/deployments-healthcheck.service';

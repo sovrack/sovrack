@@ -8,7 +8,7 @@ import { RolesGuard } from '../../../../core/guards/roles.guard';
 import type { JwtPayload } from '../../../../core/jwt/dto/jwt-payload.dto';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringService } from '../services/monitoring.service';
-import { ContainerStatsService } from '../../../containers/services/container-stats.service';
+import { ContainerStatsService } from '../../../infrastructure/containers/services/container-stats.service';
 
 @ApiTags('Monitoring')
 @ApiBearerAuth()

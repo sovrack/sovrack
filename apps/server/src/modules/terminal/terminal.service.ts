@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../core/database/prisma.service';
-import { ServerHostKeyService } from '../servers/services/server-host-key.service';
-import { ServersCryptoService } from '../servers/services/servers-crypto.service';
+import { ServerHostKeyService } from '../infrastructure/servers/services/server-host-key.service';
+import { ServersCryptoService } from '../infrastructure/servers/services/servers-crypto.service';
 import { SshSessionService } from './ssh-session.service';
 import { TerminalAuditService } from './terminal-audit.service';
 

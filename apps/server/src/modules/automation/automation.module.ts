@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/database/prisma.module';
-import { InfrastructureModule } from '../infrastructure/infrastructure.module';
+import { InfrastructureModule } from '../infrastructure/preparation/infrastructure.module';
 import { AutomationGateway } from './automation.gateway';
 import { AutomationController } from './controllers/automation.controller';
 import { AutomationRunnerService } from './services/automation-runner.service';

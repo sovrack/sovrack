@@ -13,7 +13,7 @@ import {
 import {
   ServerHostKeyService,
   ServersCryptoService,
-} from '../../servers/services';
+} from '../../infrastructure/servers/services';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { ServersCryptoService } from '../../servers/services';
+import { ServersCryptoService } from '../../infrastructure/servers/services';
 import type { CreateSshKeyDto } from './dto/create-ssh-key.dto';
 
 export type SshKeyPublic = {

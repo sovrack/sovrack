@@ -8,8 +8,8 @@ import {
   ServerLogLevel,
 } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { ServerPreparationAnsibleService } from '../../infrastructure/services/server-preparation-ansible.service';
-import type { PreparationRoleKey } from '../../servers/shared/server-preparation-options';
+import { ServerPreparationAnsibleService } from '../../infrastructure/preparation/services/server-preparation-ansible.service';
+import type { PreparationRoleKey } from '../../infrastructure/servers/shared/server-preparation-options';
 import { AutomationGateway } from '../automation.gateway';
 
 type RunConfig = {

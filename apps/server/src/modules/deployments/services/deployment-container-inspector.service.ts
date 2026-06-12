@@ -9,7 +9,7 @@ import { DockerSshService } from '../../../core/container-runtime/docker-ssh.ser
 import {
   ServerHostKeyService,
   ServersCryptoService,
-} from '../../servers/services';
+} from '../../infrastructure/servers/services';
 
 /**
  * Handles container-level operations for deployments:
