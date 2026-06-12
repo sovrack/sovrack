@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/database/prisma.module';
-import { ServersSharedModule } from '../infrastructure/servers/servers-shared.module';
+import { ServersSharedModule } from '../infrastructure';
 import { TerminalGateway } from './terminal.gateway';
 import { SshSessionService } from './ssh-session.service';
 import { TerminalAuditService } from './terminal-audit.service';
