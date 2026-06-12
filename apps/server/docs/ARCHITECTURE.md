@@ -76,20 +76,29 @@ flux de création reste à faire évoluer (runtime requis).
 
 ## 1quater. Architecture `source/` (intégration multi-provider)
 
-Pattern adapter **complet**, en 3 couches :
+Pattern adapter **complet**, en 3 couches — structure réelle :
 
 ```
-1. CONTRATS génériques (écrits une fois) :
-   - IGitProvider      → opérations repo/pipeline/fichiers (listRepos, triggerPipeline, writeFiles…)
-   - IWebhookHandler   → réception d'un webhook entrant
-
-2. ROUTAGE générique :
-   - source-providers.service : REGISTRE (registeredProviders) → forType/forService (Open/Closed)
-   - webhooks/incoming-webhook.controller : reçoit, identifie l'endpoint, dispatche au bon handler
-
-3. ADAPTERS spécifiques par provider (github/, gitlab/) :
-   - chacun implémente IGitProvider + IWebhookHandler avec SON API.
+source-providers/
+├── contracts/          git-provider.contract.ts   (IGitProvider — LE contrat)
+├── shared/connection/  git-provider-config + oauth (connexion/tokens communs)
+├── adapters/
+│   ├── gitlab/   gitlab.adapter (IGitProvider) · gitlab.client (HTTP) ·
+│   │             gitlab-webhook.handler (IWebhookHandler) · gitlab-webhook-configurator ·
+│   │             gitlab-ci · gitlab-connection · gitlab-credential · gitlab-authorization ·
+│   │             gitlab-project-config · gitlab.controller · gitlab.module
+│   └── github/   github.adapter · github.client · github-webhook.handler ·
+│                 github-webhook-configurator · github-file · github.controller · github.module
+└── source-providers.{service,module,controller}.ts   (FAÇADE + REGISTRE)
 ```
+
+- **Noms** : `*.adapter` = impl. `IGitProvider` ; `*.client` = client HTTP ;
+  `*-webhook.handler` = impl. `IWebhookHandler` ; `*-webhook-configurator` =
+  enregistrement outbound. Les noms disent la responsabilité.
+- **Décomposition GitLab plus riche** (connection/credential/authorization
+  séparés) = légitime (SRP : URL/host, tokens, accès) — pas un fourre-tout.
+- **Routage** : `source-providers.service` (registre `forType`/`forService`,
+  Open/Closed) + `webhooks/incoming-webhook.controller` (dispatch au handler).
 
 **Pourquoi github/ et gitlab/ ont du code différent (ce n'est PAS de la
 duplication à fusionner)** : ce sont deux **modèles d'intégration distincts** —
@@ -99,12 +108,15 @@ Forcer une fusion serait l'anti-pattern. Chaque API (endpoints, auth, payloads)
 est légitimement spécifique → c'est exactement le rôle d'un adapter.
 
 **État** :
-- ✅ Cycle `gitlab-core ↔ gitlab-ci` **cassé** (extraction `GitlabProjectConfigService`).
-- ✅ Résolution par registre (ajouter un provider = +1 adapter, cf.
-  `docs/ADDING-A-GIT-PROVIDER.md`).
-- ⏳ Mineur (optionnel) : la résolution `endpoint → service` (~15 l.) est
-  encore présente dans les 2 handlers → extractible en un helper partagé
-  (faible valeur, flux webhook critique → à faire avec runtime).
+- ✅ Structure cible en place (adapters/ · contracts/ · shared/) + noms justes.
+- ✅ Cycle `gitlab.adapter ↔ gitlab-ci` **cassé** (extraction `GitlabProjectConfigService`).
+- ✅ Résolution par registre Open/Closed (+1 provider = +1 adapter, cf.
+  `docs/ADDING-A-GIT-PROVIDER.md`). Les 2 providers complets (GitHub Actions inclus).
+- ⏳ **Reste = comportemental (runtime requis)** : bascule Service-centric
+  (`getProjectConfig(projectId)` → `getServiceConfig(serviceId)`, dernier
+  symptôme du leak projectId) ; extraction du `shared/` core (image-ref/creds
+  builders, write-files orchestrator, webhook-target resolver ~15 l.) ;
+  capacité commit-status (façon Railway).
 
 → `source/` est **architecturalement complet et correct**. Le « gros » restant
 (faire évoluer les *flux* build/deploy) est comportemental → runtime requis.
