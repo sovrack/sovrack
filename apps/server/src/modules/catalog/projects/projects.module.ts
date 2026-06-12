@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../../core/database/prisma.module';
 import { AuditModule } from '../../audit';
-import { GitlabModule } from '../../source-providers/gitlab/gitlab.module';
-import { SourceProvidersModule } from '../../source-providers';
+import { GitlabModule, SourceProvidersModule } from '../../source-providers';
 import { PlatformModule } from '../../platform';
 import { EnvironmentsModule } from '../environments/environments.module';
 import { ProjectsController } from './projects.controller';
