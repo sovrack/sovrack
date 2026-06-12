@@ -10,39 +10,42 @@ import type {
   GitlabPipeline,
   GitlabProviderOption,
   GitlabRepo,
-  GitlabSourceType,
   ProjectDetail,
 } from '@/types/project';
 
-type UseProjectGitlabParams = {
+type ProjectSourceConfig = GitlabConfig;
+type ProjectSourceRepo = GitlabRepo;
+type ProjectSourceBranch = GitlabBranch;
+
+type UseProjectSourceParams = {
   projectId: string;
   project: ProjectDetail | null;
   refreshProject: () => Promise<void>;
 };
 
-export function useProjectGitlab({
+export function useProjectSource({
   projectId,
   project,
   refreshProject,
-}: UseProjectGitlabParams) {
-  const [gitlabConfig, setGitlabConfig] = useState<GitlabConfig | null>(null);
-  const [branches, setBranches] = useState<GitlabBranch[]>([]);
+}: UseProjectSourceParams) {
+  const [sourceConfig, setSourceConfig] = useState<ProjectSourceConfig | null>(null);
+  const [branches, setBranches] = useState<ProjectSourceBranch[]>([]);
   const [pipelines, setPipelines] = useState<GitlabPipeline[]>([]);
-  const [repos, setRepos] = useState<GitlabRepo[]>([]);
+  const [repos, setRepos] = useState<ProjectSourceRepo[]>([]);
   const [providers, setProviders] = useState<GitlabProviderOption[]>([]);
-  const [gitlabLoading, setGitlabLoading] = useState(false);
-  const [gitlabError, setGitlabError] = useState<string | null>(null);
-  const [gitlabSubmitting, setGitlabSubmitting] = useState(false);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  const [sourceSubmitting, setSourceSubmitting] = useState(false);
   const [pipelineSubmitting, setPipelineSubmitting] = useState(false);
 
-  const [gitlabUrl, setGitlabUrl] = useState('');
-  const [gitlabToken, setGitlabToken] = useState('');
-  const [gitlabProjectId, setGitlabProjectId] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [sourceToken, setSourceToken] = useState('');
+  const [sourceProjectId, setSourceProjectId] = useState('');
   const [defaultBranch, setDefaultBranch] = useState('main');
   const [selectedBranch, setSelectedBranch] = useState('main');
   const [providerId, setProviderId] = useState('');
-  const [sourceType, setSourceType] = useState<GitlabSourceType>('REPO');
-  const [gitlabGroupId, setGitlabGroupId] = useState('');
+  const [sourceType, setSourceType] = useState<'REPO' | 'GROUP'>('REPO');
+  const [sourceGroupId, setSourceGroupId] = useState('');
   const [deployTokenUsername, setDeployTokenUsername] = useState('');
   const [deployTokenValue, setDeployTokenValue] = useState('');
   const [registryUrl, setRegistryUrl] = useState('');
@@ -59,9 +62,9 @@ export function useProjectGitlab({
     }
   }, []);
 
-  const loadGitlabData = useCallback(async () => {
-    setGitlabLoading(true);
-    setGitlabError(null);
+  const loadSourceData = useCallback(async () => {
+    setSourceLoading(true);
+    setSourceError(null);
     const availableProviders = await loadProviders();
     const defaultProviderId =
       availableProviders.find((provider) => provider.isDefault)?.id ??
@@ -69,13 +72,13 @@ export function useProjectGitlab({
       '';
 
     try {
-      const config = await projectsService.getGitlabConfig(projectId);
-      setGitlabConfig(config);
-      setSourceType(config.sourceType);
+      const config = await projectsService.getSourceConfig(projectId);
+      setSourceConfig(config);
+      setSourceType((config.sourceType as 'REPO' | 'GROUP') ?? 'REPO');
       setProviderId(config.providerId ?? defaultProviderId);
-      setGitlabUrl(config.gitlabUrl);
-      setGitlabProjectId(config.gitlabId ? String(config.gitlabId) : '');
-      setGitlabGroupId(config.gitlabGroupId ? String(config.gitlabGroupId) : '');
+      setSourceUrl(config.gitlabUrl);
+      setSourceProjectId(config.gitlabId ? String(config.gitlabId) : '');
+      setSourceGroupId(config.gitlabGroupId ? String(config.gitlabGroupId) : '');
       setDefaultBranch(config.defaultBranch || 'main');
       setSelectedBranch(config.defaultBranch || 'main');
       setDeployTokenUsername(config.deployTokenUsername ?? '');
@@ -114,71 +117,58 @@ export function useProjectGitlab({
         message.includes('404');
 
       if (isMissingConfig) {
-        setGitlabConfig(null);
+        setSourceConfig(null);
         setProviderId(defaultProviderId);
         setBranches([]);
         setPipelines([]);
         setRepos([]);
-        setGitlabError(null);
+        setSourceError(null);
       } else {
-        setGitlabConfig(null);
+        setSourceConfig(null);
         setProviderId(defaultProviderId);
         setBranches([]);
         setPipelines([]);
         setRepos([]);
-        setGitlabError(message);
+        setSourceError(message);
       }
     } finally {
-      setGitlabLoading(false);
+      setSourceLoading(false);
     }
   }, [projectId, loadProviders]);
-
-  useEffect(() => {
-    if (!project) {
-      return;
-    }
-
-    setGitlabUrl(project.gitlabUrl ?? '');
-    setGitlabProjectId(project.gitlabId ? String(project.gitlabId) : '');
-    setDefaultBranch(project.branch ?? 'main');
-    setSelectedBranch(project.branch ?? 'main');
-  }, [project]);
 
   useEffect(() => {
     if (loadedProjectRef.current === projectId) {
       return;
     }
     loadedProjectRef.current = projectId;
-    void loadGitlabData();
-  }, [loadGitlabData, projectId]);
+    void loadSourceData();
+  }, [loadSourceData, projectId]);
 
-  const handleConnectGitlab = async (event: FormEvent<HTMLFormElement>) => {
+  const handleConnectSource = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setGitlabError(null);
+    setSourceError(null);
 
-    // Provider-agnostic: a repo is identified by its PATH ("group/project")
-    // or its numeric ID — both resolved by the backend.
     let repoIdentifier: string | undefined;
     let parsedGroupId: number | undefined;
 
     if (sourceType === 'REPO') {
-      repoIdentifier = String(gitlabProjectId).trim();
+      repoIdentifier = String(sourceProjectId).trim();
       if (!repoIdentifier) {
-        setGitlabError('Dépôt requis (chemin "groupe/projet" ou ID numérique).');
+        setSourceError('Dépôt requis (chemin "groupe/projet" ou ID numérique).');
         return;
       }
     } else {
-      const groupId = Number(gitlabGroupId);
+      const groupId = Number(sourceGroupId);
       if (!Number.isFinite(groupId) || groupId <= 0) {
-        setGitlabError('GitLab Group ID invalide.');
+        setSourceError('GitLab Group ID invalide.');
         return;
       }
       parsedGroupId = groupId;
     }
 
     const payload: ConnectGitlabPayload = {
-      gitlabUrl: gitlabUrl.trim() || undefined,
-      gitlabToken: gitlabToken.trim() || undefined,
+      gitlabUrl: sourceUrl.trim() || undefined,
+      gitlabToken: sourceToken.trim() || undefined,
       providerId: providerId.trim() || undefined,
       defaultBranch: defaultBranch.trim() || 'main',
       sourceType,
@@ -189,17 +179,17 @@ export function useProjectGitlab({
       registryUrl: registryUrl.trim() || undefined,
     };
 
-    setGitlabSubmitting(true);
+    setSourceSubmitting(true);
     try {
-      await projectsService.connectGitlab(projectId, payload);
-      setGitlabToken('');
+      await projectsService.connectSourceConfig(projectId, payload);
+      setSourceToken('');
       setDeployTokenValue('');
       await refreshProject();
-      await loadGitlabData();
+      await loadSourceData();
     } catch (error) {
-      setGitlabError(getApiErrorMessage(error));
+      setSourceError(getApiErrorMessage(error));
     } finally {
-      setGitlabSubmitting(false);
+      setSourceSubmitting(false);
     }
   };
 
@@ -209,33 +199,33 @@ export function useProjectGitlab({
     }
 
     setPipelineSubmitting(true);
-    setGitlabError(null);
+    setSourceError(null);
 
     try {
       await projectsService.triggerPipeline(projectId, selectedBranch);
-      await loadGitlabData();
+      await loadSourceData();
     } catch (error) {
-      setGitlabError(getApiErrorMessage(error));
+      setSourceError(getApiErrorMessage(error));
     } finally {
       setPipelineSubmitting(false);
     }
   };
 
   return {
-    gitlabConfig,
+    sourceConfig,
     branches,
     pipelines,
     repos,
-    gitlabLoading,
-    gitlabError,
-    gitlabSubmitting,
+    sourceLoading,
+    sourceError,
+    sourceSubmitting,
     pipelineSubmitting,
-    gitlabUrl,
-    setGitlabUrl,
-    gitlabToken,
-    setGitlabToken,
-    gitlabProjectId,
-    setGitlabProjectId,
+    sourceUrl,
+    setSourceUrl,
+    sourceToken,
+    setSourceToken,
+    sourceProjectId,
+    setSourceProjectId,
     defaultBranch,
     setDefaultBranch,
     selectedBranch,
@@ -245,8 +235,8 @@ export function useProjectGitlab({
     providers,
     providerId,
     setProviderId,
-    gitlabGroupId,
-    setGitlabGroupId,
+    sourceGroupId,
+    setSourceGroupId,
     deployTokenUsername,
     setDeployTokenUsername,
     deployTokenValue,
@@ -254,10 +244,11 @@ export function useProjectGitlab({
     registryUrl,
     setRegistryUrl,
     loadProviders,
-    loadGitlabData,
-    handleConnectGitlab,
+    loadSourceData,
+    handleConnectSource,
     handleTriggerPipeline,
   };
 }
 
-export type UseProjectGitlabReturn = ReturnType<typeof useProjectGitlab>;
+export type UseProjectSourceReturn = ReturnType<typeof useProjectSource>;
+export type UseProjectGitlabReturn = UseProjectSourceReturn;

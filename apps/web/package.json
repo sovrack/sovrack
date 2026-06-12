@@ -20,7 +20,6 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@tanstack/react-query": "^5.99.2",
-    "@tanstack/react-query-devtools": "^5.99.2",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-web-links": "^0.12.0",
     "@xterm/xterm": "^6.0.0",
@@ -28,13 +27,11 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.7.0",
     "next": "^15.1.0",
-    "postcss": "^8.4.49",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "socket.io-client": "^4.8.3",
-    "tailwindcss": "^3.4.14",
-    "zod": "^4.3.6",
-    "zustand": "^5.0.13"
+    "zustand": "^5.0.13",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
@@ -42,6 +39,9 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "autoprefixer": "^10.4.20",
+    "@tanstack/react-query-devtools": "^5.99.2",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.14",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.0",
     "openapi-typescript": "^7.13.0",

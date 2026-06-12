@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button';
 import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
 import type {
-  GitlabBranch,
-  GitlabGroupImportMode,
-  SourceProviderOption,
-  GitlabRepo,
+  GitlabBranch as ProjectSourceBranch,
+  GitlabGroupImportMode as SourceImportMode,
   GitlabSourceType,
-  ProjectServiceType,
+  SourceProviderOption,
+  GitlabRepo as ProjectSourceRepo,
 } from '@/types/project';
+import type { ServiceType } from '@/types/service';
 import {
   GroupReposPicker,
   type SelectedGroupRepository,
@@ -37,22 +37,22 @@ type ProjectSourceSetupDialogProps = {
   onNext: (projectId: string) => Promise<void> | void;
 };
 
-function repoPath(repo: GitlabRepo): string {
+function repoPath(repo: ProjectSourceRepo): string {
   return repo.pathWithNamespace ?? repo.path_with_namespace ?? repo.path ?? repo.name;
 }
 
-function repoDefaultBranch(repo: GitlabRepo): string {
+function repoDefaultBranch(repo: ProjectSourceRepo): string {
   return repo.defaultBranch ?? repo.default_branch ?? 'main';
 }
 
-function inferServiceType(repo: GitlabRepo): ProjectServiceType {
+function inferServiceType(repo: ProjectSourceRepo): ServiceType {
   const value = `${repo.name} ${repoPath(repo)}`.toLowerCase();
-  if (/front|web|ui|client/.test(value)) return 'FRONTEND';
-  if (/api|back|server/.test(value)) return 'BACKEND';
-  if (/worker|queue|job|cron/.test(value)) return 'WORKER';
-  if (/static|site|docs/.test(value)) return 'STATIC';
+  if (/front|web|ui|client/.test(value)) return 'APPLICATION';
+  if (/api|back|server/.test(value)) return 'APPLICATION';
+  if (/worker|queue|job|cron/.test(value)) return 'APPLICATION';
+  if (/static|site|docs/.test(value)) return 'APPLICATION';
   if (/db|database|postgres|mysql|redis/.test(value)) return 'DATABASE';
-  return 'OTHER';
+  return 'APPLICATION';
 }
 
 export function ProjectSourceSetupDialog({
@@ -71,7 +71,7 @@ export function ProjectSourceSetupDialog({
   const [providers, setProviders] = useState<SourceProviderOption[]>([]);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [providerId, setProviderId] = useState('');
-  const [sourceType, setSourceType] = useState<GitlabSourceType>('REPO');
+  const [sourceType, setSourceType] = useState<'REPO' | 'GROUP'>('REPO');
   const [gitlabUrl, setGitlabUrl] = useState('');
   const [sourceId, setSourceId] = useState('');
   const [defaultBranch, setDefaultBranch] = useState('main');
@@ -82,15 +82,15 @@ export function ProjectSourceSetupDialog({
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [loadedBranches, setLoadedBranches] = useState(0);
-  const [groupRepos, setGroupRepos] = useState<GitlabRepo[]>([]);
+  const [groupRepos, setGroupRepos] = useState<ProjectSourceRepo[]>([]);
   const [groupRepoSearch, setGroupRepoSearch] = useState('');
   const [groupRepoPage, setGroupRepoPage] = useState(1);
   const [groupRepoTotalPages, setGroupRepoTotalPages] = useState<number | null>(null);
   const [fetchingGroupRepos, setFetchingGroupRepos] = useState(false);
   const [selectedGroupRepos, setSelectedGroupRepos] = useState<Record<number, SelectedGroupRepository>>({});
-  const [branchesByRepo, setBranchesByRepo] = useState<Record<number, GitlabBranch[]>>({});
+  const [branchesByRepo, setBranchesByRepo] = useState<Record<number, ProjectSourceBranch[]>>({});
   const [loadingBranchesByRepo, setLoadingBranchesByRepo] = useState<Record<number, boolean>>({});
-  const [importMode, setImportMode] = useState<GitlabGroupImportMode>('ONE_APPLICATION');
+  const [importMode, setImportMode] = useState<SourceImportMode>('ONE_APPLICATION');
 
   const defaultProviderId = useMemo(
     () => providers.find((provider) => provider.isDefault)?.id ?? '',
@@ -189,7 +189,7 @@ export function ProjectSourceSetupDialog({
     }
   };
 
-  const loadBranchesForRepo = async (repo: GitlabRepo) => {
+  const loadBranchesForRepo = async (repo: ProjectSourceRepo) => {
     if (branchesByRepo[repo.id] || loadingBranchesByRepo[repo.id]) {
       return;
     }
@@ -213,7 +213,7 @@ export function ProjectSourceSetupDialog({
     }
   };
 
-  const toggleGroupRepo = (repo: GitlabRepo) => {
+  const toggleGroupRepo = (repo: ProjectSourceRepo) => {
     setSelectedGroupRepos((prev) => {
       if (prev[repo.id]) {
         const next = { ...prev };
@@ -343,20 +343,10 @@ export function ProjectSourceSetupDialog({
           githubToken: selectedProvider?.type === 'GITHUB' ? (gitlabToken.trim() || undefined) : undefined,
           ...connectPayload,
         });
-        if (sourceType === 'GROUP') {
-          for (const repository of groupRepositoriesPayload) {
-            await projectsService.createService(targetProjectId, {
-              name: repository.serviceName || repository.name,
-              type: repository.serviceType,
-              sourceProviderId: providerId || undefined,
-              gitlabProjectId: repository.id,
-              repositoryPath: repository.pathWithNamespace,
-              defaultBranch: repository.defaultBranch,
-              composeServiceName:
-                repository.serviceName || repository.name,
-            });
-          }
-        }
+        // TODO: Phase 3 — Services are now per-environment.
+        // The group import creates environments/services on the backend.
+        // For existing projects, create an environment first,
+        // then use servicesService.create(projectId, envId, payload).
       }
 
       if (sourceType === 'REPO') {

@@ -17,10 +17,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const [deployOpen, setDeployOpen] = useState(false);
 
   const hasGitlabConfig = project.hasGitlabConfig ?? false;
-  const hasGitlabSourceId =
-    typeof project.gitlabId === 'number' ||
-    typeof project.gitlabGroupId === 'number';
-  const isGitlabConnected = hasGitlabConfig && hasGitlabSourceId;
+  const isGitlabConnected = hasGitlabConfig;
   const hasEnv = (project.environmentCount ?? 0) > 0;
   const isReadyToDeploy = isGitlabConnected && hasEnv;
   const memberCount = project.memberCount;
@@ -54,14 +51,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
           </span>
         </Link>
 
-        {/* Branch + env status */}
+        {/* Env status */}
         <Link href={`/projects/${project.id}`} className="mt-3 flex items-center gap-3">
-          {project.branch && (
-            <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-              <GitBranch size={11} />
-              <span className="font-mono">{project.branch}</span>
-            </span>
-          )}
+          <span className="text-xs text-[var(--text-muted)]">{project.environmentCount} env{project.environmentCount !== 1 ? 's' : ''}</span>
           <span className={clsx(
             'flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border',
             isReadyToDeploy
@@ -82,7 +74,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             {memberCount} membre{memberCount !== 1 ? 's' : ''}
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            <Link href={`/projects/${project.id}?tab=configuration`}
+            <Link href={`/projects/${project.id}?tab=services`}
               className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:bg-[var(--hover)]">
               Configure
             </Link>

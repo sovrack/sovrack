@@ -7,9 +7,12 @@ import type { UserListItem } from '@/types/user';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
-type ProjectFormInitialValues = Partial<
-  Pick<ProjectDetail, 'name' | 'description' | 'gitlabUrl' | 'branch'>
->;
+type ProjectFormInitialValues = {
+  name?: string;
+  description?: string | null;
+  gitlabUrl?: string;
+  branch?: string;
+};
 
 type ProjectFormProps = {
   initialValues?: ProjectFormInitialValues;

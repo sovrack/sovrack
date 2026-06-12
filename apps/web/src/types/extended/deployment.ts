@@ -42,7 +42,7 @@ export type BuildSource =
   | 'EXTERNAL_IMAGE';
 
 export type CreateDeploymentPayload = CreateDeploymentApiPayload & {
-  serviceId?: string;
+  serviceEnvId?: string;
   strategy?: DeploymentStrategy;
   buildSource?: BuildSource;
   overrideImage?: string;

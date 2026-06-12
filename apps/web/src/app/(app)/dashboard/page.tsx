@@ -17,9 +17,9 @@ import {
 import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import { dashboardService } from '@/services/dashboard.service';
-import { ActivityChart } from '@/components/dashboard/ActivityChart';
-import { ServerHealthCard } from '@/components/dashboard/ServerHealthCard';
-import { TopProjectsCard } from '@/components/dashboard/TopProjectsCard';
+import { ActivityChart } from '@/components/dashboard/activity-chart';
+import { ServerHealthCard } from '@/components/dashboard/server-health-card';
+import { TopProjectsCard } from '@/components/dashboard/top-projects-card';
 import { PageHeader } from '@/components/layout/page-header';
 import { Alert } from '@/components/ui/alert';
 

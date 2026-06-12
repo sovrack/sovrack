@@ -18,7 +18,7 @@ import clsx from 'clsx';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { useProject } from '@/hooks/projects/use-projects';
 import { useProjectDeployments } from '@/hooks/projects/use-project-deployments';
-import { useProjectGitlab } from '@/hooks/projects/use-project-gitlab';
+import { useProjectSource } from '@/hooks/projects/use-project-source';
 import { useProjectMembers } from '@/hooks/projects/use-project-members';
 import { PageHeader } from '@/components/layout/page-header';
 import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
@@ -34,10 +34,11 @@ import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
 import { environmentsService } from '@/services/environments.service';
 import type { Environment } from '@/types/environment';
+import type { GitlabSourceType } from '@/types/project';
 
 type Tab =
   | 'overview'
-  | 'application'
+  | 'services'
   | 'environments'
   | 'deployments'
   | 'containers'
@@ -45,7 +46,7 @@ type Tab =
   | 'settings';
 
 const TAB_VALUES: Tab[] = [
-  'overview', 'application', 'environments', 'deployments', 'containers', 'monitoring', 'settings',
+  'overview', 'services', 'environments', 'deployments', 'containers', 'monitoring', 'settings',
 ];
 
 function parseTab(value: string | null): Tab | null {
@@ -75,7 +76,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const [selectedEnvId, setSelectedEnvId] = useState<string | undefined>(undefined);
 
   const members = useProjectMembers({ projectId: id, isAdmin, refreshProject: refresh });
-  const gitlab = useProjectGitlab({ projectId: id, project, refreshProject: refresh });
+  const source = useProjectSource({ projectId: id, project, refreshProject: refresh });
   const projectDeployments = useProjectDeployments(id);
 
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     if (requestedTab) {
       setTab(requestedTab);
     } else if (dialog === 'source-setup' || dialog === 'build-setup') {
-      setTab('application');
+      setTab('services');
     }
     setSourceDialogOpen(dialog === 'source-setup');
     setBuildDialogOpen(dialog === 'build-setup');
@@ -105,13 +106,13 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   };
 
   const openSourceSetupDialog = () => {
-    setTab('application'); setSourceDialogOpen(true); setBuildDialogOpen(false);
-    replaceProjectQuery({ tab: 'application', dialog: 'source-setup' });
+    setTab('services'); setSourceDialogOpen(true); setBuildDialogOpen(false);
+    replaceProjectQuery({ tab: 'services', dialog: 'source-setup' });
   };
 
   const openBuildSetupDialog = () => {
-    setTab('application'); setBuildDialogOpen(true); setSourceDialogOpen(false);
-    replaceProjectQuery({ tab: 'application', dialog: 'build-setup' });
+    setTab('services'); setBuildDialogOpen(true); setSourceDialogOpen(false);
+    replaceProjectQuery({ tab: 'services', dialog: 'build-setup' });
   };
 
   const closeSourceDialog = () => { setSourceDialogOpen(false); replaceProjectQuery({ dialog: null }); };
@@ -120,7 +121,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const handleSourceNext = async () => { await refresh(); openBuildSetupDialog(); };
   const handleBuildDone  = async () => {
     await refresh(); setBuildDialogOpen(false);
-    replaceProjectQuery({ tab: 'application', dialog: null });
+    replaceProjectQuery({ tab: 'services', dialog: null });
   };
 
   const handleTabChange = (nextTab: Tab) => {
@@ -166,8 +167,8 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'overview',       label: 'Overview',       icon: Rocket },
-    { id: 'application',    label: 'Application',    icon: Settings2 },
-    { id: 'environments',   label: 'Environnements',  icon: Layers },
+    { id: 'services',       label: 'Services',       icon: Settings2 },
+    { id: 'environments',   label: 'Environments',  icon: Layers },
     { id: 'deployments',    label: 'Deployments',    icon: Activity },
     { id: 'containers',     label: 'Containers',     icon: Container },
     { id: 'monitoring',     label: 'Monitoring',     icon: BarChart2 },
@@ -198,11 +199,11 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       <div className="flex flex-wrap items-center gap-2">
         <span className={clsx(
           'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
-          gitlab.gitlabConfig
+          source.sourceConfig
             ? 'border-green-500/20 bg-green-500/10 text-green-400'
             : 'border-amber-500/20 bg-amber-500/10 text-amber-400',
         )}>
-          {gitlab.gitlabConfig ? '● Source connected' : '○ Source not connected'}
+          {source.sourceConfig ? '● Source connected' : '○ Source not connected'}
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--hover)] px-2.5 py-1 text-xs text-[var(--text-muted)]">
           {environments.length} environment{environments.length !== 1 ? 's' : ''}
@@ -236,24 +237,24 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         <ProjectOverview
           project={project}
           lastDeployment={projectDeployments.deployments[0] ?? null}
-          gitlabConfig={gitlab.gitlabConfig}
+          sourceConfig={source.sourceConfig}
           environments={environments}
           onRollbackDone={() => void projectDeployments.refresh()}
           onTabChange={(t) => setTab(t as Tab)}
-          onOpenBuild={() => { setTab('application'); openBuildSetupDialog(); }}
+          onOpenBuild={() => { setTab('services'); openBuildSetupDialog(); }}
           onDeploy={() => { setSelectedServiceId(undefined); setDeployOpen(true); }}
         />
       )}
 
-      {tab === 'application' && (
+      {tab === 'services' && (
         <ConfigurationTab
           projectId={id}
           project={project}
           isAdmin={isAdmin}
           isOwner={isOwner}
-          sourceType={gitlab.gitlabConfig?.sourceType ?? null}
+          sourceType={source.sourceConfig?.sourceType ?? null}
           hasEnvironment={environments.length > 0}
-          gitlab={gitlab}
+          source={source}
           scope="application"
           onDeploy={() => { setSelectedServiceId(undefined); setDeployOpen(true); }}
           onDeployService={(svcId) => { setSelectedServiceId(svcId); setDeployOpen(true); }}
@@ -267,9 +268,9 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           project={project}
           isAdmin={isAdmin}
           isOwner={isOwner}
-          sourceType={gitlab.gitlabConfig?.sourceType ?? null}
+          sourceType={source.sourceConfig?.sourceType ?? null}
           hasEnvironment={environments.length > 0}
-          gitlab={gitlab}
+          source={source}
           scope="environments"
           onDeploy={() => { setSelectedServiceId(undefined); setDeployOpen(true); }}
           onDeployService={(svcId) => { setSelectedServiceId(svcId); setDeployOpen(true); }}
@@ -321,12 +322,12 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       <ProjectSourceSetupDialog
         open={sourceDialogOpen}
         projectId={id}
-        initialGitlabUrl={project.gitlabUrl ?? null}
-        initialDefaultBranch={project.branch ?? null}
-        initialProviderId={gitlab.gitlabConfig?.providerId ?? null}
-        initialSourceType={gitlab.gitlabConfig?.sourceType ?? null}
-        initialProjectId={gitlab.gitlabConfig?.gitlabId ?? null}
-        initialGroupId={gitlab.gitlabConfig?.gitlabGroupId ?? null}
+        initialGitlabUrl={source.sourceConfig?.gitlabUrl ?? null}
+        initialDefaultBranch={source.sourceConfig?.defaultBranch ?? null}
+        initialProviderId={source.sourceConfig?.providerId ?? null}
+        initialSourceType={(source.sourceConfig?.sourceType ?? null) as GitlabSourceType | null}
+        initialProjectId={source.sourceConfig?.gitlabId ?? null}
+        initialGroupId={source.sourceConfig?.gitlabGroupId ?? null}
         onClose={closeSourceDialog}
         onNext={() => handleSourceNext()}
       />
@@ -341,12 +342,9 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       <DeployDialog
         open={deployOpen}
         projectId={id}
-        services={project?.services ?? []}
+        services={[]}
         initialServiceId={selectedServiceId}
         initialEnvironmentId={selectedEnvId}
-        defaultBuildSource={project.defaultBuildSource}
-        buildPort={project.buildPort}
-        buildStartCmd={project.buildStartCmd}
         onClose={() => { setDeployOpen(false); setSelectedServiceId(undefined); setSelectedEnvId(undefined); }}
         onCreated={handleDeployCreated}
       />

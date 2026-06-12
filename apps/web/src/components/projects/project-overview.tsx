@@ -33,7 +33,7 @@ import { timeAgo, dur, resolveDeploymentUrl, ENV_BADGE } from '@/lib/deployment-
 type Props = {
   project: ProjectDetail;
   lastDeployment?: Deployment | null;
-  gitlabConfig?: GitlabConfig | null;
+  sourceConfig?: GitlabConfig | null;
   environments?: Environment[];
   onRollbackDone?: () => void;
   onTabChange?: (tab: string) => void;
@@ -46,7 +46,7 @@ type Props = {
 export function ProjectOverview({
   project,
   lastDeployment,
-  gitlabConfig,
+  sourceConfig,
   environments = [],
   onRollbackDone,
   onTabChange,
@@ -57,7 +57,6 @@ export function ProjectOverview({
   const [rollbackError, setRollbackError] = useState<string | null>(null);
   const [logsTarget, setLogsTarget] = useState<{ id: string; status: DeploymentStatus } | null>(null);
 
-  const services = project.services ?? [];
   const canRollback = lastDeployment && (lastDeployment.status === 'SUCCESS' || lastDeployment.status === 'FAILED');
 
   const handleRollback = async () => {
@@ -74,11 +73,11 @@ export function ProjectOverview({
     {
       id: 'source',
       label: 'Connect Git source',
-      description: gitlabConfig
-        ? `${gitlabConfig.sourceType === 'GROUP' ? 'Group' : 'Repo'} connected · ${project.branch ?? 'main'}`
+      description: sourceConfig
+        ? `${sourceConfig.sourceType === 'GROUP' ? 'Group' : 'Repo'} connected · ${sourceConfig.defaultBranch ?? 'main'}`
         : 'Link a GitLab repo or group',
-      done: !!gitlabConfig,
-      tab: 'configuration',
+      done: !!sourceConfig,
+      tab: 'services',
       icon: <GitBranch size={13} />,
     },
     {
@@ -96,7 +95,7 @@ export function ProjectOverview({
       label: 'Configure build',
       description: 'Choose engine · generate Dockerfile & CI pipeline',
       done: !!lastDeployment,
-      tab: 'configuration',
+      tab: 'services',
       icon: <Wrench size={13} />,
       action: onOpenBuild,
     },
@@ -178,9 +177,8 @@ export function ProjectOverview({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: 'Environments', value: environments.length, icon: <Server size={13} />, tab: 'environments' },
-          { label: 'Services', value: services.length, icon: <Settings2 size={13} />, tab: 'configuration' },
           { label: 'Members', value: project.members.length, icon: <Users size={13} />, tab: 'settings' },
-          { label: 'Branch', value: project.branch ?? '—', icon: <GitBranch size={13} />, tab: 'configuration', mono: true },
+          { label: 'Branch', value: sourceConfig?.defaultBranch ?? '—', icon: <GitBranch size={13} />, tab: 'services', mono: true },
         ].map(({ label, value, icon, tab, mono }) => (
           <button
             key={label}
@@ -204,11 +202,7 @@ export function ProjectOverview({
           <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Environments</p>
           <div className="grid gap-3 sm:grid-cols-2">
             {environments.map((env) => {
-              const configuredCount = env.serviceTargets?.length ?? 0;
-              const readyCount = services.length > 0
-                ? (env.serviceTargets?.filter((t) => t.port).length ?? 0)
-                : configuredCount;
-              const isReady = services.length === 0 || readyCount === services.length;
+              const envServices = env.serviceLinks ?? [];
 
               return (
                 <div key={env.id} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
@@ -217,33 +211,22 @@ export function ProjectOverview({
                       <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${ENV_BADGE[env.name] ?? 'border-zinc-500/20 bg-zinc-500/10 text-zinc-400'}`}>
                         {env.name}
                       </span>
-                      {env.autoDeploy && (
-                        <span className="flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-blue-400">
-                          <Zap size={8} /> Auto
-                        </span>
-                      )}
                     </div>
-                    <span className={`flex items-center gap-1 text-[10px] font-semibold ${isReady ? 'text-green-400' : 'text-amber-400'}`}>
-                      {isReady ? <CheckCircle2 size={10} /> : <Activity size={10} />}
-                      {isReady ? 'Ready' : `${readyCount}/${services.length} configured`}
+                    <span className={`flex items-center gap-1 text-[10px] font-semibold ${envServices.length > 0 ? 'text-green-400' : 'text-amber-400'}`}>
+                      {envServices.length > 0 ? <CheckCircle2 size={10} /> : <Activity size={10} />}
+                      {envServices.length > 0 ? `${envServices.length} service${envServices.length > 1 ? 's' : ''}` : 'No services'}
                     </span>
                   </div>
 
-                  <div className="mt-3 space-y-1.5">
-                    {env.server && (
-                      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-                        <Server size={11} className="shrink-0" />
-                        <span className="font-medium text-[var(--text-secondary)]">{env.server.name}</span>
-                        <span className="font-mono text-[10px]">{env.server.host}</span>
-                      </div>
-                    )}
-                    {env.domain && (
-                      <div className="flex items-center gap-2 font-mono text-[10px] text-[var(--text-muted)]">
-                        <Globe size={11} className="shrink-0" />
-                        {env.domain}
-                      </div>
-                    )}
-                  </div>
+                  {envServices.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {envServices.map((link) => (
+                        <span key={link.id} className="rounded border border-[var(--border)] bg-[var(--hover)] px-2 py-0.5 font-mono text-[10px] text-[var(--text-primary)]">
+                          {link.service?.name ?? '?'}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="mt-3 flex items-center gap-2 border-t border-[var(--border)] pt-3">
                     <button
@@ -253,7 +236,7 @@ export function ProjectOverview({
                     >
                       <Settings2 size={9} /> Configure
                     </button>
-                    {isReady && onDeploy && (
+                    {onDeploy && (
                       <button
                         type="button"
                         onClick={onDeploy}

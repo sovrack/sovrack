@@ -20,7 +20,8 @@ import { useServerPreparationOptions } from '@/hooks/servers/use-servers';
 import { getApiErrorMessage } from '@/lib/api';
 import { ServerPreparationPanel } from './server-preparation-panel';
 import type { Environment } from '@/types/environment';
-import type { GitlabBranch, ProjectService } from '@/types/project';
+import type { GitlabBranch } from '@/types/project';
+import type { Service } from '@/types/service';
 import type { BuildSource, DeployValidationResult } from '@/types/deployment';
 
 type ValidationIssue = {
@@ -41,7 +42,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
-  services?: ProjectService[];
+  services?: Service[];
   initialServiceId?: string;
   initialEnvironmentId?: string;
   defaultBuildSource?: string | null;
@@ -90,7 +91,6 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
 
   const primaryEnvId = envIds[0] ?? '';
   const currentEnv = environments.find((e) => e.id === primaryEnvId);
-  const server = currentEnv?.server;
 
   useEffect(() => {
     if (!open) return;
@@ -102,7 +102,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
     // Pre-fill branch from service default
     if (initialServiceId && services.length > 0) {
       const svc = services.find((s) => s.id === initialServiceId);
-      if (svc?.defaultBranch) setBranch(svc.defaultBranch);
+      if (svc?.branch) setBranch(svc.branch);
     }
 
     Promise.all([
@@ -131,8 +131,8 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
         setBranch(def?.name ?? brs[0]?.name ?? 'main');
 
         const detected: ValidationIssue[] = [];
-        if (!gitlabConfig) detected.push({ type: 'no-source', message: 'Git source not connected.', redirectTab: 'configuration' });
-        if (!buildConfigReady) detected.push({ type: 'no-build-config', message: 'Build configuration not complete.', redirectTab: 'configuration' });
+        if (!gitlabConfig) detected.push({ type: 'no-source', message: 'Git source not connected.', redirectTab: 'services' });
+        if (!buildConfigReady) detected.push({ type: 'no-build-config', message: 'Build configuration not complete.', redirectTab: 'services' });
         if (envs.length === 0) detected.push({ type: 'no-environment', message: 'No environment configured.', redirectTab: 'environments' });
         setIssues(detected);
       })
@@ -163,20 +163,28 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
     if (envIds.length === 0) { setError('Select at least one environment.'); return; }
     setSubmitting(true); setError(null);
     try {
+      const targets: { serviceEnvId: string; branch: string }[] = [];
+      for (const eid of envIds) {
+        const env = environments.find((e) => e.id === eid);
+        if (!env) continue;
+        const links = env.serviceLinks ?? [];
+        if (selectedServiceId) {
+          const link = links.find((l) => l.serviceId === selectedServiceId);
+          if (link) targets.push({ serviceEnvId: link.id, branch: branch || link.service.branch || 'main' });
+        } else {
+          for (const link of links) {
+            targets.push({ serviceEnvId: link.id, branch: branch || link.service.branch || 'main' });
+          }
+        }
+      }
+      if (targets.length === 0) { setError('No deployable services found for selected environments.'); return; }
       const results = await Promise.allSettled(
-        envIds.map((eid) =>
-          deploymentsService.create({
-            projectId,
-            environmentId: eid,
-            branch: branch || undefined,
-            serviceId: selectedServiceId || undefined,
-          })
-        )
+        targets.map((t) => deploymentsService.create({ serviceEnvId: t.serviceEnvId, branch: t.branch }))
       );
       const failed = results.filter((r) => r.status === 'rejected');
       if (failed.length > 0) {
         const reasons = failed.map((r) => getApiErrorMessage((r as PromiseRejectedResult).reason)).join('; ');
-        setError(failed.length === envIds.length ? reasons : `Some deployments failed: ${reasons}`);
+        setError(failed.length === targets.length ? reasons : `Some deployments failed: ${reasons}`);
       } else {
         setSuccess(true);
         setTimeout(() => { onClose(); onCreated(); }, 800);
@@ -210,7 +218,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
             </h2>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               {showPrepare
-                ? `Install missing tools on ${server?.host ?? '...'}`
+                ? 'Prepare server environment'
                 : 'Launch a new deployment'}
             </p>
           </div>
@@ -234,32 +242,10 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
           )}
 
           {showPrepare ? (
-            /* ════════ PREPARE SUB-VIEW — delegated to ServerPreparationPanel ════════ */
-            server ? (
-              <ServerPreparationPanel
-                serverId={server.id}
-                serverLabel={server.host ?? server.name ?? ''}
-                missing={missing.map((m) => ({ binary: m.binary ?? '', label: m.label ?? '', role: m.role ?? '', found: false }))}
-                allOptions={allOptions}
-                profiles={profiles}
-                profileDefaults={profileDefaults as Record<string, Partial<Record<string, boolean>>>}
-                onBack={() => setShowPrepare(false)}
-                onDone={() => {
-                  setShowPrepare(false);
-                  setPrepareDone(true);
-                  // Re-validate after successful prep
-                  if (primaryEnvId) {
-                    setValidating(true);
-                    deploymentsService.validate(projectId, primaryEnvId, effectiveBuildSource)
-                      .then(setValidation)
-                      .catch(() => {})
-                      .finally(() => setValidating(false));
-                  }
-                }}
-              />
-            ) : (
-              <p className="text-sm text-[var(--text-muted)]">No server available.</p>
-            )
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
+              <AlertTriangle size={14} className="inline mr-1" />
+              Server preparation no longer available in this view. Configure servers in Admin → Servers.
+            </div>
           ) : (
             /* ════════ DEPLOY FORM ════════ */
             <>
@@ -377,8 +363,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
                           {selectedEnvs.map((env) => (
                             <div key={env.id} className="flex items-center gap-1.5 text-[10px]">
                               <span className="rounded-full border border-[var(--border)] px-1.5 py-0.5 font-bold uppercase text-[var(--text-muted)]">{env.name}</span>
-                              <span className="font-mono text-[var(--text-secondary)]">{env.server?.host ?? env.serverId ?? '—'}</span>
-                              {env.server?.port && <span className="text-[var(--text-muted)]">:{env.server.port}</span>}
+                              <span className="font-mono text-[var(--text-secondary)]">{env.serviceLinks?.length ?? 0} service{(env.serviceLinks?.length ?? 0) > 1 ? 's' : ''}</span>
                             </div>
                           ))}
                         </div>
@@ -455,7 +440,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
                           <button key={svc.id} type="button"
                             onClick={() => {
                               setSelectedServiceId(svc.id);
-                              if (svc.defaultBranch) setBranch(svc.defaultBranch);
+                              setBranch(svc.branch ?? 'main');
                             }}
                             className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
                               selectedServiceId === svc.id

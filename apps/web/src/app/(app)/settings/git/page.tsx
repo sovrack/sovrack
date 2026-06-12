@@ -5,9 +5,9 @@ import { GitBranch, Globe, Info, Plus, Puzzle } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { ProviderCard } from '@/components/git-providers/provider-card';
-import { AddProviderDialog } from '@/components/git-providers/add-provider-dialog';
-import { GitLabLogo, GitHubLogo } from '@/components/git-providers/provider-meta';
+import { ProviderCard } from '@/components/source-providers/provider-card';
+import { AddProviderDialog } from '@/components/source-providers/add-provider-dialog';
+import { GitLabLogo, GitHubLogo } from '@/components/source-providers/provider-meta';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import { platformConfigService } from '@/services/platform-config.service';
@@ -117,7 +117,7 @@ function UpcomingProviders() {
 
 /* ─── Loading skeleton ───────────────────────────────────────────────────── */
 
-function Skeleton() {
+function SkeletonLoading() {
   return (
     <div className="space-y-4">
       {[1, 2].map((i) => (
@@ -387,7 +387,7 @@ export default function GitSettingsPage() {
         />
 
         {loading ? (
-          <Skeleton />
+          <SkeletonLoading />
         ) : (
           <>
             {providers.length === 0 ? (

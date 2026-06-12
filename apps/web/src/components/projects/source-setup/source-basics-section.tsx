@@ -2,7 +2,6 @@
 
 import type {
   SourceProviderOption,
-  GitlabSourceType,
 } from '@/types/project';
 
 export type SourceBasicsSectionProps = {
@@ -10,12 +9,12 @@ export type SourceBasicsSectionProps = {
   providerId: string;
   defaultProviderId: string;
   loadingProviders: boolean;
-  sourceType: GitlabSourceType;
+  sourceType: 'REPO' | 'GROUP';
   gitlabUrl: string;
   sourceId: string;
   defaultBranch: string;
   onProviderIdChange: (value: string) => void;
-  onSourceTypeChange: (value: GitlabSourceType) => void;
+  onSourceTypeChange: (value: 'REPO' | 'GROUP') => void;
   onGitlabUrlChange: (value: string) => void;
   onSourceIdChange: (value: string) => void;
   onDefaultBranchChange: (value: string) => void;
@@ -87,7 +86,7 @@ export function SourceBasicsSection({
 
       <div>
         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-          URL du provider
+          Provider URL
         </label>
         <input
           type="url"

@@ -24,11 +24,7 @@ import { Alert } from '@/components/ui/alert';
 
 function isProjectGitlabConnected(project: ProjectListItem): boolean {
   const hasGitlabConfig = project.hasGitlabConfig ?? false;
-  const hasSourceIdentifier =
-    typeof project.gitlabId === 'number' ||
-    typeof project.gitlabGroupId === 'number';
-
-  return hasGitlabConfig && hasSourceIdentifier;
+  return hasGitlabConfig;
 }
 
 export default function ProjectsPage() {

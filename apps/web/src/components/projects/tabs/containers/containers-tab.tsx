@@ -1,27 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import {
-  Activity,
-  Clock,
-  Container,
-  Cpu,
-  HardDrive,
-  Loader2,
-  RefreshCw,
-  Server,
-  Wifi,
-} from 'lucide-react';
+import { Box, Clock, Container, Loader2, RefreshCw } from 'lucide-react';
 import { monitoringService, type ContainerStats } from '@/services/monitoring.service';
-import { environmentsService } from '@/services/environments.service';
+import { serversService } from '@/services/servers.service';
 import { getApiErrorMessage } from '@/lib/api';
-import type { Environment } from '@/types/environment';
+import type { Server } from '@/types/server';
 
 type Props = { projectId: string };
 
 export function ContainersTab({ projectId }: Props) {
-  const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [selectedServerId, setSelectedServerId] = useState('');
+  const [servers, setServers] = useState<Server[]>([]);
+  const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
   const [containers, setContainers] = useState<ContainerStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,14 +19,16 @@ export function ContainersTab({ projectId }: Props) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadEnvironments = () =>
-    environmentsService.getAll(projectId)
-      .then((envs) => {
-        setEnvironments(envs);
-        const first = envs.find((e) => e.serverId);
-        if (first && !selectedServerId) setSelectedServerId(first.serverId);
+  useEffect(() => {
+    setLoading(true);
+    serversService.getAll()
+      .then((list) => {
+        setServers(list ?? []);
+        if (list?.length && !selectedServerId) setSelectedServerId(list[0].id);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const loadContainers = async (serverId: string) => {
     if (!serverId) return;
@@ -52,24 +44,17 @@ export function ContainersTab({ projectId }: Props) {
   };
 
   useEffect(() => {
-    setLoading(true);
-    loadEnvironments().finally(() => setLoading(false));
-  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
     if (!selectedServerId) return;
     void loadContainers(selectedServerId);
     autoRefreshRef.current = setInterval(() => void loadContainers(selectedServerId), 30_000);
     return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
-  }, [selectedServerId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedServerId, projectId]);
 
   const handleRefresh = () => {
     if (!selectedServerId) return;
     setRefreshing(true);
     loadContainers(selectedServerId).finally(() => setRefreshing(false));
   };
-
-  const serverIds = [...new Set(environments.filter((e) => e.serverId).map((e) => e.serverId))] as string[];
 
   if (loading) return (
     <div className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-8 text-sm text-[var(--text-secondary)]">
@@ -91,13 +76,12 @@ export function ContainersTab({ projectId }: Props) {
           <span className="text-[10px] text-[var(--text-muted)]">· auto-refresh 30s</span>
         </div>
         <div className="flex items-center gap-2">
-          {serverIds.length > 0 && (
-            <select value={selectedServerId} onChange={(e) => setSelectedServerId(e.target.value)}
+          {servers.length > 0 && (
+            <select value={selectedServerId ?? ''} onChange={(e) => setSelectedServerId(e.target.value)}
               className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-1.5 text-xs text-[var(--text-primary)] outline-none">
-              {serverIds.map((sid) => {
-                const env = environments.find((e) => e.serverId === sid);
-                return <option key={sid} value={sid}>{env?.server?.name ?? sid}</option>;
-              })}
+              {servers.map((s) => (
+                <option key={s.id} value={s.id}>{s.name ?? s.host}</option>
+              ))}
             </select>
           )}
           <button type="button" onClick={handleRefresh} disabled={refreshing || !selectedServerId}
@@ -108,62 +92,43 @@ export function ContainersTab({ projectId }: Props) {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">{error}</div>
       )}
 
-      {!selectedServerId && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-14 text-center">
-          <Server size={28} className="mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm font-semibold text-[var(--text-primary)]">No servers configured</p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">Add an environment with a VPS to see container metrics.</p>
-        </div>
-      )}
-
-      {selectedServerId && containers.length === 0 && !error && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-14 text-center">
-          <Container size={28} className="mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm font-semibold text-[var(--text-primary)]">No running containers</p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">Deploy your project to see container metrics here.</p>
+      {containers.length === 0 && !error && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border)] py-12 text-center">
+          <Box size={24} className="mb-2 text-[var(--text-muted)]" />
+          <p className="text-sm font-semibold text-[var(--text-primary)]">No containers running</p>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">Deploy a service to see running containers.</p>
         </div>
       )}
 
       {containers.length > 0 && (
-        <div className="space-y-2">
-          {containers.map((c) => (
-            <div key={c.containerId} className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className={`h-2 w-2 shrink-0 rounded-full ${
-                    c.status === 'running' ? 'bg-green-400 animate-pulse'
-                    : c.status === 'stopped' ? 'bg-red-400'
-                    : 'bg-zinc-400'}`} />
-                  <Container size={13} className="shrink-0 text-[var(--text-muted)]" />
-                  <span className="text-sm font-semibold text-[var(--text-primary)] truncate">{c.name}</span>
-                  <span className="text-[10px] text-[var(--text-muted)] font-mono">{c.containerId.slice(0, 12)}</span>
-                </div>
-                <span className={`text-[10px] font-semibold uppercase ${
-                  c.status === 'running' ? 'text-green-400'
-                  : c.status === 'stopped' ? 'text-red-400'
-                  : 'text-zinc-400'}`}>
-                  {c.status}
-                </span>
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  { icon: <Cpu size={10} />, label: 'CPU',     value: c.cpuPercent },
-                  { icon: <HardDrive size={10} />, label: 'Memory',  value: `${c.memUsage} (${c.memPercent})` },
-                  { icon: <Wifi size={10} />, label: 'Network', value: c.netIO },
-                  { icon: <Activity size={10} />, label: 'PIDs',    value: String(c.pids) },
-                ].map(({ icon, label, value }) => (
-                  <div key={label} className="rounded-lg border border-[var(--border)] bg-[var(--hover)] px-3 py-2">
-                    <div className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">{icon} {label}</div>
-                    <p className="mt-0.5 font-mono text-sm font-semibold text-[var(--text-primary)]">{value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border)] bg-[var(--bg-card)]/5">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Image</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Ports</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {containers.map((c, i) => (
+                <tr key={c.containerId ?? i} className="hover:bg-[var(--bg-card)]/5 transition">
+                  <td className="px-4 py-3 font-mono text-xs text-[var(--text-primary)]">{c.name ?? c.containerId?.slice(0, 12)}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">—</td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">
+                      {'running'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">—</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

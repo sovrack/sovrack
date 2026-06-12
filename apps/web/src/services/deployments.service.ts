@@ -23,24 +23,18 @@ export const deploymentsService = {
   },
 
   async create({
-    projectId,
-    environmentId,
+    serviceEnvId,
     branch,
     strategy,
     buildSource,
     overrideImage,
-    serviceId,
-    repoId,
   }: CreateDeploymentPayload): Promise<DeploymentMutation> {
     const res = await api.post<DeploymentMutation>('/deployments', {
-      projectId,
-      environmentId,
+      serviceEnvId,
       branch,
       strategy,
       buildSource,
       overrideImage,
-      serviceId,
-      repoId,
     });
     return res.data;
   },

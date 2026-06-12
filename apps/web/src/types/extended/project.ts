@@ -1,28 +1,29 @@
 import type { components } from '@/generated/api-contract';
 import type { UserRole } from './auth';
+import type { ServiceType } from './service';
 
 type ApiSchema = components['schemas'];
 
 export type ProjectRole = 'OWNER' | 'DEVELOPER' | 'VIEWER';
 
 export type { UserRole };
-export type GitlabSourceType = NonNullable<ApiSchema['CreateProjectDto']['sourceType']>;
 export type GitlabGroupImportMode = 'ONE_APPLICATION' | 'SEPARATE_PROJECTS';
-export type ProjectServiceType =
-  | 'FRONTEND'
-  | 'BACKEND'
-  | 'WORKER'
-  | 'DATABASE'
-  | 'STATIC'
-  | 'API'
-  | 'OTHER';
-export type BuildStrategy =
-  | 'DOCKERFILE'
-  | 'DOCKER_COMPOSE'
-  | 'NIXPACKS'
-  | 'BUILDPACK'
-  | 'STATIC'
-  | 'NONE';
+export type GitlabSourceType = 'REPO' | 'GROUP';
+
+export type GitlabConfig = {
+  id: string;
+  gitlabUrl: string;
+  gitlabId: number | null;
+  gitlabGroupId: number | null;
+  defaultBranch: string;
+  sourceType: string;
+  providerId: string | null;
+  deployTokenUsername: string | null;
+  registryUrl: string | null;
+  gitlabToken: string;
+  deployTokenValue: string;
+  webhookSecretConfigured: boolean;
+};
 
 export type ProjectMemberUser = {
   id: string;
@@ -36,21 +37,6 @@ export type ProjectMember = {
   role: ProjectRole;
   joinedAt: string;
   user: ProjectMemberUser;
-};
-
-export type GitlabConfig = {
-  id: string;
-  gitlabUrl: string;
-  gitlabId: number | null;
-  defaultBranch: string;
-  sourceType: GitlabSourceType;
-  gitlabGroupId: number | null;
-  providerId: string | null;
-  deployTokenUsername: string | null;
-  registryUrl: string | null;
-  gitlabToken: string;
-  deployTokenValue: string;
-  webhookSecretConfigured: boolean;
 };
 
 export type GitlabProviderOption = {
@@ -75,16 +61,10 @@ export type ProjectListItem = {
   id: string;
   name: string;
   description: string | null;
-  gitlabUrl: string | null;
-  gitlabId: number | null;
-  gitlabSourceType: GitlabSourceType | null;
-  gitlabGroupId: number | null;
+  env: string | null;
   hasGitlabConfig: boolean;
-  branch: string;
-  dockerfile: string;
-  port: number;
   environmentCount: number;
-  serviceCount?: number;
+  serviceCount: number;
   createdAt: string;
   updatedAt: string;
   memberCount: number;
@@ -95,19 +75,10 @@ export type ProjectDetail = {
   id: string;
   name: string;
   description: string | null;
-  gitlabUrl: string | null;
-  gitlabId: number | null;
-  branch: string;
-  dockerfile: string;
-  port: number;
-  buildPort?: number | null;
-  buildStartCmd?: string | null;
-  projectType?: string | null;
-  defaultBuildSource?: string | null;
+  env: string | null;
   createdAt: string;
   updatedAt: string;
   members: ProjectMember[];
-  services?: ProjectService[];
 };
 
 export type CreateProjectPayload = Omit<ApiSchema['CreateProjectDto'], 'gitlabGroupId'> & {
@@ -121,15 +92,24 @@ export type AddMemberPayload = Omit<ApiSchema['AddMemberDto'], 'role'> & {
   role: ProjectRole;
 };
 
-export type ConnectGitlabPayload = Omit<ApiSchema['ConnectGitlabDto'], 'gitlabGroupId'> & {
+export type ConnectGitlabPayload = {
+  gitlabUrl?: string;
+  gitlabToken?: string;
+  providerId?: string;
+  defaultBranch?: string;
+  sourceType?: string;
+  gitlabId?: number | string;
   gitlabGroupId?: number | string;
+  deployTokenUsername?: string;
+  deployTokenValue?: string;
+  registryUrl?: string;
 };
 
 export type ConnectSourcePayload = {
   provider: 'GITLAB' | 'GITHUB';
   repoPath?: string;
   defaultBranch?: string;
-  sourceType?: GitlabSourceType;
+  sourceType?: string;
   providerId?: string;
   gitlabUrl?: string;
   gitlabToken?: string;
@@ -188,7 +168,7 @@ export type ImportGitlabGroupRepositoryPayload = {
   pathWithNamespace: string;
   defaultBranch: string;
   serviceName?: string;
-  serviceType?: ProjectServiceType;
+  serviceType?: ServiceType;
 };
 
 export type ImportGitlabGroupPayload = {
@@ -201,32 +181,4 @@ export type ImportGitlabGroupPayload = {
   importMode: GitlabGroupImportMode;
   repositories: ImportGitlabGroupRepositoryPayload[];
   ownerId?: string;
-};
-
-export type ProjectService = {
-  id: string;
-  projectId: string;
-  name: string;
-  type: ProjectServiceType;
-  sourceProviderId: string | null;
-  gitlabProjectId: number | string | null;
-  repositoryPath: string | null;
-  defaultBranch: string;
-  buildPack: BuildStrategy;
-  dockerfilePath: string;
-  composeServiceName: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type CreateProjectServicePayload = {
-  name: string;
-  type?: ProjectServiceType;
-  sourceProviderId?: string;
-  gitlabProjectId?: number;
-  repositoryPath?: string;
-  defaultBranch?: string;
-  buildPack?: BuildStrategy;
-  dockerfilePath?: string;
-  composeServiceName?: string;
 };

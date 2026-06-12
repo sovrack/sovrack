@@ -21,7 +21,7 @@ import clsx from 'clsx';
 import { Button } from '@/components/ui/button';
 import { buildService, type BuildDetectResult, type BuildStatusResult, type BuildAllResult } from '@/services/build.service';
 import { projectsService } from '@/services/projects.service';
-import type { ProjectService } from '@/types/project';
+import type { Service } from '@/types/service';
 import { getApiErrorMessage } from '@/lib/api';
 import { BuildFilesPreview } from './build-files-preview';
 import { BuildStatusPanel } from './build-status-panel';
@@ -89,7 +89,7 @@ function ServiceConfigPanel({
   onClose,
   onGenerated,
 }: {
-  service: ProjectService;
+  service: Service;
   isAdmin: boolean;
   projectId: string;
   initialConfig: ServiceLocalConfig;
@@ -568,7 +568,7 @@ export function ProjectBuildTabContent({
 }: ProjectBuildTabContentProps) {
   const isGroupSource = sourceType === 'GROUP';
 
-  const [services, setServices]         = useState<ProjectService[]>([]);
+  const [services, setServices]         = useState<Service[]>([]);
   const [buildStatus, setBuildStatus]   = useState<BuildStatusResult | null>(null);
   const [buildStatusLoading, setBuildStatusLoading] = useState(false);
   const [servicesLoading, setServicesLoading]       = useState(false);
@@ -598,10 +598,9 @@ export function ProjectBuildTabContent({
     refreshBuildStatus();
     if (!isGroupSource) return;
     setServicesLoading(true);
-    projectsService.getServices(projectId)
-      .then(setServices)
-      .catch(() => { /* ignore */ })
-      .finally(() => setServicesLoading(false));
+    // TODO: load services from environments
+    setServices([]);
+    setServicesLoading(false);
   }, [projectId, isGroupSource, refreshBuildStatus]);
 
   /* ── Merge service data ─────────────────────────────────────────── */
@@ -799,7 +798,7 @@ export function ProjectBuildTabContent({
                             <span className="rounded border border-purple-500/20 bg-purple-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-purple-300">{svc.buildPack}</span>
                           )}
                         </div>
-                        <p className="font-mono text-[10px] text-[var(--text-muted)]">{svc.repositoryPath ?? svc.gitlabProjectId}</p>
+                        <p className="font-mono text-[10px] text-[var(--text-muted)]">{svc.name}</p>
                       </div>
 
                       {/* Pipeline status */}

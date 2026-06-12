@@ -3738,19 +3738,10 @@ export interface components {
             buildSource: string;
         };
         CreateDeploymentDto: {
-            /** @example project-uuid */
-            projectId: string;
-            /** @example service-uuid */
-            serviceId?: string;
-            /** @example environment-uuid */
-            environmentId: string;
+            /** @example service-env-uuid */
+            serviceEnvId: string;
             /** @example main */
             branch?: string;
-            /**
-             * @description Repository GitLab ciblé (recommandé pour source GROUP, optionnel pour REPO)
-             * @example 42
-             */
-            repoId?: number;
             /**
              * @description Strategy de déploiement: standard (simple restart) ou blue-green (zero-downtime)
              * @example standard
@@ -3758,14 +3749,7 @@ export interface components {
              */
             strategy?: "standard" | "blue-green";
             /**
-             * @description Source de build — un seul champ remplace buildPack + buildMode :
-             *       DOCKERFILE_REGISTRY — Dockerfile buildé par CI GitLab/GitHub → registry → pull sur VPS
-             *       DOCKERFILE_LOCAL    — Dockerfile buildé directement sur le VPS (pas de registry)
-             *       NIXPACKS_REGISTRY   — Nixpacks buildé par CI → registry → pull sur VPS
-             *       NIXPACKS_LOCAL      — Nixpacks buildé directement sur le VPS
-             *       DOCKER_COMPOSE      — docker-compose.yml exécuté sur le VPS
-             *       STATIC              — Site statique servi par Nginx sur le VPS
-             *       EXTERNAL_IMAGE      — Image Docker externe fournie via overrideImage
+             * @description Source de build — un seul champ remplace buildPack + buildMode
              * @example DOCKERFILE_LOCAL
              * @enum {string}
              */
@@ -3777,24 +3761,12 @@ export interface components {
             overrideImage?: string;
             /**
              * @description Nixpacks configuration: build env, runtime env, port, etc.
-             * @example {
-             *       "buildEnv": {
-             *         "NODE_ENV": "production"
-             *       },
-             *       "runtimeEnv": {
-             *         "PORT": "3000"
-             *       },
-             *       "port": 3000
-             *     }
+             * @example { "buildEnv": { "NODE_ENV": "production" }, "port": 3000 }
              */
             nixpacksConfig?: Record<string, never>;
             /**
              * @description Static site configuration: source dir, build cmd, SPA mode, etc.
-             * @example {
-             *       "sourceDir": "dist",
-             *       "buildCommand": "npm run build",
-             *       "spaFallback": true
-             *     }
+             * @example { "buildCommand": "npm run build", "spaFallback": true }
              */
             staticConfig?: Record<string, never>;
         };

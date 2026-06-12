@@ -3,55 +3,52 @@
 import { Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type {
-  GitlabBranch,
-  GitlabGroupImportMode,
-  GitlabRepo,
-  ProjectServiceType,
+  GitlabBranch as ProjectSourceBranch,
+  GitlabGroupImportMode as SourceImportMode,
+  GitlabRepo as ProjectSourceRepo,
 } from '@/types/project';
+import type { ServiceType } from '@/types/service';
 
 export type SelectedGroupRepository = {
-  repo: GitlabRepo;
+  repo: ProjectSourceRepo;
   branch: string;
   serviceName: string;
-  serviceType: ProjectServiceType;
+  serviceType: ServiceType;
 };
 
-const SERVICE_TYPE_OPTIONS: { value: ProjectServiceType; label: string }[] = [
-  { value: 'FRONTEND', label: 'Frontend' },
-  { value: 'BACKEND', label: 'Backend/API' },
-  { value: 'WORKER', label: 'Worker' },
-  { value: 'STATIC', label: 'Static' },
+const SERVICE_TYPE_OPTIONS: { value: ServiceType; label: string }[] = [
+  { value: 'APPLICATION', label: 'Application' },
   { value: 'DATABASE', label: 'Database' },
-  { value: 'OTHER', label: 'Other' },
+  { value: 'COMPOSE', label: 'Compose' },
 ];
 
-function repoPath(repo: GitlabRepo): string {
+function repoPath(repo: ProjectSourceRepo): string {
   return repo.pathWithNamespace ?? repo.path_with_namespace ?? repo.path ?? repo.name;
 }
 
-function repoDefaultBranch(repo: GitlabRepo): string {
+function repoDefaultBranch(repo: ProjectSourceRepo): string {
   return repo.defaultBranch ?? repo.default_branch ?? 'main';
 }
 
-function repoWebUrl(repo: GitlabRepo): string | undefined {
+function repoWebUrl(repo: ProjectSourceRepo): string | undefined {
   return repo.webUrl ?? repo.web_url;
 }
 
 export type GroupReposPickerProps = {
-  groupRepos: GitlabRepo[];
+  groupRepos: ProjectSourceRepo[];
   groupRepoSearch: string;
   groupRepoPage: number;
   groupRepoTotalPages: number | null;
   fetchingGroupRepos: boolean;
   selectedGroupRepos: Record<number, SelectedGroupRepository>;
-  branchesByRepo: Record<number, GitlabBranch[]>;
+  branchesByRepo: Record<number, ProjectSourceBranch[]>;
   loadingBranchesByRepo: Record<number, boolean>;
-  importMode: GitlabGroupImportMode;
+  importMode: SourceImportMode;
   onSearchChange: (value: string) => void;
   onFetch: (page: number) => void;
-  onToggleRepo: (repo: GitlabRepo) => void;
+  onToggleRepo: (repo: ProjectSourceRepo) => void;
   onUpdateSelectedRepo: (repoId: number, patch: Partial<SelectedGroupRepository>) => void;
-  onImportModeChange: (mode: GitlabGroupImportMode) => void;
+  onImportModeChange: (mode: SourceImportMode) => void;
 };
 
 export function GroupReposPicker({
@@ -239,7 +236,7 @@ export function GroupReposPicker({
                       value={selection.serviceType}
                       onChange={(event) =>
                         onUpdateSelectedRepo(selection.repo.id, {
-                          serviceType: event.target.value as ProjectServiceType,
+                          serviceType: event.target.value as ServiceType,
                         })
                       }
                       className="h-10 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"

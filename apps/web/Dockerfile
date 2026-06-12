@@ -24,6 +24,8 @@ RUN npm run build
 # ── Production stage ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -32,8 +34,15 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
+# next.config.ts needed at runtime for rewrites, env, etc.
+COPY next.config.ts ./
+
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
 
 EXPOSE 3000
 
