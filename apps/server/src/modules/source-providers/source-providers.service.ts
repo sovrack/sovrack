@@ -14,15 +14,6 @@ import type {
   PipelineItem,
 } from './interfaces/source-provider.interface';
 
-/**
- * Type-guard helper. Forces TypeScript to refuse compilation when a new
- * `GitProviderType` value is added without updating the switch in
- * `forType`. Same idea as the `PlaybookRouter.assertNever`.
- */
-function assertNever(value: never): never {
-  throw new Error(`Unhandled GitProviderType: ${String(value)}`);
-}
-
 /** Provider-agnostic source option for the unified "Connect source" UI. */
 export type SourceProviderOption = {
   id: string;
@@ -52,12 +43,22 @@ export class SourceProvidersService {
   ) {}
 
   /**
+   * REGISTRE des providers — la SEULE source de vérité de la liste.
+   * Ajouter un fournisseur (Bitbucket, Gitea, self-hosted…) = implémenter
+   * IGitProvider + l'injecter + l'ajouter à CETTE liste. Aucune autre
+   * méthode (forType/listAvailable) ne change → principe Open/Closed.
+   */
+  private get registeredProviders(): IGitProvider[] {
+    return [this.gitlabCore, this.github];
+  }
+
+  /**
    * List all registered provider instances. Useful for the admin UI
    * ("intégrations" tab) and for tests that want to verify which
    * providers are wired without hardcoding the enum.
    */
   listAvailable(): IGitProvider[] {
-    return [this.gitlabCore, this.github];
+    return this.registeredProviders;
   }
 
   /**
@@ -103,19 +104,16 @@ export class SourceProvidersService {
   }
 
   /**
-   * Résout le provider par type explicite. Uses `assertNever` so adding a
-   * new `GitProviderType` value to the enum forces a code change here at
-   * compile time.
+   * Résout le provider par type via le REGISTRE (plus de switch en dur).
+   * Un type non enregistré → 400 explicite. Ajouter un provider ne touche
+   * jamais cette méthode.
    */
   forType(type: GitProviderType): IGitProvider {
-    switch (type) {
-      case GitProviderType.GITHUB:
-        return this.github;
-      case GitProviderType.GITLAB:
-        return this.gitlabCore;
-      default:
-        return assertNever(type);
+    const provider = this.registeredProviders.find((p) => p.type === type);
+    if (!provider) {
+      throw new BadRequestException(`Fournisseur Git non supporté : ${type}`);
     }
+    return provider;
   }
 
   // ─── Méthodes directes (raccourci sans forProject) ────────────────────────
