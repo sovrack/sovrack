@@ -21,7 +21,7 @@ import { PublicGitlabConfig } from './gitlab.types';
 import {
   GitProviderConfigService,
   type GitlabProviderProjectOption,
-} from '../../config/git-provider-config.service';
+} from '../../shared/connection/git-provider-config.service';
 import { GitlabAuthorizationService } from './gitlab-authorization.service';
 import { GitlabCiService } from './gitlab-ci.service';
 import { GitlabProjectConfigService } from './gitlab-project-config.service';

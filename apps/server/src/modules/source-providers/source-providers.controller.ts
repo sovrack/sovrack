@@ -22,8 +22,8 @@ import type { Request } from 'express';
 import { Roles } from '../../core/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/guards/roles.guard';
-import { GitProviderConfigService } from './config/git-provider-config.service';
-import { GitProviderOauthService } from './config/git-provider-oauth.service';
+import { GitProviderConfigService } from './shared/connection/git-provider-config.service';
+import { GitProviderOauthService } from './shared/connection/git-provider-oauth.service';
 
 class CreateGitlabProviderDto {
   @IsString() @IsNotEmpty() name!: string;

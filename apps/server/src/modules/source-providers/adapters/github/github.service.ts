@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { CryptoService } from '../../../../core/crypto/crypto.service';
 import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
-import { GitProviderConfigService } from '../../config/git-provider-config.service';
+import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
 import { GithubApiService } from './github-api.service';
 import { GithubFileService } from './github-file.service';
 import { GithubWebhookConfiguratorService } from './github-webhook-configurator.service';

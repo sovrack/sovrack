@@ -10,8 +10,8 @@ import {
   type GitProviderConfig,
 } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
+import { PrismaService } from '../../../../core/database/prisma.service';
+import { CryptoService } from '../../../../core/crypto/crypto.service';
 import { GitProviderOauthService } from './git-provider-oauth.service';
 
 // ─── Public Types ────────────────────────────────────────────────────────────
