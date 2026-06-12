@@ -8,7 +8,18 @@ module.exports = {
       name: 'no-circular',
       severity: 'error',
       comment: 'Aucune dépendance circulaire (entre modules/contextes).',
-      from: {},
+      from: {
+        // EXCEPTION ACCEPTÉE (documentée) : cycle forwardRef NestJS entre
+        // infrastructure/preparation et servers/servers-shared — collaboration
+        // bidirectionnelle légitime pendant l'onboarding serveur (ServersCore
+        // déclenche la préparation Docker ; la préparation consomme les
+        // primitives serveur). À casser par ÉVÉNEMENTS quand l'app tourne
+        // (runtime requis). Exclu ici pour que la règle détecte les NOUVEAUX cycles.
+        pathNot: [
+          'src/modules/infrastructure/preparation/infrastructure\\.module\\.ts$',
+          'src/modules/infrastructure/servers/servers-shared\\.module\\.ts$',
+        ],
+      },
       to: { circular: true },
     },
     {
