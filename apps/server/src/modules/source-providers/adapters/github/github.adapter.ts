@@ -5,7 +5,7 @@ import { PrismaService } from '../../../../core/database/prisma.service';
 import { CryptoService } from '../../../../core/crypto/crypto.service';
 import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
-import { GithubApiService } from './github-api.service';
+import { GithubClient } from './github.client';
 import { GithubFileService } from './github-file.service';
 import { GithubWebhookConfiguratorService } from './github-webhook-configurator.service';
 import type {
@@ -34,7 +34,7 @@ export class GithubAdapter implements IGitProvider {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gitProviderRegistry: GitProviderConfigService,
-    private readonly api: GithubApiService,
+    private readonly api: GithubClient,
     private readonly fileService: GithubFileService,
     private readonly webhookConfigurator: GithubWebhookConfiguratorService,
     private readonly crypto: CryptoService,

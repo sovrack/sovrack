@@ -2,19 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { GitProviderType, Role } from '@prisma/client';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import {
-  GitlabApiService,
+  GitlabClient,
   GitlabPipelineItem,
-} from './gitlab-api.service';
+} from './gitlab.client';
 import { GitlabAuthorizationService } from './gitlab-authorization.service';
 import { GitlabProjectConfigService } from './gitlab-project-config.service';
-import { GitlabWebhookService } from './gitlab-webhook.service';
+import { GitlabWebhookHandler } from './gitlab-webhook.handler';
 
 @Injectable()
 export class GitlabCiService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly apiService: GitlabApiService,
-    private readonly webhookService: GitlabWebhookService,
+    private readonly apiService: GitlabClient,
+    private readonly webhookService: GitlabWebhookHandler,
     private readonly projectConfig: GitlabProjectConfigService,
     private readonly auth: GitlabAuthorizationService,
   ) {}

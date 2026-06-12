@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { SourceType } from '@prisma/client';
 import { PrismaService } from '../../../../core/database/prisma.service';
-import { GitlabApiService } from './gitlab-api.service';
+import { GitlabClient } from './gitlab.client';
 import { GitlabConnectionService } from './gitlab-connection.service';
 
 /**
@@ -20,7 +20,7 @@ import { GitlabConnectionService } from './gitlab-connection.service';
 export class GitlabProjectConfigService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly apiService: GitlabApiService,
+    private readonly apiService: GitlabClient,
     private readonly connection: GitlabConnectionService,
   ) {}
 

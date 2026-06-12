@@ -3,7 +3,7 @@ import { GitProviderType } from '@prisma/client';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
 import { GitlabAdapter } from './adapters/gitlab/gitlab.adapter';
-import { GitlabApiService } from './adapters/gitlab/gitlab-api.service';
+import { GitlabClient } from './adapters/gitlab/gitlab.client';
 import { GitlabConnectionService } from './adapters/gitlab/gitlab-connection.service';
 import { GithubAdapter } from './adapters/github/github.adapter';
 import { ConnectSourceDto } from './dto/connect-source.dto';
@@ -37,7 +37,7 @@ export class SourceProvidersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gitlabCore: GitlabAdapter,
-    private readonly gitlabApi: GitlabApiService,
+    private readonly gitlabApi: GitlabClient,
     private readonly gitlabConnection: GitlabConnectionService,
     private readonly github: GithubAdapter,
   ) {}

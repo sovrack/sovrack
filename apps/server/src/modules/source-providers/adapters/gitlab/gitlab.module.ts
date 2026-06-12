@@ -4,7 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '../../../../core/database/prisma.module';
 import { CryptoModule } from '../../../../core/crypto/crypto.module';
 import { GitProviderConfigModule } from '../../shared/connection/git-provider-config.module';
-import { GitlabApiService } from './gitlab-api.service';
+import { GitlabClient } from './gitlab.client';
 import { GitlabCiService } from './gitlab-ci.service';
 import { GitlabController } from './gitlab.controller';
 import { GitlabAuthorizationService } from './gitlab-authorization.service';
@@ -15,7 +15,7 @@ import { GitlabCredentialService } from './gitlab-credential.service';
 import { GitlabFileService } from './gitlab-file.service';
 import { GitlabWebhookConfiguratorService } from './gitlab-webhook-configurator.service';
 import { GitlabOAuthController } from './gitlab-oauth.controller';
-import { GitlabWebhookService } from './gitlab-webhook.service';
+import { GitlabWebhookHandler } from './gitlab-webhook.handler';
 
 @Module({
   imports: [
@@ -33,16 +33,16 @@ import { GitlabWebhookService } from './gitlab-webhook.service';
     GitlabProjectConfigService,
     GitlabAdapter,
     GitlabCiService,
-    GitlabApiService,
-    GitlabWebhookService,
+    GitlabClient,
+    GitlabWebhookHandler,
     GitlabFileService,
     GitlabWebhookConfiguratorService,
   ],
   exports: [
     GitlabAdapter,
-    GitlabApiService,
+    GitlabClient,
     GitlabConnectionService,
-    GitlabWebhookService,
+    GitlabWebhookHandler,
     GitlabFileService,
     GitlabWebhookConfiguratorService,
   ],

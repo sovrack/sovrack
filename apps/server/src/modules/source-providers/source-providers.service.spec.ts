@@ -4,7 +4,7 @@ import { GitProviderType } from '@prisma/client';
 import { SourceProvidersService } from './source-providers.service';
 import { PrismaService } from '../../core/database/prisma.service';
 import { GitlabAdapter } from './adapters/gitlab/gitlab.adapter';
-import { GitlabApiService } from './adapters/gitlab/gitlab-api.service';
+import { GitlabClient } from './adapters/gitlab/gitlab.client';
 import { GitlabConnectionService } from './adapters/gitlab/gitlab-connection.service';
 import { GithubAdapter } from './adapters/github/github.adapter';
 
@@ -57,7 +57,7 @@ describe('SourceProvidersService (factory)', () => {
         SourceProvidersService,
         { provide: PrismaService, useValue: prisma },
         { provide: GitlabAdapter, useValue: gitlab },
-        { provide: GitlabApiService, useValue: {} },
+        { provide: GitlabClient, useValue: {} },
         { provide: GitlabConnectionService, useValue: {} },
         { provide: GithubAdapter, useValue: github },
       ],

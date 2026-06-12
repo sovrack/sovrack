@@ -33,8 +33,8 @@ type GithubWorkflowRun = {
 };
 
 @Injectable()
-export class GithubApiService {
-  private readonly logger = new Logger(GithubApiService.name);
+export class GithubClient {
+  private readonly logger = new Logger(GithubClient.name);
 
   constructor(private readonly httpService: HttpService) {}
 

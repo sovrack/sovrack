@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GitProviderType, PipelineRunStatus } from '@prisma/client';
 import { PrismaService } from '../../../../core/database/prisma.service';
-import { GitlabPipelineItem } from './gitlab-api.service';
+import { GitlabPipelineItem } from './gitlab.client';
 import {
   DEPLOYMENT_PIPELINE_UPDATED,
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
@@ -48,8 +48,8 @@ export type GitlabWebhookPayload = {
  * repo on the GitLab side therefore never affects routing.
  */
 @Injectable()
-export class GitlabWebhookService implements IWebhookHandler {
-  private readonly logger = new Logger(GitlabWebhookService.name);
+export class GitlabWebhookHandler implements IWebhookHandler {
+  private readonly logger = new Logger(GitlabWebhookHandler.name);
   readonly provider = GitProviderType.GITLAB;
 
   constructor(

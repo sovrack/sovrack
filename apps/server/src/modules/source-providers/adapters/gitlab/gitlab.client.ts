@@ -73,7 +73,7 @@ type GitlabGroupSummary = {
 };
 
 @Injectable()
-export class GitlabApiService {
+export class GitlabClient {
   constructor(
     private readonly httpService: HttpService,
     private readonly crypto: CryptoService,

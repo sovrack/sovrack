@@ -9,13 +9,13 @@ import { PrismaService } from '../../../../core/database/prisma.service';
 import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
 import {
-  GitlabApiService,
+  GitlabClient,
   GitlabBranchItem,
   GitlabGroupRepositoriesPage,
   GitlabGroupRepositoriesQuery,
   GitlabPipelineItem,
   GitlabRepoItem,
-} from './gitlab-api.service';
+} from './gitlab.client';
 import { CryptoService } from '../../../../core/crypto/crypto.service';
 import { PublicGitlabConfig } from './gitlab.types';
 import {
@@ -46,7 +46,7 @@ export class GitlabAdapter implements IGitProvider {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly apiService: GitlabApiService,
+    private readonly apiService: GitlabClient,
     private readonly cryptoService: CryptoService,
     private readonly gitProviderRegistry: GitProviderConfigService,
     // Plus de forwardRef : le cycle core↔ci est cassé (ci ne dépend plus de

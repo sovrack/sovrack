@@ -50,8 +50,8 @@ type GithubWorkflowRunPayload = {
  * The payload is only read for event data: branch, commit, workflow status.
  */
 @Injectable()
-export class GithubWebhookService implements IWebhookHandler {
-  private readonly logger = new Logger(GithubWebhookService.name);
+export class GithubWebhookHandler implements IWebhookHandler {
+  private readonly logger = new Logger(GithubWebhookHandler.name);
   readonly provider = GitProviderType.GITHUB;
 
   constructor(

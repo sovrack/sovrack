@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/database/prisma.module';
 import { PlatformModule } from '../platform';
 import { GitlabModule, GithubModule, SourceProvidersModule } from '../source-providers';
-import { GitlabWebhookService } from '../source-providers/adapters/gitlab/gitlab-webhook.service';
-import { GithubWebhookService } from '../source-providers/adapters/github/github-webhook.service';
+import { GitlabWebhookHandler } from '../source-providers/adapters/gitlab/gitlab-webhook.handler';
+import { GithubWebhookHandler } from '../source-providers/adapters/github/github-webhook.handler';
 import { WebhooksService } from './webhooks.service';
 import { IncomingWebhookController } from './incoming-webhook.controller';
 import { WebhookAuditController } from './webhook-audit.controller';
@@ -25,7 +25,7 @@ import {
  *   WebhookManagementService     provider-side registration lifecycle
  *
  * Provider reception logic stays in each source provider module
- * (GitlabWebhookService, GithubWebhookService) and is plugged in here via
+ * (GitlabWebhookHandler, GithubWebhookHandler) and is plugged in here via
  * the WEBHOOK_HANDLER registry. Adding a provider = add one line to the
  * factory below — no new route, no new controller.
  */
@@ -48,10 +48,10 @@ import {
     {
       provide: WEBHOOK_HANDLER,
       useFactory: (
-        gitlab: GitlabWebhookService,
-        github: GithubWebhookService,
+        gitlab: GitlabWebhookHandler,
+        github: GithubWebhookHandler,
       ): IWebhookHandler[] => [gitlab, github],
-      inject: [GitlabWebhookService, GithubWebhookService],
+      inject: [GitlabWebhookHandler, GithubWebhookHandler],
     },
   ],
   exports: [WebhooksService],

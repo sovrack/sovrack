@@ -12,7 +12,7 @@ import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { ALLOWED_PUSH_FILES } from '../../../../core/utils/file-constants';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
-import { GithubApiService } from './github-api.service';
+import { GithubClient } from './github.client';
 import type { RepoWriteResult, GitCredentials } from '../../contracts/git-provider.contract';
 
 /**
@@ -30,7 +30,7 @@ export class GithubFileService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
-    private readonly api: GithubApiService,
+    private readonly api: GithubClient,
     private readonly gitProviderRegistry: GitProviderConfigService,
   ) {}
 
