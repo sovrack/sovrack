@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
 import { CreateProxyRuleDto, UpdateProxyRuleDto } from './dto/proxy-rule.dto';
 import { ProxyService } from './proxy.service';
 

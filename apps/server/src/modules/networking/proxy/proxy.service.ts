@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '../../../core/database/prisma.service';
 import { CreateProxyRuleDto, UpdateProxyRuleDto } from './dto/proxy-rule.dto';
 
 @Injectable()

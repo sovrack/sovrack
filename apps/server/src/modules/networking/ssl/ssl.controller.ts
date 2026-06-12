@@ -7,7 +7,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
 import { SslCertificateService } from './ssl-certificate.service';
 import type { SslCertificateRequest } from './ssl-certificate.service';
 

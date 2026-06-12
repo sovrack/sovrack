@@ -26,7 +26,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { TerminalModule } from './modules/terminal/terminal.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { MonitoringModule } from './modules/observability/monitoring/monitoring.module';
-import { DomainsModule } from './modules/domains/domains.module';
+import { DomainsModule } from './modules/networking/domains/domains.module';
 import { CryptoModule } from './core/crypto/crypto.module';
 import { AnsibleModule } from './core/provisioning/ansible.module';
 import { DockerModule } from './core/container-runtime/docker.module';
@@ -36,11 +36,11 @@ import { QueueModule } from './core/queue/queue.module';
 import { ContainerRegistriesModule } from './modules/container-registries/container-registries.module';
 import { DashboardModule } from './modules/observability/dashboard/dashboard.module';
 import { ContainersModule } from './modules/containers/containers.module';
-import { ProxyModule } from './modules/proxy/proxy.module';
+import { ProxyModule } from './modules/networking/proxy/proxy.module';
 import { VolumesModule } from './modules/volumes/volumes.module';
 import { ServiceEnvironmentsModule } from './modules/service-environments/service-environments.module';
 import { ServicesModule } from './modules/services/services.module';
-import { SslModule } from './modules/ssl/ssl.module';
+import { SslModule } from './modules/networking/ssl/ssl.module';
 
 @Module({
   imports: [
