@@ -6,27 +6,25 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
-import { UsersModule } from './modules/iam/users/users.module';
-import { AuthModule } from './modules/iam/auth/auth.module';
+// Contextes consolidés — importés via leur porte publique (barrel index.ts)
+import { UsersModule, AuthModule, TeamsModule, SshKeysModule } from './modules/iam';
+import { ProjectsModule, ServicesModule, ServiceEnvironmentsModule } from './modules/catalog';
+import { ServersModule, InfrastructureModule, ContainersModule, VolumesModule } from './modules/infrastructure';
+import { DomainsModule, ProxyModule, SslModule } from './modules/networking';
+import { MonitoringModule, DashboardModule } from './modules/observability';
+// Contextes standalone + core
 import { PrismaModule } from './core/database/prisma.module';
-import { ProjectsModule } from './modules/catalog/projects/projects.module';
 import { GitlabModule } from './modules/source-providers/gitlab/gitlab.module';
 import { SourceProvidersModule } from './modules/source-providers/source-providers.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
-import { ServersModule } from './modules/infrastructure/servers/servers.module';
-import { InfrastructureModule } from './modules/infrastructure/preparation/infrastructure.module';
 import { BuildModule } from './modules/build/build.module';
 import { DeploymentsModule } from './modules/deployments/deployments.module';
 import { PlatformModule } from './modules/platform/platform.module';
-import { TeamsModule } from './modules/iam/teams/teams.module';
 import { LoggerModule } from './core/logger/logger.module';
 import { validateEnv } from './core/config/env.validation';
-import { SshKeysModule } from './modules/iam/ssh-keys/ssh-keys.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { TerminalModule } from './modules/terminal/terminal.module';
 import { AutomationModule } from './modules/automation/automation.module';
-import { MonitoringModule } from './modules/observability/monitoring/monitoring.module';
-import { DomainsModule } from './modules/networking/domains/domains.module';
 import { CryptoModule } from './core/crypto/crypto.module';
 import { AnsibleModule } from './core/provisioning/ansible.module';
 import { DockerModule } from './core/container-runtime/docker.module';
@@ -34,13 +32,6 @@ import { SshModule } from './core/ssh/ssh.module';
 import { EventsModule } from './core/events/events.module';
 import { QueueModule } from './core/queue/queue.module';
 import { ContainerRegistriesModule } from './modules/container-registries/container-registries.module';
-import { DashboardModule } from './modules/observability/dashboard/dashboard.module';
-import { ContainersModule } from './modules/infrastructure/containers/containers.module';
-import { ProxyModule } from './modules/networking/proxy/proxy.module';
-import { VolumesModule } from './modules/infrastructure/volumes/volumes.module';
-import { ServiceEnvironmentsModule } from './modules/catalog/service-environments/service-environments.module';
-import { ServicesModule } from './modules/catalog/services/services.module';
-import { SslModule } from './modules/networking/ssl/ssl.module';
 
 @Module({
   imports: [
