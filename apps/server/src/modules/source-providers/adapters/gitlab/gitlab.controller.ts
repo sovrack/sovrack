@@ -20,7 +20,7 @@ import { GetUser } from '../../../../core/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../../core/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../../core/jwt/dto/jwt-payload.dto';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
-import { GitlabCoreService } from './gitlab-core.service';
+import { GitlabAdapter } from './gitlab.adapter';
 
 class TriggerPipelineDto {
   @IsString()
@@ -75,7 +75,7 @@ class ListGroupRepositoriesQueryDto {
 @ApiTags('GitLab')
 @Controller()
 export class GitlabController {
-  constructor(private readonly gitlabCore: GitlabCoreService) {}
+  constructor(private readonly gitlabCore: GitlabAdapter) {}
 
   @Get('gitlab/providers')
   @UseGuards(JwtAuthGuard)

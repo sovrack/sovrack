@@ -3,10 +3,10 @@ import { NotFoundException } from '@nestjs/common';
 import { GitProviderType } from '@prisma/client';
 import { SourceProvidersService } from './source-providers.service';
 import { PrismaService } from '../../core/database/prisma.service';
-import { GitlabCoreService } from './adapters/gitlab/gitlab-core.service';
+import { GitlabAdapter } from './adapters/gitlab/gitlab.adapter';
 import { GitlabApiService } from './adapters/gitlab/gitlab-api.service';
 import { GitlabConnectionService } from './adapters/gitlab/gitlab-connection.service';
-import { GithubService } from './adapters/github/github.service';
+import { GithubAdapter } from './adapters/github/github.adapter';
 
 /**
  * P3 — GitProviderFactory. The factory has to:
@@ -56,10 +56,10 @@ describe('SourceProvidersService (factory)', () => {
       providers: [
         SourceProvidersService,
         { provide: PrismaService, useValue: prisma },
-        { provide: GitlabCoreService, useValue: gitlab },
+        { provide: GitlabAdapter, useValue: gitlab },
         { provide: GitlabApiService, useValue: {} },
         { provide: GitlabConnectionService, useValue: {} },
-        { provide: GithubService, useValue: github },
+        { provide: GithubAdapter, useValue: github },
       ],
     }).compile();
 

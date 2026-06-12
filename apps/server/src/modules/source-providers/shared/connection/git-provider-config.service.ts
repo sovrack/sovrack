@@ -111,7 +111,7 @@ export class GitProviderConfigService {
     private readonly oauth: GitProviderOauthService,
   ) {}
 
-  // ─── Public decrypt helper (used by GithubService) ────────────────
+  // ─── Public decrypt helper (used by GithubAdapter) ────────────────
 
   decryptProviderToken(value: string): string {
     return this.crypto.decrypt(value);

@@ -1,5 +1,5 @@
 import { DockerDeployExecutorService } from '../../src/modules/deployments/services/docker-deploy-executor.service';
-import { GitlabCoreService } from '../../src/modules/source-providers/adapters/gitlab/gitlab-core.service';
+import { GitlabAdapter } from '../../src/modules/source-providers/adapters/gitlab/gitlab.adapter';
 
 export type AnsibleMockHandle = {
   executeDeploy: jest.Mock;
@@ -26,14 +26,14 @@ export type GitlabMockHandle = {
 };
 
 export function mockGitlabService(): {
-  provide: typeof GitlabCoreService;
+  provide: typeof GitlabAdapter;
   useValue: GitlabMockHandle;
 } {
   const triggerPipeline = jest
     .fn()
     .mockResolvedValue({ id: 12345, webUrl: 'https://gitlab.example.com/pipeline/12345' });
   return {
-    provide: GitlabCoreService,
+    provide: GitlabAdapter,
     useValue: {
       triggerPipeline,
       reset: () => triggerPipeline.mockClear(),

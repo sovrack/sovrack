@@ -41,7 +41,7 @@ import type {
 } from '../../contracts/git-provider.contract';
 
 @Injectable()
-export class GitlabCoreService implements IGitProvider {
+export class GitlabAdapter implements IGitProvider {
   readonly type = 'GITLAB' as const;
 
   constructor(

@@ -6,7 +6,7 @@ import type { WebhookConfigResult } from '../../contracts/git-provider.contract'
 
 /**
  * Registers (or updates) a webhook on the GitHub repository side.
- * Called by GithubService.configureWebhook() — NOT by the build module.
+ * Called by GithubAdapter.configureWebhook() — NOT by the build module.
  *
  * GitHub webhooks API: POST /repos/{owner}/{repo}/hooks
  * For updates: PATCH /repos/{owner}/{repo}/hooks/{hook_id}

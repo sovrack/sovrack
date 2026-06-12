@@ -9,7 +9,7 @@ import { GitlabApiService } from './gitlab-api.service';
 import { GitlabConnectionService } from './gitlab-connection.service';
 
 /**
- * Résolution de la config projet/repo GitLab — extrait de GitlabCoreService
+ * Résolution de la config projet/repo GitLab — extrait de GitlabAdapter
  * pour CASSER le cycle gitlab-core ↔ gitlab-ci.
  *
  * gitlab-core (impl IGitProvider) ET gitlab-ci (pipelines) dépendent tous

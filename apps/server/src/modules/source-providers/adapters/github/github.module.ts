@@ -5,7 +5,7 @@ import { GitProviderConfigModule } from '../../shared/connection/git-provider-co
 import { PlatformModule } from '../../../platform';
 import { GithubApiService } from './github-api.service';
 import { GithubController } from './github.controller';
-import { GithubService } from './github.service';
+import { GithubAdapter } from './github.adapter';
 import { GithubWebhookService } from './github-webhook.service';
 import { GithubFileService } from './github-file.service';
 import { GithubWebhookConfiguratorService } from './github-webhook-configurator.service';
@@ -13,7 +13,7 @@ import { GithubWebhookConfiguratorService } from './github-webhook-configurator.
 @Module({
   imports: [PrismaModule, HttpModule, GitProviderConfigModule, PlatformModule],
   controllers: [GithubController],
-  providers: [GithubService, GithubApiService, GithubWebhookService, GithubFileService, GithubWebhookConfiguratorService],
-  exports: [GithubService, GithubApiService, GithubWebhookService, GithubFileService, GithubWebhookConfiguratorService],
+  providers: [GithubAdapter, GithubApiService, GithubWebhookService, GithubFileService, GithubWebhookConfiguratorService],
+  exports: [GithubAdapter, GithubApiService, GithubWebhookService, GithubFileService, GithubWebhookConfiguratorService],
 })
 export class GithubModule {}

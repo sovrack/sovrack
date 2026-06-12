@@ -12,12 +12,12 @@ import {
 import { GetUser } from '../../../../core/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../../core/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../../core/jwt/dto/jwt-payload.dto';
-import { GithubService } from './github.service';
+import { GithubAdapter } from './github.adapter';
 
 @ApiTags('GitHub')
 @Controller()
 export class GithubController {
-  constructor(private readonly githubService: GithubService) {}
+  constructor(private readonly githubService: GithubAdapter) {}
 
   /* ── Authenticated project endpoints ────────────────────────────────── */
 

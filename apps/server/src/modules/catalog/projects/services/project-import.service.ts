@@ -7,7 +7,7 @@ import {
 import { Prisma, ProjectRole, Role, SourceType, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { ConnectGitlabDto } from '../../../source-providers/adapters/gitlab/dto/connect-gitlab.dto';
-import { GitlabCoreService } from '../../../source-providers/adapters/gitlab/gitlab-core.service';
+import { GitlabAdapter } from '../../../source-providers/adapters/gitlab/gitlab.adapter';
 import {
   GitlabGroupImportRepositoryDto,
   ImportGitlabGroupDto,
@@ -42,7 +42,7 @@ type ProjectWithMembers = Prisma.ProjectGetPayload<{
 export class ProjectImportService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly gitlabCore: GitlabCoreService,
+    private readonly gitlabCore: GitlabAdapter,
     private readonly projectsService: ProjectsService,
     private readonly auditService: AuditService,
   ) {}

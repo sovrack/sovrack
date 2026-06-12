@@ -28,7 +28,7 @@ export type ConnectGithubDto = {
 };
 
 @Injectable()
-export class GithubService implements IGitProvider {
+export class GithubAdapter implements IGitProvider {
   readonly type = 'GITHUB' as const;
 
   constructor(

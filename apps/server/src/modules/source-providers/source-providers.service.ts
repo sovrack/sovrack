@@ -2,10 +2,10 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { GitProviderType } from '@prisma/client';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
-import { GitlabCoreService } from './adapters/gitlab/gitlab-core.service';
+import { GitlabAdapter } from './adapters/gitlab/gitlab.adapter';
 import { GitlabApiService } from './adapters/gitlab/gitlab-api.service';
 import { GitlabConnectionService } from './adapters/gitlab/gitlab-connection.service';
-import { GithubService } from './adapters/github/github.service';
+import { GithubAdapter } from './adapters/github/github.adapter';
 import { ConnectSourceDto } from './dto/connect-source.dto';
 import type {
   IGitProvider,
@@ -36,10 +36,10 @@ export type SourceProviderOption = {
 export class SourceProvidersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly gitlabCore: GitlabCoreService,
+    private readonly gitlabCore: GitlabAdapter,
     private readonly gitlabApi: GitlabApiService,
     private readonly gitlabConnection: GitlabConnectionService,
-    private readonly github: GithubService,
+    private readonly github: GithubAdapter,
   ) {}
 
   /**

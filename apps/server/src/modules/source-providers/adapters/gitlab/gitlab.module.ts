@@ -9,7 +9,7 @@ import { GitlabCiService } from './gitlab-ci.service';
 import { GitlabController } from './gitlab.controller';
 import { GitlabAuthorizationService } from './gitlab-authorization.service';
 import { GitlabConnectionService } from './gitlab-connection.service';
-import { GitlabCoreService } from './gitlab-core.service';
+import { GitlabAdapter } from './gitlab.adapter';
 import { GitlabProjectConfigService } from './gitlab-project-config.service';
 import { GitlabCredentialService } from './gitlab-credential.service';
 import { GitlabFileService } from './gitlab-file.service';
@@ -31,7 +31,7 @@ import { GitlabWebhookService } from './gitlab-webhook.service';
     GitlabConnectionService,
     GitlabCredentialService,
     GitlabProjectConfigService,
-    GitlabCoreService,
+    GitlabAdapter,
     GitlabCiService,
     GitlabApiService,
     GitlabWebhookService,
@@ -39,7 +39,7 @@ import { GitlabWebhookService } from './gitlab-webhook.service';
     GitlabWebhookConfiguratorService,
   ],
   exports: [
-    GitlabCoreService,
+    GitlabAdapter,
     GitlabApiService,
     GitlabConnectionService,
     GitlabWebhookService,

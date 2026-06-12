@@ -7,7 +7,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/core/database/prisma.service';
 import { DeploymentsCreateService } from '../src/modules/deployments/services/deployments-create.service';
 import { DockerDeployExecutorService } from '../src/modules/deployments/services/docker-deploy-executor.service';
-import { GitlabCoreService } from '../src/modules/source-providers/adapters/gitlab/gitlab-core.service';
+import { GitlabAdapter } from '../src/modules/source-providers/adapters/gitlab/gitlab.adapter';
 import { DeploymentsGateway } from '../src/modules/deployments/gateways/deployments.gateway';
 import { BuildImageService } from '../src/modules/build/services/build-image.service';
 import { CreateDeploymentDto } from '../src/modules/deployments/dto/create-deployment.dto';
@@ -54,7 +54,7 @@ describe('DeploymentsCreateService (e2e)', () => {
     })
       .overrideProvider(DockerDeployExecutorService)
       .useValue(mockDockerDeployExecutorService().useValue)
-      .overrideProvider(GitlabCoreService)
+      .overrideProvider(GitlabAdapter)
       .useValue(mockGitlabService().useValue)
       .overrideProvider(BuildImageService)
       .useValue(dockerImageMock)
@@ -73,7 +73,7 @@ describe('DeploymentsCreateService (e2e)', () => {
     prisma = app.get(PrismaService);
     createService = app.get(DeploymentsCreateService);
     ansibleMock = app.get<AnsibleMock>(DockerDeployExecutorService);
-    gitlabMock = app.get<GitlabMock>(GitlabCoreService);
+    gitlabMock = app.get<GitlabMock>(GitlabAdapter);
   });
 
   afterAll(async () => {
