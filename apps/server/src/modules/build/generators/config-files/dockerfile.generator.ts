@@ -6,10 +6,13 @@ import { generateJavaDockerfile } from './java.dockerfile';
 import { generateNestjsDockerfile } from './nestjs.dockerfile';
 import { generateNextjsDockerfile } from './nextjs.dockerfile';
 import { generateLaravelDockerfile, generatePhpDockerfile } from './php.dockerfile';
-import { generatePostgresDockerfile } from './postgres.dockerfile';
 import { generateDjangoDockerfile, generatePythonDockerfile } from './python.dockerfile';
 import { generateReactDockerfile } from './react.dockerfile';
-import { generateRedisDockerfile } from './redis.dockerfile';
+import { generatePostgresDockerfile } from '../../../../templates/docker-images/postgres.dockerfile';
+import { generateRedisDockerfile } from '../../../../templates/docker-images/redis.dockerfile';
+import { generateMysqlDockerfile } from '../../../../templates/docker-images/mysql.dockerfile';
+import { generateMongoDockerfile } from '../../../../templates/docker-images/mongo.dockerfile';
+import { generateRabbitmqDockerfile } from '../../../../templates/docker-images/rabbitmq.dockerfile';
 import { generateRubyDockerfile } from './ruby.dockerfile';
 import { generateRustDockerfile } from './rust.dockerfile';
 import { generateStaticDockerfile } from './static.dockerfile';
@@ -48,6 +51,12 @@ export class DockerfileGenerator {
         return generatePostgresDockerfile(typeAwareOptions);
       case 'redis-service':
         return generateRedisDockerfile(typeAwareOptions);
+      case 'mysql-service':
+        return generateMysqlDockerfile(typeAwareOptions);
+      case 'mongo-service':
+        return generateMongoDockerfile(typeAwareOptions);
+      case 'rabbitmq-service':
+        return generateRabbitmqDockerfile(typeAwareOptions);
       case 'react':
         return generateReactDockerfile(typeAwareOptions);
       case 'rust':

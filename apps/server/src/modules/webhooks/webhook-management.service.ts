@@ -1,0 +1,105 @@
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../core/database/prisma.service';
+import { SourceProvidersService } from '../source-providers/source-providers.service';
+import { PlatformService } from '../platform/platform.service';
+import { WebhooksService } from './webhooks.service';
+
+/**
+ * Manages the WebhookEndpoint lifecycle for projects/services: create or
+ * find the endpoint, register the unified URL on the provider side
+ * (GitLab / GitHub) via {@link IGitProvider.configureWebhook}, and expose
+ * status / pause / resume to the UI.
+ *
+ * Identity is the endpoint's `webhookToken` (unified URL); the optional
+ * `serviceEnvId` scopes the endpoint to a specific service/environment so
+ * a multi-service project can route each repo's events independently.
+ */
+@Injectable()
+export class WebhookManagementService {
+  private readonly logger = new Logger(WebhookManagementService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly webhooksService: WebhooksService,
+    private readonly sourceProviders: SourceProvidersService,
+    private readonly platformService: PlatformService,
+  ) {}
+
+  /**
+   * Ensures a WebhookEndpoint exists for the project/serviceEnv (creating
+   * one with a fresh token if absent), then registers the unified webhook
+   * URL on the provider side. Idempotent: safe to call repeatedly.
+   */
+  async configureForProject(
+    projectId: string,
+    serviceEnvId?: string,
+  ): Promise<{ webhookUrl: string; isNew: boolean }> {
+    const provider = await this.sourceProviders.forProject(projectId);
+
+    const before = await this.prisma.webhookEndpoint.findFirst({
+      where: { projectId, serviceEnvId: serviceEnvId ?? null, provider: provider.type },
+      select: { id: true },
+    });
+
+    const endpoint = await this.webhooksService.getOrCreateEndpoint({
+      projectId,
+      serviceEnvId: serviceEnvId ?? null,
+      provider: provider.type,
+      events: [],
+    });
+    const isNew = !before;
+
+    const webhookUrl = await this.platformService.buildWebhookUrl(
+      `webhooks/incoming/${endpoint.webhookToken}`,
+    );
+
+    try {
+      // Use the endpoint token as the shared secret for provider-side
+      // signature configuration (kept consistent with prior behaviour).
+      await provider.configureWebhook(projectId, webhookUrl, endpoint.webhookToken, serviceEnvId);
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to register webhook on provider for project ${projectId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+
+    return { webhookUrl, isNew };
+  }
+
+  /** Pause or resume an endpoint without deleting it. */
+  async setActive(projectId: string, isActive: boolean, serviceEnvId?: string): Promise<void> {
+    const endpoint = await this.prisma.webhookEndpoint.findFirst({
+      where: { projectId, serviceEnvId: serviceEnvId ?? null },
+    });
+    if (!endpoint) throw new NotFoundException('Webhook endpoint not found for this project');
+    await this.prisma.webhookEndpoint.update({
+      where: { id: endpoint.id },
+      data: { isActive },
+    });
+  }
+
+  /** Current webhook status for a project/serviceEnv. */
+  async getStatus(projectId: string, serviceEnvId?: string) {
+    const endpoint = await this.prisma.webhookEndpoint.findFirst({
+      where: { projectId, serviceEnvId: serviceEnvId ?? null },
+      select: { id: true, isActive: true, webhookToken: true, provider: true },
+    });
+
+    if (!endpoint) {
+      return { configured: false };
+    }
+
+    const webhookUrl = await this.platformService.buildWebhookUrl(
+      `webhooks/incoming/${endpoint.webhookToken}`,
+    );
+
+    return {
+      configured: true,
+      isActive: endpoint.isActive,
+      provider: endpoint.provider,
+      webhookUrl,
+    };
+  }
+}

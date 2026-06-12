@@ -12,9 +12,9 @@ async function main(): Promise<void> {
   // pour repartir d'une base minimale et stable.
   await prisma.$transaction([
     prisma.deployment.deleteMany(),
-    prisma.config.deleteMany(),
+    prisma.pipelineRun.deleteMany(),
+    prisma.build.deleteMany(),
     prisma.environment.deleteMany(),
-    prisma.appProviderLink.deleteMany(),
     prisma.projectMember.deleteMany(),
     prisma.project.deleteMany(),
     prisma.server.deleteMany(),

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { GitProvidersService } from '../../git-providers/git-providers.service';
+import { SourceProvidersService } from '../../source-providers/source-providers.service';
+import { sanitizeDockerTag } from '../../../core/utils/docker-tag.util';
 
 /**
  * Resolves the Docker image reference for a project.
@@ -14,7 +15,7 @@ import { GitProvidersService } from '../../git-providers/git-providers.service';
 export class BuildImageService {
   private readonly logger = new Logger(BuildImageService.name);
 
-  constructor(private readonly gitProvidersService: GitProvidersService) {}
+  constructor(private readonly gitProvidersService: SourceProvidersService) {}
 
   async buildDockerImage({
     projectId,
@@ -35,16 +36,9 @@ export class BuildImageService {
         `[BuildImageService] Provider resolution failed for project ${projectId}, ` +
           `falling back to local slug. Reason: ${err instanceof Error ? err.message : String(err)}`,
       );
-      return `${this.sanitizeDockerTag(projectName)}:${this.sanitizeDockerTag(branch)}`;
+      return `${sanitizeDockerTag(projectName)}:${sanitizeDockerTag(branch)}`;
     }
   }
 
-  sanitizeDockerTag(value: string): string {
-    const sanitized = value
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9._-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    return sanitized || 'latest';
-  }
+
 }

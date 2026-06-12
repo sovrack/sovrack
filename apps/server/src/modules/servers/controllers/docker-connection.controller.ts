@@ -17,7 +17,7 @@ import { Role } from '@prisma/client';
 import { Roles } from '../../../core/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../core/guards/roles.guard';
-import { DockerConnectionsService } from '../../../core/docker/docker-connections.service';
+import { DockerConnectionsService } from '../../../core/container-runtime/docker-connections.service';
 
 class UpsertDockerConnectionDto {
   @IsString() @IsNotEmpty()

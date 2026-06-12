@@ -11,12 +11,11 @@ import { CreateProxyRuleDto, UpdateProxyRuleDto } from './dto/proxy-rule.dto';
 export class ProxyService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(filters: { serverId?: string; serviceId?: string; environmentId?: string }) {
+  async findAll(filters: { serverId?: string; serviceEnvId?: string }) {
     return this.prisma.proxyRule.findMany({
       where: {
         ...(filters.serverId && { serverId: filters.serverId }),
-        ...(filters.serviceId && { serviceId: filters.serviceId }),
-        ...(filters.environmentId && { environmentId: filters.environmentId }),
+        ...(filters.serviceEnvId && { serviceEnvId: filters.serviceEnvId }),
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -37,8 +36,7 @@ export class ProxyService {
           serverId: dto.serverId,
           sslEnabled: dto.sslEnabled ?? true,
           certType: dto.certType,
-          serviceId: dto.serviceId ?? null,
-          environmentId: dto.environmentId ?? null,
+          serviceEnvId: dto.serviceEnvId ?? null,
         },
       });
     } catch (error) {

@@ -5,32 +5,21 @@ import { PaginationDto, PaginatedResult, paginate } from '../../../core/http/pag
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 
 export const deploymentRelationsInclude = {
-  project: { select: { id: true, name: true, repoUrl: true } },
+  project: { select: { id: true, name: true } },
   service: {
     select: {
       id: true,
       name: true,
       type: true,
-      externalRepoId: true,
-      repositoryPath: true,
-      defaultBranch: true,
+      repoPath: true,
+      port: true,
+      branch: true,
     },
   },
   environment: {
     select: {
       id: true,
       name: true,
-      server: { select: { id: true, name: true, host: true } },
-      serviceTargets: {
-        select: {
-          id: true,
-          serviceId: true,
-          port: true,
-          domain: true,
-          deploymentMode: true,
-          server: { select: { id: true, name: true, host: true } },
-        },
-      },
     },
   },
   user: { select: { id: true, email: true, fullName: true } },
@@ -48,16 +37,11 @@ export class DeploymentsQueryService {
   ) {}
 
   computePublicUrl(deployment: DeploymentWithRelations): string | null {
-    const serviceId = deployment.serviceId;
-    const targets = deployment.environment?.serviceTargets ?? [];
-    const target = serviceId
-      ? targets.find((t) => t.serviceId === serviceId)
-      : (targets[0] ?? null);
-    const server = target?.server ?? deployment.environment?.server ?? null;
-    if (!server) return null;
-    const port = target?.port ?? null;
-    if (target?.domain) return `http://${target.domain}`;
-    if (port) return `http://${server.host}:${String(port)}`;
+    const service = deployment.service;
+    if (service?.repoPath) {
+      const host = service.repoPath.replace(/^https?:\/\//, '').split('/')[0];
+      if (host) return `http://${host}:${String(service.port ?? 3000)}`;
+    }
     return null;
   }
 

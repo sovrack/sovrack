@@ -91,7 +91,7 @@ export class AppController {
       }
 
       const callbackUrl = await this.platformService.buildWebhookUrl(
-        'gitlab/webhook',
+        'webhooks/incoming',
         { throwIfMissing: false },
       );
 

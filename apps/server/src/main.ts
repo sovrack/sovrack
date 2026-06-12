@@ -8,7 +8,7 @@ import { AllExceptionsFilter } from './core/filters/http-exception.filter';
 import { LoggerService } from './core/logger/logger.service';
 import { buildSwaggerConfig } from './core/config/swagger';
 import { PrismaService } from './core/database/prisma.service';
-import { DeploymentsService } from './modules/deployments/deployments.service';
+import { DeploymentsLifecycleService } from './modules/deployments/services/deployments-lifecycle.service';
 import { BigIntSerializationInterceptor } from './core/interceptors/bigint.interceptor';
 
 function resolveAllowedOrigins(): string[] {
@@ -99,7 +99,7 @@ async function bootstrap() {
 
   // CORS pour le frontend
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       if (!origin || isAllowedCorsOrigin(origin, allowedOrigins)) {
         callback(null, true);
         return;
@@ -169,9 +169,9 @@ async function recoverInFlightDeployments(
   logger: LoggerService,
 ): Promise<void> {
   try {
-    const deploymentsService = app.get(DeploymentsService);
+    const lifecycleService = app.get(DeploymentsLifecycleService);
     const recovered =
-      await deploymentsService.recoverInFlightDeploymentsAfterRestart();
+      await lifecycleService.recoverInFlightDeploymentsAfterRestart();
 
     if (recovered > 0) {
       logger.warn(

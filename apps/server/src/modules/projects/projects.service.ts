@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  AppSourceType,
   Project,
   ProjectRole,
   Prisma,
@@ -18,16 +17,11 @@ import {
   PaginatedResult,
   paginate,
 } from '../../core/http/pagination.dto';
-import { ConnectGitlabDto } from '../git-providers/gitlab/dto/connect-gitlab.dto';
-import { GitlabService } from '../git-providers/gitlab/gitlab.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
 
 const projectWithMembersInclude = {
-  services: {
-    orderBy: { createdAt: 'asc' as const },
-  },
   members: {
     orderBy: { joinedAt: 'asc' as const },
     include: {
@@ -55,8 +49,6 @@ type ProjectListItem = Project & {
   environmentCount: number;
   serviceCount: number;
   hasGitlabConfig: boolean;
-  gitlabSourceType: AppSourceType | null;
-  gitlabGroupId: number | null;
   currentUserProjectRole: ProjectRole | null;
 };
 
@@ -67,7 +59,6 @@ type ProjectListItem = Project & {
 export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly gitlabService: GitlabService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -103,19 +94,10 @@ export class ProjectsService {
       }
     }
 
-    const shouldConnectGitlab = this.shouldConnectGitlabOnCreate(dto);
-    const connectGitlabDto = this.toConnectGitlabDto(dto);
-
-    if (shouldConnectGitlab) {
-      await this.gitlabService.verifyConnectionInput(connectGitlabDto);
-    }
-
     const project = await this.prisma.project.create({
       data: {
         name: dto.name,
         description: dto.description,
-        repoUrl: dto.gitlabUrl?.trim() ?? '',
-        branch: dto.branch ?? 'main',
         members: {
           create: {
             userId: ownerId,
@@ -126,40 +108,12 @@ export class ProjectsService {
       include: projectWithMembersInclude,
     });
 
-    try {
-      if (shouldConnectGitlab) {
-        await this.gitlabService.connectProject(
-          project.id,
-          connectGitlabDto,
-          userId,
-          userRole,
-        );
-      }
-    } catch (error) {
-      try {
-        await this.prisma.project.delete({
-          where: { id: project.id },
-        });
-      } catch {
-        // Ne pas masquer l'erreur métier initiale de connexion provider.
-      }
-      throw error;
-    }
-
-    const finalProject = shouldConnectGitlab
-      ? await this.prisma.project.findUniqueOrThrow({
-          where: { id: project.id },
-          include: projectWithMembersInclude,
-        })
-      : project;
-
     await this.auditService.record(userId, 'PROJECT_CREATE', 'Project', project.id, {
       name: project.name,
       ownerId,
-      sourceConnected: shouldConnectGitlab,
     });
 
-    return finalProject;
+    return project;
   }
 
 
@@ -175,7 +129,6 @@ export class ProjectsService {
       userRole === Role.ADMIN ? undefined : { members: { some: { userId } } };
 
     const queryInclude = {
-      appProviderLink: { select: { sourceType: true, externalGroupId: true } },
       members: { where: { userId }, select: { role: true }, take: 1 },
       _count: { select: { members: true, environments: true, services: true } },
     };
@@ -202,30 +155,13 @@ export class ProjectsService {
       id: project.id,
       name: project.name,
       description: project.description,
-      repoUrl: project.repoUrl,
-      externalRepoId: project.externalRepoId,
-      branch: project.branch,
-      dockerfile: project.dockerfile,
-      port: project.port,
-      projectType: project.projectType,
-      buildPort: project.buildPort,
-      buildStartCmd: project.buildStartCmd,
-      defaultBuildSource: project.defaultBuildSource,
-      dockerfileContent: project.dockerfileContent,
-      ciConfigContent: project.ciConfigContent,
-      dockerComposeContent: project.dockerComposeContent,
-      nixpacksConfig: project.nixpacksConfig,
-      staticConfig: project.staticConfig,
+      env: project.env,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       memberCount: project._count.members,
       environmentCount: project._count.environments,
       serviceCount: project._count.services,
-      hasGitlabConfig: Boolean(project.appProviderLink),
-      gitlabSourceType: project.appProviderLink?.sourceType ?? null,
-      gitlabGroupId: project.appProviderLink?.externalGroupId
-        ? Number(project.appProviderLink.externalGroupId)
-        : null,
+      hasGitlabConfig: false, // removed — git provider info on Service
       currentUserProjectRole: project.members[0]?.role ?? null,
     }));
 
@@ -270,10 +206,10 @@ export class ProjectsService {
   ): Promise<ProjectWithMembers> {
     await this.assertCanManageProject(projectId, userId, userRole);
 
-    const { gitlabUrl: _url, ...rest } = dto;
+    const rest = dto;
     const project = await this.prisma.project.update({
       where: { id: projectId },
-      data: { ...rest, ...(dto.gitlabUrl !== undefined && { repoUrl: dto.gitlabUrl }) },
+      data: rest,
       include: projectWithMembersInclude,
     });
 
@@ -292,64 +228,23 @@ export class ProjectsService {
     this.assertAdminRole(userRole);
 
     await this.prisma.$transaction(async (tx) => {
-      // Compatibility cleanup for databases where some FKs are still RESTRICT.
       await tx.deployment.deleteMany({ where: { projectId } });
+      await tx.pipelineRun.deleteMany({ where: { projectId } });
+      await tx.build.deleteMany({ where: { projectId } });
       await tx.dnsRecord.deleteMany({
         where: {
           OR: [
-            { service: { projectId } },
-            { environment: { projectId } },
             { domain: { projectId } },
           ],
         },
       });
       await tx.domain.deleteMany({ where: { projectId } });
-      await tx.environmentServiceTarget.deleteMany({
-        where: {
-          OR: [{ environment: { projectId } }, { service: { projectId } }],
-        },
-      });
-      await tx.config.deleteMany({ where: { projectId } });
       await tx.environment.deleteMany({ where: { projectId } });
-      await tx.appProviderLink.deleteMany({ where: { projectId } });
-      await tx.projectService.deleteMany({ where: { projectId } });
       await tx.projectMember.deleteMany({ where: { projectId } });
       await tx.project.deleteMany({ where: { id: projectId } });
     });
     await this.auditService.record(userId, 'PROJECT_DELETE', 'Project', projectId);
   }
-
-  /**
-   * Ajoute un membre à un projet.
-   */
-
-  private shouldConnectGitlabOnCreate(dto: CreateProjectDto): boolean {
-    return Boolean(
-      dto.providerId?.trim() ||
-      dto.gitlabToken?.trim() ||
-      dto.gitlabId !== undefined ||
-      dto.gitlabGroupId !== undefined ||
-      dto.deployTokenUsername?.trim() ||
-      dto.deployTokenValue?.trim() ||
-      dto.registryUrl?.trim(),
-    );
-  }
-
-  private toConnectGitlabDto(dto: CreateProjectDto): ConnectGitlabDto {
-    return {
-      providerId: dto.providerId?.trim() || undefined,
-      gitlabUrl: dto.gitlabUrl?.trim() || undefined,
-      gitlabToken: dto.gitlabToken?.trim() || undefined,
-      gitlabId: dto.gitlabId,
-      defaultBranch: dto.branch?.trim() || 'main',
-      sourceType: dto.sourceType,
-      gitlabGroupId: dto.gitlabGroupId,
-      deployTokenUsername: dto.deployTokenUsername?.trim() || undefined,
-      deployTokenValue: dto.deployTokenValue?.trim() || undefined,
-      registryUrl: dto.registryUrl?.trim() || undefined,
-    } as ConnectGitlabDto;
-  }
-
 
   /**
    * Vérifie si l'utilisateur peut voir le projet.

@@ -4,10 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AppSourceType, Prisma, ProjectRole, Role } from '@prisma/client';
+import { Prisma, ProjectRole, Role, SourceType, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { ConnectGitlabDto } from '../../git-providers/gitlab/dto/connect-gitlab.dto';
-import { GitlabService } from '../../git-providers/gitlab/gitlab.service';
+import { ConnectGitlabDto } from '../../source-providers/gitlab/dto/connect-gitlab.dto';
+import { GitlabCoreService } from '../../source-providers/gitlab/gitlab-core.service';
 import {
   GitlabGroupImportRepositoryDto,
   ImportGitlabGroupDto,
@@ -16,9 +16,6 @@ import { ProjectsService } from '../projects.service';
 import { AuditService } from '../../audit/audit.service';
 
 const projectWithMembersInclude = {
-  services: {
-    orderBy: { createdAt: 'asc' as const },
-  },
   members: {
     orderBy: { joinedAt: 'asc' as const },
     include: {
@@ -45,7 +42,7 @@ type ProjectWithMembers = Prisma.ProjectGetPayload<{
 export class ProjectImportService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly gitlabService: GitlabService,
+    private readonly gitlabCore: GitlabCoreService,
     private readonly projectsService: ProjectsService,
     private readonly auditService: AuditService,
   ) {}
@@ -67,34 +64,47 @@ export class ProjectImportService {
           data: {
             name: dto.name.trim(),
             description: dto.description?.trim() || undefined,
-            repoUrl: dto.gitlabUrl?.trim() || '',
-            branch: this.resolvePrimaryBranch(dto.repositories),
             members: {
               create: {
                 userId: ownerId,
                 role: ProjectRole.OWNER,
               },
             },
-            services: {
-              create: dto.repositories.map((repository) =>
-                this.toProjectServiceCreateData(repository, dto.providerId),
-              ),
-            },
           },
           include: projectWithMembersInclude,
         });
         createdProjectIds.push(project.id);
 
-        await this.gitlabService.connectProject(
+        // Create a default environment
+        const env = await this.prisma.environment.create({
+          data: {
+            name: 'default',
+            projectId: project.id,
+          },
+        });
+
+        // Create services at project level and link to environment
+        for (const repository of dto.repositories) {
+          const svc = await this.prisma.service.create({
+            data: {
+              ...this.toServiceCreateData(repository, dto.providerId),
+              projectId: project.id,
+            } as Prisma.ServiceUncheckedCreateInput,
+          });
+          await this.prisma.serviceEnvironment.create({
+            data: { serviceId: svc.id, environmentId: env.id },
+          });
+        }
+
+        await this.gitlabCore.connectProject(
           project.id,
           {
             providerId: dto.providerId?.trim() || undefined,
             gitlabUrl: dto.gitlabUrl?.trim() || undefined,
             gitlabToken: dto.gitlabToken?.trim() || undefined,
-            sourceType: AppSourceType.GROUP,
-            gitlabGroupId: dto.groupId.trim(),
+            groupPath: dto.groupId.trim(),
             defaultBranch: this.resolvePrimaryBranch(dto.repositories),
-          } as ConnectGitlabDto,
+          },
           userId,
           userRole,
         );
@@ -128,36 +138,44 @@ export class ProjectImportService {
           data: {
             name: repository.serviceName?.trim() || repository.name.trim(),
             description: dto.description?.trim() || undefined,
-            repoUrl: dto.gitlabUrl?.trim() || '',
-            branch: repository.defaultBranch.trim() || 'main',
-            externalRepoId: repository.id,
             members: {
               create: {
                 userId: ownerId,
                 role: ProjectRole.OWNER,
               },
             },
-            services: {
-              create: this.toProjectServiceCreateData(
-                repository,
-                dto.providerId,
-              ),
-            },
           },
           include: projectWithMembersInclude,
         });
         createdProjectIds.push(project.id);
 
-        await this.gitlabService.connectProject(
+        // Create a default environment with service
+        const env = await this.prisma.environment.create({
+          data: {
+            name: 'default',
+            projectId: project.id,
+          },
+        });
+
+        const svc = await this.prisma.service.create({
+          data: {
+            ...this.toServiceCreateData(repository, dto.providerId),
+            projectId: project.id,
+          } as Prisma.ServiceUncheckedCreateInput,
+        });
+        await this.prisma.serviceEnvironment.create({
+          data: { serviceId: svc.id, environmentId: env.id },
+        });
+
+        await this.gitlabCore.connectProject(
           project.id,
           {
             providerId: dto.providerId?.trim() || undefined,
             gitlabUrl: dto.gitlabUrl?.trim() || undefined,
             gitlabToken: dto.gitlabToken?.trim() || undefined,
-            sourceType: AppSourceType.REPO,
-            gitlabId: repository.id,
+            repoPath: repository.pathWithNamespace.trim(),
             defaultBranch: repository.defaultBranch.trim() || 'main',
-          } as ConnectGitlabDto,
+          },
           userId,
           userRole,
         );
@@ -227,7 +245,7 @@ export class ProjectImportService {
   private async verifyGitlabGroupImport(
     dto: ImportGitlabGroupDto,
   ): Promise<void> {
-    await this.gitlabService.listGroupRepositoriesByProvider({
+    await this.gitlabCore.listGroupRepositoriesByProvider({
       providerId: dto.providerId?.trim() || undefined,
       gitlabUrl: dto.gitlabUrl?.trim() || undefined,
       gitlabToken: dto.gitlabToken?.trim() || undefined,
@@ -237,7 +255,7 @@ export class ProjectImportService {
 
     for (const repository of dto.repositories) {
       const branchName = repository.defaultBranch.trim() || 'main';
-      const branches = await this.gitlabService.listProjectBranchesByProvider({
+      const branches = await this.gitlabCore.listProjectBranchesByProvider({
         providerId: dto.providerId?.trim() || undefined,
         gitlabUrl: dto.gitlabUrl?.trim() || undefined,
         gitlabToken: dto.gitlabToken?.trim() || undefined,
@@ -277,21 +295,19 @@ export class ProjectImportService {
     return repositories[0]?.defaultBranch?.trim() || 'main';
   }
 
-  private toProjectServiceCreateData(
+  private toServiceCreateData(
     repository: GitlabGroupImportRepositoryDto,
     providerId?: string,
-  ): Prisma.ProjectServiceCreateWithoutProjectInput {
+  ) {
     const serviceName =
       repository.serviceName?.trim() || repository.name.trim();
     return {
       name: serviceName,
-      type: repository.serviceType,
-      sourceProvider: providerId?.trim()
-        ? { connect: { id: providerId.trim() } }
-        : undefined,
-      externalRepoId: repository.id,
-      repositoryPath: repository.pathWithNamespace.trim(),
-      defaultBranch: repository.defaultBranch.trim() || 'main',
+      type: ServiceType.APPLICATION,
+      repoPath: repository.pathWithNamespace.trim() || undefined,
+      branch: repository.defaultBranch.trim() || 'main',
+      sourceType: SourceType.GIT,
+      providerId: providerId?.trim() || undefined,
       composeServiceName: this.slugifyServiceName(serviceName),
     };
   }

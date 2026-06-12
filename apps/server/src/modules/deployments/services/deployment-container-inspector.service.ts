@@ -4,8 +4,8 @@ import {
   SshExecutorService,
   type SshConnection,
 } from '../../../core/ssh/ssh-executor.service';
-import { DockerApiService } from '../../../core/docker/docker-api.service';
-import { DockerSshService } from '../../../core/docker/docker-ssh.service';
+import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
+import { DockerSshService } from '../../../core/container-runtime/docker-ssh.service';
 import {
   ServerHostKeyService,
   ServersCryptoService,
@@ -33,26 +33,18 @@ export class DeploymentContainerInspectorService {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },
       include: {
-        environment: {
-          include: {
-            server: true,
-            serviceTargets: { include: { server: true } },
-          },
-        },
-        service: true,
+        service: { select: { id: true, name: true } },
       },
     });
 
     if (!deployment) throw new BadRequestException('Déploiement introuvable');
 
-    const serviceTarget = deployment.serviceId
-      ? deployment.environment.serviceTargets.find(
-          (t) => t.serviceId === deployment.serviceId,
-        )
-      : null;
-    const server = serviceTarget?.server ?? deployment.environment.server;
+    const resolvedRefs = deployment.resolvedRefs as { serverId?: string } | null;
+    const serverId = resolvedRefs?.serverId;
+    if (!serverId) throw new BadRequestException('Aucun serveur associé à ce déploiement');
 
-    if (!server) throw new BadRequestException('Aucun serveur associé à ce déploiement');
+    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!server) throw new BadRequestException('Serveur introuvable');
     if (!server.sshKey) throw new BadRequestException('Aucune clé SSH configurée sur ce serveur');
 
     const pinnedHost = await this.serverHostKeyService.resolveForConnection(server, {

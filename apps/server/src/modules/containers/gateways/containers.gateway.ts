@@ -8,7 +8,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { DockerApiService } from '../../../core/docker/docker-api.service';
+import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
 import { ContainersService } from '../containers.service';
 
 type LogStreamPayload = {

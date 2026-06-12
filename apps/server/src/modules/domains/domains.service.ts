@@ -162,8 +162,7 @@ export class DomainsService {
         value: dto.value.trim(),
         ttl: dto.ttl ?? 300,
         proxied: dto.proxied,
-        serviceId: dto.serviceId?.trim() || undefined,
-        environmentId: dto.environmentId?.trim() || undefined,
+        serviceEnvId: dto.serviceEnvId?.trim() || undefined,
       },
     });
   }
@@ -180,8 +179,7 @@ export class DomainsService {
         value: dto.value.trim(),
         ttl: dto.ttl ?? 300,
         proxied: dto.proxied,
-        serviceId: dto.serviceId?.trim() || null,
-        environmentId: dto.environmentId?.trim() || null,
+        serviceEnvId: dto.serviceEnvId?.trim() || null,
       },
     });
   }
@@ -220,25 +218,13 @@ export class DomainsService {
   }
 
   private async validateRecordLinks(dto: UpsertDnsRecordDto): Promise<void> {
-    if (dto.serviceId?.trim()) {
-      const service = await this.prisma.projectService.findUnique({
-        where: { id: dto.serviceId },
+    if (dto.serviceEnvId?.trim()) {
+      const se = await this.prisma.serviceEnvironment.findUnique({
+        where: { id: dto.serviceEnvId },
         select: { id: true },
       });
-      if (!service) {
-        throw new NotFoundException('Service introuvable pour ce record DNS');
-      }
-    }
-
-    if (dto.environmentId?.trim()) {
-      const environment = await this.prisma.environment.findUnique({
-        where: { id: dto.environmentId },
-        select: { id: true },
-      });
-      if (!environment) {
-        throw new NotFoundException(
-          'Environnement introuvable pour ce record DNS',
-        );
+      if (!se) {
+        throw new NotFoundException('ServiceEnvironment introuvable pour ce record DNS');
       }
     }
   }

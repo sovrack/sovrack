@@ -33,8 +33,12 @@ import {
   DeploymentResponseDto,
   PaginatedDeploymentsResponseDto,
 } from './dto/deployment-response.dto';
-import { DeploymentsService } from './deployments.service';
 import { DeploymentsValidationService } from './services/deployments-validation.service';
+import { DeploymentsCreateService } from './services/deployments-create.service';
+import { DeploymentsQueryService } from './services/deployments-query.service';
+import { DeploymentsLifecycleService } from './services/deployments-lifecycle.service';
+import { DeploymentsRollbackService } from './services/deployments-rollback.service';
+import { DockerDeployExecutorService } from './services/docker-deploy-executor.service';
 
 @ApiTags('Deployments')
 @ApiBearerAuth()
@@ -47,7 +51,11 @@ import { DeploymentsValidationService } from './services/deployments-validation.
 @UseGuards(JwtAuthGuard)
 export class DeploymentsController {
   constructor(
-    private readonly deploymentsService: DeploymentsService,
+    private readonly createService: DeploymentsCreateService,
+    private readonly queryService: DeploymentsQueryService,
+    private readonly lifecycleService: DeploymentsLifecycleService,
+    private readonly rollbackService: DeploymentsRollbackService,
+    private readonly dockerExecutor: DockerDeployExecutorService,
     private readonly validationService: DeploymentsValidationService,
   ) {}
 
@@ -65,8 +73,9 @@ export class DeploymentsController {
     return await this.validationService.validate(
       dto.projectId,
       dto.environmentId,
-      (dto.buildSource ?? 'DOCKERFILE_LOCAL') as any,
+      (dto.buildSource ?? 'DOCKERFILE_LOCAL'),
       user.id,
+      dto.serviceEnvId,
     );
   }
 
@@ -83,7 +92,7 @@ export class DeploymentsController {
   @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
   @ApiResponse({ status: 403, description: 'Accès non autorisé au projet' })
   async create(@Body() dto: CreateDeploymentDto, @GetUser() user: JwtPayload) {
-    return await this.deploymentsService.create(dto, user.id);
+    return await this.createService.create(dto, user.id);
   }
 
   @Get()
@@ -105,7 +114,7 @@ export class DeploymentsController {
     @GetUser() user: JwtPayload,
     @Query() pagination: PaginationDto,
   ) {
-    return await this.deploymentsService.findAll(
+    return await this.queryService.findAll(
       user.id,
       user.role,
       pagination,
@@ -126,7 +135,7 @@ export class DeploymentsController {
     @Param('projectId') projectId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.deploymentsService.findByProject(
+    return await this.queryService.findByProject(
       projectId,
       user.id,
       user.role,
@@ -143,7 +152,7 @@ export class DeploymentsController {
   @ApiResponse({ status: 403, description: 'Accès non autorisé' })
   @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
   async findOne(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.deploymentsService.findOne(id, user.id, user.role);
+    return await this.queryService.findOne(id, user.id, user.role);
   }
 
   @Post(':id/cancel')
@@ -160,7 +169,7 @@ export class DeploymentsController {
   @ApiResponse({ status: 403, description: 'Accès non autorisé' })
   @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
   async cancel(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.deploymentsService.cancel(id, user.id, user.role);
+    return await this.lifecycleService.cancel(id, user.id, user.role);
   }
 
   @Post(':id/rollback')
@@ -174,7 +183,7 @@ export class DeploymentsController {
   @ApiResponse({ status: 403, description: 'Accès non autorisé' })
   @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
   async rollback(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.deploymentsService.rollback(id, user.id, user.role);
+    return await this.rollbackService.rollback(id, user.id, user.role);
   }
 
   @Delete(':id')
@@ -185,7 +194,7 @@ export class DeploymentsController {
   @ApiResponse({ status: 403, description: 'Accès non autorisé' })
   @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
   async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    await this.deploymentsService.remove(id, user.id, user.role);
+    await this.lifecycleService.remove(id, user.id, user.role);
   }
 
   @Get(':id/container-logs')
@@ -196,6 +205,6 @@ export class DeploymentsController {
     @GetUser() user: JwtPayload,
   ) {
     const tailNum = tail ? parseInt(tail, 10) : 300;
-    return await this.deploymentsService.getContainerLogs(id, user.id, user.role, tailNum);
+    return await this.dockerExecutor.getContainerLogs(id, tailNum);
   }
 }

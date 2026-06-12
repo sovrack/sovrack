@@ -4,11 +4,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { AppSourceType, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { BuildOrchestratorService } from '../build-orchestrator.service';
 import { CreateBuildConfigDto } from '../dto/create-build-config.dto';
-import { GitProvidersService } from '../../git-providers/git-providers.service';
+import { SourceProvidersService } from '../../source-providers/source-providers.service';
 import { NixpacksService } from '../engines/nixpacks/nixpacks.service';
 import type {
   BuildArtifactStatus,
@@ -41,12 +41,25 @@ const SUPPORTED_TYPES = [
   'unknown',
 ];
 
+function defaultBuildType(type: string): string {
+  switch (type) {
+    case 'DATABASE': return 'dockerized';
+    case 'COMPOSE': return 'compose';
+    case 'STATIC': return 'static';
+    case 'WORKER': return 'nodejs';
+    case 'CRON_JOB': return 'nodejs';
+    case 'WEB_SERVICE':
+    case 'APPLICATION':
+    default: return 'dockerized';
+  }
+}
+
 @Injectable()
 export class BuildSetupService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly buildService: BuildOrchestratorService,
-    private readonly gitProvidersService: GitProvidersService,
+    private readonly gitProvidersService: SourceProvidersService,
     private readonly nixpacksService: NixpacksService,
   ) {}
 
@@ -64,6 +77,7 @@ export class BuildSetupService {
     dto: CreateBuildConfigDto,
     userId: string,
     userRole: Role,
+    serviceId?: string,
   ): Promise<void> {
     await this.buildService.assertCanConfigureBuild(projectId, userId, userRole);
 
@@ -74,36 +88,38 @@ export class BuildSetupService {
       throw new NotFoundException('Projet non trouvé');
     }
 
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: {
-        ...(dto.defaultBuildSource !== undefined && {
-          defaultBuildSource: dto.defaultBuildSource,
-        }),
-        ...(dto.projectType !== undefined && { projectType: dto.projectType }),
-        ...(dto.buildPort !== undefined && { buildPort: dto.buildPort }),
-        ...(dto.buildStartCmd !== undefined && {
-          buildStartCmd: dto.buildStartCmd,
-        }),
-        // autoDeploy/autoDeployBranch are owned by Environment now (single
-        // source of truth); no longer persisted at Project level.
-        ...(dto.dockerfileContent !== undefined && {
-          dockerfileContent: dto.dockerfileContent,
-        }),
-        ...(dto.gitlabCiContent !== undefined && {
-          ciConfigContent: dto.gitlabCiContent,
-        }),
-        ...(dto.dockerComposeContent !== undefined && {
-          dockerComposeContent: dto.dockerComposeContent,
-        }),
-        ...(dto.nixpacksConfig !== undefined && {
-          nixpacksConfig: dto.nixpacksConfig || null,
-        }),
-        ...(dto.staticConfig !== undefined && {
-          staticConfig: dto.staticConfig || null,
-        }),
-      },
+    const where = serviceId ? { id: serviceId, projectId } : { projectId };
+    const services = await this.prisma.service.findMany({
+      where,
+      select: { id: true },
     });
+
+    const data = {
+      ...(dto.projectType !== undefined && { buildType: dto.projectType }),
+      ...(dto.buildPort !== undefined && { port: dto.buildPort }),
+      ...(dto.buildStartCmd !== undefined && {
+        startCommand: dto.buildStartCmd,
+      }),
+      ...(dto.dockerfileContent !== undefined && {
+        dockerfile: dto.dockerfileContent,
+      }),
+      ...(dto.dockerComposeContent !== undefined && {
+        dockerComposeContent: dto.dockerComposeContent,
+      }),
+      ...(dto.nixpacksConfig !== undefined && {
+        nixpacksConfig: dto.nixpacksConfig || null,
+      }),
+      ...(dto.staticConfig !== undefined && {
+        staticConfig: dto.staticConfig || null,
+      }),
+    };
+
+    if (services.length > 0) {
+      await this.prisma.service.updateMany({
+        where: { id: { in: services.map((s) => s.id) } },
+        data,
+      });
+    }
   }
 
   async prepareAll(
@@ -115,29 +131,26 @@ export class BuildSetupService {
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      select: {
-        id: true,
-        name: true,
-        appProviderLink: { select: { sourceType: true } },
-      },
+      select: { id: true, name: true },
     });
 
     if (!project) {
       throw new NotFoundException('Projet non trouvé');
     }
 
-    const services = await this.prisma.projectService.findMany({
+    const services = await this.prisma.service.findMany({
       where: { projectId },
       select: { id: true, name: true },
       orderBy: { createdAt: 'asc' },
     });
 
-    if (
-      project.appProviderLink?.sourceType === AppSourceType.GROUP &&
-      services.length === 0
-    ) {
+    const hasProvider = await this.prisma.gitProviderRepo.findFirst({
+      where: { projectId },
+    });
+
+    if (!hasProvider && services.length === 0) {
       throw new BadRequestException(
-        'Aucun service trouvé pour ce projet GROUP. Importez les repositories comme services avant la préparation.',
+        'Aucun service ou dépôt Git configuré pour ce projet.',
       );
     }
 
@@ -190,31 +203,18 @@ export class BuildSetupService {
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      select: {
-        id: true,
-        name: true,
-        appProviderLink: { select: { sourceType: true } },
-      },
+      select: { id: true, name: true },
     });
 
     if (!project) {
       throw new NotFoundException('Projet non trouvé');
     }
 
-    const services = await this.prisma.projectService.findMany({
+    const services = await this.prisma.service.findMany({
       where: { projectId },
       select: { id: true, name: true },
       orderBy: { createdAt: 'asc' },
     });
-
-    if (
-      project.appProviderLink?.sourceType === AppSourceType.GROUP &&
-      services.length === 0
-    ) {
-      throw new BadRequestException(
-        'Aucun service trouvé pour ce projet GROUP. Importez les repositories comme services avant la configuration des webhooks.',
-      );
-    }
 
     const targets =
       services.length > 0
@@ -254,7 +254,7 @@ export class BuildSetupService {
       type: string;
       repositoryPath: string | null;
       defaultBranch: string;
-      externalRepoId: string | null;
+      repoPath: string | null;
       ready: boolean;
       missingRequirements: string[];
       lastPipeline: {
@@ -265,39 +265,32 @@ export class BuildSetupService {
       } | null;
     }>;
   }> {
-    const [project, services] = await Promise.all([
-      this.prisma.project.findUnique({
-        where: { id: projectId },
-        select: {
-          dockerfileContent: true,
-          ciConfigContent: true,
-          appProviderLink: {
+    const [providerRepo, services] = await Promise.all([
+      this.prisma.gitProviderRepo.findFirst({
+        where: { projectId },
+        include: {
+          provider: {
             select: {
-              sourceType: true,
-              providerToken: true,
+              adminToken: true,
+              oauthAccessToken: true,
             },
           },
         },
       }),
-      this.prisma.projectService.findMany({
+      this.prisma.service.findMany({
         where: { projectId },
-        include: {
-          pipelineRuns: {
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-            select: { externalId: true, status: true, branch: true, webUrl: true },
-          },
-        },
         orderBy: { createdAt: 'asc' },
       }),
     ]);
 
-    const sourceType = project?.appProviderLink?.sourceType ?? null;
-    const tokenConfigured = Boolean(project?.appProviderLink?.providerToken);
+    const tokenConfigured = Boolean(
+      providerRepo?.provider?.adminToken || providerRepo?.provider?.oauthAccessToken,
+    );
+    const sourceType = providerRepo ? 'REPO' : null;
 
     return {
-      projectDockerfileReady: Boolean(project?.dockerfileContent),
-      projectCiReady: Boolean(project?.ciConfigContent),
+      projectDockerfileReady: services.some((s) => Boolean(s.dockerfile)),
+      projectCiReady: false,
       sourceType,
       services: services.map((service) => {
         const missingRequirements: string[] = [];
@@ -305,73 +298,51 @@ export class BuildSetupService {
         if (!tokenConfigured) {
           missingRequirements.push('Token GitLab manquant');
         }
-        if (!service.externalRepoId) {
-          missingRequirements.push('GitLab project ID manquant');
+        if (!providerRepo?.repoPath) {
+          missingRequirements.push('Chemin du dépôt Git manquant');
         }
-        if (!service.defaultBranch?.trim()) {
+        if (!service.branch?.trim()) {
           missingRequirements.push('Branche manquante');
-        }
-        if (sourceType === AppSourceType.GROUP && !service.repositoryPath) {
-          missingRequirements.push('repositoryPath manquant');
         }
 
         return {
           id: service.id,
           name: service.name,
-          type: service.type,
-          repositoryPath: service.repositoryPath,
-          defaultBranch: service.defaultBranch,
-          externalRepoId: service.externalRepoId
-            ? String(service.externalRepoId)
-            : null,
+          type: service.buildType ?? defaultBuildType(service.type),
+          repositoryPath: service.repoPath,
+          defaultBranch: service.branch ?? 'main',
+          repoPath: providerRepo?.repoPath ?? null,
           ready: missingRequirements.length === 0,
           missingRequirements,
-          lastPipeline: service.pipelineRuns[0]
-            ? {
-                id: Number(service.pipelineRuns[0].externalId),
-                status: service.pipelineRuns[0].status,
-                ref: service.pipelineRuns[0].branch ?? '',
-                webUrl: service.pipelineRuns[0].webUrl ?? '',
-              }
-            : null,
+          lastPipeline: null,
         };
       }),
     };
   }
 
-  /**
-   * Extract a docker-compose.yml from the linked GitLab repository.
-   *
-   * Strategy:
-   *   1. List files in repo (recursive) and look for the standard compose
-   *      filenames at root, then in subdirectories.
-   *   2. Fetch the raw content via the GitLab repository-files API.
-   *   3. Update the project's `dockerComposeContent` so the deployment
-   *      service can use it directly.
-   *
-   * Throws NotFoundException if no compose file is found.
-   */
   async extractComposeFile(
     projectId: string,
     serviceId?: string,
   ): Promise<{ content: string; filePath: string }> {
     const logger = new Logger('BuildSetupService.extractComposeFile');
 
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      select: {
-        branch: true,
-        services: serviceId
-          ? { where: { id: serviceId }, select: { defaultBranch: true } }
-          : { take: 1, orderBy: { createdAt: 'asc' }, select: { defaultBranch: true } },
-      },
+    const repo = await this.prisma.gitProviderRepo.findFirst({
+      where: { projectId },
+      select: { defaultBranch: true },
     });
-    if (!project) throw new NotFoundException('Projet non trouvé');
+    if (!repo) throw new NotFoundException('Aucun dépôt Git configuré');
 
-    const ref =
-      (serviceId ? project.services[0]?.defaultBranch : null) ??
-      project.branch ??
-      'main';
+    let ref = repo.defaultBranch ?? 'main';
+
+    if (serviceId) {
+      const svc = await this.prisma.service.findUnique({
+        where: { id: serviceId },
+        select: { branch: true },
+      });
+      if (svc?.branch) {
+        ref = svc.branch;
+      }
+    }
 
     const provider = await this.gitProvidersService.forProject(projectId);
 
@@ -399,27 +370,24 @@ export class BuildSetupService {
       );
     }
 
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: { dockerComposeContent: content },
-    });
+    const targetSvc = serviceId
+      ? await this.prisma.service.findUnique({ where: { id: serviceId } })
+      : await this.prisma.service.findFirst({
+          where: { projectId },
+          orderBy: { createdAt: 'asc' },
+        });
+
+    if (targetSvc) {
+      await this.prisma.service.update({
+        where: { id: targetSvc.id },
+        data: { dockerComposeContent: content },
+      });
+    }
 
     logger.log(`docker-compose extrait depuis ${filePath} (${content.length} chars)`);
     return { content, filePath };
   }
 
-  /**
-   * Returns the list of build engines available on the platform.
-   * Used by the UI to populate the build strategy selector.
-   *
-   * Each engine has:
-   *   - key: enum value (BuildStrategy)
-   *   - label: human-readable name
-   *   - description: when to use it
-   *   - requiresDockerfile: whether a Dockerfile is needed
-   *   - supportsLocal: whether the build can run on the VPS without registry
-   *   - available: whether the engine is installed/configured
-   */
   async getAvailableEngines(): Promise<
     Array<{
       key: string;

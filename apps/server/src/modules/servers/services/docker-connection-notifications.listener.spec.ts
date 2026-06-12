@@ -5,7 +5,7 @@ import { PrismaService } from '../../../core/database/prisma.service';
 import {
   DOCKER_CONNECTION_RECOVERED,
   DOCKER_CONNECTION_UNREACHABLE,
-} from '../../../core/docker/docker-connection-health.service';
+} from '../../../core/container-runtime/docker-connection-health.service';
 
 /**
  * P5 wire-up — listener that bridges the in-process EventEmitter2

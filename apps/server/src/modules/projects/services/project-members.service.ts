@@ -10,9 +10,6 @@ import { AddMemberDto } from '../dto/add-member.dto';
 import { ProjectsService } from '../projects.service';
 
 const projectWithMembersInclude = {
-  services: {
-    orderBy: { createdAt: 'asc' as const },
-  },
   members: {
     orderBy: { joinedAt: 'asc' as const },
     include: {

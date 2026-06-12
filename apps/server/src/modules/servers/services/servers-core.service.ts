@@ -289,16 +289,13 @@ export class ServersCoreService {
   async remove(id: string, actorUserId: string): Promise<void> {
     await this.getServerById(id);
 
-    const activeEnvCount = await this.prisma.environment.count({
-      where: {
-        serverId: id,
-        isActive: true,
-      },
+    const deploymentsOnServer = await this.prisma.container.count({
+      where: { serverId: id },
     });
 
-    if (activeEnvCount > 0) {
+    if (deploymentsOnServer > 0) {
       throw new BadRequestException(
-        'Suppression impossible: ce serveur a des environnements actifs',
+        'Suppression impossible: ce serveur a des déploiements actifs',
       );
     }
 
@@ -630,8 +627,19 @@ export class ServersCoreService {
     if (!server) {
       throw new NotFoundException(`Serveur "${id}" non trouvé`);
     }
-    return await this.prisma.environment.findMany({
+    // Get environments via containers linked to this server
+    const containers = await this.prisma.container.findMany({
       where: { serverId: id },
+      select: {
+        deployment: {
+          select: { environmentId: true },
+        },
+      },
+    });
+    const envIds = [...new Set(containers.map((c) => c.deployment?.environmentId).filter(Boolean))] as string[];
+    if (envIds.length === 0) return [];
+    return await this.prisma.environment.findMany({
+      where: { id: { in: envIds } },
       include: { project: { select: { id: true, name: true } } },
       orderBy: { name: 'asc' },
     });

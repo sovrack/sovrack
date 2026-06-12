@@ -1,6 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsBoolean,
   IsOptional,
   IsString,
   Matches,
@@ -18,28 +17,8 @@ export class UpdateEnvironmentDto {
   })
   name?: string;
 
-  @ApiPropertyOptional({ example: 'server-uuid' })
+  @ApiPropertyOptional({ example: '{"NODE_ENV":"production"}' })
   @IsOptional()
-  @IsString({ message: 'serverId doit être une chaîne de caractères' })
-  serverId?: string;
-
-  @ApiPropertyOptional({ example: 'app.example.com' })
-  @IsOptional()
-  @IsString({ message: 'Le domaine doit être une chaîne de caractères' })
-  domain?: string;
-
-  @ApiPropertyOptional({ example: true })
-  @IsOptional()
-  @IsBoolean({ message: 'isActive doit être un booléen' })
-  isActive?: boolean;
-
-  @ApiPropertyOptional({ example: true })
-  @IsOptional()
-  @IsBoolean({ message: 'autoDeploy doit être un booléen' })
-  autoDeploy?: boolean;
-
-  @ApiPropertyOptional({ example: 'main' })
-  @IsOptional()
-  @IsString({ message: 'autoDeployBranch doit être une chaîne de caractères' })
-  autoDeployBranch?: string;
+  @IsString({ message: 'env doit être une chaîne JSON' })
+  env?: string;
 }

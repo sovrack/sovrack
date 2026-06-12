@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ContainerStatus } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
-import { DockerApiService } from '../../core/docker/docker-api.service';
+import { DockerApiService } from '../../core/container-runtime/docker-api.service';
 
 @Injectable()
 export class ContainersService {

@@ -7,7 +7,7 @@ import {
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
   type AutoDeployTriggerEvent,
 } from '../events/deployment.events';
-import { DeploymentsExecutorService } from './deployments-executor.service';
+import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 
 /**
@@ -27,7 +27,7 @@ export class DeploymentsAutoTriggerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly ansibleService: DeploymentsExecutorService,
+    private readonly ansibleService: DockerDeployExecutorService,
     private readonly gateway: DeploymentsGateway,
     private readonly buildsService: BuildLifecycleService,
   ) {}
@@ -53,20 +53,7 @@ export class DeploymentsAutoTriggerService {
     const environments = await this.prisma.environment.findMany({
       where: {
         projectId,
-        autoDeploy: true,
-        OR: [
-          { autoDeployBranch: branch },
-          { autoDeployBranch: '*' },
-          { autoDeployBranch: null },
-        ],
-        isActive: true,
-        ...(serviceId
-          ? { serviceTargets: { some: { serviceId, server: { isVerified: true } } } }
-          : { server: { isVerified: true } }),
       },
-      include: serviceId
-        ? { server: true, serviceTargets: { where: { serviceId }, include: { server: true } } }
-        : { server: true },
     });
 
     if (environments.length === 0) return;
@@ -88,24 +75,15 @@ export class DeploymentsAutoTriggerService {
     let staticConfig: Prisma.InputJsonValue | null = null;
 
     if (serviceId) {
-      const service = await this.prisma.projectService.findUnique({
+      const service = await this.prisma.service.findUnique({
         where: { id: serviceId },
         select: { buildPack: true, nixpacksConfig: true, staticConfig: true },
       });
       if (service) {
-        rawBuildStrategy = service.buildPack as string;
-        buildPack = service.buildPack;
+        rawBuildStrategy = (service.buildPack ?? BuildPack.DOCKERFILE) as string;
+        buildPack = service.buildPack ?? BuildPack.DOCKERFILE;
         nixpacksConfig = service.nixpacksConfig as Prisma.InputJsonValue | null;
         staticConfig = service.staticConfig as Prisma.InputJsonValue | null;
-      }
-    } else {
-      const project = await this.prisma.project.findUnique({
-        where: { id: projectId },
-        select: { nixpacksConfig: true, staticConfig: true },
-      });
-      if (project) {
-        nixpacksConfig = project.nixpacksConfig as Prisma.InputJsonValue | null;
-        staticConfig = project.staticConfig as Prisma.InputJsonValue | null;
       }
     }
 
@@ -135,10 +113,20 @@ export class DeploymentsAutoTriggerService {
         }
 
         const deployment = await this.prisma.$transaction(async (tx) => {
+          let serviceEnvId: string | null = null;
+          if (serviceId) {
+            const serviceEnv = await tx.serviceEnvironment.findUnique({
+              where: { serviceId_environmentId: { serviceId, environmentId: environment.id } },
+              select: { id: true },
+            });
+            serviceEnvId = serviceEnv?.id ?? null;
+          }
+
           const build = await this.buildsService.create(
             {
               projectId,
               serviceId: serviceId ?? null,
+              serviceEnvId,
               userId: adminUser.id,
               branch,
               buildPack,
@@ -155,6 +143,8 @@ export class DeploymentsAutoTriggerService {
           return tx.deployment.create({
             data: {
               projectId,
+              serviceId: serviceId ?? null,
+              serviceEnvId,
               environmentId: environment.id,
               userId: adminUser.id,
               branch,
@@ -183,7 +173,7 @@ export class DeploymentsAutoTriggerService {
           startedAt: deployment.startedAt,
         });
 
-        await this.ansibleService.deployWithAnsible(deployment.id, dockerImage);
+        await this.ansibleService.executeDeploy(deployment.id, dockerImage);
       } catch (error) {
         this.logger.error(
           `Auto-deploy échoué pour environnement ${environment.id}: ${

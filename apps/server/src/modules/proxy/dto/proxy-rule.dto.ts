@@ -38,15 +38,10 @@ export class CreateProxyRuleDto {
   @IsEnum(ProxyCertType)
   certType?: ProxyCertType;
 
-  @ApiPropertyOptional({ example: 'svc_xxx' })
+  @ApiPropertyOptional({ example: 'service_env-uuid' })
   @IsOptional()
   @IsString()
-  serviceId?: string;
-
-  @ApiPropertyOptional({ example: 'env_xxx' })
-  @IsOptional()
-  @IsString()
-  environmentId?: string;
+  serviceEnvId?: string;
 }
 
 export class UpdateProxyRuleDto {

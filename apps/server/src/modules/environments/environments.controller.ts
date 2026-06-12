@@ -19,7 +19,8 @@ import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { UpdateEnvironmentDto } from './dto/update-environment.dto';
-import { UpsertEnvironmentServiceTargetsDto } from './dto/upsert-environment-service-target.dto';
+
+import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
 import { EnvironmentsService } from './environments.service';
 
 @ApiTags('Environments')
@@ -27,15 +28,14 @@ import { EnvironmentsService } from './environments.service';
 @Controller('projects/:id/environments')
 @UseGuards(JwtAuthGuard)
 export class EnvironmentsController {
-  constructor(private readonly environmentsService: EnvironmentsService) {}
+  constructor(
+    private readonly environmentsService: EnvironmentsService,
+    private readonly serviceEnvsService: ServiceEnvironmentsService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Créer un environnement pour un projet' })
   @ApiResponse({ status: 201, description: 'Environnement créé avec succès' })
-  @ApiResponse({ status: 400, description: 'Serveur non vérifié' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Action non autorisée' })
-  @ApiResponse({ status: 404, description: 'Projet ou serveur non trouvé' })
   async create(
     @Param('id') projectId: string,
     @Body() dto: CreateEnvironmentDto,
@@ -51,10 +51,6 @@ export class EnvironmentsController {
 
   @Get()
   @ApiOperation({ summary: "Lister les environnements d'un projet" })
-  @ApiResponse({ status: 200, description: 'Liste des environnements' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
-  @ApiResponse({ status: 404, description: 'Projet non trouvé' })
   async findAll(@Param('id') projectId: string, @GetUser() user: JwtPayload) {
     return await this.environmentsService.findAll(
       projectId,
@@ -65,13 +61,6 @@ export class EnvironmentsController {
 
   @Get(':envId')
   @ApiOperation({ summary: "Détail d'un environnement de projet" })
-  @ApiResponse({ status: 200, description: 'Détail environnement' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
-  @ApiResponse({
-    status: 404,
-    description: 'Projet ou environnement non trouvé',
-  })
   async findOne(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
@@ -87,14 +76,6 @@ export class EnvironmentsController {
 
   @Put(':envId')
   @ApiOperation({ summary: 'Mettre à jour un environnement de projet' })
-  @ApiResponse({ status: 200, description: 'Environnement mis à jour' })
-  @ApiResponse({ status: 400, description: 'Serveur non vérifié' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Action non autorisée' })
-  @ApiResponse({
-    status: 404,
-    description: 'Projet, environnement ou serveur non trouvé',
-  })
   async update(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
@@ -112,13 +93,6 @@ export class EnvironmentsController {
 
   @Delete(':envId')
   @ApiOperation({ summary: 'Supprimer un environnement de projet' })
-  @ApiResponse({ status: 200, description: 'Environnement supprimé' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Action non autorisée' })
-  @ApiResponse({
-    status: 404,
-    description: 'Projet ou environnement non trouvé',
-  })
   async remove(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
@@ -128,41 +102,66 @@ export class EnvironmentsController {
     return { message: 'Environnement supprimé avec succès' };
   }
 
-  @Get(':envId/targets')
-  @ApiOperation({
-    summary: "Lister les cibles VPS par service pour l'environnement",
-  })
-  @ApiResponse({ status: 200, description: 'Cibles service/VPS' })
-  async findServiceTargets(
+  // NOUVEAU : assigner un serveur
+  @Post(':envId/servers/:serverId')
+  @ApiOperation({ summary: 'Assigner un serveur à un environnement' })
+  async assignServer(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
+    @Param('serverId') serverId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.environmentsService.findServiceTargets(
+    return await this.environmentsService.assignServer(
       projectId,
       envId,
+      serverId,
       user.id,
       user.role,
     );
   }
 
-  @Put(':envId/targets')
-  @ApiOperation({
-    summary: "Configurer les cibles VPS par service pour l'environnement",
-  })
-  @ApiResponse({ status: 200, description: 'Cibles service/VPS mises à jour' })
-  async upsertServiceTargets(
+  @Delete(':envId/servers/:serverId')
+  @ApiOperation({ summary: 'Retirer un serveur d\'un environnement' })
+  async removeServer(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
-    @Body() dto: UpsertEnvironmentServiceTargetsDto,
+    @Param('serverId') serverId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.environmentsService.upsertServiceTargets(
+    return await this.environmentsService.removeServer(
       projectId,
       envId,
-      dto,
+      serverId,
       user.id,
       user.role,
     );
+  }
+
+  // NOUVEAU : lier un service
+  @Post(':envId/services/:serviceId')
+  @ApiOperation({ summary: 'Lier un service à un environnement' })
+  async linkService(
+    @Param('id') projectId: string,
+    @Param('envId') envId: string,
+    @Param('serviceId') serviceId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.environmentsService.linkService(
+      projectId,
+      envId,
+      serviceId,
+      user.id,
+      user.role,
+    );
+  }
+
+  @Get(':envId/services')
+  @ApiOperation({ summary: 'Lister les services liés à un environnement' })
+  async listLinkedServices(
+    @Param('id') projectId: string,
+    @Param('envId') envId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.serviceEnvsService.findByEnvironment(projectId, envId, user.id, user.role);
   }
 }

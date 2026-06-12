@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SslCertificateService } from './ssl-certificate.service';
-import { AnsibleRunnerService } from '../../core/ansible/ansible-runner.service';
+import { AnsibleRunnerService } from '../../core/provisioning/ansible-runner.service';
 
 /**
  * Scheduled SSL certificate renewal service.

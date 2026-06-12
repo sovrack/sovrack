@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
-import { AnsibleRunnerService } from '../../core/ansible/ansible-runner.service';
+import { AnsibleRunnerService } from '../../core/provisioning/ansible-runner.service';
 
 export type SslCertificateRequest = {
   domainId: string;

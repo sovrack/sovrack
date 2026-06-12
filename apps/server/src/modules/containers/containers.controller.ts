@@ -12,7 +12,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { ContainersService } from './containers.service';
 import { ContainerListQueryDto, ContainerLogsQueryDto } from './dto/container-query.dto';
-import { DockerApiService } from '../../core/docker/docker-api.service';
+import { DockerApiService } from '../../core/container-runtime/docker-api.service';
 
 @ApiTags('containers')
 @UseGuards(JwtAuthGuard)

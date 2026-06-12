@@ -2,7 +2,7 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/database/prisma.module';
 import { CryptoModule } from '../../core/crypto/crypto.module';
-import { GitProvidersModule } from '../git-providers/git-providers.module';
+import { SourceProvidersModule } from '../source-providers/source-providers.module';
 import { PlatformModule } from '../platform/platform.module';
 import { BuildController } from './build.controller';
 import { BuildDetectorService } from './detection/build-detector.service';
@@ -19,7 +19,7 @@ import { NixpacksModule } from './engines/nixpacks/nixpacks.module';
 import { BuildStrategyResolver } from './strategies/build-strategy.resolver';
 
 @Module({
-  imports: [PrismaModule, HttpModule, CryptoModule, GitProvidersModule, PlatformModule, NixpacksModule],
+  imports: [PrismaModule, HttpModule, CryptoModule, SourceProvidersModule, PlatformModule, NixpacksModule],
   controllers: [BuildController],
   providers: [
     BuildOrchestratorService,

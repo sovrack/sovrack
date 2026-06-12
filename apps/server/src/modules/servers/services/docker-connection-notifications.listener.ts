@@ -7,7 +7,7 @@ import {
   DOCKER_CONNECTION_UNREACHABLE,
   type DockerConnectionRecoveredEvent,
   type DockerConnectionUnreachableEvent,
-} from '../../../core/docker/docker-connection-health.service';
+} from '../../../core/container-runtime/docker-connection-health.service';
 
 /**
  * Bridges the in-process EventEmitter2 events from

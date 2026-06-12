@@ -10,11 +10,11 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './core/database/prisma.module';
 import { ProjectsModule } from './modules/projects/projects.module';
-import { GitlabModule } from './modules/git-providers/gitlab/gitlab.module';
-import { GitProvidersModule } from './modules/git-providers/git-providers.module';
+import { GitlabModule } from './modules/source-providers/gitlab/gitlab.module';
+import { SourceProvidersModule } from './modules/source-providers/source-providers.module';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { ServersModule } from './modules/servers/servers.module';
 import { InfrastructureModule } from './modules/infrastructure/infrastructure.module';
-import { ConfigsModule } from './modules/configs/configs.module';
 import { BuildModule } from './modules/build/build.module';
 import { DeploymentsModule } from './modules/deployments/deployments.module';
 import { PlatformModule } from './modules/platform/platform.module';
@@ -28,18 +28,19 @@ import { AutomationModule } from './modules/automation/automation.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
 import { DomainsModule } from './modules/domains/domains.module';
 import { CryptoModule } from './core/crypto/crypto.module';
-import { AnsibleModule } from './core/ansible/ansible.module';
-import { DockerModule } from './core/docker/docker.module';
+import { AnsibleModule } from './core/provisioning/ansible.module';
+import { DockerModule } from './core/container-runtime/docker.module';
 import { SshModule } from './core/ssh/ssh.module';
 import { EventsModule } from './core/events/events.module';
+import { QueueModule } from './core/queue/queue.module';
 import { ContainerRegistriesModule } from './modules/container-registries/container-registries.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ContainersModule } from './modules/containers/containers.module';
 import { ProxyModule } from './modules/proxy/proxy.module';
-import { ManagedServicesModule } from './modules/managed-services/managed-services.module';
 import { VolumesModule } from './modules/volumes/volumes.module';
+import { ServiceEnvironmentsModule } from './modules/service-environments/service-environments.module';
+import { ServicesModule } from './modules/services/services.module';
 import { SslModule } from './modules/ssl/ssl.module';
-import { ManagedDatabasesModule } from './modules/managed-databases/managed-databases.module';
 
 @Module({
   imports: [
@@ -67,16 +68,17 @@ import { ManagedDatabasesModule } from './modules/managed-databases/managed-data
     DockerModule,
     SshModule,
     EventsModule,
+    QueueModule,
     PrismaModule,
     UsersModule,
     AuthModule,
     BuildModule,
     ProjectsModule,
     GitlabModule,
-    GitProvidersModule,
+    SourceProvidersModule,
+    WebhooksModule,
     ServersModule,
     InfrastructureModule,
-    ConfigsModule,
     DeploymentsModule,
     PlatformModule,
     TeamsModule,
@@ -90,10 +92,10 @@ import { ManagedDatabasesModule } from './modules/managed-databases/managed-data
     DashboardModule,
     ContainersModule,
     ProxyModule,
-    ManagedServicesModule,
+    ServiceEnvironmentsModule,
+    ServicesModule,
     VolumesModule,
     SslModule,
-    ManagedDatabasesModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

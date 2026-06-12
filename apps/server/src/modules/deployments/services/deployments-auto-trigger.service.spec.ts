@@ -3,7 +3,7 @@ import { DeploymentStatus, BuildPack, BuildTrigger, BuildStatus } from '@prisma/
 import { DeploymentsAutoTriggerService } from './deployments-auto-trigger.service';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { BuildLifecycleService } from '../../build/services/build-lifecycle.service';
-import { DeploymentsExecutorService } from './deployments-executor.service';
+import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 
 const PROJECT_ID = 'project-1';
@@ -47,7 +47,7 @@ const makeBuilds = () => ({
 });
 
 const makeAnsible = () => ({
-  deployWithAnsible: jest.fn().mockResolvedValue(undefined),
+  executeDeploy: jest.fn().mockResolvedValue(undefined),
 });
 
 const makeGateway = () => ({
@@ -73,7 +73,7 @@ describe('DeploymentsAutoTriggerService', () => {
       providers: [
         DeploymentsAutoTriggerService,
         { provide: PrismaService, useValue: prisma },
-        { provide: DeploymentsExecutorService, useValue: ansible },
+        { provide: DockerDeployExecutorService, useValue: ansible },
         { provide: DeploymentsGateway, useValue: gateway },
         { provide: BuildLifecycleService, useValue: buildsService },
       ],
@@ -92,7 +92,7 @@ describe('DeploymentsAutoTriggerService', () => {
       await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
 
       expect(prisma.user.findFirst).not.toHaveBeenCalled();
-      expect(ansible.deployWithAnsible).not.toHaveBeenCalled();
+      expect(ansible.executeDeploy).not.toHaveBeenCalled();
     });
 
     it('returns early when no active admin user', async () => {
@@ -101,7 +101,7 @@ describe('DeploymentsAutoTriggerService', () => {
 
       await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
 
-      expect(ansible.deployWithAnsible).not.toHaveBeenCalled();
+      expect(ansible.executeDeploy).not.toHaveBeenCalled();
     });
 
     it('creates deployment and triggers Ansible for matching environment', async () => {
@@ -138,7 +138,7 @@ describe('DeploymentsAutoTriggerService', () => {
       expect(gateway.emitStarted).toHaveBeenCalledWith(
         expect.objectContaining({ deploymentId: DEPLOYMENT_ID }),
       );
-      expect(ansible.deployWithAnsible).toHaveBeenCalledWith(DEPLOYMENT_ID, undefined);
+      expect(ansible.executeDeploy).toHaveBeenCalledWith(DEPLOYMENT_ID, undefined);
     });
 
     it('skips environment when deployment with same pipeline ID already exists', async () => {
@@ -151,7 +151,7 @@ describe('DeploymentsAutoTriggerService', () => {
       await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH, undefined, pipelineId);
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
-      expect(ansible.deployWithAnsible).not.toHaveBeenCalled();
+      expect(ansible.executeDeploy).not.toHaveBeenCalled();
     });
 
     it('uses service buildPack when serviceId is provided', async () => {
@@ -208,8 +208,8 @@ describe('DeploymentsAutoTriggerService', () => {
 
       await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
 
-      expect(ansible.deployWithAnsible).toHaveBeenCalledTimes(1);
-      expect(ansible.deployWithAnsible).toHaveBeenCalledWith('deploy-2', undefined);
+      expect(ansible.executeDeploy).toHaveBeenCalledTimes(1);
+      expect(ansible.executeDeploy).toHaveBeenCalledWith('deploy-2', undefined);
     });
   });
 });

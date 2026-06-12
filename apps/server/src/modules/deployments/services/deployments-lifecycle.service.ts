@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { Deployment, DeploymentStatus, Role } from '@prisma/client';
+import { ContainerStatus, Deployment, DeploymentStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
@@ -19,58 +19,26 @@ export class DeploymentsLifecycleService {
   ) {}
 
   async recoverInFlightDeploymentsAfterRestart(): Promise<number> {
-    const inFlight = await this.prisma.deployment.findMany({
+    const { count } = await this.prisma.deployment.updateMany({
       where: {
         status: {
           in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING],
         },
       },
-      select: {
-        id: true,
-        status: true,
-        logs: true,
+      data: {
+        status: DeploymentStatus.FAILED,
+        finishedAt: new Date(),
+        logs: 'Déploiement interrompu suite à un redémarrage backend. Relancez le déploiement.',
       },
-      orderBy: { createdAt: 'asc' },
     });
 
-    if (inFlight.length === 0) {
-      return 0;
+    if (count > 0) {
+      this.logger.warn(
+        `Recovery startup: ${count} déploiement(s) in-flight marqués FAILED après redémarrage.`,
+      );
     }
 
-    let recoveredCount = 0;
-    for (const deployment of inFlight) {
-      const updated = await this.prisma.deployment.update({
-        where: { id: deployment.id },
-        data: {
-          status: DeploymentStatus.FAILED,
-          finishedAt: new Date(),
-          logs: `${deployment.logs ?? ''}\nDéploiement interrompu suite à un redémarrage backend. Relancez le déploiement.`.trim(),
-        },
-        select: {
-          id: true,
-          status: true,
-          finishedAt: true,
-        },
-      });
-
-      this.gateway.emitStatus({
-        deploymentId: updated.id,
-        status: updated.status,
-      });
-      this.gateway.emitFinished({
-        deploymentId: updated.id,
-        status: updated.status,
-        finishedAt: updated.finishedAt,
-      });
-
-      recoveredCount += 1;
-    }
-
-    this.logger.warn(
-      `Recovery startup: ${String(recoveredCount)} déploiement(s) in-flight marqués FAILED après redémarrage.`,
-    );
-
-    return recoveredCount;
+    return count;
   }
 
   async cancel(
@@ -103,6 +71,11 @@ export class DeploymentsLifecycleService {
       },
     });
 
+    await this.prisma.container.updateMany({
+      where: { deploymentId: id },
+      data: { status: ContainerStatus.EXITED },
+    });
+
     this.gateway.emitStatus({
       deploymentId: canceled.id,
       status: canceled.status,
@@ -123,6 +96,11 @@ export class DeploymentsLifecycleService {
       userId,
       userRole,
     );
+
+    await this.prisma.container.updateMany({
+      where: { deploymentId: id },
+      data: { status: ContainerStatus.EXITED },
+    });
 
     await this.prisma.deployment.delete({ where: { id } });
 

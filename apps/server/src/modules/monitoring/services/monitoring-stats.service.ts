@@ -26,20 +26,36 @@ export class MonitoringStatsService {
     const servers = await this.prisma.server.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
-      include: {
-        environments: {
+      take: 200,
+    });
+
+    const serverIds = servers.map((s) => s.id);
+
+    // Get linked projects via containers -> deployments -> project
+    const containers = await this.prisma.container.findMany({
+      where: { serverId: { in: serverIds } },
+      select: {
+        serverId: true,
+        deployment: {
           select: {
             projectId: true,
-            project: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
+            project: { select: { id: true, name: true } },
           },
         },
       },
     });
+
+    const projectsByServer = new Map<string, Map<string, { id: string; name: string }>>();
+    for (const c of containers) {
+      if (!c.deployment) continue;
+      if (!projectsByServer.has(c.serverId)) {
+        projectsByServer.set(c.serverId, new Map());
+      }
+      const pm = projectsByServer.get(c.serverId)!;
+      if (!pm.has(c.deployment.projectId)) {
+        pm.set(c.deployment.projectId, c.deployment.project);
+      }
+    }
 
     const deploymentStatsByServer = await this.fetchDeploymentStatsByServer();
 
@@ -85,10 +101,9 @@ export class MonitoringStatsService {
           enabled: server.hasDocker,
           runnerEnabled: server.hasRunner,
         },
-        linkedProjects: server.environments.map((env) => ({
-          id: env.project.id,
-          name: env.project.name,
-        })),
+        linkedProjects: Array.from(
+          (projectsByServer.get(server.id) ?? new Map()).values(),
+        ),
         deployment: deploymentStats,
         blockingReasons,
       };
@@ -98,15 +113,11 @@ export class MonitoringStatsService {
   async getProjectMonitoring() {
     const projects = await this.prisma.project.findMany({
       orderBy: { name: 'asc' },
+      take: 100,
       include: {
-        environments: {
-          select: {
-            id: true,
-            serverId: true,
-          },
-        },
         deployments: {
           orderBy: { createdAt: 'desc' },
+          take: 50,
           select: {
             status: true,
             createdAt: true,
@@ -121,6 +132,27 @@ export class MonitoringStatsService {
         },
       },
     });
+
+    // Get linked server counts via containers -> deployments -> projects
+    const projectIds = projects.map((p) => p.id);
+    const deploymentContainers = await this.prisma.container.findMany({
+      where: {
+        deployment: { projectId: { in: projectIds } },
+      },
+      select: {
+        serverId: true,
+        deployment: { select: { projectId: true } },
+      },
+    });
+
+    const serversByProject = new Map<string, Set<string>>();
+    for (const dc of deploymentContainers) {
+      if (!dc.deployment) continue;
+      if (!serversByProject.has(dc.deployment.projectId)) {
+        serversByProject.set(dc.deployment.projectId, new Set());
+      }
+      serversByProject.get(dc.deployment.projectId)!.add(dc.serverId);
+    }
 
     const sevenDaysAgo = this.daysAgo(7);
 
@@ -158,9 +190,7 @@ export class MonitoringStatsService {
       return {
         projectId: project.id,
         name: project.name,
-        linkedServers: Array.from(
-          new Set(project.environments.map((env) => env.serverId)),
-        ).length,
+        linkedServers: (serversByProject.get(project.id) ?? new Set()).size,
         latestDeploymentStatus: latestDeployment?.status ?? null,
         latestDeploymentAt: latestDeployment?.createdAt.toISOString() ?? null,
         deploymentsLast7d: deploymentsLast7d.length,
@@ -185,13 +215,25 @@ export class MonitoringStatsService {
           select: {
             id: true,
             name: true,
-            server: {
-              select: { id: true, name: true, host: true },
-            },
           },
         },
       },
     });
+
+    // Get server info via containers for deployment list
+    const deploymentIds = deployments.map((d) => d.id);
+    const deploymentContainers = await this.prisma.container.findMany({
+      where: { deploymentId: { in: deploymentIds } },
+      select: {
+        deploymentId: true,
+        server: { select: { id: true, name: true, host: true } },
+      },
+    });
+    const serverByDeploymentId = new Map(
+      deploymentContainers
+        .filter((c) => c.deploymentId)
+        .map((c) => [c.deploymentId, c.server]),
+    );
 
     const sevenDaysAgo = this.daysAgo(7);
     const deploymentsLast7d = deployments.filter(
@@ -236,7 +278,7 @@ export class MonitoringStatsService {
           id: deployment.environment.id,
           name: deployment.environment.name,
         },
-        server: deployment.environment.server,
+        server: serverByDeploymentId.get(deployment.id) ?? null,
       })),
     };
   }
@@ -331,14 +373,15 @@ export class MonitoringStatsService {
   }
 
   private async fetchDeploymentStatsByServer() {
-    const deployments = await this.prisma.deployment.findMany({
-      orderBy: { createdAt: 'desc' },
+    const containers = await this.prisma.container.findMany({
+      take: 500,
+      where: { deploymentId: { not: null } },
       select: {
-        status: true,
-        createdAt: true,
-        environment: {
+        serverId: true,
+        deployment: {
           select: {
-            serverId: true,
+            status: true,
+            createdAt: true,
           },
         },
       },
@@ -355,8 +398,10 @@ export class MonitoringStatsService {
       }
     >();
 
-    for (const deployment of deployments) {
-      const serverId = deployment.environment.serverId;
+    for (const container of containers) {
+      if (!container.deployment) continue;
+      const serverId = container.serverId;
+      const deployment = container.deployment;
       const current = map.get(serverId) ?? {
         lastStatus: null,
         lastDeploymentAt: null,

@@ -1,17 +1,8 @@
-import { PrismaClient, Role, ProjectRole, ProjectServiceType } from '@prisma/client';
+import { PrismaClient, Role, ProjectRole, ServiceType, SourceType, BuildPack } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
 export type TestFixtures = Awaited<ReturnType<typeof createTestFixtures>>;
 
-/**
- * Seed a minimal-but-realistic platform project tree that exercises the full
- * deployment create flow:
- *   - 1 admin user (with hashed password, full name)
- *   - 1 project with GitLab config
- *   - 1 environment (PRODUCTION) with a verified server + docker installed
- *
- * Returns ids for use in the deployment DTO.
- */
 export async function createTestFixtures(prisma: PrismaClient) {
   const userId = randomUUID();
   await prisma.user.create({
@@ -29,15 +20,6 @@ export async function createTestFixtures(prisma: PrismaClient) {
     data: {
       id: projectId,
       name: `e2e-project-${projectId.slice(0, 8)}`,
-      repoUrl: 'https://gitlab.example.com/platform/e2e',
-      branch: 'main',
-      appProviderLink: {
-        create: {
-          providerUrl: 'https://gitlab.example.com/platform/e2e',
-          providerToken: 'glpat-e2e-token',
-          externalId: BigInt(1),
-        },
-      },
     },
   });
 
@@ -78,8 +60,35 @@ export async function createTestFixtures(prisma: PrismaClient) {
       id: environmentId,
       name: 'production',
       projectId,
-      serverId,
-      domain: 'e2e.example.com',
+    },
+  });
+
+  // Link server to environment
+  await prisma.server.update({
+    where: { id: serverId },
+    data: { environmentId },
+  });
+
+  const serviceId = randomUUID();
+  await prisma.service.create({
+    data: {
+      id: serviceId,
+      projectId,
+      name: `e2e-service-${serviceId.slice(0, 8)}`,
+      type: ServiceType.APPLICATION,
+      sourceType: SourceType.GIT,
+      repoPath: 'platform/e2e',
+      branch: 'main',
+      buildPack: BuildPack.DOCKERFILE,
+    },
+  });
+
+  const serviceEnvId = randomUUID();
+  await prisma.serviceEnvironment.create({
+    data: {
+      id: serviceEnvId,
+      serviceId,
+      environmentId,
     },
   });
 
@@ -88,24 +97,28 @@ export async function createTestFixtures(prisma: PrismaClient) {
     projectId,
     environmentId,
     serverId,
+    serviceId,
+    serviceEnvId,
   };
 }
 
 export async function createTestService(
   prisma: PrismaClient,
-  args: { projectId: string; buildPack?: string },
+  args: { environmentId: string; buildPack?: string; projectId: string },
 ) {
   const serviceId = randomUUID();
-  await prisma.projectService.create({
+  await prisma.service.create({
     data: {
       id: serviceId,
       projectId: args.projectId,
+      environmentId: args.environmentId,
       name: `e2e-service-${serviceId.slice(0, 8)}`,
-      type: ProjectServiceType.BACKEND,
-      defaultBranch: 'main',
-      externalRepoId: BigInt(2),
-      buildPack: (args.buildPack ?? 'DOCKERFILE') as never,
-    },
+      type: ServiceType.APPLICATION,
+      sourceType: SourceType.GIT,
+      repoPath: 'platform/e2e',
+      branch: 'main',
+      buildPack: (args.buildPack as BuildPack) ?? BuildPack.DOCKERFILE,
+    } as any,
   });
   return serviceId;
 }

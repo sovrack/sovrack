@@ -24,10 +24,9 @@ export class ProxyController {
   @ApiOperation({ summary: 'List proxy rules' })
   findAll(
     @Query('serverId') serverId?: string,
-    @Query('serviceId') serviceId?: string,
-    @Query('environmentId') environmentId?: string,
+    @Query('serviceEnvId') serviceEnvId?: string,
   ) {
-    return this.proxyService.findAll({ serverId, serviceId, environmentId });
+    return this.proxyService.findAll({ serverId, serviceEnvId });
   }
 
   @Get(':id')

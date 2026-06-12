@@ -7,7 +7,7 @@ import { ServersConnectionService } from '../../servers/services/servers-connect
 import {
   AnsibleRunnerService,
   type AnsibleLogEvent as CoreAnsibleLogEvent,
-} from '../../../core/ansible/ansible-runner.service';
+} from '../../../core/provisioning/ansible-runner.service';
 import type { PreparationRoleKey } from '../../servers/shared/server-preparation-options';
 import { assertSafeLinuxUsername } from '../../servers/shared/servers-shell.utils';
 

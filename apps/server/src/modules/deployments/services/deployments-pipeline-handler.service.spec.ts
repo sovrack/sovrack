@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DeploymentStatus, GitProviderType, PipelineRunStatus } from '@prisma/client';
 import { DeploymentsPipelineHandlerService } from './deployments-pipeline-handler.service';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { DeploymentsExecutorService } from './deployments-executor.service';
+import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { NotificationsService } from '../../notifications/notifications.service';
 
@@ -19,7 +19,7 @@ const buildPrisma = () => ({
 });
 
 const buildAnsible = () => ({
-  deployWithAnsible: jest.fn().mockResolvedValue(undefined),
+  executeDeploy: jest.fn().mockResolvedValue(undefined),
 });
 
 const buildGateway = () => ({
@@ -51,7 +51,7 @@ describe('DeploymentsPipelineHandlerService', () => {
       providers: [
         DeploymentsPipelineHandlerService,
         { provide: PrismaService, useValue: prisma },
-        { provide: DeploymentsExecutorService, useValue: ansible },
+        { provide: DockerDeployExecutorService, useValue: ansible },
         { provide: DeploymentsGateway, useValue: gateway },
         { provide: NotificationsService, useValue: buildNotifications() },
       ],
@@ -70,7 +70,7 @@ describe('DeploymentsPipelineHandlerService', () => {
       const result = await service.handlePipelineUpdate(PIPELINE_ID, 'running');
 
       expect(result).toEqual({ status: 'ignored' });
-      expect(ansible.deployWithAnsible).not.toHaveBeenCalled();
+      expect(ansible.executeDeploy).not.toHaveBeenCalled();
     });
 
     it('on SUCCESS — claims deployment and triggers Ansible', async () => {
@@ -86,7 +86,7 @@ describe('DeploymentsPipelineHandlerService', () => {
       const result = await service.handlePipelineUpdate(PIPELINE_ID, 'success', 'my-image:sha256');
 
       expect(result).toEqual({ status: 'ok' });
-      expect(ansible.deployWithAnsible).toHaveBeenCalledWith(DEPLOYMENT_ID, 'my-image:sha256');
+      expect(ansible.executeDeploy).toHaveBeenCalledWith(DEPLOYMENT_ID, 'my-image:sha256');
     });
 
     it('on SUCCESS — returns ignored when deployment already claimed (race condition)', async () => {
@@ -102,7 +102,7 @@ describe('DeploymentsPipelineHandlerService', () => {
       const result = await service.handlePipelineUpdate(PIPELINE_ID, 'success');
 
       expect(result).toEqual({ status: 'ignored' });
-      expect(ansible.deployWithAnsible).not.toHaveBeenCalled();
+      expect(ansible.executeDeploy).not.toHaveBeenCalled();
     });
 
     it('on FAILED — marks deployment FAILED and emits gateway events', async () => {
@@ -125,7 +125,7 @@ describe('DeploymentsPipelineHandlerService', () => {
       const result = await service.handlePipelineUpdate(PIPELINE_ID, 'failed');
 
       expect(result).toEqual({ status: 'ok' });
-      expect(ansible.deployWithAnsible).not.toHaveBeenCalled();
+      expect(ansible.executeDeploy).not.toHaveBeenCalled();
       expect(gateway.emitStatus).toHaveBeenCalledWith({
         deploymentId: DEPLOYMENT_ID,
         status: DeploymentStatus.FAILED,
@@ -177,7 +177,7 @@ describe('DeploymentsPipelineHandlerService', () => {
       await service.handlePipelineUpdate(PIPELINE_ID, 'success');
 
       expect(prisma.deployment.findFirst).not.toHaveBeenCalled();
-      expect(ansible.deployWithAnsible).toHaveBeenCalledWith(DEPLOYMENT_ID, undefined);
+      expect(ansible.executeDeploy).toHaveBeenCalledWith(DEPLOYMENT_ID, undefined);
     });
 
     it('upserts PipelineRun with correct status and provider', async () => {

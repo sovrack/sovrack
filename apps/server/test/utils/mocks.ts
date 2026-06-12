@@ -1,21 +1,21 @@
-import { DeploymentsExecutorService } from '../../src/modules/deployments/services/deployments-executor.service';
-import { GitlabService } from '../../src/modules/git-providers/gitlab/gitlab.service';
+import { DockerDeployExecutorService } from '../../src/modules/deployments/services/docker-deploy-executor.service';
+import { GitlabCoreService } from '../../src/modules/source-providers/gitlab/gitlab-core.service';
 
 export type AnsibleMockHandle = {
-  deployWithAnsible: jest.Mock;
+  executeDeploy: jest.Mock;
   reset: () => void;
 };
 
-export function mockDeploymentsExecutorService(): {
-  provide: typeof DeploymentsExecutorService;
+export function mockDockerDeployExecutorService(): {
+  provide: typeof DockerDeployExecutorService;
   useValue: AnsibleMockHandle;
 } {
-  const deployWithAnsible = jest.fn().mockResolvedValue(undefined);
+  const executeDeploy = jest.fn().mockResolvedValue(undefined);
   return {
-    provide: DeploymentsExecutorService,
+    provide: DockerDeployExecutorService,
     useValue: {
-      deployWithAnsible,
-      reset: () => deployWithAnsible.mockClear(),
+      executeDeploy,
+      reset: () => executeDeploy.mockClear(),
     } as unknown as AnsibleMockHandle,
   };
 }
@@ -26,14 +26,14 @@ export type GitlabMockHandle = {
 };
 
 export function mockGitlabService(): {
-  provide: typeof GitlabService;
+  provide: typeof GitlabCoreService;
   useValue: GitlabMockHandle;
 } {
   const triggerPipeline = jest
     .fn()
     .mockResolvedValue({ id: 12345, webUrl: 'https://gitlab.example.com/pipeline/12345' });
   return {
-    provide: GitlabService,
+    provide: GitlabCoreService,
     useValue: {
       triggerPipeline,
       reset: () => triggerPipeline.mockClear(),

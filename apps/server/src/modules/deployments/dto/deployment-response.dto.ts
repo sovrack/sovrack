@@ -58,6 +58,17 @@ export class DeploymentResponseDto {
 
   @ApiPropertyOptional({ type: String, nullable: true, description: 'External pipeline ID (GitLab or GitHub)' })
   externalPipelineId?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Database connection info (type, version, credentials masked)',
+    example: { databaseType: 'POSTGRES', databaseVersion: '16', credentials: { user: 'app', dbName: 'app' } },
+  })
+  databaseInfo?: {
+    databaseType: string;
+    databaseVersion: string | null;
+    credentials: { user?: string; dbName?: string } | null;
+  } | null;
 }
 
 export class DeploymentProjectSummaryDto {
@@ -68,7 +79,7 @@ export class DeploymentProjectSummaryDto {
   name!: string;
 
   @ApiPropertyOptional({ type: String })
-  repoUrl?: string;
+  repoPath?: string;
 }
 
 export class DeploymentServerSummaryDto {

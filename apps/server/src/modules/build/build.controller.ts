@@ -66,8 +66,9 @@ export class BuildController {
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Body() dto: CreateBuildConfigDto,
+    @Query('serviceId') serviceId?: string,
   ) {
-    await this.setupService.updateBuildConfig(id, dto, user.id, user.role);
+    await this.setupService.updateBuildConfig(id, dto, user.id, user.role, serviceId);
     return { message: 'Configuration mise à jour' };
   }
 

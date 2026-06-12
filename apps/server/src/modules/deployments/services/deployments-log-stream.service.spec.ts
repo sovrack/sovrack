@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { DeploymentsLogStreamService } from './deployments-log-stream.service';
-import { DockerApiService as DockerRemoteService } from '../../../core/docker/docker-api.service';
+import { DockerApiService as DockerRemoteService } from '../../../core/container-runtime/docker-api.service';
 
 /**
  * Per-socket log streaming manager.

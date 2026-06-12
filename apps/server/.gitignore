@@ -3,6 +3,11 @@
 /node_modules
 /build
 
+# compiled TS artifacts next to prisma scripts (regenerated from *.ts)
+/prisma/*.js
+/prisma/*.js.map
+/prisma/*.d.ts
+
 # Logs
 logs
 *.log

@@ -9,7 +9,7 @@ import { AuditService } from '../../audit/audit.service';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { DeploymentsQueryService } from './deployments-query.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
-import { DeploymentsExecutorService } from './deployments-executor.service';
+import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 
 @Injectable()
 export class DeploymentsRollbackService {
@@ -20,7 +20,7 @@ export class DeploymentsRollbackService {
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly queryService: DeploymentsQueryService,
     private readonly gateway: DeploymentsGateway,
-    private readonly ansibleService: DeploymentsExecutorService,
+    private readonly ansibleService: DockerDeployExecutorService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -75,6 +75,10 @@ export class DeploymentsRollbackService {
         userId,
         branch: previousSuccess.branch,
         status: DeploymentStatus.RUNNING,
+        strategy: previousSuccess.strategy,
+        serviceId: previousSuccess.serviceId,
+        serviceEnvId: previousSuccess.serviceEnvId,
+        buildId: previousSuccess.buildId,
         dockerImage: previousSuccess.dockerImage,
         imageSha: previousSuccess.imageSha,
         isRollback: true,
@@ -110,7 +114,7 @@ export class DeploymentsRollbackService {
       initiatorRole: actor.role,
     });
 
-    return await this.ansibleService.deployWithAnsible(
+    return await this.ansibleService.executeDeploy(
       rollbackDeployment.id,
       rollbackImageRef,
     );

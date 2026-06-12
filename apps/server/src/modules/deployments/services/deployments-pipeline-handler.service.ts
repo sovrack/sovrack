@@ -6,7 +6,7 @@ import {
   DEPLOYMENT_PIPELINE_UPDATED,
   type PipelineUpdatedEvent,
 } from '../events/deployment.events';
-import { DeploymentsExecutorService } from './deployments-executor.service';
+import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { NotificationsService } from '../../notifications/notifications.service';
 import {
@@ -29,7 +29,7 @@ export class DeploymentsPipelineHandlerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly ansibleService: DeploymentsExecutorService,
+    private readonly ansibleService: DockerDeployExecutorService,
     private readonly gateway: DeploymentsGateway,
     private readonly notificationsService: NotificationsService,
   ) {}
@@ -106,7 +106,7 @@ export class DeploymentsPipelineHandlerService {
         },
       });
       if (claimed.count === 0) return { status: 'ignored' };
-      await this.ansibleService.deployWithAnsible(deployment.id, image);
+      await this.ansibleService.executeDeploy(deployment.id, image);
       return { status: 'ok' };
     }
 
@@ -206,7 +206,7 @@ export class DeploymentsPipelineHandlerService {
       triggeredBy: deployment.user?.fullName ?? 'Système',
       pipelineUrl:
         deployment.externalPipelineId
-          ? `${deployment.project.repoUrl ?? ''}/-/pipelines/${String(deployment.externalPipelineId)}`
+          ? `${deployment.service?.repoPath ?? ''}/-/pipelines/${String(deployment.externalPipelineId)}`
           : null,
     });
   }

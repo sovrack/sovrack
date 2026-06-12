@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ProjectServiceType } from '@prisma/client';
+import { ServiceType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -45,10 +45,10 @@ export class GitlabGroupImportRepositoryDto {
   @IsString()
   serviceName?: string;
 
-  @ApiPropertyOptional({ enum: ProjectServiceType })
+  @ApiPropertyOptional({ enum: ServiceType })
   @IsOptional()
-  @IsEnum(ProjectServiceType)
-  serviceType?: ProjectServiceType;
+  @IsEnum(ServiceType)
+  serviceType?: ServiceType;
 }
 
 export class ImportGitlabGroupDto {

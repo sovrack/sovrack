@@ -37,6 +37,7 @@ export class BuildLifecycleService {
     params: {
       projectId: string;
       serviceId?: string | null;
+      serviceEnvId?: string | null;
       userId: string;
       branch: string;
       buildPack: BuildPack;
@@ -55,6 +56,7 @@ export class BuildLifecycleService {
       data: {
         projectId: params.projectId,
         serviceId: params.serviceId ?? null,
+        serviceEnvId: params.serviceEnvId ?? null,
         userId: params.userId,
         branch: params.branch,
         buildPack: params.buildPack,

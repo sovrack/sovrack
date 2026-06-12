@@ -25,9 +25,8 @@ export class VolumesController {
   findAll(
     @Query('serverId') serverId?: string,
     @Query('serviceId') serviceId?: string,
-    @Query('managedServiceId') managedServiceId?: string,
   ) {
-    return this.volumesService.findAll({ serverId, serviceId, managedServiceId });
+    return this.volumesService.findAll({ serverId, serviceId });
   }
 
   @Get(':id')

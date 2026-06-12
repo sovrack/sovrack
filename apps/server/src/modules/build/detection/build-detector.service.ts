@@ -1,19 +1,30 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { GitProviderType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { GitlabCryptoService } from '../../git-providers/gitlab/gitlab-crypto.service';
+import { CryptoService } from '../../../core/crypto/crypto.service';
 
 type DetectConfidence = 'high' | 'medium' | 'low';
 
-type GitlabTreeItem = {
+type RepoTreeItem = {
   name: string;
   type: string;
   path?: string;
+};
+
+type GitHubTreeItem = {
+  path: string;
+  mode: string;
+  type: 'blob' | 'tree';
+  sha: string;
+  size?: number;
+  url: string;
 };
 
 type PackageJson = {
@@ -57,10 +68,12 @@ export type DetectResult = {
 
 @Injectable()
 export class BuildDetectorService {
+  private readonly logger = new Logger(BuildDetectorService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
-    private readonly crypto: GitlabCryptoService,
+    private readonly crypto: CryptoService,
   ) {}
 
   async detectProjectType(
@@ -69,96 +82,111 @@ export class BuildDetectorService {
   ): Promise<DetectResult> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      include: { appProviderLink: true },
+      include: {
+        providerRepos: {
+          include: { provider: true },
+          take: 1,
+        },
+      },
     });
 
     if (!project) {
       throw new NotFoundException('Projet non trouvé');
     }
-    if (!project.appProviderLink) {
-      throw new NotFoundException('Configuration GitLab manquante');
+
+    const repo = project.providerRepos?.[0];
+    if (!repo) {
+      throw new NotFoundException('Aucun dépôt Git configuré');
     }
 
-    const config = project.appProviderLink;
-    const token = this.crypto.decryptConfigToken(config.providerToken);
-    const baseUrl = config.providerUrl.replace(/\/$/, '');
-    let ref = config.defaultBranch || project.branch || 'main';
-
-    let gitlabId: bigint | null = config.externalId ?? project.externalRepoId ?? null;
-
-    if (config.sourceType === 'GROUP' && !serviceId) {
-      throw new BadRequestException(
-        'serviceId est requis pour la détection build en mode GROUP.',
-      );
-    }
+    const config = repo.provider;
+    const isGitHub = config.type === GitProviderType.GITHUB;
+    const adminToken = config.adminToken
+      ? this.crypto.decrypt(config.adminToken)
+      : null;
+    const oauthToken = config.oauthAccessToken
+      ? this.crypto.decrypt(config.oauthAccessToken)
+      : null;
+    const token = oauthToken || adminToken || '';
+    const baseUrl = isGitHub
+      ? (config.providerUrl === 'https://github.com' || config.providerUrl === 'http://github.com'
+          ? 'https://api.github.com'
+          : `${config.providerUrl.replace(/\/$/, '')}/api/v3`)
+      : config.providerUrl.replace(/\/$/, '');
+    let ref = repo.defaultBranch || 'main';
 
     if (serviceId) {
-      const service = await this.prisma.projectService.findUnique({
+      const service = await this.prisma.service.findUnique({
         where: { id: serviceId },
       });
-      if (!service || service.projectId !== projectId) {
+      if (!service) {
         throw new NotFoundException('Service introuvable');
       }
-      if (service.externalRepoId) {
-        gitlabId = service.externalRepoId;
+      if (service.branch) {
+        ref = service.branch;
       }
-      if (service.defaultBranch) {
-        ref = service.defaultBranch;
-      }
-    }
-
-    if (config.sourceType === 'GROUP' && !gitlabId) {
-      throw new BadRequestException(
-        'GitLab project ID manquant sur ce service GROUP.',
-      );
-    }
-
-    if (!gitlabId) {
-      throw new NotFoundException('ID GitLab du projet introuvable');
     }
 
     let files: string[] = [];
+    let repoId: string;
     try {
-      files = await this.listRepositoryFiles(baseUrl, gitlabId, token);
-    } catch {
+      if (isGitHub) {
+        repoId = repo.repoPath ?? '';
+        if (!repoId) throw new NotFoundException('Nom de dépôt GitHub introuvable');
+        files = await this.listGitHubRepositoryFiles(baseUrl, repoId, token, ref);
+      } else {
+        repoId = this.resolveGitlabProjectId(repo);
+        files = await this.listGitLabRepositoryFiles(baseUrl, repoId, token);
+      }
+    } catch (err) {
+      this.logger.warn(`listRepositoryFiles failed: ${err instanceof Error ? err.message : String(err)}`);
       return this.fallbackUnknownResult(
-        'Unable to read repository tree from GitLab.',
+        isGitHub
+          ? 'Unable to read repository tree from GitHub.'
+          : 'Unable to read repository tree from GitLab.',
       );
     }
 
     const signals = await this.collectSignals({
       baseUrl,
-      gitlabId,
+      provider: config.type,
       token,
       ref,
       files,
+      repoId,
     });
 
     const result = this.inferType(files, signals);
 
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: { projectType: result.type },
-    });
+    if (serviceId) {
+      await this.prisma.service.update({
+        where: { id: serviceId },
+        data: { buildType: result.type },
+      });
+    }
 
     return result;
   }
 
-  private async listRepositoryFiles(
+  private resolveGitlabProjectId(repo: { repoPath?: string | null }): string {
+    if (!repo.repoPath) throw new NotFoundException('Chemin GitLab du dépôt introuvable');
+    return repo.repoPath;
+  }
+
+  private async listGitLabRepositoryFiles(
     baseUrl: string,
-    gitlabId: bigint,
+    gitlabId: string,
     token: string,
   ): Promise<string[]> {
+
     const all: string[] = [];
     let page = 1;
     const perPage = 100;
-    // Increased from 50 to 200 pages to handle large monorepos (up to 20,000 files).
-    // Most projects are under 1000 files, but monorepos can have 5000+.
     const MAX_PAGES = 200;
 
     while (page <= MAX_PAGES) {
       const response = await firstValueFrom(
-        this.httpService.get<GitlabTreeItem[]>(
+        this.httpService.get<RepoTreeItem[]>(
           `${baseUrl}/api/v4/projects/${encodeURIComponent(String(gitlabId))}/repository/tree`,
           {
             headers: { 'PRIVATE-TOKEN': token },
@@ -197,12 +225,51 @@ export class BuildDetectorService {
     return Array.from(new Set(all));
   }
 
+  private async listGitHubRepositoryFiles(
+    baseUrl: string,
+    repoFullName: string | null,
+    token: string,
+    ref: string,
+  ): Promise<string[]> {
+    if (!repoFullName) {
+      throw new NotFoundException('Nom de dépôt GitHub introuvable');
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
+
+    const commitRes = await firstValueFrom(
+      this.httpService.get<{ sha: string }>(
+        `${baseUrl}/repos/${repoFullName}/commits/${encodeURIComponent(ref)}`,
+        { headers },
+      ),
+    );
+    const commitSha = commitRes.data.sha;
+
+    const treeRes = await firstValueFrom(
+      this.httpService.get<{ tree: GitHubTreeItem[]; truncated: boolean }>(
+        `${baseUrl}/repos/${repoFullName}/git/trees/${commitSha}?recursive=1`,
+        { headers },
+      ),
+    );
+
+    const items = Array.isArray(treeRes.data.tree) ? treeRes.data.tree : [];
+
+    return items
+      .filter((item) => item.type === 'blob')
+      .map((item) => item.path);
+  }
+
   private async collectSignals(input: {
     baseUrl: string;
-    gitlabId: bigint;
+    provider: GitProviderType;
     token: string;
     ref: string;
     files: string[];
+    repoId: string;
   }): Promise<ParsedProjectSignals> {
     const readCandidate = async (
       candidates: string[],
@@ -213,17 +280,13 @@ export class BuildDetectorService {
       }
       return await this.fetchRawFile(
         input.baseUrl,
-        input.gitlabId,
+        input.provider,
+        input.repoId,
         input.token,
         path,
         input.ref,
       );
     };
-
-    // Include hidden files (starting with .) in detection — many JS/TS projects
-    // have .eslintrc, .prettierrc, etc. that indicate the project type.
-    // We check both: standard names (e.g. "package.json") AND dot-prefixed variants
-    // (e.g. ".eslintrc", ".prettierrc") to improve detection accuracy.
 
     const [
       packageJsonRaw,
@@ -243,9 +306,7 @@ export class BuildDetectorService {
       readCandidate(['go.mod']),
       readCandidate(['pom.xml']),
       readCandidate(['build.gradle', 'build.gradle.kts']),
-      // Hidden file variants for Dockerfile (e.g. ".Dockerfile" in some conventions)
       readCandidate(['Dockerfile', 'dockerfile', '.Dockerfile']),
-      // Multiple compose file naming conventions (standard + hidden)
       readCandidate([
         'docker-compose.yml',
         'docker-compose.yaml',
@@ -269,31 +330,49 @@ export class BuildDetectorService {
 
   private async fetchRawFile(
     baseUrl: string,
-    gitlabId: bigint,
+    provider: GitProviderType,
+    repoId: string,
     token: string,
     filePath: string,
     ref: string,
   ): Promise<string | null> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<string>(
-          `${baseUrl}/api/v4/projects/${encodeURIComponent(String(gitlabId))}/repository/files/${encodeURIComponent(filePath)}/raw`,
-          {
-            headers: { 'PRIVATE-TOKEN': token },
-            params: { ref },
-            responseType: 'text',
-          },
-        ),
-      );
-      return typeof response.data === 'string' ? response.data : null;
+      if (provider === GitProviderType.GITHUB) {
+        if (!repoId) return null;
+        const res = await firstValueFrom(
+          this.httpService.get<{ content?: string; encoding?: string }>(
+            `${baseUrl}/repos/${repoId}/contents/${encodeURIComponent(filePath)}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+              },
+              params: { ref },
+            },
+          ),
+        );
+        const { content, encoding } = res.data;
+        if (!content) return null;
+        if (encoding === 'base64') return Buffer.from(content.replace(/\n/g, ''), 'base64').toString('utf-8');
+        return content;
+      } else {
+        const res = await firstValueFrom(
+          this.httpService.get<string>(
+            `${baseUrl}/api/v4/projects/${encodeURIComponent(repoId)}/repository/files/${encodeURIComponent(filePath)}/raw`,
+            {
+              headers: { 'PRIVATE-TOKEN': token },
+              params: { ref },
+              responseType: 'text',
+            },
+          ),
+        );
+        return typeof res.data === 'string' ? res.data : null;
+      }
     } catch (error: unknown) {
-      // 404 is expected (file doesn't exist) — silent.
-      // Other errors (401, 403, 500) should be logged for debugging.
       const status = (error as { response?: { status?: number } })?.response?.status;
       if (status && status !== 404) {
-        // Use a logger if available; otherwise just continue silently.
-        // We don't have a logger here so we swallow the error to preserve
-        // backward compatibility, but the file list itself will be inspected.
+        this.logger.warn(`fetchRawFile error (status=${status}): ${this.errorMessage(error)}`);
       }
       return null;
     }
@@ -311,7 +390,6 @@ export class BuildDetectorService {
       candidate.toLowerCase(),
     );
 
-    // 1. Exact match at root
     const exactRoot = lowerFiles.find((file) =>
       lowerCandidates.includes(file.lower),
     );
@@ -319,7 +397,6 @@ export class BuildDetectorService {
       return exactRoot.original;
     }
 
-    // 2. Nested match (any directory depth)
     const nested = lowerFiles
       .filter((file) =>
         lowerCandidates.some((candidate) =>
@@ -332,9 +409,6 @@ export class BuildDetectorService {
       return nested[0].original;
     }
 
-    // 3. Hidden file variant (e.g. ".eslintrc" without extension)
-    // Some files are detected only by their dot-prefix (e.g. ".dockerignore", ".gitignore").
-    // The collectSignals candidate list should include these.
     return null;
   }
 
@@ -356,7 +430,7 @@ export class BuildDetectorService {
         file.endsWith('compose.yml') ||
         file.endsWith('compose.yaml'),
     );
-    const hasCiConfig = fileSet.has('.gitlab-ci.yml');
+    const hasCiConfig = fileSet.has('.gitlab-ci.yml') || lowerFiles.some((file) => file.startsWith('.github/workflows/'));
 
     const packageManager = this.detectPackageManager(fileSet, signals);
     const packageDeps = this.mergeDependencies(signals.packageJson);
@@ -763,6 +837,10 @@ export class BuildDetectorService {
     }
     const lower = raw.toLowerCase();
     return markers.some((marker) => lower.includes(marker.toLowerCase()));
+  }
+
+  private errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 
   private isMultiStageDockerfile(raw: string | null): boolean {

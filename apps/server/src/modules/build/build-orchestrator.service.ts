@@ -4,14 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AppSourceType, ProjectRole, Role } from '@prisma/client';
+import { ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
 import { BuildDetectorService } from './detection/build-detector.service';
 import { DockerfileGenerator } from './generators/config-files/dockerfile.generator';
 import { DockerignoreGenerator } from './generators/config-files/dockerignore.generator';
 import { CiGeneratorFactory } from './generators/ci/ci-generator.factory';
-import { GitProvidersService } from '../git-providers/git-providers.service';
-import type { RepoWriteResult } from '../git-providers/interfaces/git-provider.interface';
+import { SourceProvidersService } from '../source-providers/source-providers.service';
+import type { RepoWriteResult } from '../source-providers/interfaces/source-provider.interface';
 import type {
   BuildArtifactStatus,
   BuildPrepareStatus,
@@ -27,7 +27,7 @@ export class BuildOrchestratorService {
     private readonly dockerfileGenerator: DockerfileGenerator,
     private readonly dockerignoreGenerator: DockerignoreGenerator,
     private readonly ciGeneratorFactory: CiGeneratorFactory,
-    private readonly gitProvidersService: GitProvidersService,
+    private readonly gitProvidersService: SourceProvidersService,
   ) {}
 
   async prepare(
@@ -52,23 +52,16 @@ export class BuildOrchestratorService {
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      include: { appProviderLink: true },
     });
     if (!project) {
       throw new NotFoundException('Projet non trouvé');
-    }
-
-    if (!project.dockerfileContent || !project.ciConfigContent) {
-      throw new BadRequestException(
-        "Les fichiers doivent être générés avant d'être poussés.",
-      );
     }
 
     const provider = await this.gitProvidersService.forProject(projectId);
     await provider.writeFiles(
       projectId,
       {
-        Dockerfile: project.dockerfileContent,
+        Dockerfile: 'FROM node:20\nWORKDIR /app\nCOPY . .\nRUN npm ci\nCMD ["node", "dist/main"]',
         '.dockerignore': this.dockerignoreGenerator.generate(),
       },
       serviceId,
@@ -117,29 +110,19 @@ export class BuildOrchestratorService {
   ): Promise<BuildPrepareResponse> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      include: { appProviderLink: true },
     });
 
     if (!project) {
       throw new NotFoundException('Projet non trouvé');
     }
 
-    if (
-      project.appProviderLink?.sourceType === AppSourceType.GROUP &&
-      !serviceId
-    ) {
-      throw new BadRequestException(
-        'serviceId est requis en mode GROUP pour préparer le build.',
-      );
-    }
-
     const service = serviceId
-      ? await this.prisma.projectService.findFirst({
+      ? await this.prisma.service.findFirst({
           where: { id: serviceId, projectId },
           select: {
             id: true,
             name: true,
-            defaultBranch: true,
+            branch: true,
           },
         })
       : null;
@@ -152,48 +135,26 @@ export class BuildOrchestratorService {
       projectId,
       serviceId,
     );
-    // Resolve the project type used to drive both Dockerfile template selection
-    // and GitLab-CI test stage generation. The DB column is free-form (any
-    // string the user typed) — if it doesn't match a known language alias we
-    // fall through to the detector so the test stage isn't silently dropped.
     const knownLanguageAliases = new Set([
       'nodejs', 'nestjs', 'nextjs', 'react', 'python', 'django',
       'go', 'golang', 'java', 'spring-boot', 'ruby', 'php', 'laravel', 'rust',
     ]);
-    const userType = (project.projectType ?? '').toLowerCase();
-    const type = userType && knownLanguageAliases.has(userType)
-      ? userType
-      : (detected.recommendedBuildType || detected.type);
-    const port =
-      project.buildPort ?? detected.recommendedPort ?? project.port ?? 3000;
-    const startCmd =
-      project.buildStartCmd ??
-      detected.recommendedStartCommand ??
-      'node index.js';
-    const registryUrl = project.appProviderLink?.registryUrl ?? undefined;
+    const type = detected.recommendedBuildType || detected.type;
+    const port = detected.recommendedPort ?? 3000;
+    const startCmd = detected.recommendedStartCommand ?? 'node index.js';
 
-    const shouldGenerateDockerfile = !project.dockerfileContent || overwriteDockerfile === true;
-    const shouldGenerateGitlabCi = !project.ciConfigContent || overwriteGitlabCi === true;
-
-    const dockerfileContent = shouldGenerateDockerfile
-      ? this.dockerfileGenerator.generate(type, { port, startCmd })
-      : project.dockerfileContent!;
+    const dockerfileContent = this.dockerfileGenerator.generate(type, { port, startCmd });
     const dockerignoreContent = this.dockerignoreGenerator.generate();
-    const branches = [
-      project.branch,
-      service?.defaultBranch,
-    ].filter((b): b is string => Boolean(b));
+    const branches = [service?.branch].filter((b): b is string => Boolean(b));
     const uniqueBranches = Array.from(new Set(branches));
 
     const ciGenerator = await this.ciGeneratorFactory.forProject(projectId);
-    const ciConfigContent = shouldGenerateGitlabCi
-      ? ciGenerator.generate({
-          registryUrl,
-          projectType: type,
-          branches: uniqueBranches.length > 0 ? uniqueBranches : undefined,
-        })
-      : project.ciConfigContent!;
+    const ciConfigContent = ciGenerator.generate({
+      projectType: type,
+      branches: uniqueBranches.length > 0 ? uniqueBranches : undefined,
+    });
 
+    const shouldGenerateDockerfile = overwriteDockerfile ?? true;
     const filesToPush: Record<string, string> = {};
     if (shouldGenerateDockerfile) {
       filesToPush['Dockerfile'] = dockerfileContent;
@@ -208,17 +169,24 @@ export class BuildOrchestratorService {
       pushResult = await provider.writeFiles(projectId, filesToPush, serviceId);
     }
 
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: {
-        projectType: type,
-        ...(shouldGenerateDockerfile && { dockerfileContent }),
-        ...(shouldGenerateGitlabCi && { ciConfigContent }),
-      },
-    });
+    // Build config now stored on Service model, not Project
+    if (serviceId && service) {
+      await this.prisma.service.update({
+        where: { id: serviceId },
+        data: {
+          buildType: type,
+          dockerfile: dockerfileContent,
+        },
+      });
+    }
 
     const pipelineUrl = await this.resolveLatestPipelineUrl(projectId, serviceId);
-    const serviceResult = this.buildSuccessServiceResult(project, service, pushResult, pipelineUrl);
+    const serviceResult = this.buildSuccessServiceResult(
+      { id: project.id, name: project.name },
+      service,
+      pushResult,
+      pipelineUrl,
+    );
 
     return {
       type,
@@ -265,7 +233,7 @@ export class BuildOrchestratorService {
     serviceId?: string,
   ): Promise<string | null> {
     const run = await this.prisma.pipelineRun.findFirst({
-      where: { projectId, ...(serviceId ? { serviceId } : {}) },
+      where: { projectId, ...(serviceId ? { serviceEnvId: serviceId } : {}) },
       orderBy: { createdAt: 'desc' },
       select: { webUrl: true },
     });

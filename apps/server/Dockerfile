@@ -17,6 +17,9 @@ FROM node:22-alpine AS runner
 
 RUN apk add --no-cache python3 ansible openssh-client curl ca-certificates
 
+# Créer un utilisateur non-root pour la sécurité
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 
 # Only production deps
@@ -33,8 +36,10 @@ COPY --from=builder /app/dist ./dist
 # Prisma schema for migrations
 COPY prisma ./prisma
 
-# Ansible playbooks (mounted at runtime via volume or baked in)
-COPY ../devops/ansible ./devops/ansible 2>/dev/null || true
+# Ansible playbooks — mount at runtime via volume (ex: -v /host/devops/ansible:/app/devops/ansible)
+# Build from repo root with: docker build -f backend/Dockerfile --build-context ansible=devops/ansible .
+# Or copy backend/devops/ansible/ before building.
+RUN mkdir -p /app/devops/ansible && chown appuser:appgroup /app/devops/ansible
 
 # ── Install Nixpacks (used by NixpacksService for local builds + plan generation) ──
 # Nixpacks is a single static binary (~50MB) — no runtime deps, no Nix daemon required.
@@ -49,8 +54,13 @@ RUN arch=$(uname -m) && \
     esac && \
     curl -fsSL "https://github.com/railwayapp/nixpacks/releases/download/v${NIXPACKS_VERSION}/nixpacks-linux-${NIXPACKS_ARCH}.tar.gz" \
       | tar -xz -C /usr/local/bin nixpacks && \
-    chmod +x /usr/local/bin/nixpacks && \
+    chmod +x /usr/local/bin nixpacks && \
     nixpacks --version
+
+# Donner la possession à appuser
+RUN chown -R appuser:appgroup /app
+
+USER appuser
 
 EXPOSE 3001
 

@@ -1,6 +1,5 @@
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { DeploymentStatus, ServerStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../core/database/prisma.service';
@@ -11,8 +10,6 @@ import { AutomationService } from '../../automation/services/automation.service'
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringStatsService } from './monitoring-stats.service';
 import { MonitoringPrometheusService } from './monitoring-prometheus.service';
-
-type MonitoringHealth = 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';
 
 type MonitoringMetricSnapshot = {
   up: number | null;
@@ -329,210 +326,6 @@ export class MonitoringService {
     return metricMap;
   }
 
-  private async fetchDeploymentStatsByServer() {
-    const deployments = await this.prisma.deployment.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        status: true,
-        createdAt: true,
-        environment: {
-          select: {
-            serverId: true,
-          },
-        },
-      },
-    });
-
-    const sevenDaysAgo = this.daysAgo(7);
-    const map = new Map<
-      string,
-      {
-        lastStatus: DeploymentStatus | null;
-        lastDeploymentAt: string | null;
-        failedInLast7d: number;
-        successInLast7d: number;
-      }
-    >();
-
-    for (const deployment of deployments) {
-      const serverId = deployment.environment.serverId;
-      const current = map.get(serverId) ?? {
-        lastStatus: null,
-        lastDeploymentAt: null,
-        failedInLast7d: 0,
-        successInLast7d: 0,
-      };
-
-      if (!current.lastStatus) {
-        current.lastStatus = deployment.status;
-        current.lastDeploymentAt = deployment.createdAt.toISOString();
-      }
-
-      if (deployment.createdAt >= sevenDaysAgo) {
-        if (
-          deployment.status === DeploymentStatus.FAILED ||
-          deployment.status === DeploymentStatus.CANCELED
-        ) {
-          current.failedInLast7d += 1;
-        }
-        if (deployment.status === DeploymentStatus.SUCCESS) {
-          current.successInLast7d += 1;
-        }
-      }
-
-      map.set(serverId, current);
-    }
-
-    return map;
-  }
-
-  private resolveServerHealth(
-    status: ServerStatus,
-    isVerified: boolean,
-    metrics: MonitoringMetricSnapshot,
-  ): MonitoringHealth {
-    if (status === ServerStatus.UNREACHABLE) {
-      return 'CRITICAL';
-    }
-    if (!isVerified) {
-      return 'WARNING';
-    }
-
-    if (metrics.up === 0) {
-      return 'CRITICAL';
-    }
-
-    const values = [
-      metrics.cpuPercent,
-      metrics.memoryPercent,
-      metrics.diskPercent,
-    ].filter(
-      (value): value is number => value !== null && Number.isFinite(value),
-    );
-
-    if (values.some((value) => value >= 95)) {
-      return 'CRITICAL';
-    }
-    if (values.some((value) => value >= 85)) {
-      return 'WARNING';
-    }
-
-    if (metrics.up !== null && metrics.up > 0) {
-      return 'HEALTHY';
-    }
-
-    return 'UNKNOWN';
-  }
-
-  private resolveProjectHealth(
-    latestStatus: DeploymentStatus | null,
-    failedDeployments7d: number,
-  ): MonitoringHealth {
-    if (latestStatus === DeploymentStatus.FAILED) {
-      return 'CRITICAL';
-    }
-    if (latestStatus === DeploymentStatus.CANCELED) {
-      return 'WARNING';
-    }
-    if (failedDeployments7d > 0) {
-      return 'WARNING';
-    }
-    if (latestStatus === DeploymentStatus.SUCCESS) {
-      return 'HEALTHY';
-    }
-    return 'UNKNOWN';
-  }
-
-  private resolveBlockingReasons(server: {
-    status: ServerStatus;
-    isVerified: boolean;
-    lastPreparedAt: Date | null;
-  }): string[] {
-    const reasons: string[] = [];
-
-    if (!server.isVerified) {
-      reasons.push('SSH validation required');
-    }
-    if (server.status === ServerStatus.UNREACHABLE) {
-      reasons.push('Server unreachable');
-    }
-    if (server.status === ServerStatus.PREPARATION_FAILED) {
-      reasons.push('Preparation failed');
-    }
-    if (!server.lastPreparedAt) {
-      reasons.push('Preparation required');
-    }
-
-    return reasons;
-  }
-
-  private async getDerivedAlerts() {
-    const servers = await this.prisma.server.findMany({
-      where: {
-        OR: [
-          { status: ServerStatus.UNREACHABLE },
-          { status: ServerStatus.PREPARATION_FAILED },
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        status: true,
-      },
-    });
-
-    const failedDeployments = await this.prisma.deployment.findMany({
-      where: {
-        status: DeploymentStatus.FAILED,
-      },
-      take: 20,
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        createdAt: true,
-        projectId: true,
-        project: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-
-    const serverAlerts: AlertItem[] = servers.map((server) => ({
-      id: `server-${server.id}`,
-      severity: 'critical',
-      status: 'firing',
-      summary: `${server.name}: ${server.status === ServerStatus.UNREACHABLE ? 'server unreachable' : 'preparation failed'}`,
-      source: 'platform',
-      startsAt: new Date().toISOString(),
-      serverId: server.id,
-    }));
-
-    const deploymentAlerts: AlertItem[] = failedDeployments.map(
-      (deployment) => ({
-        id: `deployment-${deployment.id}`,
-        severity: 'warning',
-        status: 'firing',
-        summary: `Failed deployment on project ${deployment.project.name}`,
-        source: 'platform',
-        startsAt: deployment.createdAt.toISOString(),
-        projectId: deployment.projectId,
-      }),
-    );
-
-    const items = [...serverAlerts, ...deploymentAlerts];
-
-    return {
-      source: 'derived',
-      total: items.length,
-      warning: items.filter((item) => item.severity === 'warning').length,
-      critical: items.filter((item) => item.severity === 'critical').length,
-      info: items.filter((item) => item.severity === 'info').length,
-      items,
-    };
-  }
-
   private async queryPrometheus(
     prometheusUrl: string,
     query: string,
@@ -586,10 +379,6 @@ export class MonitoringService {
       networkTxBytesPerSec: null,
       uptimeSeconds: null,
     };
-  }
-
-  private daysAgo(days: number): Date {
-    return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   }
 
   private trimTrailingSlash(value: string): string {

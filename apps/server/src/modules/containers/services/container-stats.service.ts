@@ -4,7 +4,7 @@ import {
   SshExecutorService,
   type SshConnection,
 } from '../../../core/ssh/ssh-executor.service';
-import { DockerSshService } from '../../../core/docker/docker-ssh.service';
+import { DockerSshService } from '../../../core/container-runtime/docker-ssh.service';
 import {
   ServerHostKeyService,
   ServersCryptoService,
@@ -49,13 +49,18 @@ export class ContainerStatsService {
       include: {
         project: true,
         service: true,
-        environment: { include: { server: true } },
+        environment: true,
       },
     });
 
     if (!deployment) throw new NotFoundException('Déploiement non trouvé');
 
-    const server = deployment.environment.server;
+    const container = await this.prisma.container.findFirst({
+      where: { deploymentId },
+      include: { server: true },
+    });
+    if (!container?.server) throw new NotFoundException('Container/serveur non trouvé');
+    const server = container.server;
     const decryptedKey = this.serversCryptoService.decrypt(server.sshKey);
 
     const containerName = this.slugify(

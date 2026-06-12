@@ -33,11 +33,6 @@ export class CreateVolumeDto {
   @IsOptional()
   @IsString()
   serviceId?: string;
-
-  @ApiPropertyOptional({ example: 'ms_xxx' })
-  @IsOptional()
-  @IsString()
-  managedServiceId?: string;
 }
 
 export class UpdateVolumeDto {

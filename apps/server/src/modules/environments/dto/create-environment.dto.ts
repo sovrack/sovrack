@@ -18,13 +18,8 @@ export class CreateEnvironmentDto {
   })
   name!: string;
 
-  @ApiProperty({ example: 'server-uuid' })
-  @IsString({ message: 'serverId doit être une chaîne de caractères' })
-  @IsNotEmpty({ message: 'serverId est obligatoire' })
-  serverId!: string;
-
-  @ApiPropertyOptional({ example: 'staging.example.com' })
+  @ApiPropertyOptional({ example: '{"NODE_ENV":"staging","PORT":3001}' })
   @IsOptional()
-  @IsString({ message: 'Le domaine doit être une chaîne de caractères' })
-  domain?: string;
+  @IsString({ message: 'env doit être une chaîne JSON' })
+  env?: string;
 }

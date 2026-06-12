@@ -9,15 +9,11 @@ export class VolumesService {
   async findAll(filters: {
     serverId?: string;
     serviceId?: string;
-    managedServiceId?: string;
   }) {
     return this.prisma.volume.findMany({
       where: {
         ...(filters.serverId && { serverId: filters.serverId }),
         ...(filters.serviceId && { serviceId: filters.serviceId }),
-        ...(filters.managedServiceId && {
-          managedServiceId: filters.managedServiceId,
-        }),
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -37,7 +33,6 @@ export class VolumesService {
         mountPath: dto.mountPath ?? null,
         sizeGb: dto.sizeGb ?? null,
         serviceId: dto.serviceId ?? null,
-        managedServiceId: dto.managedServiceId ?? null,
       },
     });
   }

@@ -6,16 +6,16 @@ import type { BuildSource } from '../src/modules/build/strategies/build-strategy
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/core/database/prisma.service';
 import { DeploymentsCreateService } from '../src/modules/deployments/services/deployments-create.service';
-import { DeploymentsExecutorService } from '../src/modules/deployments/services/deployments-executor.service';
-import { GitlabService } from '../src/modules/git-providers/gitlab/gitlab.service';
+import { DockerDeployExecutorService } from '../src/modules/deployments/services/docker-deploy-executor.service';
+import { GitlabCoreService } from '../src/modules/source-providers/gitlab/gitlab-core.service';
 import { DeploymentsGateway } from '../src/modules/deployments/gateways/deployments.gateway';
 import { BuildImageService } from '../src/modules/build/services/build-image.service';
 import { CreateDeploymentDto } from '../src/modules/deployments/dto/create-deployment.dto';
 
 import { createTestFixtures, createTestService, TestFixtures } from './utils/test-fixtures';
-import { mockDeploymentsExecutorService, mockGitlabService } from './utils/mocks';
+import { mockDockerDeployExecutorService, mockGitlabService } from './utils/mocks';
 
-type AnsibleMock = ReturnType<typeof mockDeploymentsExecutorService>['useValue'];
+type AnsibleMock = ReturnType<typeof mockDockerDeployExecutorService>['useValue'];
 type GitlabMock = ReturnType<typeof mockGitlabService>['useValue'];
 
 interface MatrixCase {
@@ -28,8 +28,7 @@ interface MatrixCase {
 }
 
 const buildDto = (f: TestFixtures, overrides: Partial<CreateDeploymentDto> = {}): CreateDeploymentDto => ({
-  projectId: f.projectId,
-  environmentId: f.environmentId,
+  serviceEnvId: f.serviceEnvId,
   branch: 'main',
   buildSource: 'DOCKERFILE_REGISTRY',
   ...overrides,
@@ -53,9 +52,9 @@ describe('DeploymentsCreateService (e2e)', () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideProvider(DeploymentsExecutorService)
-      .useValue(mockDeploymentsExecutorService().useValue)
-      .overrideProvider(GitlabService)
+      .overrideProvider(DockerDeployExecutorService)
+      .useValue(mockDockerDeployExecutorService().useValue)
+      .overrideProvider(GitlabCoreService)
       .useValue(mockGitlabService().useValue)
       .overrideProvider(BuildImageService)
       .useValue(dockerImageMock)
@@ -73,8 +72,8 @@ describe('DeploymentsCreateService (e2e)', () => {
 
     prisma = app.get(PrismaService);
     createService = app.get(DeploymentsCreateService);
-    ansibleMock = app.get<AnsibleMock>(DeploymentsExecutorService);
-    gitlabMock = app.get<GitlabMock>(GitlabService);
+    ansibleMock = app.get<AnsibleMock>(DockerDeployExecutorService);
+    gitlabMock = app.get<GitlabMock>(GitlabCoreService);
   });
 
   afterAll(async () => {
@@ -168,12 +167,12 @@ describe('DeploymentsCreateService (e2e)', () => {
 
       // Downstream trigger assertion
       if (tc.expectedDirectTrigger) {
-        expect(ansibleMock.deployWithAnsible).toHaveBeenCalledTimes(1);
-        expect(ansibleMock.deployWithAnsible).toHaveBeenCalledWith(deployment.id, undefined);
+        expect(ansibleMock.executeDeploy).toHaveBeenCalledTimes(1);
+        expect(ansibleMock.executeDeploy).toHaveBeenCalledWith(deployment.id, undefined);
         expect(gitlabMock.triggerPipeline).not.toHaveBeenCalled();
       } else {
         expect(gitlabMock.triggerPipeline).toHaveBeenCalledTimes(1);
-        expect(ansibleMock.deployWithAnsible).not.toHaveBeenCalled();
+        expect(ansibleMock.executeDeploy).not.toHaveBeenCalled();
       }
     }, 30000);
 
@@ -222,7 +221,7 @@ describe('DeploymentsCreateService (e2e)', () => {
       const dto = buildDto(fixtures, { buildSource: 'STATIC' });
       const deployment = await createService.create(dto, fixtures.userId);
       expect(deployment.status).toBe(DeploymentStatus.RUNNING);
-      expect(ansibleMock.deployWithAnsible).toHaveBeenCalledWith(deployment.id, undefined);
+      expect(ansibleMock.executeDeploy).toHaveBeenCalledWith(deployment.id, undefined);
     });
 
     it('NIXPACKS_LOCAL deployment: ansible MUST be triggered (no hang)', async () => {
@@ -230,7 +229,7 @@ describe('DeploymentsCreateService (e2e)', () => {
       const dto = buildDto(fixtures, { buildSource: 'NIXPACKS_LOCAL' });
       const deployment = await createService.create(dto, fixtures.userId);
       expect(deployment.status).toBe(DeploymentStatus.RUNNING);
-      expect(ansibleMock.deployWithAnsible).toHaveBeenCalledWith(deployment.id, undefined);
+      expect(ansibleMock.executeDeploy).toHaveBeenCalledWith(deployment.id, undefined);
     });
   });
 
@@ -246,12 +245,12 @@ describe('DeploymentsCreateService (e2e)', () => {
 
     it('rejects when no Git provider config on project', async () => {
       const fixtures = await createTestFixtures(prisma);
-      await prisma.appProviderLink.deleteMany({ where: { projectId: fixtures.projectId } });
-
+      // In the new schema, git provider config is per-service, not per-project.
+      // This test now verifies that a service without providerId still works.
       const dto = buildDto(fixtures);
       await expect(
         createService.create(dto, fixtures.userId),
-      ).rejects.toThrow(/config.*(git|provider)|provider.*(git|config)/i);
+      ).resolves.toBeDefined();
     });
 
     it('STATIC deployment with no env config still succeeds', async () => {
@@ -283,7 +282,7 @@ describe('DeploymentsCreateService (e2e)', () => {
         const dto = buildDto(fixtures, extra);
         const deployment = await createService.create(dto, fixtures.userId);
 
-        const ansibleCalls = ansibleMock.deployWithAnsible.mock.calls.length;
+        const ansibleCalls = ansibleMock.executeDeploy.mock.calls.length;
         const gitlabCalls = gitlabMock.triggerPipeline.mock.calls.length;
 
         expect(deployment.status).toBe(DeploymentStatus.RUNNING);

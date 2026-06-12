@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/database/prisma.module';
 import { SshModule } from '../../core/ssh/ssh.module';
-import { AnsibleModule } from '../../core/ansible/ansible.module';
+import { AnsibleModule } from '../../core/provisioning/ansible.module';
 import { AppJwtModule } from '../../core/jwt/jwt.module';
 import { SslCertificateService } from './ssl-certificate.service';
 import { SslRenewalService } from './ssl-renewal.service';

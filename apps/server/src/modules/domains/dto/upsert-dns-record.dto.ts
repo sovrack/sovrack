@@ -38,13 +38,8 @@ export class UpsertDnsRecordDto {
   @IsBoolean()
   proxied?: boolean;
 
-  @ApiPropertyOptional({ example: 'service-uuid' })
+  @ApiPropertyOptional({ example: 'service_env-uuid' })
   @IsOptional()
   @IsString()
-  serviceId?: string;
-
-  @ApiPropertyOptional({ example: 'environment-uuid' })
-  @IsOptional()
-  @IsString()
-  environmentId?: string;
+  serviceEnvId?: string;
 }
