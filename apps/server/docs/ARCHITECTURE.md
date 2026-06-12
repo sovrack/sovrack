@@ -41,12 +41,12 @@ Conséquences (non négociables) :
 - La résolution correcte du provider est **par service** : `forService(serviceId)`.
 - `forProject(projectId)` est une **commodité valable UNIQUEMENT pour un projet
   mono-provider** : elle résout vers le provider du *premier* service trouvé.
-  ✅ **Migré** (build + deployments) : 5 sites utilisent désormais le pattern
-  `serviceId ? forService(serviceId) : forProject(projectId)` — résolution
-  correcte par service dès qu'on a le serviceId, fallback projet sinon.
-  ⏳ **Reste** : `webhooks/webhook-management` part d'un `serviceEnvId` (résoudre
-  serviceEnvId → serviceId → `forService`) ; les branches fallback `forProject`
-  ne servent que les contextes sans service (légitime).
+  ✅ **Migré (100%)** : les 6 sites (build, deployments, webhooks) utilisent
+  désormais le pattern `service en scope ? forService(serviceId) :
+  forProject(projectId)` — résolution correcte par service dès qu'on a le
+  service (webhook : `serviceEnvId → serviceId`), fallback projet seulement
+  pour les contextes réellement sans service. Plus aucune résolution provider
+  par projet « en dur ».
 
 > Règle de conception : tout nouveau code qui a besoin du provider doit partir
 > d'un **serviceId** (→ `forService`), jamais d'un projectId.

@@ -34,7 +34,20 @@ export class WebhookManagementService {
     projectId: string,
     serviceEnvId?: string,
   ): Promise<{ webhookUrl: string; isNew: boolean }> {
-    const provider = await this.sourceProviders.forProject(projectId);
+    // Invariant : provider lié au SERVICE. Si on cible un serviceEnv, on
+    // résout via SON service (serviceEnvId → serviceId → forService) ;
+    // sinon fallback projet (webhook projet mono-provider).
+    let serviceIdForProvider: string | null = null;
+    if (serviceEnvId) {
+      const se = await this.prisma.serviceEnvironment.findUnique({
+        where: { id: serviceEnvId },
+        select: { serviceId: true },
+      });
+      serviceIdForProvider = se?.serviceId ?? null;
+    }
+    const provider = serviceIdForProvider
+      ? await this.sourceProviders.forService(serviceIdForProvider)
+      : await this.sourceProviders.forProject(projectId);
 
     const before = await this.prisma.webhookEndpoint.findFirst({
       where: { projectId, serviceEnvId: serviceEnvId ?? null, provider: provider.type },
