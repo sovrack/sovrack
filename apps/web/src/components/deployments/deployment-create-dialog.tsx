@@ -15,6 +15,7 @@ export function DeploymentCreateDialog({
   open,
   initialProjectId,
   initialEnvironmentId,
+  initialBranch,
   onClose,
   onCreated,
 }: Props) {
@@ -25,6 +26,7 @@ export function DeploymentCreateDialog({
       projectId={initialProjectId}
       open={open}
       initialEnvironmentId={initialEnvironmentId}
+      initialBranch={initialBranch}
       onClose={onClose}
       onCreated={onCreated}
     />

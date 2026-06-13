@@ -45,6 +45,7 @@ type Props = {
   services?: Service[];
   initialServiceId?: string;
   initialEnvironmentId?: string;
+  initialBranch?: string;
   defaultBuildSource?: string | null;
   buildPort?: number | null;
   buildStartCmd?: string | null;
@@ -62,7 +63,7 @@ const BUILD_SOURCE_META: Record<string, { label: string; detail: string; color: 
   EXTERNAL_IMAGE:      { label: 'Image externe','detail': 'image Docker pré-construite', color: 'text-orange-400', bg: 'bg-orange-500/8', border: 'border-orange-500/20' },
 };
 
-export function DeployDialog({ projectId, open, onClose, onCreated, services = [], initialServiceId, initialEnvironmentId, defaultBuildSource, buildPort, buildStartCmd }: Props) {
+export function DeployDialog({ projectId, open, onClose, onCreated, services = [], initialServiceId, initialEnvironmentId, initialBranch, defaultBuildSource, buildPort, buildStartCmd }: Props) {
   const effectiveBuildSource = (defaultBuildSource ?? 'DOCKERFILE_LOCAL') as BuildSource;
   const isLocalBuild = (LOCAL_BUILD_SOURCES as readonly string[]).includes(effectiveBuildSource);
   const [environments, setEnvironments] = useState<Environment[]>([]);
@@ -99,8 +100,10 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
     setValidation(null); setValidateError(null); setShowPrepare(false);
     if (initialServiceId) setSelectedServiceId(initialServiceId);
 
-    // Pre-fill branch from service default
-    if (initialServiceId && services.length > 0) {
+    // Pre-fill branch : initialBranch explicite (ex: redeploy) > defaut du service
+    if (initialBranch) {
+      setBranch(initialBranch);
+    } else if (initialServiceId && services.length > 0) {
       const svc = services.find((s) => s.id === initialServiceId);
       if (svc?.branch) setBranch(svc.branch);
     }
@@ -128,7 +131,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
           setEnvIds(envs.length > 0 ? [envs[0].id] : []);
         }
         const def = brs.find((b) => b.default);
-        setBranch(def?.name ?? brs[0]?.name ?? 'main');
+        setBranch(initialBranch ?? def?.name ?? brs[0]?.name ?? 'main');
 
         const detected: ValidationIssue[] = [];
         if (!gitlabConfig) detected.push({ type: 'no-source', message: 'Git source not connected.', redirectTab: 'services' });
