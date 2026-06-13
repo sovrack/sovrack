@@ -457,7 +457,8 @@ model ServerAuditEvent {
 model Environment {
   id           String               @id @default(uuid())
   name         String
-  env          String?              @db.Text // JSON — environment variables (override Project.env)
+  env          String?              @db.Text // JSON — variables NON-secrètes de l'environnement
+  secretsEnv   String?              @db.Text // JSON — secrets de l'environnement (chiffré au repos)
   project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId    String
   deployments  Deployment[]
@@ -483,7 +484,8 @@ model ServiceEnvironment {
   replicas        Int?
   healthcheckPath String?
   buildPack       BuildPack?
-  env             String?     @db.Text // JSON — merge final: this > Environment.env > Service.env
+  env             String?     @db.Text // JSON — variables NON-secrètes (merge final: this > Environment.env > Service.env)
+  secretsEnv      String?     @db.Text // JSON — secrets (chiffré au repos ; même ordre de fusion)
 
   // Soft-delete : "retirer" un service d'un environnement pose archivedAt au
   // lieu de DELETE, ce qui préserve l'historique (Deployment/Build) qui pointe
@@ -1253,7 +1255,8 @@ model Service {
   databaseCredentials Json? // { user, password, dbName }
 
   // Runtime
-  env             String? @db.Text // JSON — variables du service
+  env             String? @db.Text // JSON — variables NON-secrètes du service (affichables)
+  secretsEnv      String? @db.Text // JSON — secrets du service (chiffré au repos, jamais affiché en clair)
   healthcheckPath String?
   replicas        Int     @default(1)
 

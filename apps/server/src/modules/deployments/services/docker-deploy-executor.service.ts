@@ -46,7 +46,7 @@ export class DockerDeployExecutorService {
       where: { id: deploymentId },
       include: {
         project: { select: { id: true, name: true } },
-        service: { select: { id: true, name: true, port: true, env: true, dockerComposeContent: true, repoPath: true, branch: true, startCommand: true, type: true, databaseType: true, databaseVersion: true, databaseCredentials: true } },
+        service: { select: { id: true, name: true, port: true, env: true, secretsEnv: true, dockerComposeContent: true, repoPath: true, branch: true, startCommand: true, type: true, databaseType: true, databaseVersion: true, databaseCredentials: true } },
         serviceEnv: {
           include: {
             environment: {
@@ -54,12 +54,13 @@ export class DockerDeployExecutorService {
                 id: true,
                 name: true,
                 env: true,
+                secretsEnv: true,
                 servers: { where: { isActive: true, isVerified: true }, select: { id: true, name: true, host: true } },
               },
             },
           },
         },
-        environment: { select: { id: true, name: true, env: true } },
+        environment: { select: { id: true, name: true, env: true, secretsEnv: true } },
         user: { select: { id: true, email: true, fullName: true, role: true } },
         build: { select: { id: true, imageSha: true, buildPack: true, isLocalBuild: true } },
       },
@@ -258,23 +259,30 @@ export class DockerDeployExecutorService {
 
   private resolveEnvVars(deployment: {
     project: { id: string; name: string };
-    service?: { env?: string | null } | null;
-    serviceEnv?: { env?: string | null; environment: { env?: string | null } } | null;
-    environment?: { env?: string | null } | null;
+    service?: { env?: string | null; secretsEnv?: string | null } | null;
+    serviceEnv?: {
+      env?: string | null;
+      secretsEnv?: string | null;
+      environment: { env?: string | null; secretsEnv?: string | null };
+    } | null;
+    environment?: { env?: string | null; secretsEnv?: string | null } | null;
   }): string[] {
     const merged: Record<string, string> = {};
+    const mergeJson = (raw?: string | null): void => {
+      if (!raw) return;
+      try { Object.assign(merged, JSON.parse(raw)); } catch { /* ignore */ }
+    };
 
-    // 3 niveaux : Service.env + Environment.env + ServiceEnvironment.env
-    if (deployment.service?.env) {
-      try { Object.assign(merged, JSON.parse(deployment.service.env)); } catch { /* ignore */ }
-    }
-    const envFromServiceEnv = deployment.serviceEnv?.environment?.env ?? deployment.environment?.env;
-    if (envFromServiceEnv) {
-      try { Object.assign(merged, JSON.parse(envFromServiceEnv)); } catch { /* ignore */ }
-    }
-    if (deployment.serviceEnv?.env) {
-      try { Object.assign(merged, JSON.parse(deployment.serviceEnv.env)); } catch { /* ignore */ }
-    }
+    // 1) Variables NON-secrètes : Service < Environment < ServiceEnvironment.
+    mergeJson(deployment.service?.env);
+    mergeJson(deployment.serviceEnv?.environment?.env ?? deployment.environment?.env);
+    mergeJson(deployment.serviceEnv?.env);
+
+    // 2) Secrets (même ordre de fusion) — injectés en variables d'env,
+    //    priment sur les non-secrètes en cas de même clé.
+    mergeJson(deployment.service?.secretsEnv);
+    mergeJson(deployment.serviceEnv?.environment?.secretsEnv ?? deployment.environment?.secretsEnv);
+    mergeJson(deployment.serviceEnv?.secretsEnv);
 
     return Object.entries(merged).map(([key, value]) => `${key}=${value}`);
   }
