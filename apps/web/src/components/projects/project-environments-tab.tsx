@@ -29,9 +29,7 @@ const ENV_NAMES: EnvName[] = ['STAGING', 'PRODUCTION', 'TESTING', 'PREVIEW'];
 const SERVICE_TYPE_STYLE: Record<string, string> = {
   APPLICATION: 'bg-blue-500/10 text-blue-300',
   DATABASE:    'bg-orange-500/10 text-orange-300',
-  WORKER:      'bg-purple-500/10 text-purple-300',
-  CRON:        'bg-cyan-500/10 text-cyan-300',
-  STATIC:      'bg-zinc-500/10 text-zinc-300',
+  MANAGED:     'bg-purple-500/10 text-purple-300',
 };
 
 function AddEnvDialog({

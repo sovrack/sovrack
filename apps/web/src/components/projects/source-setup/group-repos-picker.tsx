@@ -19,7 +19,6 @@ export type SelectedGroupRepository = {
 const SERVICE_TYPE_OPTIONS: { value: ServiceType; label: string }[] = [
   { value: 'APPLICATION', label: 'Application' },
   { value: 'DATABASE', label: 'Database' },
-  { value: 'COMPOSE', label: 'Compose' },
 ];
 
 function repoPath(repo: ProjectSourceRepo): string {

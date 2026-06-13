@@ -1,12 +1,6 @@
-export type ServiceType =
-  | 'APPLICATION'
-  | 'DATABASE'
-  | 'COMPOSE'
-  | 'WEB_SERVICE'
-  | 'WORKER'
-  | 'CRON_JOB'
-  | 'CACHE'
-  | 'QUEUE';
+// Aligne sur l'enum backend (modele Railway) : la nature du service en 3 axes.
+// L'origine de l'artefact reste portee par SourceType (GIT/DOCKER_IMAGE/NONE).
+export type ServiceType = 'APPLICATION' | 'DATABASE' | 'MANAGED';
 
 export type SourceType = 'GIT' | 'DOCKER_IMAGE' | 'NONE';
 
@@ -73,8 +67,8 @@ export type CreateServicePayload = {
   port?: number;
   startCommand?: string;
   buildArgs?: Record<string, string>;
-  nixpacksConfig?: any;
-  staticConfig?: any;
+  nixpacksConfig?: Record<string, unknown>;
+  staticConfig?: Record<string, unknown>;
   dockerComposeContent?: string;
   composeServiceName?: string;
   databaseType?: ManagedServiceType;
