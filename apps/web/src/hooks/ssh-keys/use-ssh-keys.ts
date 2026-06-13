@@ -10,6 +10,8 @@ export function useSshKeys() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['ssh-keys'],
     queryFn: () => sshKeysService.getAll(),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   return {

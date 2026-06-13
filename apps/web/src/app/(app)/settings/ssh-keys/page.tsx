@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Download, KeyRound, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { getApiErrorMessage } from '@/lib/api';
 import { sshKeysService } from '@/services/ssh-keys.service';
+import { useSshKeys } from '@/hooks/ssh-keys/use-ssh-keys';
 import type { SshKey } from '@/types/ssh-key';
 
 type KeyType = 'ed25519' | 'rsa';
@@ -275,26 +275,18 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
 }
 
 export default function SshKeysPage() {
-  const queryClient = useQueryClient();
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { data: keys = [], isLoading, error: queryError } = useQuery({
-    queryKey: ['ssh-keys'],
-    queryFn: () => sshKeysService.getAll(),
-    staleTime: 60_000,
-    refetchOnWindowFocus: false,
-  });
-
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['ssh-keys'] });
+  const { sshKeys: keys, loading: isLoading, error: queryError, refresh } = useSshKeys();
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     setMutationError(null);
     try {
       await sshKeysService.remove(id);
-      await invalidate();
+      await refresh();
     } catch (err) {
       setMutationError(getApiErrorMessage(err));
     } finally {
@@ -304,10 +296,10 @@ export default function SshKeysPage() {
 
   const handleCreated = async () => {
     setDialogOpen(false);
-    await invalidate();
+    await refresh();
   };
 
-  const error = mutationError ?? (queryError ? getApiErrorMessage(queryError) : null);
+  const error = mutationError ?? queryError;
 
   if (isLoading) {
     return (
