@@ -41,19 +41,6 @@ const SUPPORTED_TYPES = [
   'unknown',
 ];
 
-function defaultBuildType(type: string): string {
-  switch (type) {
-    case 'DATABASE': return 'dockerized';
-    case 'COMPOSE': return 'compose';
-    case 'STATIC': return 'static';
-    case 'WORKER': return 'nodejs';
-    case 'CRON_JOB': return 'nodejs';
-    case 'WEB_SERVICE':
-    case 'APPLICATION':
-    default: return 'dockerized';
-  }
-}
-
 @Injectable()
 export class BuildSetupService {
   constructor(
@@ -308,7 +295,9 @@ export class BuildSetupService {
         return {
           id: service.id,
           name: service.name,
-          type: service.buildType ?? defaultBuildType(service.type),
+          // buildType explicite (buildPack/wizard) ; sinon fallback image dockerisee.
+          // Le ServiceType (APPLICATION/DATABASE/MANAGED) n'encode plus la strategie.
+          type: service.buildType ?? 'dockerized',
           repositoryPath: service.repoPath,
           defaultBranch: service.branch ?? 'main',
           repoPath: providerRepo?.repoPath ?? null,

@@ -1190,15 +1190,17 @@ enum PipelineRunStatus {
 // NEW enums for unified Service model (Phase 1 — refactoring architecturale)
 // ============================================================================
 
+// Modele Railway : le TYPE dit seulement la nature du service (3 valeurs).
+// Le "comment on construit/deploie" est porte par sourceType (GIT/DOCKER_IMAGE/
+// NONE) + buildPack/buildType, axes orthogonaux. On NE duplique donc pas un
+// enum "ArtifactSource" : sourceType joue deja ce role.
+//   APPLICATION : code applicatif (ex WEB_SERVICE/WORKER/CRON_JOB/COMPOSE)
+//   DATABASE    : service de donnees auto-heberge (ex DATABASE/CACHE/QUEUE)
+//   MANAGED     : service externe/manage (image pre-construite, pas de build)
 enum ServiceType {
   APPLICATION
-  WEB_SERVICE
-  WORKER
-  CRON_JOB
   DATABASE
-  CACHE
-  QUEUE
-  COMPOSE
+  MANAGED
 }
 
 enum SourceType {
