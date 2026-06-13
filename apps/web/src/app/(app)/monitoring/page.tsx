@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useMonitoring } from '@/hooks/monitoring/use-monitoring';
 import {
   Activity,
   AlertTriangle,
@@ -14,13 +14,6 @@ import { SectionCard } from '@/components/layout/section-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
-import { getApiErrorMessage } from '@/lib/api';
-import { monitoringService } from '@/services/monitoring.service';
-import type {
-  MonitoredServer,
-  MonitoringAlerts,
-  MonitoringOverview,
-} from '@/types/monitoring';
 
 function healthTone(value: 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'UNKNOWN') {
   if (value === 'HEALTHY') return 'success' as const;
@@ -40,34 +33,7 @@ function formatDate(value: string | null): string {
 }
 
 export default function MonitoringPage() {
-  const [overview, setOverview] = useState<MonitoringOverview | null>(null);
-  const [servers, setServers] = useState<MonitoredServer[]>([]);
-  const [alerts, setAlerts] = useState<MonitoringAlerts | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [overviewData, serversData, alertsData] = await Promise.all([
-        monitoringService.getOverview(),
-        monitoringService.getServers(),
-        monitoringService.getAlerts(),
-      ]);
-      setOverview(overviewData);
-      setServers(serversData);
-      setAlerts(alertsData);
-    } catch (loadError) {
-      setError(getApiErrorMessage(loadError));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { overview, servers, alerts, loading, error, refresh } = useMonitoring();
 
   return (
     <div className="space-y-6">
@@ -79,7 +45,7 @@ export default function MonitoringPage() {
           <Button
             variant="secondary"
             icon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
-            onClick={() => void load()}
+            onClick={() => void refresh()}
             disabled={loading}
           >
             Refresh
