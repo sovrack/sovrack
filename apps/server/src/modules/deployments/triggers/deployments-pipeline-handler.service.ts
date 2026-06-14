@@ -6,13 +6,13 @@ import {
   DEPLOYMENT_PIPELINE_UPDATED,
   type PipelineUpdatedEvent,
 } from '../events/deployment.events';
-import { DockerDeployExecutorService } from './docker-deploy-executor.service';
+import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { NotificationsService } from '../../notifications/notifications.service';
 import {
   deploymentRelationsInclude,
   type DeploymentWithRelations,
-} from './deployments-query.service';
+} from '../query/deployments-query.service';
 
 /**
  * Handles inbound pipeline status updates from webhooks (GitLab, GitHub).
@@ -29,7 +29,7 @@ export class DeploymentsPipelineHandlerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly ansibleService: DockerDeployExecutorService,
+    private readonly deployExecutor: DockerDeployExecutorService,
     private readonly gateway: DeploymentsGateway,
     private readonly notificationsService: NotificationsService,
   ) {}
@@ -106,7 +106,7 @@ export class DeploymentsPipelineHandlerService {
         },
       });
       if (claimed.count === 0) return { status: 'ignored' };
-      await this.ansibleService.executeDeploy(deployment.id, image);
+      await this.deployExecutor.executeDeploy(deployment.id, image);
       return { status: 'ok' };
     }
 

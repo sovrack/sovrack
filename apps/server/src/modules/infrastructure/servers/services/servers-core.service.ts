@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  ContainerStatus,
   Prisma,
   Server,
   ServerConnectionMode,
@@ -14,6 +15,7 @@ import {
 } from '@prisma/client';
 import { PaginationDto, paginate } from '../../../../core/http/pagination.dto';
 import { PrismaService } from '../../../../core/database/prisma.service';
+import { ACTIVE_FILTER } from '../../../../core/database/prisma-active.helper';
 import {
   CreateServerDto,
   ServerConnectionModeDto,
@@ -120,6 +122,7 @@ export class ServersCoreService {
   async findAll(pagination?: PaginationDto): Promise<ServerListResult> {
     if (!pagination?.page || !pagination?.limit) {
       const servers = await this.prisma.server.findMany({
+        where: ACTIVE_FILTER,
         orderBy: { createdAt: 'desc' },
       });
       const activeJobs = await this.loadActiveJobs(servers.map((s) => s.id));
@@ -134,11 +137,12 @@ export class ServersCoreService {
 
     const [servers, total] = await Promise.all([
       this.prisma.server.findMany({
+        where: ACTIVE_FILTER,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.server.count(),
+      this.prisma.server.count({ where: ACTIVE_FILTER }),
     ]);
 
     const activeJobs = await this.loadActiveJobs(servers.map((s) => s.id));
@@ -289,17 +293,19 @@ export class ServersCoreService {
   async remove(id: string, actorUserId: string): Promise<void> {
     await this.getServerById(id);
 
-    const deploymentsOnServer = await this.prisma.container.count({
-      where: { serverId: id },
-    });
-
-    if (deploymentsOnServer > 0) {
-      throw new BadRequestException(
-        'Suppression impossible: ce serveur a des déploiements actifs',
-      );
-    }
-
-    await this.prisma.server.delete({ where: { id } });
+    // Soft-delete: archive the server and mark its tracked containers EXITED so
+    // logs, preparations and audit history survive (a hard DELETE would cascade
+    // them away). The server disappears from listings but stays referenceable.
+    await this.prisma.$transaction([
+      this.prisma.container.updateMany({
+        where: { serverId: id },
+        data: { status: ContainerStatus.EXITED },
+      }),
+      this.prisma.server.update({
+        where: { id },
+        data: { archivedAt: new Date() },
+      }),
+    ]);
     await this.auditService.record(actorUserId, 'SERVER_DELETE', 'Server', id);
   }
 

@@ -70,11 +70,41 @@ export class DockerConnectionsService {
     return this.prisma.dockerConnection.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
-  async listForHealthCheck(): Promise<Array<{ id: string; serverId: string; endpoint: string; isReachable: boolean }>> {
+  async listForHealthCheck(): Promise<
+    Array<{
+      id: string;
+      serverId: string;
+      endpoint: string;
+      isReachable: boolean;
+      consecutiveFailures: number;
+      circuitState: string;
+      circuitOpenedAt: Date | null;
+    }>
+  > {
     return this.prisma.dockerConnection.findMany({
-      select: { id: true, serverId: true, endpoint: true, isReachable: true },
+      select: {
+        id: true,
+        serverId: true,
+        endpoint: true,
+        isReachable: true,
+        consecutiveFailures: true,
+        circuitState: true,
+        circuitOpenedAt: true,
+      },
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  /** Persist a circuit-breaker state transition for a server's connection. */
+  async persistCircuit(
+    serverId: string,
+    data: {
+      circuitState?: string;
+      consecutiveFailures?: number;
+      circuitOpenedAt?: Date | null;
+    },
+  ): Promise<void> {
+    await this.prisma.dockerConnection.updateMany({ where: { serverId }, data });
   }
 
   async remove(serverId: string): Promise<{ ok: true }> {

@@ -11,14 +11,7 @@ export class TerminalAuditService {
     actorId: string,
     payloadJson: Record<string, unknown>,
   ): Promise<void> {
-    await this.prisma.serverAuditEvent.create({
-      data: {
-        serverId,
-        actorId,
-        eventType: 'TERMINAL_SESSION_OPEN',
-        payloadJson: payloadJson as Prisma.InputJsonValue,
-      },
-    });
+    await this.record(serverId, actorId, 'TERMINAL_SESSION_OPEN', payloadJson);
   }
 
   async recordClose(
@@ -26,14 +19,7 @@ export class TerminalAuditService {
     actorId: string,
     payloadJson: Record<string, unknown>,
   ): Promise<void> {
-    await this.prisma.serverAuditEvent.create({
-      data: {
-        serverId,
-        actorId,
-        eventType: 'TERMINAL_SESSION_CLOSE',
-        payloadJson: payloadJson as Prisma.InputJsonValue,
-      },
-    });
+    await this.record(serverId, actorId, 'TERMINAL_SESSION_CLOSE', payloadJson);
   }
 
   async recordError(
@@ -41,12 +27,23 @@ export class TerminalAuditService {
     actorId: string,
     payloadJson: Record<string, unknown>,
   ): Promise<void> {
-    await this.prisma.serverAuditEvent.create({
+    await this.record(serverId, actorId, 'TERMINAL_SESSION_ERROR', payloadJson);
+  }
+
+  /** Write a SERVER audit row into the unified AuditLog. */
+  private async record(
+    serverId: string,
+    actorId: string,
+    eventType: string,
+    payloadJson: Record<string, unknown>,
+  ): Promise<void> {
+    await this.prisma.auditLog.create({
       data: {
-        serverId,
-        actorId,
-        eventType: 'TERMINAL_SESSION_ERROR',
-        payloadJson: payloadJson as Prisma.InputJsonValue,
+        resourceType: 'SERVER',
+        resourceId: serverId,
+        userId: actorId,
+        action: eventType,
+        metadata: payloadJson as Prisma.InputJsonValue,
       },
     });
   }

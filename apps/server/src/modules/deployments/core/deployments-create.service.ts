@@ -13,8 +13,8 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { CreateDeploymentDto } from '../dto/create-deployment.dto';
-import { DeploymentsConfigResolver } from './deployments-config-resolver.service';
-import { DeploymentsAuthorizationService } from './deployments-authorization.service';
+import { DeploymentsConfigResolver } from '../query/deployments-config-resolver.service';
+import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';

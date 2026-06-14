@@ -13,12 +13,14 @@ export class ServersAuditService {
     payload?: Record<string, unknown>,
   ): Promise<void> {
     try {
-      await this.prisma.serverAuditEvent.create({
+      // Unified audit log: SERVER events go to AuditLog alongside the rest.
+      await this.prisma.auditLog.create({
         data: {
-          serverId,
-          eventType,
-          ...(actorId ? { actorId } : {}),
-          ...(payload ? { payloadJson: payload as Prisma.InputJsonValue } : {}),
+          resourceType: 'SERVER',
+          resourceId: serverId,
+          action: eventType,
+          ...(actorId ? { userId: actorId } : {}),
+          ...(payload ? { metadata: payload as Prisma.InputJsonValue } : {}),
         },
       });
     } catch {
@@ -26,11 +28,23 @@ export class ServersAuditService {
     }
   }
 
+  /**
+   * Server audit timeline, rebuilt from AuditLog (resourceType=SERVER) into the
+   * legacy ServerAuditEvent shape the controller/frontend still expect.
+   */
   async list(serverId: string) {
-    return await this.prisma.serverAuditEvent.findMany({
-      where: { serverId },
+    const rows = await this.prisma.auditLog.findMany({
+      where: { resourceType: 'SERVER', resourceId: serverId },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
+    return rows.map((row) => ({
+      id: row.id,
+      serverId: row.resourceId,
+      actorId: row.userId,
+      eventType: row.action,
+      payloadJson: row.metadata,
+      createdAt: row.createdAt,
+    }));
   }
 }

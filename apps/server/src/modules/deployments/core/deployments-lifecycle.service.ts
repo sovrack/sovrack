@@ -3,8 +3,8 @@ import { ContainerStatus, Deployment, DeploymentStatus, Role } from '@prisma/cli
 import { PrismaService } from '../../../core/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
-import { DeploymentsAuthorizationService } from './deployments-authorization.service';
-import { DeploymentsQueryService } from './deployments-query.service';
+import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
+import { DeploymentsQueryService } from '../query/deployments-query.service';
 
 @Injectable()
 export class DeploymentsLifecycleService {

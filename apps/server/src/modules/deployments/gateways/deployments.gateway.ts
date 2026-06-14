@@ -19,7 +19,7 @@ import {
   AUTH_COOKIE_NAME_DEFAULT,
 } from '../../../core/http/auth-cookie.util';
 import { resolveGatewayCorsOrigins } from '../../../core/http/cors-origins.util';
-import { DeploymentsLogStreamService } from '../services/deployments-log-stream.service';
+import { DeploymentsLogStreamService } from '../query/deployments-log-stream.service';
 
 type DeploymentLogLevel = 'info' | 'error' | 'success';
 

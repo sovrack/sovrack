@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DeploymentStatus, GitProviderType, PipelineRunStatus } from '@prisma/client';
 import { DeploymentsPipelineHandlerService } from './deployments-pipeline-handler.service';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { DockerDeployExecutorService } from './docker-deploy-executor.service';
+import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { NotificationsService } from '../../notifications/notifications.service';
 

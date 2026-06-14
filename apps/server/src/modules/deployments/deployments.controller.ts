@@ -33,12 +33,12 @@ import {
   DeploymentResponseDto,
   PaginatedDeploymentsResponseDto,
 } from './dto/deployment-response.dto';
-import { DeploymentsValidationService } from './services/deployments-validation.service';
-import { DeploymentsCreateService } from './services/deployments-create.service';
-import { DeploymentsQueryService } from './services/deployments-query.service';
-import { DeploymentsLifecycleService } from './services/deployments-lifecycle.service';
-import { DeploymentsRollbackService } from './services/deployments-rollback.service';
-import { DockerDeployExecutorService } from './services/docker-deploy-executor.service';
+import { DeploymentsValidationService } from './query/deployments-validation.service';
+import { DeploymentsCreateService } from './core/deployments-create.service';
+import { DeploymentsQueryService } from './query/deployments-query.service';
+import { DeploymentsLifecycleService } from './core/deployments-lifecycle.service';
+import { DeploymentsRollbackService } from './core/deployments-rollback.service';
+import { DockerDeployExecutorService } from './core/docker-deploy-executor.service';
 
 @ApiTags('Deployments')
 @ApiBearerAuth()
@@ -140,6 +140,21 @@ export class DeploymentsController {
       user.id,
       user.role,
     );
+  }
+
+  // Declared BEFORE @Get(':id') so the static 'preview-env' segment is not
+  // captured by the :id param route.
+  @Get('preview-env')
+  @ApiOperation({
+    summary: 'Prévisualiser les variables qui seront injectées (secrets masqués)',
+  })
+  @ApiOkResponse({
+    description: 'Variables résolues (origine + isSecret) et warnings de résolution',
+  })
+  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 404, description: 'Lien service-environnement non trouvé' })
+  async previewEnv(@Query('serviceEnvId') serviceEnvId: string) {
+    return await this.queryService.previewEnv(serviceEnvId);
   }
 
   @Get(':id')

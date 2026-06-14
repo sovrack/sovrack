@@ -7,7 +7,7 @@ import {
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
   type AutoDeployTriggerEvent,
 } from '../events/deployment.events';
-import { DockerDeployExecutorService } from './docker-deploy-executor.service';
+import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 
 /**
@@ -27,7 +27,7 @@ export class DeploymentsAutoTriggerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly ansibleService: DockerDeployExecutorService,
+    private readonly deployExecutor: DockerDeployExecutorService,
     private readonly gateway: DeploymentsGateway,
     private readonly buildsService: BuildLifecycleService,
   ) {}
@@ -173,7 +173,7 @@ export class DeploymentsAutoTriggerService {
           startedAt: deployment.startedAt,
         });
 
-        await this.ansibleService.executeDeploy(deployment.id, dockerImage);
+        await this.deployExecutor.executeDeploy(deployment.id, dockerImage);
       } catch (error) {
         this.logger.error(
           `Auto-deploy échoué pour environnement ${environment.id}: ${

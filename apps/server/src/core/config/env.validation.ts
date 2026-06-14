@@ -26,6 +26,9 @@ const envSchema = z.object({
   DEPLOY_HEALTHCHECK_TIMEOUT_MS: z.string().optional(),
   DEPLOY_HEALTHCHECK_RETRIES: z.string().optional(),
   DEPLOY_HEALTHCHECK_RETRY_DELAY_MS: z.string().optional(),
+  DEPLOY_STARTUP_GRACE_MS: z.string().optional(),
+  DEPLOY_HEALTHCHECK_INTERVAL_MS: z.string().optional(),
+  DEPLOY_HEALTHCHECK_CONSECUTIVE: z.string().optional(),
   DEPLOYMENT_ANSIBLE_TIMEOUT_MS: z.string().default('900000'), // 15 minutes default
 });
 

@@ -8,8 +8,65 @@ import { AllExceptionsFilter } from './core/filters/http-exception.filter';
 import { LoggerService } from './core/logger/logger.service';
 import { buildSwaggerConfig } from './core/config/swagger';
 import { PrismaService } from './core/database/prisma.service';
-import { DeploymentsLifecycleService } from './modules/deployments/services/deployments-lifecycle.service';
+import { DeploymentsLifecycleService } from './modules/deployments/core/deployments-lifecycle.service';
 import { BigIntSerializationInterceptor } from './core/interceptors/bigint.interceptor';
+import { runWithLogContext } from './core/logger/log-context';
+
+type RequiredEnv = {
+  name: string;
+  hint: string;
+  /** Optional extra rule beyond "present and non-empty". Returns an error label or null. */
+  validate?: (value: string) => string | null;
+};
+
+const REQUIRED_ENV: RequiredEnv[] = [
+  { name: 'DATABASE_URL', hint: 'PostgreSQL connection string' },
+  {
+    name: 'CONFIG_SECRET',
+    hint: 'AES encryption key (min 32 chars)',
+    validate: (v) => (v.length < 32 ? 'too short (min 32 chars)' : null),
+  },
+  {
+    name: 'JWT_SECRET',
+    hint: 'JWT signing secret (min 32 chars)',
+    validate: (v) => (v.length < 32 ? 'too short (min 32 chars)' : null),
+  },
+  { name: 'REDIS_URL', hint: 'Redis connection URL (required by BullMQ)' },
+  { name: 'ANSIBLE_PLAYBOOKS_PATH', hint: 'Path to devops/ansible/playbooks' },
+  { name: 'ANSIBLE_VENV_PATH', hint: 'Path to the Ansible virtualenv' },
+];
+
+/**
+ * Fail fast BEFORE NestFactory.create() so the operator gets the COMPLETE list
+ * of missing/invalid env vars in one shot, instead of a half-built NestJS app
+ * crashing on the first one (which is confusing and hides the others).
+ */
+function assertRequiredEnv(): void {
+  const problems: string[] = [];
+  for (const { name, hint, validate } of REQUIRED_ENV) {
+    const value = process.env[name]?.trim();
+    if (!value) {
+      problems.push(`${name.padEnd(22)}→ ${hint}`);
+      continue;
+    }
+    const invalid = validate?.(value);
+    if (invalid) {
+      problems.push(`${name.padEnd(22)}→ ${hint} (${invalid})`);
+    }
+  }
+
+  if (problems.length > 0) {
+    const message = [
+      '[BOOT] ❌ Missing or invalid required environment variables:',
+      ...problems.map((line) => `  - ${line}`),
+      'Fix your .env file and restart.',
+    ].join('\n');
+    // Use console.error here on purpose: the LoggerService is not available
+    // yet (NestFactory has not run) and we are about to exit the process.
+    console.error(message);
+    process.exit(1);
+  }
+}
 
 function resolveAllowedOrigins(): string[] {
   const envOrigins = [process.env.FRONTEND_URLS ?? '', process.env.FRONTEND_URL ?? '']
@@ -57,6 +114,7 @@ function isAllowedCorsOrigin(origin: string, allowedOrigins: Set<string>): boole
 }
 
 async function bootstrap() {
+  assertRequiredEnv();
   const app = await NestFactory.create(AppModule, { rawBody: true });
   const logger = app.get(LoggerService);
   const prisma = app.get(PrismaService);
@@ -78,13 +136,14 @@ async function bootstrap() {
     res.on('finish', () => {
       const durationMs = Date.now() - startedAt;
       const line =
-        `[req:${requestId}] ` +
         `${req.method} ${req.originalUrl} -> ${String(res.statusCode)} ` +
         `${String(durationMs)}ms`;
       logger.log(line, 'HTTP');
     });
 
-    next();
+    // Establish the correlation context for the whole request so every log line
+    // emitted downstream (services, gateways) carries the same correlationId.
+    runWithLogContext({ correlationId: requestId }, () => next());
   });
 
   // Validation globale stricte (sécurité + DTOs prévisibles)

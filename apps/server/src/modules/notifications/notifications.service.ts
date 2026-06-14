@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as nodemailer from 'nodemailer';
+import { WebhookEvent } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
 import { CryptoService } from '../../core/crypto/crypto.service';
 
@@ -105,6 +106,75 @@ export class NotificationsService {
       this.sendDockerConnectionSlackNotification(payload, true),
       this.sendDockerConnectionEmailNotification(payload, true),
     ]);
+  }
+
+  /**
+   * Fired by WebhookRetryService when an event exhausts its retries and is
+   * dead-lettered. Tells the admin the push will NOT auto-deploy and that a
+   * manual replay is available in the UI.
+   */
+  async notifyWebhookDeadLetter(
+    event: WebhookEvent,
+    endpoint: { id: string; projectId: string },
+  ): Promise<void> {
+    const project = await this.prisma.project
+      .findUnique({ where: { id: endpoint.projectId }, select: { name: true } })
+      .catch(() => null);
+    const projectName = project?.name ?? endpoint.projectId;
+    const deliveryId = event.externalDeliveryId ?? event.id;
+    const text =
+      `🪦 Webhook mort-lettre : le webhook \`${deliveryId}\` sur le projet ` +
+      `*${projectName}* a échoué ${event.attempts} fois et ne sera plus retenté. ` +
+      `Replay manuel disponible dans l'UI.`;
+
+    await Promise.allSettled([
+      this.sendSimpleSlack(text),
+      this.sendSimpleEmail('Webhook mort-lettre', text, projectName),
+    ]);
+  }
+
+  /** Minimal Slack post for non-deployment alerts (dead-letter, etc.). */
+  private async sendSimpleSlack(text: string): Promise<void> {
+    try {
+      const webhookUrl = await this.getConfig(SLACK_WEBHOOK_KEY);
+      if (!webhookUrl) return;
+      await firstValueFrom(this.httpService.post(webhookUrl, { text }, { timeout: 8000 }));
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Slack alert failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
+  }
+
+  /** Minimal email for non-deployment alerts; no-op when SMTP is not configured. */
+  private async sendSimpleEmail(subject: string, text: string, projectName: string): Promise<void> {
+    try {
+      const [host, port, user, pass, from, to] = await Promise.all([
+        this.getConfig(SMTP_HOST_KEY),
+        this.getConfig(SMTP_PORT_KEY),
+        this.getConfig(SMTP_USER_KEY),
+        this.getConfig(SMTP_PASS_KEY),
+        this.getConfig(SMTP_FROM_KEY),
+        this.getConfig(SMTP_TO_KEY),
+      ]);
+      if (!host || !to) return;
+      const transporter = nodemailer.createTransport({
+        host,
+        port: port ? Number(port) : 587,
+        secure: false,
+        ...(user && pass ? { auth: { user, pass } } : {}),
+      });
+      await transporter.sendMail({
+        from: from ?? 'platform <noreply@platform.local>',
+        to,
+        subject: `[platform] ${subject} — ${projectName}`,
+        text,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Email alert failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
   }
 
   private async sendSlackNotification(payload: DeploymentNotificationPayload): Promise<void> {

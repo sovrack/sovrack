@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/database/prisma.module';
 import { PlatformModule } from '../platform';
+import { NotificationsModule } from '../notifications';
 import { GitlabModule, GithubModule, SourceProvidersModule } from '../source-providers';
 import { GitlabWebhookHandler } from '../source-providers/adapters/gitlab/gitlab-webhook.handler';
 import { GithubWebhookHandler } from '../source-providers/adapters/github/github-webhook.handler';
 import { WebhooksService } from './webhooks.service';
+import { WebhookRetryService } from './services/webhook-retry.service';
 import { IncomingWebhookController } from './incoming-webhook.controller';
 import { WebhookAuditController } from './webhook-audit.controller';
 import { WebhookManagementController } from './webhook-management.controller';
@@ -33,6 +35,7 @@ import {
   imports: [
     PrismaModule,
     PlatformModule,
+    NotificationsModule,
     GitlabModule,
     GithubModule,
     SourceProvidersModule,
@@ -44,6 +47,7 @@ import {
   ],
   providers: [
     WebhooksService,
+    WebhookRetryService,
     WebhookManagementService,
     {
       provide: WEBHOOK_HANDLER,

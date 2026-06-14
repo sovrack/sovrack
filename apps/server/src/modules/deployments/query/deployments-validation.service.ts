@@ -6,6 +6,7 @@ import { join } from 'path';
 import { promisify } from 'util';
 import type { BuildSource } from '../../build/strategies/build-strategy.interface';
 import { PrismaService } from '../../../core/database/prisma.service';
+import type { InstalledTool } from '../../infrastructure/servers/shared/server-capabilities.types';
 import {
   SshExecutorService,
   type SshConnection,
@@ -185,17 +186,16 @@ export class DeploymentsValidationService {
       confirmed.add('docker');
     }
 
-    // Check ServerInstalledTool records for other tools (e.g. nixpacks)
-    const installedTools = await this.prisma.serverInstalledTool.findMany({
-      where: {
-        serverId,
-        status: 'INSTALLED' as const,
-      },
-      select: { toolKey: true },
+    // Check Server.installedTools JSON for other tools (e.g. nixpacks).
+    const server = await this.prisma.server.findUnique({
+      where: { id: serverId },
+      select: { installedTools: true },
     });
-
+    const installedTools = (server?.installedTools as InstalledTool[] | null) ?? [];
     for (const tool of installedTools) {
-      confirmed.add(tool.toolKey);
+      if (tool.status === 'INSTALLED') {
+        confirmed.add(tool.toolKey);
+      }
     }
 
     return confirmed;

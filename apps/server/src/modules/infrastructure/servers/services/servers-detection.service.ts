@@ -1,11 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import {
-  Prisma,
-  Server,
-  ServerInstalledToolStatus,
-  ServerStatus,
-} from '@prisma/client';
+import { Prisma, Server, ServerStatus } from '@prisma/client';
 import { PrismaService } from '../../../../core/database/prisma.service';
+import { InstalledTool } from '../shared/server-capabilities.types';
 import { ServersAuditService } from './servers-audit.service';
 import { ServerVerificationService } from './server-verification.service';
 import { ServersConnectionService } from './servers-connection.service';
@@ -127,56 +123,28 @@ export class ServersDetectionService {
         "df -Pk / | awk 'NR==2 {print $2}'",
       );
 
-      await this.upsertCapability(server.id, 'os.name', osName || 'unknown');
-      await this.upsertCapability(
-        server.id,
-        'os.version',
-        osVersion || 'unknown',
-      );
-      await this.upsertCapability(server.id, 'os.id', osId || 'unknown');
-      await this.upsertCapability(
-        server.id,
-        'os.architecture',
-        architecture.stdout.trim() || 'unknown',
-      );
-      await this.upsertCapability(
-        server.id,
-        'python3.available',
-        String(python.code === 0),
-      );
-      await this.upsertCapability(
-        server.id,
-        'systemd.available',
-        String(systemd.code === 0),
-      );
-      await this.upsertCapability(
-        server.id,
-        'memory.kb',
-        memory.stdout.trim() || 'unknown',
-      );
-      await this.upsertCapability(
-        server.id,
-        'disk.root.kb',
-        disk.stdout.trim() || 'unknown',
-      );
+      // Accumulate everything into two JSON structures, then persist in ONE
+      // update (no more N upserts across two join tables).
+      const capabilities: Record<string, string> = {
+        'os.name': osName || 'unknown',
+        'os.version': osVersion || 'unknown',
+        'os.id': osId || 'unknown',
+        'os.architecture': architecture.stdout.trim() || 'unknown',
+        'python3.available': String(python.code === 0),
+        'systemd.available': String(systemd.code === 0),
+        'memory.kb': memory.stdout.trim() || 'unknown',
+        'disk.root.kb': disk.stdout.trim() || 'unknown',
+      };
 
       const installed: Record<string, boolean> = {};
+      const installedTools: InstalledTool[] = [];
       for (const tool of DETECTION_TOOLS) {
         const result = await connection.target.execCommand(tool.command);
         const version = (result.stdout || result.stderr).trim().split('\n')[0];
         const isInstalled = result.code === 0;
         installed[tool.key] = isInstalled;
-        await this.upsertCapability(
-          server.id,
-          tool.capabilityKey,
-          String(isInstalled),
-        );
-        await this.upsertInstalledTool(
-          server.id,
-          tool,
-          isInstalled,
-          version || null,
-        );
+        capabilities[tool.capabilityKey] = String(isInstalled);
+        installedTools.push(this.buildInstalledTool(tool, isInstalled, version || null));
       }
 
       const updated = await this.prisma.server.update({
@@ -187,6 +155,8 @@ export class ServersDetectionService {
           lastDetectedAt: new Date(),
           hasDocker: Boolean(installed.docker),
           hasRunner: Boolean(installed.gitlab_runner),
+          capabilities: capabilities as Prisma.InputJsonValue,
+          installedTools: installedTools as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -206,61 +176,49 @@ export class ServersDetectionService {
     }
   }
 
+  /**
+   * Capabilities as a list (back-compat shape: id/key/value/source/detectedAt),
+   * rebuilt from the Server.capabilities JSON map.
+   */
   async listCapabilities(serverId: string) {
-    return await this.prisma.serverCapability.findMany({
-      where: { serverId },
-      orderBy: [{ key: 'asc' }],
+    const server = await this.prisma.server.findUnique({
+      where: { id: serverId },
+      select: { capabilities: true, lastDetectedAt: true },
     });
+    const caps = (server?.capabilities as Record<string, string> | null) ?? {};
+    const detectedAt = server?.lastDetectedAt ?? null;
+    return Object.entries(caps)
+      .map(([key, value]) => ({ id: key, serverId, key, value, source: 'ssh-detection', detectedAt }))
+      .sort((a, b) => a.key.localeCompare(b.key));
   }
 
+  /**
+   * Installed tools as a list (back-compat shape), rebuilt from the
+   * Server.installedTools JSON array.
+   */
   async listInstalledTools(serverId: string) {
-    return await this.prisma.serverInstalledTool.findMany({
-      where: { serverId },
-      orderBy: [{ displayName: 'asc' }],
+    const server = await this.prisma.server.findUnique({
+      where: { id: serverId },
+      select: { installedTools: true },
     });
+    const tools = (server?.installedTools as InstalledTool[] | null) ?? [];
+    return tools
+      .map((tool) => ({ id: `${serverId}:${tool.toolKey}`, serverId, ...tool }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }
 
-  private async upsertCapability(
-    serverId: string,
-    key: string,
-    value: string,
-    source = 'ssh-detection',
-  ): Promise<void> {
-    await this.prisma.serverCapability.upsert({
-      where: { serverId_key: { serverId, key } },
-      update: { value, source, detectedAt: new Date() },
-      create: { serverId, key, value, source },
-    });
-  }
-
-  private async upsertInstalledTool(
-    serverId: string,
+  private buildInstalledTool(
     tool: DetectionTool,
     installed: boolean,
     version: string | null,
-  ): Promise<void> {
-    const status = installed
-      ? ServerInstalledToolStatus.INSTALLED
-      : ServerInstalledToolStatus.MISSING;
-    const data: Prisma.ServerInstalledToolUncheckedCreateInput = {
-      serverId,
+  ): InstalledTool {
+    return {
       toolKey: tool.key,
       displayName: tool.displayName,
       version,
       installedBy: installed ? 'detected' : null,
-      status,
-      installedAt: installed ? new Date() : null,
+      status: installed ? 'INSTALLED' : 'MISSING',
+      installedAt: installed ? new Date().toISOString() : null,
     };
-
-    await this.prisma.serverInstalledTool.upsert({
-      where: { serverId_toolKey: { serverId, toolKey: tool.key } },
-      update: {
-        version,
-        status,
-        installedBy: installed ? 'detected' : null,
-        installedAt: installed ? new Date() : null,
-      },
-      create: data,
-    });
   }
 }

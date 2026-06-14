@@ -3,6 +3,20 @@ import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { PaginationDto, PaginatedResult, paginate } from '../../../core/http/pagination.dto';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
+import { EnvLevel, EnvOrigin, resolveEnvDetailed } from '../utils/env-resolver.util';
+
+export interface EnvPreviewVariable {
+  key: string;
+  origin: EnvOrigin;
+  isSecret: boolean;
+  /** Real value for non-secrets; '[REDACTED]' for secrets. */
+  value: string;
+}
+
+export interface EnvPreview {
+  variables: EnvPreviewVariable[];
+  warnings: string[];
+}
 
 export const deploymentRelationsInclude = {
   project: { select: { id: true, name: true } },
@@ -35,6 +49,57 @@ export class DeploymentsQueryService {
     private readonly prisma: PrismaService,
     private readonly authorizationService: DeploymentsAuthorizationService,
   ) {}
+
+  /**
+   * Resolve the variables that WOULD be injected for a given ServiceEnvironment,
+   * with provenance and secrets masked. Backs the "Variables Preview" shown
+   * before confirming a deploy. Uses the exact same resolver as the executor.
+   */
+  async previewEnv(serviceEnvId: string): Promise<EnvPreview> {
+    const serviceEnv = await this.prisma.serviceEnvironment.findUnique({
+      where: { id: serviceEnvId },
+      select: {
+        env: true,
+        secretsEnv: true,
+        service: { select: { env: true, secretsEnv: true } },
+        environment: { select: { env: true, secretsEnv: true } },
+      },
+    });
+    if (!serviceEnv) {
+      throw new NotFoundException('Lien service-environnement non trouvé');
+    }
+
+    const levels: EnvLevel[] = [
+      {
+        levelName: 'service',
+        env: serviceEnv.service?.env ?? null,
+        secretsEnv: serviceEnv.service?.secretsEnv ?? null,
+      },
+      {
+        levelName: 'environment',
+        env: serviceEnv.environment?.env ?? null,
+        secretsEnv: serviceEnv.environment?.secretsEnv ?? null,
+      },
+      {
+        levelName: 'serviceEnvironment',
+        env: serviceEnv.env,
+        secretsEnv: serviceEnv.secretsEnv,
+      },
+    ];
+
+    const resolved = resolveEnvDetailed(levels);
+    return {
+      variables: resolved.entries
+        .map((entry) => ({
+          key: entry.key,
+          origin: entry.origin,
+          isSecret: entry.isSecret,
+          value: entry.isSecret ? '[REDACTED]' : entry.value,
+        }))
+        .sort((a, b) => a.key.localeCompare(b.key)),
+      warnings: resolved.warnings,
+    };
+  }
 
   computePublicUrl(deployment: DeploymentWithRelations): string | null {
     const service = deployment.service;

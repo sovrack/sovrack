@@ -6,8 +6,8 @@ import {
 import { Deployment, DeploymentStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
-import { DeploymentsAuthorizationService } from './deployments-authorization.service';
-import { DeploymentsQueryService } from './deployments-query.service';
+import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
+import { DeploymentsQueryService } from '../query/deployments-query.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 
@@ -20,7 +20,7 @@ export class DeploymentsRollbackService {
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly queryService: DeploymentsQueryService,
     private readonly gateway: DeploymentsGateway,
-    private readonly ansibleService: DockerDeployExecutorService,
+    private readonly deployExecutor: DockerDeployExecutorService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -114,7 +114,7 @@ export class DeploymentsRollbackService {
       initiatorRole: actor.role,
     });
 
-    return await this.ansibleService.executeDeploy(
+    return await this.deployExecutor.executeDeploy(
       rollbackDeployment.id,
       rollbackImageRef,
     );

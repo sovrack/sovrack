@@ -150,12 +150,13 @@ export class AutomationRunnerService {
             errorMessage: null,
           },
         });
-        await this.prisma.serverAuditEvent.create({
+        await this.prisma.auditLog.create({
           data: {
-            serverId: server.id,
-            actorId: run.requestedById ?? null,
-            eventType: 'AUTOMATION_TARGET_START',
-            payloadJson: {
+            resourceType: 'SERVER',
+            resourceId: server.id,
+            userId: run.requestedById ?? null,
+            action: 'AUTOMATION_TARGET_START',
+            metadata: {
               runId,
               actionKey: run.actionKey,
             } as Prisma.InputJsonValue,
@@ -199,12 +200,13 @@ export class AutomationRunnerService {
               errorMessage: null,
             },
           });
-          await this.prisma.serverAuditEvent.create({
+          await this.prisma.auditLog.create({
             data: {
-              serverId: server.id,
-              actorId: run.requestedById ?? null,
-              eventType: 'AUTOMATION_TARGET_SUCCESS',
-              payloadJson: {
+              resourceType: 'SERVER',
+              resourceId: server.id,
+              userId: run.requestedById ?? null,
+              action: 'AUTOMATION_TARGET_SUCCESS',
+              metadata: {
                 runId,
                 actionKey: run.actionKey,
               } as Prisma.InputJsonValue,
@@ -254,14 +256,15 @@ export class AutomationRunnerService {
             source: 'orchestrator',
             message: this.redactSecrets(message),
           });
-          await this.prisma.serverAuditEvent.create({
+          await this.prisma.auditLog.create({
             data: {
-              serverId: server.id,
-              actorId: run.requestedById ?? null,
-              eventType: isTimeout
+              resourceType: 'SERVER',
+              resourceId: server.id,
+              userId: run.requestedById ?? null,
+              action: isTimeout
                 ? 'AUTOMATION_TARGET_TIMEOUT'
                 : 'AUTOMATION_TARGET_FAILED',
-              payloadJson: {
+              metadata: {
                 runId,
                 actionKey: run.actionKey,
                 error: this.redactSecrets(message),

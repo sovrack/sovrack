@@ -7,7 +7,10 @@ import { ContainerStatus, Deployment, DeploymentStatus, ManagedServiceType, Pris
 import { PrismaService } from '../../../core/database/prisma.service';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
-import { DeploymentsHealthcheckService } from './deployments-healthcheck.service';
+import { DeploymentsHealthcheckService } from '../health/deployments-healthcheck.service';
+import { EnvLevel, resolveEnvDetailed } from '../utils/env-resolver.util';
+import { getLogContext, runWithLogContext, setLogContext } from '../../../core/logger/log-context';
+import { randomUUID } from 'crypto';
 
 type DeploymentLogLevel = 'info' | 'error' | 'success';
 
@@ -42,11 +45,23 @@ export class DockerDeployExecutorService {
     deploymentId: string,
     overrideImage?: string,
   ): Promise<Deployment> {
+    // Establish (or inherit) a logging context so every line emitted during the
+    // deploy carries the correlationId + deploymentId for end-to-end tracing.
+    return runWithLogContext(
+      { correlationId: getLogContext().correlationId ?? randomUUID(), deploymentId },
+      () => this.executeDeployInternal(deploymentId, overrideImage),
+    );
+  }
+
+  private async executeDeployInternal(
+    deploymentId: string,
+    overrideImage?: string,
+  ): Promise<Deployment> {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },
       include: {
         project: { select: { id: true, name: true } },
-        service: { select: { id: true, name: true, port: true, env: true, secretsEnv: true, dockerComposeContent: true, repoPath: true, branch: true, startCommand: true, type: true, databaseType: true, databaseVersion: true, databaseCredentials: true } },
+        service: { select: { id: true, name: true, port: true, env: true, secretsEnv: true, dockerComposeContent: true, repoPath: true, branch: true, startCommand: true, type: true, databaseType: true, databaseVersion: true, databaseCredentials: true, healthcheckPath: true } },
         serviceEnv: {
           include: {
             environment: {
@@ -67,6 +82,7 @@ export class DockerDeployExecutorService {
     });
 
     if (!deployment) throw new BadRequestException('Déploiement non trouvé');
+    setLogContext({ serviceEnvId: deployment.serviceEnv?.id, userId: deployment.user?.id });
 
     // Résoudre le serveur : d'abord via serviceEnv, puis via resolvedRefs (backward compat)
     const servers = deployment.serviceEnv?.environment.servers ?? [];
@@ -81,9 +97,18 @@ export class DockerDeployExecutorService {
     const serviceName = deployment.service?.name ?? deployment.project.name;
     const containerName = `deploy-${deployment.project.name}-${serviceName}-${deployment.id.slice(0, 8)}`.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
     let servicePort = deployment.service?.port ?? 3000;
-    const envVars = this.resolveEnvVars(deployment);
+    const envResolution = resolveEnvDetailed(this.buildEnvLevels(deployment));
+    const envVars = envResolution.entries.map((entry) => `${entry.key}=${entry.value}`);
 
     let commandLogs = '';
+    // Surface (do NOT swallow) any unresolved env/secret level so the operator
+    // sees it in the live deploy log instead of getting a container missing
+    // a critical variable silently. Non-blocking: the deploy continues.
+    for (const warning of envResolution.warnings) {
+      this.emitGatewayLog(deployment.id, `[ENV] Variable non résolue: ${warning}`, 'error');
+      this.logger.warn(`Deployment ${deployment.id} env resolution warning: ${warning}`);
+      commandLogs += `[ENV] ${warning}\n`;
+    }
     let dbVolumeName: string | undefined;
     let dbVolumePath: string | undefined;
     if (deployment.service?.type === ServiceType.DATABASE && deployment.service.databaseType) {
@@ -167,14 +192,30 @@ export class DockerDeployExecutorService {
       });
       commandLogs += 'Enregistrement du conteneur en base de données\n';
 
-      const healthLogs = await this.healthcheckService.runPostDeployHealthChecks({
-        deploymentId: deployment.id,
-        environmentDomain: null,
-        serviceDomain: null,
-        serverHost: server.host,
-        appPort: servicePort,
-      });
-      commandLogs += `${healthLogs}\n`;
+      try {
+        const healthLogs = await this.healthcheckService.runPostDeployHealthChecks({
+          deploymentId: deployment.id,
+          environmentDomain: null,
+          serviceDomain: null,
+          serverHost: server.host,
+          appPort: servicePort,
+          healthcheckPath: deployment.service?.healthcheckPath ?? null,
+        });
+        commandLogs += `${healthLogs}\n`;
+      } catch (healthError) {
+        // Health-check failed → stop the broken container so it does not linger
+        // in RUNNING, then rethrow so the outer catch marks the deploy FAILED.
+        this.emitGatewayLog(deployment.id, 'Health-check échoué : arrêt du conteneur défaillant.', 'error');
+        await this.docker.stopContainer(serverId, container.id).catch((stopErr: unknown) => {
+          this.logger.warn(
+            `Could not stop unhealthy container ${container.id}: ${stopErr instanceof Error ? stopErr.message : 'unknown'}`,
+          );
+        });
+        await this.prisma.container
+          .updateMany({ where: { dockerId: container.id }, data: { status: ContainerStatus.EXITED } })
+          .catch(() => undefined);
+        throw healthError;
+      }
 
       const imageDigest = await this.resolveImageDigest(serverId, imageRef);
 
@@ -184,7 +225,7 @@ export class DockerDeployExecutorService {
           status: DeploymentStatus.SUCCESS,
           dockerImage: imageRef,
           imageSha: imageDigest ?? deployment.imageSha,
-          conditions: this.buildConditions('Ready', 'DeploySucceeded', 'Déploiement Docker réussi.'),
+          conditions: this.buildSuccessConditions(envResolution.warnings),
           observedGeneration: 1,
           finishedAt: new Date(),
           logs: `${deployment.logs ?? ''}\n${commandLogs}`.trim(),
@@ -257,8 +298,13 @@ export class DockerDeployExecutorService {
     return fallbackLevel;
   }
 
-  private resolveEnvVars(deployment: {
-    project: { id: string; name: string };
+  /**
+   * Build the ordered 3-level input for {@link resolveEnvDetailed}. The
+   * "environment" level reads from serviceEnv.environment when available (the
+   * standard ServiceEnvironment path), else the directly-linked environment
+   * (legacy / database path).
+   */
+  private buildEnvLevels(deployment: {
     service?: { env?: string | null; secretsEnv?: string | null } | null;
     serviceEnv?: {
       env?: string | null;
@@ -266,25 +312,52 @@ export class DockerDeployExecutorService {
       environment: { env?: string | null; secretsEnv?: string | null };
     } | null;
     environment?: { env?: string | null; secretsEnv?: string | null } | null;
-  }): string[] {
-    const merged: Record<string, string> = {};
-    const mergeJson = (raw?: string | null): void => {
-      if (!raw) return;
-      try { Object.assign(merged, JSON.parse(raw)); } catch { /* ignore */ }
-    };
+  }): EnvLevel[] {
+    const envLevel = deployment.serviceEnv?.environment ?? deployment.environment ?? null;
+    return [
+      {
+        levelName: 'service',
+        env: deployment.service?.env ?? null,
+        secretsEnv: deployment.service?.secretsEnv ?? null,
+      },
+      {
+        levelName: 'environment',
+        env: envLevel?.env ?? null,
+        secretsEnv: envLevel?.secretsEnv ?? null,
+      },
+      {
+        levelName: 'serviceEnvironment',
+        env: deployment.serviceEnv?.env ?? null,
+        secretsEnv: deployment.serviceEnv?.secretsEnv ?? null,
+      },
+    ];
+  }
 
-    // 1) Variables NON-secrètes : Service < Environment < ServiceEnvironment.
-    mergeJson(deployment.service?.env);
-    mergeJson(deployment.serviceEnv?.environment?.env ?? deployment.environment?.env);
-    mergeJson(deployment.serviceEnv?.env);
-
-    // 2) Secrets (même ordre de fusion) — injectés en variables d'env,
-    //    priment sur les non-secrètes en cas de même clé.
-    mergeJson(deployment.service?.secretsEnv);
-    mergeJson(deployment.serviceEnv?.environment?.secretsEnv ?? deployment.environment?.secretsEnv);
-    mergeJson(deployment.serviceEnv?.secretsEnv);
-
-    return Object.entries(merged).map(([key, value]) => `${key}=${value}`);
+  /**
+   * Ready condition for a successful deploy, plus a non-blocking EnvWarning
+   * condition when some env/secret level could not be resolved.
+   */
+  private buildSuccessConditions(envWarnings: string[]): Prisma.InputJsonValue {
+    const now = new Date().toISOString();
+    const conditions: Array<Record<string, string>> = [
+      {
+        type: 'Ready',
+        status: 'True',
+        reason: 'DeploySucceeded',
+        message: 'Déploiement Docker réussi.',
+        lastTransitionAt: now,
+      },
+    ];
+    if (envWarnings.length > 0) {
+      conditions.push({
+        type: 'EnvWarning',
+        status: 'True',
+        reason: 'EnvUnresolved',
+        message: `Variables d'environnement non résolues: ${envWarnings.join('; ')}`.slice(0, 1000),
+        lastTransitionAt: now,
+      });
+    }
+    return conditions as unknown as Prisma.InputJsonValue;
   }
 
   private async resolveImageRef(

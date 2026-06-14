@@ -143,12 +143,13 @@ export class AutomationService {
       },
     });
 
-    await this.prisma.serverAuditEvent.createMany({
+    await this.prisma.auditLog.createMany({
       data: serverIds.map((serverId) => ({
-        serverId,
-        actorId: actorId ?? null,
-        eventType: 'AUTOMATION_RUN_REQUESTED',
-        payloadJson: {
+        resourceType: 'SERVER',
+        resourceId: serverId,
+        userId: actorId ?? null,
+        action: 'AUTOMATION_RUN_REQUESTED',
+        metadata: {
           runId: run.id,
           actionKey: action.key,
           actionLabel: action.label,
@@ -185,12 +186,13 @@ export class AutomationService {
     this.runner.cancel(id);
 
     if (run.targets.length > 0) {
-      await this.prisma.serverAuditEvent.createMany({
+      await this.prisma.auditLog.createMany({
         data: run.targets.map((target) => ({
-          serverId: target.serverId,
-          actorId: actorId ?? null,
-          eventType: 'AUTOMATION_RUN_CANCELED',
-          payloadJson: { runId: id } as Prisma.InputJsonValue,
+          resourceType: 'SERVER',
+          resourceId: target.serverId,
+          userId: actorId ?? null,
+          action: 'AUTOMATION_RUN_CANCELED',
+          metadata: { runId: id } as Prisma.InputJsonValue,
         })),
       });
     }

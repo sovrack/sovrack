@@ -4,30 +4,41 @@ import {
   DockerConnectionHealthService,
   DOCKER_CONNECTION_RECOVERED,
   DOCKER_CONNECTION_UNREACHABLE,
+  HealthConnection,
+  OPEN_COOLDOWN_MS,
 } from './docker-connection-health.service';
 import { DockerConnectionsService } from './docker-connections.service';
 
 /**
- * Docker connection health monitor. Tests focus on the transition logic
- * (reachable → unreachable, unreachable → recovered) and the throttle
- * (no spam from transient glitches).
+ * Persisted circuit breaker: at most one "down" alert (CLOSED→OPEN) and one
+ * "up" alert (HALF_OPEN→CLOSED), no matter how long a connection flaps.
  */
-describe('DockerConnectionHealthService', () => {
+describe('DockerConnectionHealthService (circuit breaker)', () => {
   let service: DockerConnectionHealthService;
   let dockerConnections: {
     listForHealthCheck: jest.Mock;
     probeReachability: jest.Mock;
+    persistCircuit: jest.Mock;
   };
   let eventEmitter: { emit: jest.Mock };
-  const realDateNow = Date.now;
+
+  const base: HealthConnection = {
+    serverId: 'srv_1',
+    endpoint: 'tcp://x',
+    isReachable: true,
+    consecutiveFailures: 0,
+    circuitState: 'CLOSED',
+    circuitOpenedAt: null,
+  };
+  const conn = (o: Partial<HealthConnection> = {}): HealthConnection => ({ ...base, ...o });
 
   beforeEach(async () => {
     dockerConnections = {
       listForHealthCheck: jest.fn(),
       probeReachability: jest.fn(),
+      persistCircuit: jest.fn().mockResolvedValue(undefined),
     };
     eventEmitter = { emit: jest.fn() };
-
     const moduleRef = await Test.createTestingModule({
       providers: [
         DockerConnectionHealthService,
@@ -35,12 +46,7 @@ describe('DockerConnectionHealthService', () => {
         { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
-
     service = moduleRef.get(DockerConnectionHealthService);
-  });
-
-  afterEach(() => {
-    Date.now = realDateNow;
   });
 
   describe('runHealthCheck', () => {
@@ -48,114 +54,102 @@ describe('DockerConnectionHealthService', () => {
       dockerConnections.listForHealthCheck.mockResolvedValue([]);
       await service.runHealthCheck();
       expect(dockerConnections.probeReachability).not.toHaveBeenCalled();
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
-    it('processes every connection in the list (serial)', async () => {
-      dockerConnections.listForHealthCheck.mockResolvedValue([
-        { id: 'c1', serverId: 'srv_1', endpoint: 'tcp://10.0.0.1:2376', isReachable: true },
-        { id: 'c2', serverId: 'srv_2', endpoint: 'tcp://10.0.0.2:2376', isReachable: true },
-      ]);
-      dockerConnections.probeReachability.mockResolvedValue({});
-      await service.runHealthCheck();
-      expect(dockerConnections.probeReachability).toHaveBeenCalledTimes(2);
-    });
-
-    it('does not run when disabled (deploys in progress)', async () => {
-      dockerConnections.listForHealthCheck.mockResolvedValue([
-        { id: 'c1', serverId: 'srv_1', endpoint: 'tcp://x', isReachable: true },
-      ]);
+    it('does not run when disabled', async () => {
+      dockerConnections.listForHealthCheck.mockResolvedValue([conn()]);
       service.setEnabled(false);
       await service.runHealthCheck();
       expect(dockerConnections.probeReachability).not.toHaveBeenCalled();
     });
   });
 
-  describe('probeOne — transition detection', () => {
-    beforeEach(() => {
-      service._resetStateForTests();
-    });
-
-    it('does not emit on a successful probe of a healthy connection', async () => {
+  describe('CLOSED state', () => {
+    it('healthy probe → no alert, no state change', async () => {
       dockerConnections.probeReachability.mockResolvedValue({});
-      const outcome = await service.probeOne('srv_1', 'tcp://x', true);
-      expect(outcome).toEqual({ kind: 'skipped', reason: 'ok' });
+      const out = await service.probeOne(conn());
+      expect(out).toEqual({ kind: 'skipped', reason: 'ok' });
       expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
-    it('emits "recovered" when an unreachable connection becomes reachable', async () => {
-      dockerConnections.probeReachability.mockResolvedValue({});
-      const outcome = await service.probeOne('srv_1', 'tcp://x', false);
-      expect(outcome).toEqual({
-        kind: 'recovered',
-        serverId: 'srv_1',
-        endpoint: 'tcp://x',
-      });
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        DOCKER_CONNECTION_RECOVERED,
-        expect.objectContaining({ serverId: 'srv_1', endpoint: 'tcp://x' }),
-      );
-    });
-
-    it('does NOT emit on the first failure (avoids transient-glitch alerts)', async () => {
-      dockerConnections.probeReachability.mockRejectedValue(
-        new Error('TLS handshake timeout'),
-      );
-      const outcome = await service.probeOne('srv_1', 'tcp://x', true);
-      expect(outcome).toEqual({ kind: 'skipped', reason: 'cooldown' });
+    it('first/second failure → silent, only records the streak', async () => {
+      dockerConnections.probeReachability.mockRejectedValue(new Error('ECONNRESET'));
+      const out = await service.probeOne(conn({ consecutiveFailures: 1 }));
+      expect(out).toEqual({ kind: 'skipped', reason: 'cooldown' });
       expect(eventEmitter.emit).not.toHaveBeenCalled();
+      expect(dockerConnections.persistCircuit).toHaveBeenCalledWith('srv_1', {
+        consecutiveFailures: 2,
+      });
     });
 
-    it('emits "unreachable" only after 2 consecutive failures', async () => {
-      dockerConnections.probeReachability.mockRejectedValue(
-        new Error('ECONNRESET'),
-      );
-      // Failure 1 — silent
-      await service.probeOne('srv_1', 'tcp://x', true);
-      // Force clock forward past throttle window
-      Date.now = () => realDateNow() + 120_000;
-      // Failure 2 — alert
-      const outcome = await service.probeOne('srv_1', 'tcp://x', true);
-      expect(outcome).toEqual({
-        kind: 'unreachable',
-        serverId: 'srv_1',
-        endpoint: 'tcp://x',
-        lastError: 'ECONNRESET',
-      });
+    it('3rd consecutive failure → OPEN + a single unreachable alert', async () => {
+      dockerConnections.probeReachability.mockRejectedValue(new Error('ECONNRESET'));
+      const out = await service.probeOne(conn({ consecutiveFailures: 2 }));
+      expect(out).toMatchObject({ kind: 'unreachable', serverId: 'srv_1' });
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         DOCKER_CONNECTION_UNREACHABLE,
-        expect.objectContaining({
-          serverId: 'srv_1',
-          endpoint: 'tcp://x',
-          lastError: 'ECONNRESET',
+        expect.objectContaining({ serverId: 'srv_1', lastError: 'ECONNRESET' }),
+      );
+      expect(dockerConnections.persistCircuit).toHaveBeenCalledWith(
+        'srv_1',
+        expect.objectContaining({ circuitState: 'OPEN', consecutiveFailures: 3 }),
+      );
+    });
+
+    it('recovery streak reset on success when failures were pending', async () => {
+      dockerConnections.probeReachability.mockResolvedValue({});
+      await service.probeOne(conn({ consecutiveFailures: 2 }));
+      expect(dockerConnections.persistCircuit).toHaveBeenCalledWith('srv_1', {
+        consecutiveFailures: 0,
+      });
+    });
+  });
+
+  describe('OPEN state', () => {
+    it('within cooldown → absorbed silently, no probe', async () => {
+      const out = await service.probeOne(
+        conn({ circuitState: 'OPEN', circuitOpenedAt: new Date(), consecutiveFailures: 3 }),
+      );
+      expect(out).toEqual({ kind: 'skipped', reason: 'cooldown' });
+      expect(dockerConnections.probeReachability).not.toHaveBeenCalled();
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('after cooldown → HALF_OPEN probe; success closes the breaker + recovery alert', async () => {
+      dockerConnections.probeReachability.mockResolvedValue({});
+      const out = await service.probeOne(
+        conn({
+          circuitState: 'OPEN',
+          circuitOpenedAt: new Date(Date.now() - OPEN_COOLDOWN_MS - 1000),
+          consecutiveFailures: 3,
         }),
       );
-    });
-
-    it('throttles to one probe per minute per server', async () => {
-      dockerConnections.probeReachability.mockResolvedValue({});
-      await service.probeOne('srv_1', 'tcp://x', true);
-      // Second call within the same minute — must skip
-      const outcome = await service.probeOne('srv_1', 'tcp://x', true);
-      expect(outcome).toEqual({ kind: 'skipped', reason: 'ok' });
-      expect(dockerConnections.probeReachability).toHaveBeenCalledTimes(1);
-    });
-
-    it('resets the failure counter on a successful probe', async () => {
-      dockerConnections.probeReachability
-        .mockRejectedValueOnce(new Error('first-fail'))
-        .mockResolvedValueOnce({});
-      await service.probeOne('srv_1', 'tcp://x', true);
-      Date.now = () => realDateNow() + 120_000;
-      await service.probeOne('srv_1', 'tcp://x', true);
-      // After the recovery, a new failure must again wait for the
-      // 2-failure threshold before alerting.
-      Date.now = () => realDateNow() + 240_000;
-      dockerConnections.probeReachability.mockRejectedValue(
-        new Error('second-fail'),
+      expect(out).toMatchObject({ kind: 'recovered', serverId: 'srv_1' });
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        DOCKER_CONNECTION_RECOVERED,
+        expect.objectContaining({ serverId: 'srv_1' }),
       );
-      const outcome = await service.probeOne('srv_1', 'tcp://x', true);
-      expect(outcome).toEqual({ kind: 'skipped', reason: 'cooldown' });
+      expect(dockerConnections.persistCircuit).toHaveBeenCalledWith(
+        'srv_1',
+        expect.objectContaining({ circuitState: 'CLOSED', consecutiveFailures: 0 }),
+      );
+    });
+
+    it('after cooldown → HALF_OPEN probe; failure reopens silently (no second alert)', async () => {
+      dockerConnections.probeReachability.mockRejectedValue(new Error('still down'));
+      const out = await service.probeOne(
+        conn({
+          circuitState: 'OPEN',
+          circuitOpenedAt: new Date(Date.now() - OPEN_COOLDOWN_MS - 1000),
+          consecutiveFailures: 3,
+        }),
+      );
+      expect(out).toEqual({ kind: 'skipped', reason: 'cooldown' });
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+      expect(dockerConnections.persistCircuit).toHaveBeenCalledWith(
+        'srv_1',
+        expect.objectContaining({ circuitState: 'OPEN' }),
+      );
     });
   });
 });

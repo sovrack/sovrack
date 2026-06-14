@@ -5,6 +5,7 @@ import {
   NotFoundException,
   Param,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { Roles } from '../../core/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/guards/roles.guard';
 import { WebhooksService } from './webhooks.service';
+import { WebhookRetryService } from './services/webhook-retry.service';
 
 /**
  * Read-only / admin API for the webhook observability layer. The write
@@ -27,7 +29,10 @@ import { WebhooksService } from './webhooks.service';
 @Controller('projects/:id/webhooks')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class WebhookAuditController {
-  constructor(private readonly webhooksService: WebhooksService) {}
+  constructor(
+    private readonly webhooksService: WebhooksService,
+    private readonly retryService: WebhookRetryService,
+  ) {}
 
   @Get('endpoints')
   @Roles(Role.ADMIN, Role.DEVELOPER)
@@ -53,6 +58,13 @@ export class WebhookAuditController {
   @Roles(Role.ADMIN, Role.DEVELOPER)
   async getEvent(@Param('eventId') eventId: string) {
     return this.webhooksService.findEvent(eventId);
+  }
+
+  @Post('events/:eventId/replay')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
+  async replayEvent(@Param('eventId') eventId: string) {
+    // Resets attempts and re-dispatches immediately (works for FAILED and DEAD_LETTER).
+    return this.retryService.replayEvent(eventId);
   }
 
   @Patch('endpoints/:endpointId/enabled')

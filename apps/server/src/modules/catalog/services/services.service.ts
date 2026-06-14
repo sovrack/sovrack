@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { ACTIVE_FILTER } from '../../../core/database/prisma-active.helper';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -23,6 +24,7 @@ const serviceInclude = {
 
 export type ServiceWithRelations = Prisma.ServiceGetPayload<{
   include: typeof serviceInclude;
+  omit: { archivedAt: true };
 }>;
 
 @Injectable()
@@ -41,8 +43,9 @@ export class ServicesService {
     await this.assertCanAccessProject(projectId, userId, userRole);
 
     return await this.prisma.service.findMany({
-      where: { projectId },
+      where: { projectId, ...ACTIVE_FILTER },
       orderBy: { createdAt: 'asc' },
+      omit: { archivedAt: true },
       include: serviceInclude,
     });
   }
@@ -56,7 +59,8 @@ export class ServicesService {
     await this.assertCanAccessProject(projectId, userId, userRole);
 
     const service = await this.prisma.service.findFirst({
-      where: { id: serviceId, projectId },
+      where: { id: serviceId, projectId, ...ACTIVE_FILTER },
+      omit: { archivedAt: true },
       include: serviceInclude,
     });
 
@@ -196,12 +200,17 @@ export class ServicesService {
     await this.assertCanManageProject(projectId, userId, userRole);
     await this.ensureServiceExists(projectId, serviceId);
 
-    await this.prisma.service.delete({ where: { id: serviceId } });
+    // Soft-delete: archive instead of DELETE so Deployment/Build history that
+    // references this service stays intact (SetNull would orphan it).
+    await this.prisma.service.update({
+      where: { id: serviceId },
+      data: { archivedAt: new Date() },
+    });
   }
 
   private async ensureServiceExists(projectId: string, serviceId: string) {
     const service = await this.prisma.service.findFirst({
-      where: { id: serviceId, projectId },
+      where: { id: serviceId, projectId, ...ACTIVE_FILTER },
       select: { id: true },
     });
     if (!service) {

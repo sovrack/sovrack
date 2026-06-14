@@ -215,7 +215,6 @@ model User {
   auditLogs                   AuditLog[]
   sshKeys                     SshKey[]
   requestedServerPreparations ServerPreparation[] @relation("ServerPreparationRequestedBy")
-  serverAuditEvents           ServerAuditEvent[]  @relation("ServerAuditActor")
   automationRuns              AutomationRun[]
   createdAt                   DateTime            @default(now())
   updatedAt                   DateTime            @updatedAt
@@ -276,10 +275,13 @@ model Server {
   jobs              ServerJob[]
   logs              ServerLog[]
   validationResults ServerValidationResult[]
-  capabilities      ServerCapability[]
-  installedTools    ServerInstalledTool[]
+  // Detected capabilities as a flat JSON map { "os.name": "Ubuntu", "docker": "true", ... }
+  // and installed tools as a JSON array [{ toolKey, displayName, version, status, ... }].
+  // Replaces the former ServerCapability / ServerInstalledTool join tables — a single
+  // source of truth, no joins, no 3-way drift on "does this server have Docker".
+  capabilities      Json?                    @default("{}")
+  installedTools    Json?                    @default("[]")
   preparations      ServerPreparation[]
-  auditEvents       ServerAuditEvent[]
   automationTargets AutomationRunTarget[]
   dockerConnection  DockerConnection?
   containers       Container[]
@@ -287,6 +289,9 @@ model Server {
   proxyRules        ProxyRule[]
   environmentId     String?
   environment       Environment?             @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+  // Soft-delete: NULL = active. Set instead of DELETE so server logs,
+  // preparations and audit history survive.
+  archivedAt        DateTime?
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
 
@@ -348,34 +353,9 @@ model ServerValidationResult {
   @@index([serverId, validatedAt])
 }
 
-model ServerCapability {
-  id         String   @id @default(uuid())
-  server     Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  serverId   String
-  key        String
-  value      String
-  source     String
-  detectedAt DateTime @default(now())
-
-  @@unique([serverId, key])
-  @@index([serverId, detectedAt])
-}
-
-model ServerInstalledTool {
-  id          String                    @id @default(uuid())
-  server      Server                    @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  serverId    String
-  toolKey     String
-  displayName String
-  version     String?
-  installedBy String?
-  status      ServerInstalledToolStatus @default(UNKNOWN)
-  installedAt DateTime?
-  updatedAt   DateTime                  @updatedAt
-
-  @@unique([serverId, toolKey])
-  @@index([serverId, status])
-}
+// ServerCapability and ServerInstalledTool models removed — their data now lives
+// in Server.capabilities (JSON map) and Server.installedTools (JSON array).
+// See servers-detection.service.ts for the read/write shape.
 
 model ServerPreparation {
   id                   String                   @id @default(uuid())
@@ -439,20 +419,9 @@ model ServerPreparationLog {
   @@index([level])
 }
 
-model ServerAuditEvent {
-  id          String   @id @default(uuid())
-  server      Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  serverId    String
-  actor       User?    @relation("ServerAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
-  actorId     String?
-  eventType   String
-  payloadJson Json?
-  createdAt   DateTime @default(now())
-
-  @@index([serverId, createdAt])
-  @@index([actorId, createdAt])
-  @@index([eventType])
-}
+// ServerAuditEvent model removed — server audit events now live in AuditLog with
+// resourceType='SERVER', resourceId=serverId, action=eventType, metadata=payloadJson.
+// Read back via ServersAuditService.list().
 
 model Environment {
   id           String               @id @default(uuid())
@@ -749,8 +718,10 @@ model TeamMember {
 
 model AuditLog {
   id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Nullable since the unified audit log now also stores SERVER events that may
+  // be actorless (system / automation). User-attributed rows keep a userId.
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   action       String
   resourceType String
   resourceId   String
@@ -1129,6 +1100,12 @@ model DockerConnection {
   // True if the last probe succeeded. False (with lastCheckedAt set) means
   // the connection is configured but unreachable right now — fire alarm.
   isReachable   Boolean   @default(false)
+  // ── Circuit breaker (anti-notification-storm on flapping connections) ──
+  // CLOSED: normal. OPEN: failing, alerts suppressed until cooldown elapses.
+  // HALF_OPEN: probing once to decide whether to close again.
+  consecutiveFailures Int       @default(0)
+  circuitState        String    @default("CLOSED")
+  circuitOpenedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -1268,6 +1245,10 @@ model Service {
   containers       Container[]
   volumes          Volume[]
   gitProviderRepos GitProviderRepo[]
+
+  // Soft-delete: NULL = active. Set instead of DELETE so deployment/build
+  // history that references this service survives.
+  archivedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
