@@ -41,16 +41,19 @@ export async function createTestFixtures(prisma: PrismaClient) {
       username: 'root',
       sshKey: 'e2e-ssh-private-key',
       isVerified: true,
-    },
-  });
-
-  await prisma.serverInstalledTool.create({
-    data: {
-      serverId,
-      toolKey: 'docker',
-      displayName: 'Docker Engine',
-      status: 'INSTALLED',
-      version: '24.0.0',
+      // Docker readiness now lives on the Server JSON columns (the former
+      // ServerInstalledTool join table was removed in Sprint 3).
+      hasDocker: true,
+      installedTools: [
+        {
+          toolKey: 'docker',
+          displayName: 'Docker Engine',
+          version: '24.0.0',
+          installedBy: 'e2e',
+          status: 'INSTALLED',
+          installedAt: new Date().toISOString(),
+        },
+      ],
     },
   });
 

@@ -5,11 +5,11 @@ import type { BuildSource } from '../src/modules/build/strategies/build-strategy
 
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/core/database/prisma.service';
-import { DeploymentsCreateService } from '../src/modules/deployments/services/deployments-create.service';
-import { DockerDeployExecutorService } from '../src/modules/deployments/services/docker-deploy-executor.service';
+import { DeploymentsCreateService } from '../src/modules/deployments/core/deployments-create.service';
+import { DockerDeployExecutorService } from '../src/modules/deployments/core/docker-deploy-executor.service';
 import { GitlabAdapter } from '../src/modules/source-providers/adapters/gitlab/gitlab.adapter';
 import { DeploymentsGateway } from '../src/modules/deployments/gateways/deployments.gateway';
-import { BuildImageService } from '../src/modules/build/services/build-image.service';
+import { BuildImageService } from '../src/modules/build/lifecycle/build-image.service';
 import { CreateDeploymentDto } from '../src/modules/deployments/dto/create-deployment.dto';
 
 import { createTestFixtures, createTestService, TestFixtures } from './utils/test-fixtures';
@@ -80,10 +80,16 @@ describe('DeploymentsCreateService (e2e)', () => {
     await app?.close();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     ansibleMock.reset();
     gitlabMock.reset();
     dockerImageMock.buildDockerImage.mockClear();
+    // Reset deployment-related tables between cases so rows from a previous
+    // case (PipelineRun, Deployment, Build) never leak into the next one.
+    await prisma.pipelineRun.deleteMany({});
+    await prisma.container.deleteMany({});
+    await prisma.deployment.deleteMany({});
+    await prisma.build.deleteMany({});
   });
 
   /**

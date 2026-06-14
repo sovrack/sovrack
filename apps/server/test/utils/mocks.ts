@@ -1,6 +1,6 @@
 import { DockerApiService } from '../../src/core/container-runtime/docker-api.service';
-import { DockerDeployExecutorService } from '../../src/modules/deployments/services/docker-deploy-executor.service';
-import { DeploymentsHealthcheckService } from '../../src/modules/deployments/services/deployments-healthcheck.service';
+import { DockerDeployExecutorService } from '../../src/modules/deployments/core/docker-deploy-executor.service';
+import { DeploymentsHealthcheckService } from '../../src/modules/deployments/health/deployments-healthcheck.service';
 import { GitlabAdapter } from '../../src/modules/source-providers/adapters/gitlab/gitlab.adapter';
 
 export type AnsibleMockHandle = {
@@ -31,9 +31,16 @@ export function mockGitlabService(): {
   provide: typeof GitlabAdapter;
   useValue: GitlabMockHandle;
 } {
-  const triggerPipeline = jest
-    .fn()
-    .mockResolvedValue({ id: 12345, webUrl: 'https://gitlab.example.com/pipeline/12345' });
+  // Each call returns a unique pipeline ID so repeated create() calls across
+  // matrix cases never collide on PipelineRun @@unique([externalId, provider]).
+  let pipelineSeq = 100000;
+  const triggerPipeline = jest.fn().mockImplementation(() => {
+    const id = ++pipelineSeq;
+    return Promise.resolve({
+      id,
+      webUrl: `https://gitlab.example.com/pipeline/${id}`,
+    });
+  });
   return {
     provide: GitlabAdapter,
     useValue: {
