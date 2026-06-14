@@ -16,8 +16,8 @@ import { RolesGuard } from '../../core/guards/roles.guard';
 import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
 import { BuildDetectorService } from './detection/build-detector.service';
 import { BuildOrchestratorService } from './build-orchestrator.service';
-import { BuildSetupService } from './services/build-setup.service';
-import { BuildLifecycleService } from './services/build-lifecycle.service';
+import { BuildSetupService } from './lifecycle/build-setup.service';
+import { BuildLifecycleService } from './lifecycle/build-lifecycle.service';
 import { CreateBuildConfigDto } from './dto/create-build-config.dto';
 import { BuildStatus } from '@prisma/client';
 

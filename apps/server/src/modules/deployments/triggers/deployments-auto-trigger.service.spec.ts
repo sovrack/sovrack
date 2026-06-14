@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DeploymentStatus, BuildPack, BuildTrigger, BuildStatus } from '@prisma/client';
 import { DeploymentsAutoTriggerService } from './deployments-auto-trigger.service';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { BuildLifecycleService } from '../../build/services/build-lifecycle.service';
+import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 

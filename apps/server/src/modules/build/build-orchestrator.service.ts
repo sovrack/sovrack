@@ -7,9 +7,9 @@ import {
 import { ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
 import { BuildDetectorService } from './detection/build-detector.service';
-import { DockerfileGenerator } from './generators/config-files/dockerfile.generator';
-import { DockerignoreGenerator } from './generators/config-files/dockerignore.generator';
-import { CiGeneratorFactory } from './generators/ci/ci-generator.factory';
+import { DockerfileGenerator } from './generation/dockerfiles/dockerfile.generator';
+import { DockerignoreGenerator } from './generation/dockerfiles/dockerignore.generator';
+import { CiGeneratorFactory } from './generation/ci/ci-generator.factory';
 import { SourceProvidersService } from '../source-providers/source-providers.service';
 import type { RepoWriteResult } from '../source-providers/contracts/git-provider.contract';
 import type {

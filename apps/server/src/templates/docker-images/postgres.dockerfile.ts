@@ -1,4 +1,4 @@
-import { DockerfileGenerateOptions } from '../../modules/build/generators/config-files/dockerfile.types';
+import { DockerfileGenerateOptions } from '../../modules/build/generation/dockerfiles/dockerfile.types';
 
 export function generatePostgresDockerfile(
   _options: DockerfileGenerateOptions,

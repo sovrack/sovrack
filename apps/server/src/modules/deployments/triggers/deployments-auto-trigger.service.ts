@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { DeploymentStatus, BuildPack, Prisma, BuildTrigger, BuildStatus } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { BuildLifecycleService } from '../../build/services/build-lifecycle.service';
+import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
 import {
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
   type AutoDeployTriggerEvent,
