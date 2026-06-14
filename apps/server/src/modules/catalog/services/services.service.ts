@@ -201,10 +201,19 @@ export class ServicesService {
     await this.ensureServiceExists(projectId, serviceId);
 
     // Soft-delete: archive instead of DELETE so Deployment/Build history that
-    // references this service stays intact (SetNull would orphan it).
+    // references this service stays intact (SetNull would orphan it). Suffix
+    // the name so @@unique([projectId, name]) is freed and the original name
+    // can be reused for a new service in the same project.
+    const service = await this.prisma.service.findUnique({
+      where: { id: serviceId },
+      select: { name: true },
+    });
     await this.prisma.service.update({
       where: { id: serviceId },
-      data: { archivedAt: new Date() },
+      data: {
+        name: `${service?.name ?? serviceId}_archived_${Date.now()}`,
+        archivedAt: new Date(),
+      },
     });
   }
 

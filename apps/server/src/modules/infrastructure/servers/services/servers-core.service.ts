@@ -291,11 +291,12 @@ export class ServersCoreService {
   }
 
   async remove(id: string, actorUserId: string): Promise<void> {
-    await this.getServerById(id);
+    const server = await this.getServerById(id);
 
     // Soft-delete: archive the server and mark its tracked containers EXITED so
     // logs, preparations and audit history survive (a hard DELETE would cascade
     // them away). The server disappears from listings but stays referenceable.
+    // Suffix the name so it can be reused for a fresh server registration.
     await this.prisma.$transaction([
       this.prisma.container.updateMany({
         where: { serverId: id },
@@ -303,7 +304,10 @@ export class ServersCoreService {
       }),
       this.prisma.server.update({
         where: { id },
-        data: { archivedAt: new Date() },
+        data: {
+          name: `${server.name}_archived_${Date.now()}`,
+          archivedAt: new Date(),
+        },
       }),
     ]);
     await this.auditService.record(actorUserId, 'SERVER_DELETE', 'Server', id);
