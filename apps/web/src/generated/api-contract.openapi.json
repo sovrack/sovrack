@@ -6995,6 +6995,62 @@
           "Ssl"
         ]
       }
+    },
+    "/service-environments/{serviceEnvId}/backups": {
+      "get": {
+        "operationId": "DatabaseBackupsController_list",
+        "parameters": [
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les sauvegardes d'une base de données",
+        "tags": [
+          "Database Backups"
+        ]
+      },
+      "post": {
+        "operationId": "DatabaseBackupsController_create",
+        "parameters": [
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Déclencher une sauvegarde manuelle",
+        "tags": [
+          "Database Backups"
+        ]
+      }
     }
   },
   "info": {

@@ -2829,6 +2829,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/service-environments/{serviceEnvId}/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les sauvegardes d'une base de données */
+        get: operations["DatabaseBackupsController_list"];
+        put?: never;
+        /** Déclencher une sauvegarde manuelle */
+        post: operations["DatabaseBackupsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -9092,6 +9110,44 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DatabaseBackupsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serviceEnvId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DatabaseBackupsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serviceEnvId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

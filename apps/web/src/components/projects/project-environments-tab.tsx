@@ -15,6 +15,7 @@ import {
 import clsx from 'clsx';
 import { environmentsService } from '@/services/environments.service';
 import { getApiErrorMessage } from '@/lib/api';
+import { DatabaseBackupsPanel } from '@/components/databases/database-backups-panel';
 import type { Environment, EnvName } from '@/types/environment';
 
 const ENV_BADGE: Record<string, string> = {
@@ -258,6 +259,16 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
                 ))}
               </div>
             )}
+
+            {envServices
+              .filter((link) => link.service?.type === 'DATABASE')
+              .map((link) => (
+                <DatabaseBackupsPanel
+                  key={`backup-${link.id}`}
+                  serviceEnvId={link.id}
+                  serviceName={link.service?.name}
+                />
+              ))}
 
             {envServices.length === 0 && (
               <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
