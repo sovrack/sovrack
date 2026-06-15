@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Vérification de santé de la plateforme */
+        /** Platform health check */
         get: operations["AppController_getHealth"];
         put?: never;
         post?: never;
@@ -28,10 +28,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister tous les utilisateurs sans mot de passe */
+        /** List all users without passwords */
         get: operations["UsersController_findAll"];
         put?: never;
-        /** Créer un nouveau compte développeur */
+        /** Create a new developer account */
         post: operations["UsersController_create"];
         delete?: never;
         options?: never;
@@ -63,12 +63,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Récupérer le détail d'un utilisateur */
+        /** Get a user's details */
         get: operations["UsersController_findById"];
-        /** Modifier un utilisateur */
+        /** Edit a user */
         put: operations["UsersController_update"];
         post?: never;
-        /** Supprimer un utilisateur */
+        /** Delete a user */
         delete: operations["UsersController_delete"];
         options?: never;
         head?: never;
@@ -83,7 +83,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Activer ou désactiver un compte utilisateur */
+        /** Activate or deactivate a user account */
         put: operations["UsersController_toggleActive"];
         post?: never;
         delete?: never;
@@ -101,7 +101,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Connexion utilisateur */
+        /** User login */
         post: operations["AuthController_login"];
         delete?: never;
         options?: never;
@@ -116,7 +116,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Retourne un jeton court durée pour les connexions WebSocket */
+        /** Returns a short-lived token for WebSocket connections */
         get: operations["AuthController_getWsToken"];
         put?: never;
         post?: never;
@@ -133,7 +133,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Récupérer le profil de l'utilisateur connecté */
+        /** Get the logged-in user's profile */
         get: operations["AuthController_getMe"];
         put?: never;
         post?: never;
@@ -152,7 +152,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Déconnexion utilisateur (audit) */
+        /** User logout (audit) */
         post: operations["AuthController_logout"];
         delete?: never;
         options?: never;
@@ -167,7 +167,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les logs d’audit (admin) */
+        /** List audit logs (admin) */
         get: operations["AuditController_findAll"];
         put?: never;
         post?: never;
@@ -376,10 +376,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les providers GitLab */
+        /** List GitLab providers */
         get: operations["SourceProvidersController_listGitlabProviders"];
         put?: never;
-        /** Créer un provider GitLab */
+        /** Create a GitLab provider */
         post: operations["SourceProvidersController_createGitlabProvider"];
         delete?: never;
         options?: never;
@@ -395,10 +395,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Mettre à jour un provider GitLab */
+        /** Update a GitLab provider */
         put: operations["SourceProvidersController_updateGitlabProvider"];
         post?: never;
-        /** Supprimer un provider GitLab */
+        /** Delete a GitLab provider */
         delete: operations["SourceProvidersController_deleteGitlabProvider"];
         options?: never;
         head?: never;
@@ -414,7 +414,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Définir un provider GitLab par défaut */
+        /** Set a default GitLab provider */
         post: operations["SourceProvidersController_setDefaultGitlabProvider"];
         delete?: never;
         options?: never;
@@ -431,7 +431,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Tester la connexion GitLab pour un provider */
+        /** Test the GitLab connection for a provider */
         post: operations["SourceProvidersController_testGitlabProvider"];
         delete?: never;
         options?: never;
@@ -448,7 +448,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Démarrer OAuth GitLab pour un provider */
+        /** Start GitLab OAuth for a provider */
         post: operations["SourceProvidersController_startGitlabOAuthForProvider"];
         delete?: never;
         options?: never;
@@ -465,7 +465,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Tester la connexion GitLab globale (default provider) */
+        /** Test the global GitLab connection (default provider) */
         post: operations["SourceProvidersController_testGitlab"];
         delete?: never;
         options?: never;
@@ -482,7 +482,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Démarrer OAuth GitLab global (default provider) */
+        /** Start global GitLab OAuth (default provider) */
         post: operations["SourceProvidersController_startGitlabOAuth"];
         delete?: never;
         options?: never;
@@ -497,10 +497,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les providers GitHub */
+        /** List GitHub providers */
         get: operations["SourceProvidersController_listGithubProviders"];
         put?: never;
-        /** Créer un provider GitHub */
+        /** Create a GitHub provider */
         post: operations["SourceProvidersController_createGithubProvider"];
         delete?: never;
         options?: never;
@@ -516,10 +516,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Mettre à jour un provider GitHub */
+        /** Update a GitHub provider */
         put: operations["SourceProvidersController_updateGithubProvider"];
         post?: never;
-        /** Supprimer un provider GitHub */
+        /** Delete a GitHub provider */
         delete: operations["SourceProvidersController_deleteGithubProvider"];
         options?: never;
         head?: never;
@@ -535,7 +535,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Définir un provider GitHub par défaut */
+        /** Set a default GitHub provider */
         post: operations["SourceProvidersController_setDefaultGithubProvider"];
         delete?: never;
         options?: never;
@@ -552,7 +552,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Tester la connexion GitHub pour un provider */
+        /** Test the GitHub connection for a provider */
         post: operations["SourceProvidersController_testGithubProvider"];
         delete?: never;
         options?: never;
@@ -567,7 +567,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les repos GitHub accessibles via ce provider */
+        /** List GitHub repos accessible via this provider */
         get: operations["SourceProvidersController_listGithubRepos"];
         put?: never;
         post?: never;
@@ -584,10 +584,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les providers Gitea */
+        /** List Gitea providers */
         get: operations["SourceProvidersController_listGiteaProviders"];
         put?: never;
-        /** Créer un provider Gitea */
+        /** Create a Gitea provider */
         post: operations["SourceProvidersController_createGiteaProvider"];
         delete?: never;
         options?: never;
@@ -603,10 +603,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Mettre à jour un provider Gitea */
+        /** Update a Gitea provider */
         put: operations["SourceProvidersController_updateGiteaProvider"];
         post?: never;
-        /** Supprimer un provider Gitea */
+        /** Delete a Gitea provider */
         delete: operations["SourceProvidersController_deleteGiteaProvider"];
         options?: never;
         head?: never;
@@ -622,7 +622,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Définir un provider Gitea par défaut */
+        /** Set a default Gitea provider */
         post: operations["SourceProvidersController_setDefaultGiteaProvider"];
         delete?: never;
         options?: never;
@@ -637,7 +637,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister tous les providers source (GitHub + GitLab) avec leur type */
+        /** List all source providers (GitHub + GitLab) with their type */
         get: operations["SourceController_listProviders"];
         put?: never;
         post?: never;
@@ -656,7 +656,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Connecter une source Git (GitLab ou GitHub) à un projet */
+        /** Connect a Git source (GitLab or GitHub) to a project */
         post: operations["SourceController_connectSource"];
         delete?: never;
         options?: never;
@@ -688,7 +688,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les repositories accessibles dans un groupe GitLab */
+        /** List repositories accessible in a GitLab group */
         get: operations["GitlabController_listGroupRepositories"];
         put?: never;
         post?: never;
@@ -705,7 +705,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les branches avant création projet/service */
+        /** List branches before project/service creation */
         get: operations["GitlabController_listProjectBranchesByProvider"];
         put?: never;
         post?: never;
@@ -724,7 +724,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Connecter un projet à GitLab */
+        /** Connect a project to GitLab */
         post: operations["GitlabController_connectProject"];
         delete?: never;
         options?: never;
@@ -739,7 +739,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les branches GitLab disponibles */
+        /** List available GitLab branches */
         get: operations["GitlabController_getBranches"];
         put?: never;
         post?: never;
@@ -756,7 +756,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les pipelines GitLab */
+        /** List GitLab pipelines */
         get: operations["GitlabController_getPipelines"];
         put?: never;
         post?: never;
@@ -773,7 +773,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les repositories (REPO/GROUP) */
+        /** List repositories (REPO/GROUP) */
         get: operations["GitlabController_getRepos"];
         put?: never;
         post?: never;
@@ -792,7 +792,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Déclencher un pipeline GitLab manuellement */
+        /** Trigger a GitLab pipeline manually */
         post: operations["GitlabController_triggerPipeline"];
         delete?: never;
         options?: never;
@@ -807,7 +807,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Voir la configuration GitLab d’un projet */
+        /** View a project's GitLab configuration */
         get: operations["GitlabController_getGitlabConfig"];
         put?: never;
         post?: never;
@@ -875,7 +875,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister toutes les configurations globales */
+        /** List all global configurations */
         get: operations["PlatformController_getAll"];
         put?: never;
         post?: never;
@@ -893,7 +893,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Mettre à jour une configuration globale */
+        /** Update a global configuration */
         put: operations["PlatformController_setConfig"];
         post?: never;
         delete?: never;
@@ -909,10 +909,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les projets selon le rôle utilisateur */
+        /** List projects according to the user role */
         get: operations["ProjectsController_findAll"];
         put?: never;
-        /** Créer un projet */
+        /** Create a project */
         post: operations["ProjectsController_create"];
         delete?: never;
         options?: never;
@@ -929,7 +929,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Importer des repositories GitLab Group en application multi-services ou projets séparés */
+        /** Import GitLab Group repositories as a multi-service application or separate projects */
         post: operations["ProjectsController_importGitlabGroup"];
         delete?: never;
         options?: never;
@@ -944,12 +944,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Récupérer le détail d’un projet */
+        /** Get the details of a project */
         get: operations["ProjectsController_findOne"];
-        /** Modifier un projet */
+        /** Edit a project */
         put: operations["ProjectsController_update"];
         post?: never;
-        /** Supprimer un projet */
+        /** Delete a project */
         delete: operations["ProjectsController_remove"];
         options?: never;
         head?: never;
@@ -963,10 +963,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les membres du projet */
+        /** List project members */
         get: operations["ProjectsController_getMembers"];
         put?: never;
-        /** Ajouter un membre au projet */
+        /** Add a member to the project */
         post: operations["ProjectsController_addMember"];
         delete?: never;
         options?: never;
@@ -984,7 +984,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Retirer un membre du projet */
+        /** Remove a member from the project */
         delete: operations["ProjectsController_removeMember"];
         options?: never;
         head?: never;
@@ -1001,7 +1001,7 @@ export interface paths {
         /** Lister les environnements d'un projet */
         get: operations["EnvironmentsController_findAll"];
         put?: never;
-        /** Créer un environnement pour un projet */
+        /** Create an environment for a project */
         post: operations["EnvironmentsController_create"];
         delete?: never;
         options?: never;
@@ -1016,12 +1016,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Détail d'un environnement de projet */
+        /** Project environment details */
         get: operations["EnvironmentsController_findOne"];
-        /** Mettre à jour un environnement de projet */
+        /** Update a project environment */
         put: operations["EnvironmentsController_update"];
         post?: never;
-        /** Supprimer un environnement de projet */
+        /** Delete a project environment */
         delete: operations["EnvironmentsController_remove"];
         options?: never;
         head?: never;
@@ -1037,9 +1037,9 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Assigner un serveur à un environnement */
+        /** Assign a server to an environment */
         post: operations["EnvironmentsController_assignServer"];
-        /** Retirer un serveur d'un environnement */
+        /** Remove a server from an environment */
         delete: operations["EnvironmentsController_removeServer"];
         options?: never;
         head?: never;
@@ -1055,7 +1055,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Lier un service à un environnement */
+        /** Link a service to an environment */
         post: operations["EnvironmentsController_linkService"];
         delete?: never;
         options?: never;
@@ -1070,7 +1070,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les services liés à un environnement */
+        /** List services linked to an environment */
         get: operations["EnvironmentsController_listLinkedServices"];
         put?: never;
         post?: never;
@@ -1087,10 +1087,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister tous les liens du projet (par service ou environment) */
+        /** List all project links (by service or environment) */
         get: operations["ServiceEnvironmentsController_findAll"];
         put?: never;
-        /** Lier un service à un environnement */
+        /** Link a service to an environment */
         post: operations["ServiceEnvironmentsController_link"];
         delete?: never;
         options?: never;
@@ -1105,12 +1105,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Détail d'un lien service-environnement */
+        /** Service-environment link details */
         get: operations["ServiceEnvironmentsController_findOne"];
-        /** Mettre à jour les overrides du lien */
+        /** Update the link overrides */
         put: operations["ServiceEnvironmentsController_update"];
         post?: never;
-        /** Supprimer un lien service-environnement */
+        /** Delete a service-environment link */
         delete: operations["ServiceEnvironmentsController_unlink"];
         options?: never;
         head?: never;
@@ -1284,9 +1284,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Récupérer les paramètres de notification */
+        /** Get the notification settings */
         get: operations["NotificationsController_getSettings"];
-        /** Sauvegarder les paramètres de notification */
+        /** Save the notification settings */
         put: operations["NotificationsController_saveSettings"];
         post?: never;
         delete?: never;
@@ -1302,10 +1302,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister tous les serveurs (sshKey masquée) */
+        /** List all servers (sshKey masked) */
         get: operations["ServerManagementController_findAll"];
         put?: never;
-        /** Créer un serveur */
+        /** Create a server */
         post: operations["ServerManagementController_create"];
         delete?: never;
         options?: never;
@@ -1320,16 +1320,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Voir le détail d'un serveur */
+        /** View a server's details */
         get: operations["ServerManagementController_findOne"];
-        /** Modifier un serveur */
+        /** Edit a server */
         put: operations["ServerManagementController_update"];
         post?: never;
-        /** Supprimer un serveur si aucun environnement actif */
+        /** Delete a server if no active environment */
         delete: operations["ServerManagementController_remove"];
         options?: never;
         head?: never;
-        /** Modifier partiellement un serveur */
+        /** Partially update a server */
         patch: operations["ServerManagementController_patch"];
         trace?: never;
     };
@@ -1342,7 +1342,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Installer la clé publique SSH via mot de passe temporaire */
+        /** Install the SSH public key via a temporary password */
         post: operations["ServerManagementController_installKey"];
         delete?: never;
         options?: never;
@@ -1397,7 +1397,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Définir le rôle infrastructure de ce serveur */
+        /** Set the infrastructure role of this server */
         patch: operations["ServerManagementController_setServerRole"];
         trace?: never;
     };
@@ -1408,7 +1408,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les serveurs configurés comme STAGING ou PRODUCTION */
+        /** List servers configured as STAGING or PRODUCTION */
         get: operations["ServerManagementController_listInfraEnvironments"];
         put?: never;
         post?: never;
@@ -1425,7 +1425,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les environnements assignés à ce serveur (tous projets) */
+        /** List environments assigned to this server (all projects) */
         get: operations["ServerManagementController_listServerEnvironments"];
         put?: never;
         post?: never;
@@ -1444,7 +1444,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Tester rapidement la connectivité SSH du serveur */
+        /** Quickly test the server SSH connectivity */
         post: operations["ServerManagementController_pingServer"];
         delete?: never;
         options?: never;
@@ -1461,7 +1461,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Forcer la fin d'un job bloqué ou fantôme */
+        /** Force-finish a stuck or ghost job */
         post: operations["ServerManagementController_cancelJob"];
         delete?: never;
         options?: never;
@@ -1476,12 +1476,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lire la config Docker (chiffrée) pour un serveur */
+        /** Read the (encrypted) Docker config for a server */
         get: operations["DockerConnectionController_get"];
         put?: never;
-        /** Créer ou remplacer la connexion Docker d'un serveur */
+        /** Create or replace the Docker connection of a server */
         post: operations["DockerConnectionController_upsert"];
-        /** Supprimer la connexion Docker configurée pour ce serveur */
+        /** Delete the Docker connection configured for this server */
         delete: operations["DockerConnectionController_remove"];
         options?: never;
         head?: never;
@@ -1497,7 +1497,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Tester la connexion Docker (handshake TLS + ping) */
+        /** Test the Docker connection (TLS handshake + ping) */
         post: operations["DockerConnectionController_probe"];
         delete?: never;
         options?: never;
@@ -1532,8 +1532,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Valider la connexion SSH, auth, sudo et prérequis minimaux
-         * @description Les VPS sont des cibles SSH agentless. Cette étape ne cherche jamais à installer Ansible sur le VPS.
+         * Validate the SSH connection, auth, sudo and minimal prerequisites
+         * @description VPS hosts are agentless SSH targets. This step never tries to install Ansible on the VPS.
          */
         post: operations["ServerValidationController_validateSsh"];
         delete?: never;
@@ -1549,7 +1549,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Récupérer le statut de vérification du serveur */
+        /** Get the server verification status */
         get: operations["ServerValidationController_getVerificationStatus"];
         put?: never;
         post?: never;
@@ -1566,7 +1566,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Récupérer les logs de vérification du serveur */
+        /** Get the server verification logs */
         get: operations["ServerValidationController_getVerificationLogs"];
         put?: never;
         post?: never;
@@ -1583,7 +1583,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les résultats de validation SSH */
+        /** List SSH validation results */
         get: operations["ServerValidationController_getValidationResults"];
         put?: never;
         post?: never;
@@ -1602,7 +1602,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Détecter les informations système et outils installés */
+        /** Detect system info and installed tools */
         post: operations["ServerDetectionController_detect"];
         delete?: never;
         options?: never;
@@ -1617,7 +1617,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les capacités détectées du serveur */
+        /** List the detected server capabilities */
         get: operations["ServerDetectionController_getCapabilities"];
         put?: never;
         post?: never;
@@ -1634,7 +1634,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les outils installés détectés */
+        /** List detected installed tools */
         get: operations["ServerDetectionController_getInstalledTools"];
         put?: never;
         post?: never;
@@ -1651,10 +1651,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister l'historique de préparation du serveur */
+        /** List the server's provisioning history */
         get: operations["ServerPreparationController_listPreparations"];
         put?: never;
-        /** Démarrer une préparation serveur */
+        /** Start a server provisioning job */
         post: operations["ServerPreparationController_startPreparation"];
         delete?: never;
         options?: never;
@@ -1669,7 +1669,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Vérifier si le serveur est prêt à lancer une préparation (SSH/sudo/état/verrou). */
+        /** Check whether the server is ready to start provisioning (SSH/sudo/state/lock). */
         get: operations["ServerPreparationController_getPreparationReadiness"];
         put?: never;
         post?: never;
@@ -1686,7 +1686,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Voir le détail d'une préparation serveur */
+        /** View a server provisioning's details */
         get: operations["ServerPreparationsController_findOne"];
         put?: never;
         post?: never;
@@ -1703,7 +1703,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lire les logs persistés d'une préparation */
+        /** Read the persisted logs of a provisioning job */
         get: operations["ServerPreparationsController_logs"];
         put?: never;
         post?: never;
@@ -1722,7 +1722,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Relancer une préparation en créant un nouveau job lié */
+        /** Re-run a provisioning by creating a new linked job */
         post: operations["ServerPreparationsController_retry"];
         delete?: never;
         options?: never;
@@ -1739,7 +1739,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Annuler une préparation si elle est encore active */
+        /** Cancel a provisioning job if still active */
         post: operations["ServerPreparationsController_cancel"];
         delete?: never;
         options?: never;
@@ -1754,7 +1754,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les options et profils de préparation */
+        /** List provisioning options and profiles */
         get: operations["ServerPreparationOptionsController_options"];
         put?: never;
         post?: never;
@@ -1773,7 +1773,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Valider les prérequis avant déploiement */
+        /** Validate the prerequisites before deployment */
         post: operations["DeploymentsController_validate"];
         delete?: never;
         options?: never;
@@ -1788,10 +1788,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les déploiements (filtrés par rôle) */
+        /** List deployments (filtered by role) */
         get: operations["DeploymentsController_findAll"];
         put?: never;
-        /** Lancer un déploiement */
+        /** Launch a deployment */
         post: operations["DeploymentsController_create"];
         delete?: never;
         options?: never;
@@ -1823,7 +1823,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Prévisualiser les variables qui seront injectées (secrets masqués) */
+        /** Preview the variables that will be injected (secrets masked) */
         get: operations["DeploymentsController_previewEnv"];
         put?: never;
         post?: never;
@@ -1840,11 +1840,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Détail d'un déploiement */
+        /** Deployment details */
         get: operations["DeploymentsController_findOne"];
         put?: never;
         post?: never;
-        /** Supprimer un déploiement */
+        /** Delete a deployment */
         delete: operations["DeploymentsController_remove"];
         options?: never;
         head?: never;
@@ -1860,7 +1860,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Annuler un déploiement */
+        /** Cancel a deployment */
         post: operations["DeploymentsController_cancel"];
         delete?: never;
         options?: never;
@@ -1877,7 +1877,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Rollback sur la dernière image stable */
+        /** Roll back to the last stable image */
         post: operations["DeploymentsController_rollback"];
         delete?: never;
         options?: never;
@@ -1892,7 +1892,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Récupérer les logs du conteneur Docker du déploiement */
+        /** Get the Docker container logs of the deployment */
         get: operations["DeploymentsController_containerLogs"];
         put?: never;
         post?: never;
@@ -1909,7 +1909,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Rechercher dans les logs du déploiement (texte + niveau) */
+        /** Search the deployment logs (text + level) */
         get: operations["DeploymentsController_searchLogs"];
         put?: never;
         post?: never;
@@ -1926,10 +1926,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister toutes les équipes */
+        /** List all teams */
         get: operations["TeamsController_findAll"];
         put?: never;
-        /** Créer une équipe */
+        /** Create a team */
         post: operations["TeamsController_create"];
         delete?: never;
         options?: never;
@@ -1944,12 +1944,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Récupérer une équipe par ID */
+        /** Get a team by ID */
         get: operations["TeamsController_findOne"];
-        /** Modifier une équipe */
+        /** Edit a team */
         put: operations["TeamsController_update"];
         post?: never;
-        /** Supprimer une équipe */
+        /** Delete a team */
         delete: operations["TeamsController_remove"];
         options?: never;
         head?: never;
@@ -1965,7 +1965,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ajouter un membre à une équipe */
+        /** Add a member to a team */
         post: operations["TeamsController_addMember"];
         delete?: never;
         options?: never;
@@ -1983,7 +1983,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Retirer un membre d'une équipe */
+        /** Remove a member from a team */
         delete: operations["TeamsController_removeMember"];
         options?: never;
         head?: never;
@@ -1999,7 +1999,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ajouter tous les membres d'une équipe à un projet */
+        /** Add all members of a team to a project */
         post: operations["ProjectTeamsController_addTeamToProject"];
         delete?: never;
         options?: never;
@@ -2450,10 +2450,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les providers DNS */
+        /** List DNS providers */
         get: operations["DomainsController_listProviders"];
         put?: never;
-        /** Créer un provider DNS */
+        /** Create a DNS provider */
         post: operations["DomainsController_createProvider"];
         delete?: never;
         options?: never;
@@ -2470,7 +2470,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Tester un provider DNS */
+        /** Test a DNS provider */
         post: operations["DomainsController_testProvider"];
         delete?: never;
         options?: never;
@@ -2485,10 +2485,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les domaines DNS */
+        /** List DNS domains */
         get: operations["DomainsController_listDomains"];
         put?: never;
-        /** Ajouter un domaine DNS */
+        /** Add a DNS domain */
         post: operations["DomainsController_createDomain"];
         delete?: never;
         options?: never;
@@ -2505,7 +2505,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Vérifier un domaine DNS */
+        /** Verify a DNS domain */
         post: operations["DomainsController_verifyDomain"];
         delete?: never;
         options?: never;
@@ -2520,10 +2520,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les records DNS d’un domaine */
+        /** List the DNS records of a domain */
         get: operations["DomainsController_listRecords"];
         put?: never;
-        /** Créer un record DNS */
+        /** Create a DNS record */
         post: operations["DomainsController_createRecord"];
         delete?: never;
         options?: never;
@@ -2539,10 +2539,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Mettre à jour un record DNS */
+        /** Update a DNS record */
         put: operations["DomainsController_updateRecord"];
         post?: never;
-        /** Supprimer un record DNS */
+        /** Delete a DNS record */
         delete: operations["DomainsController_removeRecord"];
         options?: never;
         head?: never;
@@ -2556,10 +2556,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les configurations de registre */
+        /** List registry configurations */
         get: operations["ContainerRegistriesController_listContainerRegistries"];
         put?: never;
-        /** Créer une nouvelle configuration de registre */
+        /** Create a new registry configuration */
         post: operations["ContainerRegistriesController_createRegistry"];
         delete?: never;
         options?: never;
@@ -2575,10 +2575,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Mettre à jour une configuration de registre */
+        /** Update a registry configuration */
         put: operations["ContainerRegistriesController_updateRegistry"];
         post?: never;
-        /** Supprimer une configuration de registre */
+        /** Delete a registry configuration */
         delete: operations["ContainerRegistriesController_deleteRegistry"];
         options?: never;
         head?: never;
@@ -2594,7 +2594,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Tester la connexion à un registre */
+        /** Test the connection to a registry */
         post: operations["ContainerRegistriesController_testRegistry"];
         delete?: never;
         options?: never;
@@ -2611,7 +2611,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Définir un registre comme registre par défaut */
+        /** Set a registry as the default registry */
         post: operations["ContainerRegistriesController_setDefaultRegistry"];
         delete?: never;
         options?: never;
@@ -2626,7 +2626,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Statistiques agrégées du dashboard */
+        /** Aggregated dashboard statistics */
         get: operations["DashboardController_getStats"];
         put?: never;
         post?: never;
@@ -2700,7 +2700,7 @@ export interface paths {
         /** Lister les services d'un projet */
         get: operations["ServicesController_findAll"];
         put?: never;
-        /** Créer un service dans un projet */
+        /** Create a service in a project */
         post: operations["ServicesController_create"];
         delete?: never;
         options?: never;
@@ -2717,7 +2717,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Découvrir les repos d'un groupe/org pour créer des services */
+        /** Discover the repos of a group/org to create services */
         post: operations["ServicesController_discoverGroup"];
         delete?: never;
         options?: never;
@@ -2732,12 +2732,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Détail d'un service */
+        /** Service details */
         get: operations["ServicesController_findOne"];
-        /** Mettre à jour un service */
+        /** Update a service */
         put: operations["ServicesController_update"];
         post?: never;
-        /** Supprimer un service */
+        /** Delete a service */
         delete: operations["ServicesController_remove"];
         options?: never;
         head?: never;
@@ -2836,10 +2836,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les sauvegardes d'une base de données */
+        /** List a database's backups */
         get: operations["DatabaseBackupsController_list"];
         put?: never;
-        /** Déclencher une sauvegarde manuelle */
+        /** Trigger a manual backup */
         post: operations["DatabaseBackupsController_create"];
         delete?: never;
         options?: never;
@@ -2854,7 +2854,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lister les environnements de preview actifs */
+        /** List active preview environments */
         get: operations["PreviewEnvironmentsController_list"];
         put?: never;
         /** Ouvrir un environnement de preview pour une merge request */
@@ -2875,7 +2875,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Fermer (détruire) un environnement de preview */
+        /** Close (destroy) a preview environment */
         delete: operations["PreviewEnvironmentsController_close"];
         options?: never;
         head?: never;
@@ -2933,20 +2933,20 @@ export interface components {
              */
             provider: "GITLAB" | "GITHUB" | "GITEA";
             /**
-             * @description Chemin du dépôt "owner/repo" (provider-agnostic)
+             * @description Repository path "owner/repo" (provider-agnostic)
              * @example group/project
              */
             repoPath?: string;
             /**
-             * @description Path du groupe/org pour découvrir tous les repos
+             * @description Group/org path to discover all repos
              * @example my-group
              */
             groupPath?: string;
             /** @example main */
             defaultBranch?: string;
-            /** @description Provider ID (Platform Config) pour réutiliser un token existant */
+            /** @description Provider ID (Platform Config) to reuse an existing token */
             providerId?: string;
-            /** @description Token d'accès (PAT ou token provider) */
+            /** @description Access token (PAT or provider token) */
             token?: string;
         };
         ConnectGitlabDto: {
@@ -2955,7 +2955,7 @@ export interface components {
             /** @example https://gitlab.com */
             gitlabUrl?: string;
             /**
-             * @description Provider config ID. Si fourni, URL/token peuvent être omis.
+             * @description Provider config ID. If provided, URL/token may be omitted.
              * @example b5073d11-f378-4c71-87da-093f3ecf20af
              */
             providerId?: string;
@@ -2965,7 +2965,7 @@ export interface components {
              */
             repoPath?: string;
             /**
-             * @description Group/org path pour découvrir tous les repos du groupe.
+             * @description Group/org path to discover all repos in the group.
              * @example my-group
              */
             groupPath?: string;
@@ -2983,7 +2983,7 @@ export interface components {
             /** @example Application e-commerce interne */
             description?: string;
             /**
-             * @description Utilisateur DEVELOPER à assigner comme OWNER
+             * @description DEVELOPER user to assign as OWNER
              * @example 0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd
              */
             ownerId?: string;
@@ -3022,7 +3022,7 @@ export interface components {
             importMode: "ONE_APPLICATION" | "SEPARATE_PROJECTS";
             repositories: components["schemas"]["GitlabGroupImportRepositoryDto"][];
             /**
-             * @description Utilisateur DEVELOPER à assigner comme OWNER
+             * @description DEVELOPER user to assign as OWNER
              * @example 0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd
              */
             ownerId?: string;
@@ -3030,7 +3030,7 @@ export interface components {
         UpdateProjectDto: {
             /** @example App E-commerce V2 */
             name?: string;
-            /** @example Description mise à jour */
+            /** @example Updated description */
             description?: string;
         };
         AddMemberDto: {
@@ -3078,6 +3078,11 @@ export interface components {
             buildPack?: "NIXPACKS" | "BUILDPACK" | "DOCKERFILE" | "DOCKER_COMPOSE" | "STATIC" | "NONE";
             /** @example {"NODE_ENV":"staging"} */
             env?: string;
+            /**
+             * @description Secret variables as JSON. Encrypted at rest; never returned by the API.
+             * @example {"DB_PASSWORD":"s3cr3t"}
+             */
+            secretsEnv?: string;
         };
         UpdateServiceEnvironmentDto: {
             /** @example service-uuid */
@@ -3101,6 +3106,11 @@ export interface components {
             buildPack?: "NIXPACKS" | "BUILDPACK" | "DOCKERFILE" | "DOCKER_COMPOSE" | "STATIC" | "NONE";
             /** @example {"NODE_ENV":"staging"} */
             env?: string;
+            /**
+             * @description Secret variables as JSON. Encrypted at rest; never returned by the API.
+             * @example {"DB_PASSWORD":"s3cr3t"}
+             */
+            secretsEnv?: string;
         };
         UpdateNotificationSettingsDto: Record<string, never>;
         ServerActiveJobDto: {
@@ -3226,13 +3236,13 @@ export interface components {
             totalPages: number;
         };
         DeleteServerResponseDto: {
-            /** @example Serveur supprimé avec succès */
+            /** @example Server deleted successfully */
             message: string;
         };
         InstallKeyResponseDto: {
             /** @example true */
             success: boolean;
-            /** @example Clé publique SSH installée avec succès */
+            /** @example SSH public key installed successfully */
             message: string;
         };
         CreateServerDto: {
@@ -3251,14 +3261,14 @@ export interface components {
              */
             username?: string;
             /**
-             * @description Clé privée SSH (OpenSSH ou PKCS8). Si absente, la plateforme génère automatiquement une paire de clés.
+             * @description SSH private key (OpenSSH or PKCS8). If omitted, the platform auto-generates a key pair.
              * @example -----BEGIN OPENSSH PRIVATE KEY-----
              *     ...
              */
             sshKey?: string;
             /**
              * @deprecated
-             * @description Déprécié: ce champ est ignoré. Le serveur est créé puis la clé SSH doit être installée via /servers/:id/install-key.
+             * @description Deprecated: this field is ignored. The server is created, then the SSH key must be installed via /servers/:id/install-key.
              * @default manual
              * @enum {string}
              */
@@ -3266,7 +3276,7 @@ export interface components {
             /** @description ID of an existing SshKey to use for this server connection. */
             sshKeyId?: string;
             /**
-             * @description Mode de connexion : ssh (direct SSH)
+             * @description Connection mode: ssh (direct SSH)
              * @default ssh
              * @enum {string}
              */
@@ -3682,7 +3692,7 @@ export interface components {
             /** @example main */
             branch?: string;
             /**
-             * @description Strategy de déploiement: standard (simple restart) ou blue-green (zero-downtime)
+             * @description Deployment strategy: standard (simple restart) or blue-green (zero-downtime)
              * @example standard
              * @enum {string}
              */
@@ -3856,7 +3866,7 @@ export interface components {
             healthcheckPath?: string;
             /** @example 1 */
             replicas?: number;
-            /** @description Connexion source (GitLab/GitHub) lors de la création */
+            /** @description Source connection (GitLab/GitHub) on creation */
             source?: components["schemas"]["SourceConnectionDto"];
         };
         DiscoverGroupDto: {
@@ -3935,7 +3945,7 @@ export interface components {
             healthcheckPath?: string;
             /** @example 1 */
             replicas?: number;
-            /** @description Connexion source (GitLab/GitHub) lors de la création */
+            /** @description Source connection (GitLab/GitHub) on creation */
             source?: components["schemas"]["SourceConnectionDto"];
         };
         CreateVolumeDto: {
@@ -3978,7 +3988,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Service opérationnel */
+            /** @description Service operational */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4006,14 +4016,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Rôle insuffisant */
+            /** @description Insufficient role */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4035,28 +4045,28 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Utilisateur créé avec succès */
+            /** @description User created successfully */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Rôle insuffisant */
+            /** @description Insufficient role */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Email déjà utilisé */
+            /** @description Email already in use */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4078,7 +4088,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Mot de passe mis à jour */
+            /** @description Password updated */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4092,7 +4102,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide/expiré ou mot de passe actuel incorrect */
+            /** @description Invalid/expired JWT token or incorrect current password */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4112,28 +4122,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Utilisateur trouvé */
+            /** @description User found */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Rôle insuffisant */
+            /** @description Insufficient role */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Utilisateur non trouvé */
+            /** @description User not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4157,28 +4167,28 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Utilisateur mis à jour */
+            /** @description User updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Rôle insuffisant */
+            /** @description Insufficient role */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Utilisateur non trouvé */
+            /** @description User not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4198,28 +4208,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Utilisateur supprimé */
+            /** @description User deleted */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Rôle insuffisant */
+            /** @description Insufficient role */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Utilisateur non trouvé */
+            /** @description User not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4239,28 +4249,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Statut du compte mis à jour */
+            /** @description Account status updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Rôle insuffisant */
+            /** @description Insufficient role */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Utilisateur non trouvé */
+            /** @description User not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4282,7 +4292,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Connexion réussie avec token JWT */
+            /** @description Login successful with JWT token */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4296,7 +4306,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Trop de tentatives de connexion */
+            /** @description Too many connection attempts */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -4314,21 +4324,21 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Jeton WebSocket généré */
+            /** @description WebSocket token generated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Non authentifié */
+            /** @description Not authenticated */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Rôle insuffisant */
+            /** @description Insufficient role */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4346,21 +4356,21 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Profil utilisateur récupéré avec succès */
+            /** @description User profile fetched successfully */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Rôle insuffisant */
+            /** @description Insufficient role */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4378,14 +4388,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Déconnexion enregistrée */
+            /** @description Logout recorded */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4406,21 +4416,21 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Logs d’audit paginés */
+            /** @description Paginated audit logs */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès réservé aux admins */
+            /** @description Admins only */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5101,14 +5111,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Source connectée */
+            /** @description Source connected */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Connexion échouée */
+            /** @description Connection failed */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -5133,7 +5143,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5199,35 +5209,35 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Configuration GitLab enregistrée */
+            /** @description GitLab configuration saved */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Connexion GitLab échouée */
+            /** @description GitLab connection failed */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé */
+            /** @description Unauthorized access */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet non trouvé */
+            /** @description Project not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5247,28 +5257,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Branches GitLab récupérées */
+            /** @description GitLab branches fetched */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé */
+            /** @description Unauthorized access */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet ou config GitLab non trouvé */
+            /** @description Project or GitLab config not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5288,28 +5298,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Pipelines GitLab récupérés */
+            /** @description GitLab pipelines fetched */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé */
+            /** @description Unauthorized access */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet ou config GitLab non trouvé */
+            /** @description Project or GitLab config not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5329,28 +5339,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Repositories GitLab récupérés */
+            /** @description GitLab repositories fetched */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé */
+            /** @description Unauthorized access */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet ou config GitLab non trouvé */
+            /** @description Project or GitLab config not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5374,28 +5384,28 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Pipeline GitLab déclenché */
+            /** @description GitLab pipeline triggered */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé */
+            /** @description Unauthorized access */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet ou config GitLab non trouvé */
+            /** @description Project or GitLab config not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5415,28 +5425,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Configuration GitLab retournée */
+            /** @description GitLab configuration returned */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé */
+            /** @description Unauthorized access */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet ou config GitLab non trouvé */
+            /** @description Project or GitLab config not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5512,7 +5522,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Liste retournée (secrets masqués) */
+            /** @description List returned (secrets masked) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5536,7 +5546,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Configuration mise à jour */
+            /** @description Configuration updated */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5564,7 +5574,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5586,21 +5596,21 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Projet créé avec succès */
+            /** @description Project created successfully */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Action réservée aux administrateurs */
+            /** @description Administrators only */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5622,7 +5632,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Import GitLab Group terminé */
+            /** @description GitLab Group import complete */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -5642,28 +5652,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Détail du projet récupéré */
+            /** @description Project details fetched */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé au projet */
+            /** @description Unauthorized access to the project */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet non trouvé */
+            /** @description Project not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5687,28 +5697,28 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Projet mis à jour */
+            /** @description Project updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Action non autorisée */
+            /** @description Unauthorized action */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet non trouvé */
+            /** @description Project not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5728,28 +5738,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Projet supprimé */
+            /** @description Project deleted */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Action non autorisée */
+            /** @description Unauthorized action */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet non trouvé */
+            /** @description Project not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5776,21 +5786,21 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé au projet */
+            /** @description Unauthorized access to the project */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet non trouvé */
+            /** @description Project not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5814,35 +5824,35 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Membre ajouté au projet */
+            /** @description Member added to the project */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Action non autorisée */
+            /** @description Unauthorized action */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet ou utilisateur non trouvé */
+            /** @description Project or user not found */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Utilisateur déjà membre */
+            /** @description User already a member */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5863,28 +5873,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Membre retiré du projet */
+            /** @description Member removed from the project */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Action non autorisée */
+            /** @description Unauthorized action */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet ou membre non trouvé */
+            /** @description Project or member not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -5927,7 +5937,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Environnement créé avec succès */
+            /** @description Environment created successfully */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -6117,14 +6127,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Lien créé */
+            /** @description Link created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Lien déjà existant */
+            /** @description Link already exists */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6473,7 +6483,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Serveur créé avec succès */
+            /** @description Server created successfully */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -6495,7 +6505,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Serveur trouvé */
+            /** @description Server found */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6521,7 +6531,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Serveur mis à jour */
+            /** @description Server updated */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6543,7 +6553,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Serveur supprimé */
+            /** @description Server deleted */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6552,7 +6562,7 @@ export interface operations {
                     "application/json": components["schemas"]["DeleteServerResponseDto"];
                 };
             };
-            /** @description Serveur utilisé par un environnement actif */
+            /** @description Server used by an active environment */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -6576,7 +6586,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Serveur mis à jour */
+            /** @description Server updated */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6602,7 +6612,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Clé SSH installée et validée */
+            /** @description SSH key installed and validated */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -6628,7 +6638,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Runner enregistré */
+            /** @description Runner registered */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -6679,7 +6689,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Rôle mis à jour */
+            /** @description Role updated */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6697,7 +6707,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Serveurs avec rôle infra */
+            /** @description Servers with an infra role */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6737,7 +6747,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Résultat du test de connexion */
+            /** @description Connection test result */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6758,7 +6768,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Job marqué comme échoué */
+            /** @description Job marked as failed */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6885,7 +6895,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Validation SSH démarrée */
+            /** @description SSH validation started */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -6907,7 +6917,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Statut de vérification du serveur */
+            /** @description Server verification status */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6931,7 +6941,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Logs de vérification du serveur */
+            /** @description Server verification logs */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6978,7 +6988,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Détection terminée */
+            /** @description Detection complete */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -7218,7 +7228,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Résultat de la validation outillage */
+            /** @description Tooling validation result */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -7227,7 +7237,7 @@ export interface operations {
                     "application/json": components["schemas"]["ValidationResultDto"];
                 };
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -7248,7 +7258,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Liste des déploiements */
+            /** @description Deployment list */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -7257,7 +7267,7 @@ export interface operations {
                     "application/json": components["schemas"]["DeploymentDetailedResponseDto"][] | components["schemas"]["PaginatedDeploymentsResponseDto"];
                 };
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -7279,7 +7289,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Déploiement créé */
+            /** @description Deployment created */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -7288,21 +7298,21 @@ export interface operations {
                     "application/json": components["schemas"]["DeploymentResponseDto"];
                 };
             };
-            /** @description Préconditions de déploiement invalides */
+            /** @description Invalid deployment preconditions */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé au projet */
+            /** @description Unauthorized access to the project */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7322,7 +7332,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Historique des déploiements du projet */
+            /** @description Project deployment history */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -7331,21 +7341,21 @@ export interface operations {
                     "application/json": components["schemas"]["DeploymentDetailedResponseDto"][];
                 };
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé au projet */
+            /** @description Unauthorized access to the project */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet non trouvé */
+            /** @description Project not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -7365,21 +7375,21 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Variables résolues (origine + isSecret) et warnings de résolution */
+            /** @description Resolved variables (origin + isSecret) and resolution warnings */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Lien service-environnement non trouvé */
+            /** @description Service-environment link not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -7399,7 +7409,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Détail du déploiement */
+            /** @description Deployment details */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -7408,21 +7418,21 @@ export interface operations {
                     "application/json": components["schemas"]["DeploymentDetailedResponseDto"];
                 };
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé */
+            /** @description Unauthorized access */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Déploiement non trouvé */
+            /** @description Deployment not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -7442,28 +7452,28 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Déploiement supprimé */
+            /** @description Deployment deleted */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé */
+            /** @description Unauthorized access */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Déploiement non trouvé */
+            /** @description Deployment not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -7483,7 +7493,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Déploiement annulé */
+            /** @description Deployment canceled */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -7492,28 +7502,28 @@ export interface operations {
                     "application/json": components["schemas"]["DeploymentResponseDto"];
                 };
             };
-            /** @description État du déploiement non annulable */
+            /** @description Deployment state cannot be canceled */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé */
+            /** @description Unauthorized access */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Déploiement non trouvé */
+            /** @description Deployment not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -7533,7 +7543,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Rollback lancé */
+            /** @description Rollback launched */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -7549,21 +7559,21 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Token JWT invalide ou expiré */
+            /** @description Invalid or expired JWT token */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Accès non autorisé */
+            /** @description Unauthorized access */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Déploiement non trouvé */
+            /** @description Deployment not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -7620,7 +7630,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Liste des équipes */
+            /** @description Team list */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -7642,14 +7652,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Équipe créée avec succès */
+            /** @description Team created successfully */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Nom déjà utilisé */
+            /** @description Name already in use */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -7669,14 +7679,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Équipe trouvée */
+            /** @description Team found */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Équipe introuvable */
+            /** @description Team not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -7700,14 +7710,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Équipe mise à jour */
+            /** @description Team updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Équipe introuvable */
+            /** @description Team not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -7727,14 +7737,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Équipe supprimée */
+            /** @description Team deleted */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Équipe introuvable */
+            /** @description Team not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -7758,21 +7768,21 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Membre ajouté */
+            /** @description Member added */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Équipe ou utilisateur introuvable */
+            /** @description Team or user not found */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Déjà membre de cette équipe */
+            /** @description Already a member of this team */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -7793,14 +7803,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Membre retiré */
+            /** @description Member removed */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Équipe ou membre introuvable */
+            /** @description Team or member not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -7821,14 +7831,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Membres de l'équipe ajoutés au projet */
+            /** @description Team members added to the project */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Projet ou équipe introuvable */
+            /** @description Project or team not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -8432,7 +8442,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Provider DNS créé */
+            /** @description DNS provider created */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -8452,7 +8462,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Résultat du test DNS */
+            /** @description DNS test result */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -8494,7 +8504,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Domaine DNS créé */
+            /** @description DNS domain created */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -8514,7 +8524,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Domaine vérifié */
+            /** @description Domain verified */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -8558,7 +8568,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Record DNS créé */
+            /** @description DNS record created */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -8582,7 +8592,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Record DNS mis à jour */
+            /** @description DNS record updated */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -8602,7 +8612,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Record DNS supprimé */
+            /** @description DNS record deleted */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -8902,7 +8912,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Service créé */
+            /** @description Service created */
             201: {
                 headers: {
                     [name: string]: unknown;

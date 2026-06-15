@@ -7,10 +7,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Service opérationnel"
+            "description": "Service operational"
           }
         },
-        "summary": "Vérification de santé de la plateforme",
+        "summary": "Platform health check",
         "tags": [
           "Health"
         ]
@@ -32,16 +32,16 @@
         },
         "responses": {
           "201": {
-            "description": "Utilisateur créé avec succès"
+            "description": "User created successfully"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Rôle insuffisant"
+            "description": "Insufficient role"
           },
           "409": {
-            "description": "Email déjà utilisé"
+            "description": "Email already in use"
           }
         },
         "security": [
@@ -49,7 +49,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer un nouveau compte développeur",
+        "summary": "Create a new developer account",
         "tags": [
           "Users"
         ]
@@ -84,10 +84,10 @@
             "description": "Liste des utilisateurs"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Rôle insuffisant"
+            "description": "Insufficient role"
           }
         },
         "security": [
@@ -95,7 +95,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister tous les utilisateurs sans mot de passe",
+        "summary": "List all users without passwords",
         "tags": [
           "Users"
         ]
@@ -117,13 +117,13 @@
         },
         "responses": {
           "200": {
-            "description": "Mot de passe mis à jour"
+            "description": "Password updated"
           },
           "400": {
             "description": "Payload invalide"
           },
           "401": {
-            "description": "Token JWT invalide/expiré ou mot de passe actuel incorrect"
+            "description": "Invalid/expired JWT token or incorrect current password"
           }
         },
         "security": [
@@ -152,16 +152,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Utilisateur trouvé"
+            "description": "User found"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Rôle insuffisant"
+            "description": "Insufficient role"
           },
           "404": {
-            "description": "Utilisateur non trouvé"
+            "description": "User not found"
           }
         },
         "security": [
@@ -169,7 +169,7 @@
             "bearer": []
           }
         ],
-        "summary": "Récupérer le détail d'un utilisateur",
+        "summary": "Get a user's details",
         "tags": [
           "Users"
         ]
@@ -198,16 +198,16 @@
         },
         "responses": {
           "200": {
-            "description": "Utilisateur mis à jour"
+            "description": "User updated"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Rôle insuffisant"
+            "description": "Insufficient role"
           },
           "404": {
-            "description": "Utilisateur non trouvé"
+            "description": "User not found"
           }
         },
         "security": [
@@ -215,7 +215,7 @@
             "bearer": []
           }
         ],
-        "summary": "Modifier un utilisateur",
+        "summary": "Edit a user",
         "tags": [
           "Users"
         ]
@@ -234,16 +234,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Utilisateur supprimé"
+            "description": "User deleted"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Rôle insuffisant"
+            "description": "Insufficient role"
           },
           "404": {
-            "description": "Utilisateur non trouvé"
+            "description": "User not found"
           }
         },
         "security": [
@@ -251,7 +251,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un utilisateur",
+        "summary": "Delete a user",
         "tags": [
           "Users"
         ]
@@ -272,16 +272,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Statut du compte mis à jour"
+            "description": "Account status updated"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Rôle insuffisant"
+            "description": "Insufficient role"
           },
           "404": {
-            "description": "Utilisateur non trouvé"
+            "description": "User not found"
           }
         },
         "security": [
@@ -289,7 +289,7 @@
             "bearer": []
           }
         ],
-        "summary": "Activer ou désactiver un compte utilisateur",
+        "summary": "Activate or deactivate a user account",
         "tags": [
           "Users"
         ]
@@ -311,16 +311,16 @@
         },
         "responses": {
           "200": {
-            "description": "Connexion réussie avec token JWT"
+            "description": "Login successful with JWT token"
           },
           "401": {
             "description": "Email ou mot de passe incorrect"
           },
           "429": {
-            "description": "Trop de tentatives de connexion"
+            "description": "Too many connection attempts"
           }
         },
-        "summary": "Connexion utilisateur",
+        "summary": "User login",
         "tags": [
           "Auth"
         ]
@@ -332,13 +332,13 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Jeton WebSocket généré"
+            "description": "WebSocket token generated"
           },
           "401": {
-            "description": "Non authentifié"
+            "description": "Not authenticated"
           },
           "403": {
-            "description": "Rôle insuffisant"
+            "description": "Insufficient role"
           }
         },
         "security": [
@@ -346,7 +346,7 @@
             "bearer": []
           }
         ],
-        "summary": "Retourne un jeton court durée pour les connexions WebSocket",
+        "summary": "Returns a short-lived token for WebSocket connections",
         "tags": [
           "Auth"
         ]
@@ -358,13 +358,13 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Profil utilisateur récupéré avec succès"
+            "description": "User profile fetched successfully"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Rôle insuffisant"
+            "description": "Insufficient role"
           }
         },
         "security": [
@@ -372,7 +372,7 @@
             "bearer": []
           }
         ],
-        "summary": "Récupérer le profil de l'utilisateur connecté",
+        "summary": "Get the logged-in user's profile",
         "tags": [
           "Auth"
         ]
@@ -384,10 +384,10 @@
         "parameters": [],
         "responses": {
           "201": {
-            "description": "Déconnexion enregistrée"
+            "description": "Logout recorded"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           }
         },
         "security": [
@@ -395,7 +395,7 @@
             "bearer": []
           }
         ],
-        "summary": "Déconnexion utilisateur (audit)",
+        "summary": "User logout (audit)",
         "tags": [
           "Auth"
         ]
@@ -429,13 +429,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Logs d’audit paginés"
+            "description": "Paginated audit logs"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès réservé aux admins"
+            "description": "Admins only"
           }
         },
         "security": [
@@ -443,7 +443,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les logs d’audit (admin)",
+        "summary": "List audit logs (admin)",
         "tags": [
           "Audit Logs"
         ]
@@ -814,7 +814,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les providers GitLab",
+        "summary": "List GitLab providers",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -842,7 +842,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer un provider GitLab",
+        "summary": "Create a GitLab provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -881,7 +881,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mettre à jour un provider GitLab",
+        "summary": "Update a GitLab provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -908,7 +908,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un provider GitLab",
+        "summary": "Delete a GitLab provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -937,7 +937,7 @@
             "bearer": []
           }
         ],
-        "summary": "Définir un provider GitLab par défaut",
+        "summary": "Set a default GitLab provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -966,7 +966,7 @@
             "bearer": []
           }
         ],
-        "summary": "Tester la connexion GitLab pour un provider",
+        "summary": "Test the GitLab connection for a provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -995,7 +995,7 @@
             "bearer": []
           }
         ],
-        "summary": "Démarrer OAuth GitLab pour un provider",
+        "summary": "Start GitLab OAuth for a provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1015,7 +1015,7 @@
             "bearer": []
           }
         ],
-        "summary": "Tester la connexion GitLab globale (default provider)",
+        "summary": "Test the global GitLab connection (default provider)",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1035,7 +1035,7 @@
             "bearer": []
           }
         ],
-        "summary": "Démarrer OAuth GitLab global (default provider)",
+        "summary": "Start global GitLab OAuth (default provider)",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1055,7 +1055,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les providers GitHub",
+        "summary": "List GitHub providers",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1073,7 +1073,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer un provider GitHub",
+        "summary": "Create a GitHub provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1102,7 +1102,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mettre à jour un provider GitHub",
+        "summary": "Update a GitHub provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1129,7 +1129,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un provider GitHub",
+        "summary": "Delete a GitHub provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1158,7 +1158,7 @@
             "bearer": []
           }
         ],
-        "summary": "Définir un provider GitHub par défaut",
+        "summary": "Set a default GitHub provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1187,7 +1187,7 @@
             "bearer": []
           }
         ],
-        "summary": "Tester la connexion GitHub pour un provider",
+        "summary": "Test the GitHub connection for a provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1216,7 +1216,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les repos GitHub accessibles via ce provider",
+        "summary": "List GitHub repos accessible via this provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1236,7 +1236,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les providers Gitea",
+        "summary": "List Gitea providers",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1254,7 +1254,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer un provider Gitea",
+        "summary": "Create a Gitea provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1283,7 +1283,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mettre à jour un provider Gitea",
+        "summary": "Update a Gitea provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1310,7 +1310,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un provider Gitea",
+        "summary": "Delete a Gitea provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1339,7 +1339,7 @@
             "bearer": []
           }
         ],
-        "summary": "Définir un provider Gitea par défaut",
+        "summary": "Set a default Gitea provider",
         "tags": [
           "Git Providers (Admin)"
         ]
@@ -1359,7 +1359,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister tous les providers source (GitHub + GitLab) avec leur type",
+        "summary": "List all source providers (GitHub + GitLab) with their type",
         "tags": [
           "Source (unified)"
         ]
@@ -1390,10 +1390,10 @@
         },
         "responses": {
           "201": {
-            "description": "Source connectée"
+            "description": "Source connected"
           },
           "400": {
-            "description": "Connexion échouée"
+            "description": "Connection failed"
           }
         },
         "security": [
@@ -1401,7 +1401,7 @@
             "bearer": []
           }
         ],
-        "summary": "Connecter une source Git (GitLab ou GitHub) à un projet",
+        "summary": "Connect a Git source (GitLab or GitHub) to a project",
         "tags": [
           "Source (unified)"
         ]
@@ -1416,7 +1416,7 @@
             "description": "Providers GitLab disponibles"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           }
         },
         "security": [
@@ -1461,7 +1461,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les repositories accessibles dans un groupe GitLab",
+        "summary": "List repositories accessible in a GitLab group",
         "tags": [
           "GitLab"
         ]
@@ -1498,7 +1498,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les branches avant création projet/service",
+        "summary": "List branches before project/service creation",
         "tags": [
           "GitLab"
         ]
@@ -1529,19 +1529,19 @@
         },
         "responses": {
           "201": {
-            "description": "Configuration GitLab enregistrée"
+            "description": "GitLab configuration saved"
           },
           "400": {
-            "description": "Connexion GitLab échouée"
+            "description": "GitLab connection failed"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé"
+            "description": "Unauthorized access"
           },
           "404": {
-            "description": "Projet non trouvé"
+            "description": "Project not found"
           }
         },
         "security": [
@@ -1549,7 +1549,7 @@
             "bearer": []
           }
         ],
-        "summary": "Connecter un projet à GitLab",
+        "summary": "Connect a project to GitLab",
         "tags": [
           "GitLab"
         ]
@@ -1570,16 +1570,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Branches GitLab récupérées"
+            "description": "GitLab branches fetched"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé"
+            "description": "Unauthorized access"
           },
           "404": {
-            "description": "Projet ou config GitLab non trouvé"
+            "description": "Project or GitLab config not found"
           }
         },
         "security": [
@@ -1587,7 +1587,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les branches GitLab disponibles",
+        "summary": "List available GitLab branches",
         "tags": [
           "GitLab"
         ]
@@ -1608,16 +1608,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Pipelines GitLab récupérés"
+            "description": "GitLab pipelines fetched"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé"
+            "description": "Unauthorized access"
           },
           "404": {
-            "description": "Projet ou config GitLab non trouvé"
+            "description": "Project or GitLab config not found"
           }
         },
         "security": [
@@ -1625,7 +1625,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les pipelines GitLab",
+        "summary": "List GitLab pipelines",
         "tags": [
           "GitLab"
         ]
@@ -1646,16 +1646,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Repositories GitLab récupérés"
+            "description": "GitLab repositories fetched"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé"
+            "description": "Unauthorized access"
           },
           "404": {
-            "description": "Projet ou config GitLab non trouvé"
+            "description": "Project or GitLab config not found"
           }
         },
         "security": [
@@ -1663,7 +1663,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les repositories (REPO/GROUP)",
+        "summary": "List repositories (REPO/GROUP)",
         "tags": [
           "GitLab"
         ]
@@ -1694,16 +1694,16 @@
         },
         "responses": {
           "201": {
-            "description": "Pipeline GitLab déclenché"
+            "description": "GitLab pipeline triggered"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé"
+            "description": "Unauthorized access"
           },
           "404": {
-            "description": "Projet ou config GitLab non trouvé"
+            "description": "Project or GitLab config not found"
           }
         },
         "security": [
@@ -1711,7 +1711,7 @@
             "bearer": []
           }
         ],
-        "summary": "Déclencher un pipeline GitLab manuellement",
+        "summary": "Trigger a GitLab pipeline manually",
         "tags": [
           "GitLab"
         ]
@@ -1732,16 +1732,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Configuration GitLab retournée"
+            "description": "GitLab configuration returned"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé"
+            "description": "Unauthorized access"
           },
           "404": {
-            "description": "Projet ou config GitLab non trouvé"
+            "description": "Project or GitLab config not found"
           }
         },
         "security": [
@@ -1749,7 +1749,7 @@
             "bearer": []
           }
         ],
-        "summary": "Voir la configuration GitLab d’un projet",
+        "summary": "View a project's GitLab configuration",
         "tags": [
           "GitLab"
         ]
@@ -1856,7 +1856,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Liste retournée (secrets masqués)"
+            "description": "List returned (secrets masked)"
           }
         },
         "security": [
@@ -1864,7 +1864,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister toutes les configurations globales",
+        "summary": "List all global configurations",
         "tags": [
           "Platform Config"
         ]
@@ -1895,7 +1895,7 @@
         },
         "responses": {
           "200": {
-            "description": "Configuration mise à jour"
+            "description": "Configuration updated"
           }
         },
         "security": [
@@ -1903,7 +1903,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mettre à jour une configuration globale",
+        "summary": "Update a global configuration",
         "tags": [
           "Platform Config"
         ]
@@ -1925,13 +1925,13 @@
         },
         "responses": {
           "201": {
-            "description": "Projet créé avec succès"
+            "description": "Project created successfully"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Action réservée aux administrateurs"
+            "description": "Administrators only"
           }
         },
         "security": [
@@ -1939,7 +1939,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer un projet",
+        "summary": "Create a project",
         "tags": [
           "Projects"
         ]
@@ -1974,7 +1974,7 @@
             "description": "Liste des projets"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           }
         },
         "security": [
@@ -1982,7 +1982,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les projets selon le rôle utilisateur",
+        "summary": "List projects according to the user role",
         "tags": [
           "Projects"
         ]
@@ -2004,7 +2004,7 @@
         },
         "responses": {
           "201": {
-            "description": "Import GitLab Group terminé"
+            "description": "GitLab Group import complete"
           }
         },
         "security": [
@@ -2012,7 +2012,7 @@
             "bearer": []
           }
         ],
-        "summary": "Importer des repositories GitLab Group en application multi-services ou projets séparés",
+        "summary": "Import GitLab Group repositories as a multi-service application or separate projects",
         "tags": [
           "Projects"
         ]
@@ -2033,16 +2033,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Détail du projet récupéré"
+            "description": "Project details fetched"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé au projet"
+            "description": "Unauthorized access to the project"
           },
           "404": {
-            "description": "Projet non trouvé"
+            "description": "Project not found"
           }
         },
         "security": [
@@ -2050,7 +2050,7 @@
             "bearer": []
           }
         ],
-        "summary": "Récupérer le détail d’un projet",
+        "summary": "Get the details of a project",
         "tags": [
           "Projects"
         ]
@@ -2079,16 +2079,16 @@
         },
         "responses": {
           "200": {
-            "description": "Projet mis à jour"
+            "description": "Project updated"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Action non autorisée"
+            "description": "Unauthorized action"
           },
           "404": {
-            "description": "Projet non trouvé"
+            "description": "Project not found"
           }
         },
         "security": [
@@ -2096,7 +2096,7 @@
             "bearer": []
           }
         ],
-        "summary": "Modifier un projet",
+        "summary": "Edit a project",
         "tags": [
           "Projects"
         ]
@@ -2115,16 +2115,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Projet supprimé"
+            "description": "Project deleted"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Action non autorisée"
+            "description": "Unauthorized action"
           },
           "404": {
-            "description": "Projet non trouvé"
+            "description": "Project not found"
           }
         },
         "security": [
@@ -2132,7 +2132,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un projet",
+        "summary": "Delete a project",
         "tags": [
           "Projects"
         ]
@@ -2163,19 +2163,19 @@
         },
         "responses": {
           "201": {
-            "description": "Membre ajouté au projet"
+            "description": "Member added to the project"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Action non autorisée"
+            "description": "Unauthorized action"
           },
           "404": {
-            "description": "Projet ou utilisateur non trouvé"
+            "description": "Project or user not found"
           },
           "409": {
-            "description": "Utilisateur déjà membre"
+            "description": "User already a member"
           }
         },
         "security": [
@@ -2183,7 +2183,7 @@
             "bearer": []
           }
         ],
-        "summary": "Ajouter un membre au projet",
+        "summary": "Add a member to the project",
         "tags": [
           "Projects"
         ]
@@ -2205,13 +2205,13 @@
             "description": "Liste des membres du projet"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé au projet"
+            "description": "Unauthorized access to the project"
           },
           "404": {
-            "description": "Projet non trouvé"
+            "description": "Project not found"
           }
         },
         "security": [
@@ -2219,7 +2219,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les membres du projet",
+        "summary": "List project members",
         "tags": [
           "Projects"
         ]
@@ -2248,16 +2248,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Membre retiré du projet"
+            "description": "Member removed from the project"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Action non autorisée"
+            "description": "Unauthorized action"
           },
           "404": {
-            "description": "Projet ou membre non trouvé"
+            "description": "Project or member not found"
           }
         },
         "security": [
@@ -2265,7 +2265,7 @@
             "bearer": []
           }
         ],
-        "summary": "Retirer un membre du projet",
+        "summary": "Remove a member from the project",
         "tags": [
           "Projects"
         ]
@@ -2296,7 +2296,7 @@
         },
         "responses": {
           "201": {
-            "description": "Environnement créé avec succès"
+            "description": "Environment created successfully"
           }
         },
         "security": [
@@ -2304,7 +2304,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer un environnement pour un projet",
+        "summary": "Create an environment for a project",
         "tags": [
           "Environments"
         ]
@@ -2368,7 +2368,7 @@
             "bearer": []
           }
         ],
-        "summary": "Détail d'un environnement de projet",
+        "summary": "Project environment details",
         "tags": [
           "Environments"
         ]
@@ -2413,7 +2413,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mettre à jour un environnement de projet",
+        "summary": "Update a project environment",
         "tags": [
           "Environments"
         ]
@@ -2448,7 +2448,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un environnement de projet",
+        "summary": "Delete a project environment",
         "tags": [
           "Environments"
         ]
@@ -2493,7 +2493,7 @@
             "bearer": []
           }
         ],
-        "summary": "Assigner un serveur à un environnement",
+        "summary": "Assign a server to an environment",
         "tags": [
           "Environments"
         ]
@@ -2536,7 +2536,7 @@
             "bearer": []
           }
         ],
-        "summary": "Retirer un serveur d'un environnement",
+        "summary": "Remove a server from an environment",
         "tags": [
           "Environments"
         ]
@@ -2581,7 +2581,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lier un service à un environnement",
+        "summary": "Link a service to an environment",
         "tags": [
           "Environments"
         ]
@@ -2618,7 +2618,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les services liés à un environnement",
+        "summary": "List services linked to an environment",
         "tags": [
           "Environments"
         ]
@@ -2649,10 +2649,10 @@
         },
         "responses": {
           "201": {
-            "description": "Lien créé"
+            "description": "Link created"
           },
           "409": {
-            "description": "Lien déjà existant"
+            "description": "Link already exists"
           }
         },
         "security": [
@@ -2660,7 +2660,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lier un service à un environnement",
+        "summary": "Link a service to an environment",
         "tags": [
           "ServiceEnvironments"
         ]
@@ -2687,7 +2687,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister tous les liens du projet (par service ou environment)",
+        "summary": "List all project links (by service or environment)",
         "tags": [
           "ServiceEnvironments"
         ]
@@ -2724,7 +2724,7 @@
             "bearer": []
           }
         ],
-        "summary": "Détail d'un lien service-environnement",
+        "summary": "Service-environment link details",
         "tags": [
           "ServiceEnvironments"
         ]
@@ -2769,7 +2769,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mettre à jour les overrides du lien",
+        "summary": "Update the link overrides",
         "tags": [
           "ServiceEnvironments"
         ]
@@ -2804,7 +2804,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un lien service-environnement",
+        "summary": "Delete a service-environment link",
         "tags": [
           "ServiceEnvironments"
         ]
@@ -3110,7 +3110,7 @@
             "bearer": []
           }
         ],
-        "summary": "Récupérer les paramètres de notification",
+        "summary": "Get the notification settings",
         "tags": [
           "Notifications"
         ]
@@ -3138,7 +3138,7 @@
             "bearer": []
           }
         ],
-        "summary": "Sauvegarder les paramètres de notification",
+        "summary": "Save the notification settings",
         "tags": [
           "Notifications"
         ]
@@ -3160,7 +3160,7 @@
         },
         "responses": {
           "201": {
-            "description": "Serveur créé avec succès",
+            "description": "Server created successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -3175,7 +3175,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer un serveur",
+        "summary": "Create a server",
         "tags": [
           "Servers Management"
         ]
@@ -3232,7 +3232,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister tous les serveurs (sshKey masquée)",
+        "summary": "List all servers (sshKey masked)",
         "tags": [
           "Servers Management"
         ]
@@ -3253,7 +3253,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Serveur trouvé",
+            "description": "Server found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3268,7 +3268,7 @@
             "bearer": []
           }
         ],
-        "summary": "Voir le détail d'un serveur",
+        "summary": "View a server's details",
         "tags": [
           "Servers Management"
         ]
@@ -3297,7 +3297,7 @@
         },
         "responses": {
           "200": {
-            "description": "Serveur mis à jour",
+            "description": "Server updated",
             "content": {
               "application/json": {
                 "schema": {
@@ -3312,7 +3312,7 @@
             "bearer": []
           }
         ],
-        "summary": "Modifier un serveur",
+        "summary": "Edit a server",
         "tags": [
           "Servers Management"
         ]
@@ -3341,7 +3341,7 @@
         },
         "responses": {
           "200": {
-            "description": "Serveur mis à jour",
+            "description": "Server updated",
             "content": {
               "application/json": {
                 "schema": {
@@ -3356,7 +3356,7 @@
             "bearer": []
           }
         ],
-        "summary": "Modifier partiellement un serveur",
+        "summary": "Partially update a server",
         "tags": [
           "Servers Management"
         ]
@@ -3375,7 +3375,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Serveur supprimé",
+            "description": "Server deleted",
             "content": {
               "application/json": {
                 "schema": {
@@ -3385,7 +3385,7 @@
             }
           },
           "400": {
-            "description": "Serveur utilisé par un environnement actif"
+            "description": "Server used by an active environment"
           }
         },
         "security": [
@@ -3393,7 +3393,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un serveur si aucun environnement actif",
+        "summary": "Delete a server if no active environment",
         "tags": [
           "Servers Management"
         ]
@@ -3424,7 +3424,7 @@
         },
         "responses": {
           "201": {
-            "description": "Clé SSH installée et validée",
+            "description": "SSH key installed and validated",
             "content": {
               "application/json": {
                 "schema": {
@@ -3439,7 +3439,7 @@
             "bearer": []
           }
         ],
-        "summary": "Installer la clé publique SSH via mot de passe temporaire",
+        "summary": "Install the SSH public key via a temporary password",
         "tags": [
           "Servers Management"
         ]
@@ -3470,7 +3470,7 @@
         },
         "responses": {
           "201": {
-            "description": "Runner enregistré",
+            "description": "Runner registered",
             "content": {
               "application/json": {
                 "schema": {
@@ -3583,7 +3583,7 @@
         },
         "responses": {
           "200": {
-            "description": "Rôle mis à jour"
+            "description": "Role updated"
           }
         },
         "security": [
@@ -3591,7 +3591,7 @@
             "bearer": []
           }
         ],
-        "summary": "Définir le rôle infrastructure de ce serveur",
+        "summary": "Set the infrastructure role of this server",
         "tags": [
           "Servers Management"
         ]
@@ -3603,7 +3603,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Serveurs avec rôle infra"
+            "description": "Servers with an infra role"
           }
         },
         "security": [
@@ -3611,7 +3611,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les serveurs configurés comme STAGING ou PRODUCTION",
+        "summary": "List servers configured as STAGING or PRODUCTION",
         "tags": [
           "Servers Management"
         ]
@@ -3640,7 +3640,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les environnements assignés à ce serveur (tous projets)",
+        "summary": "List environments assigned to this server (all projects)",
         "tags": [
           "Servers Management"
         ]
@@ -3661,7 +3661,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Résultat du test de connexion"
+            "description": "Connection test result"
           }
         },
         "security": [
@@ -3669,7 +3669,7 @@
             "bearer": []
           }
         ],
-        "summary": "Tester rapidement la connectivité SSH du serveur",
+        "summary": "Quickly test the server SSH connectivity",
         "tags": [
           "Servers Management"
         ]
@@ -3698,7 +3698,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Job marqué comme échoué",
+            "description": "Job marked as failed",
             "content": {
               "application/json": {
                 "schema": {
@@ -3713,7 +3713,7 @@
             "bearer": []
           }
         ],
-        "summary": "Forcer la fin d'un job bloqué ou fantôme",
+        "summary": "Force-finish a stuck or ghost job",
         "tags": [
           "Servers Management"
         ]
@@ -3742,7 +3742,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lire la config Docker (chiffrée) pour un serveur",
+        "summary": "Read the (encrypted) Docker config for a server",
         "tags": [
           "Servers — Docker Connection (Admin)"
         ]
@@ -3779,7 +3779,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer ou remplacer la connexion Docker d'un serveur",
+        "summary": "Create or replace the Docker connection of a server",
         "tags": [
           "Servers — Docker Connection (Admin)"
         ]
@@ -3806,7 +3806,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer la connexion Docker configurée pour ce serveur",
+        "summary": "Delete the Docker connection configured for this server",
         "tags": [
           "Servers — Docker Connection (Admin)"
         ]
@@ -3835,7 +3835,7 @@
             "bearer": []
           }
         ],
-        "summary": "Tester la connexion Docker (handshake TLS + ping)",
+        "summary": "Test the Docker connection (TLS handshake + ping)",
         "tags": [
           "Servers — Docker Connection (Admin)"
         ]
@@ -3882,7 +3882,7 @@
     },
     "/servers/{id}/validate-ssh": {
       "post": {
-        "description": "Les VPS sont des cibles SSH agentless. Cette étape ne cherche jamais à installer Ansible sur le VPS.",
+        "description": "VPS hosts are agentless SSH targets. This step never tries to install Ansible on the VPS.",
         "operationId": "ServerValidationController_validateSsh",
         "parameters": [
           {
@@ -3906,7 +3906,7 @@
         },
         "responses": {
           "201": {
-            "description": "Validation SSH démarrée",
+            "description": "SSH validation started",
             "content": {
               "application/json": {
                 "schema": {
@@ -3921,7 +3921,7 @@
             "bearer": []
           }
         ],
-        "summary": "Valider la connexion SSH, auth, sudo et prérequis minimaux",
+        "summary": "Validate the SSH connection, auth, sudo and minimal prerequisites",
         "tags": [
           "Servers Validation"
         ]
@@ -3942,7 +3942,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Statut de vérification du serveur",
+            "description": "Server verification status",
             "content": {
               "application/json": {
                 "schema": {
@@ -3957,7 +3957,7 @@
             "bearer": []
           }
         ],
-        "summary": "Récupérer le statut de vérification du serveur",
+        "summary": "Get the server verification status",
         "tags": [
           "Servers Validation"
         ]
@@ -3986,7 +3986,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Logs de vérification du serveur",
+            "description": "Server verification logs",
             "content": {
               "application/json": {
                 "schema": {
@@ -4004,7 +4004,7 @@
             "bearer": []
           }
         ],
-        "summary": "Récupérer les logs de vérification du serveur",
+        "summary": "Get the server verification logs",
         "tags": [
           "Servers Validation"
         ]
@@ -4043,7 +4043,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les résultats de validation SSH",
+        "summary": "List SSH validation results",
         "tags": [
           "Servers Validation"
         ]
@@ -4074,7 +4074,7 @@
         },
         "responses": {
           "201": {
-            "description": "Détection terminée",
+            "description": "Detection complete",
             "content": {
               "application/json": {
                 "schema": {
@@ -4089,7 +4089,7 @@
             "bearer": []
           }
         ],
-        "summary": "Détecter les informations système et outils installés",
+        "summary": "Detect system info and installed tools",
         "tags": [
           "Servers Detection"
         ]
@@ -4128,7 +4128,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les capacités détectées du serveur",
+        "summary": "List the detected server capabilities",
         "tags": [
           "Servers Detection"
         ]
@@ -4167,7 +4167,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les outils installés détectés",
+        "summary": "List detected installed tools",
         "tags": [
           "Servers Detection"
         ]
@@ -4213,7 +4213,7 @@
             "bearer": []
           }
         ],
-        "summary": "Démarrer une préparation serveur",
+        "summary": "Start a server provisioning job",
         "tags": [
           "Servers Preparation"
         ]
@@ -4250,7 +4250,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister l'historique de préparation du serveur",
+        "summary": "List the server's provisioning history",
         "tags": [
           "Servers Preparation"
         ]
@@ -4286,7 +4286,7 @@
             "bearer": []
           }
         ],
-        "summary": "Vérifier si le serveur est prêt à lancer une préparation (SSH/sudo/état/verrou).",
+        "summary": "Check whether the server is ready to start provisioning (SSH/sudo/state/lock).",
         "tags": [
           "Servers Preparation"
         ]
@@ -4322,7 +4322,7 @@
             "bearer": []
           }
         ],
-        "summary": "Voir le détail d'une préparation serveur",
+        "summary": "View a server provisioning's details",
         "tags": [
           "Server Preparations"
         ]
@@ -4369,7 +4369,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lire les logs persistés d'une préparation",
+        "summary": "Read the persisted logs of a provisioning job",
         "tags": [
           "Server Preparations"
         ]
@@ -4415,7 +4415,7 @@
             "bearer": []
           }
         ],
-        "summary": "Relancer une préparation en créant un nouveau job lié",
+        "summary": "Re-run a provisioning by creating a new linked job",
         "tags": [
           "Server Preparations"
         ]
@@ -4451,7 +4451,7 @@
             "bearer": []
           }
         ],
-        "summary": "Annuler une préparation si elle est encore active",
+        "summary": "Cancel a provisioning job if still active",
         "tags": [
           "Server Preparations"
         ]
@@ -4471,7 +4471,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les options et profils de préparation",
+        "summary": "List provisioning options and profiles",
         "tags": [
           "Server Preparation Options"
         ]
@@ -4493,7 +4493,7 @@
         },
         "responses": {
           "201": {
-            "description": "Résultat de la validation outillage",
+            "description": "Tooling validation result",
             "content": {
               "application/json": {
                 "schema": {
@@ -4503,7 +4503,7 @@
             }
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           }
         },
         "security": [
@@ -4511,7 +4511,7 @@
             "bearer": []
           }
         ],
-        "summary": "Valider les prérequis avant déploiement",
+        "summary": "Validate the prerequisites before deployment",
         "tags": [
           "Deployments"
         ]
@@ -4533,7 +4533,7 @@
         },
         "responses": {
           "201": {
-            "description": "Déploiement créé",
+            "description": "Deployment created",
             "content": {
               "application/json": {
                 "schema": {
@@ -4543,13 +4543,13 @@
             }
           },
           "400": {
-            "description": "Préconditions de déploiement invalides"
+            "description": "Invalid deployment preconditions"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé au projet"
+            "description": "Unauthorized access to the project"
           }
         },
         "security": [
@@ -4557,7 +4557,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lancer un déploiement",
+        "summary": "Launch a deployment",
         "tags": [
           "Deployments"
         ]
@@ -4589,7 +4589,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Liste des déploiements",
+            "description": "Deployment list",
             "content": {
               "application/json": {
                 "schema": {
@@ -4609,7 +4609,7 @@
             }
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           }
         },
         "security": [
@@ -4617,7 +4617,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les déploiements (filtrés par rôle)",
+        "summary": "List deployments (filtered by role)",
         "tags": [
           "Deployments"
         ]
@@ -4638,7 +4638,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Historique des déploiements du projet",
+            "description": "Project deployment history",
             "content": {
               "application/json": {
                 "schema": {
@@ -4651,13 +4651,13 @@
             }
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé au projet"
+            "description": "Unauthorized access to the project"
           },
           "404": {
-            "description": "Projet non trouvé"
+            "description": "Project not found"
           }
         },
         "security": [
@@ -4686,13 +4686,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Variables résolues (origine + isSecret) et warnings de résolution"
+            "description": "Resolved variables (origin + isSecret) and resolution warnings"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "404": {
-            "description": "Lien service-environnement non trouvé"
+            "description": "Service-environment link not found"
           }
         },
         "security": [
@@ -4700,7 +4700,7 @@
             "bearer": []
           }
         ],
-        "summary": "Prévisualiser les variables qui seront injectées (secrets masqués)",
+        "summary": "Preview the variables that will be injected (secrets masked)",
         "tags": [
           "Deployments"
         ]
@@ -4721,7 +4721,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Détail du déploiement",
+            "description": "Deployment details",
             "content": {
               "application/json": {
                 "schema": {
@@ -4731,13 +4731,13 @@
             }
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé"
+            "description": "Unauthorized access"
           },
           "404": {
-            "description": "Déploiement non trouvé"
+            "description": "Deployment not found"
           }
         },
         "security": [
@@ -4745,7 +4745,7 @@
             "bearer": []
           }
         ],
-        "summary": "Détail d'un déploiement",
+        "summary": "Deployment details",
         "tags": [
           "Deployments"
         ]
@@ -4764,16 +4764,16 @@
         ],
         "responses": {
           "204": {
-            "description": "Déploiement supprimé"
+            "description": "Deployment deleted"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé"
+            "description": "Unauthorized access"
           },
           "404": {
-            "description": "Déploiement non trouvé"
+            "description": "Deployment not found"
           }
         },
         "security": [
@@ -4781,7 +4781,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un déploiement",
+        "summary": "Delete a deployment",
         "tags": [
           "Deployments"
         ]
@@ -4802,7 +4802,7 @@
         ],
         "responses": {
           "201": {
-            "description": "Déploiement annulé",
+            "description": "Deployment canceled",
             "content": {
               "application/json": {
                 "schema": {
@@ -4812,16 +4812,16 @@
             }
           },
           "400": {
-            "description": "État du déploiement non annulable"
+            "description": "Deployment state cannot be canceled"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé"
+            "description": "Unauthorized access"
           },
           "404": {
-            "description": "Déploiement non trouvé"
+            "description": "Deployment not found"
           }
         },
         "security": [
@@ -4829,7 +4829,7 @@
             "bearer": []
           }
         ],
-        "summary": "Annuler un déploiement",
+        "summary": "Cancel a deployment",
         "tags": [
           "Deployments"
         ]
@@ -4850,7 +4850,7 @@
         ],
         "responses": {
           "201": {
-            "description": "Rollback lancé",
+            "description": "Rollback launched",
             "content": {
               "application/json": {
                 "schema": {
@@ -4863,13 +4863,13 @@
             "description": "Rollback impossible"
           },
           "401": {
-            "description": "Token JWT invalide ou expiré"
+            "description": "Invalid or expired JWT token"
           },
           "403": {
-            "description": "Accès non autorisé"
+            "description": "Unauthorized access"
           },
           "404": {
-            "description": "Déploiement non trouvé"
+            "description": "Deployment not found"
           }
         },
         "security": [
@@ -4877,7 +4877,7 @@
             "bearer": []
           }
         ],
-        "summary": "Rollback sur la dernière image stable",
+        "summary": "Roll back to the last stable image",
         "tags": [
           "Deployments"
         ]
@@ -4906,7 +4906,7 @@
             "bearer": []
           }
         ],
-        "summary": "Récupérer les logs du conteneur Docker du déploiement",
+        "summary": "Get the Docker container logs of the deployment",
         "tags": [
           "Deployments"
         ]
@@ -4935,7 +4935,7 @@
             "bearer": []
           }
         ],
-        "summary": "Rechercher dans les logs du déploiement (texte + niveau)",
+        "summary": "Search the deployment logs (text + level)",
         "tags": [
           "Deployments"
         ]
@@ -4947,7 +4947,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Liste des équipes"
+            "description": "Team list"
           }
         },
         "security": [
@@ -4955,7 +4955,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister toutes les équipes",
+        "summary": "List all teams",
         "tags": [
           "Teams"
         ]
@@ -4975,10 +4975,10 @@
         },
         "responses": {
           "201": {
-            "description": "Équipe créée avec succès"
+            "description": "Team created successfully"
           },
           "409": {
-            "description": "Nom déjà utilisé"
+            "description": "Name already in use"
           }
         },
         "security": [
@@ -4986,7 +4986,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer une équipe",
+        "summary": "Create a team",
         "tags": [
           "Teams"
         ]
@@ -5007,10 +5007,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Équipe trouvée"
+            "description": "Team found"
           },
           "404": {
-            "description": "Équipe introuvable"
+            "description": "Team not found"
           }
         },
         "security": [
@@ -5018,7 +5018,7 @@
             "bearer": []
           }
         ],
-        "summary": "Récupérer une équipe par ID",
+        "summary": "Get a team by ID",
         "tags": [
           "Teams"
         ]
@@ -5047,10 +5047,10 @@
         },
         "responses": {
           "200": {
-            "description": "Équipe mise à jour"
+            "description": "Team updated"
           },
           "404": {
-            "description": "Équipe introuvable"
+            "description": "Team not found"
           }
         },
         "security": [
@@ -5058,7 +5058,7 @@
             "bearer": []
           }
         ],
-        "summary": "Modifier une équipe",
+        "summary": "Edit a team",
         "tags": [
           "Teams"
         ]
@@ -5077,10 +5077,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Équipe supprimée"
+            "description": "Team deleted"
           },
           "404": {
-            "description": "Équipe introuvable"
+            "description": "Team not found"
           }
         },
         "security": [
@@ -5088,7 +5088,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer une équipe",
+        "summary": "Delete a team",
         "tags": [
           "Teams"
         ]
@@ -5119,13 +5119,13 @@
         },
         "responses": {
           "201": {
-            "description": "Membre ajouté"
+            "description": "Member added"
           },
           "404": {
-            "description": "Équipe ou utilisateur introuvable"
+            "description": "Team or user not found"
           },
           "409": {
-            "description": "Déjà membre de cette équipe"
+            "description": "Already a member of this team"
           }
         },
         "security": [
@@ -5133,7 +5133,7 @@
             "bearer": []
           }
         ],
-        "summary": "Ajouter un membre à une équipe",
+        "summary": "Add a member to a team",
         "tags": [
           "Teams"
         ]
@@ -5162,10 +5162,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Membre retiré"
+            "description": "Member removed"
           },
           "404": {
-            "description": "Équipe ou membre introuvable"
+            "description": "Team or member not found"
           }
         },
         "security": [
@@ -5173,7 +5173,7 @@
             "bearer": []
           }
         ],
-        "summary": "Retirer un membre d'une équipe",
+        "summary": "Remove a member from a team",
         "tags": [
           "Teams"
         ]
@@ -5202,10 +5202,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Membres de l'équipe ajoutés au projet"
+            "description": "Team members added to the project"
           },
           "404": {
-            "description": "Projet ou équipe introuvable"
+            "description": "Project or team not found"
           }
         },
         "security": [
@@ -5213,7 +5213,7 @@
             "bearer": []
           }
         ],
-        "summary": "Ajouter tous les membres d'une équipe à un projet",
+        "summary": "Add all members of a team to a project",
         "tags": [
           "Projects"
         ]
@@ -5960,7 +5960,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les providers DNS",
+        "summary": "List DNS providers",
         "tags": [
           "Domains"
         ]
@@ -5980,7 +5980,7 @@
         },
         "responses": {
           "201": {
-            "description": "Provider DNS créé"
+            "description": "DNS provider created"
           }
         },
         "security": [
@@ -5988,7 +5988,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer un provider DNS",
+        "summary": "Create a DNS provider",
         "tags": [
           "Domains"
         ]
@@ -6009,7 +6009,7 @@
         ],
         "responses": {
           "201": {
-            "description": "Résultat du test DNS"
+            "description": "DNS test result"
           }
         },
         "security": [
@@ -6017,7 +6017,7 @@
             "bearer": []
           }
         ],
-        "summary": "Tester un provider DNS",
+        "summary": "Test a DNS provider",
         "tags": [
           "Domains"
         ]
@@ -6046,7 +6046,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les domaines DNS",
+        "summary": "List DNS domains",
         "tags": [
           "Domains"
         ]
@@ -6066,7 +6066,7 @@
         },
         "responses": {
           "201": {
-            "description": "Domaine DNS créé"
+            "description": "DNS domain created"
           }
         },
         "security": [
@@ -6074,7 +6074,7 @@
             "bearer": []
           }
         ],
-        "summary": "Ajouter un domaine DNS",
+        "summary": "Add a DNS domain",
         "tags": [
           "Domains"
         ]
@@ -6095,7 +6095,7 @@
         ],
         "responses": {
           "201": {
-            "description": "Domaine vérifié"
+            "description": "Domain verified"
           }
         },
         "security": [
@@ -6103,7 +6103,7 @@
             "bearer": []
           }
         ],
-        "summary": "Vérifier un domaine DNS",
+        "summary": "Verify a DNS domain",
         "tags": [
           "Domains"
         ]
@@ -6132,7 +6132,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les records DNS d’un domaine",
+        "summary": "List the DNS records of a domain",
         "tags": [
           "Domains"
         ]
@@ -6161,7 +6161,7 @@
         },
         "responses": {
           "201": {
-            "description": "Record DNS créé"
+            "description": "DNS record created"
           }
         },
         "security": [
@@ -6169,7 +6169,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer un record DNS",
+        "summary": "Create a DNS record",
         "tags": [
           "Domains"
         ]
@@ -6200,7 +6200,7 @@
         },
         "responses": {
           "200": {
-            "description": "Record DNS mis à jour"
+            "description": "DNS record updated"
           }
         },
         "security": [
@@ -6208,7 +6208,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mettre à jour un record DNS",
+        "summary": "Update a DNS record",
         "tags": [
           "Domains"
         ]
@@ -6227,7 +6227,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Record DNS supprimé"
+            "description": "DNS record deleted"
           }
         },
         "security": [
@@ -6235,7 +6235,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un record DNS",
+        "summary": "Delete a DNS record",
         "tags": [
           "Domains"
         ]
@@ -6255,7 +6255,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les configurations de registre",
+        "summary": "List registry configurations",
         "tags": [
           "ContainerRegistries (Admin)"
         ]
@@ -6283,7 +6283,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer une nouvelle configuration de registre",
+        "summary": "Create a new registry configuration",
         "tags": [
           "ContainerRegistries (Admin)"
         ]
@@ -6322,7 +6322,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mettre à jour une configuration de registre",
+        "summary": "Update a registry configuration",
         "tags": [
           "ContainerRegistries (Admin)"
         ]
@@ -6349,7 +6349,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer une configuration de registre",
+        "summary": "Delete a registry configuration",
         "tags": [
           "ContainerRegistries (Admin)"
         ]
@@ -6378,7 +6378,7 @@
             "bearer": []
           }
         ],
-        "summary": "Tester la connexion à un registre",
+        "summary": "Test the connection to a registry",
         "tags": [
           "ContainerRegistries (Admin)"
         ]
@@ -6407,7 +6407,7 @@
             "bearer": []
           }
         ],
-        "summary": "Définir un registre comme registre par défaut",
+        "summary": "Set a registry as the default registry",
         "tags": [
           "ContainerRegistries (Admin)"
         ]
@@ -6427,7 +6427,7 @@
             "bearer": []
           }
         ],
-        "summary": "Statistiques agrégées du dashboard",
+        "summary": "Aggregated dashboard statistics",
         "tags": [
           "Dashboard"
         ]
@@ -6642,7 +6642,7 @@
         },
         "responses": {
           "201": {
-            "description": "Service créé"
+            "description": "Service created"
           }
         },
         "security": [
@@ -6650,7 +6650,7 @@
             "bearer": []
           }
         ],
-        "summary": "Créer un service dans un projet",
+        "summary": "Create a service in a project",
         "tags": [
           "Services"
         ]
@@ -6689,7 +6689,7 @@
             "bearer": []
           }
         ],
-        "summary": "Découvrir les repos d'un groupe/org pour créer des services",
+        "summary": "Discover the repos of a group/org to create services",
         "tags": [
           "Services"
         ]
@@ -6726,7 +6726,7 @@
             "bearer": []
           }
         ],
-        "summary": "Détail d'un service",
+        "summary": "Service details",
         "tags": [
           "Services"
         ]
@@ -6771,7 +6771,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mettre à jour un service",
+        "summary": "Update a service",
         "tags": [
           "Services"
         ]
@@ -6806,7 +6806,7 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer un service",
+        "summary": "Delete a service",
         "tags": [
           "Services"
         ]
@@ -7019,7 +7019,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les sauvegardes d'une base de données",
+        "summary": "List a database's backups",
         "tags": [
           "Database Backups"
         ]
@@ -7046,7 +7046,7 @@
             "bearer": []
           }
         ],
-        "summary": "Déclencher une sauvegarde manuelle",
+        "summary": "Trigger a manual backup",
         "tags": [
           "Database Backups"
         ]
@@ -7075,7 +7075,7 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les environnements de preview actifs",
+        "summary": "List active preview environments",
         "tags": [
           "Preview Environments"
         ]
@@ -7149,7 +7149,7 @@
             "bearer": []
           }
         ],
-        "summary": "Fermer (détruire) un environnement de preview",
+        "summary": "Close (destroy) a preview environment",
         "tags": [
           "Preview Environments"
         ]
@@ -7289,12 +7289,12 @@
           "repoPath": {
             "type": "string",
             "example": "group/project",
-            "description": "Chemin du dépôt \"owner/repo\" (provider-agnostic)"
+            "description": "Repository path \"owner/repo\" (provider-agnostic)"
           },
           "groupPath": {
             "type": "string",
             "example": "my-group",
-            "description": "Path du groupe/org pour découvrir tous les repos"
+            "description": "Group/org path to discover all repos"
           },
           "defaultBranch": {
             "type": "string",
@@ -7302,11 +7302,11 @@
           },
           "providerId": {
             "type": "string",
-            "description": "Provider ID (Platform Config) pour réutiliser un token existant"
+            "description": "Provider ID (Platform Config) to reuse an existing token"
           },
           "token": {
             "type": "string",
-            "description": "Token d'accès (PAT ou token provider)"
+            "description": "Access token (PAT or provider token)"
           }
         },
         "required": [
@@ -7327,7 +7327,7 @@
           "providerId": {
             "type": "string",
             "example": "b5073d11-f378-4c71-87da-093f3ecf20af",
-            "description": "Provider config ID. Si fourni, URL/token peuvent être omis."
+            "description": "Provider config ID. If provided, URL/token may be omitted."
           },
           "repoPath": {
             "type": "string",
@@ -7337,7 +7337,7 @@
           "groupPath": {
             "type": "string",
             "example": "my-group",
-            "description": "Group/org path pour découvrir tous les repos du groupe."
+            "description": "Group/org path to discover all repos in the group."
           },
           "defaultBranch": {
             "type": "string",
@@ -7368,7 +7368,7 @@
           "ownerId": {
             "type": "string",
             "example": "0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd",
-            "description": "Utilisateur DEVELOPER à assigner comme OWNER"
+            "description": "DEVELOPER user to assign as OWNER"
           }
         },
         "required": [
@@ -7458,7 +7458,7 @@
           "ownerId": {
             "type": "string",
             "example": "0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd",
-            "description": "Utilisateur DEVELOPER à assigner comme OWNER"
+            "description": "DEVELOPER user to assign as OWNER"
           }
         },
         "required": [
@@ -7477,7 +7477,7 @@
           },
           "description": {
             "type": "string",
-            "example": "Description mise à jour"
+            "example": "Updated description"
           }
         }
       },
@@ -7578,6 +7578,11 @@
           "env": {
             "type": "string",
             "example": "{\"NODE_ENV\":\"staging\"}"
+          },
+          "secretsEnv": {
+            "type": "string",
+            "description": "Secret variables as JSON. Encrypted at rest; never returned by the API.",
+            "example": "{\"DB_PASSWORD\":\"s3cr3t\"}"
           }
         },
         "required": [
@@ -7631,6 +7636,11 @@
           "env": {
             "type": "string",
             "example": "{\"NODE_ENV\":\"staging\"}"
+          },
+          "secretsEnv": {
+            "type": "string",
+            "description": "Secret variables as JSON. Encrypted at rest; never returned by the API.",
+            "example": "{\"DB_PASSWORD\":\"s3cr3t\"}"
           }
         }
       },
@@ -8102,7 +8112,7 @@
         "properties": {
           "message": {
             "type": "string",
-            "example": "Serveur supprimé avec succès"
+            "example": "Server deleted successfully"
           }
         },
         "required": [
@@ -8118,7 +8128,7 @@
           },
           "message": {
             "type": "string",
-            "example": "Clé publique SSH installée avec succès"
+            "example": "SSH public key installed successfully"
           }
         },
         "required": [
@@ -8150,7 +8160,7 @@
           "sshKey": {
             "type": "string",
             "example": "-----BEGIN OPENSSH PRIVATE KEY-----\n...",
-            "description": "Clé privée SSH (OpenSSH ou PKCS8). Si absente, la plateforme génère automatiquement une paire de clés."
+            "description": "SSH private key (OpenSSH or PKCS8). If omitted, the platform auto-generates a key pair."
           },
           "verificationMode": {
             "type": "string",
@@ -8159,7 +8169,7 @@
               "ssh"
             ],
             "default": "manual",
-            "description": "Déprécié: ce champ est ignoré. Le serveur est créé puis la clé SSH doit être installée via /servers/:id/install-key.",
+            "description": "Deprecated: this field is ignored. The server is created, then the SSH key must be installed via /servers/:id/install-key.",
             "deprecated": true
           },
           "sshKeyId": {
@@ -8172,7 +8182,7 @@
               "ssh"
             ],
             "default": "ssh",
-            "description": "Mode de connexion : ssh (direct SSH)"
+            "description": "Connection mode: ssh (direct SSH)"
           }
         },
         "required": [
@@ -9416,7 +9426,7 @@
               "blue-green"
             ],
             "example": "standard",
-            "description": "Strategy de déploiement: standard (simple restart) ou blue-green (zero-downtime)"
+            "description": "Deployment strategy: standard (simple restart) or blue-green (zero-downtime)"
           },
           "buildSource": {
             "type": "string",
@@ -9793,7 +9803,7 @@
             "example": 1
           },
           "source": {
-            "description": "Connexion source (GitLab/GitHub) lors de la création",
+            "description": "Source connection (GitLab/GitHub) on creation",
             "allOf": [
               {
                 "$ref": "#/components/schemas/SourceConnectionDto"
@@ -9956,7 +9966,7 @@
             "example": 1
           },
           "source": {
-            "description": "Connexion source (GitLab/GitHub) lors de la création",
+            "description": "Source connection (GitLab/GitHub) on creation",
             "allOf": [
               {
                 "$ref": "#/components/schemas/SourceConnectionDto"
