@@ -10,6 +10,7 @@ import { monitoringService, type ContainerInfo } from '@/services/monitoring.ser
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
 import { LogTerminal } from '@/components/log-terminal';
+import { DeploymentLogSearch } from '@/components/deployments/deployment-log-search';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { useAuth } from '@/hooks/auth/use-auth';
@@ -55,13 +56,13 @@ function ContainerStatsSection({ deploymentId }: { deploymentId: string }) {
             onClick={() => void fetch()}
             className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
           >
-            <Activity size={14} /> Charger les stats du container
+            <Activity size={14} /> Load container stats
           </button>
         )}
 
         {loading && (
           <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <Loader2 size={14} className="animate-spin" /> Connexion SSH…
+            <Loader2 size={14} className="animate-spin" /> Connecting via SSH…
           </div>
         )}
 
@@ -74,7 +75,7 @@ function ContainerStatsSection({ deploymentId }: { deploymentId: string }) {
             {/* Status + Stats grid */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Statut</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Status</p>
                 <p className={`mt-1 text-sm font-bold capitalize ${statusColor}`}>{info.status}</p>
               </div>
               {info.stats && (
@@ -143,8 +144,8 @@ function ContainerLogsSection({ deploymentId }: { deploymentId: string }) {
 
   return (
     <SectionCard
-      title="Logs Conteneur Docker"
-      description="Logs en direct du conteneur Docker sur le serveur cible (docker logs)."
+      title="Docker Container Logs"
+      description="Live logs from the Docker container on the target server (docker logs)."
     >
       <div className="space-y-3">
         {!loaded && !loading && (
@@ -154,7 +155,7 @@ function ContainerLogsSection({ deploymentId }: { deploymentId: string }) {
             className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
           >
             <Terminal size={14} />
-            Charger les logs du conteneur
+            Load container logs
           </button>
         )}
 
@@ -544,6 +545,7 @@ export default function DeploymentDetailPage({ params }: Props) {
                 </span>
               )}
             </div>
+            <DeploymentLogSearch deploymentId={id} />
             <LogTerminal logs={displayedLogs} isLive={isActive} />
           </SectionCard>
 
