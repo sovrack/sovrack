@@ -1,4 +1,4 @@
-import { PrismaClient, Role, ProjectRole, ServiceType, SourceType, BuildPack } from '@prisma/client';
+import { PrismaClient, Role, ProjectRole, ServiceType, SourceType, BuildPack, GitProviderType } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
 export type TestFixtures = Awaited<ReturnType<typeof createTestFixtures>>;
@@ -72,6 +72,20 @@ export async function createTestFixtures(prisma: PrismaClient) {
     data: { environmentId },
   });
 
+  // A Git provider config linked to the service so REGISTRY build sources
+  // (which resolve the provider via SourceProvidersService.forProject) can
+  // trigger the downstream CI pipeline. Name is unique per call to respect the
+  // @@unique([type, name]) constraint across repeated fixture creations.
+  const providerId = randomUUID();
+  await prisma.gitProviderConfig.create({
+    data: {
+      id: providerId,
+      name: `e2e-gitlab-${providerId.slice(0, 8)}`,
+      type: GitProviderType.GITLAB,
+      providerUrl: 'https://gitlab.example.com',
+    },
+  });
+
   const serviceId = randomUUID();
   await prisma.service.create({
     data: {
@@ -83,6 +97,7 @@ export async function createTestFixtures(prisma: PrismaClient) {
       repoPath: 'platform/e2e',
       branch: 'main',
       buildPack: BuildPack.DOCKERFILE,
+      providerId,
     },
   });
 

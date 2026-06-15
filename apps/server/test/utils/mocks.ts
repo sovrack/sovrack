@@ -44,6 +44,9 @@ export function mockGitlabService(): {
   return {
     provide: GitlabAdapter,
     useValue: {
+      // SourceProvidersService.forType() resolves the adapter by `type`, so the
+      // mock must expose it just like the real GitlabAdapter (readonly type).
+      type: 'GITLAB',
       triggerPipeline,
       reset: () => triggerPipeline.mockClear(),
     } as unknown as GitlabMockHandle,
