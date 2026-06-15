@@ -42,7 +42,7 @@ export function EnvConfigsPanel({ projectId, environmentId, onClose }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await environmentsService.update(projectId, environmentId, { env: envJson } as any);
+      await environmentsService.update(projectId, environmentId, { env: envJson });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {

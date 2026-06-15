@@ -31,9 +31,9 @@ export const environmentsService = {
     await api.delete(`/projects/${projectId}/environments/${envId}`);
   },
 
-  async getServers(projectId: string, envId: string): Promise<any[]> {
+  async getServers(projectId: string, envId: string): Promise<unknown[]> {
     const res = await api.get(`/projects/${projectId}/environments/${envId}/servers`);
-    return res.data;
+    return res.data as unknown[];
   },
 
   async assignServer(projectId: string, envId: string, serverId: string): Promise<void> {
