@@ -104,7 +104,7 @@ export const buildService = {
     options?: { overwriteDockerfile?: boolean; overwriteGitlabCi?: boolean },
   ): Promise<BuildPrepareResult> {
     const res = await api.post<BuildPrepareResult>(
-      `/projects/${projectId}/build/prepare`,
+      `/projects/${projectId}/build/generate`,
       options ?? {},
       {
         params: serviceId ? { serviceId } : undefined,
@@ -116,7 +116,7 @@ export const buildService = {
 
   async prepareAll(projectId: string): Promise<{ results: BuildAllResult[] }> {
     const res = await api.post<{ results: BuildAllResult[] }>(
-      `/projects/${projectId}/build/prepare-all`,
+      `/projects/${projectId}/build/generate-all`,
       undefined,
       { timeout: BUILD_PREPARE_TIMEOUT_MS },
     );
