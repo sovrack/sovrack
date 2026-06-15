@@ -22,7 +22,7 @@ export type GitProviderStatus =
   | 'ACTION_REQUIRED'
   | 'CONFIGURED';
 
-export type GitProviderType = 'GITLAB' | 'GITHUB';
+export type GitProviderType = 'GITLAB' | 'GITHUB' | 'GITEA';
 
 export type GitlabProvider = {
   id: string;

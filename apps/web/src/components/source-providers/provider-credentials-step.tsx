@@ -51,10 +51,13 @@ export function ProviderCredentialsStep({
   onAdminTokenChange,
 }: ProviderCredentialsStepProps) {
   const isGithub = providerType === 'GITHUB';
+  // Gitea is PAT-only here (no OAuth app flow), so the OAuth section is hidden.
+  const isGitea = providerType === 'GITEA';
+  const tokenLabel = isGitea ? 'Access Token' : isGithub ? 'Personal Access Token' : 'Admin Token';
 
   return (
     <div className="space-y-5">
-      {showOAuth && (
+      {showOAuth && !isGitea && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Shield size={15} className="text-blue-400" />
@@ -128,7 +131,7 @@ export function ProviderCredentialsStep({
         </div>
       )}
 
-      {showOAuth && showPAT && (
+      {showOAuth && showPAT && !isGitea && (
         <div className="border-t border-[var(--border)]" />
       )}
 
@@ -144,9 +147,11 @@ export function ProviderCredentialsStep({
           <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-[var(--text-secondary)] space-y-1">
             <p className="font-semibold text-[var(--text-primary)]">Required token scopes</p>
             <div className="flex flex-wrap gap-1.5 mt-1">
-              {(isGithub
-                ? ['repo', 'workflow', 'read:org', 'read:user']
-                : ['api', 'read_repository', 'write_repository', 'read_registry']
+              {(isGitea
+                ? ['repository', 'package', 'write:repository']
+                : isGithub
+                  ? ['repo', 'workflow', 'read:org', 'read:user']
+                  : ['api', 'read_repository', 'write_repository', 'read_registry']
               ).map((scope) => (
                 <code key={scope} className="rounded bg-[var(--hover)] px-1.5 py-0.5 font-mono">
                   {scope}
@@ -156,20 +161,22 @@ export function ProviderCredentialsStep({
             <p className="mt-1.5">
               Generate at:{' '}
               <strong>
-                {isGithub
-                  ? 'Settings → Developer settings → Personal access tokens'
-                  : 'User Settings → Access Tokens'}
+                {isGitea
+                  ? 'Settings → Applications → Generate New Token'
+                  : isGithub
+                    ? 'Settings → Developer settings → Personal access tokens'
+                    : 'User Settings → Access Tokens'}
               </strong>
             </p>
           </div>
 
-          <Field label={isGithub ? 'Personal Access Token' : 'Admin Token'}>
+          <Field label={tokenLabel}>
             <SecretInput
               value={adminToken}
               onChange={onAdminTokenChange}
-              placeholder={isGithub ? 'ghp_xxxxxxxxxxxxxxxxxxxx' : 'glpat-xxxxxxxxxxxxxxxxxxxx'}
+              placeholder={isGithub ? 'ghp_xxxxxxxxxxxxxxxxxxxx' : isGitea ? 'token xxxxxxxxxxxxxxxxxxxx' : 'glpat-xxxxxxxxxxxxxxxxxxxx'}
               alreadySet={isEdit && adminTokenConfigured}
-              label={isGithub ? 'Personal Access Token' : 'Admin Token'}
+              label={tokenLabel}
             />
           </Field>
         </div>

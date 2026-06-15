@@ -1222,6 +1222,129 @@
         ]
       }
     },
+    "/admin/platform-config/gitea/providers": {
+      "get": {
+        "operationId": "SourceProvidersController_listGiteaProviders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les providers Gitea",
+        "tags": [
+          "Git Providers (Admin)"
+        ]
+      },
+      "post": {
+        "operationId": "SourceProvidersController_createGiteaProvider",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer un provider Gitea",
+        "tags": [
+          "Git Providers (Admin)"
+        ]
+      }
+    },
+    "/admin/platform-config/gitea/providers/{id}": {
+      "put": {
+        "operationId": "SourceProvidersController_updateGiteaProvider",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mettre à jour un provider Gitea",
+        "tags": [
+          "Git Providers (Admin)"
+        ]
+      },
+      "delete": {
+        "operationId": "SourceProvidersController_deleteGiteaProvider",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer un provider Gitea",
+        "tags": [
+          "Git Providers (Admin)"
+        ]
+      }
+    },
+    "/admin/platform-config/gitea/providers/{id}/default": {
+      "post": {
+        "operationId": "SourceProvidersController_setDefaultGiteaProvider",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Définir un provider Gitea par défaut",
+        "tags": [
+          "Git Providers (Admin)"
+        ]
+      }
+    },
     "/source/providers": {
       "get": {
         "operationId": "SourceController_listProviders",
@@ -6998,7 +7121,8 @@
             "type": "string",
             "enum": [
               "GITLAB",
-              "GITHUB"
+              "GITHUB",
+              "GITEA"
             ],
             "example": "GITLAB",
             "description": "Type de provider Git (GITLAB ou GITHUB)"
@@ -9366,7 +9490,8 @@
             "type": "string",
             "enum": [
               "GITLAB",
-              "GITHUB"
+              "GITHUB",
+              "GITEA"
             ]
           },
           "repoPath": {
@@ -9528,7 +9653,8 @@
             "type": "string",
             "enum": [
               "GITLAB",
-              "GITHUB"
+              "GITHUB",
+              "GITEA"
             ]
           },
           "groupPath": {

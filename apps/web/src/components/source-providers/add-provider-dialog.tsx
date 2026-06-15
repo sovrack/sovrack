@@ -55,12 +55,12 @@ export type AddProviderDialogProps = {
   open: boolean;
   mode: DialogMode;
   existingProvider?: GitlabProvider | null;
-  initialProviderType?: 'GITLAB' | 'GITHUB';
+  initialProviderType?: 'GITLAB' | 'GITHUB' | 'GITEA';
   fallbackRedirectUri: string;
   saving: boolean;
   error: string | null;
   copiedRedirect: boolean;
-  onSave: (payload: CreateGitlabProviderPayload | UpdateGitlabProviderPayload, providerType?: 'GITLAB' | 'GITHUB') => Promise<void>;
+  onSave: (payload: CreateGitlabProviderPayload | UpdateGitlabProviderPayload, providerType?: 'GITLAB' | 'GITHUB' | 'GITEA') => Promise<void>;
   onClose: () => void;
   onCopyRedirectUri: (value: string) => void;
 };
@@ -106,7 +106,12 @@ export function AddProviderDialog({
   // Set default URL when provider type changes in create mode
   useEffect(() => {
     if (!isEdit && step === 1) {
-      const defaultUrl = selectedType === 'GITHUB' ? 'https://github.com' : 'https://gitlab.com';
+      const defaultUrl =
+        selectedType === 'GITHUB'
+          ? 'https://github.com'
+          : selectedType === 'GITEA'
+            ? ''
+            : 'https://gitlab.com';
       setForm((prev) => ({ ...prev, gitlabUrl: defaultUrl }));
     }
   }, [selectedType, isEdit, step]);
@@ -159,7 +164,7 @@ export function AddProviderDialog({
   const stepOffset = isEdit ? 1 : 0; // shifts display step numbers
 
   const canProceed = useMemo(() => {
-    if (step === 1) return selectedType === 'GITLAB' || selectedType === 'GITHUB';
+    if (step === 1) return PROVIDER_META[selectedType]?.available === true;
     if (step === 2) return form.name.trim().length > 0 && form.gitlabUrl.trim().length > 0;
     return true;
   }, [step, selectedType, form.name, form.gitlabUrl]);
@@ -193,7 +198,10 @@ export function AddProviderDialog({
         adminToken: form.adminToken.trim(),
         isDefault: form.isDefault,
       };
-      await onSave(payload, selectedType === 'GITHUB' ? 'GITHUB' : 'GITLAB');
+      await onSave(
+        payload,
+        selectedType === 'GITHUB' ? 'GITHUB' : selectedType === 'GITEA' ? 'GITEA' : 'GITLAB',
+      );
     }
   };
 
@@ -255,8 +263,8 @@ export function AddProviderDialog({
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {(['GITLAB', 'GITHUB'] as ProviderType[]).map((type) => {
+              <div className="grid grid-cols-3 gap-3">
+                {(['GITLAB', 'GITHUB', 'GITEA'] as ProviderType[]).map((type) => {
                   const meta = PROVIDER_META[type];
                   const active = selectedType === type && meta.available;
                   return (
@@ -325,11 +333,14 @@ export function AddProviderDialog({
               </Field>
 
               <Field
-                label={selectedType === 'GITHUB' ? 'GitHub URL' : 'GitLab URL'}
+                label={`${PROVIDER_META[selectedType]?.label ?? 'Git'} URL`}
                 required
-                hint={selectedType === 'GITHUB'
-                  ? 'Use https://github.com for GitHub.com, or your GitHub Enterprise URL.'
-                  : 'Use https://gitlab.com for the cloud version, or your self-hosted instance URL.'}
+                hint={
+                  selectedType === 'GITHUB'
+                    ? 'Use https://github.com for GitHub.com, or your GitHub Enterprise URL.'
+                    : selectedType === 'GITEA'
+                      ? 'Enter your self-hosted Gitea instance URL, e.g. https://git.example.com.'
+                      : 'Use https://gitlab.com for the cloud version, or your self-hosted instance URL.'}
               >
                 <TextInput
                   value={form.gitlabUrl}

@@ -577,6 +577,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/platform-config/gitea/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les providers Gitea */
+        get: operations["SourceProvidersController_listGiteaProviders"];
+        put?: never;
+        /** Créer un provider Gitea */
+        post: operations["SourceProvidersController_createGiteaProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/gitea/providers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mettre à jour un provider Gitea */
+        put: operations["SourceProvidersController_updateGiteaProvider"];
+        post?: never;
+        /** Supprimer un provider Gitea */
+        delete: operations["SourceProvidersController_deleteGiteaProvider"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/platform-config/gitea/providers/{id}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Définir un provider Gitea par défaut */
+        post: operations["SourceProvidersController_setDefaultGiteaProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/source/providers": {
         parameters: {
             query?: never;
@@ -2825,7 +2878,7 @@ export interface components {
              * @example GITLAB
              * @enum {string}
              */
-            provider: "GITLAB" | "GITHUB";
+            provider: "GITLAB" | "GITHUB" | "GITEA";
             /**
              * @description Chemin du dépôt "owner/repo" (provider-agnostic)
              * @example group/project
@@ -3676,7 +3729,7 @@ export interface components {
         };
         SourceConnectionDto: {
             /** @enum {string} */
-            provider: "GITLAB" | "GITHUB";
+            provider: "GITLAB" | "GITHUB" | "GITEA";
             /** @example group/project */
             repoPath: string;
             /** @example glpat-xxx */
@@ -3755,7 +3808,7 @@ export interface components {
         };
         DiscoverGroupDto: {
             /** @enum {string} */
-            provider: "GITLAB" | "GITHUB";
+            provider: "GITLAB" | "GITHUB" | "GITEA";
             /** @example my-group */
             groupPath: string;
             /** @example glpat-xxx */
@@ -4863,6 +4916,97 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SourceProvidersController_listGiteaProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SourceProvidersController_createGiteaProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SourceProvidersController_updateGiteaProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SourceProvidersController_deleteGiteaProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SourceProvidersController_setDefaultGiteaProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
