@@ -56,13 +56,13 @@ export function EnvVariablesPreview({ serviceEnvId }: { serviceEnvId: string | n
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
         <Variable size={13} />
-        Variables injectées
+        Injected variables
         {data ? <span className="text-[var(--text-muted)]">({data.variables.length})</span> : null}
       </div>
 
       {loading ? (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-xs text-[var(--text-muted)]">
-          Chargement des variables…
+          Loading variables…
         </div>
       ) : null}
 
@@ -75,8 +75,7 @@ export function EnvVariablesPreview({ serviceEnvId }: { serviceEnvId: string | n
       {data && data.warnings.length > 0 ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
           <AlertTriangle size={13} className="mr-1 inline" />
-          Des variables n&apos;ont pas pu être résolues. Vérifiez la configuration avant de
-          déployer.
+          Some variables could not be resolved. Check the configuration before deploying.
           <ul className="mt-1 list-disc pl-5">
             {data.warnings.map((w) => (
               <li key={w}>{w}</li>
@@ -136,7 +135,7 @@ export function EnvVariablesPreview({ serviceEnvId }: { serviceEnvId: string | n
 
       {data && data.variables.length === 0 && !loading ? (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-xs text-[var(--text-muted)]">
-          Aucune variable configurée.
+          No variables configured.
         </div>
       ) : null}
     </div>

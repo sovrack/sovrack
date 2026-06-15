@@ -52,7 +52,7 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
       <div className="flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
           <Database size={12} />
-          Sauvegardes{serviceName ? ` · ${serviceName}` : ''}
+          Backups{serviceName ? ` · ${serviceName}` : ''}
         </p>
         <button
           type="button"
@@ -61,7 +61,7 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
           className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--hover)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] transition hover:opacity-90 disabled:opacity-50"
         >
           {createBackup.isPending ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
-          Sauvegarder
+          Back up now
         </button>
       </div>
 
@@ -74,7 +74,7 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
         {isLoading ? (
           <li className="h-6 animate-pulse rounded bg-[var(--hover)]" />
         ) : (backups ?? []).length === 0 ? (
-          <li className="text-xs text-[var(--text-muted)]">Aucune sauvegarde pour l’instant.</li>
+          <li className="text-xs text-[var(--text-muted)]">No backups yet.</li>
         ) : (
           (backups ?? []).map((b) => (
             <li key={b.id} className="flex items-center justify-between text-xs">
@@ -86,7 +86,7 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
                 </span>
               </span>
               <span className="text-[var(--text-muted)]">
-                {b.status === 'FAILED' ? (b.error?.slice(0, 40) ?? 'échec') : formatBytes(b.sizeBytes)}
+                {b.status === 'FAILED' ? (b.error?.slice(0, 40) ?? 'failed') : formatBytes(b.sizeBytes)}
               </span>
             </li>
           ))

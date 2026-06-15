@@ -161,7 +161,7 @@ function DeploymentCard({
 
             {/* Failed hint */}
             {dep.status === 'FAILED' && (
-              <p className="mt-1.5 text-xs text-red-400">Déploiement échoué — voir les logs pour les détails.</p>
+              <p className="mt-1.5 text-xs text-red-400">Deployment failed — check the logs for details.</p>
             )}
           </div>
         </div>
@@ -284,14 +284,14 @@ export default function DeploymentsPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Deployment Center"
-        title="Déploiements"
-        description="Suivez chaque déploiement, filtrez par statut, consultez les logs."
+        title="Deployments"
+        description="Track every deployment, filter by status, and review logs."
         actions={
           <>
             {canCreate && (
               <button type="button" onClick={() => setCreateDialogOpen(true)}
                 className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90">
-                <Plus size={16} /> Nouveau déploiement
+                <Plus size={16} /> New deployment
               </button>
             )}
           </>
@@ -352,7 +352,7 @@ export default function DeploymentsPage() {
                 onChange={(e) => setProjectFilter(e.target.value)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-zinc-500/20"
               >
-                <option value="ALL">Tous les projets</option>
+                <option value="ALL">All projects</option>
                 {uniqueProjects.map(([id, name]) => (
                   <option key={id} value={id}>{name}</option>
                 ))}
@@ -364,7 +364,7 @@ export default function DeploymentsPage() {
                 onChange={(e) => setEnvFilter(e.target.value)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-zinc-500/20"
               >
-                <option value="ALL">Tous les envs</option>
+                <option value="ALL">All environments</option>
                 {uniqueEnvs.map((env) => (
                   <option key={env} value={env}>{env}</option>
                 ))}
@@ -394,9 +394,9 @@ export default function DeploymentsPage() {
       {!loading && filtered.length === 0 && !error && (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-16 text-center">
           <Rocket size={28} className="mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm font-semibold text-[var(--text-primary)]">Aucun déploiement</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">No deployments</p>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            {statusFilter === 'ALL' ? 'Lancez votre premier déploiement.' : `Aucun déploiement avec le statut "${statusFilter}".`}
+            {statusFilter === 'ALL' ? 'Start your first deployment.' : `No deployments with status "${statusFilter}".`}
           </p>
           {statusFilter === 'ALL' && canCreate && (
             <button type="button" onClick={() => setCreateDialogOpen(true)}

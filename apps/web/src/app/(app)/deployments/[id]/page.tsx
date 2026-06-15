@@ -47,7 +47,7 @@ function ContainerStatsSection({ deploymentId }: { deploymentId: string }) {
         : 'text-zinc-400';
 
   return (
-    <SectionCard title="Container Docker" description="Statistiques temps réel et logs récents du conteneur sur le VPS.">
+    <SectionCard title="Docker container" description="Real-time stats and recent container logs on the VPS.">
       <div className="space-y-4">
         {!loaded && !loading && (
           <button
@@ -84,7 +84,7 @@ function ContainerStatsSection({ deploymentId }: { deploymentId: string }) {
                     <p className="mt-1 font-mono text-sm font-bold text-[var(--text-primary)]">{info.stats.cpuPercent}</p>
                   </div>
                   <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Mémoire</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Memory</p>
                     <p className="mt-1 font-mono text-sm font-bold text-[var(--text-primary)]">{info.stats.memPercent}</p>
                     <p className="font-mono text-[10px] text-[var(--text-muted)]">{info.stats.memUsage}</p>
                   </div>
@@ -99,7 +99,7 @@ function ContainerStatsSection({ deploymentId }: { deploymentId: string }) {
             {/* Recent container logs */}
             {info.logs && (
               <>
-                <p className="text-xs font-semibold text-[var(--text-muted)]">Dernières 50 lignes de logs</p>
+                <p className="text-xs font-semibold text-[var(--text-muted)]">Last 50 log lines</p>
                 <pre className="max-h-64 overflow-auto rounded-xl border border-[var(--border)] bg-black/60 p-4 font-mono text-xs leading-relaxed text-green-300 whitespace-pre-wrap">
                   {info.logs}
                 </pre>
@@ -112,7 +112,7 @@ function ContainerStatsSection({ deploymentId }: { deploymentId: string }) {
               disabled={loading}
               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
             >
-              <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> Rafraîchir
+              <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
           </>
         )}
@@ -161,7 +161,7 @@ function ContainerLogsSection({ deploymentId }: { deploymentId: string }) {
         {loading && (
           <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
             <Loader2 size={14} className="animate-spin" />
-            Connexion SSH et récupération des logs…
+            Connecting via SSH and fetching logs…
           </div>
         )}
 
@@ -172,7 +172,7 @@ function ContainerLogsSection({ deploymentId }: { deploymentId: string }) {
         {loaded && (
           <>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-muted)]">Dernières 300 lignes</span>
+              <span className="text-xs text-[var(--text-muted)]">Last 300 lines</span>
               <button
                 type="button"
                 onClick={() => void fetchLogs()}
@@ -180,11 +180,11 @@ function ContainerLogsSection({ deploymentId }: { deploymentId: string }) {
                 className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
               >
                 <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
-                Rafraîchir
+                Refresh
               </button>
             </div>
             <pre className="max-h-96 overflow-auto rounded-xl border border-[var(--border)] bg-black/60 p-4 font-mono text-xs leading-relaxed text-green-300 whitespace-pre-wrap">
-              {logs ?? '# Aucun log disponible'}
+              {logs ?? '# No logs available'}
             </pre>
           </>
         )}
@@ -270,7 +270,7 @@ export default function DeploymentDetailPage({ params }: Props) {
     }
   }, [id]);
 
-  // Charge les détails une première fois.
+  // Load the details once on mount.
   useEffect(() => {
     void fetchDeployment();
   }, [fetchDeployment]);
@@ -287,7 +287,7 @@ export default function DeploymentDetailPage({ params }: Props) {
     initialStatus: deployment?.status ?? null,
   });
 
-  // Synchronise le statut live dans l'état local de la page.
+  // Sync the live status into the page local state.
   useEffect(() => {
     if (!liveStatus) {
       return;
@@ -304,7 +304,7 @@ export default function DeploymentDetailPage({ params }: Props) {
       };
     });
 
-    // Quand le déploiement se termine, on recharge la fiche complète.
+    // When the deployment finishes, reload the full record.
     if (!isActiveStatus(liveStatus)) {
       void fetchDeployment();
     }
@@ -389,7 +389,7 @@ export default function DeploymentDetailPage({ params }: Props) {
               className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
             >
               <ArrowLeft size={15} />
-              Déploiements
+              Deployments
             </Link>
             {deployment && (
               <Link
@@ -526,7 +526,7 @@ export default function DeploymentDetailPage({ params }: Props) {
                   onClick={() => setRedeployOpen(true)}
                   className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
                 >
-                  <Rocket size={14} /> Re-déployer
+                  <Rocket size={14} /> Redeploy
                 </button>
               )}
             </div>
@@ -540,7 +540,7 @@ export default function DeploymentDetailPage({ params }: Props) {
               {isActive && (
                 <span className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
                   <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[var(--text-primary)] animate-pulse" />
-                  Live — {isConnected ? 'WebSocket connecté' : 'reconnexion…'}
+                  Live — {isConnected ? 'WebSocket connected' : 'reconnecting…'}
                 </span>
               )}
             </div>
