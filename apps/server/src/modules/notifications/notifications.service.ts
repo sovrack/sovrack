@@ -109,6 +109,24 @@ export class NotificationsService {
   }
 
   /**
+   * Fired by the ReconcilerService when it auto-heals a crashed container.
+   */
+  async notifyAutoHeal(payload: {
+    serviceEnvId: string;
+    containerName: string;
+    reason: string;
+  }): Promise<void> {
+    const text =
+      `🩹 Auto-heal : le conteneur \`${payload.containerName}\` a été détecté arrêté ` +
+      `(${payload.reason}) et recréé automatiquement par le reconciler. ` +
+      `Service-environnement : ${payload.serviceEnvId}.`;
+    await Promise.allSettled([
+      this.sendSimpleSlack(text),
+      this.sendSimpleEmail('Auto-heal', text, payload.containerName),
+    ]);
+  }
+
+  /**
    * Fired by WebhookRetryService when an event exhausts its retries and is
    * dead-lettered. Tells the admin the push will NOT auto-deploy and that a
    * manual replay is available in the UI.

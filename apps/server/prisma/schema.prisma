@@ -509,6 +509,9 @@ model Deployment {
   externalPipelineId BigInt?
   isRollback         Boolean            @default(false)
   rolledBackAt       DateTime?
+  // Self-healing: set when the reconciler recreated a crashed container.
+  isAutoHealed       Boolean            @default(false)
+  autoHealReason     String?
   branch             String
   serviceId          String?
   service            Service?           @relation(fields: [serviceId], references: [id], onDelete: SetNull)

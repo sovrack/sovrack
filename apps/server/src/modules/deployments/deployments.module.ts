@@ -22,7 +22,9 @@ import { DeploymentsAutoTriggerService } from './triggers/deployments-auto-trigg
 import { DeploymentsLogStreamService } from './query/deployments-log-stream.service';
 import { DeploymentContainerInspectorService } from './query/deployment-container-inspector.service';
 import { DeploymentsStaleRecoveryService } from './health/deployments-stale-recovery.service';
+import { ReconcilerService } from './health/reconciler.service';
 import { DeploymentsValidationService } from './query/deployments-validation.service';
+import { DeploymentsLogSearchService } from './query/deployments-log-search.service';
 import { DeploymentsConfigResolver } from './query/deployments-config-resolver.service';
 import { DeploymentsProcessor } from './processors/deployments.processor';
 
@@ -53,7 +55,9 @@ import { DeploymentsProcessor } from './processors/deployments.processor';
     DeploymentsLogStreamService,
     DeploymentContainerInspectorService,
     DeploymentsStaleRecoveryService,
+    ReconcilerService,
     DeploymentsValidationService,
+    DeploymentsLogSearchService,
     DeploymentsConfigResolver,
     DeploymentsProcessor,
   ],

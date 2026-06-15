@@ -39,6 +39,10 @@ import { DeploymentsQueryService } from './query/deployments-query.service';
 import { DeploymentsLifecycleService } from './core/deployments-lifecycle.service';
 import { DeploymentsRollbackService } from './core/deployments-rollback.service';
 import { DockerDeployExecutorService } from './core/docker-deploy-executor.service';
+import {
+  DeploymentsLogSearchService,
+  type LogLevelFilter,
+} from './query/deployments-log-search.service';
 
 @ApiTags('Deployments')
 @ApiBearerAuth()
@@ -57,6 +61,7 @@ export class DeploymentsController {
     private readonly rollbackService: DeploymentsRollbackService,
     private readonly dockerExecutor: DockerDeployExecutorService,
     private readonly validationService: DeploymentsValidationService,
+    private readonly logSearchService: DeploymentsLogSearchService,
   ) {}
 
   @Post('validate')
@@ -221,5 +226,23 @@ export class DeploymentsController {
   ) {
     const tailNum = tail ? parseInt(tail, 10) : 300;
     return await this.dockerExecutor.getContainerLogs(id, tailNum);
+  }
+
+  @Get(':id/logs/search')
+  @ApiOperation({ summary: 'Rechercher dans les logs du déploiement (texte + niveau)' })
+  @ApiOkResponse({ description: 'Lignes correspondantes (max 200) + total' })
+  async searchLogs(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @Query('q') q: string | undefined,
+    @Query('level') level: LogLevelFilter | undefined,
+  ) {
+    return await this.logSearchService.searchLogs(
+      id,
+      user.id,
+      user.role,
+      q ?? '',
+      level ?? 'ALL',
+    );
   }
 }
