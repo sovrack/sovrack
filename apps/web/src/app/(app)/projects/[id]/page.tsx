@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   BarChart2,
   Container,
+  Globe,
   Layers,
   Loader2,
   Rocket,
@@ -30,6 +31,7 @@ import { ProjectOverview } from '@/components/projects/project-overview';
 import { ProjectSourceSetupDialog } from '@/components/projects/project-source-setup-dialog';
 import { ContainersTab } from '@/components/projects/tabs/containers/containers-tab';
 import { MonitoringTab } from '@/components/projects/tabs/monitoring/monitoring-tab';
+import { DomainsConfigSection } from '@/components/projects/tabs/configuration/domains-section';
 import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
 import { environmentsService } from '@/services/environments.service';
@@ -40,13 +42,14 @@ type Tab =
   | 'overview'
   | 'services'
   | 'environments'
+  | 'domains'
   | 'deployments'
   | 'containers'
   | 'monitoring'
   | 'settings';
 
 const TAB_VALUES: Tab[] = [
-  'overview', 'services', 'environments', 'deployments', 'containers', 'monitoring', 'settings',
+  'overview', 'services', 'environments', 'domains', 'deployments', 'containers', 'monitoring', 'settings',
 ];
 
 function parseTab(value: string | null): Tab | null {
@@ -169,6 +172,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     { id: 'overview',       label: 'Overview',       icon: Rocket },
     { id: 'services',       label: 'Services',       icon: Settings2 },
     { id: 'environments',   label: 'Environments',  icon: Layers },
+    { id: 'domains',        label: 'Domains',        icon: Globe },
     { id: 'deployments',    label: 'Deployments',    icon: Activity },
     { id: 'containers',     label: 'Containers',     icon: Container },
     { id: 'monitoring',     label: 'Monitoring',     icon: BarChart2 },
@@ -276,6 +280,10 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           onDeployService={(svcId) => { setSelectedServiceId(svcId); setDeployOpen(true); }}
           onOpenSourceSetupDialog={openSourceSetupDialog}
         />
+      )}
+
+      {tab === 'domains' && (
+        <DomainsConfigSection projectId={id} />
       )}
 
       {tab === 'deployments' && (
