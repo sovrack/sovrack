@@ -145,17 +145,18 @@ dbDescribe('Secrets at rest (integration, requires DB)', () => {
     }
   });
 
-  // Test 3 — KNOWN GAP: Service.secretsEnv is stored PLAINTEXT today.
-  // This asserts the CURRENT reality so the suite is honest; flip the assertion
-  // when at-rest encryption of secretsEnv is implemented (see secrets-at-rest.md).
-  it('Service.secretsEnv is currently stored PLAINTEXT (known gap)', async () => {
+  // Test 3 — secretsEnv is now encrypted at rest (see services write path).
+  // The encrypted-write path stores ciphertext; decryptSafe round-trips it and
+  // also passes legacy plaintext JSON through unchanged (backward compatible).
+  it('secretsEnv is encrypted at rest and decryptSafe round-trips', async () => {
+    const plaintextSecrets = JSON.stringify({ DB_PASSWORD: `pw-${tag}` });
     const project = await prisma.project.create({ data: { name: tag }, select: { id: true } });
     const service = await prisma.service.create({
       data: {
         projectId: project.id,
         name: tag,
-        // Mirrors the current write path: NO encryption applied to secretsEnv.
-        secretsEnv: JSON.stringify({ DB_PASSWORD: `pw-${tag}` }),
+        // Mirrors the encrypted write path (CryptoService.encrypt).
+        secretsEnv: crypto.encrypt(plaintextSecrets),
       },
       select: { id: true },
     });
@@ -165,8 +166,12 @@ dbDescribe('Secrets at rest (integration, requires DB)', () => {
         service.id,
       );
       const raw = rows[0]?.secretsEnv ?? '';
-      // Documents the gap: the password is readable in clear in the DB.
-      expect(raw).toContain(`pw-${tag}`);
+      // Ciphertext: the password is NOT readable in the DB.
+      expect(raw).not.toContain(`pw-${tag}`);
+      // The deploy read path uses decryptSafe → original is recovered.
+      expect(crypto.decryptSafe(raw)).toBe(plaintextSecrets);
+      // Backward compatibility: legacy plaintext JSON passes through unchanged.
+      expect(crypto.decryptSafe(plaintextSecrets)).toBe(plaintextSecrets);
     } finally {
       await prisma.project.delete({ where: { id: project.id } }); // cascades Service
     }

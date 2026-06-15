@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { CryptoService } from '../../../core/crypto/crypto.service';
 import { CreateServiceEnvironmentDto } from './dto/create-service-environment.dto';
 import { UpdateServiceEnvironmentDto } from './dto/update-service-environment.dto';
 
@@ -24,7 +25,10 @@ export type ServiceEnvWithRelations = Prisma.ServiceEnvironmentGetPayload<{
 
 @Injectable()
 export class ServiceEnvironmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly crypto: CryptoService,
+  ) {}
 
   async link(
     projectId: string,
@@ -68,6 +72,9 @@ export class ServiceEnvironmentsService {
       healthcheckPath: dto.healthcheckPath,
       buildPack: dto.buildPack,
       env: dto.env,
+      // Encrypt secrets at rest; undefined leaves the stored value untouched.
+      secretsEnv:
+        dto.secretsEnv !== undefined ? this.crypto.encrypt(dto.secretsEnv) : undefined,
     };
 
     // Lien déjà existant mais archivé → on RÉACTIVE la même ligne (archivedAt
@@ -161,6 +168,10 @@ export class ServiceEnvironmentsService {
         ...(dto.healthcheckPath !== undefined ? { healthcheckPath: dto.healthcheckPath } : {}),
         ...(dto.buildPack !== undefined ? { buildPack: dto.buildPack } : {}),
         ...(dto.env !== undefined ? { env: dto.env } : {}),
+        // Encrypt secrets at rest before persisting.
+        ...(dto.secretsEnv !== undefined
+          ? { secretsEnv: this.crypto.encrypt(dto.secretsEnv) }
+          : {}),
       },
       include: serviceEnvInclude,
     });

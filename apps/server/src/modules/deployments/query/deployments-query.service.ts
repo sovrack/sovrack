@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { CryptoService } from '../../../core/crypto/crypto.service';
 import { PaginationDto, PaginatedResult, paginate } from '../../../core/http/pagination.dto';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { EnvLevel, EnvOrigin, resolveEnvDetailed } from '../utils/env-resolver.util';
@@ -48,6 +49,7 @@ export class DeploymentsQueryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationService: DeploymentsAuthorizationService,
+    private readonly crypto: CryptoService,
   ) {}
 
   /**
@@ -69,21 +71,23 @@ export class DeploymentsQueryService {
       throw new NotFoundException('Lien service-environnement non trouvé');
     }
 
+    // secretsEnv is encrypted at rest — decrypt before resolving (decryptSafe
+    // passes through legacy plaintext / null unchanged).
     const levels: EnvLevel[] = [
       {
         levelName: 'service',
         env: serviceEnv.service?.env ?? null,
-        secretsEnv: serviceEnv.service?.secretsEnv ?? null,
+        secretsEnv: this.crypto.decryptSafe(serviceEnv.service?.secretsEnv),
       },
       {
         levelName: 'environment',
         env: serviceEnv.environment?.env ?? null,
-        secretsEnv: serviceEnv.environment?.secretsEnv ?? null,
+        secretsEnv: this.crypto.decryptSafe(serviceEnv.environment?.secretsEnv),
       },
       {
         levelName: 'serviceEnvironment',
         env: serviceEnv.env,
-        secretsEnv: serviceEnv.secretsEnv,
+        secretsEnv: this.crypto.decryptSafe(serviceEnv.secretsEnv),
       },
     ];
 

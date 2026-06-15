@@ -44,6 +44,26 @@ export class CryptoService {
     return this.encrypt(value.trim());
   }
 
+  /**
+   * Decrypt a value that MAY be encrypted or MAY be legacy plaintext JSON.
+   * Used for secretsEnv, which historically was stored as plaintext JSON and is
+   * now encrypted at rest. Plaintext JSON (starts with `{`/`[`) is returned
+   * unchanged; anything else is treated as ciphertext and decrypted, falling
+   * back to the raw value if decryption fails. Null/empty pass through.
+   */
+  decryptSafe(value: string | null | undefined): string | null {
+    if (value == null) return null;
+    const trimmed = value.trim();
+    if (trimmed === '' || trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      return value;
+    }
+    try {
+      return this.decrypt(value);
+    } catch {
+      return value;
+    }
+  }
+
   private decryptLegacy(encryptedValue: string, secret: string): string {
     try {
       const decrypted = CryptoJS.AES.decrypt(encryptedValue, secret).toString(

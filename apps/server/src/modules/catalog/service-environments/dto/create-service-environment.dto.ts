@@ -59,4 +59,12 @@ export class CreateServiceEnvironmentDto {
   @IsOptional()
   @IsString()
   env?: string;
+
+  @ApiPropertyOptional({
+    description: 'Secret variables as JSON. Encrypted at rest; never returned by the API.',
+    example: '{"DB_PASSWORD":"s3cr3t"}',
+  })
+  @IsOptional()
+  @IsString()
+  secretsEnv?: string;
 }

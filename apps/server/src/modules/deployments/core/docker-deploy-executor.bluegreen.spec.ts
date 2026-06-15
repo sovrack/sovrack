@@ -3,6 +3,7 @@ import { PrismaService } from '../../../core/database/prisma.service';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DeploymentsHealthcheckService } from '../health/deployments-healthcheck.service';
+import { CryptoService } from '../../../core/crypto/crypto.service';
 import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 
 /**
@@ -27,6 +28,7 @@ describe('DockerDeployExecutorService — blue-green cut-over', () => {
       docker,
       {} as DeploymentsGateway,
       {} as DeploymentsHealthcheckService,
+      { decryptSafe: (v: string | null) => v } as unknown as CryptoService,
     );
     // Skip the real 3s drain.
     jest.spyOn(service as unknown as { sleep: () => Promise<void> }, 'sleep').mockResolvedValue(undefined);

@@ -6,6 +6,7 @@ import {
 import { ContainerStatus, Deployment, DeploymentStatus, DeploymentStrategy, ManagedServiceType, Prisma, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
+import { CryptoService } from '../../../core/crypto/crypto.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DeploymentsHealthcheckService } from '../health/deployments-healthcheck.service';
 import { EnvLevel, resolveEnvDetailed } from '../utils/env-resolver.util';
@@ -28,6 +29,7 @@ export class DockerDeployExecutorService {
     private readonly docker: DockerApiService,
     private readonly gateway: DeploymentsGateway,
     private readonly healthcheckService: DeploymentsHealthcheckService,
+    private readonly crypto: CryptoService,
   ) {}
 
   private buildConditions(
@@ -345,21 +347,23 @@ export class DockerDeployExecutorService {
     environment?: { env?: string | null; secretsEnv?: string | null } | null;
   }): EnvLevel[] {
     const envLevel = deployment.serviceEnv?.environment ?? deployment.environment ?? null;
+    // secretsEnv is encrypted at rest — decrypt before the resolver parses it
+    // (decryptSafe passes through legacy plaintext / null unchanged).
     return [
       {
         levelName: 'service',
         env: deployment.service?.env ?? null,
-        secretsEnv: deployment.service?.secretsEnv ?? null,
+        secretsEnv: this.crypto.decryptSafe(deployment.service?.secretsEnv),
       },
       {
         levelName: 'environment',
         env: envLevel?.env ?? null,
-        secretsEnv: envLevel?.secretsEnv ?? null,
+        secretsEnv: this.crypto.decryptSafe(envLevel?.secretsEnv),
       },
       {
         levelName: 'serviceEnvironment',
         env: deployment.serviceEnv?.env ?? null,
-        secretsEnv: deployment.serviceEnv?.secretsEnv ?? null,
+        secretsEnv: this.crypto.decryptSafe(deployment.serviceEnv?.secretsEnv),
       },
     ];
   }
