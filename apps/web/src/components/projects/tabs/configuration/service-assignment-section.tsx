@@ -5,7 +5,7 @@ import { Box, ChevronDown, ChevronRight, Loader2, Plus } from 'lucide-react';
 import { environmentsService } from '@/services/environments.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { CreateServiceWizard } from '@/components/projects/create-service-wizard';
+import { AddServiceWizard } from '@/components/projects/add-service-wizard';
 import type { Environment } from '@/types/environment';
 
 const ENV_BADGE_CFG: Record<string, string> = {
@@ -81,7 +81,7 @@ export function ServiceAssignmentSection({ projectId }: { projectId: string }) {
           New service
         </Button>
       </div>
-      <CreateServiceWizard
+      <AddServiceWizard
         projectId={projectId}
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}

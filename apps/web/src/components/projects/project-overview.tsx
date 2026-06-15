@@ -72,10 +72,8 @@ export function ProjectOverview({
   const steps: Step[] = [
     {
       id: 'source',
-      label: 'Connect Git source',
-      description: sourceConfig
-        ? `${sourceConfig.sourceType === 'GROUP' ? 'Group' : 'Repo'} connected · ${sourceConfig.defaultBranch ?? 'main'}`
-        : 'Link a GitLab repo or group',
+      label: 'Add a service',
+      description: 'Add an application (Git repo/group), database or Docker image',
       done: !!sourceConfig,
       tab: 'services',
       icon: <GitBranch size={13} />,

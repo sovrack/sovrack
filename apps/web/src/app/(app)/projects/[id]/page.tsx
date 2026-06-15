@@ -201,14 +201,6 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
 
       {/* Status badges */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className={clsx(
-          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
-          source.sourceConfig
-            ? 'border-green-500/20 bg-green-500/10 text-green-400'
-            : 'border-amber-500/20 bg-amber-500/10 text-amber-400',
-        )}>
-          {source.sourceConfig ? '● Source connected' : '○ Source not connected'}
-        </span>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--hover)] px-2.5 py-1 text-xs text-[var(--text-muted)]">
           {environments.length} environment{environments.length !== 1 ? 's' : ''}
         </span>
