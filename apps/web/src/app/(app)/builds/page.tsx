@@ -24,7 +24,7 @@ export default function BuildsPage() {
             className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
           >
             <FolderGit2 size={14} />
-            Voir les projets
+            View projects
           </Link>
         }
       />

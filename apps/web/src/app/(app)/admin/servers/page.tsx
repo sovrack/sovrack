@@ -135,7 +135,7 @@ export default function AdminServersPage() {
           const result = await serversService.ping(s.id);
           setPingMap((prev) => ({ ...prev, [s.id]: { ok: result.ok, message: result.message } }));
         } catch {
-          setPingMap((prev) => ({ ...prev, [s.id]: { ok: false, message: 'Erreur de connexion' } }));
+          setPingMap((prev) => ({ ...prev, [s.id]: { ok: false, message: 'Connection error' } }));
         }
       }),
     );
@@ -267,7 +267,7 @@ export default function AdminServersPage() {
         <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--hover)]">
           <EmptyState
             icon={Server}
-            title="Aucun serveur"
+            title="No servers"
             description="Add your first VPS to start SSH validation and provisioning."
             action={
               <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>

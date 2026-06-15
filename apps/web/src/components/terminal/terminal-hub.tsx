@@ -110,7 +110,7 @@ export function TerminalHub() {
       {/* Server selector (visible only when no active session) */}
       {!activeServerId && (
         <SectionCard
-          title="Connexion SSH"
+          title="SSH Connection"
           description="Select a validated VPS and open an interactive session."
         >
           {loading ? (
@@ -125,7 +125,7 @@ export function TerminalHub() {
                 href="/admin/servers"
                 className="mt-3 inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
               >
-                <Server size={14} /> Configurer des VPS
+                <Server size={14} /> Configure VPS
               </Link>
             </div>
           ) : (
@@ -154,7 +154,7 @@ export function TerminalHub() {
                     <span>Host: <span className="text-[var(--text-primary)]">{selected.host}</span></span>
                     <span>Port: <span className="text-[var(--text-primary)]">{selected.port}</span></span>
                     <span>User: <span className="text-[var(--text-primary)]">{selected.username}</span></span>
-                    <span>Statut: <span className={selected.isVerified ? 'text-green-400' : 'text-yellow-400'}>{selected.isVerified ? 'Verified' : 'Not verified'}</span></span>
+                    <span>Status: <span className={selected.isVerified ? 'text-green-400' : 'text-yellow-400'}>{selected.isVerified ? 'Verified' : 'Not verified'}</span></span>
                   </div>
                 </div>
               )}

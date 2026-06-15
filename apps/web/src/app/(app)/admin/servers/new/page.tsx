@@ -311,7 +311,7 @@ export default function NewServerPage() {
           <div className="space-y-2 text-sm text-green-300">
             <p className="inline-flex items-center gap-2">
               <CheckCircle2 size={16} />
-              Serveur: <strong>{createdServer.name}</strong>
+              Server: <strong>{createdServer.name}</strong>
             </p>
             <p className="inline-flex items-center gap-2">
               <CheckCircle2 size={16} />
@@ -341,7 +341,7 @@ export default function NewServerPage() {
               onClick={() => router.push('/admin/servers')}
               className="inline-flex items-center gap-2 rounded-xl bg-green-500/10 px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-green-500/15"
             >
-              Voir serveurs
+              View servers
             </button>
             <button
               type="button"

@@ -30,7 +30,7 @@ const BUILD_SOURCE_OPTIONS: BuildSourceOption[] = [
   {
     value: 'DOCKERFILE_LOCAL',
     label: 'Dockerfile — Local',
-    desc: 'docker build directement sur le VPS. Aucun registry.',
+    desc: 'docker build directement sur le VPS. No registry.',
     icon: <Code2 size={13} />,
     badge: 'Recommended',
     badgeColor: 'text-green-300',

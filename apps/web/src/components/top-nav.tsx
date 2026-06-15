@@ -108,7 +108,7 @@ function NotificationBell() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] transition hover:text-[var(--text-secondary)]"
             >
-              <Settings size={10} /> Configurer
+              <Settings size={10} /> Configure
             </Link>
           </div>
 
@@ -137,7 +137,7 @@ function NotificationBell() {
                       <p className="truncate text-xs font-semibold text-[var(--text-primary)]">
                         {dep.project.name}
                         {isNew && (
-                          <span className="ml-2 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-400">Nouveau</span>
+                          <span className="ml-2 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-400">New</span>
                         )}
                       </p>
                       <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">

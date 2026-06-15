@@ -146,7 +146,7 @@ export function ProjectMembersTab({
               ) : (
                 <Plus size={15} />
               )}
-              Ajouter
+              Add
             </button>
           </div>
         </div>

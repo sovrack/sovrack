@@ -98,7 +98,7 @@ export function BuildServiceTable({
         <div className="space-y-2 p-4">{[1,2,3].map((i) => <div key={i} className="h-14 animate-pulse rounded-xl bg-[var(--hover)]" />)}</div>
       ) : services.length === 0 ? (
         <div className="p-8 text-center text-sm text-[var(--text-muted)]">
-          Aucun service. Ajoutez des services dans l&apos;onglet <strong>Services</strong>.
+          No services. Add services in the <strong>Services</strong>.
         </div>
       ) : (
         <div className="divide-y divide-[var(--border)]">
@@ -156,7 +156,7 @@ export function BuildServiceTable({
                         )}
                       </div>
                     ) : (
-                      <span className="text-[10px] text-[var(--text-muted)]">Aucun pipeline</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">No pipeline</span>
                     )}
                   </div>
 
@@ -166,7 +166,7 @@ export function BuildServiceTable({
                     onClick={() => onExpandChange(isExpanded ? null : svc.id)}
                     className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
                   >
-                    {isExpanded ? <><ChevronUp size={12} /> Fermer</> : <><ChevronDown size={12} /> Configurer</>}
+                    {isExpanded ? <><ChevronUp size={12} /> Close</> : <><ChevronDown size={12} /> Configure</>}
                   </button>
                 </div>
 

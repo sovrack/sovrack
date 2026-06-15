@@ -264,7 +264,7 @@ function RegistryForm({
           disabled={submitDisabled}
           icon={isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
         >
-          {mode === 'create' ? 'Ajouter' : 'Mettre a jour'}
+          {mode === 'create' ? 'Add' : 'Update'}
         </Button>
         <Button variant="secondary" type="button" onClick={onCancel} disabled={isSubmitting}>
           Cancel
@@ -438,14 +438,14 @@ export default function RegistrySettingsPage() {
         actions={
           dialogMode === null ? (
             <Button icon={<Plus size={14} />} onClick={() => setDialogMode('create')}>
-              Ajouter un registre
+              Add registry
             </Button>
           ) : null
         }
       />
 
       {error && (
-        <Alert tone="error" title="Erreur">
+        <Alert tone="error" title="Error">
           {error}
         </Alert>
       )}
@@ -455,7 +455,7 @@ export default function RegistrySettingsPage() {
           <Alert
             key={toast.id}
             tone={toast.tone === 'success' ? 'success' : 'error'}
-            title={toast.tone === 'success' ? 'Succes' : 'Erreur'}
+            title={toast.tone === 'success' ? 'Success' : 'Error'}
           >
             {toast.message}
           </Alert>
@@ -470,9 +470,9 @@ export default function RegistrySettingsPage() {
 
       {!loading && registries.length === 0 && dialogMode === null && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
-          <p className="mb-4 text-[var(--text-secondary)]">Aucun registre configure</p>
+          <p className="mb-4 text-[var(--text-secondary)]">No registry configured</p>
           <Button icon={<Plus size={14} />} onClick={() => setDialogMode('create')}>
-            Ajouter un registre
+            Add registry
           </Button>
         </div>
       )}
@@ -495,7 +495,7 @@ export default function RegistrySettingsPage() {
                   Settings
                 </p>
                 <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-                  {dialogMode === 'create' ? 'Ajouter un registre' : 'Edit le registre'}
+                  {dialogMode === 'create' ? 'Add registry' : 'Edit registry'}
                 </h3>
               </div>
               <button
@@ -610,7 +610,7 @@ export default function RegistrySettingsPage() {
 
               {registry.connectionError && (
                 <div className="mt-3 rounded-md bg-red-500/10 p-3 text-sm text-red-400">
-                  <strong>Erreur de connexion:</strong> {registry.connectionError}
+                  <strong>Connection error:</strong> {registry.connectionError}
                 </div>
               )}
             </div>

@@ -104,7 +104,7 @@ export function SshTerminal({ serverId, onClose }: Props) {
         return;
       }
 
-      term.writeln('\x1b[90mConnexion SSH en cours...\x1b[0m');
+      term.writeln('\x1b[90mConnecting via SSH...\x1b[0m');
 
       const socket = io(`${backendUrl}/terminal`, {
         transports: ['websocket'],
@@ -137,7 +137,7 @@ export function SshTerminal({ serverId, onClose }: Props) {
       socket.on('terminal:error', (msg: string) => {
         setState('error');
         setErrorMsg(msg);
-        term.writeln(`\r\n\x1b[31m✗ Erreur: ${msg}\x1b[0m`);
+        term.writeln(`\r\n\x1b[31m✗ Error: ${msg}\x1b[0m`);
       });
 
       socket.on('terminal:close', ({ code }: { code: number | null }) => {
@@ -190,9 +190,9 @@ export function SshTerminal({ serverId, onClose }: Props) {
             {state === 'connected'
               ? 'Connected'
               : state === 'connecting'
-                ? 'Connexion...'
+                ? 'Connecting...'
                 : state === 'error'
-                  ? `Erreur${errorMsg ? `: ${errorMsg}` : ''}`
+                  ? `Error${errorMsg ? `: ${errorMsg}` : ''}`
                   : 'Closed'}
           </span>
         </div>
@@ -200,7 +200,7 @@ export function SshTerminal({ serverId, onClose }: Props) {
           onClick={disconnect}
           className="rounded px-2 py-1 text-xs font-medium text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
         >
-          Fermer
+          Close
         </button>
       </div>
 

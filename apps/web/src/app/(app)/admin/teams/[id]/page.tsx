@@ -237,7 +237,7 @@ export default function TeamDetailPage({ params }: Props) {
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)] disabled:opacity-60"
           >
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-            Enregistrer
+            Save
           </button>
           </div>
         </form>
@@ -251,7 +251,7 @@ export default function TeamDetailPage({ params }: Props) {
           </div>
 
           {team.members.length === 0 ? (
-            <p className="text-sm text-[var(--text-secondary)]">Aucun membre pour l&apos;instant.</p>
+            <p className="text-sm text-[var(--text-secondary)]">No members yet.</p>
           ) : (
             <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] border-[var(--border)]">
               {team.members.map((member) => (
@@ -283,7 +283,7 @@ export default function TeamDetailPage({ params }: Props) {
           {availableUsers.length > 0 && (
             <div className="pt-2">
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                Ajouter un membre
+                Add member
               </p>
               <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] border-[var(--border)]">
                 {availableUsers.map((user) => (
@@ -305,7 +305,7 @@ export default function TeamDetailPage({ params }: Props) {
                       ) : (
                         <UserPlus size={13} />
                       )}
-                      Ajouter
+                      Add
                     </button>
                   </div>
                 ))}

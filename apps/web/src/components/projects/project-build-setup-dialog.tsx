@@ -57,7 +57,7 @@ const ENGINE_OPTIONS: EngineOption[] = [
     value: 'STATIC',
     icon: <Globe size={20} />,
     title: 'Site statique',
-    description: 'Build les assets statiques et les sert via Nginx. Aucun Docker requis.',
+    description: 'Build les assets statiques et les sert via Nginx. No Docker required.',
     projectType: 'static',
   },
 ];
@@ -163,7 +163,7 @@ export function ProjectBuildSetupDialog({
         <div className="flex items-start justify-between border-b border-[var(--border)] px-6 py-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Step 3 / 3</p>
-            <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Configurer le Build</h2>
+            <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Configure Build</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">Choose the build engine and startup settings.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-[var(--text-secondary)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]">
@@ -257,7 +257,7 @@ export function ProjectBuildSetupDialog({
               )}
 
               <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] pt-4">
-                <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>Fermer</Button>
+                <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>Close</Button>
                 <Button type="button" onClick={() => void handleSave()} loading={saving}>
                   Sauvegarder la config
                 </Button>
@@ -269,7 +269,7 @@ export function ProjectBuildSetupDialog({
                 The build engine and settings were saved. You can now generate the files in the Build tab.
               </Alert>
               <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] pt-4">
-                <Button type="button" variant="secondary" onClick={onClose}>Fermer</Button>
+                <Button type="button" variant="secondary" onClick={onClose}>Close</Button>
                 <Button type="button" onClick={() => void onDone()}>Terminer l&apos;onboarding</Button>
               </div>
             </>

@@ -144,7 +144,7 @@ export function ProjectBuildTabContent({
           </div>
           {onGoToEnvironments && (
             <button type="button" onClick={onGoToEnvironments} className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/30">
-              Configurer →
+              Configure →
             </button>
           )}
         </div>
@@ -237,7 +237,7 @@ export function ProjectBuildTabContent({
           {onGoToEnvironments && (
             <button type="button" onClick={onGoToEnvironments}
               className="shrink-0 rounded-xl border border-amber-500/30 bg-amber-500/15 px-4 py-2.5 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/25">
-              Configurer l&apos;env →
+              Configure env →
             </button>
           )}
         </div>

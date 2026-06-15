@@ -310,7 +310,7 @@ export default function AutomationPage() {
           onClick={() => setShowHistory((v) => !v)}
           className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
         >
-          {showHistory ? 'Masquer l\'historique' : 'Voir l\'historique'}
+          {showHistory ? 'Hide history' : 'View history'}
         </button>
       </div>
 

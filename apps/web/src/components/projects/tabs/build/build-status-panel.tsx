@@ -91,7 +91,7 @@ export function BuildStatusPanel({
                   )}
                 </div>
               ) : (
-                <span className="text-xs text-[var(--text-muted)]">Aucun pipeline</span>
+                <span className="text-xs text-[var(--text-muted)]">No pipeline</span>
               )}
             </div>
           </div>

@@ -65,7 +65,7 @@ function AddEnvDialog({
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
         <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Ajouter un environnement</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Add an environment</h2>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">Create a deployment environment.</p>
           </div>
           <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]">
@@ -185,7 +185,7 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
             onClick={() => setAddOpen(true)}
             className="flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
           >
-            <Plus size={12} /> Ajouter
+            <Plus size={12} /> Add
           </button>
         </div>
       </div>
@@ -197,7 +197,7 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
       {environments.length === 0 && !error && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border)] py-12 text-center">
           <Server size={28} className="mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm font-semibold text-[var(--text-primary)]">Aucun environnement</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">No environment</p>
           <p className="mt-1 max-w-xs text-xs text-[var(--text-secondary)]">
             Add a STAGING or PRODUCTION environment to be able to deploy.
           </p>
@@ -206,7 +206,7 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
             onClick={() => setAddOpen(true)}
             className="mt-4 flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
           >
-            <Plus size={14} /> Ajouter un environnement
+            <Plus size={14} /> Add an environment
           </button>
         </div>
       )}
@@ -273,7 +273,7 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
             {envServices.length === 0 && (
               <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
                 <Globe size={12} />
-                Aucun service dans cet environnement.
+                No services in this environment.
               </div>
             )}
           </div>

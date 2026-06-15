@@ -133,7 +133,7 @@ export default function MonitoringPage() {
 
       {/* Servers */}
       <SectionCard
-        title="Serveurs"
+        title="Servers"
         description="Health and system metrics per VPS."
       >
         {loading ? (

@@ -170,7 +170,7 @@ function DeploymentCard({
         <div className="flex shrink-0 flex-col items-end gap-2">
           <Link href={`/deployments/${dep.id}`}
             className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
-            <ExternalLink size={12} /> Voir logs
+            <ExternalLink size={12} /> View logs
           </Link>
           {canRollback && (
             <button type="button" onClick={onRollback} disabled={rollingBack}
@@ -325,7 +325,7 @@ export default function DeploymentsPage() {
         {/* Status filter */}
         <div className="flex items-center gap-2 overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 no-scrollbar">
           <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--text-muted)]">
-            <Filter size={13} /> Statut
+            <Filter size={13} /> Status
           </span>
           {STATUS_OPTIONS.map((opt) => {
             const count = opt.value === 'ALL' ? deployments.length : deployments.filter((d) => d.status === opt.value).length;

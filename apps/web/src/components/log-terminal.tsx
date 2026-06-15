@@ -137,7 +137,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
         )}
       >
         {logs.length === 0 ? (
-          <p className="text-[var(--text-secondary)]">Aucun log disponible pour le moment.</p>
+          <p className="text-[var(--text-secondary)]">No logs available yet.</p>
         ) : (
           logs.map((line, index) => (
             <p

@@ -316,7 +316,7 @@ export default function EditUserPage({ params }: Props) {
             ) : (
               <Save size={15} />
             )}
-            Enregistrer
+            Save
           </button>
           </div>
         </form>

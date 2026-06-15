@@ -340,7 +340,7 @@ export default function AdminUsersPage() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Rechercher par nom ou email..."
+              placeholder="Search by name or email..."
               className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] pl-10 pr-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100 border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]"
             />
           </label>
@@ -392,7 +392,7 @@ export default function AdminUsersPage() {
                     Role
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
-                    Statut
+                    Status
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
                     Created at
@@ -455,7 +455,7 @@ export default function AdminUsersPage() {
                           ) : (
                             <UserPlus size={13} />
                           )}
-                          {item.isActive ? 'Deactivate' : 'Activer'}
+                          {item.isActive ? 'Deactivate' : 'Activate'}
                         </button>
                         <button
                           onClick={() => void handleDelete(item)}
