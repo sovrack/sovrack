@@ -2847,6 +2847,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectId}/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lister les environnements de preview actifs */
+        get: operations["PreviewEnvironmentsController_list"];
+        put?: never;
+        /** Ouvrir un environnement de preview pour une merge request */
+        post: operations["PreviewEnvironmentsController_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/previews/{mergeRequestId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Fermer (détruire) un environnement de preview */
+        delete: operations["PreviewEnvironmentsController_close"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3924,6 +3959,7 @@ export interface components {
             /** @example 20 */
             sizeGb?: number;
         };
+        OpenPreviewDto: Record<string, never>;
     };
     responses: never;
     parameters: never;
@@ -9148,6 +9184,68 @@ export interface operations {
         requestBody?: never;
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PreviewEnvironmentsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PreviewEnvironmentsController_open: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenPreviewDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PreviewEnvironmentsController_close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                mergeRequestId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

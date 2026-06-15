@@ -7051,6 +7051,109 @@
           "Database Backups"
         ]
       }
+    },
+    "/projects/{projectId}/previews": {
+      "get": {
+        "operationId": "PreviewEnvironmentsController_list",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les environnements de preview actifs",
+        "tags": [
+          "Preview Environments"
+        ]
+      },
+      "post": {
+        "operationId": "PreviewEnvironmentsController_open",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenPreviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ouvrir un environnement de preview pour une merge request",
+        "tags": [
+          "Preview Environments"
+        ]
+      }
+    },
+    "/projects/{projectId}/previews/{mergeRequestId}": {
+      "delete": {
+        "operationId": "PreviewEnvironmentsController_close",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mergeRequestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fermer (détruire) un environnement de preview",
+        "tags": [
+          "Preview Environments"
+        ]
+      }
     }
   },
   "info": {
@@ -9904,6 +10007,10 @@
             "example": 20
           }
         }
+      },
+      "OpenPreviewDto": {
+        "type": "object",
+        "properties": {}
       }
     }
   }
