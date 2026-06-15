@@ -33,11 +33,11 @@ import type { ProjectRole } from '@/types/project';
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return 'à l\'instant';
-  if (m < 60) return `il y a ${m}m`;
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h}h`;
-  return `il y a ${Math.floor(h / 24)}j`;
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 function duration(start: string | null | undefined, end: string | null | undefined): string | null {
@@ -62,11 +62,11 @@ function resolveUrl(dep: Deployment): string | null {
 }
 
 const STATUS_CONFIG: Record<DeploymentStatus, { dot: string; label: string; card: string }> = {
-  RUNNING:  { dot: 'bg-blue-400 animate-pulse',  label: 'En cours',  card: 'border-l-4 border-l-blue-500' },
-  SUCCESS:  { dot: 'bg-green-400',               label: 'Succès',    card: 'border-l-4 border-l-green-500' },
-  FAILED:   { dot: 'bg-red-400',                 label: 'Échec',     card: 'border-l-4 border-l-red-500' },
-  PENDING:  { dot: 'bg-amber-400 animate-pulse', label: 'En attente',card: 'border-l-4 border-l-amber-500' },
-  CANCELED: { dot: 'bg-zinc-400',                label: 'Annulé',    card: 'border-l-4 border-l-zinc-500' },
+  RUNNING:  { dot: 'bg-blue-400 animate-pulse',  label: 'Running',  card: 'border-l-4 border-l-blue-500' },
+  SUCCESS:  { dot: 'bg-green-400',               label: 'Success',    card: 'border-l-4 border-l-green-500' },
+  FAILED:   { dot: 'bg-red-400',                 label: 'Failed',     card: 'border-l-4 border-l-red-500' },
+  PENDING:  { dot: 'bg-amber-400 animate-pulse', label: 'Pending',card: 'border-l-4 border-l-amber-500' },
+  CANCELED: { dot: 'bg-zinc-400',                label: 'Canceled',    card: 'border-l-4 border-l-zinc-500' },
 };
 
 const ENV_BADGE: Record<string, string> = {
@@ -77,12 +77,12 @@ const ENV_BADGE: Record<string, string> = {
 };
 
 const STATUS_OPTIONS: { label: string; value: DeploymentStatus | 'ALL'; count?: number }[] = [
-  { label: 'Tous', value: 'ALL' },
-  { label: 'En cours', value: 'RUNNING' },
-  { label: 'Succès', value: 'SUCCESS' },
-  { label: 'Échec', value: 'FAILED' },
-  { label: 'En attente', value: 'PENDING' },
-  { label: 'Annulés', value: 'CANCELED' },
+  { label: 'All', value: 'ALL' },
+  { label: 'Running', value: 'RUNNING' },
+  { label: 'Success', value: 'SUCCESS' },
+  { label: 'Failed', value: 'FAILED' },
+  { label: 'Pending', value: 'PENDING' },
+  { label: 'Canceled', value: 'CANCELED' },
 ];
 
 /* ── Deployment Card ─────────────────────────────────────────────────────── */
@@ -136,9 +136,9 @@ function DeploymentCard({
                 {timeAgo(dep.createdAt)}
               </span>
               {dur && (
-                <span>Durée : {dur}{isLive && <span className="ml-0.5 animate-pulse">…</span>}</span>
+                <span>Duration: {dur}{isLive && <span className="ml-0.5 animate-pulse">…</span>}</span>
               )}
-              <span>par {dep.user.fullName}</span>
+              <span>by {dep.user.fullName}</span>
               {dep.externalPipelineId && (
                 <span className="rounded bg-[var(--hover)] px-1.5 py-0.5 font-mono text-[9px]">pipeline #{dep.externalPipelineId}</span>
               )}
@@ -154,7 +154,7 @@ function DeploymentCard({
                 </a>
                 <a href={url} target="_blank" rel="noreferrer"
                   className="shrink-0 rounded-lg border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400 hover:bg-green-500/20 transition">
-                  Ouvrir ↗
+                  Open ↗
                 </a>
               </div>
             )}
@@ -182,7 +182,7 @@ function DeploymentCard({
           {(dep.status === 'FAILED' || dep.status === 'SUCCESS') && onRedeploy && (
             <button type="button" onClick={onRedeploy}
               className="flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] hover:opacity-90 transition">
-              <Rocket size={12} /> Re-déployer
+              <Rocket size={12} /> Redeploy
             </button>
           )}
         </div>
@@ -236,7 +236,7 @@ export default function DeploymentsPage() {
     (isAdmin || projectRoleMap.get(dep.project.id) === 'OWNER');
 
   const handleRollback = async (depId: string) => {
-    if (!confirm('Rollback vers la dernière version stable ?')) return;
+    if (!confirm('Roll back to the last stable version?')) return;
     setActionError(null); setRollingBackId(depId);
     try {
       const rb = await deploymentsService.rollback(depId);
@@ -302,8 +302,8 @@ export default function DeploymentsPage() {
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: 'Total',          value: deployments.length, icon: <Rocket size={14} />,      color: '' },
-          { label: 'Succès',         value: success,            icon: <CheckCircle2 size={14} />, color: 'text-green-400' },
-          { label: 'En cours / Échec', value: running + failed, icon: <Activity size={14} />,    color: running > 0 ? 'text-blue-400' : failed > 0 ? 'text-red-400' : '' },
+          { label: 'Success',         value: success,            icon: <CheckCircle2 size={14} />, color: 'text-green-400' },
+          { label: 'Running / Failed', value: running + failed, icon: <Activity size={14} />,    color: running > 0 ? 'text-blue-400' : failed > 0 ? 'text-red-400' : '' },
         ].map((stat) => (
           <div key={stat.label} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-4">
             <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)]">
@@ -401,7 +401,7 @@ export default function DeploymentsPage() {
           {statusFilter === 'ALL' && canCreate && (
             <button type="button" onClick={() => setCreateDialogOpen(true)}
               className="mt-5 flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
-              <Plus size={15} /> Déployer
+              <Plus size={15} /> Deploy
             </button>
           )}
         </div>

@@ -36,11 +36,11 @@ export default function AdminTeamsPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Admin"
-        title="Équipes"
-        description="Organisez les utilisateurs en équipes pour gérer les accès aux projets."
+        title="Teams"
+        description="Organize users into teams to manage project access."
         actions={
           <Button onClick={() => setDialogOpen(true)} icon={<Plus size={14} />}>
-            Créer une équipe
+            Create team
           </Button>
         }
       />
@@ -56,17 +56,17 @@ export default function AdminTeamsPage() {
       ) : teams.length === 0 ? (
         <EmptyState
           icon={Users2}
-          title="Aucune équipe"
-          description="Créez votre première équipe pour regrouper des utilisateurs et gérer les accès en masse."
+          title="No teams"
+          description="Create your first team to group users and manage access in bulk."
           action={
             <Button onClick={() => setDialogOpen(true)} icon={<Plus size={14} />}>
-              Créer une équipe
+              Create team
             </Button>
           }
         />
       ) : (
         <SectionCard
-          title={`${teams.length} équipe${teams.length > 1 ? 's' : ''}`}
+          title={`${teams.length} team${teams.length > 1 ? 's' : ''}`}
           contentClassName="space-y-2"
         >
           {teams.map((team) => (

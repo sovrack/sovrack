@@ -66,7 +66,7 @@ function AddEnvDialog({
         <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
           <div>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Ajouter un environnement</h2>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">Créez un environnement de déploiement.</p>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">Create a deployment environment.</p>
           </div>
           <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]">
             <X size={13} />
@@ -107,7 +107,7 @@ function AddEnvDialog({
             disabled={saving}
             className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
           >
-            Annuler
+            Cancel
           </button>
           <button
             type="button"
@@ -115,7 +115,7 @@ function AddEnvDialog({
             disabled={saving}
             className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-40"
           >
-            {saving ? <><Loader2 size={13} className="animate-spin" /> Création…</> : <><Plus size={13} /> Créer</>}
+            {saving ? <><Loader2 size={13} className="animate-spin" /> Creating…</> : <><Plus size={13} /> Create</>}
           </button>
         </div>
       </div>
@@ -144,7 +144,7 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
   useEffect(() => { load(); }, [projectId]);
 
   const handleDelete = async (envId: string) => {
-    if (!confirm('Supprimer cet environnement ?')) return;
+    if (!confirm('Delete this environment?')) return;
     setDeletingId(envId);
     try {
       await environmentsService.remove(projectId, envId);
@@ -199,7 +199,7 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
           <Server size={28} className="mb-3 text-[var(--text-muted)]" />
           <p className="text-sm font-semibold text-[var(--text-primary)]">Aucun environnement</p>
           <p className="mt-1 max-w-xs text-xs text-[var(--text-secondary)]">
-            Ajoutez un environnement STAGING ou PRODUCTION pour pouvoir déployer.
+            Add a STAGING or PRODUCTION environment to be able to deploy.
           </p>
           <button
             type="button"
@@ -237,7 +237,7 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
                   onClick={() => void handleDelete(env.id)}
                   disabled={deletingId === env.id}
                   className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
-                  title="Supprimer"
+                  title="Delete"
                 >
                   {deletingId === env.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                 </button>

@@ -302,7 +302,7 @@ export function useServerActions() {
     setCancelingJobId(jobId);
     try {
       await serversService.cancelJob(serverId, jobId);
-      showToast('Job annulé — le serveur est de nouveau disponible', 'success');
+      showToast('Job canceled — the server is available again', 'success');
       await refreshJobs(serverId);
       await fetchServers();
     } catch (err) {

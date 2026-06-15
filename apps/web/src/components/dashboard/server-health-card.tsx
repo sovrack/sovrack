@@ -20,10 +20,10 @@ export function ServerHealthCard({ servers, isAdmin }: Props) {
   }
 
   const items = [
-    { label: 'Prêts', value: servers.ready, color: 'bg-emerald-400' },
-    { label: 'En préparation', value: servers.preparing, color: 'bg-blue-400' },
+    { label: 'Ready', value: servers.ready, color: 'bg-emerald-400' },
+    { label: 'Provisioning', value: servers.preparing, color: 'bg-blue-400' },
     { label: 'En erreur', value: servers.error, color: 'bg-red-400' },
-    { label: 'Hors ligne', value: servers.offline, color: 'bg-zinc-500' },
+    { label: 'Offline', value: servers.offline, color: 'bg-zinc-500' },
   ];
 
   const healthPct =

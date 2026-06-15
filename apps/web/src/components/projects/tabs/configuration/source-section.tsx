@@ -51,7 +51,7 @@ export function SourceSection({ source, isOwner, onOpenSourceSetupDialog, servic
           </div>
           <div>
             <p className="text-sm font-semibold text-[var(--text-primary)]">
-              {isGroup ? 'Groupe (multi-dépôts)' : 'Dépôt (source)'}
+              {isGroup ? 'Group (multi-repo)' : 'Repository (source)'}
             </p>
             <p className="text-xs text-[var(--text-muted)]">Provider : {activeProvider?.name ?? 'Default'}</p>
           </div>
@@ -70,7 +70,7 @@ export function SourceSection({ source, isOwner, onOpenSourceSetupDialog, servic
           { label: 'URL', value: cfg.gitlabUrl, mono: true, link: cfg.gitlabUrl },
           { label: 'Type', value: cfg.sourceType, mono: true },
           { label: 'Branch', value: cfg.defaultBranch ?? 'main', mono: true },
-          { label: isGroup ? 'Groupe' : 'Dépôt', value: String(isGroup ? cfg.gitlabGroupId : cfg.gitlabId) ?? '—', mono: true },
+          { label: isGroup ? 'Group' : 'Repository', value: String(isGroup ? cfg.gitlabGroupId : cfg.gitlabId) ?? '—', mono: true },
           { label: 'Registry', value: cfg.registryUrl ?? 'Not configured', mono: true },
         ].map(({ label, value, mono, link }) => (
           <div key={label} className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3.5 py-3">

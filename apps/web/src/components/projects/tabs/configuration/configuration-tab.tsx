@@ -43,7 +43,7 @@ const SIDEBAR_GROUPS: {
   {
     group: 'Application',
     items: [
-      { id: 'source', label: 'Source',  icon: <GitBranch size={16} />, subtitle: 'Dépôt Git (chemin groupe/projet)' },
+      { id: 'source', label: 'Source',  icon: <GitBranch size={16} />, subtitle: 'Git repository (group/project path)' },
       { id: 'build',  label: 'Build',   icon: <Rocket size={16} />,    subtitle: 'Buildpack, port, commande' },
     ],
   },

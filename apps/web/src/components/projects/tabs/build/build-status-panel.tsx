@@ -20,10 +20,10 @@ export const WEBHOOK_STATUS_STYLE: Record<BuildAllResult['webhookStatus'], strin
 };
 
 export const WEBHOOK_STATUS_LABEL: Record<BuildAllResult['webhookStatus'], string> = {
-  CONFIGURED: 'Webhook configuré',
+  CONFIGURED: 'Webhook configured',
   PENDING_CONFIGURATION: 'Webhook en attente',
-  FAILED: 'Webhook en échec',
-  DISABLED: 'Webhook désactivé',
+  FAILED: 'Webhook failed',
+  DISABLED: 'Webhook disabled',
 };
 
 export type BuildStatusPanelProps = {
@@ -43,8 +43,8 @@ export function BuildStatusPanel({
 
   return (
     <SectionCard
-      title="État des services"
-      description="Statut de la préparation et des pipelines par service."
+      title="Services status"
+      description="Generation and pipeline status per service."
       contentClassName="space-y-2"
       actions={
         <button

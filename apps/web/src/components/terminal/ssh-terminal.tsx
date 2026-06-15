@@ -100,7 +100,7 @@ export function SshTerminal({ serverId, onClose }: Props) {
       if (!wsToken) {
         setState('error');
         setErrorMsg('Impossible d\'obtenir le jeton WebSocket');
-        term.writeln('\x1b[31m✗ Impossible d\'obtenir le jeton WebSocket. Vérifiez votre session.\x1b[0m');
+        term.writeln('\x1b[31m✗ Unable to obtain the WebSocket token. Check your session.\x1b[0m');
         return;
       }
 
@@ -121,7 +121,7 @@ export function SshTerminal({ serverId, onClose }: Props) {
 
       socket.on('terminal:ready', () => {
         setState('connected');
-        term.writeln('\x1b[32mConnecté.\x1b[0m\r\n');
+        term.writeln('\x1b[32mConnected.\x1b[0m\r\n');
 
         term.onData((data) => socket.emit('terminal:data', data));
 
@@ -142,19 +142,19 @@ export function SshTerminal({ serverId, onClose }: Props) {
 
       socket.on('terminal:close', ({ code }: { code: number | null }) => {
         setState('closed');
-        term.writeln(`\r\n\x1b[90mSession fermée (code: ${String(code ?? 0)}).\x1b[0m`);
+        term.writeln(`\r\n\x1b[90mSession closed (code: ${String(code ?? 0)}).\x1b[0m`);
         socket.disconnect();
       });
 
       socket.on('disconnect', () => {
-        term.writeln('\r\n\x1b[33mDéconnecté du serveur.\x1b[0m');
+        term.writeln('\r\n\x1b[33mDisconnected from server.\x1b[0m');
         setState('closed');
       });
 
       socket.on('connect_error', (err: Error) => {
         setState('error');
         setErrorMsg(err.message);
-        term.writeln(`\r\n\x1b[31m✗ Connexion échouée: ${err.message}\x1b[0m`);
+        term.writeln(`\r\n\x1b[31m✗ Connection failed: ${err.message}\x1b[0m`);
       });
     })();
 
@@ -188,12 +188,12 @@ export function SshTerminal({ serverId, onClose }: Props) {
           />
           <span className="text-xs font-mono text-zinc-400">
             {state === 'connected'
-              ? 'Connecté'
+              ? 'Connected'
               : state === 'connecting'
                 ? 'Connexion...'
                 : state === 'error'
                   ? `Erreur${errorMsg ? `: ${errorMsg}` : ''}`
-                  : 'Fermé'}
+                  : 'Closed'}
           </span>
         </div>
         <button

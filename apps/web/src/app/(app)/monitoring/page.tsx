@@ -40,7 +40,7 @@ export default function MonitoringPage() {
       <PageHeader
         eyebrow="Operations"
         title="Monitoring"
-        description="État des serveurs, Prometheus et Grafana."
+        description="Server status, Prometheus and Grafana."
         actions={
           <Button
             variant="secondary"
@@ -58,7 +58,7 @@ export default function MonitoringPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: 'Serveurs surveillés', value: overview?.totalMonitoredServers ?? '—' },
+          { label: 'Monitored servers', value: overview?.totalMonitoredServers ?? '—' },
           { label: 'Healthy', value: overview?.healthy ?? '—' },
           { label: 'Warning', value: overview?.warning ?? '—' },
           { label: 'Critical', value: overview?.critical ?? '—' },
@@ -74,7 +74,7 @@ export default function MonitoringPage() {
       </div>
 
       {/* Prometheus + Grafana status */}
-      <SectionCard title="Services d'observabilité">
+      <SectionCard title="Observability services">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {[
             {
@@ -105,7 +105,7 @@ export default function MonitoringPage() {
                 ) : (
                   <>
                     <Badge tone={svc.reachable ? 'success' : 'error'}>
-                      {svc.reachable ? 'En ligne' : 'Hors ligne'}
+                      {svc.reachable ? 'Online' : 'Offline'}
                     </Badge>
                     {svc.message && (
                       <p className="text-xs text-[var(--text-secondary)] truncate">{svc.message}</p>
@@ -134,14 +134,14 @@ export default function MonitoringPage() {
       {/* Servers */}
       <SectionCard
         title="Serveurs"
-        description="État de santé et métriques système par VPS."
+        description="Health and system metrics per VPS."
       >
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
             <Loader2 size={15} className="animate-spin" /> Chargement…
           </div>
         ) : servers.length === 0 ? (
-          <p className="text-sm text-[var(--text-secondary)]">Aucun serveur surveillé.</p>
+          <p className="text-sm text-[var(--text-secondary)]">No monitored servers.</p>
         ) : (
           <div className="space-y-2">
             {servers.map((server) => (
@@ -156,7 +156,7 @@ export default function MonitoringPage() {
                       <span className="ml-1.5 font-normal text-[var(--text-muted)]">({server.host})</span>
                     </p>
                     <p className="text-xs text-[var(--text-muted)]">
-                      Vérifié : {formatDate(server.lastCheckAt)}
+                      Verified: {formatDate(server.lastCheckAt)}
                     </p>
                   </div>
                   <Badge tone={healthTone(server.monitoringStatus)}>{server.monitoringStatus}</Badge>
@@ -190,7 +190,7 @@ export default function MonitoringPage() {
           </div>
         ) : alerts.items.length === 0 ? (
           <div className="flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-300">
-            <Activity size={14} /> Aucune alerte active.
+            <Activity size={14} /> No active alerts.
           </div>
         ) : (
           <div className="space-y-2">

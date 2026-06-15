@@ -11,13 +11,13 @@ export default function BuildsPage() {
       <PageHeader
         eyebrow="Build"
         title="Builds"
-        description="Les builds sont configurés et exécutés par projet."
+        description="Builds are configured and run per project."
       />
 
       <EmptyState
         icon={Hammer}
         title="Pas de vue globale des builds"
-        description="Les builds (Dockerfile, .gitlab-ci.yml) sont gérés au niveau de chaque projet. Ouvrez un projet et accédez à l'onglet Build pour configurer la préparation et déclencher un pipeline."
+        description="Builds (Dockerfile, .gitlab-ci.yml) are managed per project. Open a project and go to the Build tab to configure generation and trigger a pipeline."
         action={
           <Link
             href="/projects"

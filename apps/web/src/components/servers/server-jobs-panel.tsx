@@ -73,8 +73,8 @@ export function ServerJobsPanel({
           >
             <p className={`text-[11px] ${isBlocked ? 'text-red-300' : 'text-blue-300'}`}>
               {isBlocked
-                ? 'Un job est bloqué — le serveur est verrouillé. Annulez-le pour le débloquer.'
-                : `${formatJobType(activeJob.type)} en cours — le serveur est verrouillé jusqu'à la fin.`}
+                ? 'A job is stuck — the server is locked. Cancel it to unlock.'
+                : `${formatJobType(activeJob.type)} running — the server is locked until it finishes.`}
             </p>
             <button
               onClick={() => void onCancelJob(serverId, activeJob.id)}
@@ -86,7 +86,7 @@ export function ServerJobsPanel({
               ) : (
                 <XCircle size={11} />
               )}
-              Annuler le job
+              Cancel le job
             </button>
           </div>
         );
@@ -122,7 +122,7 @@ export function ServerJobsPanel({
                     ) : (
                       <XCircle size={11} />
                     )}
-                    Annuler
+                    Cancel
                   </button>
                 )}
                 {canRetryJob(job) && (

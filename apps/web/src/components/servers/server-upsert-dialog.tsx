@@ -105,7 +105,7 @@ export function ServerUpsertDialog({
 
       const updatePayload = buildUpdatePayload(parsed, server);
       if (Object.keys(updatePayload).length === 0) {
-        setFormErrors({ form: 'Aucune modification détectée.' });
+        setFormErrors({ form: 'No changes detected.' });
         return;
       }
 

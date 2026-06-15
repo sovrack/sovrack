@@ -23,10 +23,10 @@ export type ProjectBuildTabContentProps = {
 };
 
 const STEPS = [
-  { id: 1, label: '① Détecter',  desc: 'Framework' },
-  { id: 2, label: '② Préparer',  desc: 'Dockerfile + CI' },
-  { id: 3, label: '③ Vérifier',  desc: 'Pipeline' },
-  { id: 4, label: '④ Déployer',  desc: 'Production' },
+  { id: 1, label: '① Detect',  desc: 'Framework' },
+  { id: 2, label: '② Provision',  desc: 'Dockerfile + CI' },
+  { id: 3, label: '③ Verify',  desc: 'Pipeline' },
+  { id: 4, label: '④ Deploy',  desc: 'Production' },
 ];
 
 /** Orchestrator for the project Build tab: status, stepper, source-specific config, CTA. */
@@ -91,9 +91,9 @@ export function ProjectBuildTabContent({
         try {
           const r = await buildService.detect(projectId, svc.id);
           results.push({ id: svc.id, result: `${r.recommendedBuildType || r.type} · port ${r.recommendedPort}` });
-        } catch { results.push({ id: svc.id, result: 'Échec détection' }); }
+        } catch { results.push({ id: svc.id, result: 'Detection failed' }); }
       }
-      setSuccessMsg(`Détection terminée pour ${String(results.length)} service(s).`);
+      setSuccessMsg(`Detection complete for ${String(results.length)} service(s).`);
     } finally {
       setDetectAllRunning(false);
     }
@@ -105,8 +105,8 @@ export function ProjectBuildTabContent({
       const res = await buildService.prepareAll(projectId);
       setPrepareAllResults(res.results);
       const failed = res.results.filter((r) => r.status === 'FAILED');
-      if (failed.length === 0) setSuccessMsg(`${String(res.results.length)} service(s) préparés avec succès.`);
-      else setError(`${String(failed.length)} service(s) en échec.`);
+      if (failed.length === 0) setSuccessMsg(`${String(res.results.length)} service(s) generated successfully.`);
+      else setError(`${String(failed.length)} service(s) failed.`);
       refreshBuildStatus();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -139,8 +139,8 @@ export function ProjectBuildTabContent({
       {!hasEnvironment && (
         <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
           <div>
-            <p className="text-sm font-semibold text-amber-300">Aucun environnement configuré</p>
-            <p className="text-xs text-amber-400/70">Configurez un VPS dans l&apos;onglet Environments avant de déployer.</p>
+            <p className="text-sm font-semibold text-amber-300">No environment configured</p>
+            <p className="text-xs text-amber-400/70">Configure a VPS in the Environments tab before deploying.</p>
           </div>
           {onGoToEnvironments && (
             <button type="button" onClick={onGoToEnvironments} className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/30">
@@ -212,27 +212,27 @@ export function ProjectBuildTabContent({
         />
       )}
 
-      {/* ── CTA Déployer ──────────────────────────────────────────── */}
+      {/* ── Deploy CTA ──────────────────────────────────────────── */}
       {allReady && hasEnvironment && (
         <div className="flex items-center justify-between gap-4 rounded-2xl border border-green-500/30 bg-green-500/5 px-5 py-4">
           <div>
-            <p className="text-sm font-semibold text-green-300">✅ Build configuré — Prêt à déployer</p>
-            <p className="mt-0.5 text-xs text-green-400/70">Tous les services ont un Dockerfile et un pipeline CI configurés.</p>
+            <p className="text-sm font-semibold text-green-300">✅ Build configured — Ready to deploy</p>
+            <p className="mt-0.5 text-xs text-green-400/70">All services have a Dockerfile and a CI pipeline configured.</p>
           </div>
           <button
             type="button"
             onClick={onDeploy}
             className="shrink-0 flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90"
           >
-            <Rocket size={14} /> Déployer maintenant
+            <Rocket size={14} /> Deploy now
           </button>
         </div>
       )}
       {allReady && !hasEnvironment && (
         <div className="flex items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 px-5 py-4">
           <div>
-            <p className="text-sm font-semibold text-amber-300">✅ Build prêt — Environnement manquant</p>
-            <p className="mt-0.5 text-xs text-amber-400/70">Configurez un VPS dans l&apos;onglet Environments pour déployer.</p>
+            <p className="text-sm font-semibold text-amber-300">✅ Build ready — Environment missing</p>
+            <p className="mt-0.5 text-xs text-amber-400/70">Configure a VPS in the Environments tab to deploy.</p>
           </div>
           {onGoToEnvironments && (
             <button type="button" onClick={onGoToEnvironments}

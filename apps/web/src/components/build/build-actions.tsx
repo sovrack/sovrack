@@ -24,7 +24,7 @@ export function BuildActions({
         disabled={isLoading || disabled}
         icon={isLoading ? undefined : <Rocket size={14} />}
       >
-        Régénérer
+        Regenerate
       </Button>
       <Button
         type="button"

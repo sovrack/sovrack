@@ -214,7 +214,7 @@ export function ServerPreparationPanel({
       startMonitoring(result);
     } catch (err) {
       const msg = getApiErrorMessage(err);
-      if (msg.includes('déjà en cours') || msg.includes('already')) {
+      if (msg.includes('already running') || msg.includes('already')) {
         // There's an active prep — reload
         const list = await serversService.getPreparations(serverId).catch(() => []);
         const active = list.find((p) => ACTIVE_STATUSES.includes(p.status));
@@ -320,10 +320,10 @@ export function ServerPreparationPanel({
                       <p className="truncate text-[10px] text-[var(--text-muted)]">{task.message as string}</p>
                     )}
                     {task.status === 'SKIPPED' && !task.message && (
-                      <p className="text-[10px] text-[var(--text-muted)]">sauté — tâche précédente échouée ou timeout</p>
+                      <p className="text-[10px] text-[var(--text-muted)]">skipped — previous task failed or timed out</p>
                     )}
                     {task.status === 'TIMEOUT' && (
-                      <p className="text-[10px] text-orange-400/70">délai dépassé — vérifiez la connexion réseau du VPS</p>
+                      <p className="text-[10px] text-orange-400/70">timed out — check the VPS network connection</p>
                     )}
                   </div>
                   <span className={`shrink-0 text-[10px] font-semibold uppercase ${TASK_STATUS_COLOR[task.status]}`}>
@@ -360,7 +360,7 @@ export function ServerPreparationPanel({
           <div className="max-h-72 overflow-y-auto rounded-xl border border-[var(--border)] bg-black/40 p-3 font-mono text-[11px] leading-relaxed">
             {logs.length === 0 ? (
               <p className="text-[var(--text-muted)]">
-                {isActive ? 'En attente des premières lignes…' : 'Aucun log disponible.'}
+                {isActive ? 'Waiting for the first lines…' : 'No logs available.'}
               </p>
             ) : (
               logs.map((log) => (
@@ -388,7 +388,7 @@ export function ServerPreparationPanel({
           <div className="space-y-2">
             {prep.status === 'TIMEOUT' && tasks.some((t) => t.status === 'TIMEOUT' && t.roleKey === 'docker') && (
               <div className="rounded-xl border border-orange-500/20 bg-orange-500/10 px-3 py-2 text-[10px] text-orange-300">
-                Docker a dépassé le délai. Vérifiez que le VPS peut accéder à <code className="font-mono">download.docker.com</code> et que <code className="font-mono">systemctl start docker</code> ne bloque pas.
+                Docker timed out. Make sure the VPS can reach <code className="font-mono">download.docker.com</code> et que <code className="font-mono">systemctl start docker</code> ne bloque pas.
               </div>
             )}
             <div className="flex gap-2">
@@ -477,7 +477,7 @@ export function ServerPreparationPanel({
       {/* Nixpacks without docker warning */}
       {isOptionEnabled('nixpacks') && !isOptionEnabled('docker') && (
         <div className="rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-3 text-xs text-orange-300">
-          <span className="font-semibold">Note :</span> Nixpacks génère des images Docker — assurez-vous que Docker est déjà installé sur ce VPS, ou ajoutez &quot;Docker Engine&quot; à cette préparation.
+          <span className="font-semibold">Note:</span> Nixpacks builds Docker images — make sure Docker is already installed on this VPS, or add &quot;Docker Engine&quot; to this provisioning.
         </div>
       )}
 

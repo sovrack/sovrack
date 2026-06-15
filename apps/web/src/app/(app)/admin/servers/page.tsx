@@ -247,7 +247,7 @@ export default function AdminServersPage() {
       <PageHeader
         eyebrow="Infrastructure"
         title="Remote Servers"
-        description="Gérez vos VPS — validation SSH, détection des capacités, préparation Ansible et assignation d'environnements. Tous les serveurs sont des cibles agentless identiques."
+        description="Manage your VPS servers — SSH validation, capability detection, Ansible provisioning and environment assignment. All servers are identical agentless targets."
         actions={
           <>
             <Button
@@ -273,12 +273,12 @@ export default function AdminServersPage() {
         <div className="grid grid-cols-2 gap-3 border-b border-[var(--border)] p-5 sm:grid-cols-4">
           {[
             { label: 'Total', value: servers.servers.length },
-            { label: 'SSH validé', value: servers.verifiedCount },
+            { label: 'SSH validated', value: servers.verifiedCount },
             {
-              label: 'En ligne',
+              label: 'Online',
               value: Object.values(pingMap).filter((r) => r !== 'loading' && r.ok).length,
             },
-            { label: 'Préparés', value: servers.readyCount },
+            { label: 'Provisioned', value: servers.readyCount },
           ].map(({ label, value }) => (
             <div key={label} className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
               <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
@@ -296,7 +296,7 @@ export default function AdminServersPage() {
           <EmptyState
             icon={Server}
             title="Aucun serveur"
-            description="Ajoutez votre premier VPS pour démarrer la validation SSH et la préparation."
+            description="Add your first VPS to start SSH validation and provisioning."
             action={
               <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>
                 Add Server
@@ -451,7 +451,7 @@ export default function AdminServersPage() {
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         title={deleteTarget ? `Delete ${deleteTarget.name}?` : 'Delete server?'}
-        description="Action irréversible — supprime le serveur et ses métadonnées."
+        description="This action cannot be undone — deletes the server and its metadata."
         confirmLabel="Delete"
         cancelLabel="Cancel"
         variant="danger"

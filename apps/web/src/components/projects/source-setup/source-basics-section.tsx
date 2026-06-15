@@ -100,7 +100,7 @@ export function SourceBasicsSection({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-            {sourceType === 'REPO' ? 'Dépôt (chemin ou ID)' : 'Groupe (chemin ou ID)'}
+            {sourceType === 'REPO' ? 'Repository (path or ID)' : 'Group (path or ID)'}
           </label>
           <input
             type="text"
@@ -111,7 +111,7 @@ export function SourceBasicsSection({
             className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20"
           />
           <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-            Recommandé : le chemin <span className="font-mono">groupe/projet</span> (provider-agnostic). L&apos;ID numérique reste accepté.
+            Recommended: the path <span className="font-mono">groupe/projet</span> (provider-agnostic). The numeric ID is still accepted.
           </p>
         </div>
         {sourceType === 'REPO' && (

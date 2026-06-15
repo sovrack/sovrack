@@ -441,7 +441,7 @@ export default function AdminUsersPage() {
                           className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] border-[var(--border)] text-[var(--text-primary)]"
                         >
                           <Pencil size={13} />
-                          Modifier
+                          Edit
                         </Link>
                         <button
                           onClick={() => void handleToggleActive(item.id)}
@@ -467,7 +467,7 @@ export default function AdminUsersPage() {
                           ) : (
                             <Trash2 size={13} />
                           )}
-                          Supprimer
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -564,7 +564,7 @@ export default function AdminUsersPage() {
                           ) : (
                             <Trash2 size={13} />
                           )}
-                          Supprimer
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -578,10 +578,10 @@ export default function AdminUsersPage() {
 
       <ConfirmDialog
         open={Boolean(confirmUser)}
-        title={`Supprimer l'utilisateur "${confirmUser?.fullName ?? ''}"`}
+        title={`Delete l'utilisateur "${confirmUser?.fullName ?? ''}"`}
         description="This action cannot be undone."
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
         loading={Boolean(deletingUserId)}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setConfirmUser(null)}
@@ -591,8 +591,8 @@ export default function AdminUsersPage() {
         open={Boolean(confirmTeam)}
         title={`Delete team "${confirmTeam?.name ?? ''}"`}
         description="This action cannot be undone."
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
         loading={Boolean(deletingTeamId)}
         onConfirm={() => void confirmDeleteTeam()}
         onCancel={() => setConfirmTeam(null)}

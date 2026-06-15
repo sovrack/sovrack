@@ -385,14 +385,14 @@ export default function AutomationPage() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm('Supprimer ce run ?')) {
+                          if (confirm('Delete this run?')) {
                             void deleteRun.mutateAsync(run.id).then(() => {
                               if (selectedRunId === run.id) setSelectedRunId(null);
                             });
                           }
                         }}
                         className="rounded p-0.5 text-[var(--text-muted)] hover:text-red-400 transition"
-                        title="Supprimer"
+                        title="Delete"
                       >
                         <Trash2 size={12} />
                       </button>

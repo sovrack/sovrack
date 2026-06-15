@@ -154,7 +154,7 @@ export function useProjectSource({
     if (sourceType === 'REPO') {
       repoIdentifier = String(sourceProjectId).trim();
       if (!repoIdentifier) {
-        setSourceError('Dépôt requis (chemin "groupe/projet" ou ID numérique).');
+        setSourceError('Repository required ("group/project" path or numeric ID).');
         return;
       }
     } else {

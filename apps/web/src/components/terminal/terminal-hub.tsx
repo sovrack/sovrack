@@ -71,12 +71,12 @@ export function TerminalHub() {
         <PageHeader
           eyebrow="Operations"
           title="Terminal SSH"
-          description="Accès réservé aux administrateurs."
+          description="Administrators only."
         />
         <SectionCard>
           <div className="flex items-center gap-3 text-sm text-[var(--text-secondary)]">
             <AlertCircle size={16} className="text-yellow-400" />
-            Le terminal SSH est réservé aux administrateurs de la plateforme.
+            The SSH terminal is restricted to platform administrators.
           </div>
         </SectionCard>
       </div>
@@ -88,7 +88,7 @@ export function TerminalHub() {
       <PageHeader
         eyebrow="Operations"
         title="Terminal SSH"
-        description="Connectez-vous à un VPS et exécutez des commandes en temps réel via SSH."
+        description="Connect to a VPS and run commands in real time over SSH."
         actions={
           <Button
             variant="secondary"
@@ -96,7 +96,7 @@ export function TerminalHub() {
             onClick={() => void load()}
             disabled={loading || !!activeServerId}
           >
-            Rafraîchir
+            Refresh
           </Button>
         }
       />
@@ -111,7 +111,7 @@ export function TerminalHub() {
       {!activeServerId && (
         <SectionCard
           title="Connexion SSH"
-          description="Sélectionnez un VPS validé et ouvrez une session interactive."
+          description="Select a validated VPS and open an interactive session."
         >
           {loading ? (
             <div className="flex items-center justify-center py-8">
@@ -120,7 +120,7 @@ export function TerminalHub() {
           ) : servers.length === 0 ? (
             <div className="rounded-xl border border-dashed border-[var(--border)] px-4 py-8 text-center">
               <Server className="mx-auto mb-2 h-8 w-8 text-[var(--text-secondary)]" />
-              <p className="text-sm text-[var(--text-secondary)]">Aucun VPS configuré.</p>
+              <p className="text-sm text-[var(--text-secondary)]">No VPS configured.</p>
               <Link
                 href="/admin/servers"
                 className="mt-3 inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
@@ -142,7 +142,7 @@ export function TerminalHub() {
                   {servers.map((s) => (
                     <option key={s.id} value={s.id} disabled={!s.isVerified}>
                       {s.name} ({s.username}@{s.host}:{s.port})
-                      {!s.isVerified ? ' — non vérifié' : ''}
+                      {!s.isVerified ? ' — not verified' : ''}
                     </option>
                   ))}
                 </select>
@@ -154,7 +154,7 @@ export function TerminalHub() {
                     <span>Host: <span className="text-[var(--text-primary)]">{selected.host}</span></span>
                     <span>Port: <span className="text-[var(--text-primary)]">{selected.port}</span></span>
                     <span>User: <span className="text-[var(--text-primary)]">{selected.username}</span></span>
-                    <span>Statut: <span className={selected.isVerified ? 'text-green-400' : 'text-yellow-400'}>{selected.isVerified ? 'Vérifié' : 'Non vérifié'}</span></span>
+                    <span>Statut: <span className={selected.isVerified ? 'text-green-400' : 'text-yellow-400'}>{selected.isVerified ? 'Verified' : 'Not verified'}</span></span>
                   </div>
                 </div>
               )}
@@ -164,12 +164,12 @@ export function TerminalHub() {
                 disabled={!selectedServerId || !selected?.isVerified}
                 icon={<Terminal size={14} />}
               >
-                Ouvrir session SSH
+                Open SSH session
               </Button>
 
               {selected && !selected.isVerified && (
                 <p className="text-xs text-yellow-400">
-                  Ce serveur n&apos;est pas encore validé. Validez-le d&apos;abord dans{' '}
+                  This server is not validated yet. Validate it first in{' '}
                   <Link href="/admin/servers" className="underline">Servers</Link>.
                 </p>
               )}

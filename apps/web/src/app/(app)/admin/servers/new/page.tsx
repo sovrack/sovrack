@@ -19,9 +19,9 @@ function shellEscape(value: string): string {
 
 const STEPS: { key: SetupStep; label: string }[] = [
   { key: 'form', label: '1. Infos serveur' },
-  { key: 'install', label: '2. Installation clé' },
+  { key: 'install', label: '2. Key install' },
   { key: 'validate', label: '3. Validation' },
-  { key: 'done', label: '4. Prêt ✅' },
+  { key: 'done', label: '4. Ready ✅' },
 ];
 
 export default function NewServerPage() {
@@ -115,7 +115,7 @@ export default function NewServerPage() {
       if (!validationResult.isVerified) {
         throw new Error(
           validationResult.verificationError ||
-            'Validation SSH incomplète: sudo sans mot de passe doit être validé.',
+            'Incomplete SSH validation: passwordless sudo must be validated.',
         );
       }
       await serversService.detect(createdServer.id);
@@ -141,7 +141,7 @@ export default function NewServerPage() {
       <PageHeader
         eyebrow="Infrastructure"
         title="Add Server"
-        description="Wizard 4 étapes: création, clé SSH, validation, prêt."
+        description="4-step wizard: creation, SSH key, validation, ready."
         actions={
           <Link
             href="/admin/servers"
@@ -188,7 +188,7 @@ export default function NewServerPage() {
         <SectionCard title="SSH key installation" contentClassName="space-y-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-              Clé publique générée
+              Public key generated
             </p>
             <div className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/3 p-4">
               {publicKey ? (
@@ -200,11 +200,11 @@ export default function NewServerPage() {
                     className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/5 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10"
                   >
                     <Copy size={12} />
-                    {copied ? 'Copié' : 'Copier la clé'}
+                    {copied ? 'Copied' : 'Copy key'}
                   </button>
                 </>
               ) : (
-                <p className="text-sm text-red-400">Clé publique introuvable.</p>
+                <p className="text-sm text-red-400">Public key not found.</p>
               )}
             </div>
           </div>
@@ -240,7 +240,7 @@ export default function NewServerPage() {
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-60"
               >
                 {installing ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}
-                Installer la clé sur le VPS
+                Install the key on the VPS
               </button>
             </div>
           )}
@@ -250,7 +250,7 @@ export default function NewServerPage() {
               Installation manuelle
             </p>
             <p className="mt-2 break-all rounded-lg bg-black/40 px-3 py-2 font-mono text-xs text-[var(--text-primary)]">
-              {manualCommand || 'Clé publique indisponible'}
+              {manualCommand || 'Public key unavailable'}
             </p>
           </div>
 
@@ -270,9 +270,9 @@ export default function NewServerPage() {
       {step === 'validate' && createdServer && (
         <SectionCard title="Validation serveur" contentClassName="space-y-4">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/3 p-4">
-            <p className="text-sm font-semibold text-[var(--text-primary)]">Vérification en cours...</p>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">Checking…</p>
             <p className="mt-2 text-xs text-[var(--text-secondary)]">
-              Validation SSH, sudo et détection des informations serveur.
+              SSH validation, sudo and server info detection.
             </p>
           </div>
           {validateError && (
@@ -289,14 +289,14 @@ export default function NewServerPage() {
             {validating ? (
               <Loader2 size={15} className="animate-spin" />
             ) : (
-              'Valider SSH et détecter'
+              'Validate SSH and detect'
             )}
           </button>
           <ul className="list-inside list-disc space-y-1 text-xs text-[var(--text-secondary)]">
-            <li>Vérifier la connexion SSH</li>
-            <li>Vérifier sudo sans mot de passe</li>
-            <li>Détecter OS, Docker, Runner et capacités système</li>
-            <li>Ansible reste côté control node et n’est pas installé sur le VPS</li>
+            <li>Check the SSH connection</li>
+            <li>Check passwordless sudo</li>
+            <li>Detect OS, Docker, Runner and system capabilities</li>
+            <li>Ansible stays on the control node and is not installed on the VPS</li>
           </ul>
         </SectionCard>
       )}
@@ -304,7 +304,7 @@ export default function NewServerPage() {
       {/* Step 4: Done */}
       {step === 'done' && createdServer && (
         <SectionCard
-          title="Serveur prêt ✅"
+          title="Server ready ✅"
           className="border-green-500/20 bg-green-500/8"
           contentClassName="space-y-4"
         >
@@ -348,7 +348,7 @@ export default function NewServerPage() {
               onClick={() => router.push('/projects')}
               className="inline-flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-2.5 text-sm font-semibold text-green-400 transition hover:bg-green-500/15"
             >
-              Allez dans votre projet pour créer un environnement
+              Go to your project to create an environment
             </button>
           </div>
         </SectionCard>

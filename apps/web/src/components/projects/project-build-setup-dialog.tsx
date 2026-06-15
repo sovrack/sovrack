@@ -25,8 +25,8 @@ const ENGINE_OPTIONS: EngineOption[] = [
     value: 'DOCKERFILE',
     icon: <Code2 size={20} />,
     title: 'Dockerfile',
-    description: 'Génère un Dockerfile optimisé par framework. Build via GitLab CI ou local sur VPS.',
-    badge: 'Recommandé',
+    description: 'Generates a framework-optimized Dockerfile. Build via GitLab CI or locally on the VPS.',
+    badge: 'Recommended',
     badgeColor: 'border-green-500/30 bg-green-500/10 text-green-300',
     projectType: 'nodejs',
   },
@@ -34,7 +34,7 @@ const ENGINE_OPTIONS: EngineOption[] = [
     value: 'NIXPACKS',
     icon: <Sparkles size={20} />,
     title: 'Nixpacks',
-    description: 'Zéro Dockerfile — détecte automatiquement le framework et build l\'image.',
+    description: 'Zero Dockerfile — auto-detects the framework and builds the image.',
     badge: 'Auto-detect',
     badgeColor: 'border-purple-500/30 bg-purple-500/10 text-purple-300',
     projectType: 'nixpacks',
@@ -43,14 +43,14 @@ const ENGINE_OPTIONS: EngineOption[] = [
     value: 'BUILDPACK',
     icon: <Layers size={20} />,
     title: 'Buildpack',
-    description: 'Style Heroku — le CLI pack détecte le runtime et construit sans Dockerfile.',
+    description: 'Heroku-style — the pack CLI detects the runtime and builds without a Dockerfile.',
     projectType: 'nodejs',
   },
   {
     value: 'DOCKER_COMPOSE',
     icon: <Box size={20} />,
     title: 'Docker Compose',
-    description: 'Déploie le docker-compose.yml existant dans votre repo tel quel.',
+    description: 'Deploys the existing docker-compose.yml in your repo as-is.',
     projectType: 'compose',
   },
   {
@@ -64,14 +64,14 @@ const ENGINE_OPTIONS: EngineOption[] = [
 
 function mapDetectedTypeLabel(type: string): string {
   const labels: Record<string, string> = {
-    nestjs: 'NestJS détecté', nextjs: 'Next.js détecté', react: 'React détecté',
-    go: 'Go détecté', django: 'Django détecté', laravel: 'Laravel détecté',
-    'spring-boot': 'Spring Boot détecté', dockerized: 'App Dockerisée détectée',
-    'static-frontend': 'Frontend statique détecté', nodejs: 'Node.js détecté',
-    python: 'Python détecté', php: 'PHP détecté', ruby: 'Ruby détecté',
-    docker: 'Dockerfile détecté', compose: 'Docker Compose détecté',
+    nestjs: 'NestJS detected', nextjs: 'Next.js detected', react: 'React detected',
+    go: 'Go detected', django: 'Django detected', laravel: 'Laravel detected',
+    'spring-boot': 'Spring Boot detected', dockerized: 'Dockerized app detected',
+    'static-frontend': 'Static frontend detected', nodejs: 'Node.js detected',
+    python: 'Python detected', php: 'PHP detected', ruby: 'Ruby detected',
+    docker: 'Dockerfile detected', compose: 'Docker Compose detected',
   };
-  return labels[type] ?? 'Runtime détecté';
+  return labels[type] ?? 'Runtime detected';
 }
 
 type ProjectBuildSetupDialogProps = {
@@ -89,7 +89,7 @@ export function ProjectBuildSetupDialog({
 }: ProjectBuildSetupDialogProps) {
   const [detectLoading, setDetectLoading] = useState(false);
   const [detectedType, setDetectedType] = useState('nodejs');
-  const [detectedLabel, setDetectedLabel] = useState('Runtime détecté');
+  const [detectedLabel, setDetectedLabel] = useState('Runtime detected');
   const [engine, setEngine] = useState<BuildEngine>('DOCKERFILE');
   const [buildPort, setBuildPort] = useState('3000');
   const [startCmd, setStartCmd] = useState('npm start');
@@ -105,7 +105,7 @@ export function ProjectBuildSetupDialog({
     setBuildPort('3000');
     setStartCmd('npm start');
     setDetectedType('nodejs');
-    setDetectedLabel('Runtime détecté');
+    setDetectedLabel('Runtime detected');
 
     setDetectLoading(true);
     buildService.getBuildStatus(projectId)
@@ -128,7 +128,7 @@ export function ProjectBuildSetupDialog({
       })
       .catch(() => {
         setDetectedType('nodejs');
-        setDetectedLabel('Runtime détecté');
+        setDetectedLabel('Runtime detected');
       })
       .finally(() => setDetectLoading(false));
   }, [open, projectId]);
@@ -162,9 +162,9 @@ export function ProjectBuildSetupDialog({
         {/* Header */}
         <div className="flex items-start justify-between border-b border-[var(--border)] px-6 py-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Étape 3 / 3</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">Step 3 / 3</p>
             <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Configurer le Build</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">Choisissez le moteur de build et les paramètres de démarrage.</p>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">Choose the build engine and startup settings.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-[var(--text-secondary)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]">
             <X size={16} />
@@ -179,7 +179,7 @@ export function ProjectBuildSetupDialog({
               {/* Detection result */}
               <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3">
                 <p className="text-sm font-semibold text-[var(--text-primary)]">
-                  {detectLoading ? 'Détection du runtime en cours…' : `✅ ${detectedLabel}`}
+                  {detectLoading ? 'Detecting runtime…' : `✅ ${detectedLabel}`}
                 </p>
                 <p className="mt-1 text-xs text-[var(--text-secondary)]">
                   Port : {buildPort} · Commande : <code className="font-mono">{startCmd}</code>
@@ -241,14 +241,14 @@ export function ProjectBuildSetupDialog({
                   {engine !== 'STATIC' && (
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                        Commande de démarrage
-                        {engine === 'NIXPACKS' && <span className="ml-1 text-[var(--text-muted)]">(optionnel, auto-détecté)</span>}
+                        Start command
+                        {engine === 'NIXPACKS' && <span className="ml-1 text-[var(--text-muted)]">(optional, auto-detected)</span>}
                       </label>
                       <input
                         type="text"
                         value={startCmd}
                         onChange={(e) => setStartCmd(e.target.value)}
-                        placeholder={engine === 'NIXPACKS' ? 'auto-détecté par nixpacks' : 'npm start'}
+                        placeholder={engine === 'NIXPACKS' ? 'auto-detected by nixpacks' : 'npm start'}
                         className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 font-mono text-sm text-[var(--text-primary)] outline-none focus:ring-2 focus:ring-zinc-500/20"
                       />
                     </div>
@@ -265,8 +265,8 @@ export function ProjectBuildSetupDialog({
             </>
           ) : (
             <>
-              <Alert tone="success" title="Configuration sauvegardée">
-                Le moteur de build et les paramètres ont été enregistrés. Vous pouvez maintenant générer les fichiers dans l&apos;onglet Build.
+              <Alert tone="success" title="Configuration saved">
+                The build engine and settings were saved. You can now generate the files in the Build tab.
               </Alert>
               <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] pt-4">
                 <Button type="button" variant="secondary" onClick={onClose}>Fermer</Button>

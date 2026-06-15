@@ -55,7 +55,7 @@ export function ServiceConfigPanel({
           : r.hasDockerCompose && !r.hasDockerfile ? 'DOCKER_COMPOSE'
           : 'DOCKERFILE',
       }));
-      setMsg({ type: 'success', text: `Détecté : ${r.type} (${r.language})` });
+      setMsg({ type: 'success', text: `Detected: ${r.type} (${r.language})` });
     } catch (err) {
       setMsg({ type: 'error', text: getApiErrorMessage(err) });
     } finally {
@@ -75,7 +75,7 @@ export function ServiceConfigPanel({
       setDockerfileContent(result.dockerfileContent);
       setGitlabCiContent(result.gitlabCiContent);
       onGenerated(result.dockerfileContent, result.gitlabCiContent);
-      setMsg({ type: 'success', text: 'Fichiers générés avec succès.' });
+      setMsg({ type: 'success', text: 'Files generated successfully.' });
     } catch (err) {
       setMsg({ type: 'error', text: getApiErrorMessage(err) });
     } finally {
@@ -88,7 +88,7 @@ export function ServiceConfigPanel({
     try {
       await buildService.updateConfig(projectId, { dockerfileContent, gitlabCiContent });
       await buildService.pushFiles(projectId, service.id);
-      setMsg({ type: 'success', text: 'Fichiers poussés dans GitLab.' });
+      setMsg({ type: 'success', text: 'Files pushed to GitLab.' });
     } catch (err) {
       setMsg({ type: 'error', text: getApiErrorMessage(err) });
     } finally {
@@ -100,7 +100,7 @@ export function ServiceConfigPanel({
     setSavingFiles(true);
     try {
       await buildService.updateConfig(projectId, { dockerfileContent, gitlabCiContent });
-      setMsg({ type: 'success', text: 'Fichiers sauvegardés.' });
+      setMsg({ type: 'success', text: 'Files saved.' });
     } catch (err) {
       setMsg({ type: 'error', text: getApiErrorMessage(err) });
     } finally {
@@ -169,14 +169,14 @@ export function ServiceConfigPanel({
         {showStartCmd && (
           <div className={!showType ? 'sm:col-span-2' : ''}>
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-              Commande {config.engine === 'NIXPACKS' ? '(optionnel)' : ''}
+              Commande {config.engine === 'NIXPACKS' ? '(optional)' : ''}
             </label>
             <input
               type="text"
               value={config.startCmd}
               onChange={(e) => setConfig((p) => ({ ...p, startCmd: e.target.value }))}
               disabled={!isAdmin}
-              placeholder={config.engine === 'NIXPACKS' ? 'auto-détecté' : 'node dist/main.js'}
+              placeholder={config.engine === 'NIXPACKS' ? 'auto-detected' : 'node dist/main.js'}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none disabled:opacity-60"
             />
           </div>
@@ -186,11 +186,11 @@ export function ServiceConfigPanel({
       {/* Detect + detected info */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={() => void handleDetect()} loading={detecting} disabled={!isAdmin}>
-          <span className="text-xs">{detecting ? 'Détection…' : 'Détecter automatiquement'}</span>
+          <span className="text-xs">{detecting ? 'Detecting…' : 'Auto-detect'}</span>
         </Button>
         {detected && (
           <span className="text-xs text-[var(--text-muted)]">
-            {detected.type} · {detected.language} · confiance {detected.confidence}
+            {detected.type} · {detected.language} · confidence {detected.confidence}
           </span>
         )}
       </div>
@@ -204,7 +204,7 @@ export function ServiceConfigPanel({
       {/* Generate button */}
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => void handleGenerate()} loading={preparing} disabled={!isAdmin} icon={preparing ? undefined : <Rocket size={12} />}>
-          <span className="text-xs">Générer les fichiers</span>
+          <span className="text-xs">Generate files</span>
         </Button>
         {dockerfileContent && (
           <>

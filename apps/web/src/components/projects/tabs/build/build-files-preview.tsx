@@ -44,8 +44,8 @@ export function BuildFilesPreview({
 
   return (
     <SectionCard
-      title="Fichiers générés"
-      description="Modifiez puis poussez dans votre repo GitLab. Ces fichiers permettent à GitLab CI de builder votre image Docker."
+      title="Generated files"
+      description="Edit then push to your GitLab repo. These files let GitLab CI build your Docker image."
       contentClassName="space-y-5"
     >
       <DockerfileEditor

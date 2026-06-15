@@ -301,7 +301,7 @@ export default function GitSettingsPage() {
     try {
       const provider = providers.find((p) => p.id === id);
       if (provider && isGiteaProvider(provider)) {
-        showToast('Connexion testée au moment du déploiement pour Gitea', 'success');
+        showToast('Connection is tested at deploy time for Gitea', 'success');
         return;
       }
       const result = provider && isGithubProvider(provider)

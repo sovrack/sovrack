@@ -17,7 +17,7 @@ export function ActivityChart({ data }: Props) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
       <p className="mb-4 text-sm font-semibold text-[var(--text-primary)]">
-        Activité — 7 derniers jours
+        Activity — last 7 days
       </p>
       <div className="flex h-32 items-end gap-2">
         {data.map((day) => {
@@ -33,8 +33,8 @@ export function ActivityChart({ data }: Props) {
               {/* Tooltip */}
               <div className="pointer-events-none absolute bottom-full mb-2 hidden rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1.5 text-xs shadow-lg group-hover:block z-10 min-w-[120px]">
                 <p className="font-semibold text-[var(--text-primary)]">{fmt(day.date)}</p>
-                <p className="text-emerald-400">{day.success} succès</p>
-                <p className="text-red-400">{day.failed} échecs</p>
+                <p className="text-emerald-400">{day.success} success</p>
+                <p className="text-red-400">{day.failed} failures</p>
                 <p className="text-[var(--text-secondary)]">{day.total} total</p>
               </div>
 
@@ -72,11 +72,11 @@ export function ActivityChart({ data }: Props) {
       <div className="mt-3 flex items-center gap-4 text-xs text-[var(--text-secondary)]">
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
-          Succès
+          Success
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-red-500/70" />
-          Échecs
+          Failures
         </span>
       </div>
     </div>

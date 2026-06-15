@@ -267,7 +267,7 @@ function RegistryForm({
           {mode === 'create' ? 'Ajouter' : 'Mettre a jour'}
         </Button>
         <Button variant="secondary" type="button" onClick={onCancel} disabled={isSubmitting}>
-          Annuler
+          Cancel
         </Button>
       </div>
     </form>
@@ -495,7 +495,7 @@ export default function RegistrySettingsPage() {
                   Settings
                 </p>
                 <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-                  {dialogMode === 'create' ? 'Ajouter un registre' : 'Modifier le registre'}
+                  {dialogMode === 'create' ? 'Ajouter un registre' : 'Edit le registre'}
                 </h3>
               </div>
               <button
@@ -575,7 +575,7 @@ export default function RegistrySettingsPage() {
                     setDialogMode('edit');
                   }}
                 >
-                  Modifier
+                  Edit
                 </Button>
 
                 <Button
@@ -604,7 +604,7 @@ export default function RegistrySettingsPage() {
                   icon={<Trash2 size={12} />}
                   onClick={() => setDeleteId(registry.id)}
                 >
-                  Supprimer
+                  Delete
                 </Button>
               </div>
 
@@ -620,10 +620,10 @@ export default function RegistrySettingsPage() {
 
       <ConfirmDialog
         open={deleteId !== null}
-        title="Supprimer le registre"
+        title="Delete le registre"
         description="Cette action est irreversible et supprime la configuration du registre."
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
         variant="danger"
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleteId(null)}

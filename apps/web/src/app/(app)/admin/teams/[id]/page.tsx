@@ -114,7 +114,7 @@ export default function TeamDetailPage({ params }: Props) {
         description: parsed.data.description || undefined,
       });
       setTeam(updated);
-      showToast('Équipe mise à jour', 'success');
+      showToast('Team updated', 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
     } finally {
@@ -127,7 +127,7 @@ export default function TeamDetailPage({ params }: Props) {
     try {
       const updated = await teamsService.addMember(id, { userId });
       setTeam(updated);
-      showToast('Membre ajouté', 'success');
+      showToast('Member added', 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
     } finally {
@@ -140,7 +140,7 @@ export default function TeamDetailPage({ params }: Props) {
     try {
       const updated = await teamsService.removeMember(id, userId);
       setTeam(updated);
-      showToast('Membre retiré', 'success');
+      showToast('Member removed', 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
     } finally {
@@ -162,7 +162,7 @@ export default function TeamDetailPage({ params }: Props) {
     return (
       <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-        <span>Équipe introuvable.</span>
+        <span>Team not found.</span>
       </div>
     );
   }
@@ -175,14 +175,14 @@ export default function TeamDetailPage({ params }: Props) {
       <PageHeader
         eyebrow="Administration"
         title={team.name}
-        description="Modifiez les informations et gérez les membres de cette équipe."
+        description="Edit the details and manage this team's members."
         actions={
           <Link
             href="/admin/teams"
             className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-secondary)]"
           >
             <ArrowLeft size={15} />
-            Retour à la liste
+            Back to list
           </Link>
         }
       />
@@ -199,7 +199,7 @@ export default function TeamDetailPage({ params }: Props) {
         </div>
       )}
 
-      <SectionCard title="Informations de l&apos;équipe">
+      <SectionCard title="Team information">
         <form onSubmit={handleSave} className="space-y-4">
 
         <div className="space-y-4">
@@ -317,7 +317,7 @@ export default function TeamDetailPage({ params }: Props) {
 
       <SectionCard
         title="Zone dangereuse"
-        description="La suppression de cette équipe est irréversible."
+        description="Deleting this team cannot be undone."
         className="border-red-200 bg-red-50"
       >
         <button
@@ -325,16 +325,16 @@ export default function TeamDetailPage({ params }: Props) {
           className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
         >
           <Trash2 size={15} />
-          Supprimer l&apos;équipe
+          Delete team
         </button>
       </SectionCard>
 
       <ConfirmDialog
         open={confirmDeleteOpen}
-        title={`Supprimer l'équipe "${team.name}"`}
-        description="Cette action est irréversible."
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
+        title={`Delete team "${team.name}"`}
+        description="This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
         onConfirm={async () => {
           setConfirmDeleteOpen(false);
           try {

@@ -61,7 +61,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               : 'bg-amber-500/10 text-amber-300 border-amber-500/20',
           )}>
             {isReadyToDeploy
-              ? <><CheckCircle2 size={10} /> Prêt à déployer</>
+              ? <><CheckCircle2 size={10} /> Ready to deploy</>
               : <><AlertCircle size={10} /> {!isGitlabConnected ? 'Source manquante' : 'Env manquant'}</>}
           </span>
         </Link>
@@ -89,7 +89,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                   : 'border border-[var(--border)] text-[var(--text-muted)] opacity-50 cursor-not-allowed',
               )}
             >
-              <Rocket size={11} /> Déployer
+              <Rocket size={11} /> Deploy
             </button>
           </div>
         </div>

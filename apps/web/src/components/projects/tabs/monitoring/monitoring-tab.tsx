@@ -16,7 +16,7 @@ export function MonitoringTab({ projectId: _projectId }: Props) {
   }[] = [
     {
       name: 'Grafana',
-      description: 'Visualisez vos dashboards de métriques, logs et alertes. Connectez vos datasources Prometheus, Loki ou InfluxDB pour un monitoring complet.',
+      description: 'View your metrics, logs and alerts dashboards. Connect your Prometheus, Loki or InfluxDB data sources for full monitoring.',
       icon: <LineChart size={20} />,
       color: 'text-orange-400',
       bg: 'bg-orange-500/10',
@@ -25,7 +25,7 @@ export function MonitoringTab({ projectId: _projectId }: Props) {
     },
     {
       name: 'Prometheus',
-      description: 'Collectez et stockez les métriques de vos services. Configurez des règles d\'alerting et intégrez Grafana comme frontend de visualisation.',
+      description: 'Collect and store metrics from your services. Configure alerting rules and integrate Grafana as the visualization frontend.',
       icon: <BarChart2 size={20} />,
       color: 'text-red-400',
       bg: 'bg-red-500/10',
@@ -39,7 +39,7 @@ export function MonitoringTab({ projectId: _projectId }: Props) {
       <div>
         <p className="text-sm font-semibold text-[var(--text-primary)]">Monitoring</p>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">
-          Intégrez Grafana et Prometheus sur votre VPS pour une observabilité complète.
+          Integrate Grafana and Prometheus on your VPS for full observability.
         </p>
       </div>
 
@@ -60,7 +60,7 @@ export function MonitoringTab({ projectId: _projectId }: Props) {
       </div>
 
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 space-y-3">
-        <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Stack recommandée</p>
+        <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Recommended stack</p>
         <div className="space-y-2 text-xs text-[var(--text-secondary)]">
           {[
             ['Metrics exporter', 'node_exporter sur chaque VPS → Prometheus → Grafana'],

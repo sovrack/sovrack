@@ -253,7 +253,7 @@ export function ProjectSourceSetupDialog({
     // The backend resolves both (GitLab API accepts an url-encoded path).
     const sourceIdentifier = sourceId.trim();
     if (sourceType === 'REPO' && !sourceIdentifier) {
-      setError('Dépôt requis (chemin "groupe/projet" ou ID numérique).');
+      setError('Repository required ("group/project" path or numeric ID).');
       return;
     }
 
@@ -389,7 +389,7 @@ export function ProjectSourceSetupDialog({
               Connecter la source
             </h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Choisissez le provider, le type de source et le dépôt (chemin « groupe/projet »).
+              Choose the provider, source type and repository (path « group/project »).
             </p>
           </div>
           <button

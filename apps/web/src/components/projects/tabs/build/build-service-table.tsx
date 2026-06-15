@@ -80,7 +80,7 @@ export function BuildServiceTable({
             className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50"
           >
             {detectAllRunning ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-            Détecter tout
+            Detect all
           </button>
           <Button
             onClick={() => void onPrepareAll()}
@@ -88,7 +88,7 @@ export function BuildServiceTable({
             loading={prepareAllRunning}
           >
             <span className="text-xs">
-              {selectedIds.size > 0 ? `Générer (${selectedIds.size})` : 'Générer tout'}
+              {selectedIds.size > 0 ? `Generate (${selectedIds.size})` : 'Generate all'}
             </span>
           </Button>
         </div>
@@ -197,7 +197,7 @@ export function BuildServiceTable({
       {/* Prepare all results */}
       {prepareAllResults && (
         <div className="border-t border-[var(--border)] p-4 space-y-1.5">
-          <p className="text-xs font-semibold text-[var(--text-secondary)]">Résultats :</p>
+          <p className="text-xs font-semibold text-[var(--text-secondary)]">Results:</p>
           {prepareAllResults.map((r) => (
             <div key={r.serviceId} className="flex items-center gap-2 rounded-lg bg-[var(--hover)] px-3 py-2">
               {r.status === 'SUCCESS' ? <CheckCircle2 size={13} className="text-green-400" /> : <XCircle size={13} className="text-red-400" />}

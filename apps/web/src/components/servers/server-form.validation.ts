@@ -66,35 +66,35 @@ export function validateServerForm(
   if (!name) {
     errors.name = 'Le nom est obligatoire';
   } else if (name.length > 80) {
-    errors.name = 'Le nom ne peut pas dépasser 80 caractères';
+    errors.name = 'Name cannot exceed 80 characters';
   }
 
   if (description.length > 255) {
-    errors.description = 'La description ne peut pas dépasser 255 caractères';
+    errors.description = 'Description cannot exceed 255 characters';
   }
 
   if (!host) {
-    errors.host = "L'hôte est obligatoire";
+    errors.host = 'Host is required';
   } else if (!HOST_PATTERN.test(host)) {
-    errors.host = "L'hôte doit être une adresse IP ou un hostname valide (ex: 192.168.1.1 ou mon-serveur.com)";
+    errors.host = 'Host must be a valid IP address or hostname (e.g. 192.168.1.1 or my-server.com)';
   }
 
   if (!Number.isInteger(port)) {
-    errors.port = 'Le port doit être un nombre entier';
+    errors.port = 'Port must be an integer';
   } else if (port < 1 || port > 65535) {
-    errors.port = 'Le port doit être entre 1 et 65535';
+    errors.port = 'Port must be between 1 and 65535';
   }
 
   if (!username) {
     errors.username = 'Le username est obligatoire';
   } else if (username.length > 32) {
-    errors.username = 'Le username ne peut pas dépasser 32 caractères';
+    errors.username = 'Username cannot exceed 32 characters';
   } else if (!USERNAME_PATTERN.test(username)) {
     errors.username = 'Username invalide — lettres, chiffres, tirets et underscores uniquement';
   }
 
   if (mode === 'create' && !values.sshKeyId) {
-    errors.sshKeyId = 'Veuillez sélectionner une clé SSH.';
+    errors.sshKeyId = 'Please select an SSH key.';
   }
 
   if (Object.keys(errors).length > 0) {

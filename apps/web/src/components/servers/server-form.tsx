@@ -163,7 +163,7 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-3 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading && <Loader2 size={16} className="animate-spin" />}
-        Créer le serveur
+        Create server
       </button>
     </form>
   );

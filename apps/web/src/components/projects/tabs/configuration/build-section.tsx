@@ -32,7 +32,7 @@ const BUILD_SOURCE_OPTIONS: BuildSourceOption[] = [
     label: 'Dockerfile — Local',
     desc: 'docker build directement sur le VPS. Aucun registry.',
     icon: <Code2 size={13} />,
-    badge: 'Recommandé',
+    badge: 'Recommended',
     badgeColor: 'text-green-300',
   },
   {
@@ -46,7 +46,7 @@ const BUILD_SOURCE_OPTIONS: BuildSourceOption[] = [
   {
     value: 'NIXPACKS_LOCAL',
     label: 'Nixpacks — Local',
-    desc: 'Zéro Dockerfile, build sur le VPS.',
+    desc: 'Zero Dockerfile, builds on the VPS.',
     icon: <Sparkles size={13} />,
     badge: 'Auto-detect',
     badgeColor: 'text-purple-300',
@@ -73,7 +73,7 @@ const BUILD_SOURCE_OPTIONS: BuildSourceOption[] = [
   },
   {
     value: 'EXTERNAL_IMAGE',
-    label: 'Image externe',
+    label: 'External image',
     desc: 'Pull une image existante, pas de build.',
     icon: <Image size={13} />,
     needsImage: true,

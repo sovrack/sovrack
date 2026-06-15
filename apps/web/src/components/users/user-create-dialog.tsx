@@ -10,7 +10,7 @@ import { usersService } from '@/services/users.service';
 import type { UserListItem } from '@/types/user';
 
 const createUserSchema = z.object({
-  firstName: z.string().trim().min(1, 'Le prénom est obligatoire'),
+  firstName: z.string().trim().min(1, 'First name is required'),
   lastName: z.string().trim().min(1, 'Le nom est obligatoire'),
   email: z
     .string()
@@ -19,7 +19,7 @@ const createUserSchema = z.object({
     .email('Email invalide'),
   password: z
     .string()
-    .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+    .min(8, 'Password must be at least 8 characters'),
   role: z.enum(['ADMIN', 'DEVELOPER']),
   isActive: z.boolean(),
 });

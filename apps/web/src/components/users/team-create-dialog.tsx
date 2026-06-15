@@ -112,10 +112,10 @@ export function TeamCreateDialog({
               Administration
             </p>
             <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
-              Créer une équipe
+              Create team
             </h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Ajoutez une équipe pour organiser les utilisateurs et les projets.
+              Add a team to organize users and projects.
             </p>
           </div>
           <button
@@ -134,7 +134,7 @@ export function TeamCreateDialog({
           <div className="space-y-4">
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                Nom de l&apos;équipe <span className="text-red-400">*</span>
+                Team name <span className="text-red-400">*</span>
               </label>
               <input
                 value={form.name}
@@ -154,7 +154,7 @@ export function TeamCreateDialog({
               <textarea
                 value={form.description}
                 onChange={(event) => setField('description', event.target.value)}
-                placeholder="Description optionnelle de l'équipe..."
+                placeholder="Optional team description..."
                 rows={4}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
               />
@@ -169,11 +169,11 @@ export function TeamCreateDialog({
             onClick={onClose}
             disabled={submitting}
           >
-            Annuler
+            Cancel
           </Button>
           <Button type="submit" disabled={submitting || !canSubmit}>
             {submitting ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-            Créer
+            Create
           </Button>
         </div>
       </form>

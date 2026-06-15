@@ -61,7 +61,7 @@ const BUILD_SOURCE_META: Record<string, { label: string; detail: string; color: 
   NIXPACKS_REGISTRY:   { label: 'Nixpacks',     detail: 'build CI → push registry',     color: 'text-cyan-400',   bg: 'bg-cyan-500/8',   border: 'border-cyan-500/20' },
   DOCKER_COMPOSE:      { label: 'Compose',      detail: 'docker compose sur le VPS',    color: 'text-purple-400', bg: 'bg-purple-500/8', border: 'border-purple-500/20' },
   STATIC:              { label: 'Static',       detail: 'fichiers statiques',            color: 'text-green-400',  bg: 'bg-green-500/8',  border: 'border-green-500/20' },
-  EXTERNAL_IMAGE:      { label: 'Image externe','detail': 'image Docker pré-construite', color: 'text-orange-400', bg: 'bg-orange-500/8', border: 'border-orange-500/20' },
+  EXTERNAL_IMAGE:      { label: 'External image','detail': 'pre-built Docker image', color: 'text-orange-400', bg: 'bg-orange-500/8', border: 'border-orange-500/20' },
 };
 
 export function DeployDialog({ projectId, open, onClose, onCreated, services = [], initialServiceId, initialEnvironmentId, initialBranch, defaultBuildSource, buildPort, buildStartCmd }: Props) {
@@ -346,7 +346,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
                   return (
                     <div className={`rounded-xl border ${meta.border} ${meta.bg} px-4 py-3 space-y-2`}>
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                        Configuration qui sera utilisée
+                        Configuration that will be used
                       </p>
                       <div className="flex flex-wrap gap-3">
                         {/* Build source */}

@@ -12,7 +12,7 @@ export type EngineOption = {
 };
 
 export const ENGINES: EngineOption[] = [
-  { id: 'DOCKERFILE',     label: 'Dockerfile',     icon: <Code2 size={14} />,    badge: 'Recommandé', badgeColor: 'text-green-300' },
+  { id: 'DOCKERFILE',     label: 'Dockerfile',     icon: <Code2 size={14} />,    badge: 'Recommended', badgeColor: 'text-green-300' },
   { id: 'NIXPACKS',       label: 'Nixpacks',       icon: <Sparkles size={14} />, badge: 'Auto-detect', badgeColor: 'text-purple-300' },
   { id: 'BUILDPACK',      label: 'Buildpack',      icon: <Layers size={14} /> },
   { id: 'DOCKER_COMPOSE', label: 'Docker Compose', icon: <Box size={14} /> },

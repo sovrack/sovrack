@@ -132,7 +132,7 @@ export function DeploymentLogsDialog({ open, deploymentId, initialStatus, onClos
           <div className="flex items-start gap-3 border-b border-amber-500/20 bg-amber-500/8 px-5 py-3">
             <Wrench size={14} className="mt-0.5 shrink-0 text-amber-400" />
             <div className="text-xs text-amber-300">
-              <p className="font-semibold">Nixpacks n&apos;est pas installé sur ce serveur.</p>
+              <p className="font-semibold">Nixpacks is not installed on this server.</p>
               <p className="mt-0.5 text-amber-400/80">
                 Ouvre <strong>Deploy → Prepare server</strong> et coche <strong>Nixpacks</strong>, ou change le Build Source en <strong>Dockerfile — Local</strong> dans Configuration → Build.
               </p>

@@ -59,7 +59,7 @@ export function RepoBuildConfig({ projectId, isAdmin, prepareAllResults, onGener
       setProjType(r.recommendedBuildType || r.type || projType);
       setPort(String(r.recommendedPort || port));
       setStartCmd(r.recommendedStartCommand || startCmd);
-      setMsg({ type: 'success', text: `Détecté : ${r.type} · ${r.language} · confiance ${r.confidence}` });
+      setMsg({ type: 'success', text: `Detected: ${r.type} · ${r.language} · confidence ${r.confidence}` });
     } catch (err) {
       setMsg({ type: 'error', text: getApiErrorMessage(err) });
     } finally {
@@ -79,7 +79,7 @@ export function RepoBuildConfig({ projectId, isAdmin, prepareAllResults, onGener
       setDockerfileContent(result.dockerfileContent);
       setGitlabCiContent(result.gitlabCiContent);
       onGenerated();
-      setMsg({ type: 'success', text: 'Fichiers générés.' });
+      setMsg({ type: 'success', text: 'Files generated.' });
     } catch (err) {
       setMsg({ type: 'error', text: getApiErrorMessage(err) });
     } finally {
@@ -93,7 +93,7 @@ export function RepoBuildConfig({ projectId, isAdmin, prepareAllResults, onGener
       await buildService.updateConfig(projectId, { dockerfileContent, gitlabCiContent });
       await buildService.pushFiles(projectId, '');
       onGenerated();
-      setMsg({ type: 'success', text: 'Fichiers poussés dans GitLab — pipeline déclenché.' });
+      setMsg({ type: 'success', text: 'Files pushed to GitLab — pipeline triggered.' });
     } catch (err) {
       setMsg({ type: 'error', text: getApiErrorMessage(err) });
     } finally {
@@ -107,7 +107,7 @@ export function RepoBuildConfig({ projectId, isAdmin, prepareAllResults, onGener
       <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
         <div>
           <p className="text-sm font-semibold text-[var(--text-primary)]">Configuration du build</p>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Choisissez le moteur, détectez le framework, générez les fichiers.</p>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Choose the engine, detect the framework, generate the files.</p>
         </div>
         <button
           type="button"
@@ -116,7 +116,7 @@ export function RepoBuildConfig({ projectId, isAdmin, prepareAllResults, onGener
           className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] disabled:opacity-50"
         >
           {detecting ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-          {detecting ? 'Détection…' : 'Détecter automatiquement'}
+          {detecting ? 'Detecting…' : 'Auto-detect'}
         </button>
       </div>
 
@@ -166,7 +166,7 @@ export function RepoBuildConfig({ projectId, isAdmin, prepareAllResults, onGener
           )}
           {showPort && (
             <div>
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Port exposé</label>
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Exposed port</label>
               <input
                 type="number"
                 value={port}
@@ -179,14 +179,14 @@ export function RepoBuildConfig({ projectId, isAdmin, prepareAllResults, onGener
           {showStartCmd && (
             <div className={!showType ? 'sm:col-span-2' : ''}>
               <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                Commande de démarrage {engine === 'NIXPACKS' ? '(optionnel)' : ''}
+                Start command {engine === 'NIXPACKS' ? '(optional)' : ''}
               </label>
               <input
                 type="text"
                 value={startCmd}
                 onChange={(e) => setStartCmd(e.target.value)}
                 disabled={!isAdmin}
-                placeholder={engine === 'NIXPACKS' ? 'auto-détecté' : 'node dist/main.js'}
+                placeholder={engine === 'NIXPACKS' ? 'auto-detected' : 'node dist/main.js'}
                 className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none disabled:opacity-60"
               />
             </div>
@@ -198,7 +198,7 @@ export function RepoBuildConfig({ projectId, isAdmin, prepareAllResults, onGener
           <div className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2">
             <CheckCircle size={13} className="text-blue-400" />
             <span className="text-xs text-blue-300">
-              {detected.type} · {detected.language} · confiance {detected.confidence}
+              {detected.type} · {detected.language} · confidence {detected.confidence}
             </span>
           </div>
         )}
@@ -218,7 +218,7 @@ export function RepoBuildConfig({ projectId, isAdmin, prepareAllResults, onGener
             disabled={!isAdmin}
             icon={preparing ? undefined : <Rocket size={13} />}
           >
-            <span className="text-xs">Générer les fichiers</span>
+            <span className="text-xs">Generate files</span>
           </Button>
           {dockerfileContent && (
             <Button
