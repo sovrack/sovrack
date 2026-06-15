@@ -185,13 +185,10 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
                       <span className="rounded border border-[var(--border)] bg-[var(--hover)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">{dep.service.name}</span>
                     )}
                     {dep.externalPipelineId && (
-                      <a
-                        href={dep.project.repoUrl ? `${dep.project.repoUrl}/-/pipelines/${dep.externalPipelineId}` : '#'}
-                        target="_blank" rel="noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1 rounded border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-400 hover:bg-blue-500/20 transition">
+                      <span
+                        className="flex items-center gap-1 rounded border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-400">
                         <GitCommitHorizontal size={9} /> CI #{dep.externalPipelineId}
-                      </a>
+                      </span>
                     )}
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">

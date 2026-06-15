@@ -5,6 +5,21 @@ type DeploymentApi = ApiSchema['DeploymentDetailedResponseDto'];
 type DeploymentMutationApi = ApiSchema['DeploymentResponseDto'];
 type CreateDeploymentApiPayload = ApiSchema['CreateDeploymentDto'];
 
+export type EnvOrigin = 'service' | 'environment' | 'serviceEnvironment';
+
+export type EnvPreviewVariable = {
+  key: string;
+  origin: EnvOrigin;
+  isSecret: boolean;
+  /** Real value for non-secrets; '[REDACTED]' for secrets. */
+  value: string;
+};
+
+export type EnvPreview = {
+  variables: EnvPreviewVariable[];
+  warnings: string[];
+};
+
 export type DeploymentServiceTarget = {
   id: string;
   serviceId: string | null;

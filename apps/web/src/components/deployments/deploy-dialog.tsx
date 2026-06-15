@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { EnvVariablesPreview } from './env-variables-preview';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -92,6 +93,17 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
 
   const primaryEnvId = envIds[0] ?? '';
   const currentEnv = environments.find((e) => e.id === primaryEnvId);
+
+  // Resolve the ServiceEnvironment to preview: the selected service's link in
+  // the primary environment (or the first link when no specific service chosen).
+  const previewServiceEnvId = useMemo<string | null>(() => {
+    const links = currentEnv?.serviceLinks ?? [];
+    if (links.length === 0) return null;
+    if (selectedServiceId) {
+      return links.find((l) => l.serviceId === selectedServiceId)?.id ?? null;
+    }
+    return links[0]?.id ?? null;
+  }, [currentEnv, selectedServiceId]);
 
   useEffect(() => {
     if (!open) return;
@@ -485,6 +497,10 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
               )}
             </>
           )}
+
+          {!showPrepare && previewServiceEnvId ? (
+            <EnvVariablesPreview serviceEnvId={previewServiceEnvId} />
+          ) : null}
         </div>
 
         {/* Footer */}
