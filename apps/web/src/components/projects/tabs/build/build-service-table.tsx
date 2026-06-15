@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 
 import {
   CheckCircle2,
@@ -132,7 +133,7 @@ export function BuildServiceTable({
                   {/* Service info */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-[var(--text-primary)]">{svc.name}</p>
+                      <Link href={`/projects/${projectId}/services/${svc.id}`} className="text-sm font-semibold text-[var(--text-primary)] hover:underline">{svc.name}</Link>
                       <span className="rounded bg-[var(--hover)] px-1.5 py-0.5 text-[9px] font-semibold uppercase text-[var(--text-muted)]">{svc.type}</span>
                       {svc.buildPack && svc.buildPack !== 'DOCKERFILE' && (
                         <span className="rounded border border-purple-500/20 bg-purple-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-purple-300">{svc.buildPack}</span>

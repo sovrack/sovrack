@@ -151,53 +151,6 @@ export function ServerUpsertDialog({
             <Alert tone="error">{formErrors.form ?? error}</Alert>
           )}
 
-          {/* Connection mode */}
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
-              Connection mode
-            </p>
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-              {(['ssh', 'bastion', 'agent'] as const).map((modeValue) => (
-                <label
-                  key={modeValue}
-                  className={`rounded-xl border px-3 py-3 transition ${
-                    modeValue !== 'ssh'
-                      ? 'cursor-not-allowed opacity-50 border-[var(--border)] bg-[var(--bg-card)]'
-                      : values.connectionMode === modeValue
-                        ? 'cursor-pointer border-[var(--border)] bg-[var(--active)]'
-                        : 'cursor-pointer border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--hover)]'
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <input
-                      type="radio"
-                      name="connectionMode"
-                      checked={values.connectionMode === modeValue}
-                      onChange={() => { if (modeValue === 'ssh') set('connectionMode', modeValue); }}
-                      disabled={modeValue !== 'ssh'}
-                      className="mt-1 accent-zinc-500"
-                    />
-                    <div>
-                      <p className="flex items-center gap-2 text-sm font-semibold capitalize text-[var(--text-primary)]">
-                        {modeValue}
-                        {modeValue !== 'ssh' && (
-                          <span className="rounded-full bg-zinc-700 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
-                            Coming soon
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs text-[var(--text-secondary)]">
-                        {modeValue === 'ssh' && 'Direct secure SSH connection'}
-                        {modeValue === 'bastion' && 'Connect through jump host'}
-                        {modeValue === 'agent' && 'Pull-based execution with agent'}
-                      </p>
-                    </div>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
           {mode === 'create' && (
             <Alert tone="warning">
               Enter a temporary VPS password if you want automatic key installation
