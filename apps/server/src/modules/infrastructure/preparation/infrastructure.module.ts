@@ -1,6 +1,6 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AppJwtModule } from '../../../core/jwt/jwt.module';
-import { ServersSharedModule } from '../servers/servers-shared.module';
+import { InfrastructureCoreModule } from '../core/infrastructure-core.module';
 import { ServerPreparationController } from './controllers/server-preparation.controller';
 import { ServerPreparationsController } from './controllers/server-preparations.controller';
 import { ServerPreparationOptionsController } from './controllers/server-preparation-options.controller';
@@ -14,13 +14,12 @@ import { ServerPreparationGateway } from './gateways/server-preparation.gateway'
  * roles, preparation runs + history + live logs). Split out of servers/ so
  * that servers/ stays focused on VPS lifecycle (SSH verify + Docker install).
  *
- * Consumes shared server primitives (SSH, crypto, host-key, detection,
- * verification, jobs, audit) from ServersSharedModule; exports the preparation
- * + ansible services back so servers-core can trigger Docker-install during
- * onboarding (forwardRef bridges the two-way collaboration).
+ * Consumes the shared server primitives from InfrastructureCoreModule (a leaf
+ * module). It no longer imports ServersSharedModule, so the previous two-way
+ * `forwardRef` cycle is gone.
  */
 @Module({
-  imports: [AppJwtModule, forwardRef(() => ServersSharedModule)],
+  imports: [AppJwtModule, InfrastructureCoreModule],
   controllers: [
     ServerPreparationController,
     ServerPreparationsController,

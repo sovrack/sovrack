@@ -1,47 +1,22 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../../core/database/prisma.module';
 import { AppJwtModule } from '../../../core/jwt/jwt.module';
 import { InfrastructureModule } from '../preparation/infrastructure.module';
+import { InfrastructureCoreModule } from '../core/infrastructure-core.module';
 import { AuditModule } from '../../audit';
-import {
-  ServersAuditService,
-  ServersDetectionService,
-  ServerHostKeyService,
-  ServerVerificationService,
-  ServersCoreService,
-  ServersCryptoService,
-  ServersJobsService,
-  ServersConnectionService,
-} from './services';
+import { ServersCoreService } from './services';
 
 /**
- * Shared server primitives (SSH, crypto, host-key, detection, verification,
- * jobs, audit) + the ServersCoreService lifecycle facade. Preparation/Ansible
- * now live in InfrastructureModule; we import it (forwardRef) so ServersCoreService
- * can trigger Docker-install preparation during onboarding, and we re-export the
- * primitives InfrastructureModule consumes.
+ * Server lifecycle facade (ServersCoreService). The shared primitives (SSH,
+ * crypto, host-key, detection, verification, jobs, audit) now live in
+ * InfrastructureCoreModule, which we import AND re-export so external consumers
+ * keep receiving them. We import InfrastructureModule (no more forwardRef — the
+ * cycle is gone) so ServersCoreService can trigger Docker-install preparation
+ * during onboarding.
  */
 @Module({
-  imports: [PrismaModule, AppJwtModule, forwardRef(() => InfrastructureModule), AuditModule],
-  providers: [
-    ServersCoreService,
-    ServersCryptoService,
-    ServerHostKeyService,
-    ServersConnectionService,
-    ServersJobsService,
-    ServerVerificationService,
-    ServersDetectionService,
-    ServersAuditService,
-  ],
-  exports: [
-    ServersCoreService,
-    ServersCryptoService,
-    ServerHostKeyService,
-    ServersConnectionService,
-    ServersJobsService,
-    ServerVerificationService,
-    ServersDetectionService,
-    ServersAuditService,
-  ],
+  imports: [PrismaModule, AppJwtModule, InfrastructureCoreModule, InfrastructureModule, AuditModule],
+  providers: [ServersCoreService],
+  exports: [ServersCoreService, InfrastructureCoreModule],
 })
 export class ServersSharedModule {}
