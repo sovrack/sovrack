@@ -109,7 +109,7 @@ export class BuildSetupService {
     }
   }
 
-  async prepareAll(
+  async generateAll(
     projectId: string,
     userId: string,
     userRole: Role,

@@ -31,15 +31,15 @@ export class BuildController {
     private readonly buildsService: BuildLifecycleService,
   ) {}
 
-  @Post('prepare')
+  @Post('generate')
   @Roles(Role.ADMIN, Role.DEVELOPER)
-  async prepare(
+  async generateBuildFiles(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Query('serviceId') serviceId?: string,
     @Body() body?: CreateBuildConfigDto,
   ) {
-    return await this.buildService.prepare(
+    return await this.buildService.generateBuildFiles(
       id,
       user.id,
       user.role,
@@ -93,10 +93,10 @@ export class BuildController {
    * Prepare all services at once.
    * Returns per-service results so frontend can show progress.
    */
-  @Post('prepare-all')
+  @Post('generate-all')
   @Roles(Role.ADMIN, Role.DEVELOPER)
-  async prepareAll(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.setupService.prepareAll(id, user.id, user.role);
+  async generateAll(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    return await this.setupService.generateAll(id, user.id, user.role);
   }
 
   /**

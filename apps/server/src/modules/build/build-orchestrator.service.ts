@@ -30,7 +30,7 @@ export class BuildOrchestratorService {
     private readonly gitProvidersService: SourceProvidersService,
   ) {}
 
-  async prepare(
+  async generateBuildFiles(
     projectId: string,
     userId: string,
     userRole: Role,
