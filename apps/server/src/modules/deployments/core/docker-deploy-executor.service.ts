@@ -3,7 +3,7 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { ContainerStatus, Deployment, DeploymentStatus, ManagedServiceType, Prisma, ServiceType } from '@prisma/client';
+import { ContainerStatus, Deployment, DeploymentStatus, DeploymentStrategy, ManagedServiceType, Prisma, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
@@ -17,6 +17,11 @@ type DeploymentLogLevel = 'info' | 'error' | 'success';
 @Injectable()
 export class DockerDeployExecutorService {
   private readonly logger = new Logger(DockerDeployExecutorService.name);
+
+  // Blue-green: the green container publishes on canonical+offset so it can run
+  // alongside the live (blue) container until it is verified healthy.
+  private static readonly BLUE_GREEN_PORT_OFFSET = 1;
+  private static readonly BLUE_GREEN_DRAIN_MS = 3000;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -132,6 +137,21 @@ export class DockerDeployExecutorService {
       }
     }
 
+    // Blue-green only applies to stateless application containers; stateful
+    // databases keep the standard in-place path. When enabled, the new (green)
+    // container publishes on a standby port so the live (blue) one keeps serving
+    // until green passes its health-check.
+    const blueGreen =
+      deployment.strategy === DeploymentStrategy.BLUE_GREEN &&
+      deployment.service?.type !== ServiceType.DATABASE;
+    const publishPort = blueGreen
+      ? servicePort + DockerDeployExecutorService.BLUE_GREEN_PORT_OFFSET
+      : servicePort;
+    if (blueGreen) {
+      this.emitGatewayLog(deployment.id, `[BLUE-GREEN] Conteneur green sur le port ${publishPort} (blue reste actif).`, 'info');
+      commandLogs += `[BLUE-GREEN] Green publié sur ${publishPort}\n`;
+    }
+
     await this.prisma.deployment.update({
       where: { id: deployment.id },
       data: {
@@ -164,7 +184,7 @@ export class DockerDeployExecutorService {
         Env: envVars,
         ExposedPorts: { [`${servicePort}/tcp`]: {} },
         HostConfig: {
-          PortBindings: { [`${servicePort}/tcp`]: [{ HostPort: String(servicePort) }] },
+          PortBindings: { [`${servicePort}/tcp`]: [{ HostPort: String(publishPort) }] },
           RestartPolicy: { Name: 'unless-stopped' },
           AutoRemove: false,
           ...(dbVolumeName && dbVolumePath ? { Binds: [`${dbVolumeName}:${dbVolumePath}`] } : {}),
@@ -198,7 +218,7 @@ export class DockerDeployExecutorService {
           environmentDomain: null,
           serviceDomain: null,
           serverHost: server.host,
-          appPort: servicePort,
+          appPort: publishPort,
           healthcheckPath: deployment.service?.healthcheckPath ?? null,
         });
         commandLogs += `${healthLogs}\n`;
@@ -215,6 +235,17 @@ export class DockerDeployExecutorService {
           .updateMany({ where: { dockerId: container.id }, data: { status: ContainerStatus.EXITED } })
           .catch(() => undefined);
         throw healthError;
+      }
+
+      // Green is healthy → cut over: repoint the proxy rule, drain in-flight
+      // requests on blue, then retire the old (blue) container(s).
+      if (blueGreen) {
+        commandLogs += await this.cutoverBlueGreen(
+          deployment.serviceEnv?.id ?? null,
+          serverId,
+          container.id,
+          publishPort,
+        );
       }
 
       const imageDigest = await this.resolveImageDigest(serverId, imageRef);
@@ -388,6 +419,65 @@ export class DockerDeployExecutorService {
   }
 
   // ─── DATABASE helpers ──────────────────────────────────────────────────────
+
+  /**
+   * Blue-green cut-over. Green is already running and healthy on its standby
+   * port. We repoint the proxy rule to it, wait for blue to drain, then retire
+   * the previous (blue) container(s) of this ServiceEnvironment.
+   *
+   * NOTE: seamless traffic hand-off requires a reverse proxy honouring
+   * ProxyRule.targetPort. Until one is wired, this still delivers the core
+   * blue-green safety guarantee: a broken image is caught on green and never
+   * removes the live blue container (see the health-check failure path).
+   */
+  private async cutoverBlueGreen(
+    serviceEnvId: string | null,
+    serverId: string,
+    greenDockerId: string,
+    publishPort: number,
+  ): Promise<string> {
+    if (!serviceEnvId) return '[BLUE-GREEN] Pas de service-env, cut-over ignoré\n';
+
+    let logs = '';
+    // 1. Repoint the proxy rule(s) to the green port.
+    const repointed = await this.prisma.proxyRule.updateMany({
+      where: { serviceEnvId, serverId },
+      data: { targetPort: publishPort },
+    });
+    if (repointed.count > 0) {
+      logs += `[BLUE-GREEN] ${repointed.count} règle(s) proxy repointée(s) vers ${publishPort}\n`;
+    }
+
+    // 2. Drain: give in-flight requests on blue a moment to complete.
+    await this.sleep(DockerDeployExecutorService.BLUE_GREEN_DRAIN_MS);
+
+    // 3. Retire the old blue container(s).
+    const blues = await this.prisma.container.findMany({
+      where: { serviceEnvId, status: ContainerStatus.RUNNING, dockerId: { not: greenDockerId } },
+      select: { id: true, dockerId: true, name: true },
+    });
+    for (const blue of blues) {
+      try {
+        await this.docker.removeContainer(serverId, blue.dockerId, true);
+        await this.prisma.container.update({
+          where: { id: blue.id },
+          data: { status: ContainerStatus.EXITED },
+        });
+        logs += `[BLUE-GREEN] Ancien conteneur retiré : ${blue.name}\n`;
+      } catch (error) {
+        this.logger.warn(
+          `Blue-green: could not remove old container ${blue.name}: ${
+            error instanceof Error ? error.message : 'unknown'
+          }`,
+        );
+      }
+    }
+    return logs;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
 
   private getDatabaseContainerConfig(databaseType: ManagedServiceType): { port: number; dataPath: string } {
     switch (databaseType) {
