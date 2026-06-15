@@ -13,6 +13,15 @@ import type {
   RegistryTestResult,
 } from '@/types/platform-config';
 
+// The backend provider DTO expects `providerUrl`; the UI form models it as
+// `gitlabUrl`. Map at the API boundary so create/update payloads validate.
+function toProviderBody(
+  payload: CreateGitlabProviderPayload | UpdateGitlabProviderPayload,
+): Record<string, unknown> {
+  const { gitlabUrl, ...rest } = payload;
+  return gitlabUrl === undefined ? { ...rest } : { ...rest, providerUrl: gitlabUrl };
+}
+
 export const platformConfigService = {
   async getAll(): Promise<PlatformConfigItem[]> {
     const res = await api.get<PlatformConfigItem[]>('/admin/platform-config');
@@ -40,7 +49,7 @@ export const platformConfigService = {
   ): Promise<GitlabProvider> {
     const res = await api.post<GitlabProvider>(
       '/admin/platform-config/gitlab/providers',
-      payload,
+      toProviderBody(payload),
     );
     return res.data;
   },
@@ -51,7 +60,7 @@ export const platformConfigService = {
   ): Promise<GitlabProvider> {
     const res = await api.put<GitlabProvider>(
       `/admin/platform-config/gitlab/providers/${encodeURIComponent(id)}`,
-      payload,
+      toProviderBody(payload),
     );
     return res.data;
   },
@@ -89,12 +98,12 @@ export const platformConfigService = {
   },
 
   async createGithubProvider(payload: CreateGitlabProviderPayload): Promise<GitlabProvider> {
-    const res = await api.post<GitlabProvider>('/admin/platform-config/github/providers', payload);
+    const res = await api.post<GitlabProvider>('/admin/platform-config/github/providers', toProviderBody(payload));
     return res.data;
   },
 
   async updateGithubProvider(id: string, payload: UpdateGitlabProviderPayload): Promise<GitlabProvider> {
-    const res = await api.put<GitlabProvider>(`/admin/platform-config/github/providers/${encodeURIComponent(id)}`, payload);
+    const res = await api.put<GitlabProvider>(`/admin/platform-config/github/providers/${encodeURIComponent(id)}`, toProviderBody(payload));
     return res.data;
   },
 
@@ -119,12 +128,12 @@ export const platformConfigService = {
   },
 
   async createGiteaProvider(payload: CreateGitlabProviderPayload): Promise<GitlabProvider> {
-    const res = await api.post<GitlabProvider>('/admin/platform-config/gitea/providers', payload);
+    const res = await api.post<GitlabProvider>('/admin/platform-config/gitea/providers', toProviderBody(payload));
     return res.data;
   },
 
   async updateGiteaProvider(id: string, payload: UpdateGitlabProviderPayload): Promise<GitlabProvider> {
-    const res = await api.put<GitlabProvider>(`/admin/platform-config/gitea/providers/${encodeURIComponent(id)}`, payload);
+    const res = await api.put<GitlabProvider>(`/admin/platform-config/gitea/providers/${encodeURIComponent(id)}`, toProviderBody(payload));
     return res.data;
   },
 
