@@ -30,7 +30,7 @@ import type { Deployment } from '@/types/deployment';
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return 'à l\'instant';
+  if (m < 1) return 'just now';
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
@@ -102,7 +102,7 @@ function NotificationBell() {
         <div className="absolute right-0 mt-2 w-80 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl z-50">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-            <span className="text-sm font-semibold text-[var(--text-primary)]">Activité récente</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Recent activity</span>
             <Link
               href="/settings"
               onClick={() => setOpen(false)}
@@ -117,7 +117,7 @@ function NotificationBell() {
             {deployments.length === 0 ? (
               <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
                 <Rocket size={20} className="mb-2 text-[var(--text-muted)]" />
-                <p className="text-xs text-[var(--text-secondary)]">Aucune activité récente</p>
+                <p className="text-xs text-[var(--text-secondary)]">No recent activity</p>
               </div>
             ) : (
               deployments.map((dep) => {
@@ -158,7 +158,7 @@ function NotificationBell() {
               onClick={() => setOpen(false)}
               className="text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
             >
-              Voir tous les déploiements →
+              View all deployments →
             </Link>
           </div>
         </div>

@@ -144,12 +144,12 @@ export default function AdminUsersPage() {
 
   const handleUserCreated = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    showToast('Utilisateur créé avec succès', 'success');
+    showToast('User created successfully', 'success');
   }, [queryClient, showToast]);
 
   const handleTeamCreated = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['admin-teams'] });
-    showToast('Équipe créée avec succès', 'success');
+    showToast('Team created successfully', 'success');
   }, [queryClient, showToast]);
 
   // Redirection si non-admin
@@ -181,7 +181,7 @@ export default function AdminUsersPage() {
       const updated = await usersService.toggleActive(userId);
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       showToast(
-        updated.isActive ? 'Utilisateur activé avec succès' : 'Utilisateur désactivé avec succès',
+        updated.isActive ? 'User activated successfully' : 'User deactivated successfully',
         'success',
       );
     } catch (toggleError) {
@@ -193,7 +193,7 @@ export default function AdminUsersPage() {
 
   const handleDelete = (target: UserListItem) => {
     if (target.id === currentUser?.id) {
-      showToast('Vous ne pouvez pas supprimer votre propre compte', 'error');
+      showToast('You cannot delete your own account', 'error');
       return;
     }
     setConfirmUser(target);
@@ -206,7 +206,7 @@ export default function AdminUsersPage() {
     try {
       await usersService.delete(confirmUser.id);
       await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      showToast('Utilisateur supprimé avec succès', 'success');
+      showToast('User deleted successfully', 'success');
     } catch (deleteError) {
       showToast(getApiErrorMessage(deleteError), 'error');
     } finally {
@@ -225,7 +225,7 @@ export default function AdminUsersPage() {
     try {
       await teamsService.remove(confirmTeam.id);
       await queryClient.invalidateQueries({ queryKey: ['admin-teams'] });
-      showToast('Équipe supprimée avec succès', 'success');
+      showToast('Team deleted successfully', 'success');
     } catch (deleteError) {
       showToast(getApiErrorMessage(deleteError), 'error');
     } finally {
@@ -251,7 +251,7 @@ export default function AdminUsersPage() {
       <PageHeader
         eyebrow="Administration"
         title="Users & Teams"
-        description="Gérez les utilisateurs et les équipes depuis une seule page."
+        description="Manage users and teams from a single page."
         actions={
           <>
             <button
@@ -259,14 +259,14 @@ export default function AdminUsersPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:bg-[var(--text-primary)]"
             >
               <Plus size={16} />
-              Créer un utilisateur
+              Create user
             </button>
             <button
               onClick={() => setCreateTeamOpen(true)}
               className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] shadow transition hover:bg-[var(--hover)]"
             >
               <Plus size={16} />
-              Créer une équipe
+              Create team
             </button>
           </>
         }
@@ -292,7 +292,7 @@ export default function AdminUsersPage() {
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
             <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]">
               <Users size={14} />
-              Développeurs actifs
+              Active developers
             </div>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {
@@ -303,13 +303,13 @@ export default function AdminUsersPage() {
             </p>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-muted)]">Total équipes</p>
+            <p className="text-xs font-medium text-[var(--text-muted)]">Total teams</p>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {teams.length}
             </p>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-muted)]">Membres d’équipes</p>
+            <p className="text-xs font-medium text-[var(--text-muted)]">Team members</p>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {teams.reduce((total, team) => total + team.members.length, 0)}
             </p>
@@ -350,7 +350,7 @@ export default function AdminUsersPage() {
             onChange={(event) => setRoleFilter(event.target.value as RoleFilter)}
             className="h-11 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100 border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]"
           >
-            <option value="ALL">Tous les rôles</option>
+            <option value="ALL">All roles</option>
             <option value="ADMIN">ADMIN</option>
             <option value="DEVELOPER">DEVELOPER</option>
           </select>
@@ -371,10 +371,10 @@ export default function AdminUsersPage() {
               <Users size={24} className="text-[var(--text-secondary)]" />
             </div>
             <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)] text-[var(--text-primary)]">
-              Aucun utilisateur trouvé
+              No users found
             </h3>
             <p className="mt-2 text-sm text-[var(--text-secondary)] text-[var(--text-secondary)]">
-              Ajustez votre recherche ou créez un nouveau compte.
+              Adjust your search or create a new account.
             </p>
           </div>
         ) : (
@@ -389,13 +389,13 @@ export default function AdminUsersPage() {
                     Email
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
-                    Rôle
+                    Role
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
                     Statut
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
-                    Date création
+                    Created at
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
                     Actions
@@ -455,7 +455,7 @@ export default function AdminUsersPage() {
                           ) : (
                             <UserPlus size={13} />
                           )}
-                          {item.isActive ? 'Désactiver' : 'Activer'}
+                          {item.isActive ? 'Deactivate' : 'Activer'}
                         </button>
                         <button
                           onClick={() => void handleDelete(item)}
@@ -480,7 +480,7 @@ export default function AdminUsersPage() {
         <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} className="mt-4" />
       </SectionCard>
 
-      <SectionCard title="Équipes" contentClassName="!p-5 sm:!p-6">
+      <SectionCard title="Teams" contentClassName="!p-5 sm:!p-6">
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((index) => (
@@ -496,17 +496,17 @@ export default function AdminUsersPage() {
               <Users size={24} className="text-[var(--text-secondary)]" />
             </div>
             <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)] text-[var(--text-primary)]">
-              Aucune équipe pour l&apos;instant
+              No teams yet
             </h3>
             <p className="mt-2 text-sm text-[var(--text-secondary)] text-[var(--text-secondary)]">
-              Créez votre première équipe pour organiser vos développeurs.
+              Create your first team to organize your developers.
             </p>
             <button
               onClick={() => setCreateTeamOpen(true)}
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)]"
             >
               <Plus size={16} />
-              Créer une équipe
+              Create team
             </button>
           </div>
         ) : (
@@ -552,7 +552,7 @@ export default function AdminUsersPage() {
                           className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] border-[var(--border)] text-[var(--text-primary)]"
                         >
                           <Pencil size={13} />
-                          Gérer
+                          Manage
                         </Link>
                         <button
                           onClick={() => void handleDeleteTeam(team)}
@@ -579,7 +579,7 @@ export default function AdminUsersPage() {
       <ConfirmDialog
         open={Boolean(confirmUser)}
         title={`Supprimer l'utilisateur "${confirmUser?.fullName ?? ''}"`}
-        description="Cette action est irréversible."
+        description="This action cannot be undone."
         confirmLabel="Supprimer"
         cancelLabel="Annuler"
         loading={Boolean(deletingUserId)}
@@ -589,8 +589,8 @@ export default function AdminUsersPage() {
 
       <ConfirmDialog
         open={Boolean(confirmTeam)}
-        title={`Supprimer l'équipe "${confirmTeam?.name ?? ''}"`}
-        description="Cette action est irréversible."
+        title={`Delete team "${confirmTeam?.name ?? ''}"`}
+        description="This action cannot be undone."
         confirmLabel="Supprimer"
         cancelLabel="Annuler"
         loading={Boolean(deletingTeamId)}
