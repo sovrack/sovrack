@@ -73,8 +73,14 @@ export default function MonitoringPage() {
         ))}
       </div>
 
-      {/* Prometheus + Grafana status */}
+      {/* Prometheus + Grafana status — only shown when configured */}
       <SectionCard title="Observability services">
+        {!loading && !overview?.prometheus.url && !overview?.grafana.url ? (
+          <p className="text-sm text-[var(--text-secondary)]">
+            Prometheus and Grafana are not configured. Set their URLs in Platform Settings to
+            enable observability.
+          </p>
+        ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {[
             {
@@ -93,7 +99,7 @@ export default function MonitoringPage() {
               url: overview?.grafana.url,
               extra: null,
             },
-          ].map((svc) => (
+          ].filter((svc) => loading || Boolean(svc.url)).map((svc) => (
             <div
               key={svc.name}
               className="flex items-start justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3"
@@ -123,12 +129,13 @@ export default function MonitoringPage() {
                   rel="noopener noreferrer"
                   className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
                 >
-                  Ouvrir <ExternalLink size={11} />
+                  Open <ExternalLink size={11} />
                 </a>
               )}
             </div>
           ))}
         </div>
+        )}
       </SectionCard>
 
       {/* Servers */}
