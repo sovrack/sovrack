@@ -9,7 +9,6 @@ import {
   HelpCircle,
   Loader2,
   Plus,
-  RefreshCw,
   Server,
   ShieldCheck,
   Wifi,
@@ -148,6 +147,12 @@ export default function AdminServersPage() {
     }
   }, [servers.servers.length, servers.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-refresh the server list (replaces the manual Refresh button).
+  useEffect(() => {
+    const id = setInterval(() => { void servers.fetchServers(); }, 30_000);
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handlePing = async (server: ServerType) => {
     setPingingId(server.id);
     setPingMap((prev) => ({ ...prev, [server.id]: 'loading' }));
@@ -249,44 +254,11 @@ export default function AdminServersPage() {
         title="Remote Servers"
         description="Manage your VPS servers — SSH validation, capability detection, Ansible provisioning and environment assignment. All servers are identical agentless targets."
         actions={
-          <>
-            <Button
-              variant="secondary"
-              icon={<RefreshCw size={15} className={servers.loading ? 'animate-spin' : ''} />}
-              onClick={async () => {
-                await servers.fetchServers();
-                void runAutoTests(servers.servers);
-              }}
-              disabled={servers.loading}
-            >
-              Refresh
-            </Button>
-            <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>
-              Add Server
-            </Button>
-          </>
+          <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>
+            Add Server
+          </Button>
         }
       />
-
-      {/* Stats */}
-      <SectionCard contentClassName="p-0">
-        <div className="grid grid-cols-2 gap-3 border-b border-[var(--border)] p-5 sm:grid-cols-4">
-          {[
-            { label: 'Total', value: servers.servers.length },
-            { label: 'SSH validated', value: servers.verifiedCount },
-            {
-              label: 'Online',
-              value: Object.values(pingMap).filter((r) => r !== 'loading' && r.ok).length,
-            },
-            { label: 'Provisioned', value: servers.readyCount },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-              <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
-              <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{value}</p>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
 
       {servers.error && <Alert tone="error">{servers.error}</Alert>}
 
