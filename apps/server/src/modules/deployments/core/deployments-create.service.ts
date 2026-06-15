@@ -22,6 +22,7 @@ import type { PipelineItem } from '../../source-providers/contracts/git-provider
 import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
 import { BuildStrategyResolver } from '../../build/strategies/build-strategy.resolver';
 import { AuditService } from '../../audit/audit.service';
+import { QueueService } from '../../../core/queue/queue.service';
 
 @Injectable()
 export class DeploymentsCreateService {
@@ -37,6 +38,7 @@ export class DeploymentsCreateService {
     private readonly buildsService: BuildLifecycleService,
     private readonly buildStrategyResolver: BuildStrategyResolver,
     private readonly auditService: AuditService,
+    private readonly queueService: QueueService,
   ) {}
 
   async create(dto: CreateDeploymentDto, userId: string): Promise<Deployment> {
@@ -204,11 +206,7 @@ export class DeploymentsCreateService {
       });
       this.gateway.emitStatus({ deploymentId: deployment.id, status: deployment.status });
 
-      void this.dockerDeployExecutor
-        .executeDeploy(deployment.id, undefined)
-        .catch((err: unknown) => {
-          this.logger.error(`[CreateDeployment] Direct deploy failed for ${deployment.id}: ${err instanceof Error ? err.message : 'erreur inconnue'}`);
-        });
+      await this.queueService.enqueueDeploy(deployment.id);
       return deployment;
     }
 
@@ -345,10 +343,7 @@ export class DeploymentsCreateService {
 
     this.gateway.emitStatus({ deploymentId: updated.id, status: updated.status });
 
-    void this.dockerDeployExecutor.executeDeploy(updated.id, undefined)
-      .catch((err: unknown) => {
-        this.logger.error(`[CreateDeployment] DB deploy failed for ${updated.id}: ${err instanceof Error ? err.message : 'erreur inconnue'}`);
-      });
+    await this.queueService.enqueueDeploy(updated.id);
 
     return updated;
   }

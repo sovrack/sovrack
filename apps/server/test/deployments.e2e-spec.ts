@@ -7,6 +7,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/core/database/prisma.service';
 import { DeploymentsCreateService } from '../src/modules/deployments/core/deployments-create.service';
 import { DockerDeployExecutorService } from '../src/modules/deployments/core/docker-deploy-executor.service';
+import { DeploymentsProcessor } from '../src/modules/deployments/processors/deployments.processor';
 import { GitlabAdapter } from '../src/modules/source-providers/adapters/gitlab/gitlab.adapter';
 import { DeploymentsGateway } from '../src/modules/deployments/gateways/deployments.gateway';
 import { BuildImageService } from '../src/modules/build/lifecycle/build-image.service';
@@ -49,11 +50,12 @@ describe('DeploymentsCreateService (e2e)', () => {
         .mockResolvedValue('registry.gitlab.example.com/platform/e2e:main'),
     };
 
+    const dockerExecMock = mockDockerDeployExecutorService().useValue;
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider(DockerDeployExecutorService)
-      .useValue(mockDockerDeployExecutorService().useValue)
+      .useValue(dockerExecMock)
       .overrideProvider(GitlabAdapter)
       .useValue(mockGitlabService().useValue)
       .overrideProvider(BuildImageService)
@@ -64,6 +66,19 @@ describe('DeploymentsCreateService (e2e)', () => {
         emitStatus: jest.fn(),
         emitFinished: jest.fn(),
       })
+      // Deploys now go through the queue; simulate the worker by invoking the
+      // (mocked) executor synchronously when a 'deploy' job is enqueued.
+      .overrideProvider('DEPLOYMENTS_QUEUE')
+      .useValue({
+        add: (name: string, data: { deploymentId: string; overrideImage?: string }) => {
+          if (name === 'deploy') {
+            void dockerExecMock.executeDeploy(data.deploymentId, data.overrideImage);
+          }
+          return Promise.resolve({ id: 'stub-job' });
+        },
+      })
+      .overrideProvider(DeploymentsProcessor)
+      .useValue({ onModuleInit: jest.fn() })
       .compile();
 
     app = moduleRef.createNestApplication({ logger: false });

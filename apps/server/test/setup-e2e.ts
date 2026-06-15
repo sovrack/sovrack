@@ -8,6 +8,7 @@ import { JwtService } from '../src/core/jwt/jwt.service';
 import { AnsibleRunnerService } from '../src/core/provisioning/ansible-runner.service';
 import { DeploymentsGateway } from '../src/modules/deployments/gateways/deployments.gateway';
 import { DeploymentsProcessor } from '../src/modules/deployments/processors/deployments.processor';
+import { DockerDeployExecutorService } from '../src/modules/deployments/core/docker-deploy-executor.service';
 import {
   DockerApiMockHandle,
   GitlabMockHandle,
@@ -55,6 +56,10 @@ export async function bootstrapE2E(): Promise<E2EContext> {
   const dockerMock = mockDockerApiService();
   const gitlabMock = mockGitlabService();
   const healthMock = mockHealthcheckService();
+  // Patched after app.init() to drive the real executor (simulated worker).
+  const deploymentsQueueStub: {
+    add: (name: string, data: { deploymentId: string; overrideImage?: string }) => Promise<{ id: string }>;
+  } = { add: () => Promise.resolve({ id: 'stub-job' }) };
 
   const moduleRef: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
@@ -74,9 +79,11 @@ export async function bootstrapE2E(): Promise<E2EContext> {
       emitFinished: jest.fn(),
       emitLog: jest.fn(),
     })
-    // Decouple e2e from Redis: stub the queue token and the worker bootstrap.
+    // Decouple e2e from Redis: stub the queue token + worker bootstrap. The
+    // stub's `add` is patched after init() to invoke the real executor, so
+    // enqueueDeploy still runs the deployment like the BullMQ worker would.
     .overrideProvider('DEPLOYMENTS_QUEUE')
-    .useValue({ add: jest.fn().mockResolvedValue({ id: 'stub-job' }) })
+    .useValue(deploymentsQueueStub)
     .overrideProvider(DeploymentsProcessor)
     .useValue({ onModuleInit: jest.fn() })
     .compile();
@@ -84,6 +91,18 @@ export async function bootstrapE2E(): Promise<E2EContext> {
   const app = moduleRef.createNestApplication({ logger: false });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.init();
+
+  // Simulate the BullMQ worker: run the real executor when a deploy is enqueued.
+  const executor = app.get(DockerDeployExecutorService);
+  deploymentsQueueStub.add = (
+    name: string,
+    data: { deploymentId: string; overrideImage?: string },
+  ) => {
+    if (name === 'deploy') {
+      void executor.executeDeploy(data.deploymentId, data.overrideImage);
+    }
+    return Promise.resolve({ id: 'stub-job' });
+  };
 
   const prisma = app.get(PrismaService);
   const jwt = app.get(JwtService);
