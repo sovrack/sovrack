@@ -10,8 +10,6 @@ import { Button } from '@/components/ui/button';
 type ProjectFormInitialValues = {
   name?: string;
   description?: string | null;
-  gitlabUrl?: string;
-  branch?: string;
 };
 
 type ProjectFormProps = {
@@ -43,10 +41,6 @@ export function ProjectForm({
   const [description, setDescription] = useState(
     initialValues?.description ?? '',
   );
-  const [gitlabUrl, setGitlabUrl] = useState(initialValues?.gitlabUrl ?? '');
-  const [branch, setBranch] = useState(
-    initialValues?.branch ?? 'main',
-  );
   const [ownerId, setOwnerId] = useState(initialOwnerId);
 
   useEffect(() => {
@@ -60,8 +54,6 @@ export function ProjectForm({
     const payload: CreateProjectPayload = {
       name: name.trim(),
       description: description.trim() || undefined,
-      gitlabUrl: gitlabUrl.trim() || undefined,
-      branch: branch.trim() || 'main',
     };
 
     if (includeOwnerSelect && ownerId) {
@@ -139,46 +131,6 @@ export function ProjectForm({
           )}
         </div>
 
-        <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--hover)]/70 p-4 border-[var(--border)]">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
-              Git source
-            </p>
-            <p className="mt-1 text-sm text-[var(--text-secondary)] text-[var(--text-secondary)]">
-              Repository endpoint and default branch.
-            </p>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] text-[var(--text-secondary)]">
-              GitLab Repository URL
-            </label>
-            <input
-              type="url"
-              value={gitlabUrl}
-              onChange={(e) => setGitlabUrl(e.target.value)}
-              placeholder="https://gitlab.com/yourname/yourrepo"
-              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20 border-[var(--border)] text-[var(--text-primary)]"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] text-[var(--text-secondary)]">
-              Default Branch
-            </label>
-            <input
-              type="text"
-              value={branch}
-              onChange={(e) => setBranch(e.target.value)}
-              placeholder="main"
-              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 font-mono text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20 border-[var(--border)] text-[var(--text-primary)]"
-            />
-          </div>
-
-          <p className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-2 text-xs text-[var(--text-secondary)] border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]">
-            This repository URL is required. Token and project ID can be added later.
-          </p>
-        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[var(--border)] pt-4 border-[var(--border)]">

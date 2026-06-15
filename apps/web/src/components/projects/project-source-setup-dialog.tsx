@@ -294,6 +294,8 @@ export function ProjectSourceSetupDialog({
       };
 
       let targetProjectId = projectId ?? createdProjectId;
+      let connectedViaImport = false;
+
       if (!targetProjectId) {
         if (!projectDraft?.name?.trim()) {
           setError('Project name is required before source configuration.');
@@ -317,25 +319,24 @@ export function ProjectSourceSetupDialog({
             throw new Error('Import GitLab Group completed without project.');
           }
           setCreatedProjectId(targetProjectId);
+          connectedViaImport = true;
         } else {
+          // M3: a Project is just name + description. The source is attached
+          // separately via the unified connect endpoint below (the backend
+          // CreateProjectDto no longer accepts source fields).
           const created = await projectsService.create({
             name: projectDraft.name.trim(),
             description: projectDraft.description?.trim() || undefined,
-            gitlabUrl: normalizedGitlabUrl,
-            branch: normalizedDefaultBranch,
-            providerId: providerId || undefined,
-            sourceType,
-            gitlabId: sourceIdentifier,
-            // Pass PAT so backend can authenticate GitLab during project creation
-            gitlabToken: gitlabToken.trim() || undefined,
           });
           targetProjectId = created.id;
           setCreatedProjectId(created.id);
         }
-      } else {
-        // Route through the unified, provider-agnostic endpoint. The provider
-        // type comes from the SELECTED provider (GitHub or GitLab). `repoPath`
-        // is the canonical identifier ("group/project" | "owner/repo").
+      }
+
+      if (!connectedViaImport && targetProjectId) {
+        // Unified, provider-agnostic source connection (REPO, new or existing).
+        // The provider type comes from the SELECTED provider; `repoPath` is the
+        // canonical identifier ("group/project" | "owner/repo").
         const selectedProvider = providers.find((p) => p.id === providerId);
         await projectsService.connectSource(targetProjectId, {
           provider: selectedProvider?.type ?? 'GITLAB',
@@ -343,10 +344,6 @@ export function ProjectSourceSetupDialog({
           githubToken: selectedProvider?.type === 'GITHUB' ? (gitlabToken.trim() || undefined) : undefined,
           ...connectPayload,
         });
-        // TODO: Phase 3 — Services are now per-environment.
-        // The group import creates environments/services on the backend.
-        // For existing projects, create an environment first,
-        // then use servicesService.create(projectId, envId, payload).
       }
 
       if (sourceType === 'REPO') {

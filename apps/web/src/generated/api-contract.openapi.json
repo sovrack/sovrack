@@ -449,9 +449,9 @@
         ]
       }
     },
-    "/projects/{id}/build/prepare": {
+    "/projects/{id}/build/generate": {
       "post": {
-        "operationId": "BuildController_prepare",
+        "operationId": "BuildController_generateBuildFiles",
         "parameters": [
           {
             "name": "id",
@@ -532,6 +532,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -608,9 +616,9 @@
         ]
       }
     },
-    "/projects/{id}/build/prepare-all": {
+    "/projects/{id}/build/generate-all": {
       "post": {
-        "operationId": "BuildController_prepareAll",
+        "operationId": "BuildController_generateAll",
         "parameters": [
           {
             "name": "id",
@@ -794,7 +802,7 @@
     },
     "/admin/platform-config/gitlab/providers": {
       "get": {
-        "operationId": "GitProvidersController_listGitlabProviders",
+        "operationId": "SourceProvidersController_listGitlabProviders",
         "parameters": [],
         "responses": {
           "200": {
@@ -812,7 +820,7 @@
         ]
       },
       "post": {
-        "operationId": "GitProvidersController_createGitlabProvider",
+        "operationId": "SourceProvidersController_createGitlabProvider",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -842,7 +850,7 @@
     },
     "/admin/platform-config/gitlab/providers/{id}": {
       "put": {
-        "operationId": "GitProvidersController_updateGitlabProvider",
+        "operationId": "SourceProvidersController_updateGitlabProvider",
         "parameters": [
           {
             "name": "id",
@@ -879,7 +887,7 @@
         ]
       },
       "delete": {
-        "operationId": "GitProvidersController_deleteGitlabProvider",
+        "operationId": "SourceProvidersController_deleteGitlabProvider",
         "parameters": [
           {
             "name": "id",
@@ -908,7 +916,7 @@
     },
     "/admin/platform-config/gitlab/providers/{id}/default": {
       "post": {
-        "operationId": "GitProvidersController_setDefaultGitlabProvider",
+        "operationId": "SourceProvidersController_setDefaultGitlabProvider",
         "parameters": [
           {
             "name": "id",
@@ -937,7 +945,7 @@
     },
     "/admin/platform-config/gitlab/providers/{id}/test": {
       "post": {
-        "operationId": "GitProvidersController_testGitlabProvider",
+        "operationId": "SourceProvidersController_testGitlabProvider",
         "parameters": [
           {
             "name": "id",
@@ -966,7 +974,7 @@
     },
     "/admin/platform-config/gitlab/providers/{id}/oauth/start": {
       "post": {
-        "operationId": "GitProvidersController_startGitlabOAuthForProvider",
+        "operationId": "SourceProvidersController_startGitlabOAuthForProvider",
         "parameters": [
           {
             "name": "id",
@@ -995,7 +1003,7 @@
     },
     "/admin/platform-config/test-gitlab": {
       "post": {
-        "operationId": "GitProvidersController_testGitlab",
+        "operationId": "SourceProvidersController_testGitlab",
         "parameters": [],
         "responses": {
           "201": {
@@ -1015,7 +1023,7 @@
     },
     "/admin/platform-config/gitlab/oauth/start": {
       "post": {
-        "operationId": "GitProvidersController_startGitlabOAuth",
+        "operationId": "SourceProvidersController_startGitlabOAuth",
         "parameters": [],
         "responses": {
           "201": {
@@ -1035,7 +1043,7 @@
     },
     "/admin/platform-config/github/providers": {
       "get": {
-        "operationId": "GitProvidersController_listGithubProviders",
+        "operationId": "SourceProvidersController_listGithubProviders",
         "parameters": [],
         "responses": {
           "200": {
@@ -1053,18 +1061,8 @@
         ]
       },
       "post": {
-        "operationId": "GitProvidersController_createGithubProvider",
+        "operationId": "SourceProvidersController_createGithubProvider",
         "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateGitlabProviderDto"
-              }
-            }
-          }
-        },
         "responses": {
           "201": {
             "description": ""
@@ -1083,7 +1081,7 @@
     },
     "/admin/platform-config/github/providers/{id}": {
       "put": {
-        "operationId": "GitProvidersController_updateGithubProvider",
+        "operationId": "SourceProvidersController_updateGithubProvider",
         "parameters": [
           {
             "name": "id",
@@ -1094,16 +1092,6 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateGitlabProviderDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": ""
@@ -1120,7 +1108,7 @@
         ]
       },
       "delete": {
-        "operationId": "GitProvidersController_deleteGithubProvider",
+        "operationId": "SourceProvidersController_deleteGithubProvider",
         "parameters": [
           {
             "name": "id",
@@ -1149,7 +1137,7 @@
     },
     "/admin/platform-config/github/providers/{id}/default": {
       "post": {
-        "operationId": "GitProvidersController_setDefaultGithubProvider",
+        "operationId": "SourceProvidersController_setDefaultGithubProvider",
         "parameters": [
           {
             "name": "id",
@@ -1178,7 +1166,7 @@
     },
     "/admin/platform-config/github/providers/{id}/test": {
       "post": {
-        "operationId": "GitProvidersController_testGithubProvider",
+        "operationId": "SourceProvidersController_testGithubProvider",
         "parameters": [
           {
             "name": "id",
@@ -1207,7 +1195,7 @@
     },
     "/admin/platform-config/github/providers/{id}/repos": {
       "get": {
-        "operationId": "GitProvidersController_listGithubRepos",
+        "operationId": "SourceProvidersController_listGithubRepos",
         "parameters": [
           {
             "name": "id",
@@ -1231,6 +1219,68 @@
         "summary": "Lister les repos GitHub accessibles via ce provider",
         "tags": [
           "Git Providers (Admin)"
+        ]
+      }
+    },
+    "/source/providers": {
+      "get": {
+        "operationId": "SourceController_listProviders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Liste des providers source"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister tous les providers source (GitHub + GitLab) avec leur type",
+        "tags": [
+          "Source (unified)"
+        ]
+      }
+    },
+    "/projects/{id}/source/connect": {
+      "post": {
+        "operationId": "SourceController_connectSource",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectSourceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Source connectée"
+          },
+          "400": {
+            "description": "Connexion échouée"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connecter une source Git (GitLab ou GitHub) à un projet",
+        "tags": [
+          "Source (unified)"
         ]
       }
     },
@@ -1544,24 +1594,6 @@
         ]
       }
     },
-    "/gitlab/webhook": {
-      "post": {
-        "operationId": "GitlabController_handleWebhook",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": "Webhook traité avec succès"
-          },
-          "403": {
-            "description": "Token webhook invalide"
-          }
-        },
-        "summary": "Recevoir les événements GitLab (webhook)",
-        "tags": [
-          "GitLab"
-        ]
-      }
-    },
     "/projects/{id}/gitlab/config": {
       "get": {
         "operationId": "GitlabController_getGitlabConfig",
@@ -1597,51 +1629,6 @@
         "summary": "Voir la configuration GitLab d’un projet",
         "tags": [
           "GitLab"
-        ]
-      }
-    },
-    "/github/webhook/{providerId}": {
-      "post": {
-        "operationId": "GithubController_handleWebhook",
-        "parameters": [
-          {
-            "name": "providerId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Event processed"
-          },
-          "403": {
-            "description": "Invalid HMAC signature"
-          }
-        },
-        "summary": "Receive GitHub webhook events (provider-aware URL)",
-        "tags": [
-          "GitHub"
-        ]
-      }
-    },
-    "/github/webhook": {
-      "post": {
-        "operationId": "GithubController_handleLegacyWebhook",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Event processed"
-          },
-          "403": {
-            "description": "Invalid HMAC signature"
-          }
-        },
-        "summary": "Receive GitHub webhook events (legacy — repo lookup)",
-        "tags": [
-          "GitHub"
         ]
       }
     },
@@ -1796,145 +1783,6 @@
         "summary": "Mettre à jour une configuration globale",
         "tags": [
           "Platform Config"
-        ]
-      }
-    },
-    "/projects/{id}/webhooks/endpoints": {
-      "get": {
-        "operationId": "WebhooksController_listEndpoints",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{id}/webhooks/events": {
-      "get": {
-        "operationId": "WebhooksController_listEvents",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{id}/webhooks/events/{eventId}": {
-      "get": {
-        "operationId": "WebhooksController_getEvent",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{id}/webhooks/endpoints/{endpointId}/enabled": {
-      "patch": {
-        "operationId": "WebhooksController_setEnabled",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "endpointId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/webhooks/incoming/{webhookToken}": {
-      "post": {
-        "operationId": "IncomingWebhookController_handle",
-        "parameters": [
-          {
-            "name": "webhookToken",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "IncomingWebhook"
         ]
       }
     },
@@ -2300,315 +2148,6 @@
         ]
       }
     },
-    "/projects/{projectId}/webhook/configure": {
-      "post": {
-        "operationId": "ProjectWebhookController_configure",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ProjectWebhook"
-        ]
-      }
-    },
-    "/projects/{projectId}/webhook/status": {
-      "get": {
-        "operationId": "ProjectWebhookController_status",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ProjectWebhook"
-        ]
-      }
-    },
-    "/projects/{projectId}/webhook/pause": {
-      "post": {
-        "operationId": "ProjectWebhookController_pause",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ProjectWebhook"
-        ]
-      }
-    },
-    "/projects/{projectId}/webhook/resume": {
-      "post": {
-        "operationId": "ProjectWebhookController_resume",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ProjectWebhook"
-        ]
-      }
-    },
-    "/projects/{projectId}/services": {
-      "get": {
-        "operationId": "ProjectServicesController_findAll",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Services du projet"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Lister les services d'un projet/application",
-        "tags": [
-          "Project Services"
-        ]
-      },
-      "post": {
-        "operationId": "ProjectServicesController_create",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateProjectServiceDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Service créé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Créer un service deployable dans le projet",
-        "tags": [
-          "Project Services"
-        ]
-      }
-    },
-    "/projects/{projectId}/services/{serviceId}": {
-      "put": {
-        "operationId": "ProjectServicesController_update",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProjectServiceDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Service mis à jour"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Mettre à jour un service deployable",
-        "tags": [
-          "Project Services"
-        ]
-      },
-      "delete": {
-        "operationId": "ProjectServicesController_remove",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Service supprimé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Supprimer un service deployable",
-        "tags": [
-          "Project Services"
-        ]
-      }
-    },
-    "/projects/{projectId}/services/{serviceId}/pipelines": {
-      "get": {
-        "operationId": "ProjectServicesController_getPipelinesForService",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Pipelines du service"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Pipelines GitLab pour un service spécifique",
-        "tags": [
-          "Project Services"
-        ]
-      }
-    },
     "/projects/{id}/environments": {
       "post": {
         "operationId": "EnvironmentsController_create",
@@ -2635,18 +2174,6 @@
         "responses": {
           "201": {
             "description": "Environnement créé avec succès"
-          },
-          "400": {
-            "description": "Serveur non vérifié"
-          },
-          "401": {
-            "description": "Token JWT invalide ou expiré"
-          },
-          "403": {
-            "description": "Action non autorisée"
-          },
-          "404": {
-            "description": "Projet ou serveur non trouvé"
           }
         },
         "security": [
@@ -2673,16 +2200,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Liste des environnements"
-          },
-          "401": {
-            "description": "Token JWT invalide ou expiré"
-          },
-          "403": {
-            "description": "Accès non autorisé"
-          },
-          "404": {
-            "description": "Projet non trouvé"
+            "description": ""
           }
         },
         "security": [
@@ -2719,16 +2237,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Détail environnement"
-          },
-          "401": {
-            "description": "Token JWT invalide ou expiré"
-          },
-          "403": {
-            "description": "Accès non autorisé"
-          },
-          "404": {
-            "description": "Projet ou environnement non trouvé"
+            "description": ""
           }
         },
         "security": [
@@ -2773,19 +2282,7 @@
         },
         "responses": {
           "200": {
-            "description": "Environnement mis à jour"
-          },
-          "400": {
-            "description": "Serveur non vérifié"
-          },
-          "401": {
-            "description": "Token JWT invalide ou expiré"
-          },
-          "403": {
-            "description": "Action non autorisée"
-          },
-          "404": {
-            "description": "Projet, environnement ou serveur non trouvé"
+            "description": ""
           }
         },
         "security": [
@@ -2820,16 +2317,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Environnement supprimé"
-          },
-          "401": {
-            "description": "Token JWT invalide ou expiré"
-          },
-          "403": {
-            "description": "Action non autorisée"
-          },
-          "404": {
-            "description": "Projet ou environnement non trouvé"
+            "description": ""
           }
         },
         "security": [
@@ -2843,9 +2331,9 @@
         ]
       }
     },
-    "/projects/{id}/environments/{envId}/targets": {
-      "get": {
-        "operationId": "EnvironmentsController_findServiceTargets",
+    "/projects/{id}/environments/{envId}/servers/{serverId}": {
+      "post": {
+        "operationId": "EnvironmentsController_assignServer",
         "parameters": [
           {
             "name": "id",
@@ -2862,11 +2350,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "serverId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "Cibles service/VPS"
+          "201": {
+            "description": ""
           }
         },
         "security": [
@@ -2874,13 +2370,13 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les cibles VPS par service pour l'environnement",
+        "summary": "Assigner un serveur à un environnement",
         "tags": [
           "Environments"
         ]
       },
-      "put": {
-        "operationId": "EnvironmentsController_upsertServiceTargets",
+      "delete": {
+        "operationId": "EnvironmentsController_removeServer",
         "parameters": [
           {
             "name": "id",
@@ -2897,21 +2393,19 @@
             "schema": {
               "type": "string"
             }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertEnvironmentServiceTargetsDto"
-              }
+          },
+          {
+            "name": "serverId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
-            "description": "Cibles service/VPS mises à jour"
+            "description": ""
           }
         },
         "security": [
@@ -2919,18 +2413,100 @@
             "bearer": []
           }
         ],
-        "summary": "Configurer les cibles VPS par service pour l'environnement",
+        "summary": "Retirer un serveur d'un environnement",
         "tags": [
           "Environments"
         ]
       }
     },
-    "/servers/{id}/preparations": {
+    "/projects/{id}/environments/{envId}/services/{serviceId}": {
       "post": {
-        "operationId": "ServerPreparationController_startPreparation",
+        "operationId": "EnvironmentsController_linkService",
         "parameters": [
           {
             "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "envId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lier un service à un environnement",
+        "tags": [
+          "Environments"
+        ]
+      }
+    },
+    "/projects/{id}/environments/{envId}/services": {
+      "get": {
+        "operationId": "EnvironmentsController_listLinkedServices",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "envId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les services liés à un environnement",
+        "tags": [
+          "Environments"
+        ]
+      }
+    },
+    "/projects/{projectId}/service-environments": {
+      "post": {
+        "operationId": "ServiceEnvironmentsController_link",
+        "parameters": [
+          {
+            "name": "projectId",
             "required": true,
             "in": "path",
             "schema": {
@@ -2943,21 +2519,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/StartServerPreparationDto"
+                "$ref": "#/components/schemas/CreateServiceEnvironmentDto"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServerPreparationDto"
-                }
-              }
-            }
+            "description": "Lien créé"
+          },
+          "409": {
+            "description": "Lien déjà existant"
           }
         },
         "security": [
@@ -2965,13 +2537,182 @@
             "bearer": []
           }
         ],
-        "summary": "Démarrer une préparation serveur",
+        "summary": "Lier un service à un environnement",
         "tags": [
-          "Servers Preparation"
+          "ServiceEnvironments"
         ]
       },
       "get": {
-        "operationId": "ServerPreparationController_listPreparations",
+        "operationId": "ServiceEnvironmentsController_findAll",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister tous les liens du projet (par service ou environment)",
+        "tags": [
+          "ServiceEnvironments"
+        ]
+      }
+    },
+    "/projects/{projectId}/service-environments/{id}": {
+      "get": {
+        "operationId": "ServiceEnvironmentsController_findOne",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Détail d'un lien service-environnement",
+        "tags": [
+          "ServiceEnvironments"
+        ]
+      },
+      "put": {
+        "operationId": "ServiceEnvironmentsController_update",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceEnvironmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mettre à jour les overrides du lien",
+        "tags": [
+          "ServiceEnvironments"
+        ]
+      },
+      "delete": {
+        "operationId": "ServiceEnvironmentsController_unlink",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer un lien service-environnement",
+        "tags": [
+          "ServiceEnvironments"
+        ]
+      }
+    },
+    "/webhooks/incoming/{webhookToken}": {
+      "post": {
+        "operationId": "IncomingWebhookController_handle",
+        "parameters": [
+          {
+            "name": "webhookToken",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "IncomingWebhook"
+        ]
+      }
+    },
+    "/projects/{id}/webhooks/endpoints": {
+      "get": {
+        "operationId": "WebhookAuditController_listEndpoints",
         "parameters": [
           {
             "name": "id",
@@ -2984,105 +2725,17 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ServerPreparationDto"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Lister l'historique de préparation du serveur",
         "tags": [
-          "Servers Preparation"
+          "WebhookAudit"
         ]
       }
     },
-    "/servers/{id}/preparation-readiness": {
+    "/projects/{id}/webhooks/events": {
       "get": {
-        "operationId": "ServerPreparationController_getPreparationReadiness",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServerPreparationReadinessDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Vérifier si le serveur est prêt à lancer une préparation (SSH/sudo/état/verrou).",
-        "tags": [
-          "Servers Preparation"
-        ]
-      }
-    },
-    "/preparations/{id}": {
-      "get": {
-        "operationId": "ServerPreparationsController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServerPreparationDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Voir le détail d'une préparation serveur",
-        "tags": [
-          "Server Preparations"
-        ]
-      }
-    },
-    "/preparations/{id}/logs": {
-      "get": {
-        "operationId": "ServerPreparationsController_logs",
+        "operationId": "WebhookAuditController_listEvents",
         "parameters": [
           {
             "name": "id",
@@ -3093,7 +2746,15 @@
             }
           },
           {
-            "name": "afterLine",
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
             "required": true,
             "in": "query",
             "schema": {
@@ -3103,82 +2764,20 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ServerPreparationLogDto"
-                  }
-                }
-              }
-            }
+            "description": ""
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Lire les logs persistés d'une préparation",
         "tags": [
-          "Server Preparations"
+          "WebhookAudit"
         ]
       }
     },
-    "/preparations/{id}/retry": {
-      "post": {
-        "operationId": "ServerPreparationsController_retry",
+    "/projects/{id}/webhooks/events/{eventId}": {
+      "get": {
+        "operationId": "WebhookAuditController_getEvent",
         "parameters": [
           {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RetryServerPreparationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServerPreparationDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Relancer une préparation en créant un nouveau job lié",
-        "tags": [
-          "Server Preparations"
-        ]
-      }
-    },
-    "/preparations/{id}/cancel": {
-      "post": {
-        "operationId": "ServerPreparationsController_cancel",
-        "parameters": [
-          {
-            "name": "id",
+            "name": "eventId",
             "required": true,
             "in": "path",
             "schema": {
@@ -3188,30 +2787,195 @@
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServerPreparationDto"
-                }
-              }
-            }
+            "description": ""
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Annuler une préparation si elle est encore active",
         "tags": [
-          "Server Preparations"
+          "WebhookAudit"
         ]
       }
     },
-    "/server-preparation-options": {
+    "/projects/{id}/webhooks/events/{eventId}/replay": {
+      "post": {
+        "operationId": "WebhookAuditController_replayEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "WebhookAudit"
+        ]
+      }
+    },
+    "/projects/{id}/webhooks/endpoints/{endpointId}/enabled": {
+      "patch": {
+        "operationId": "WebhookAuditController_setEnabled",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpointId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "WebhookAudit"
+        ]
+      }
+    },
+    "/projects/{projectId}/webhook/configure": {
+      "post": {
+        "operationId": "WebhookManagementController_configure",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "WebhookManagement"
+        ]
+      }
+    },
+    "/projects/{projectId}/webhook/status": {
       "get": {
-        "operationId": "ServerPreparationOptionsController_options",
+        "operationId": "WebhookManagementController_status",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "WebhookManagement"
+        ]
+      }
+    },
+    "/projects/{projectId}/webhook/pause": {
+      "post": {
+        "operationId": "WebhookManagementController_pause",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "WebhookManagement"
+        ]
+      }
+    },
+    "/projects/{projectId}/webhook/resume": {
+      "post": {
+        "operationId": "WebhookManagementController_resume",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "WebhookManagement"
+        ]
+      }
+    },
+    "/notifications/settings": {
+      "get": {
+        "operationId": "NotificationsController_getSettings",
         "parameters": [],
         "responses": {
           "200": {
@@ -3223,9 +2987,37 @@
             "bearer": []
           }
         ],
-        "summary": "Lister les options et profils de préparation",
+        "summary": "Récupérer les paramètres de notification",
         "tags": [
-          "Server Preparation Options"
+          "Notifications"
+        ]
+      },
+      "put": {
+        "operationId": "NotificationsController_saveSettings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sauvegarder les paramètres de notification",
+        "tags": [
+          "Notifications"
         ]
       }
     },
@@ -3926,51 +3718,42 @@
         ]
       }
     },
-    "/notifications/settings": {
+    "/servers/{id}/audit-events": {
       "get": {
-        "operationId": "NotificationsController_getSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
+        "operationId": "ServerAuditController_getAuditEvents",
+        "parameters": [
           {
-            "bearer": []
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
-        "summary": "Récupérer les paramètres de notification",
-        "tags": [
-          "Notifications"
-        ]
-      },
-      "put": {
-        "operationId": "NotificationsController_saveSettings",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateNotificationSettingsDto"
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerAuditEventDto"
+                  }
+                }
               }
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
         "security": [
           {
             "bearer": []
           }
         ],
-        "summary": "Sauvegarder les paramètres de notification",
+        "summary": "Lister l'audit des actions serveur sensibles",
         "tags": [
-          "Notifications"
+          "Servers Audit"
         ]
       }
     },
@@ -4267,9 +4050,53 @@
         ]
       }
     },
-    "/servers/{id}/audit-events": {
+    "/servers/{id}/preparations": {
+      "post": {
+        "operationId": "ServerPreparationController_startPreparation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartServerPreparationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Démarrer une préparation serveur",
+        "tags": [
+          "Servers Preparation"
+        ]
+      },
       "get": {
-        "operationId": "ServerAuditController_getAuditEvents",
+        "operationId": "ServerPreparationController_listPreparations",
         "parameters": [
           {
             "name": "id",
@@ -4288,7 +4115,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ServerAuditEventDto"
+                    "$ref": "#/components/schemas/ServerPreparationDto"
                   }
                 }
               }
@@ -4300,15 +4127,134 @@
             "bearer": []
           }
         ],
-        "summary": "Lister l'audit des actions serveur sensibles",
+        "summary": "Lister l'historique de préparation du serveur",
         "tags": [
-          "Servers Audit"
+          "Servers Preparation"
         ]
       }
     },
-    "/projects/{id}/configs": {
+    "/servers/{id}/preparation-readiness": {
+      "get": {
+        "operationId": "ServerPreparationController_getPreparationReadiness",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationReadinessDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vérifier si le serveur est prêt à lancer une préparation (SSH/sudo/état/verrou).",
+        "tags": [
+          "Servers Preparation"
+        ]
+      }
+    },
+    "/preparations/{id}": {
+      "get": {
+        "operationId": "ServerPreparationsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Voir le détail d'une préparation serveur",
+        "tags": [
+          "Server Preparations"
+        ]
+      }
+    },
+    "/preparations/{id}/logs": {
+      "get": {
+        "operationId": "ServerPreparationsController_logs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "afterLine",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerPreparationLogDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lire les logs persistés d'une préparation",
+        "tags": [
+          "Server Preparations"
+        ]
+      }
+    },
+    "/preparations/{id}/retry": {
       "post": {
-        "operationId": "ConfigsController_create",
+        "operationId": "ServerPreparationsController_retry",
         "parameters": [
           {
             "name": "id",
@@ -4324,175 +4270,37 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateConfigDto"
+                "$ref": "#/components/schemas/RetryServerPreparationDto"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Configuration créée"
-          },
-          "401": {
-            "description": "Token JWT invalide ou expiré"
-          },
-          "403": {
-            "description": "Action non autorisée"
-          },
-          "404": {
-            "description": "Projet non trouvé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Créer une configuration projet",
-        "tags": [
-          "Configs"
-        ]
-      },
-      "get": {
-        "operationId": "ConfigsController_findAll",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Liste des configurations"
-          },
-          "401": {
-            "description": "Token JWT invalide ou expiré"
-          },
-          "403": {
-            "description": "Accès non autorisé"
-          },
-          "404": {
-            "description": "Projet non trouvé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Lister les configurations projet (secrets masqués)",
-        "tags": [
-          "Configs"
-        ]
-      }
-    },
-    "/projects/{id}/configs/{configId}": {
-      "put": {
-        "operationId": "ConfigsController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "configId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateConfigDto"
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
               }
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": "Configuration mise à jour"
-          },
-          "401": {
-            "description": "Token JWT invalide ou expiré"
-          },
-          "403": {
-            "description": "Action non autorisée"
-          },
-          "404": {
-            "description": "Projet ou configuration non trouvé"
-          }
-        },
         "security": [
           {
             "bearer": []
           }
         ],
-        "summary": "Mettre à jour une configuration projet",
+        "summary": "Relancer une préparation en créant un nouveau job lié",
         "tags": [
-          "Configs"
-        ]
-      },
-      "delete": {
-        "operationId": "ConfigsController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "configId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Configuration supprimée"
-          },
-          "401": {
-            "description": "Token JWT invalide ou expiré"
-          },
-          "403": {
-            "description": "Action non autorisée"
-          },
-          "404": {
-            "description": "Projet ou configuration non trouvé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Supprimer une configuration projet",
-        "tags": [
-          "Configs"
+          "Server Preparations"
         ]
       }
     },
-    "/projects/{id}/environments/{envId}/configs": {
-      "put": {
-        "operationId": "EnvConfigsController_upsert",
+    "/preparations/{id}/cancel": {
+      "post": {
+        "operationId": "ServerPreparationsController_cancel",
         "parameters": [
           {
             "name": "id",
@@ -4501,127 +4309,38 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "envId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertEnvConfigDto"
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPreparationDto"
+                }
               }
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": "Config upsertée"
-          },
-          "403": {
-            "description": "Action non autorisée"
-          },
-          "404": {
-            "description": "Environnement ou projet introuvable"
-          }
-        },
         "security": [
           {
             "bearer": []
           }
         ],
-        "summary": "Créer ou mettre à jour une config par environnement",
+        "summary": "Annuler une préparation si elle est encore active",
         "tags": [
-          "Env Configs"
-        ]
-      },
-      "get": {
-        "operationId": "EnvConfigsController_findAll",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "envId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Liste des configs"
-          },
-          "403": {
-            "description": "Accès non autorisé"
-          },
-          "404": {
-            "description": "Environnement ou projet introuvable"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Lister les configs d'un environnement (secrets masqués)",
-        "tags": [
-          "Env Configs"
+          "Server Preparations"
         ]
       }
     },
-    "/projects/{id}/environments/{envId}/configs/{key}": {
-      "delete": {
-        "operationId": "EnvConfigsController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "envId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+    "/server-preparation-options": {
+      "get": {
+        "operationId": "ServerPreparationOptionsController_options",
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Config supprimée"
-          },
-          "403": {
-            "description": "Action non autorisée"
-          },
-          "404": {
-            "description": "Environnement ou projet introuvable"
+            "description": ""
           }
         },
         "security": [
@@ -4629,9 +4348,9 @@
             "bearer": []
           }
         ],
-        "summary": "Supprimer une config par environnement",
+        "summary": "Lister les options et profils de préparation",
         "tags": [
-          "Env Configs"
+          "Server Preparation Options"
         ]
       }
     },
@@ -4824,6 +4543,41 @@
           }
         ],
         "summary": "Lister l'historique d'un projet",
+        "tags": [
+          "Deployments"
+        ]
+      }
+    },
+    "/deployments/preview-env": {
+      "get": {
+        "operationId": "DeploymentsController_previewEnv",
+        "parameters": [
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Variables résolues (origine + isSecret) et warnings de résolution"
+          },
+          "401": {
+            "description": "Token JWT invalide ou expiré"
+          },
+          "404": {
+            "description": "Lien service-environnement non trouvé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Prévisualiser les variables qui seront injectées (secrets masqués)",
         "tags": [
           "Deployments"
         ]
@@ -5030,6 +4784,35 @@
           }
         ],
         "summary": "Récupérer les logs du conteneur Docker du déploiement",
+        "tags": [
+          "Deployments"
+        ]
+      }
+    },
+    "/deployments/{id}/logs/search": {
+      "get": {
+        "operationId": "DeploymentsController_searchLogs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lignes correspondantes (max 200) + total"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rechercher dans les logs du déploiement (texte + niveau)",
         "tags": [
           "Deployments"
         ]
@@ -6540,15 +6323,7 @@
             }
           },
           {
-            "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "environmentId",
+            "name": "serviceEnvId",
             "required": true,
             "in": "query",
             "schema": {
@@ -6692,30 +6467,14 @@
         ]
       }
     },
-    "/managed-services": {
+    "/projects/{projectId}/services": {
       "get": {
-        "operationId": "ManagedServicesController_findAll",
+        "operationId": "ServicesController_findAll",
         "parameters": [
           {
             "name": "projectId",
             "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "environmentId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serverId",
-            "required": true,
-            "in": "query",
+            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -6723,23 +6482,76 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Liste des services"
           }
         },
-        "summary": "List managed services",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les services d'un projet",
         "tags": [
-          "managed-services"
+          "Services"
         ]
       },
       "post": {
-        "operationId": "ManagedServicesController_create",
-        "parameters": [],
+        "operationId": "ServicesController_create",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateManagedServiceDto"
+                "$ref": "#/components/schemas/CreateServiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Service créé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer un service dans un projet",
+        "tags": [
+          "Services"
+        ]
+      }
+    },
+    "/projects/{projectId}/services/discover-group": {
+      "post": {
+        "operationId": "ServicesController_discoverGroup",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscoverGroupDto"
               }
             }
           }
@@ -6749,18 +6561,31 @@
             "description": ""
           }
         },
-        "summary": "Provision a managed service",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Découvrir les repos d'un groupe/org pour créer des services",
         "tags": [
-          "managed-services"
+          "Services"
         ]
       }
     },
-    "/managed-services/{id}": {
+    "/projects/{projectId}/services/{serviceId}": {
       "get": {
-        "operationId": "ManagedServicesController_findOne",
+        "operationId": "ServicesController_findOne",
         "parameters": [
           {
-            "name": "id",
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
             "required": true,
             "in": "path",
             "schema": {
@@ -6773,16 +6598,74 @@
             "description": ""
           }
         },
-        "summary": "Get a managed service",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Détail d'un service",
         "tags": [
-          "managed-services"
+          "Services"
+        ]
+      },
+      "put": {
+        "operationId": "ServicesController_update",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mettre à jour un service",
+        "tags": [
+          "Services"
         ]
       },
       "delete": {
-        "operationId": "ManagedServicesController_remove",
+        "operationId": "ServicesController_remove",
         "parameters": [
           {
-            "name": "id",
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
             "required": true,
             "in": "path",
             "schema": {
@@ -6795,9 +6678,14 @@
             "description": ""
           }
         },
-        "summary": "Remove a managed service",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer un service",
         "tags": [
-          "managed-services"
+          "Services"
         ]
       }
     },
@@ -6815,14 +6703,6 @@
           },
           {
             "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "managedServiceId",
             "required": true,
             "in": "query",
             "schema": {
@@ -6992,89 +6872,6 @@
           "Ssl"
         ]
       }
-    },
-    "/managed-databases": {
-      "post": {
-        "operationId": "ManagedDatabasesController_provision",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ManagedDatabases"
-        ]
-      }
-    },
-    "/managed-databases/{containerName}": {
-      "delete": {
-        "operationId": "ManagedDatabasesController_stop",
-        "parameters": [
-          {
-            "name": "containerName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ManagedDatabases"
-        ]
-      }
-    },
-    "/managed-databases/{containerName}/backup": {
-      "post": {
-        "operationId": "ManagedDatabasesController_createBackup",
-        "parameters": [
-          {
-            "name": "containerName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ManagedDatabases"
-        ]
-      }
-    },
-    "/managed-databases/{containerName}/backups": {
-      "get": {
-        "operationId": "ManagedDatabasesController_listBackups",
-        "parameters": [
-          {
-            "name": "containerName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "ManagedDatabases"
-        ]
-      }
     }
   },
   "info": {
@@ -7194,56 +6991,75 @@
         "type": "object",
         "properties": {}
       },
+      "ConnectSourceDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "GITLAB",
+              "GITHUB"
+            ],
+            "example": "GITLAB",
+            "description": "Type de provider Git (GITLAB ou GITHUB)"
+          },
+          "repoPath": {
+            "type": "string",
+            "example": "group/project",
+            "description": "Chemin du dépôt \"owner/repo\" (provider-agnostic)"
+          },
+          "groupPath": {
+            "type": "string",
+            "example": "my-group",
+            "description": "Path du groupe/org pour découvrir tous les repos"
+          },
+          "defaultBranch": {
+            "type": "string",
+            "example": "main"
+          },
+          "providerId": {
+            "type": "string",
+            "description": "Provider ID (Platform Config) pour réutiliser un token existant"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token d'accès (PAT ou token provider)"
+          }
+        },
+        "required": [
+          "provider"
+        ]
+      },
       "ConnectGitlabDto": {
         "type": "object",
         "properties": {
-          "gitlabUrl": {
-            "type": "string",
-            "example": "https://gitlab.example.com"
-          },
           "gitlabToken": {
             "type": "string",
             "example": "glpat-xxxxxxxxxxxxxxxxxxxx"
           },
+          "gitlabUrl": {
+            "type": "string",
+            "example": "https://gitlab.com"
+          },
           "providerId": {
             "type": "string",
             "example": "b5073d11-f378-4c71-87da-093f3ecf20af",
-            "description": "Provider GitLab global (Platform Config). Si fourni, URL/token peuvent être omis."
+            "description": "Provider config ID. Si fourni, URL/token peuvent être omis."
           },
-          "gitlabId": {
+          "repoPath": {
             "type": "string",
             "example": "group/project",
-            "description": "Repository path \"group/project\" (recommended, provider-agnostic) or numeric ID."
+            "description": "Repository path \"group/project\" (provider-agnostic)."
+          },
+          "groupPath": {
+            "type": "string",
+            "example": "my-group",
+            "description": "Group/org path pour découvrir tous les repos du groupe."
           },
           "defaultBranch": {
             "type": "string",
             "example": "main",
             "default": "main"
-          },
-          "sourceType": {
-            "type": "string",
-            "enum": [
-              "REPO",
-              "GROUP"
-            ],
-            "default": "REPO"
-          },
-          "gitlabGroupId": {
-            "type": "string",
-            "example": "my-group/subgroup",
-            "description": "Group ID numerique ou chemin GitLab"
-          },
-          "deployTokenUsername": {
-            "type": "string",
-            "example": "gitlab+deploy-token-12"
-          },
-          "deployTokenValue": {
-            "type": "string",
-            "example": "glrt-xxxxxxxxxxxxxxxxxxxx"
-          },
-          "registryUrl": {
-            "type": "string",
-            "example": "registry.gitlab.example.com"
           }
         }
       },
@@ -7265,54 +7081,6 @@
           "description": {
             "type": "string",
             "example": "Application e-commerce interne"
-          },
-          "gitlabUrl": {
-            "type": "string",
-            "example": "https://gitlab.com/test/ecommerce"
-          },
-          "providerId": {
-            "type": "string",
-            "example": "b5073d11-f378-4c71-87da-093f3ecf20af",
-            "description": "Provider GitLab global. Si fourni, gitlabToken peut être omis."
-          },
-          "gitlabToken": {
-            "type": "string",
-            "example": "glpat-xxxxxxxxxxxxxxxxxxxx"
-          },
-          "gitlabId": {
-            "type": "string",
-            "example": "group/project",
-            "description": "Repository path \"group/project\" (recommended, provider-agnostic) or numeric ID."
-          },
-          "gitlabGroupId": {
-            "type": "string",
-            "example": "platform/apps",
-            "description": "Group ID numerique ou chemin GitLab"
-          },
-          "sourceType": {
-            "type": "string",
-            "enum": [
-              "REPO",
-              "GROUP"
-            ],
-            "default": "REPO"
-          },
-          "deployTokenUsername": {
-            "type": "string",
-            "example": "gitlab+deploy-token-12"
-          },
-          "deployTokenValue": {
-            "type": "string",
-            "example": "glrt-xxxxxxxxxxxxxxxxxxxx"
-          },
-          "registryUrl": {
-            "type": "string",
-            "example": "registry.gitlab.example.com"
-          },
-          "branch": {
-            "type": "string",
-            "example": "main",
-            "default": "main"
           },
           "ownerId": {
             "type": "string",
@@ -7350,13 +7118,9 @@
           "serviceType": {
             "type": "string",
             "enum": [
-              "FRONTEND",
-              "BACKEND",
-              "WORKER",
+              "APPLICATION",
               "DATABASE",
-              "STATIC",
-              "API",
-              "OTHER"
+              "MANAGED"
             ]
           }
         },
@@ -7431,14 +7195,6 @@
           "description": {
             "type": "string",
             "example": "Description mise à jour"
-          },
-          "gitlabUrl": {
-            "type": "string",
-            "example": "https://gitlab.com/test/ecommerce"
-          },
-          "branch": {
-            "type": "string",
-            "example": "develop"
           }
         }
       },
@@ -7464,157 +7220,6 @@
           }
         }
       },
-      "CreateProjectServiceDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "frontend"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "FRONTEND",
-              "BACKEND",
-              "WORKER",
-              "DATABASE",
-              "STATIC",
-              "API",
-              "OTHER"
-            ],
-            "example": "FRONTEND"
-          },
-          "sourceProviderId": {
-            "type": "string",
-            "example": "git-provider-uuid"
-          },
-          "gitlabProjectId": {
-            "type": "number",
-            "example": 123456
-          },
-          "repositoryPath": {
-            "type": "string",
-            "example": "company/my-app/frontend"
-          },
-          "defaultBranch": {
-            "type": "string",
-            "example": "main"
-          },
-          "buildPack": {
-            "type": "string",
-            "enum": [
-              "NIXPACKS",
-              "BUILDPACK",
-              "DOCKERFILE",
-              "DOCKER_COMPOSE",
-              "STATIC",
-              "NONE"
-            ],
-            "example": "DOCKERFILE"
-          },
-          "dockerfilePath": {
-            "type": "string",
-            "example": "Dockerfile"
-          },
-          "composeServiceName": {
-            "type": "string",
-            "example": "api"
-          },
-          "dockerComposeContent": {
-            "type": "string",
-            "example": "version: \"3.8\"\nservices:\n..."
-          },
-          "nixpacksConfig": {
-            "type": "object",
-            "example": {
-              "installCommand": "npm install"
-            }
-          },
-          "staticConfig": {
-            "type": "object",
-            "example": {
-              "outputFolder": "dist"
-            }
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "UpdateProjectServiceDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "frontend"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "FRONTEND",
-              "BACKEND",
-              "WORKER",
-              "DATABASE",
-              "STATIC",
-              "API",
-              "OTHER"
-            ],
-            "example": "FRONTEND"
-          },
-          "sourceProviderId": {
-            "type": "string",
-            "example": "git-provider-uuid"
-          },
-          "gitlabProjectId": {
-            "type": "number",
-            "example": 123456
-          },
-          "repositoryPath": {
-            "type": "string",
-            "example": "company/my-app/frontend"
-          },
-          "defaultBranch": {
-            "type": "string",
-            "example": "main"
-          },
-          "buildPack": {
-            "type": "string",
-            "enum": [
-              "NIXPACKS",
-              "BUILDPACK",
-              "DOCKERFILE",
-              "DOCKER_COMPOSE",
-              "STATIC",
-              "NONE"
-            ],
-            "example": "DOCKERFILE"
-          },
-          "dockerfilePath": {
-            "type": "string",
-            "example": "Dockerfile"
-          },
-          "composeServiceName": {
-            "type": "string",
-            "example": "api"
-          },
-          "dockerComposeContent": {
-            "type": "string",
-            "example": "version: \"3.8\"\nservices:\n..."
-          },
-          "nixpacksConfig": {
-            "type": "object",
-            "example": {
-              "installCommand": "npm install"
-            }
-          },
-          "staticConfig": {
-            "type": "object",
-            "example": {
-              "outputFolder": "dist"
-            }
-          }
-        }
-      },
       "CreateEnvironmentDto": {
         "type": "object",
         "properties": {
@@ -7622,18 +7227,13 @@
             "type": "string",
             "example": "staging"
           },
-          "serverId": {
+          "env": {
             "type": "string",
-            "example": "server-uuid"
-          },
-          "domain": {
-            "type": "string",
-            "example": "staging.example.com"
+            "example": "{\"NODE_ENV\":\"staging\",\"PORT\":3001}"
           }
         },
         "required": [
-          "name",
-          "serverId"
+          "name"
         ]
       },
       "UpdateEnvironmentDto": {
@@ -7643,447 +7243,117 @@
             "type": "string",
             "example": "production"
           },
-          "serverId": {
+          "env": {
             "type": "string",
-            "example": "server-uuid"
-          },
-          "domain": {
-            "type": "string",
-            "example": "app.example.com"
-          },
-          "isActive": {
-            "type": "boolean",
-            "example": true
-          },
-          "autoDeploy": {
-            "type": "boolean",
-            "example": true
-          },
-          "autoDeployBranch": {
-            "type": "string",
-            "example": "main"
+            "example": "{\"NODE_ENV\":\"production\"}"
           }
         }
       },
-      "UpsertEnvironmentServiceTargetItemDto": {
+      "CreateServiceEnvironmentDto": {
         "type": "object",
         "properties": {
           "serviceId": {
             "type": "string",
             "example": "service-uuid"
           },
-          "serverId": {
+          "environmentId": {
             "type": "string",
-            "example": "server-uuid"
+            "example": "environment-uuid"
           },
-          "deploymentMode": {
+          "branch": {
             "type": "string",
-            "enum": [
-              "DOCKER",
-              "DOCKER_COMPOSE"
-            ],
-            "example": "DOCKER_COMPOSE"
+            "example": "develop"
           },
           "port": {
             "type": "number",
-            "example": 3000
+            "example": 4000
           },
-          "domain": {
+          "startCommand": {
             "type": "string",
-            "example": "api-staging.example.com"
+            "example": "npm run start:staging"
+          },
+          "replicas": {
+            "type": "number",
+            "example": 2
           },
           "healthcheckPath": {
             "type": "string",
             "example": "/health"
           },
-          "replicas": {
-            "type": "number",
-            "example": 1
+          "buildPack": {
+            "type": "string",
+            "enum": [
+              "NIXPACKS",
+              "BUILDPACK",
+              "DOCKERFILE",
+              "DOCKER_COMPOSE",
+              "STATIC",
+              "NONE"
+            ],
+            "example": "DOCKERFILE"
+          },
+          "env": {
+            "type": "string",
+            "example": "{\"NODE_ENV\":\"staging\"}"
           }
         },
         "required": [
           "serviceId",
-          "serverId"
+          "environmentId"
         ]
       },
-      "UpsertEnvironmentServiceTargetsDto": {
+      "UpdateServiceEnvironmentDto": {
         "type": "object",
         "properties": {
-          "targets": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UpsertEnvironmentServiceTargetItemDto"
-            }
-          }
-        },
-        "required": [
-          "targets"
-        ]
-      },
-      "StartServerPreparationDto": {
-        "type": "object",
-        "properties": {
-          "profile": {
+          "serviceId": {
+            "type": "string",
+            "example": "service-uuid"
+          },
+          "environmentId": {
+            "type": "string",
+            "example": "environment-uuid"
+          },
+          "branch": {
+            "type": "string",
+            "example": "develop"
+          },
+          "port": {
+            "type": "number",
+            "example": 4000
+          },
+          "startCommand": {
+            "type": "string",
+            "example": "npm run start:staging"
+          },
+          "replicas": {
+            "type": "number",
+            "example": 2
+          },
+          "healthcheckPath": {
+            "type": "string",
+            "example": "/health"
+          },
+          "buildPack": {
             "type": "string",
             "enum": [
-              "BASIC",
-              "WEB",
-              "DATABASE",
-              "RUNNER",
-              "FULL",
-              "CUSTOM"
+              "NIXPACKS",
+              "BUILDPACK",
+              "DOCKERFILE",
+              "DOCKER_COMPOSE",
+              "STATIC",
+              "NONE"
             ],
-            "default": "BASIC",
-            "description": "Reusable preparation profile. Explicit options override profile defaults."
+            "example": "DOCKERFILE"
           },
-          "systemUpdate": {
-            "type": "boolean",
-            "example": true
-          },
-          "docker": {
-            "type": "boolean",
-            "example": true
-          },
-          "dockerComposePlugin": {
-            "type": "boolean",
-            "example": true
-          },
-          "nginx": {
-            "type": "boolean",
-            "example": true
-          },
-          "nixpacks": {
-            "type": "boolean",
-            "example": false
-          },
-          "nodejs": {
-            "type": "boolean",
-            "example": false
-          },
-          "postgres": {
-            "type": "boolean",
-            "example": false
-          },
-          "postgresql": {
-            "type": "boolean",
-            "example": false,
-            "deprecated": true
-          },
-          "redis": {
-            "type": "boolean",
-            "example": false
-          },
-          "gitlabRunner": {
-            "type": "boolean",
-            "example": false
-          },
-          "firewall": {
-            "type": "boolean",
-            "example": true
-          },
-          "fail2ban": {
-            "type": "boolean",
-            "example": true
-          },
-          "certbot": {
-            "type": "boolean",
-            "example": false
-          },
-          "ssl": {
-            "type": "boolean",
-            "example": false,
-            "deprecated": true
-          },
-          "swap": {
-            "type": "boolean",
-            "example": true
-          },
-          "monitoring": {
-            "type": "boolean",
-            "example": false
-          },
-          "backup": {
-            "type": "boolean",
-            "example": false
-          },
-          "logrotate": {
-            "type": "boolean",
-            "example": true
-          },
-          "securityHardening": {
-            "type": "boolean",
-            "example": true
-          },
-          "autoUpdates": {
-            "type": "boolean",
-            "example": true
-          },
-          "gitlabRunnerExecutor": {
+          "env": {
             "type": "string",
-            "example": "docker",
-            "description": "Executor mode for GitLab Runner. docker implies Docker dependency."
-          },
-          "reinstallOptions": {
-            "example": [
-              "docker",
-              "nginx"
-            ],
-            "description": "Option keys that should be forced-reinstalled even if the tool is already detected as installed. By default, roles for already-installed tools still run (idempotent), but this flag signals explicit user intent to reinstall/reconfigure.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+            "example": "{\"NODE_ENV\":\"staging\"}"
           }
         }
       },
-      "ServerPreparationTaskDto": {
+      "UpdateNotificationSettingsDto": {
         "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "preparationId": {
-            "type": "string"
-          },
-          "roleKey": {
-            "type": "string"
-          },
-          "taskName": {
-            "type": "string"
-          },
-          "orderIndex": {
-            "type": "number"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "PENDING",
-              "SKIPPED",
-              "RUNNING",
-              "OK",
-              "CHANGED",
-              "FAILED",
-              "TIMEOUT"
-            ]
-          },
-          "startedAt": {
-            "type": "object",
-            "nullable": true,
-            "format": "date-time"
-          },
-          "finishedAt": {
-            "type": "object",
-            "nullable": true,
-            "format": "date-time"
-          },
-          "message": {
-            "type": "object",
-            "nullable": true
-          }
-        },
-        "required": [
-          "id",
-          "preparationId",
-          "roleKey",
-          "taskName",
-          "orderIndex",
-          "status"
-        ]
-      },
-      "ServerPreparationDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "serverId": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "QUEUED",
-              "RESOLVING_OPTIONS",
-              "WAITING_FOR_LOCK",
-              "RUNNING",
-              "SUCCEEDED",
-              "PARTIAL",
-              "FAILED",
-              "TIMEOUT",
-              "CANCELED"
-            ]
-          },
-          "profile": {
-            "type": "string",
-            "enum": [
-              "BASIC",
-              "WEB",
-              "DATABASE",
-              "RUNNER",
-              "FULL",
-              "CUSTOM"
-            ]
-          },
-          "triggerSource": {
-            "type": "string"
-          },
-          "requestedById": {
-            "type": "object",
-            "nullable": true
-          },
-          "startedAt": {
-            "type": "object",
-            "nullable": true,
-            "format": "date-time"
-          },
-          "finishedAt": {
-            "type": "object",
-            "nullable": true,
-            "format": "date-time"
-          },
-          "summary": {
-            "type": "object",
-            "nullable": true
-          },
-          "errorMessage": {
-            "type": "object",
-            "nullable": true
-          },
-          "retryOfPreparationId": {
-            "type": "object",
-            "nullable": true
-          },
-          "tasks": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ServerPreparationTaskDto"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "serverId",
-          "status",
-          "profile",
-          "triggerSource",
-          "tasks"
-        ]
-      },
-      "ServerPreparationReadinessChecksDto": {
-        "type": "object",
-        "properties": {
-          "serverActive": {
-            "type": "boolean"
-          },
-          "serverNotDisabled": {
-            "type": "boolean"
-          },
-          "sshValidated": {
-            "type": "boolean"
-          },
-          "sshReachable": {
-            "type": "boolean"
-          },
-          "authSucceeded": {
-            "type": "boolean"
-          },
-          "sudoAvailable": {
-            "type": "boolean"
-          },
-          "noActivePreparation": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "serverActive",
-          "serverNotDisabled",
-          "sshValidated",
-          "sshReachable",
-          "authSucceeded",
-          "sudoAvailable",
-          "noActivePreparation"
-        ]
-      },
-      "ServerPreparationReadinessDto": {
-        "type": "object",
-        "properties": {
-          "serverId": {
-            "type": "string"
-          },
-          "isReady": {
-            "type": "boolean"
-          },
-          "checks": {
-            "$ref": "#/components/schemas/ServerPreparationReadinessChecksDto"
-          },
-          "blockingReasons": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "latestValidationAt": {
-            "type": "string",
-            "nullable": true,
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "serverId",
-          "isReady",
-          "checks",
-          "blockingReasons"
-        ]
-      },
-      "ServerPreparationLogDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "preparationId": {
-            "type": "string"
-          },
-          "level": {
-            "type": "string",
-            "enum": [
-              "INFO",
-              "WARNING",
-              "ERROR"
-            ]
-          },
-          "source": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "lineNumber": {
-            "type": "number"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "preparationId",
-          "level",
-          "source",
-          "message",
-          "lineNumber",
-          "createdAt"
-        ]
-      },
-      "RetryServerPreparationDto": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "example": "Retry after firewall package mirror outage"
-          }
-        }
+        "properties": {}
       },
       "ServerActiveJobDto": {
         "type": "object",
@@ -8698,9 +7968,38 @@
         "type": "object",
         "properties": {}
       },
-      "UpdateNotificationSettingsDto": {
+      "ServerAuditEventDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "actorId": {
+            "type": "object",
+            "nullable": true
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "payloadJson": {
+            "type": "object",
+            "nullable": true,
+            "description": "JSON payload describing the audited action context."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "eventType",
+          "createdAt"
+        ]
       },
       "ValidateServerSshDto": {
         "type": "object",
@@ -8950,7 +8249,177 @@
           "status"
         ]
       },
-      "ServerAuditEventDto": {
+      "StartServerPreparationDto": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "enum": [
+              "BASIC",
+              "WEB",
+              "DATABASE",
+              "RUNNER",
+              "FULL",
+              "CUSTOM"
+            ],
+            "default": "BASIC",
+            "description": "Reusable preparation profile. Explicit options override profile defaults."
+          },
+          "systemUpdate": {
+            "type": "boolean",
+            "example": true
+          },
+          "docker": {
+            "type": "boolean",
+            "example": true
+          },
+          "dockerComposePlugin": {
+            "type": "boolean",
+            "example": true
+          },
+          "nginx": {
+            "type": "boolean",
+            "example": true
+          },
+          "nixpacks": {
+            "type": "boolean",
+            "example": false
+          },
+          "nodejs": {
+            "type": "boolean",
+            "example": false
+          },
+          "postgres": {
+            "type": "boolean",
+            "example": false
+          },
+          "postgresql": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true
+          },
+          "redis": {
+            "type": "boolean",
+            "example": false
+          },
+          "gitlabRunner": {
+            "type": "boolean",
+            "example": false
+          },
+          "firewall": {
+            "type": "boolean",
+            "example": true
+          },
+          "fail2ban": {
+            "type": "boolean",
+            "example": true
+          },
+          "certbot": {
+            "type": "boolean",
+            "example": false
+          },
+          "ssl": {
+            "type": "boolean",
+            "example": false,
+            "deprecated": true
+          },
+          "swap": {
+            "type": "boolean",
+            "example": true
+          },
+          "monitoring": {
+            "type": "boolean",
+            "example": false
+          },
+          "backup": {
+            "type": "boolean",
+            "example": false
+          },
+          "logrotate": {
+            "type": "boolean",
+            "example": true
+          },
+          "securityHardening": {
+            "type": "boolean",
+            "example": true
+          },
+          "autoUpdates": {
+            "type": "boolean",
+            "example": true
+          },
+          "gitlabRunnerExecutor": {
+            "type": "string",
+            "example": "docker",
+            "description": "Executor mode for GitLab Runner. docker implies Docker dependency."
+          },
+          "reinstallOptions": {
+            "example": [
+              "docker",
+              "nginx"
+            ],
+            "description": "Option keys that should be forced-reinstalled even if the tool is already detected as installed. By default, roles for already-installed tools still run (idempotent), but this flag signals explicit user intent to reinstall/reconfigure.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ServerPreparationTaskDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "preparationId": {
+            "type": "string"
+          },
+          "roleKey": {
+            "type": "string"
+          },
+          "taskName": {
+            "type": "string"
+          },
+          "orderIndex": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SKIPPED",
+              "RUNNING",
+              "OK",
+              "CHANGED",
+              "FAILED",
+              "TIMEOUT"
+            ]
+          },
+          "startedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "message": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "preparationId",
+          "roleKey",
+          "taskName",
+          "orderIndex",
+          "status"
+        ]
+      },
+      "ServerPreparationDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -8959,17 +8428,167 @@
           "serverId": {
             "type": "string"
           },
-          "actorId": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RESOLVING_OPTIONS",
+              "WAITING_FOR_LOCK",
+              "RUNNING",
+              "SUCCEEDED",
+              "PARTIAL",
+              "FAILED",
+              "TIMEOUT",
+              "CANCELED"
+            ]
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "BASIC",
+              "WEB",
+              "DATABASE",
+              "RUNNER",
+              "FULL",
+              "CUSTOM"
+            ]
+          },
+          "triggerSource": {
+            "type": "string"
+          },
+          "requestedById": {
             "type": "object",
             "nullable": true
           },
-          "eventType": {
-            "type": "string"
-          },
-          "payloadJson": {
+          "startedAt": {
             "type": "object",
             "nullable": true,
-            "description": "JSON payload describing the audited action context."
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "object",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "summary": {
+            "type": "object",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "object",
+            "nullable": true
+          },
+          "retryOfPreparationId": {
+            "type": "object",
+            "nullable": true
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServerPreparationTaskDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "status",
+          "profile",
+          "triggerSource",
+          "tasks"
+        ]
+      },
+      "ServerPreparationReadinessChecksDto": {
+        "type": "object",
+        "properties": {
+          "serverActive": {
+            "type": "boolean"
+          },
+          "serverNotDisabled": {
+            "type": "boolean"
+          },
+          "sshValidated": {
+            "type": "boolean"
+          },
+          "sshReachable": {
+            "type": "boolean"
+          },
+          "authSucceeded": {
+            "type": "boolean"
+          },
+          "sudoAvailable": {
+            "type": "boolean"
+          },
+          "noActivePreparation": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "serverActive",
+          "serverNotDisabled",
+          "sshValidated",
+          "sshReachable",
+          "authSucceeded",
+          "sudoAvailable",
+          "noActivePreparation"
+        ]
+      },
+      "ServerPreparationReadinessDto": {
+        "type": "object",
+        "properties": {
+          "serverId": {
+            "type": "string"
+          },
+          "isReady": {
+            "type": "boolean"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/ServerPreparationReadinessChecksDto"
+          },
+          "blockingReasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "latestValidationAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "serverId",
+          "isReady",
+          "checks",
+          "blockingReasons"
+        ]
+      },
+      "ServerPreparationLogDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "preparationId": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "INFO",
+              "WARNING",
+              "ERROR"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "lineNumber": {
+            "type": "number"
           },
           "createdAt": {
             "type": "string",
@@ -8978,71 +8597,22 @@
         },
         "required": [
           "id",
-          "serverId",
-          "eventType",
+          "preparationId",
+          "level",
+          "source",
+          "message",
+          "lineNumber",
           "createdAt"
         ]
       },
-      "CreateConfigDto": {
+      "RetryServerPreparationDto": {
         "type": "object",
         "properties": {
-          "key": {
+          "reason": {
             "type": "string",
-            "example": "DATABASE_URL"
-          },
-          "value": {
-            "type": "string",
-            "example": "postgresql://user:pass@host:5432/db"
-          },
-          "isSecret": {
-            "type": "boolean",
-            "example": false,
-            "default": false
-          }
-        },
-        "required": [
-          "key",
-          "value"
-        ]
-      },
-      "UpdateConfigDto": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string",
-            "example": "REDIS_URL"
-          },
-          "value": {
-            "type": "string",
-            "example": "redis://localhost:6379"
-          },
-          "isSecret": {
-            "type": "boolean",
-            "example": true
+            "example": "Retry after firewall package mirror outage"
           }
         }
-      },
-      "UpsertEnvConfigDto": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string",
-            "example": "DATABASE_URL"
-          },
-          "value": {
-            "type": "string",
-            "example": "postgresql://user:pass@prod-host:5432/db"
-          },
-          "isSecret": {
-            "type": "boolean",
-            "example": false,
-            "default": false
-          }
-        },
-        "required": [
-          "key",
-          "value"
-        ]
       },
       "DeploymentResponseDto": {
         "type": "object",
@@ -9132,6 +8702,19 @@
             "type": "string",
             "nullable": true,
             "description": "External pipeline ID (GitLab or GitHub)"
+          },
+          "databaseInfo": {
+            "type": "object",
+            "nullable": true,
+            "description": "Database connection info (type, version, credentials masked)",
+            "example": {
+              "databaseType": "POSTGRES",
+              "databaseVersion": "16",
+              "credentials": {
+                "user": "app",
+                "dbName": "app"
+              }
+            }
           }
         },
         "required": [
@@ -9154,7 +8737,7 @@
           "name": {
             "type": "string"
           },
-          "repoUrl": {
+          "repoPath": {
             "type": "string"
           }
         },
@@ -9362,6 +8945,19 @@
             "nullable": true,
             "description": "External pipeline ID (GitLab or GitHub)"
           },
+          "databaseInfo": {
+            "type": "object",
+            "nullable": true,
+            "description": "Database connection info (type, version, credentials masked)",
+            "example": {
+              "databaseType": "POSTGRES",
+              "databaseVersion": "16",
+              "credentials": {
+                "user": "app",
+                "dbName": "app"
+              }
+            }
+          },
           "project": {
             "$ref": "#/components/schemas/DeploymentProjectSummaryDto"
           },
@@ -9441,6 +9037,11 @@
             "type": "string",
             "example": "environment-uuid"
           },
+          "serviceEnvId": {
+            "type": "string",
+            "example": "service-env-uuid",
+            "description": "Required to validate DATABASE services"
+          },
           "buildSource": {
             "type": "string",
             "enum": [
@@ -9517,26 +9118,13 @@
       "CreateDeploymentDto": {
         "type": "object",
         "properties": {
-          "projectId": {
+          "serviceEnvId": {
             "type": "string",
-            "example": "project-uuid"
-          },
-          "serviceId": {
-            "type": "string",
-            "example": "service-uuid"
-          },
-          "environmentId": {
-            "type": "string",
-            "example": "environment-uuid"
+            "example": "service-env-uuid"
           },
           "branch": {
             "type": "string",
             "example": "main"
-          },
-          "repoId": {
-            "type": "number",
-            "example": 42,
-            "description": "Repository GitLab ciblé (recommandé pour source GROUP, optionnel pour REPO)"
           },
           "strategy": {
             "type": "string",
@@ -9558,8 +9146,7 @@
               "STATIC",
               "EXTERNAL_IMAGE"
             ],
-            "example": "DOCKERFILE_LOCAL",
-            "description": "Source de build — un seul champ remplace buildPack + buildMode :\n  DOCKERFILE_REGISTRY — Dockerfile buildé par CI GitLab/GitHub → registry → pull sur VPS\n  DOCKERFILE_LOCAL    — Dockerfile buildé directement sur le VPS (pas de registry)\n  NIXPACKS_REGISTRY   — Nixpacks buildé par CI → registry → pull sur VPS\n  NIXPACKS_LOCAL      — Nixpacks buildé directement sur le VPS\n  DOCKER_COMPOSE      — docker-compose.yml exécuté sur le VPS\n  STATIC              — Site statique servi par Nginx sur le VPS\n  EXTERNAL_IMAGE      — Image Docker externe fournie via overrideImage"
+            "example": "DOCKERFILE_LOCAL"
           },
           "overrideImage": {
             "type": "string",
@@ -9568,30 +9155,15 @@
           },
           "nixpacksConfig": {
             "type": "object",
-            "description": "Nixpacks configuration: build env, runtime env, port, etc.",
-            "example": {
-              "buildEnv": {
-                "NODE_ENV": "production"
-              },
-              "runtimeEnv": {
-                "PORT": "3000"
-              },
-              "port": 3000
-            }
+            "description": "Nixpacks configuration: build env, runtime env, port, etc."
           },
           "staticConfig": {
             "type": "object",
-            "description": "Static site configuration: source dir, build cmd, SPA mode, etc.",
-            "example": {
-              "sourceDir": "dist",
-              "buildCommand": "npm run build",
-              "spaFallback": true
-            }
+            "description": "Static site configuration: source dir, build cmd, SPA mode, etc."
           }
         },
         "required": [
-          "projectId",
-          "environmentId"
+          "serviceEnvId"
         ]
       },
       "CreateTeamDto": {
@@ -9701,13 +9273,9 @@
             "type": "boolean",
             "example": false
           },
-          "serviceId": {
+          "serviceEnvId": {
             "type": "string",
-            "example": "service-uuid"
-          },
-          "environmentId": {
-            "type": "string",
-            "example": "environment-uuid"
+            "example": "service_env-uuid"
           }
         },
         "required": [
@@ -9754,13 +9322,9 @@
             ],
             "default": "LETS_ENCRYPT"
           },
-          "serviceId": {
+          "serviceEnvId": {
             "type": "string",
-            "example": "svc_xxx"
-          },
-          "environmentId": {
-            "type": "string",
-            "example": "env_xxx"
+            "example": "service_env-uuid"
           }
         },
         "required": [
@@ -9795,14 +9359,126 @@
           }
         }
       },
-      "CreateManagedServiceDto": {
+      "SourceConnectionDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "GITLAB",
+              "GITHUB"
+            ]
+          },
+          "repoPath": {
+            "type": "string",
+            "example": "group/project"
+          },
+          "token": {
+            "type": "string",
+            "example": "glpat-xxx"
+          },
+          "branch": {
+            "type": "string",
+            "example": "main"
+          }
+        },
+        "required": [
+          "provider",
+          "repoPath",
+          "token"
+        ]
+      },
+      "CreateServiceDto": {
         "type": "object",
         "properties": {
           "name": {
             "type": "string",
-            "example": "prod-postgres"
+            "example": "api"
           },
           "type": {
+            "type": "string",
+            "enum": [
+              "APPLICATION",
+              "DATABASE",
+              "MANAGED"
+            ],
+            "example": "APPLICATION"
+          },
+          "description": {
+            "type": "string",
+            "example": "Backend API NestJS"
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "GIT",
+              "DOCKER_IMAGE",
+              "NONE"
+            ],
+            "example": "GIT"
+          },
+          "repoPath": {
+            "type": "string",
+            "example": "org/repo"
+          },
+          "branch": {
+            "type": "string",
+            "example": "main"
+          },
+          "providerId": {
+            "type": "string",
+            "example": "git-provider-uuid"
+          },
+          "rootDir": {
+            "type": "string",
+            "example": "/"
+          },
+          "buildPack": {
+            "type": "string",
+            "enum": [
+              "NIXPACKS",
+              "BUILDPACK",
+              "DOCKERFILE",
+              "DOCKER_COMPOSE",
+              "STATIC",
+              "NONE"
+            ],
+            "example": "DOCKERFILE"
+          },
+          "buildType": {
+            "type": "string",
+            "example": "railpack"
+          },
+          "dockerfile": {
+            "type": "string",
+            "example": "FROM node:20\nWORKDIR /app\n..."
+          },
+          "port": {
+            "type": "number",
+            "example": 3000
+          },
+          "startCommand": {
+            "type": "string",
+            "example": "npm run start:prod"
+          },
+          "buildArgs": {
+            "type": "object"
+          },
+          "nixpacksConfig": {
+            "type": "object"
+          },
+          "staticConfig": {
+            "type": "object"
+          },
+          "dockerComposeContent": {
+            "type": "string",
+            "example": "version: \"3.8\"\nservices:\n  api:\n..."
+          },
+          "composeServiceName": {
+            "type": "string",
+            "example": "api"
+          },
+          "databaseType": {
             "type": "string",
             "enum": [
               "POSTGRES",
@@ -9813,35 +9489,196 @@
             ],
             "example": "POSTGRES"
           },
-          "version": {
+          "databaseVersion": {
             "type": "string",
-            "example": "15"
+            "example": "16"
           },
-          "port": {
+          "databaseCredentials": {
+            "type": "object"
+          },
+          "env": {
+            "type": "string",
+            "example": "{\"NODE_ENV\":\"production\"}"
+          },
+          "healthcheckPath": {
+            "type": "string",
+            "example": "/health"
+          },
+          "replicas": {
             "type": "number",
-            "example": 5432
+            "example": 1
           },
-          "projectId": {
-            "type": "string",
-            "example": "proj_xxx"
-          },
-          "environmentId": {
-            "type": "string",
-            "example": "env_xxx"
-          },
-          "serverId": {
-            "type": "string",
-            "example": "srv_xxx"
+          "source": {
+            "description": "Connexion source (GitLab/GitHub) lors de la création",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SourceConnectionDto"
+              }
+            ]
           }
         },
         "required": [
-          "name",
-          "type",
-          "port",
-          "projectId",
-          "environmentId",
-          "serverId"
+          "name"
         ]
+      },
+      "DiscoverGroupDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "GITLAB",
+              "GITHUB"
+            ]
+          },
+          "groupPath": {
+            "type": "string",
+            "example": "my-group"
+          },
+          "token": {
+            "type": "string",
+            "example": "glpat-xxx"
+          },
+          "providerId": {
+            "type": "string",
+            "example": "b5073d11-f378-4c71-87da-093f3ecf20af"
+          }
+        },
+        "required": [
+          "provider",
+          "groupPath",
+          "token"
+        ]
+      },
+      "UpdateServiceDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "api"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "APPLICATION",
+              "DATABASE",
+              "MANAGED"
+            ],
+            "example": "APPLICATION"
+          },
+          "description": {
+            "type": "string",
+            "example": "Backend API NestJS"
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "GIT",
+              "DOCKER_IMAGE",
+              "NONE"
+            ],
+            "example": "GIT"
+          },
+          "repoPath": {
+            "type": "string",
+            "example": "org/repo"
+          },
+          "branch": {
+            "type": "string",
+            "example": "main"
+          },
+          "providerId": {
+            "type": "string",
+            "example": "git-provider-uuid"
+          },
+          "rootDir": {
+            "type": "string",
+            "example": "/"
+          },
+          "buildPack": {
+            "type": "string",
+            "enum": [
+              "NIXPACKS",
+              "BUILDPACK",
+              "DOCKERFILE",
+              "DOCKER_COMPOSE",
+              "STATIC",
+              "NONE"
+            ],
+            "example": "DOCKERFILE"
+          },
+          "buildType": {
+            "type": "string",
+            "example": "railpack"
+          },
+          "dockerfile": {
+            "type": "string",
+            "example": "FROM node:20\nWORKDIR /app\n..."
+          },
+          "port": {
+            "type": "number",
+            "example": 3000
+          },
+          "startCommand": {
+            "type": "string",
+            "example": "npm run start:prod"
+          },
+          "buildArgs": {
+            "type": "object"
+          },
+          "nixpacksConfig": {
+            "type": "object"
+          },
+          "staticConfig": {
+            "type": "object"
+          },
+          "dockerComposeContent": {
+            "type": "string",
+            "example": "version: \"3.8\"\nservices:\n  api:\n..."
+          },
+          "composeServiceName": {
+            "type": "string",
+            "example": "api"
+          },
+          "databaseType": {
+            "type": "string",
+            "enum": [
+              "POSTGRES",
+              "MYSQL",
+              "REDIS",
+              "MONGODB",
+              "RABBITMQ"
+            ],
+            "example": "POSTGRES"
+          },
+          "databaseVersion": {
+            "type": "string",
+            "example": "16"
+          },
+          "databaseCredentials": {
+            "type": "object"
+          },
+          "env": {
+            "type": "string",
+            "example": "{\"NODE_ENV\":\"production\"}"
+          },
+          "healthcheckPath": {
+            "type": "string",
+            "example": "/health"
+          },
+          "replicas": {
+            "type": "number",
+            "example": 1
+          },
+          "source": {
+            "description": "Connexion source (GitLab/GitHub) lors de la création",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SourceConnectionDto"
+              }
+            ]
+          }
+        }
       },
       "CreateVolumeDto": {
         "type": "object",
@@ -9866,10 +9703,6 @@
           "serviceId": {
             "type": "string",
             "example": "svc_xxx"
-          },
-          "managedServiceId": {
-            "type": "string",
-            "example": "ms_xxx"
           }
         },
         "required": [
