@@ -190,7 +190,7 @@ export default function MonitoringPage() {
       </SectionCard>
 
       {/* Alerts */}
-      <SectionCard title="Alertes">
+      <SectionCard title="Alerts">
         {!alerts ? (
           <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
             <Loader2 size={15} className="animate-spin" /> Chargement…

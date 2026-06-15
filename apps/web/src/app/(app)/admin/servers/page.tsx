@@ -303,7 +303,7 @@ export default function AdminServersPage() {
                           type="button"
                           disabled={pingingId === server.id || ping === 'loading'}
                           onClick={() => void handlePing(server)}
-                          title="Tester la connexion"
+                          title="Test connection"
                           className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-400 disabled:opacity-40"
                         >
                           {pingingId === server.id || ping === 'loading' ? (

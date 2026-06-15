@@ -83,10 +83,30 @@ export const projectsService = {
     projectId: string,
     payload: ConnectSourcePayload,
   ): Promise<unknown> {
-    const res = await api.post(
-      `/projects/${projectId}/source/connect`,
-      payload,
-    );
+    // The backend ConnectSourceDto whitelists exactly these fields and rejects
+    // any other (provider/repoPath/groupPath/defaultBranch/providerId/token).
+    // Map the UI payload (which still carries legacy gitlab* fields) onto it.
+    const repoPath =
+      payload.repoPath ??
+      (payload.sourceType !== 'GROUP' && payload.gitlabId != null
+        ? String(payload.gitlabId)
+        : undefined);
+    const groupPath =
+      payload.gitlabGroupId != null
+        ? String(payload.gitlabGroupId)
+        : payload.sourceType === 'GROUP' && payload.gitlabId != null
+          ? String(payload.gitlabId)
+          : undefined;
+    const token = payload.token ?? payload.gitlabToken ?? payload.githubToken;
+    const body = {
+      provider: payload.provider,
+      ...(payload.providerId ? { providerId: payload.providerId } : {}),
+      ...(repoPath ? { repoPath } : {}),
+      ...(groupPath ? { groupPath } : {}),
+      ...(payload.defaultBranch ? { defaultBranch: payload.defaultBranch } : {}),
+      ...(token ? { token } : {}),
+    };
+    const res = await api.post(`/projects/${projectId}/source/connect`, body);
     return res.data;
   },
 

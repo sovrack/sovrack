@@ -386,7 +386,7 @@ export function ProjectSourceSetupDialog({
               Source
             </p>
             <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
-              Connecter la source
+              Connect source
             </h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
               Choose the provider, source type and repository (path « group/project »).

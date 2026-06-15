@@ -108,6 +108,8 @@ export type ConnectGitlabPayload = {
 export type ConnectSourcePayload = {
   provider: 'GITLAB' | 'GITHUB';
   repoPath?: string;
+  groupPath?: string;
+  token?: string;
   defaultBranch?: string;
   sourceType?: string;
   providerId?: string;
