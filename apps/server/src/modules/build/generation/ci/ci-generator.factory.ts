@@ -42,6 +42,11 @@ export class CiGeneratorFactory {
         return this.gitlab;
       case GitProviderType.GITHUB:
         return this.github;
+      // Gitea Actions is GitHub-Actions-compatible (same workflow YAML, reads
+      // .github/workflows/), so it reuses the GitHub generator. The registry is
+      // overridden per-project via options.imageRepository.
+      case GitProviderType.GITEA:
+        return this.github;
       default:
         return assertNever(type);
     }

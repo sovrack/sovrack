@@ -108,6 +108,7 @@ enum ServerPreparationProfile {
 enum GitProviderType {
   GITLAB
   GITHUB
+  GITEA
 }
 
 enum RegistryProviderType {

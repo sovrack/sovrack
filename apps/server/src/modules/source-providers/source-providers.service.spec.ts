@@ -7,6 +7,7 @@ import { GitlabAdapter } from './adapters/gitlab/gitlab.adapter';
 import { GitlabClient } from './adapters/gitlab/gitlab.client';
 import { GitlabConnectionService } from './adapters/gitlab/gitlab-connection.service';
 import { GithubAdapter } from './adapters/github/github.adapter';
+import { GiteaAdapter } from './adapters/gitea/gitea.adapter';
 
 /**
  * P3 — GitProviderFactory. The factory has to:
@@ -35,6 +36,7 @@ describe('SourceProvidersService (factory)', () => {
     resolveRegistryCredentials: jest.Mock;
   };
   let github: typeof gitlab;
+  let gitea: typeof gitlab;
 
   beforeEach(async () => {
     prisma = {
@@ -51,6 +53,7 @@ describe('SourceProvidersService (factory)', () => {
     });
     gitlab = { id: 'gitlab-impl', type: GitProviderType.GITLAB, ...methods() };
     github = { id: 'github-impl', type: GitProviderType.GITHUB, ...methods() };
+    gitea = { id: 'gitea-impl', type: GitProviderType.GITEA, ...methods() };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -60,6 +63,7 @@ describe('SourceProvidersService (factory)', () => {
         { provide: GitlabClient, useValue: {} },
         { provide: GitlabConnectionService, useValue: {} },
         { provide: GithubAdapter, useValue: github },
+        { provide: GiteaAdapter, useValue: gitea },
       ],
     }).compile();
 
@@ -76,16 +80,21 @@ describe('SourceProvidersService (factory)', () => {
       const provider = service.forType(GitProviderType.GITLAB) as unknown as { id: string };
       expect(provider.id).toBe('gitlab-impl');
     });
+
+    it('returns the Gitea instance for GITEA', () => {
+      const provider = service.forType(GitProviderType.GITEA) as unknown as { id: string };
+      expect(provider.id).toBe('gitea-impl');
+    });
   });
 
   describe('listAvailable', () => {
-    it('exposes both providers so the admin UI does not hardcode the list', () => {
+    it('exposes every wired provider so the admin UI does not hardcode the list', () => {
       const list = service.listAvailable();
-      expect(list).toHaveLength(2);
+      expect(list).toHaveLength(3);
       const ids = list
         .map((p) => (p as unknown as { id: string }).id)
         .sort();
-      expect(ids).toEqual(['github-impl', 'gitlab-impl']);
+      expect(ids).toEqual(['gitea-impl', 'github-impl', 'gitlab-impl']);
     });
   });
 

@@ -21,7 +21,7 @@ export type GitProviderStatus = 'NOT_CONFIGURED' | 'ACTION_REQUIRED' | 'CONFIGUR
 export type GitlabProviderPublic = {
   id: string;
   name: string;
-  type: 'GITLAB' | 'GITHUB';
+  type: 'GITLAB' | 'GITHUB' | 'GITEA';
   /** Base URL for the provider (gitlab.example.com or github.com). */
   providerUrl: string;
   internalUrl: string;
@@ -382,6 +382,95 @@ export class GitProviderConfigService {
       data: { isDefault: true },
     });
     return this.toGithubProviderPublic(updated);
+  }
+
+  // ─── Gitea Providers (PAT-based, same config shape as GitHub) ──────────────
+
+  async listGiteaProviders(): Promise<GitlabProviderPublic[]> {
+    const providers = await this.prisma.gitProviderConfig.findMany({
+      where: { type: GitProviderType.GITEA },
+      orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
+    });
+    return providers.map((p) => this.toGiteaProviderPublic(p));
+  }
+
+  async createGiteaProvider(input: UpsertGithubProviderInput): Promise<GitlabProviderPublic> {
+    const name = this.requireNonEmpty(input.name, 'Name est requis');
+    const giteaUrl = this.requireNonEmpty(input.providerUrl, 'Gitea URL est requis');
+
+    const count = await this.prisma.gitProviderConfig.count({ where: { type: GitProviderType.GITEA } });
+    const shouldBeDefault = count === 0 ? true : input.isDefault === true;
+
+    if (shouldBeDefault) {
+      await this.prisma.gitProviderConfig.updateMany({
+        where: { type: GitProviderType.GITEA, isDefault: true },
+        data: { isDefault: false },
+      });
+    }
+
+    const provider = await this.prisma.gitProviderConfig.create({
+      data: {
+        name,
+        type: GitProviderType.GITEA,
+        providerUrl: giteaUrl,
+        internalUrl: this.normalizeOptional(input.internalUrl),
+        adminToken: this.crypto.encryptOptional(input.adminToken),
+        isDefault: shouldBeDefault,
+      },
+    });
+
+    return this.toGiteaProviderPublic(provider);
+  }
+
+  async updateGiteaProvider(id: string, input: PatchGithubProviderInput): Promise<GitlabProviderPublic> {
+    const current = await this.getGiteaProviderOrFail(id);
+    const data: Partial<GitProviderConfig> = {};
+
+    if (typeof input.name === 'string') data.name = this.requireNonEmpty(input.name, 'Name est requis');
+    if (typeof input.providerUrl === 'string') data.providerUrl = this.requireNonEmpty(input.providerUrl, 'Gitea URL est requis');
+    if (typeof input.internalUrl === 'string') data.internalUrl = this.normalizeOptional(input.internalUrl);
+    if (typeof input.adminToken === 'string') data.adminToken = this.crypto.encryptOptional(input.adminToken);
+
+    if (input.isDefault === true && !current.isDefault) {
+      await this.prisma.gitProviderConfig.updateMany({
+        where: { type: GitProviderType.GITEA, isDefault: true },
+        data: { isDefault: false },
+      });
+      data.isDefault = true;
+    }
+
+    const updated = await this.prisma.gitProviderConfig.update({ where: { id }, data });
+    return this.toGiteaProviderPublic(updated);
+  }
+
+  async deleteGiteaProvider(id: string): Promise<void> {
+    await this.getGiteaProviderOrFail(id);
+    await this.prisma.gitProviderConfig.delete({ where: { id } });
+  }
+
+  async setDefaultGiteaProvider(id: string): Promise<GitlabProviderPublic> {
+    await this.getGiteaProviderOrFail(id);
+    await this.prisma.gitProviderConfig.updateMany({
+      where: { type: GitProviderType.GITEA, isDefault: true },
+      data: { isDefault: false },
+    });
+    const updated = await this.prisma.gitProviderConfig.update({
+      where: { id },
+      data: { isDefault: true },
+    });
+    return this.toGiteaProviderPublic(updated);
+  }
+
+  private async getGiteaProviderOrFail(id: string): Promise<GitProviderConfig> {
+    const provider = await this.prisma.gitProviderConfig.findUnique({ where: { id } });
+    if (!provider || provider.type !== GitProviderType.GITEA) {
+      throw new NotFoundException('Provider Gitea introuvable');
+    }
+    return provider;
+  }
+
+  private toGiteaProviderPublic(provider: GitProviderConfig): GitlabProviderPublic {
+    return { ...this.toGithubProviderPublic(provider), type: 'GITEA' as const };
   }
 
   async testGithubProvider(id: string): Promise<{ ok: boolean; message: string }> {
