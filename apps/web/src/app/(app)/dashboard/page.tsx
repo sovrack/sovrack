@@ -9,7 +9,6 @@ import {
   Clock,
   GitBranch,
   Plus,
-  RefreshCw,
   Rocket,
   Server,
   Zap,
@@ -74,7 +73,7 @@ function KpiCard({ title, value, subtitle, icon, tone = 'default' }: KpiCardProp
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
 
-  const { data, isLoading, isFetching, error, refetch } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats-v2'],
     queryFn: () => dashboardService.getStats(),
     staleTime: 30_000,
@@ -101,20 +100,11 @@ export default function DashboardPage() {
         description="Vue d'ensemble des projets et de l'activité de déploiement."
         actions={
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void refetch()}
-              disabled={isFetching}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
-              aria-label="Rafraîchir"
-            >
-              <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} />
-            </button>
             <Link
               href="/projects"
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
             >
-              Projets <ArrowRight size={14} />
+              Projects <ArrowRight size={14} />
             </Link>
           </div>
         }
