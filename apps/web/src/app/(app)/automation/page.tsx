@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Play, RefreshCw, StopCircle, Trash2 } from 'lucide-react';
+import { ExternalLink, Play, StopCircle, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { Badge } from '@/components/ui/badge';
@@ -187,19 +187,6 @@ export default function AutomationPage() {
         eyebrow="Operations"
         title="Automation"
         description="Run controlled multi-VPS Ansible operations from the control node. Target VPS hosts stay SSH agentless and do not install Ansible."
-        actions={
-          <Button
-            variant="secondary"
-            icon={<RefreshCw size={14} className={runsQuery.isFetching ? 'animate-spin' : ''} />}
-            onClick={() => {
-              void runsQuery.refetch();
-              void actionsQuery.refetch();
-              void serversQuery.refetch();
-            }}
-          >
-            Refresh
-          </Button>
-        }
       />
 
       {error && (

@@ -9,7 +9,6 @@ import {
   Loader2,
   Pencil,
   Plus,
-  RefreshCw,
   Search,
   Shield,
   Trash2,
@@ -255,13 +254,6 @@ export default function AdminUsersPage() {
         description="Gérez les utilisateurs et les équipes depuis une seule page."
         actions={
           <>
-            <button
-              onClick={() => void refreshAll()}
-              disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] shadow-sm transition hover:bg-[var(--hover)] disabled:opacity-50 border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]"
-            >
-              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            </button>
             <button
               onClick={() => setCreateUserOpen(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:bg-[var(--text-primary)]"

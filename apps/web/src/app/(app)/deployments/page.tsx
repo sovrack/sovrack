@@ -12,7 +12,6 @@ import {
   Globe,
   Loader2,
   Plus,
-  RefreshCw,
   Rocket,
   RotateCcw,
   XCircle,
@@ -216,6 +215,7 @@ export default function DeploymentsPage() {
       ]);
       return { deployments: deploymentList, projects: projectList };
     },
+    refetchInterval: 10_000,
   });
 
   const deployments: Deployment[] = data?.deployments ?? [];
@@ -288,10 +288,6 @@ export default function DeploymentsPage() {
         description="Suivez chaque déploiement, filtrez par statut, consultez les logs."
         actions={
           <>
-            <button onClick={() => void fetchDeployments()} disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10 disabled:opacity-50">
-              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            </button>
             {canCreate && (
               <button type="button" onClick={() => setCreateDialogOpen(true)}
                 className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90">

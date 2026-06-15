@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Plus,
-  RefreshCw,
   Search,
   FolderGit2,
   Link2,
@@ -89,13 +88,6 @@ export default function ProjectsPage() {
         description="Connect GitLab repositories and manage deployment ownership in one place."
         actions={
           <>
-            <button
-              onClick={() => void refresh()}
-              disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50 border-[var(--border)] text-[var(--text-primary)]"
-            >
-              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            </button>
             {isAdmin && (
               <button
                 type="button"
