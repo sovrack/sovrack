@@ -241,6 +241,22 @@ export class GiteaClient {
     return { hookId: res.data?.id ?? 'unknown', url: webhookUrl };
   }
 
+  async createIssueComment(
+    apiBase: string,
+    token: string,
+    fullRepoName: string,
+    issueNumber: string,
+    body: string,
+  ): Promise<void> {
+    await firstValueFrom(
+      this.httpService.post(
+        `${apiBase}/repos/${fullRepoName}/issues/${issueNumber}/comments`,
+        { body },
+        { headers: this.authHeaders(token) },
+      ),
+    );
+  }
+
   async verifyToken(apiBase: string, token: string): Promise<{ login: string }> {
     const res = await firstValueFrom(
       this.httpService.get<{ login: string }>(`${apiBase}/user`, {

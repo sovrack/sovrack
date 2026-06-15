@@ -152,6 +152,12 @@ export interface IGitProvider {
    */
   resolveGitCredentials(projectId: string, serviceId?: string): Promise<GitCredentials>;
 
+  /**
+   * Post a comment on a merge/pull request (e.g. a preview-environment URL).
+   * Optional capability — providers that don't implement it are simply skipped.
+   */
+  postComment?(projectId: string, mergeRequestId: string, body: string): Promise<void>;
+
   // NOTE: Webhook *reception* is no longer part of this contract. It lives
   // in the unified webhooks module via IWebhookHandler. Providers only
   // *register* webhooks here (configureWebhook above).

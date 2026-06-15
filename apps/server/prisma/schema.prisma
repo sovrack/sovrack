@@ -454,6 +454,12 @@ model ServiceEnvironment {
   replicas        Int?
   healthcheckPath String?
   buildPack       BuildPack?
+
+  // Ephemeral preview environments (one per merge/pull request). When isPreview
+  // is true this ServiceEnvironment is disposable and tied to previewMrId.
+  isPreview       Boolean    @default(false)
+  previewMrId     String?
+  previewBranch   String?
   env             String?     @db.Text // JSON — variables NON-secrètes (merge final: this > Environment.env > Service.env)
   secretsEnv      String?     @db.Text // JSON — secrets (chiffré au repos ; même ordre de fusion)
 

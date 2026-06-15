@@ -137,6 +137,11 @@ export class GiteaAdapter implements IGitProvider {
     return { repoUrl: `https://${host}/${fullRepoName}.git`, token };
   }
 
+  async postComment(projectId: string, mergeRequestId: string, body: string): Promise<void> {
+    const { apiBase, token, fullRepoName } = await this.resolveConnection(projectId);
+    await this.api.createIssueComment(apiBase, token, fullRepoName, mergeRequestId, body);
+  }
+
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
   private async resolveConnection(projectId: string): Promise<GiteaConnection> {
