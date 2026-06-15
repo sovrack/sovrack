@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ProviderCard } from '@/components/source-providers/provider-card';
 import { AddProviderDialog } from '@/components/source-providers/add-provider-dialog';
-import { GitLabLogo, GitHubLogo } from '@/components/source-providers/provider-meta';
+import { GitLabLogo } from '@/components/source-providers/provider-meta';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import { platformConfigService } from '@/services/platform-config.service';
@@ -389,17 +389,9 @@ export default function GitSettingsPage() {
           description="Global reusable Git integrations. Projects reference these providers to import repositories, trigger builds, and deploy automatically."
           actions={
             isAdmin && (
-              <div className="flex items-center gap-2">
-                <Button onClick={() => openCreate('GITLAB')} icon={<GitLabLogo className="h-3.5 w-3.5" />}>
-                  GitLab
-                </Button>
-                <Button onClick={() => openCreate('GITHUB')} icon={<GitHubLogo className="h-3.5 w-3.5" />}>
-                  GitHub
-                </Button>
-                <Button onClick={() => openCreate('GITEA')} icon={<GitBranch className="h-3.5 w-3.5" />}>
-                  Gitea
-                </Button>
-              </div>
+              <Button onClick={() => openCreate('GITLAB')} icon={<Plus size={14} />}>
+                Add provider
+              </Button>
             )
           }
         />
