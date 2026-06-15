@@ -1,0 +1,45 @@
+# =============================================================================
+# Frontend CI — lint · typecheck · contract drift · build.
+# This repo's root IS the frontend (no monorepo cd).
+# =============================================================================
+stages:
+  - validate
+  - build
+
+default:
+  image: node:20
+
+variables:
+  NEXT_PUBLIC_API_URL: http://localhost:3001
+  NEXT_PUBLIC_WS_URL: http://localhost:3001
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+
+typecheck:
+  stage: validate
+  script:
+    - npm ci
+    - npx tsc --noEmit
+
+lint:
+  stage: validate
+  script:
+    - npm ci
+    - npm run lint
+
+contract:check:
+  stage: validate
+  script:
+    - npm ci
+    # The OpenAPI contract is generated from the backend; fail if it drifts.
+    - git diff --exit-code src/generated/api-contract.ts
+      || (echo "api-contract.ts is outdated — run 'npm run contract:generate'" && exit 1)
+
+build:
+  stage: build
+  script:
+    - npm ci
+    - npm run build
