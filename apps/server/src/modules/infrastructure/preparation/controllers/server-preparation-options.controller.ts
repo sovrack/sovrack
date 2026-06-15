@@ -15,7 +15,7 @@ export class ServerPreparationOptionsController {
   constructor(private readonly prep: ServerPreparationService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister les options et profils de préparation' })
+  @ApiOperation({ summary: 'List provisioning options and profiles' })
   options() {
     return this.prep.getOptions();
   }

@@ -26,7 +26,7 @@ export class SourceController {
   @Get('source/providers')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Lister tous les providers source (GitHub + GitLab) avec leur type' })
+  @ApiOperation({ summary: 'List all source providers (GitHub + GitLab) with their type' })
   @ApiResponse({ status: 200, description: 'Liste des providers source' })
   async listProviders() {
     return await this.gitProvidersService.listSourceProviders();
@@ -35,9 +35,9 @@ export class SourceController {
   @Post('projects/:id/source/connect')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Connecter une source Git (GitLab ou GitHub) à un projet' })
-  @ApiResponse({ status: 201, description: 'Source connectée' })
-  @ApiResponse({ status: 400, description: 'Connexion échouée' })
+  @ApiOperation({ summary: 'Connect a Git source (GitLab or GitHub) to a project' })
+  @ApiResponse({ status: 201, description: 'Source connected' })
+  @ApiResponse({ status: 400, description: 'Connection failed' })
   async connectSource(
     @Param('id') projectId: string,
     @Body() dto: ConnectSourceDto,

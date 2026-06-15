@@ -85,9 +85,9 @@ export class ServerManagementController {
   constructor(private readonly core: ServersCoreService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Créer un serveur' })
+  @ApiOperation({ summary: 'Create a server' })
   @ApiCreatedResponse({
-    description: 'Serveur créé avec succès',
+    description: 'Server created successfully',
     type: CreateServerResponseDto,
   })
   async create(@Body() dto: CreateServerDto, @GetUser() user: JwtPayload) {
@@ -95,7 +95,7 @@ export class ServerManagementController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lister tous les serveurs (sshKey masquée)' })
+  @ApiOperation({ summary: 'List all servers (sshKey masked)' })
   @ApiOkResponse({
     description: 'Liste des serveurs',
     schema: {
@@ -113,15 +113,15 @@ export class ServerManagementController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: "Voir le détail d'un serveur" })
-  @ApiOkResponse({ description: 'Serveur trouvé', type: ServerResponseDto })
+  @ApiOperation({ summary: "View a server's details" })
+  @ApiOkResponse({ description: 'Server found', type: ServerResponseDto })
   async findOne(@Param('id') id: string) {
     return await this.core.findOne(id);
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Modifier un serveur' })
-  @ApiOkResponse({ description: 'Serveur mis à jour', type: ServerResponseDto })
+  @ApiOperation({ summary: 'Edit a server' })
+  @ApiOkResponse({ description: 'Server updated', type: ServerResponseDto })
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateServerDto,
@@ -131,8 +131,8 @@ export class ServerManagementController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Modifier partiellement un serveur' })
-  @ApiOkResponse({ description: 'Serveur mis à jour', type: ServerResponseDto })
+  @ApiOperation({ summary: 'Partially update a server' })
+  @ApiOkResponse({ description: 'Server updated', type: ServerResponseDto })
   async patch(
     @Param('id') id: string,
     @Body() dto: UpdateServerDto,
@@ -143,15 +143,15 @@ export class ServerManagementController {
 
   @Delete(':id')
   @ApiOperation({
-    summary: 'Supprimer un serveur si aucun environnement actif',
+    summary: 'Delete a server if no active environment',
   })
   @ApiOkResponse({
-    description: 'Serveur supprimé',
+    description: 'Server deleted',
     type: DeleteServerResponseDto,
   })
   @ApiResponse({
     status: 400,
-    description: 'Serveur utilisé par un environnement actif',
+    description: 'Server used by an active environment',
   })
   async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
     await this.core.remove(id, user.id);
@@ -160,10 +160,10 @@ export class ServerManagementController {
 
   @Post(':id/install-key')
   @ApiOperation({
-    summary: 'Installer la clé publique SSH via mot de passe temporaire',
+    summary: 'Install the SSH public key via a temporary password',
   })
   @ApiCreatedResponse({
-    description: 'Clé SSH installée et validée',
+    description: 'SSH key installed and validated',
     type: InstallKeyResponseDto,
   })
   async installKey(
@@ -177,7 +177,7 @@ export class ServerManagementController {
   @Post(':id/register-runner')
   @ApiOperation({ summary: 'Enregistrer le GitLab Runner sur ce serveur' })
   @ApiCreatedResponse({
-    description: 'Runner enregistré',
+    description: 'Runner registered',
     type: ServerResponseDto,
   })
   async registerRunner(
@@ -206,8 +206,8 @@ export class ServerManagementController {
   }
 
   @Patch(':id/role')
-  @ApiOperation({ summary: 'Définir le rôle infrastructure de ce serveur' })
-  @ApiOkResponse({ description: 'Rôle mis à jour' })
+  @ApiOperation({ summary: 'Set the infrastructure role of this server' })
+  @ApiOkResponse({ description: 'Role updated' })
   async setServerRole(
     @Param('id') id: string,
     @Body() dto: SetServerRoleDto,
@@ -217,29 +217,29 @@ export class ServerManagementController {
   }
 
   @Get('infra-environments')
-  @ApiOperation({ summary: 'Lister les serveurs configurés comme STAGING ou PRODUCTION' })
-  @ApiOkResponse({ description: 'Serveurs avec rôle infra' })
+  @ApiOperation({ summary: 'List servers configured as STAGING or PRODUCTION' })
+  @ApiOkResponse({ description: 'Servers with an infra role' })
   async listInfraEnvironments() {
     return await this.core.listInfraEnvironments();
   }
 
   @Get(':id/environments')
-  @ApiOperation({ summary: 'Lister les environnements assignés à ce serveur (tous projets)' })
+  @ApiOperation({ summary: 'List environments assigned to this server (all projects)' })
   @ApiOkResponse({ description: 'Environnements utilisant ce serveur' })
   async listServerEnvironments(@Param('id') id: string) {
     return await this.core.listEnvironmentsForServer(id);
   }
 
   @Post(':id/ping')
-  @ApiOperation({ summary: 'Tester rapidement la connectivité SSH du serveur' })
-  @ApiOkResponse({ description: 'Résultat du test de connexion' })
+  @ApiOperation({ summary: 'Quickly test the server SSH connectivity' })
+  @ApiOkResponse({ description: 'Connection test result' })
   async pingServer(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.core.pingServer(id, user.id);
   }
 
   @Post(':id/jobs/:jobId/cancel')
-  @ApiOperation({ summary: 'Forcer la fin d\'un job bloqué ou fantôme' })
-  @ApiOkResponse({ description: 'Job marqué comme échoué', type: ServerJobResponseDto })
+  @ApiOperation({ summary: 'Force-finish a stuck or ghost job' })
+  @ApiOkResponse({ description: 'Job marked as failed', type: ServerJobResponseDto })
   async cancelJob(@Param('id') id: string, @Param('jobId') jobId: string) {
     return await this.core.cancelJob(id, jobId);
   }

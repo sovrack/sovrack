@@ -19,7 +19,7 @@ export class CreateProjectDto {
 
   @ApiPropertyOptional({
     example: '0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd',
-    description: 'Utilisateur DEVELOPER à assigner comme OWNER',
+    description: 'DEVELOPER user to assign as OWNER',
   })
   @IsOptional()
   @IsUUID('4')

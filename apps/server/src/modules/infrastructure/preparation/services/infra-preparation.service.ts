@@ -108,7 +108,7 @@ export class ServerPreparationService implements OnModuleInit {
       try {
         await this.state.transitionPreparation(prep.id, ServerPreparationStatus.FAILED, {
           finishedAt: new Date(),
-          summary: 'Préparation interrompue lors du redémarrage du backend. Relancez la préparation.',
+          summary: 'Provisioning interrupted during a backend restart. Re-run the provisioning.',
           errorMessage: 'Préparation interrompue lors du redémarrage du backend.',
         });
         await this.prisma.server.update({
@@ -428,7 +428,7 @@ export class ServerPreparationService implements OnModuleInit {
 
     await this.state.transitionPreparation(id, ServerPreparationStatus.CANCELED, {
       finishedAt: new Date(),
-      summary: 'Préparation annulée par un administrateur.',
+      summary: 'Provisioning canceled by an administrator.',
     });
     const updated = await this.getPreparation(id);
 
@@ -572,7 +572,7 @@ export class ServerPreparationService implements OnModuleInit {
         ServerPreparationStatus.SUCCEEDED,
         {
           finishedAt: new Date(),
-          summary: 'Préparation serveur terminée avec succès.',
+          summary: 'Server provisioning completed successfully.',
         },
       );
       await this.prisma.serverJob.update({

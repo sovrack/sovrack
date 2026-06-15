@@ -34,7 +34,7 @@ export class PreviewEnvironmentsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister les environnements de preview actifs' })
+  @ApiOperation({ summary: 'List active preview environments' })
   async list(@Param('projectId') projectId: string, @GetUser() user: JwtPayload) {
     await this.assertAccess(projectId, user);
     return this.previews.listForProject(projectId);
@@ -52,7 +52,7 @@ export class PreviewEnvironmentsController {
   }
 
   @Delete(':mergeRequestId')
-  @ApiOperation({ summary: 'Fermer (détruire) un environnement de preview' })
+  @ApiOperation({ summary: 'Close (destroy) a preview environment' })
   async close(
     @Param('projectId') projectId: string,
     @Param('mergeRequestId') mergeRequestId: string,

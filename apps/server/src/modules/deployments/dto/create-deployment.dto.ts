@@ -26,7 +26,7 @@ export class CreateDeploymentDto {
     enum: ['standard', 'blue-green'],
     example: 'standard',
     description:
-      'Strategy de déploiement: standard (simple restart) ou blue-green (zero-downtime)',
+      'Deployment strategy: standard (simple restart) or blue-green (zero-downtime)',
   })
   @IsOptional()
   @IsEnum(['standard', 'blue-green'], {

@@ -28,13 +28,13 @@ export class NotificationsController {
   constructor(private readonly notif: NotificationsService) {}
 
   @Get('settings')
-  @ApiOperation({ summary: 'Récupérer les paramètres de notification' })
+  @ApiOperation({ summary: 'Get the notification settings' })
   async getSettings() {
     return this.notif.getSettings();
   }
 
   @Put('settings')
-  @ApiOperation({ summary: 'Sauvegarder les paramètres de notification' })
+  @ApiOperation({ summary: 'Save the notification settings' })
   async saveSettings(@Body() dto: UpdateNotificationSettingsDto) {
     await this.notif.saveSettings(dto);
     return this.notif.getSettings();

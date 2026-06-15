@@ -45,10 +45,10 @@ export class AuthController {
   @Post('login')
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @UseGuards(LoginRateLimitGuard)
-  @ApiOperation({ summary: 'Connexion utilisateur' })
+  @ApiOperation({ summary: 'User login' })
   @ApiResponse({
     status: 200,
-    description: 'Connexion réussie avec token JWT',
+    description: 'Login successful with JWT token',
   })
   @ApiResponse({
     status: 401,
@@ -56,7 +56,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 429,
-    description: 'Trop de tentatives de connexion',
+    description: 'Too many connection attempts',
   })
   async login(
     @Body() dto: LoginDto,
@@ -83,11 +83,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Retourne un jeton court durée pour les connexions WebSocket',
+    summary: 'Returns a short-lived token for WebSocket connections',
   })
-  @ApiResponse({ status: 200, description: 'Jeton WebSocket généré' })
-  @ApiResponse({ status: 401, description: 'Non authentifié' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
+  @ApiResponse({ status: 200, description: 'WebSocket token generated' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
   getWsToken(@GetUser() user: JwtPayload): { wsToken: string } {
     const wsToken = this.authService.generateWsToken(user.id, user.role);
     return { wsToken };
@@ -97,13 +97,13 @@ export class AuthController {
   @Roles(Role.ADMIN, Role.DEVELOPER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Récupérer le profil de l'utilisateur connecté" })
+  @ApiOperation({ summary: "Get the logged-in user's profile" })
   @ApiResponse({
     status: 200,
-    description: 'Profil utilisateur récupéré avec succès',
+    description: 'User profile fetched successfully',
   })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
   async getMe(@GetUser() user: JwtPayload): Promise<Omit<User, 'password'>> {
     return await this.authService.getMe(user.id);
   }
@@ -111,9 +111,9 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Déconnexion utilisateur (audit)' })
-  @ApiResponse({ status: 201, description: 'Déconnexion enregistrée' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiOperation({ summary: 'User logout (audit)' })
+  @ApiResponse({ status: 201, description: 'Logout recorded' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   async logout(
     @GetUser() user: JwtPayload,
     @Res({ passthrough: true }) response: Response,

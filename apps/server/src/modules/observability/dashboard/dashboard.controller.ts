@@ -11,7 +11,7 @@ export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 
   @Get('stats')
-  @ApiOperation({ summary: 'Statistiques agrégées du dashboard' })
+  @ApiOperation({ summary: 'Aggregated dashboard statistics' })
   async getStats() {
     return this.dashboard.getStats();
   }

@@ -72,56 +72,56 @@ export class SourceProvidersController {
   // ─── GitLab Providers ──────────────────────────────────────────────────
 
   @Get('gitlab/providers')
-  @ApiOperation({ summary: 'Lister les providers GitLab' })
+  @ApiOperation({ summary: 'List GitLab providers' })
   async listGitlabProviders() {
     return this.gitProviders.listGitlabProviders();
   }
 
   @Post('gitlab/providers')
-  @ApiOperation({ summary: 'Créer un provider GitLab' })
+  @ApiOperation({ summary: 'Create a GitLab provider' })
   async createGitlabProvider(@Body() dto: CreateGitlabProviderDto) {
     return this.gitProviders.createGitlabProvider(dto);
   }
 
   @Put('gitlab/providers/:id')
-  @ApiOperation({ summary: 'Mettre à jour un provider GitLab' })
+  @ApiOperation({ summary: 'Update a GitLab provider' })
   async updateGitlabProvider(@Param('id') id: string, @Body() dto: UpdateGitlabProviderDto) {
     return this.gitProviders.updateGitlabProvider(id, dto);
   }
 
   @Delete('gitlab/providers/:id')
-  @ApiOperation({ summary: 'Supprimer un provider GitLab' })
+  @ApiOperation({ summary: 'Delete a GitLab provider' })
   async deleteGitlabProvider(@Param('id') id: string) {
     await this.gitProviders.deleteGitlabProvider(id);
     return { ok: true };
   }
 
   @Post('gitlab/providers/:id/default')
-  @ApiOperation({ summary: 'Définir un provider GitLab par défaut' })
+  @ApiOperation({ summary: 'Set a default GitLab provider' })
   async setDefaultGitlabProvider(@Param('id') id: string) {
     return this.gitProviders.setDefaultGitlabProvider(id);
   }
 
   @Post('gitlab/providers/:id/test')
-  @ApiOperation({ summary: 'Tester la connexion GitLab pour un provider' })
+  @ApiOperation({ summary: 'Test the GitLab connection for a provider' })
   async testGitlabProvider(@Param('id') id: string) {
     return this.gitProviders.testGitlab(id);
   }
 
   @Post('gitlab/providers/:id/oauth/start')
-  @ApiOperation({ summary: 'Démarrer OAuth GitLab pour un provider' })
+  @ApiOperation({ summary: 'Start GitLab OAuth for a provider' })
   async startGitlabOAuthForProvider(@Param('id') id: string, @Req() req: Request) {
     return this.oauth.startGitlabOAuthForProvider(id, this.resolvePublicBaseUrl(req));
   }
 
   @Post('test-gitlab')
-  @ApiOperation({ summary: 'Tester la connexion GitLab globale (default provider)' })
+  @ApiOperation({ summary: 'Test the global GitLab connection (default provider)' })
   async testGitlab() {
     return this.gitProviders.testGitlab();
   }
 
   @Post('gitlab/oauth/start')
-  @ApiOperation({ summary: 'Démarrer OAuth GitLab global (default provider)' })
+  @ApiOperation({ summary: 'Start global GitLab OAuth (default provider)' })
   async startGitlabOAuth(@Req() req: Request) {
     return this.oauth.startGitlabOAuth(this.resolvePublicBaseUrl(req));
   }
@@ -129,44 +129,44 @@ export class SourceProvidersController {
   // ─── GitHub Providers ──────────────────────────────────────────────────
 
   @Get('github/providers')
-  @ApiOperation({ summary: 'Lister les providers GitHub' })
+  @ApiOperation({ summary: 'List GitHub providers' })
   async listGithubProviders() {
     return this.gitProviders.listGithubProviders();
   }
 
   @Post('github/providers')
-  @ApiOperation({ summary: 'Créer un provider GitHub' })
+  @ApiOperation({ summary: 'Create a GitHub provider' })
   async createGithubProvider(@Body() dto: CreateGithubProviderDto) {
     return this.gitProviders.createGithubProvider(dto);
   }
 
   @Put('github/providers/:id')
-  @ApiOperation({ summary: 'Mettre à jour un provider GitHub' })
+  @ApiOperation({ summary: 'Update a GitHub provider' })
   async updateGithubProvider(@Param('id') id: string, @Body() dto: UpdateGithubProviderDto) {
     return this.gitProviders.updateGithubProvider(id, dto);
   }
 
   @Delete('github/providers/:id')
-  @ApiOperation({ summary: 'Supprimer un provider GitHub' })
+  @ApiOperation({ summary: 'Delete a GitHub provider' })
   async deleteGithubProvider(@Param('id') id: string) {
     await this.gitProviders.deleteGithubProvider(id);
     return { ok: true };
   }
 
   @Post('github/providers/:id/default')
-  @ApiOperation({ summary: 'Définir un provider GitHub par défaut' })
+  @ApiOperation({ summary: 'Set a default GitHub provider' })
   async setDefaultGithubProvider(@Param('id') id: string) {
     return this.gitProviders.setDefaultGithubProvider(id);
   }
 
   @Post('github/providers/:id/test')
-  @ApiOperation({ summary: 'Tester la connexion GitHub pour un provider' })
+  @ApiOperation({ summary: 'Test the GitHub connection for a provider' })
   async testGithubProvider(@Param('id') id: string) {
     return this.gitProviders.testGithubProvider(id);
   }
 
   @Get('github/providers/:id/repos')
-  @ApiOperation({ summary: 'Lister les repos GitHub accessibles via ce provider' })
+  @ApiOperation({ summary: 'List GitHub repos accessible via this provider' })
   async listGithubRepos(@Param('id') id: string) {
     return this.gitProviders.listGithubRepos(id);
   }
@@ -174,32 +174,32 @@ export class SourceProvidersController {
   // ─── Gitea Providers ───────────────────────────────────────────────────
 
   @Get('gitea/providers')
-  @ApiOperation({ summary: 'Lister les providers Gitea' })
+  @ApiOperation({ summary: 'List Gitea providers' })
   async listGiteaProviders() {
     return this.gitProviders.listGiteaProviders();
   }
 
   @Post('gitea/providers')
-  @ApiOperation({ summary: 'Créer un provider Gitea' })
+  @ApiOperation({ summary: 'Create a Gitea provider' })
   async createGiteaProvider(@Body() dto: CreateGiteaProviderDto) {
     return this.gitProviders.createGiteaProvider(dto);
   }
 
   @Put('gitea/providers/:id')
-  @ApiOperation({ summary: 'Mettre à jour un provider Gitea' })
+  @ApiOperation({ summary: 'Update a Gitea provider' })
   async updateGiteaProvider(@Param('id') id: string, @Body() dto: UpdateGiteaProviderDto) {
     return this.gitProviders.updateGiteaProvider(id, dto);
   }
 
   @Delete('gitea/providers/:id')
-  @ApiOperation({ summary: 'Supprimer un provider Gitea' })
+  @ApiOperation({ summary: 'Delete a Gitea provider' })
   async deleteGiteaProvider(@Param('id') id: string) {
     await this.gitProviders.deleteGiteaProvider(id);
     return { ok: true };
   }
 
   @Post('gitea/providers/:id/default')
-  @ApiOperation({ summary: 'Définir un provider Gitea par défaut' })
+  @ApiOperation({ summary: 'Set a default Gitea provider' })
   async setDefaultGiteaProvider(@Param('id') id: string) {
     return this.gitProviders.setDefaultGiteaProvider(id);
   }

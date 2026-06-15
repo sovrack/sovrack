@@ -13,7 +13,7 @@ export class DatabaseBackupsController {
   constructor(private readonly backups: DatabaseBackupService) {}
 
   @Get()
-  @ApiOperation({ summary: "Lister les sauvegardes d'une base de données" })
+  @ApiOperation({ summary: "List a database's backups" })
   async list(
     @Param('serviceEnvId') serviceEnvId: string,
     @GetUser() user: JwtPayload,
@@ -22,7 +22,7 @@ export class DatabaseBackupsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Déclencher une sauvegarde manuelle' })
+  @ApiOperation({ summary: 'Trigger a manual backup' })
   async create(
     @Param('serviceEnvId') serviceEnvId: string,
     @GetUser() user: JwtPayload,

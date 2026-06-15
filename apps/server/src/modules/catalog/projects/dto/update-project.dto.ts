@@ -10,7 +10,7 @@ export class UpdateProjectDto {
   @IsString({ message: 'Le nom doit être une chaîne de caractères' })
   name?: string;
 
-  @ApiPropertyOptional({ example: 'Description mise à jour' })
+  @ApiPropertyOptional({ example: 'Updated description' })
   @IsOptional()
   @IsString({ message: 'La description doit être une chaîne de caractères' })
   description?: string;

@@ -77,7 +77,7 @@ export class ServiceEnvironmentsService {
         dto.secretsEnv !== undefined ? this.crypto.encrypt(dto.secretsEnv) : undefined,
     };
 
-    // Lien déjà existant mais archivé → on RÉACTIVE la même ligne (archivedAt
+    // Link already exists mais archivé → on RÉACTIVE la même ligne (archivedAt
     // = null) plutôt que d'en créer une nouvelle : préserve son historique et
     // respecte @@unique([serviceId, environmentId]).
     if (existing) {

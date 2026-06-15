@@ -29,13 +29,13 @@ export class ProjectTeamsController {
   @Post(':projectId/teams/:teamId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: "Ajouter tous les membres d'une équipe à un projet",
+    summary: "Add all members of a team to a project",
   })
   @ApiResponse({
     status: 200,
-    description: "Membres de l'équipe ajoutés au projet",
+    description: "Team members added to the project",
   })
-  @ApiResponse({ status: 404, description: 'Projet ou équipe introuvable' })
+  @ApiResponse({ status: 404, description: 'Project or team not found' })
   async addTeamToProject(
     @Param('projectId') projectId: string,
     @Param('teamId') teamId: string,

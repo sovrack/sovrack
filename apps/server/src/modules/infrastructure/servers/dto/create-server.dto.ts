@@ -60,13 +60,13 @@ export class CreateServerDto {
   @ApiPropertyOptional({
     example: '-----BEGIN OPENSSH PRIVATE KEY-----\n...',
     description:
-      'Clé privée SSH (OpenSSH ou PKCS8). Si absente, la plateforme génère automatiquement une paire de clés.',
+      'SSH private key (OpenSSH or PKCS8). If omitted, the platform auto-generates a key pair.',
   })
   @IsOptional()
   @IsString()
   @Matches(/PRIVATE KEY/, {
     message:
-      'La clé SSH doit être au format PEM (contenir "PRIVATE KEY"). Formats acceptés : OpenSSH, PKCS8.',
+      'The SSH key must be in PEM format (contain "PRIVATE KEY"). Accepted formats: OpenSSH, PKCS8.',
   })
   sshKey?: string;
 
@@ -74,7 +74,7 @@ export class CreateServerDto {
     enum: ServerVerificationMode,
     default: ServerVerificationMode.MANUAL,
     description:
-      'Déprécié: ce champ est ignoré. Le serveur est créé puis la clé SSH doit être installée via /servers/:id/install-key.',
+      'Deprecated: this field is ignored. The server is created, then the SSH key must be installed via /servers/:id/install-key.',
     deprecated: true,
   })
   @IsOptional()
@@ -93,7 +93,7 @@ export class CreateServerDto {
   @ApiPropertyOptional({
     enum: ServerConnectionModeDto,
     default: ServerConnectionModeDto.SSH,
-    description: 'Mode de connexion : ssh (direct SSH)',
+    description: 'Connection mode: ssh (direct SSH)',
   })
   @IsOptional()
   @IsEnum(ServerConnectionModeDto, {

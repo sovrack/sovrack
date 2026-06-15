@@ -39,20 +39,20 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Créer un nouveau compte développeur' })
-  @ApiResponse({ status: 201, description: 'Utilisateur créé avec succès' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
-  @ApiResponse({ status: 409, description: 'Email déjà utilisé' })
+  @ApiOperation({ summary: 'Create a new developer account' })
+  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 409, description: 'Email already in use' })
   async create(@Body() dto: CreateUserDto): Promise<Omit<User, 'password'>> {
     return await this.usersService.create(dto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lister tous les utilisateurs sans mot de passe' })
+  @ApiOperation({ summary: 'List all users without passwords' })
   @ApiResponse({ status: 200, description: 'Liste des utilisateurs' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
   async findAll(@Query() pagination: PaginationDto) {
     return await this.usersService.findAll(pagination);
   }
@@ -62,11 +62,11 @@ export class UsersController {
   @ApiOperation({
     summary: 'Changer le mot de passe de la session courante',
   })
-  @ApiResponse({ status: 200, description: 'Mot de passe mis à jour' })
+  @ApiResponse({ status: 200, description: 'Password updated' })
   @ApiResponse({ status: 400, description: 'Payload invalide' })
   @ApiResponse({
     status: 401,
-    description: 'Token JWT invalide/expiré ou mot de passe actuel incorrect',
+    description: 'Invalid/expired JWT token or incorrect current password',
   })
   async changeMyPassword(
     @GetUser() user: JwtPayload,
@@ -76,22 +76,22 @@ export class UsersController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: "Récupérer le détail d'un utilisateur" })
-  @ApiResponse({ status: 200, description: 'Utilisateur trouvé' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
-  @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
+  @ApiOperation({ summary: "Get a user's details" })
+  @ApiResponse({ status: 200, description: 'User found' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async findById(@Param('id') id: string): Promise<Omit<User, 'password'>> {
     return await this.usersService.findByIdOrFail(id);
   }
 
   @Put(':id')
   @Roles(Role.ADMIN, Role.DEVELOPER)
-  @ApiOperation({ summary: 'Modifier un utilisateur' })
-  @ApiResponse({ status: 200, description: 'Utilisateur mis à jour' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
-  @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
+  @ApiOperation({ summary: 'Edit a user' })
+  @ApiResponse({ status: 200, description: 'User updated' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async update(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
@@ -104,21 +104,21 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Supprimer un utilisateur' })
-  @ApiResponse({ status: 200, description: 'Utilisateur supprimé' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
-  @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
+  @ApiOperation({ summary: 'Delete a user' })
+  @ApiResponse({ status: 200, description: 'User deleted' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async delete(@Param('id') id: string): Promise<Omit<User, 'password'>> {
     return await this.usersService.delete(id);
   }
 
   @Put(':id/toggle-active')
-  @ApiOperation({ summary: 'Activer ou désactiver un compte utilisateur' })
-  @ApiResponse({ status: 200, description: 'Statut du compte mis à jour' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
-  @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
+  @ApiOperation({ summary: 'Activate or deactivate a user account' })
+  @ApiResponse({ status: 200, description: 'Account status updated' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Insufficient role' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async toggleActive(@Param('id') id: string): Promise<Omit<User, 'password'>> {
     return await this.usersService.toggleActive(id);
   }

@@ -14,7 +14,7 @@ export class ConnectGitlabDto {
 
   @ApiPropertyOptional({
     example: 'b5073d11-f378-4c71-87da-093f3ecf20af',
-    description: 'Provider config ID. Si fourni, URL/token peuvent être omis.',
+    description: 'Provider config ID. If provided, URL/token may be omitted.',
   })
   @IsOptional()
   @IsString()
@@ -30,7 +30,7 @@ export class ConnectGitlabDto {
 
   @ApiPropertyOptional({
     example: 'my-group',
-    description: 'Group/org path pour découvrir tous les repos du groupe.',
+    description: 'Group/org path to discover all repos in the group.',
   })
   @IsOptional()
   @IsString()

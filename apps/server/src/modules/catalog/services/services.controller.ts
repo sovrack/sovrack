@@ -40,8 +40,8 @@ export class ServicesController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Créer un service dans un projet' })
-  @ApiResponse({ status: 201, description: 'Service créé' })
+  @ApiOperation({ summary: 'Create a service in a project' })
+  @ApiResponse({ status: 201, description: 'Service created' })
   async create(
     @Param('projectId') projectId: string,
     @Body() dto: CreateServiceDto,
@@ -51,7 +51,7 @@ export class ServicesController {
   }
 
   @Post('discover-group')
-  @ApiOperation({ summary: 'Découvrir les repos d\'un groupe/org pour créer des services' })
+  @ApiOperation({ summary: 'Discover the repos of a group/org to create services' })
   async discoverGroup(
     @Param('projectId') projectId: string,
     @Body() dto: DiscoverGroupDto,
@@ -61,7 +61,7 @@ export class ServicesController {
   }
 
   @Get(':serviceId')
-  @ApiOperation({ summary: "Détail d'un service" })
+  @ApiOperation({ summary: "Service details" })
   async findOne(
     @Param('projectId') projectId: string,
     @Param('serviceId') serviceId: string,
@@ -71,7 +71,7 @@ export class ServicesController {
   }
 
   @Put(':serviceId')
-  @ApiOperation({ summary: 'Mettre à jour un service' })
+  @ApiOperation({ summary: 'Update a service' })
   async update(
     @Param('projectId') projectId: string,
     @Param('serviceId') serviceId: string,
@@ -82,7 +82,7 @@ export class ServicesController {
   }
 
   @Delete(':serviceId')
-  @ApiOperation({ summary: 'Supprimer un service' })
+  @ApiOperation({ summary: 'Delete a service' })
   async remove(
     @Param('projectId') projectId: string,
     @Param('serviceId') serviceId: string,

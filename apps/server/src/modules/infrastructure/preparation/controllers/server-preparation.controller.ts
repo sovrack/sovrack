@@ -39,7 +39,7 @@ export class ServerPreparationController {
   constructor(private readonly prep: ServerPreparationService) {}
 
   @Post(':id/preparations')
-  @ApiOperation({ summary: 'Démarrer une préparation serveur' })
+  @ApiOperation({ summary: 'Start a server provisioning job' })
   @ApiCreatedResponse({ type: ServerPreparationDto })
   async startPreparation(
     @Param('id') id: string,
@@ -71,7 +71,7 @@ export class ServerPreparationController {
   }
 
   @Get(':id/preparations')
-  @ApiOperation({ summary: "Lister l'historique de préparation du serveur" })
+  @ApiOperation({ summary: "List the server's provisioning history" })
   @ApiOkResponse({ type: ServerPreparationDto, isArray: true })
   async listPreparations(@Param('id') id: string) {
     return await this.prep.listPreparations(id);
@@ -80,7 +80,7 @@ export class ServerPreparationController {
   @Get(':id/preparation-readiness')
   @ApiOperation({
     summary:
-      'Vérifier si le serveur est prêt à lancer une préparation (SSH/sudo/état/verrou).',
+      'Check whether the server is ready to start provisioning (SSH/sudo/state/lock).',
   })
   @ApiOkResponse({ type: ServerPreparationReadinessDto })
   async getPreparationReadiness(@Param('id') id: string) {

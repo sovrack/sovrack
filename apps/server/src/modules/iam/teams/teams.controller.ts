@@ -34,61 +34,61 @@ export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister toutes les équipes' })
-  @ApiResponse({ status: 200, description: 'Liste des équipes' })
+  @ApiOperation({ summary: 'List all teams' })
+  @ApiResponse({ status: 200, description: 'Team list' })
   async findAll() {
     return this.teamsService.findAll();
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Récupérer une équipe par ID' })
-  @ApiResponse({ status: 200, description: 'Équipe trouvée' })
-  @ApiResponse({ status: 404, description: 'Équipe introuvable' })
+  @ApiOperation({ summary: 'Get a team by ID' })
+  @ApiResponse({ status: 200, description: 'Team found' })
+  @ApiResponse({ status: 404, description: 'Team not found' })
   async findOne(@Param('id') id: string) {
     return this.teamsService.findOne(id);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Créer une équipe' })
-  @ApiResponse({ status: 201, description: 'Équipe créée avec succès' })
-  @ApiResponse({ status: 409, description: 'Nom déjà utilisé' })
+  @ApiOperation({ summary: 'Create a team' })
+  @ApiResponse({ status: 201, description: 'Team created successfully' })
+  @ApiResponse({ status: 409, description: 'Name already in use' })
   async create(@Body() dto: CreateTeamDto) {
     return this.teamsService.create(dto);
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Modifier une équipe' })
-  @ApiResponse({ status: 200, description: 'Équipe mise à jour' })
-  @ApiResponse({ status: 404, description: 'Équipe introuvable' })
+  @ApiOperation({ summary: 'Edit a team' })
+  @ApiResponse({ status: 200, description: 'Team updated' })
+  @ApiResponse({ status: 404, description: 'Team not found' })
   async update(@Param('id') id: string, @Body() dto: UpdateTeamDto) {
     return this.teamsService.update(id, dto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Supprimer une équipe' })
-  @ApiResponse({ status: 200, description: 'Équipe supprimée' })
-  @ApiResponse({ status: 404, description: 'Équipe introuvable' })
+  @ApiOperation({ summary: 'Delete a team' })
+  @ApiResponse({ status: 200, description: 'Team deleted' })
+  @ApiResponse({ status: 404, description: 'Team not found' })
   async remove(@Param('id') id: string) {
     return this.teamsService.remove(id);
   }
 
   @Post(':id/members')
-  @ApiOperation({ summary: 'Ajouter un membre à une équipe' })
-  @ApiResponse({ status: 201, description: 'Membre ajouté' })
+  @ApiOperation({ summary: 'Add a member to a team' })
+  @ApiResponse({ status: 201, description: 'Member added' })
   @ApiResponse({
     status: 404,
-    description: 'Équipe ou utilisateur introuvable',
+    description: 'Team or user not found',
   })
-  @ApiResponse({ status: 409, description: 'Déjà membre de cette équipe' })
+  @ApiResponse({ status: 409, description: 'Already a member of this team' })
   async addMember(@Param('id') id: string, @Body() dto: AddTeamMemberDto) {
     return this.teamsService.addMember(id, dto);
   }
 
   @Delete(':id/members/:userId')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Retirer un membre d'une équipe" })
-  @ApiResponse({ status: 200, description: 'Membre retiré' })
-  @ApiResponse({ status: 404, description: 'Équipe ou membre introuvable' })
+  @ApiOperation({ summary: 'Remove a member from a team' })
+  @ApiResponse({ status: 200, description: 'Member removed' })
+  @ApiResponse({ status: 404, description: 'Team or member not found' })
   async removeMember(@Param('id') id: string, @Param('userId') userId: string) {
     return this.teamsService.removeMember(id, userId);
   }

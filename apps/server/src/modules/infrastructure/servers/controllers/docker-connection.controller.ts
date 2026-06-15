@@ -49,7 +49,7 @@ export class DockerConnectionController {
 
   @Get()
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Lire la config Docker (chiffrée) pour un serveur' })
+  @ApiOperation({ summary: 'Read the (encrypted) Docker config for a server' })
   async get(@Param('serverId') serverId: string) {
     // We DO NOT return the encrypted certs in the response — they are
     // write-only from the API's perspective. The admin UI only needs
@@ -69,7 +69,7 @@ export class DockerConnectionController {
 
   @Post()
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Créer ou remplacer la connexion Docker d\'un serveur' })
+  @ApiOperation({ summary: 'Create or replace the Docker connection of a server' })
   async upsert(
     @Param('serverId') serverId: string,
     @Body() dto: UpsertDockerConnectionDto,
@@ -79,14 +79,14 @@ export class DockerConnectionController {
 
   @Post('probe')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Tester la connexion Docker (handshake TLS + ping)' })
+  @ApiOperation({ summary: 'Test the Docker connection (TLS handshake + ping)' })
   async probe(@Param('serverId') serverId: string) {
     return this.dockerConnections.probeReachability(serverId);
   }
 
   @Delete()
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Supprimer la connexion Docker configurée pour ce serveur' })
+  @ApiOperation({ summary: 'Delete the Docker connection configured for this server' })
   async remove(@Param('serverId') serverId: string) {
     return this.dockerConnections.remove(serverId);
   }

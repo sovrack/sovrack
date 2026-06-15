@@ -37,7 +37,7 @@ export class DomainsController {
   constructor(private readonly domainsService: DomainsService) {}
 
   @Get('providers')
-  @ApiOperation({ summary: 'Lister les providers DNS' })
+  @ApiOperation({ summary: 'List DNS providers' })
   @ApiResponse({ status: 200, description: 'Providers DNS' })
   async listProviders() {
     return await this.domainsService.listProviders();
@@ -46,8 +46,8 @@ export class DomainsController {
   @Post('providers')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Créer un provider DNS' })
-  @ApiResponse({ status: 201, description: 'Provider DNS créé' })
+  @ApiOperation({ summary: 'Create a DNS provider' })
+  @ApiResponse({ status: 201, description: 'DNS provider created' })
   async createProvider(@Body() dto: CreateDnsProviderDto) {
     return await this.domainsService.createProvider(dto);
   }
@@ -55,14 +55,14 @@ export class DomainsController {
   @Post('providers/:id/test')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Tester un provider DNS' })
-  @ApiResponse({ status: 201, description: 'Résultat du test DNS' })
+  @ApiOperation({ summary: 'Test a DNS provider' })
+  @ApiResponse({ status: 201, description: 'DNS test result' })
   async testProvider(@Param('id') id: string) {
     return await this.domainsService.testProvider(id);
   }
 
   @Get('domains')
-  @ApiOperation({ summary: 'Lister les domaines DNS' })
+  @ApiOperation({ summary: 'List DNS domains' })
   @ApiResponse({ status: 200, description: 'Domaines DNS' })
   async listDomains(@Query('projectId') projectId?: string) {
     return await this.domainsService.listDomains(projectId);
@@ -71,8 +71,8 @@ export class DomainsController {
   @Post('domains')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Ajouter un domaine DNS' })
-  @ApiResponse({ status: 201, description: 'Domaine DNS créé' })
+  @ApiOperation({ summary: 'Add a DNS domain' })
+  @ApiResponse({ status: 201, description: 'DNS domain created' })
   async createDomain(@Body() dto: CreateDomainDto) {
     return await this.domainsService.createDomain(dto);
   }
@@ -80,14 +80,14 @@ export class DomainsController {
   @Post('domains/:id/verify')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Vérifier un domaine DNS' })
-  @ApiResponse({ status: 201, description: 'Domaine vérifié' })
+  @ApiOperation({ summary: 'Verify a DNS domain' })
+  @ApiResponse({ status: 201, description: 'Domain verified' })
   async verifyDomain(@Param('id') id: string) {
     return await this.domainsService.verifyDomain(id);
   }
 
   @Get('domains/:domainId/records')
-  @ApiOperation({ summary: 'Lister les records DNS d’un domaine' })
+  @ApiOperation({ summary: 'List the DNS records of a domain' })
   @ApiResponse({ status: 200, description: 'Records DNS' })
   async listRecords(@Param('domainId') domainId: string) {
     return await this.domainsService.listRecords(domainId);
@@ -96,8 +96,8 @@ export class DomainsController {
   @Post('domains/:domainId/records')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Créer un record DNS' })
-  @ApiResponse({ status: 201, description: 'Record DNS créé' })
+  @ApiOperation({ summary: 'Create a DNS record' })
+  @ApiResponse({ status: 201, description: 'DNS record created' })
   async createRecord(
     @Param('domainId') domainId: string,
     @Body() dto: UpsertDnsRecordDto,
@@ -108,8 +108,8 @@ export class DomainsController {
   @Put('records/:recordId')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Mettre à jour un record DNS' })
-  @ApiResponse({ status: 200, description: 'Record DNS mis à jour' })
+  @ApiOperation({ summary: 'Update a DNS record' })
+  @ApiResponse({ status: 200, description: 'DNS record updated' })
   async updateRecord(
     @Param('recordId') recordId: string,
     @Body() dto: UpsertDnsRecordDto,
@@ -120,8 +120,8 @@ export class DomainsController {
   @Delete('records/:recordId')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Supprimer un record DNS' })
-  @ApiResponse({ status: 200, description: 'Record DNS supprimé' })
+  @ApiOperation({ summary: 'Delete a DNS record' })
+  @ApiResponse({ status: 200, description: 'DNS record deleted' })
   async removeRecord(@Param('recordId') recordId: string) {
     await this.domainsService.removeRecord(recordId);
     return { message: 'Record DNS supprimé avec succès' };

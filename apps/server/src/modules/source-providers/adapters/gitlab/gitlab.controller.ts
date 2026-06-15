@@ -85,7 +85,7 @@ export class GitlabController {
       'Lister les providers GitLab disponibles pour la configuration projet',
   })
   @ApiResponse({ status: 200, description: 'Providers GitLab disponibles' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   async listProviders() {
     return await this.gitlabCore.listAvailableProviders();
   }
@@ -94,7 +94,7 @@ export class GitlabController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Lister les repositories accessibles dans un groupe GitLab',
+    summary: 'List repositories accessible in a GitLab group',
   })
   @ApiResponse({ status: 200, description: 'Repositories du groupe GitLab' })
   async listGroupRepositories(
@@ -123,7 +123,7 @@ export class GitlabController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Lister les branches avant création projet/service',
+    summary: 'List branches before project/service creation',
   })
   @ApiResponse({ status: 200, description: 'Branches du repository GitLab' })
   async listProjectBranchesByProvider(
@@ -142,12 +142,12 @@ export class GitlabController {
   @Post('projects/:id/gitlab/connect')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Connecter un projet à GitLab' })
-  @ApiResponse({ status: 201, description: 'Configuration GitLab enregistrée' })
-  @ApiResponse({ status: 400, description: 'Connexion GitLab échouée' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
-  @ApiResponse({ status: 404, description: 'Projet non trouvé' })
+  @ApiOperation({ summary: 'Connect a project to GitLab' })
+  @ApiResponse({ status: 201, description: 'GitLab configuration saved' })
+  @ApiResponse({ status: 400, description: 'GitLab connection failed' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   async connectProject(
     @Param('id') projectId: string,
     @Body() dto: ConnectGitlabDto,
@@ -164,13 +164,13 @@ export class GitlabController {
   @Get('projects/:id/gitlab/branches')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Lister les branches GitLab disponibles' })
-  @ApiResponse({ status: 200, description: 'Branches GitLab récupérées' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
+  @ApiOperation({ summary: 'List available GitLab branches' })
+  @ApiResponse({ status: 200, description: 'GitLab branches fetched' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
   @ApiResponse({
     status: 404,
-    description: 'Projet ou config GitLab non trouvé',
+    description: 'Project or GitLab config not found',
   })
   async getBranches(
     @Param('id') projectId: string,
@@ -189,13 +189,13 @@ export class GitlabController {
   @Get('projects/:id/gitlab/pipelines')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Lister les pipelines GitLab' })
-  @ApiResponse({ status: 200, description: 'Pipelines GitLab récupérés' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
+  @ApiOperation({ summary: 'List GitLab pipelines' })
+  @ApiResponse({ status: 200, description: 'GitLab pipelines fetched' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
   @ApiResponse({
     status: 404,
-    description: 'Projet ou config GitLab non trouvé',
+    description: 'Project or GitLab config not found',
   })
   async getPipelines(
     @Param('id') projectId: string,
@@ -207,13 +207,13 @@ export class GitlabController {
   @Get('projects/:id/gitlab/repos')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Lister les repositories (REPO/GROUP)' })
-  @ApiResponse({ status: 200, description: 'Repositories GitLab récupérés' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
+  @ApiOperation({ summary: 'List repositories (REPO/GROUP)' })
+  @ApiResponse({ status: 200, description: 'GitLab repositories fetched' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
   @ApiResponse({
     status: 404,
-    description: 'Projet ou config GitLab non trouvé',
+    description: 'Project or GitLab config not found',
   })
   async getRepos(@Param('id') projectId: string, @GetUser() user: JwtPayload) {
     return await this.gitlabCore.getRepos(projectId, user.id, user.role);
@@ -222,13 +222,13 @@ export class GitlabController {
   @Post('projects/:id/gitlab/pipelines/trigger')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Déclencher un pipeline GitLab manuellement' })
-  @ApiResponse({ status: 201, description: 'Pipeline GitLab déclenché' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
+  @ApiOperation({ summary: 'Trigger a GitLab pipeline manually' })
+  @ApiResponse({ status: 201, description: 'GitLab pipeline triggered' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
   @ApiResponse({
     status: 404,
-    description: 'Projet ou config GitLab non trouvé',
+    description: 'Project or GitLab config not found',
   })
   async triggerPipeline(
     @Param('id') projectId: string,
@@ -247,13 +247,13 @@ export class GitlabController {
   @Get('projects/:id/gitlab/config')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Voir la configuration GitLab d’un projet' })
-  @ApiResponse({ status: 200, description: 'Configuration GitLab retournée' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
+  @ApiOperation({ summary: "View a project's GitLab configuration" })
+  @ApiResponse({ status: 200, description: 'GitLab configuration returned' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
   @ApiResponse({
     status: 404,
-    description: 'Projet ou config GitLab non trouvé',
+    description: 'Project or GitLab config not found',
   })
   async getGitlabConfig(
     @Param('id') projectId: string,

@@ -30,10 +30,10 @@ export class ServerDetectionController {
 
   @Post(':id/detect')
   @ApiOperation({
-    summary: 'Détecter les informations système et outils installés',
+    summary: 'Detect system info and installed tools',
   })
   @ApiCreatedResponse({
-    description: 'Détection terminée',
+    description: 'Detection complete',
     type: ServerResponseDto,
   })
   async detect(
@@ -46,14 +46,14 @@ export class ServerDetectionController {
   }
 
   @Get(':id/capabilities')
-  @ApiOperation({ summary: 'Lister les capacités détectées du serveur' })
+  @ApiOperation({ summary: 'List the detected server capabilities' })
   @ApiOkResponse({ type: ServerCapabilityDto, isArray: true })
   async getCapabilities(@Param('id') id: string) {
     return await this.core.listCapabilities(id);
   }
 
   @Get(':id/installed-tools')
-  @ApiOperation({ summary: 'Lister les outils installés détectés' })
+  @ApiOperation({ summary: 'List detected installed tools' })
   @ApiOkResponse({ type: ServerInstalledToolDto, isArray: true })
   async getInstalledTools(@Param('id') id: string) {
     return await this.core.listInstalledTools(id);

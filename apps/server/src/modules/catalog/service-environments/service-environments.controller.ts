@@ -29,9 +29,9 @@ export class ServiceEnvironmentsController {
   constructor(private readonly service: ServiceEnvironmentsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Lier un service à un environnement' })
-  @ApiResponse({ status: 201, description: 'Lien créé' })
-  @ApiResponse({ status: 409, description: 'Lien déjà existant' })
+  @ApiOperation({ summary: 'Link a service to an environment' })
+  @ApiResponse({ status: 201, description: 'Link created' })
+  @ApiResponse({ status: 409, description: 'Link already exists' })
   async link(
     @Param('projectId') projectId: string,
     @Body() dto: CreateServiceEnvironmentDto,
@@ -41,7 +41,7 @@ export class ServiceEnvironmentsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lister tous les liens du projet (par service ou environment)' })
+  @ApiOperation({ summary: 'List all project links (by service or environment)' })
   async findAll(
     @Param('projectId') projectId: string,
     @GetUser() user: JwtPayload,
@@ -50,7 +50,7 @@ export class ServiceEnvironmentsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: "Détail d'un lien service-environnement" })
+  @ApiOperation({ summary: "Service-environment link details" })
   async findOne(
     @Param('projectId') projectId: string,
     @Param('id') id: string,
@@ -60,7 +60,7 @@ export class ServiceEnvironmentsController {
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Mettre à jour les overrides du lien' })
+  @ApiOperation({ summary: 'Update the link overrides' })
   async update(
     @Param('projectId') projectId: string,
     @Param('id') id: string,
@@ -71,7 +71,7 @@ export class ServiceEnvironmentsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Supprimer un lien service-environnement' })
+  @ApiOperation({ summary: 'Delete a service-environment link' })
   async unlink(
     @Param('projectId') projectId: string,
     @Param('id') id: string,

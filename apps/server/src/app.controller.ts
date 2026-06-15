@@ -28,8 +28,8 @@ export class AppController {
   ) {}
 
   @Get('health')
-  @ApiOperation({ summary: 'Vérification de santé de la plateforme' })
-  @ApiResponse({ status: 200, description: 'Service opérationnel' })
+  @ApiOperation({ summary: 'Platform health check' })
+  @ApiResponse({ status: 200, description: 'Service operational' })
   async getHealth(): Promise<HealthResponse> {
     let databaseStatus = 'disconnected';
     const webhook = await this.resolveWebhookConfigStatus();

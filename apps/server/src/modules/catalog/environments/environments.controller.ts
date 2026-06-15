@@ -34,8 +34,8 @@ export class EnvironmentsController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Créer un environnement pour un projet' })
-  @ApiResponse({ status: 201, description: 'Environnement créé avec succès' })
+  @ApiOperation({ summary: 'Create an environment for a project' })
+  @ApiResponse({ status: 201, description: 'Environment created successfully' })
   async create(
     @Param('id') projectId: string,
     @Body() dto: CreateEnvironmentDto,
@@ -60,7 +60,7 @@ export class EnvironmentsController {
   }
 
   @Get(':envId')
-  @ApiOperation({ summary: "Détail d'un environnement de projet" })
+  @ApiOperation({ summary: "Project environment details" })
   async findOne(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
@@ -75,7 +75,7 @@ export class EnvironmentsController {
   }
 
   @Put(':envId')
-  @ApiOperation({ summary: 'Mettre à jour un environnement de projet' })
+  @ApiOperation({ summary: 'Update a project environment' })
   async update(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
@@ -92,7 +92,7 @@ export class EnvironmentsController {
   }
 
   @Delete(':envId')
-  @ApiOperation({ summary: 'Supprimer un environnement de projet' })
+  @ApiOperation({ summary: 'Delete a project environment' })
   async remove(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
@@ -104,7 +104,7 @@ export class EnvironmentsController {
 
   // NOUVEAU : assigner un serveur
   @Post(':envId/servers/:serverId')
-  @ApiOperation({ summary: 'Assigner un serveur à un environnement' })
+  @ApiOperation({ summary: 'Assign a server to an environment' })
   async assignServer(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
@@ -121,7 +121,7 @@ export class EnvironmentsController {
   }
 
   @Delete(':envId/servers/:serverId')
-  @ApiOperation({ summary: 'Retirer un serveur d\'un environnement' })
+  @ApiOperation({ summary: 'Remove a server from an environment' })
   async removeServer(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
@@ -139,7 +139,7 @@ export class EnvironmentsController {
 
   // NOUVEAU : lier un service
   @Post(':envId/services/:serviceId')
-  @ApiOperation({ summary: 'Lier un service à un environnement' })
+  @ApiOperation({ summary: 'Link a service to an environment' })
   async linkService(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
@@ -156,7 +156,7 @@ export class EnvironmentsController {
   }
 
   @Get(':envId/services')
-  @ApiOperation({ summary: 'Lister les services liés à un environnement' })
+  @ApiOperation({ summary: 'List services linked to an environment' })
   async listLinkedServices(
     @Param('id') projectId: string,
     @Param('envId') envId: string,

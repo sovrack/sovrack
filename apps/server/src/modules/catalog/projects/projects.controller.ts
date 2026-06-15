@@ -47,12 +47,12 @@ export class ProjectsController {
   @Post()
   @Roles(Role.ADMIN, Role.DEVELOPER)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Créer un projet' })
-  @ApiResponse({ status: 201, description: 'Projet créé avec succès' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiOperation({ summary: 'Create a project' })
+  @ApiResponse({ status: 201, description: 'Project created successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({
     status: 403,
-    description: 'Action réservée aux administrateurs',
+    description: 'Administrators only',
   })
   async create(@GetUser() user: JwtPayload, @Body() dto: CreateProjectDto) {
     return await this.projectsService.create(user.id, user.role, dto);
@@ -63,9 +63,9 @@ export class ProjectsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({
     summary:
-      'Importer des repositories GitLab Group en application multi-services ou projets séparés',
+      'Import GitLab Group repositories as a multi-service application or separate projects',
   })
-  @ApiResponse({ status: 201, description: 'Import GitLab Group terminé' })
+  @ApiResponse({ status: 201, description: 'GitLab Group import complete' })
   async importGitlabGroup(
     @GetUser() user: JwtPayload,
     @Body() dto: ImportGitlabGroupDto,
@@ -78,9 +78,9 @@ export class ProjectsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lister les projets selon le rôle utilisateur' })
+  @ApiOperation({ summary: 'List projects according to the user role' })
   @ApiResponse({ status: 200, description: 'Liste des projets' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   async findAll(
     @GetUser() user: JwtPayload,
     @Query() pagination: PaginationDto,
@@ -89,21 +89,21 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Récupérer le détail d’un projet' })
-  @ApiResponse({ status: 200, description: 'Détail du projet récupéré' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé au projet' })
-  @ApiResponse({ status: 404, description: 'Projet non trouvé' })
+  @ApiOperation({ summary: 'Get the details of a project' })
+  @ApiResponse({ status: 200, description: 'Project details fetched' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access to the project' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   async findOne(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.projectsService.findOne(id, user.id, user.role);
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Modifier un projet' })
-  @ApiResponse({ status: 200, description: 'Projet mis à jour' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Action non autorisée' })
-  @ApiResponse({ status: 404, description: 'Projet non trouvé' })
+  @ApiOperation({ summary: 'Edit a project' })
+  @ApiResponse({ status: 200, description: 'Project updated' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized action' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   async update(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
@@ -115,23 +115,23 @@ export class ProjectsController {
   @Delete(':id')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: 'Supprimer un projet' })
-  @ApiResponse({ status: 200, description: 'Projet supprimé' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Action non autorisée' })
-  @ApiResponse({ status: 404, description: 'Projet non trouvé' })
+  @ApiOperation({ summary: 'Delete a project' })
+  @ApiResponse({ status: 200, description: 'Project deleted' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized action' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
     await this.projectsService.remove(id, user.id, user.role);
     return { message: 'Projet supprimé avec succès' };
   }
 
   @Post(':id/members')
-  @ApiOperation({ summary: 'Ajouter un membre au projet' })
-  @ApiResponse({ status: 201, description: 'Membre ajouté au projet' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Action non autorisée' })
-  @ApiResponse({ status: 404, description: 'Projet ou utilisateur non trouvé' })
-  @ApiResponse({ status: 409, description: 'Utilisateur déjà membre' })
+  @ApiOperation({ summary: 'Add a member to the project' })
+  @ApiResponse({ status: 201, description: 'Member added to the project' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized action' })
+  @ApiResponse({ status: 404, description: 'Project or user not found' })
+  @ApiResponse({ status: 409, description: 'User already a member' })
   async addMember(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
@@ -141,21 +141,21 @@ export class ProjectsController {
   }
 
   @Get(':id/members')
-  @ApiOperation({ summary: 'Lister les membres du projet' })
+  @ApiOperation({ summary: 'List project members' })
   @ApiResponse({ status: 200, description: 'Liste des membres du projet' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé au projet' })
-  @ApiResponse({ status: 404, description: 'Projet non trouvé' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access to the project' })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   async getMembers(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.membersService.getMembers(id, user.id, user.role);
   }
 
   @Delete(':id/members/:userId')
-  @ApiOperation({ summary: 'Retirer un membre du projet' })
-  @ApiResponse({ status: 200, description: 'Membre retiré du projet' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Action non autorisée' })
-  @ApiResponse({ status: 404, description: 'Projet ou membre non trouvé' })
+  @ApiOperation({ summary: 'Remove a member from the project' })
+  @ApiResponse({ status: 200, description: 'Member removed from the project' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized action' })
+  @ApiResponse({ status: 404, description: 'Project or member not found' })
   async removeMember(
     @Param('id') id: string,
     @Param('userId') targetUserId: string,

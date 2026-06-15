@@ -36,14 +36,14 @@ export class ServerPreparationsController {
   constructor(private readonly prep: ServerPreparationService) {}
 
   @Get(':id')
-  @ApiOperation({ summary: "Voir le détail d'une préparation serveur" })
+  @ApiOperation({ summary: "View a server provisioning's details" })
   @ApiOkResponse({ type: ServerPreparationDto })
   async findOne(@Param('id') id: string) {
     return await this.prep.getPreparation(id);
   }
 
   @Get(':id/logs')
-  @ApiOperation({ summary: "Lire les logs persistés d'une préparation" })
+  @ApiOperation({ summary: "Read the persisted logs of a provisioning job" })
   @ApiOkResponse({ type: ServerPreparationLogDto, isArray: true })
   async logs(@Param('id') id: string, @Query('afterLine') afterLine?: string) {
     return await this.prep.getPreparationLogs(
@@ -54,7 +54,7 @@ export class ServerPreparationsController {
 
   @Post(':id/retry')
   @ApiOperation({
-    summary: 'Relancer une préparation en créant un nouveau job lié',
+    summary: 'Re-run a provisioning by creating a new linked job',
   })
   @ApiCreatedResponse({ type: ServerPreparationDto })
   async retry(
@@ -67,7 +67,7 @@ export class ServerPreparationsController {
 
   @Post(':id/cancel')
   @ApiOperation({
-    summary: 'Annuler une préparation si elle est encore active',
+    summary: 'Cancel a provisioning job if still active',
   })
   @ApiOkResponse({ type: ServerPreparationDto })
   async cancel(@Param('id') id: string, @GetUser() user: JwtPayload) {

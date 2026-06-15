@@ -39,12 +39,12 @@ export class ServerValidationController {
 
   @Post(':id/validate-ssh')
   @ApiOperation({
-    summary: 'Valider la connexion SSH, auth, sudo et prérequis minimaux',
+    summary: 'Validate the SSH connection, auth, sudo and minimal prerequisites',
     description:
-      'Les VPS sont des cibles SSH agentless. Cette étape ne cherche jamais à installer Ansible sur le VPS.',
+      'VPS hosts are agentless SSH targets. This step never tries to install Ansible on the VPS.',
   })
   @ApiCreatedResponse({
-    description: 'Validation SSH démarrée',
+    description: 'SSH validation started',
     type: ServerResponseDto,
   })
   async validateSsh(
@@ -57,9 +57,9 @@ export class ServerValidationController {
   }
 
   @Get(':id/status')
-  @ApiOperation({ summary: 'Récupérer le statut de vérification du serveur' })
+  @ApiOperation({ summary: 'Get the server verification status' })
   @ApiOkResponse({
-    description: 'Statut de vérification du serveur',
+    description: 'Server verification status',
     type: ServerVerificationStatusDto,
   })
   async getVerificationStatus(@Param('id') id: string) {
@@ -87,9 +87,9 @@ export class ServerValidationController {
   }
 
   @Get(':id/logs')
-  @ApiOperation({ summary: 'Récupérer les logs de vérification du serveur' })
+  @ApiOperation({ summary: 'Get the server verification logs' })
   @ApiOkResponse({
-    description: 'Logs de vérification du serveur',
+    description: 'Server verification logs',
     type: ServerLogDto,
     isArray: true,
   })
@@ -113,7 +113,7 @@ export class ServerValidationController {
   }
 
   @Get(':id/validation-results')
-  @ApiOperation({ summary: 'Lister les résultats de validation SSH' })
+  @ApiOperation({ summary: 'List SSH validation results' })
   @ApiOkResponse({ type: ServerValidationResultDto, isArray: true })
   async getValidationResults(@Param('id') id: string) {
     return await this.core.listValidationResults(id);

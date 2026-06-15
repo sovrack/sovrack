@@ -205,7 +205,7 @@ export class PaginatedServersResponseDto {
 }
 
 export class DeleteServerResponseDto {
-  @ApiProperty({ example: 'Serveur supprimé avec succès' })
+  @ApiProperty({ example: 'Server deleted successfully' })
   message!: string;
 }
 
@@ -213,7 +213,7 @@ export class InstallKeyResponseDto {
   @ApiProperty({ example: true })
   success!: boolean;
 
-  @ApiProperty({ example: 'Clé publique SSH installée avec succès' })
+  @ApiProperty({ example: 'SSH public key installed successfully' })
   message!: string;
 }
 

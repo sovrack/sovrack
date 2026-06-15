@@ -158,7 +158,7 @@ export class CreateServiceDto {
   @Min(0)
   replicas?: number;
 
-  @ApiPropertyOptional({ description: 'Connexion source (GitLab/GitHub) lors de la création' })
+  @ApiPropertyOptional({ description: 'Source connection (GitLab/GitHub) on creation' })
   @IsOptional()
   @ValidateNested()
   @Type(() => SourceConnectionDto)
