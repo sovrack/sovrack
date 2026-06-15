@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { PassThrough } from 'stream';
 import Docker from 'dockerode';
 import { DockerConnectionsService } from './docker-connections.service';
 
@@ -112,6 +113,48 @@ export class DockerApiService {
   async removeContainer(serverId: string, containerName: string, force = false): Promise<void> {
     const client = await this.getClient(serverId);
     await client.getContainer(containerName).remove({ force });
+  }
+
+  /**
+   * Run a command inside a running container and capture its output. stdout is
+   * returned as raw bytes (so binary dumps survive intact); stderr is decoded
+   * as UTF-8 for diagnostics. Used by database backups (pg_dump / mysqldump).
+   */
+  async execCapture(
+    serverId: string,
+    containerName: string,
+    cmd: string[],
+  ): Promise<{ stdout: Buffer; stderr: string; exitCode: number }> {
+    const client = await this.getClient(serverId);
+    const container = client.getContainer(containerName);
+    const exec = await container.exec({
+      Cmd: cmd,
+      AttachStdout: true,
+      AttachStderr: true,
+    });
+    const stream = await exec.start({});
+
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+    const out = new PassThrough();
+    const err = new PassThrough();
+    out.on('data', (c: Buffer) => stdoutChunks.push(c));
+    err.on('data', (c: Buffer) => stderrChunks.push(c));
+    client.modem.demuxStream(stream, out, err);
+
+    await new Promise<void>((resolve, reject) => {
+      stream.on('end', resolve);
+      stream.on('error', reject);
+    });
+    out.end();
+    err.end();
+
+    const info = await exec.inspect();
+    return {
+      stdout: Buffer.concat(stdoutChunks),
+      stderr: Buffer.concat(stderrChunks).toString('utf-8'),
+      exitCode: info.ExitCode ?? 0,
+    };
   }
 
   async buildImage(

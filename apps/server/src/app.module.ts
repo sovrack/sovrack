@@ -12,6 +12,7 @@ import { ProjectsModule, ServicesModule, ServiceEnvironmentsModule } from './mod
 import { ServersModule, InfrastructureModule, ContainersModule, VolumesModule } from './modules/infrastructure';
 import { DomainsModule, ProxyModule, SslModule } from './modules/networking';
 import { MonitoringModule, DashboardModule } from './modules/observability';
+import { DatabaseBackupsModule } from './modules/database-backups/database-backups.module';
 // Contextes standalone — importés via leur porte publique (barrel index.ts)
 import { GitlabModule, SourceProvidersModule } from './modules/source-providers';
 import { WebhooksModule } from './modules/webhooks';
@@ -87,6 +88,7 @@ import { QueueModule } from './core/queue/queue.module';
     ServicesModule,
     VolumesModule,
     SslModule,
+    DatabaseBackupsModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

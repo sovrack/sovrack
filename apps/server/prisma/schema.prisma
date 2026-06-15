@@ -472,6 +472,7 @@ model ServiceEnvironment {
   webhookEndpoints WebhookEndpoint[]
   dnsRecords       DnsRecord[]
   pipelineRuns     PipelineRun[]
+  databaseBackups  DatabaseBackup[]
 
   @@unique([serviceId, environmentId])
   @@index([environmentId])
@@ -1260,4 +1261,37 @@ model Service {
   @@unique([projectId, name])
   @@index([projectId])
   @@index([providerId])
+}
+
+enum BackupStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum BackupTrigger {
+  MANUAL
+  SCHEDULED
+}
+
+/// A point-in-time logical dump of a managed database ServiceEnvironment.
+/// Produced by running the engine's dump tool (pg_dump / mysqldump /
+/// mongodump) inside the running container via the Docker API.
+model DatabaseBackup {
+  id                   String             @id @default(uuid())
+  serviceEnvironmentId String
+  serviceEnvironment   ServiceEnvironment @relation(fields: [serviceEnvironmentId], references: [id], onDelete: Cascade)
+  status               BackupStatus       @default(PENDING)
+  trigger              BackupTrigger      @default(MANUAL)
+  /// Absolute path of the dump file on the backend host.
+  storagePath          String?
+  sizeBytes            Int?
+  error                String?            @db.Text
+  startedAt            DateTime?
+  finishedAt           DateTime?
+  createdAt            DateTime           @default(now())
+
+  @@index([serviceEnvironmentId, createdAt])
+  @@index([status])
 }
