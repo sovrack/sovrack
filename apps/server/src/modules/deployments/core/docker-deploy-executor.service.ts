@@ -109,7 +109,9 @@ export class DockerDeployExecutorService {
     if (!server.isVerified) throw new BadRequestException('Serveur non vérifié');
 
     const serviceName = deployment.service?.name ?? deployment.project.name;
-    const containerName = `deploy-${deployment.project.name}-${serviceName}-${deployment.id.slice(0, 8)}`.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+    const containerPrefix = `deploy-${deployment.project.name}-${serviceName}-`
+      .toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+    const containerName = `${containerPrefix}${deployment.id.slice(0, 8)}`;
     let servicePort = deployment.service?.port ?? 3000;
     const envResolution = resolveEnvDetailed(this.buildEnvLevels(deployment));
     const envVars = envResolution.entries.map((entry) => `${entry.key}=${entry.value}`);
@@ -184,12 +186,17 @@ export class DockerDeployExecutorService {
         commandLogs += `Image pullée : ${imageRef}\n`;
       }
 
+      // Remove ALL previous containers of THIS service (name = prefix + a past
+      // deploy id) so a redeploy never collides on the published port.
       const existing = await this.docker.listContainers(serverId, true);
-      const oldContainer = existing.find((c) => c.Names?.includes(`/${containerName}`));
-      if (oldContainer) {
-        this.emitGatewayLog(deployment.id, `Suppression de l'ancien conteneur ${containerName}...`, 'info');
-        await this.docker.removeContainer(serverId, oldContainer.Id, true);
-        commandLogs += `Ancien conteneur supprimé : ${oldContainer.Id.slice(0, 12)}\n`;
+      const stale = existing.filter((c) =>
+        (c.Names ?? []).some((n) => n.replace(/^\//, '').startsWith(containerPrefix)),
+      );
+      for (const old of stale) {
+        const oldName = (old.Names?.[0] ?? old.Id).replace(/^\//, '');
+        this.emitGatewayLog(deployment.id, `Suppression de l'ancien conteneur ${oldName}...`, 'info');
+        await this.docker.removeContainer(serverId, old.Id, true);
+        commandLogs += `Ancien conteneur supprimé : ${old.Id.slice(0, 12)}\n`;
       }
 
       // ── Pre-deploy command ──────────────────────────────────────────────
