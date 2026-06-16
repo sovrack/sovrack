@@ -67,8 +67,11 @@ export class DeploymentsConfigResolver {
     branch: string,
   ): Promise<string> {
     if (buildSource === 'EXTERNAL_IMAGE') {
-      if (!dto.overrideImage) throw new Error('overrideImage est requis pour EXTERNAL_IMAGE');
-      return dto.overrideImage;
+      // Priorité à overrideImage ; sinon l'image EST le repoPath du service
+      // (sourceType DOCKER_IMAGE stocke la référence d'image dans repoPath).
+      const image = dto.overrideImage ?? service?.repoPath;
+      if (!image) throw new Error('Image externe introuvable (overrideImage ou repoPath requis)');
+      return image as string;
     }
     if (buildSource === 'DOCKER_COMPOSE') {
       return `compose://${project.name}`;
@@ -86,10 +89,14 @@ export class DeploymentsConfigResolver {
 
   resolveBuildSource(
     dto: CreateDeploymentDto,
-    service: { buildPack: BuildPack | null },
+    service: { buildPack: BuildPack | null; sourceType?: string | null },
   ): BuildSource {
     if (dto.buildSource) return dto.buildSource;
     if (dto.overrideImage) return 'EXTERNAL_IMAGE';
+    // Un service à image externe (sourceType DOCKER_IMAGE) se déploie par PULL,
+    // pas par build local → évite un git clone du repoPath (= l'image). Aligne
+    // l'API directe sur ce que le front (deploy-dialog) calcule déjà.
+    if (service?.sourceType === 'DOCKER_IMAGE') return 'EXTERNAL_IMAGE';
     const pack = service?.buildPack;
     if (pack === BuildPack.STATIC) return 'STATIC';
     if (pack === BuildPack.DOCKER_COMPOSE) return 'DOCKER_COMPOSE';
