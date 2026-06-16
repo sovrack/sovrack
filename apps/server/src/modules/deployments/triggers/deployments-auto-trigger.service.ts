@@ -141,8 +141,6 @@ export class DeploymentsAutoTriggerService {
               status: DeploymentStatus.PENDING,
               startedAt: new Date(),
               buildId: build.id,
-              ...(nixpacksConfig ? { nixpacksConfig } : {}),
-              ...(staticConfig ? { staticConfig } : {}),
               ...(pipelineIdValue ? { externalPipelineId: pipelineIdValue } : {}),
               ...(dockerImage ? { dockerImage } : {}),
               logs: [

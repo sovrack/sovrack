@@ -173,12 +173,6 @@ export class DeploymentsCreateService {
           buildId: build.id,
           specSnapshot: specSnapshot as unknown as Prisma.InputJsonValue,
           resolvedRefs: resolvedRefs as unknown as Prisma.InputJsonValue,
-          ...(resolvedNixpacksConfig
-            ? { nixpacksConfig: resolvedNixpacksConfig as unknown as Prisma.InputJsonValue }
-            : {}),
-          ...(resolvedStaticConfig
-            ? { staticConfig: resolvedStaticConfig as unknown as Prisma.InputJsonValue }
-            : {}),
         },
       });
     });

@@ -499,8 +499,6 @@ model Deployment {
   id                 String             @id @default(uuid())
   status             DeploymentStatus   @default(PENDING)
   strategy           DeploymentStrategy @default(STANDARD)
-  nixpacksConfig     Json?
-  staticConfig       Json?
   logs               String?
   dockerImage        String?
   // Image digest (sha256:...). Preferred over dockerImage for rollback
