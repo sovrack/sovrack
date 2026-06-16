@@ -12,10 +12,12 @@ export class DiscoverGroupDto {
   @IsNotEmpty()
   groupPath!: string;
 
-  @ApiProperty({ example: 'glpat-xxx' })
+  // Optionnel : si le provider est déjà connecté (providerId fourni), on réutilise
+  // le token stocké. Obligatoire seulement pour un provider non connecté.
+  @ApiPropertyOptional({ example: 'glpat-xxx' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  token!: string;
+  token?: string;
 
   @ApiPropertyOptional({ example: 'b5073d11-f378-4c71-87da-093f3ecf20af' })
   @IsOptional()

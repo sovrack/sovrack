@@ -223,7 +223,7 @@ export class SourceProvidersService {
     projectId: string,
     groupPath: string,
     provider: GitProviderType,
-    token: string,
+    token: string | undefined,
     providerId?: string,
   ): Promise<{ repoPath: string; name: string; defaultBranch: string }[]> {
     switch (provider) {
