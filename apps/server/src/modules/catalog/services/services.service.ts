@@ -182,7 +182,7 @@ export class ServicesService {
     await this.assertCanManageProject(projectId, userId, userRole);
     await this.ensureServiceExists(projectId, serviceId);
 
-    return await this.prisma.service.update({
+    const updated = await this.prisma.service.update({
       where: { id: serviceId },
       data: {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -212,6 +212,13 @@ export class ServicesService {
       },
       include: serviceInclude,
     });
+    // Config du service changée → nouvelle génération désirée pour tous ses
+    // ServiceEnvironments (capturée par le prochain Deployment.observedGeneration).
+    await this.prisma.serviceEnvironment.updateMany({
+      where: { serviceId },
+      data: { generation: { increment: 1 } },
+    });
+    return updated;
   }
 
   async remove(

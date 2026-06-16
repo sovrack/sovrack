@@ -320,7 +320,6 @@ export class DockerDeployExecutorService {
           dockerImage: imageRef,
           imageSha: imageDigest ?? deployment.imageSha,
           conditions: this.buildSuccessConditions(envResolution.warnings),
-          observedGeneration: 1,
           finishedAt: new Date(),
           logs: `${deployment.logs ?? ''}\n${commandLogs}`.trim(),
         },
@@ -338,7 +337,6 @@ export class DockerDeployExecutorService {
         data: {
           status: DeploymentStatus.FAILED,
           conditions: this.buildConditions('Degraded', 'DeployFailed', message),
-          observedGeneration: 1,
           finishedAt: new Date(),
           logs: `${deployment.logs ?? ''}\n${commandLogs}\n${message}`.trim(),
         },

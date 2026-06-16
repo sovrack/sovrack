@@ -458,6 +458,11 @@ model ServiceEnvironment {
   healthcheckPath String?
   buildPack       BuildPack?
 
+  // Desired-state revision : incrémentée à chaque changement de config (Service
+  // ou cet override). Deployment.observedGeneration gèle la valeur déployée →
+  // base de la réconciliation désiré↔observé.
+  generation      Int        @default(1)
+
   // Auto-deploy: when true, a git push on `autoBranch` automatically triggers
   // a deployment for this service in this environment. The branch supports
   // exact match only (e.g. "main", "release/v2"). Set autoBranch to null to

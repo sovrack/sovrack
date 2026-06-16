@@ -172,6 +172,8 @@ export class ServiceEnvironmentsService {
         ...(dto.secretsEnv !== undefined
           ? { secretsEnv: this.crypto.encrypt(dto.secretsEnv) }
           : {}),
+        // Tout changement d'override = nouvelle génération désirée.
+        generation: { increment: 1 },
       },
       include: serviceEnvInclude,
     });
