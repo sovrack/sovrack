@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { CryptoService } from '../../../core/crypto/crypto.service';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { UpdateEnvironmentDto } from './dto/update-environment.dto';
@@ -58,6 +59,7 @@ export class EnvironmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly serviceEnvsService: ServiceEnvironmentsService,
+    private readonly crypto: CryptoService,
   ) {}
 
   async create(
@@ -73,6 +75,10 @@ export class EnvironmentsService {
         name: dto.name,
         projectId,
         env: dto.env,
+        // Secrets de l'environnement chiffrés au repos (AES-256-GCM), comme
+        // ServiceEnvironment.secretsEnv. Déchiffrés au déploiement (decryptSafe).
+        secretsEnv:
+          dto.secretsEnv !== undefined ? this.crypto.encrypt(dto.secretsEnv) : undefined,
       },
       include: environmentsInclude,
     });
@@ -132,6 +138,9 @@ export class EnvironmentsService {
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
         ...(dto.env !== undefined ? { env: dto.env } : {}),
+        ...(dto.secretsEnv !== undefined
+          ? { secretsEnv: this.crypto.encrypt(dto.secretsEnv) }
+          : {}),
       },
       include: environmentsInclude,
     });

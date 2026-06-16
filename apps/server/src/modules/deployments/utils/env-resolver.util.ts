@@ -18,12 +18,11 @@
  * This replaces the previous `catch {}`-swallowing logic that made a malformed
  * `secretsEnv` disappear silently and start a container without its secrets.
  *
- * NOTE: secretsEnv is currently stored as plaintext JSON by the write path
- * (no CryptoService.encrypt() on write, no decrypt here) despite the schema
- * comment. The caller passes whatever string is persisted; this util only
- * parses it. If/when at-rest encryption of secretsEnv is implemented, decrypt
- * BEFORE calling this util (the `secretsEnv` field is expected to be plaintext
- * JSON here).
+ * NOTE: secretsEnv est chiffré au repos (AES-256-GCM) au niveau Environment et
+ * ServiceEnvironment (write path = CryptoService.encrypt). L'appelant (executor)
+ * DÉCHIFFRE via crypto.decryptSafe AVANT d'appeler ce util — donc ici `secretsEnv`
+ * est toujours du JSON en clair. (Service.secretsEnv n'a pas encore de write path
+ * exposé : réservé, traité comme vide tant qu'il n'est pas peuplé.)
  */
 
 export type EnvOrigin = 'service' | 'environment' | 'serviceEnvironment';

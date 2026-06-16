@@ -22,4 +22,9 @@ export class CreateEnvironmentDto {
   @IsOptional()
   @IsString({ message: 'env doit être une chaîne JSON' })
   env?: string;
+
+  @ApiPropertyOptional({ description: 'Secrets JSON (chiffrés au repos)', example: '{"DB_PASSWORD":"..."}' })
+  @IsOptional()
+  @IsString({ message: 'secretsEnv doit être une chaîne JSON' })
+  secretsEnv?: string;
 }
