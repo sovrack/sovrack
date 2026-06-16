@@ -63,9 +63,14 @@ export class WebhookRetryService {
   private async dispatchAndRecord(
     event: RetryableWebhookEvent,
   ): Promise<WebhookEventStatus> {
-    const handler = this.handlers.find((h) => h.provider === event.endpoint.provider);
+    const handler = this.handlers.find(
+      (h) => h.provider === event.endpoint.provider,
+    );
     if (!handler) {
-      return this.failAndMaybeNotify(event, `No handler for provider ${event.endpoint.provider}`);
+      return this.failAndMaybeNotify(
+        event,
+        `No handler for provider ${event.endpoint.provider}`,
+      );
     }
     try {
       await handler.handleIncoming(
@@ -75,7 +80,8 @@ export class WebhookRetryService {
       await this.webhooksService.markProcessed(event.id);
       return WebhookEventStatus.PROCESSED;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'retry dispatch failed';
+      const message =
+        error instanceof Error ? error.message : 'retry dispatch failed';
       return this.failAndMaybeNotify(event, message);
     }
   }
@@ -86,9 +92,14 @@ export class WebhookRetryService {
   ): Promise<WebhookEventStatus> {
     const updated = await this.webhooksService.markFailed(event.id, message);
     if (updated.status === WebhookEventStatus.DEAD_LETTER) {
-      this.logger.warn(`Webhook ${event.id} dead-lettered after ${updated.attempts} attempts`);
+      this.logger.warn(
+        `Webhook ${event.id} dead-lettered after ${updated.attempts} attempts`,
+      );
       await this.notifications
-        .notifyWebhookDeadLetter(updated, { id: event.endpoint.id, projectId: event.endpoint.projectId })
+        .notifyWebhookDeadLetter(updated, {
+          id: event.endpoint.id,
+          projectId: event.endpoint.projectId,
+        })
         .catch((err: unknown) =>
           this.logger.error(
             `Dead-letter notification failed for ${event.id}: ${

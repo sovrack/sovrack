@@ -1,4 +1,9 @@
-import type { Server, ServerJob, ServerJobStatus, ServerJobType } from '@prisma/client';
+import type {
+  Server,
+  ServerJob,
+  ServerJobStatus,
+  ServerJobType,
+} from '@prisma/client';
 import type { PaginatedResult } from '../../../../core/http/pagination.dto';
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
 

@@ -5,5 +5,8 @@ declare module 'sshpk' {
     toString(format?: string): string;
   }
   export function parseKey(data: string | Buffer, type?: string): Key;
-  export function generateKeyPair(type: string, opts?: { bits?: number; curve?: string }): { key: Key; privateKey: Key };
+  export function generateKeyPair(
+    type: string,
+    opts?: { bits?: number; curve?: string },
+  ): { key: Key; privateKey: Key };
 }

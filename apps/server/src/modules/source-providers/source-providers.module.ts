@@ -18,11 +18,6 @@ import { SourceController } from './source.controller';
   ],
   controllers: [SourceProvidersController, SourceController],
   providers: [SourceProvidersService],
-  exports: [
-    SourceProvidersService,
-    GitlabModule,
-    GithubModule,
-    GiteaModule,
-  ],
+  exports: [SourceProvidersService, GitlabModule, GithubModule, GiteaModule],
 })
 export class SourceProvidersModule {}

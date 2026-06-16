@@ -82,7 +82,8 @@ export class MonitoringService {
   }
 
   async getServerMonitoring() {
-    const metricByHost = await this.prometheusService.fetchPrometheusMetricsByHost();
+    const metricByHost =
+      await this.prometheusService.fetchPrometheusMetricsByHost();
     return await this.statsService.getServerMonitoring(metricByHost);
   }
 

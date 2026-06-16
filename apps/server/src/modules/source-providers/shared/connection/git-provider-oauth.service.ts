@@ -74,15 +74,22 @@ export class GitProviderOauthService {
 
   // ─── Public OAuth Methods ─────────────────────────────────────────────────
 
-  async startGitlabOAuth(callbackBaseUrl: string): Promise<GitlabOAuthStartResult> {
+  async startGitlabOAuth(
+    callbackBaseUrl: string,
+  ): Promise<GitlabOAuthStartResult> {
     const provider = await this.getDefaultGitlabProvider();
     if (!provider) {
-      throw new BadRequestException('Aucun provider GitLab par défaut configuré');
+      throw new BadRequestException(
+        'Aucun provider GitLab par défaut configuré',
+      );
     }
     return this.startGitlabOAuthForProvider(provider.id, callbackBaseUrl);
   }
 
-  async startGitlabOAuthForProvider(providerId: string, callbackBaseUrl: string): Promise<GitlabOAuthStartResult> {
+  async startGitlabOAuthForProvider(
+    providerId: string,
+    callbackBaseUrl: string,
+  ): Promise<GitlabOAuthStartResult> {
     const provider = await this.getGitlabProviderOrFail(providerId);
     const gitlabUrl = provider.providerUrl.trim();
     const appId = (provider.applicationId ?? '').trim();
@@ -91,10 +98,15 @@ export class GitProviderOauthService {
       : '';
 
     if (!gitlabUrl || !appId || !appSecret) {
-      throw new BadRequestException('Configure GitLab URL, Application ID et Application Secret avant OAuth');
+      throw new BadRequestException(
+        'Configure GitLab URL, Application ID et Application Secret avant OAuth',
+      );
     }
 
-    const redirectUri = await this.resolveGitlabProviderRedirectUri(provider, callbackBaseUrl);
+    const redirectUri = await this.resolveGitlabProviderRedirectUri(
+      provider,
+      callbackBaseUrl,
+    );
     const state = randomBytes(32).toString('hex');
     const stateExpiresAtDate = new Date(Date.now() + GITLAB_OAUTH_STATE_TTL_MS);
 
@@ -119,11 +131,20 @@ export class GitProviderOauthService {
     };
   }
 
-  async completeGitlabOAuthCallback(input: GitlabOAuthCallbackInput): Promise<GitlabOAuthCallbackResult> {
-    const fail = (message: string, providerId?: string): GitlabOAuthCallbackResult => ({
+  async completeGitlabOAuthCallback(
+    input: GitlabOAuthCallbackInput,
+  ): Promise<GitlabOAuthCallbackResult> {
+    const fail = (
+      message: string,
+      providerId?: string,
+    ): GitlabOAuthCallbackResult => ({
       ok: false,
       message,
-      redirectTo: this.buildFrontendSettingsRedirect('error', message, providerId),
+      redirectTo: this.buildFrontendSettingsRedirect(
+        'error',
+        message,
+        providerId,
+      ),
     });
 
     if (input.error) {
@@ -140,12 +161,17 @@ export class GitProviderOauthService {
     }
 
     try {
-      const gitlabUrl = this.normalizeGitlabBaseUrl(provider.providerUrl.trim());
+      const gitlabUrl = this.normalizeGitlabBaseUrl(
+        provider.providerUrl.trim(),
+      );
       const appId = (provider.applicationId ?? '').trim();
       const appSecret = provider.applicationSecret
         ? this.crypto.decrypt(provider.applicationSecret).trim()
         : '';
-      const redirectUri = await this.resolveGitlabProviderRedirectUri(provider, input.callbackBaseUrl);
+      const redirectUri = await this.resolveGitlabProviderRedirectUri(
+        provider,
+        input.callbackBaseUrl,
+      );
 
       if (!appId || !appSecret) {
         throw new BadRequestException('Application ID/Secret GitLab manquant');
@@ -160,9 +186,13 @@ export class GitProviderOauthService {
       }).toString();
 
       const tokenResponse = await firstValueFrom(
-        this.http.post<GitlabTokenResponse>(`${gitlabUrl}/oauth/token`, payload, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        }),
+        this.http.post<GitlabTokenResponse>(
+          `${gitlabUrl}/oauth/token`,
+          payload,
+          {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          },
+        ),
       );
 
       const accessToken = tokenResponse.data.access_token?.trim() ?? '';
@@ -170,14 +200,18 @@ export class GitProviderOauthService {
       const expiresIn = tokenResponse.data.expires_in;
 
       if (!accessToken) {
-        throw new BadRequestException("GitLab n'a pas renvoyé de access_token OAuth");
+        throw new BadRequestException(
+          "GitLab n'a pas renvoyé de access_token OAuth",
+        );
       }
 
       await this.prisma.gitProviderConfig.update({
         where: { id: provider.id },
         data: {
           oauthAccessToken: this.crypto.encrypt(accessToken),
-          oauthRefreshToken: refreshToken ? this.crypto.encrypt(refreshToken) : null,
+          oauthRefreshToken: refreshToken
+            ? this.crypto.encrypt(refreshToken)
+            : null,
           oauthExpiresAt:
             typeof expiresIn === 'number' && expiresIn > 0
               ? new Date(Date.now() + expiresIn * 1000)
@@ -200,16 +234,33 @@ export class GitProviderOauthService {
       return {
         ok: true,
         message: 'Connexion OAuth GitLab réussie',
-        redirectTo: this.buildFrontendSettingsRedirect('success', undefined, provider.id),
+        redirectTo: this.buildFrontendSettingsRedirect(
+          'success',
+          undefined,
+          provider.id,
+        ),
       };
     } catch (err) {
-      const axiosData = (err as { response?: { data?: { error_description?: string; error?: string; message?: string } } })
-        ?.response?.data;
-      const gitlabMsg = axiosData?.error_description ?? axiosData?.error ?? axiosData?.message;
+      const axiosData = (
+        err as {
+          response?: {
+            data?: {
+              error_description?: string;
+              error?: string;
+              message?: string;
+            };
+          };
+        }
+      )?.response?.data;
+      const gitlabMsg =
+        axiosData?.error_description ?? axiosData?.error ?? axiosData?.message;
       const reason = err instanceof Error ? err.message : String(err);
-      const displayReason = gitlabMsg || reason || 'Connexion OAuth GitLab échouée';
+      const displayReason =
+        gitlabMsg || reason || 'Connexion OAuth GitLab échouée';
 
-      this.logger.error(`OAuth callback failed for provider ${provider.id}: ${displayReason}`);
+      this.logger.error(
+        `OAuth callback failed for provider ${provider.id}: ${displayReason}`,
+      );
       return fail(displayReason, provider.id);
     } finally {
       await this.prisma.gitProviderConfig
@@ -218,20 +269,29 @@ export class GitProviderOauthService {
           data: { oauthState: null, oauthStateExpiresAt: null },
         })
         .catch((err: unknown) => {
-          this.logger.warn(`Failed to clear oauthState for provider ${provider.id}: ${String(err)}`);
+          this.logger.warn(
+            `Failed to clear oauthState for provider ${provider.id}: ${String(err)}`,
+          );
         });
     }
   }
 
-  async refreshProviderOAuthTokenIfNeeded(provider: GitProviderConfig): Promise<GitProviderConfig> {
+  async refreshProviderOAuthTokenIfNeeded(
+    provider: GitProviderConfig,
+  ): Promise<GitProviderConfig> {
     if (!provider.oauthAccessToken || !provider.oauthExpiresAt) return provider;
 
-    const needsRefresh = provider.oauthExpiresAt.getTime() <= Date.now() + 30_000;
+    const needsRefresh =
+      provider.oauthExpiresAt.getTime() <= Date.now() + 30_000;
     if (!needsRefresh) return provider;
 
-    const refreshToken = provider.oauthRefreshToken ? this.crypto.decrypt(provider.oauthRefreshToken).trim() : '';
+    const refreshToken = provider.oauthRefreshToken
+      ? this.crypto.decrypt(provider.oauthRefreshToken).trim()
+      : '';
     const appId = (provider.applicationId ?? '').trim();
-    const appSecret = provider.applicationSecret ? this.crypto.decrypt(provider.applicationSecret).trim() : '';
+    const appSecret = provider.applicationSecret
+      ? this.crypto.decrypt(provider.applicationSecret).trim()
+      : '';
 
     if (!refreshToken || !appId || !appSecret) return provider;
 
@@ -261,7 +321,9 @@ export class GitProviderOauthService {
         where: { id: provider.id },
         data: {
           oauthAccessToken: this.crypto.encrypt(newAccessToken),
-          oauthRefreshToken: newRefreshToken ? this.crypto.encrypt(newRefreshToken) : provider.oauthRefreshToken,
+          oauthRefreshToken: newRefreshToken
+            ? this.crypto.encrypt(newRefreshToken)
+            : provider.oauthRefreshToken,
           oauthExpiresAt:
             typeof expiresIn === 'number' && expiresIn > 0
               ? new Date(Date.now() + expiresIn * 1000)
@@ -281,7 +343,10 @@ export class GitProviderOauthService {
 
   // ─── Private OAuth Helpers ────────────────────────────────────────────────
 
-  private async resolveGitlabProviderRedirectUri(provider: GitProviderConfig, callbackBaseUrl: string): Promise<string> {
+  private async resolveGitlabProviderRedirectUri(
+    provider: GitProviderConfig,
+    callbackBaseUrl: string,
+  ): Promise<string> {
     const existing = this.normalizeOptional(provider.redirectUri);
     if (existing) return existing;
 
@@ -293,7 +358,9 @@ export class GitProviderOauthService {
     return fallback;
   }
 
-  private async resolveOAuthProviderByState(incomingState: string): Promise<GitProviderConfig | null> {
+  private async resolveOAuthProviderByState(
+    incomingState: string,
+  ): Promise<GitProviderConfig | null> {
     const candidates = await this.prisma.gitProviderConfig.findMany({
       where: { type: GitProviderType.GITLAB, oauthState: { not: null } },
     });
@@ -312,8 +379,14 @@ export class GitProviderOauthService {
     return null;
   }
 
-  private buildFrontendSettingsRedirect(status: 'success' | 'error', message?: string, providerId?: string): string {
-    const frontendBase = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000').replace(/\/+$/, '');
+  private buildFrontendSettingsRedirect(
+    status: 'success' | 'error',
+    message?: string,
+    providerId?: string,
+  ): string {
+    const frontendBase = this.configService
+      .get<string>('FRONTEND_URL', 'http://localhost:3000')
+      .replace(/\/+$/, '');
     const url = new URL(`${frontendBase}/settings/git`);
     url.searchParams.set('oauth', status);
     if (providerId) url.searchParams.set('provider_id', providerId);
@@ -323,8 +396,12 @@ export class GitProviderOauthService {
 
   // ─── Shared helpers (duplicated from config service to avoid circular dep) ──
 
-  private async getGitlabProviderOrFail(id: string): Promise<GitProviderConfig> {
-    const provider = await this.prisma.gitProviderConfig.findUnique({ where: { id } });
+  private async getGitlabProviderOrFail(
+    id: string,
+  ): Promise<GitProviderConfig> {
+    const provider = await this.prisma.gitProviderConfig.findUnique({
+      where: { id },
+    });
     if (!provider || provider.type !== GitProviderType.GITLAB) {
       throw new NotFoundException('Provider GitLab introuvable');
     }
@@ -347,11 +424,17 @@ export class GitProviderOauthService {
     const provider = await this.getDefaultGitlabProvider();
 
     if (!provider) {
-      await this.prisma.platformConfig.deleteMany({ where: { key: { in: LEGACY_GITLAB_KEYS } } });
+      await this.prisma.platformConfig.deleteMany({
+        where: { key: { in: LEGACY_GITLAB_KEYS } },
+      });
       return;
     }
 
-    const upsertOrClear = async (key: string, value: string | null | undefined, isSecret: boolean) => {
+    const upsertOrClear = async (
+      key: string,
+      value: string | null | undefined,
+      isSecret: boolean,
+    ) => {
       const normalized = this.normalizeOptional(value);
       if (!normalized) {
         await this.prisma.platformConfig.deleteMany({ where: { key } });
@@ -371,12 +454,38 @@ export class GitProviderOauthService {
       upsertOrClear('GITLAB_INTERNAL_URL', provider.internalUrl, false),
       upsertOrClear('GITLAB_REDIRECT_URI', provider.redirectUri, false),
       upsertOrClear('GITLAB_APP_ID', provider.applicationId, false),
-      upsertOrClear('GITLAB_APP_SECRET', provider.applicationSecret ? this.crypto.decrypt(provider.applicationSecret) : null, true),
+      upsertOrClear(
+        'GITLAB_APP_SECRET',
+        provider.applicationSecret
+          ? this.crypto.decrypt(provider.applicationSecret)
+          : null,
+        true,
+      ),
       upsertOrClear('GITLAB_GROUP_NAMES', provider.groupNames, false),
-      upsertOrClear('GITLAB_TOKEN', provider.adminToken ? this.crypto.decrypt(provider.adminToken) : null, true),
-      upsertOrClear('GITLAB_OAUTH_ACCESS_TOKEN', provider.oauthAccessToken ? this.crypto.decrypt(provider.oauthAccessToken) : null, true),
-      upsertOrClear('GITLAB_OAUTH_REFRESH_TOKEN', provider.oauthRefreshToken ? this.crypto.decrypt(provider.oauthRefreshToken) : null, true),
-      upsertOrClear('GITLAB_OAUTH_EXPIRES_AT', provider.oauthExpiresAt?.toISOString() ?? null, false),
+      upsertOrClear(
+        'GITLAB_TOKEN',
+        provider.adminToken ? this.crypto.decrypt(provider.adminToken) : null,
+        true,
+      ),
+      upsertOrClear(
+        'GITLAB_OAUTH_ACCESS_TOKEN',
+        provider.oauthAccessToken
+          ? this.crypto.decrypt(provider.oauthAccessToken)
+          : null,
+        true,
+      ),
+      upsertOrClear(
+        'GITLAB_OAUTH_REFRESH_TOKEN',
+        provider.oauthRefreshToken
+          ? this.crypto.decrypt(provider.oauthRefreshToken)
+          : null,
+        true,
+      ),
+      upsertOrClear(
+        'GITLAB_OAUTH_EXPIRES_AT',
+        provider.oauthExpiresAt?.toISOString() ?? null,
+        false,
+      ),
     ]);
   }
 

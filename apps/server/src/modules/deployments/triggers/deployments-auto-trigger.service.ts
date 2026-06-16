@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { DeploymentStatus, BuildPack, Prisma, BuildTrigger, BuildStatus } from '@prisma/client';
+import {
+  DeploymentStatus,
+  BuildPack,
+  Prisma,
+  BuildTrigger,
+  BuildStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { QueueService } from '../../../core/queue/queue.service';
 import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
@@ -57,10 +63,7 @@ export class DeploymentsAutoTriggerService {
         autoDeploy: true,
         archivedAt: null,
         ...(serviceId ? { serviceId } : {}),
-        OR: [
-          { autoBranch: branch },
-          { autoBranch: null },
-        ],
+        OR: [{ autoBranch: branch }, { autoBranch: null }],
         environment: { projectId },
       },
       select: {
@@ -68,18 +71,24 @@ export class DeploymentsAutoTriggerService {
         serviceId: true,
         environmentId: true,
         buildPack: true,
-        service: { select: { buildPack: true, nixpacksConfig: true, staticConfig: true } },
+        service: {
+          select: { buildPack: true, nixpacksConfig: true, staticConfig: true },
+        },
         environment: { select: { id: true } },
       },
     });
 
     if (matchingServiceEnvs.length === 0) {
-      this.logger.debug(`Auto-deploy: no matching autoDeploy=true ServiceEnvironments for project ${projectId} branch ${branch}`);
+      this.logger.debug(
+        `Auto-deploy: no matching autoDeploy=true ServiceEnvironments for project ${projectId} branch ${branch}`,
+      );
       return;
     }
 
     const pipelineIdValue = pipelineId ? BigInt(pipelineId) : null;
-    const autoDeployMarker = pipelineId ? `[AUTO_DEPLOY_PIPELINE_ID:${String(pipelineId)}]` : null;
+    const autoDeployMarker = pipelineId
+      ? `[AUTO_DEPLOY_PIPELINE_ID:${String(pipelineId)}]`
+      : null;
 
     for (const svcEnv of matchingServiceEnvs) {
       try {
@@ -90,8 +99,12 @@ export class DeploymentsAutoTriggerService {
               projectId,
               serviceEnvId: svcEnv.id,
               OR: [
-                ...(pipelineIdValue ? [{ externalPipelineId: pipelineIdValue }] : []),
-                ...(autoDeployMarker ? [{ logs: { contains: autoDeployMarker } }] : []),
+                ...(pipelineIdValue
+                  ? [{ externalPipelineId: pipelineIdValue }]
+                  : []),
+                ...(autoDeployMarker
+                  ? [{ logs: { contains: autoDeployMarker } }]
+                  : []),
               ],
             },
             select: { id: true },
@@ -100,9 +113,12 @@ export class DeploymentsAutoTriggerService {
         }
 
         // Resolve build config from ServiceEnvironment override or Service default.
-        const resolvedBuildPack = svcEnv.buildPack ?? svcEnv.service.buildPack ?? BuildPack.DOCKERFILE;
-        const nixpacksConfig = svcEnv.service.nixpacksConfig as Prisma.InputJsonValue | null;
-        const staticConfig = svcEnv.service.staticConfig as Prisma.InputJsonValue | null;
+        const resolvedBuildPack =
+          svcEnv.buildPack ?? svcEnv.service.buildPack ?? BuildPack.DOCKERFILE;
+        const nixpacksConfig = svcEnv.service
+          .nixpacksConfig as Prisma.InputJsonValue | null;
+        const staticConfig = svcEnv.service
+          .staticConfig as Prisma.InputJsonValue | null;
         const isLocalBuild =
           resolvedBuildPack === BuildPack.STATIC ||
           resolvedBuildPack === BuildPack.DOCKER_COMPOSE ||
@@ -141,7 +157,9 @@ export class DeploymentsAutoTriggerService {
               status: DeploymentStatus.PENDING,
               startedAt: new Date(),
               buildId: build.id,
-              ...(pipelineIdValue ? { externalPipelineId: pipelineIdValue } : {}),
+              ...(pipelineIdValue
+                ? { externalPipelineId: pipelineIdValue }
+                : {}),
               ...(dockerImage ? { dockerImage } : {}),
               logs: [
                 `[WEBHOOK] Auto-deploy triggered by push on branch ${branch}`,

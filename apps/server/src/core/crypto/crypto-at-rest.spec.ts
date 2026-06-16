@@ -43,7 +43,8 @@ describe('CryptoService — secrets at rest (unit)', () => {
       const crypto = new CryptoService();
       const ciphertext = crypto.encrypt('integrity-matters');
       // Flip le dernier caractère base64 → le tag d'authentification ne valide plus.
-      const tampered = ciphertext.slice(0, -2) + (ciphertext.endsWith('A=') ? 'B=' : 'A=');
+      const tampered =
+        ciphertext.slice(0, -2) + (ciphertext.endsWith('A=') ? 'B=' : 'A=');
       expect(() => crypto.decrypt(tampered)).toThrow();
     });
   });
@@ -54,7 +55,9 @@ describe('CryptoService — secrets at rest (unit)', () => {
     const newKey = 'NEW-config-secret-32-chars-minimum-ok';
     const plaintext = 'rotate-me';
 
-    const cipherWithOldKey = withSecret(oldKey, () => new CryptoService().encrypt(plaintext));
+    const cipherWithOldKey = withSecret(oldKey, () =>
+      new CryptoService().encrypt(plaintext),
+    );
 
     withSecret(newKey, () => {
       const crypto = new CryptoService();
@@ -113,7 +116,9 @@ dbDescribe('Secrets at rest (integration, requires DB)', () => {
       select: { id: true },
     });
     try {
-      const rows = await prisma.$queryRawUnsafe<Array<{ adminToken: string | null }>>(
+      const rows = await prisma.$queryRawUnsafe<
+        Array<{ adminToken: string | null }>
+      >(
         `SELECT "adminToken" FROM "GitProviderConfig" WHERE id = $1`,
         created.id,
       );
@@ -143,10 +148,9 @@ dbDescribe('Secrets at rest (integration, requires DB)', () => {
       select: { id: true },
     });
     try {
-      const rows = await prisma.$queryRawUnsafe<Array<{ tlsClientKey: string }>>(
-        `SELECT "tlsClientKey" FROM "DockerConnection" WHERE id = $1`,
-        conn.id,
-      );
+      const rows = await prisma.$queryRawUnsafe<
+        Array<{ tlsClientKey: string }>
+      >(`SELECT "tlsClientKey" FROM "DockerConnection" WHERE id = $1`, conn.id);
       const raw = rows[0]?.tlsClientKey ?? '';
       expect(raw).not.toContain('BEGIN PRIVATE KEY');
       expect(crypto.decrypt(raw)).toBe(pem);
@@ -160,7 +164,10 @@ dbDescribe('Secrets at rest (integration, requires DB)', () => {
   // also passes legacy plaintext JSON through unchanged (backward compatible).
   it('secretsEnv is encrypted at rest and decryptSafe round-trips', async () => {
     const plaintextSecrets = JSON.stringify({ DB_PASSWORD: `pw-${tag}` });
-    const project = await prisma.project.create({ data: { name: tag }, select: { id: true } });
+    const project = await prisma.project.create({
+      data: { name: tag },
+      select: { id: true },
+    });
     const service = await prisma.service.create({
       data: {
         projectId: project.id,
@@ -171,10 +178,9 @@ dbDescribe('Secrets at rest (integration, requires DB)', () => {
       select: { id: true },
     });
     try {
-      const rows = await prisma.$queryRawUnsafe<Array<{ secretsEnv: string | null }>>(
-        `SELECT "secretsEnv" FROM "Service" WHERE id = $1`,
-        service.id,
-      );
+      const rows = await prisma.$queryRawUnsafe<
+        Array<{ secretsEnv: string | null }>
+      >(`SELECT "secretsEnv" FROM "Service" WHERE id = $1`, service.id);
       const raw = rows[0]?.secretsEnv ?? '';
       // Ciphertext: the password is NOT readable in the DB.
       expect(raw).not.toContain(`pw-${tag}`);

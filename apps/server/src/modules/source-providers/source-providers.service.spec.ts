@@ -72,17 +72,23 @@ describe('SourceProvidersService (factory)', () => {
 
   describe('forType', () => {
     it('returns the GitHub instance for GITHUB', () => {
-      const provider = service.forType(GitProviderType.GITHUB) as unknown as { id: string };
+      const provider = service.forType(GitProviderType.GITHUB) as unknown as {
+        id: string;
+      };
       expect(provider.id).toBe('github-impl');
     });
 
     it('returns the GitLab instance for GITLAB', () => {
-      const provider = service.forType(GitProviderType.GITLAB) as unknown as { id: string };
+      const provider = service.forType(GitProviderType.GITLAB) as unknown as {
+        id: string;
+      };
       expect(provider.id).toBe('gitlab-impl');
     });
 
     it('returns the Gitea instance for GITEA', () => {
-      const provider = service.forType(GitProviderType.GITEA) as unknown as { id: string };
+      const provider = service.forType(GitProviderType.GITEA) as unknown as {
+        id: string;
+      };
       expect(provider.id).toBe('gitea-impl');
     });
   });
@@ -91,9 +97,7 @@ describe('SourceProvidersService (factory)', () => {
     it('exposes every wired provider so the admin UI does not hardcode the list', () => {
       const list = service.listAvailable();
       expect(list).toHaveLength(3);
-      const ids = list
-        .map((p) => (p as unknown as { id: string }).id)
-        .sort();
+      const ids = list.map((p) => (p as unknown as { id: string }).id).sort();
       expect(ids).toEqual(['gitea-impl', 'github-impl', 'gitlab-impl']);
     });
   });
@@ -101,8 +105,12 @@ describe('SourceProvidersService (factory)', () => {
   describe('forProject', () => {
     it('uses the provider type resolved from the project config', async () => {
       prisma.service.findFirst.mockResolvedValue({ providerId: 'prov_1' });
-      prisma.gitProviderConfig.findUnique.mockResolvedValue({ type: GitProviderType.GITHUB });
-      const provider = (await service.forProject('proj_1')) as unknown as { id: string };
+      prisma.gitProviderConfig.findUnique.mockResolvedValue({
+        type: GitProviderType.GITHUB,
+      });
+      const provider = (await service.forProject('proj_1')) as unknown as {
+        id: string;
+      };
       expect(provider.id).toBe('github-impl');
       expect(prisma.service.findFirst).toHaveBeenCalledWith({
         where: { projectId: 'proj_1', providerId: { not: null } },
@@ -113,7 +121,9 @@ describe('SourceProvidersService (factory)', () => {
     it('falls back to GitLab when the resolved provider type is unset', async () => {
       prisma.service.findFirst.mockResolvedValue({ providerId: 'prov_1' });
       prisma.gitProviderConfig.findUnique.mockResolvedValue({ type: null });
-      const provider = (await service.forProject('proj_2')) as unknown as { id: string };
+      const provider = (await service.forProject('proj_2')) as unknown as {
+        id: string;
+      };
       expect(provider.id).toBe('gitlab-impl');
     });
 
@@ -138,7 +148,9 @@ describe('SourceProvidersService (factory)', () => {
   describe('IGitProvider contract resolution', () => {
     it('forProject returns a provider that exposes the IGitProvider methods', async () => {
       prisma.service.findFirst.mockResolvedValue({ providerId: 'prov_1' });
-      prisma.gitProviderConfig.findUnique.mockResolvedValue({ type: GitProviderType.GITLAB });
+      prisma.gitProviderConfig.findUnique.mockResolvedValue({
+        type: GitProviderType.GITLAB,
+      });
       const provider = await service.forProject('proj_1');
       expect(typeof provider.listRepos).toBe('function');
       expect(typeof provider.listBranches).toBe('function');

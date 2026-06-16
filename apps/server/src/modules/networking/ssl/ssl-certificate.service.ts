@@ -37,7 +37,9 @@ export class SslCertificateService {
   async issueAndConfigure(
     request: SslCertificateRequest,
   ): Promise<SslCertificateResult> {
-    this.logger.log(`Issuing SSL certificate for domain: ${request.domainName}`);
+    this.logger.log(
+      `Issuing SSL certificate for domain: ${request.domainName}`,
+    );
 
     const playbookRoot = this.ansibleRunner.resolvePlaybooksRoot();
 
@@ -101,7 +103,9 @@ export class SslCertificateService {
     );
   }
 
-  async getExpiringCertificates(withinDays = 30): Promise<Array<{ domainName: string; expiresAt: Date }>> {
+  async getExpiringCertificates(
+    withinDays = 30,
+  ): Promise<Array<{ domainName: string; expiresAt: Date }>> {
     const threshold = new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000);
     return this.prisma.sslCertificate.findMany({
       where: { expiresAt: { lt: threshold }, autoRenewal: true },

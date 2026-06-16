@@ -15,7 +15,14 @@ import { ProjectMembersService } from './services/project-members.service';
  * (WebhookManagementService / WebhookManagementController).
  */
 @Module({
-  imports: [PrismaModule, GitlabModule, SourceProvidersModule, PlatformModule, EnvironmentsModule, AuditModule],
+  imports: [
+    PrismaModule,
+    GitlabModule,
+    SourceProvidersModule,
+    PlatformModule,
+    EnvironmentsModule,
+    AuditModule,
+  ],
   controllers: [ProjectsController],
   providers: [ProjectsService, ProjectMembersService, ProjectImportService],
   exports: [ProjectsService],

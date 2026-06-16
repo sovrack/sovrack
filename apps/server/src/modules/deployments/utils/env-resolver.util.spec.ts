@@ -14,7 +14,11 @@ function levels(
   serviceEnvironment?: Partial<Omit<EnvLevel, 'levelName'>>,
 ): EnvLevel[] {
   return [
-    { levelName: 'service', env: service?.env ?? null, secretsEnv: service?.secretsEnv ?? null },
+    {
+      levelName: 'service',
+      env: service?.env ?? null,
+      secretsEnv: service?.secretsEnv ?? null,
+    },
     {
       levelName: 'environment',
       env: environment?.env ?? null,
@@ -47,7 +51,9 @@ describe('resolveEnvVars / resolveEnvDetailed', () => {
 
   // Cas 2 : clé absente au niveau Service → héritée d'Environment
   it('cas 2 — inherits a key from environment when absent at service', () => {
-    const res = resolveEnvDetailed(levels({ env: '{}' }, { env: '{"C":"fromEnv"}' }, { env: '{}' }));
+    const res = resolveEnvDetailed(
+      levels({ env: '{}' }, { env: '{"C":"fromEnv"}' }, { env: '{}' }),
+    );
     const c = res.entries.find((e) => e.key === 'C');
     expect(c?.value).toBe('fromEnv');
     expect(c?.origin).toBe('environment');
@@ -62,23 +68,33 @@ describe('resolveEnvVars / resolveEnvDetailed', () => {
 
   // Cas 4 : JSON malformé au niveau Service → erreur loggée + niveau ignoré
   it('cas 4 — malformed JSON at service is reported and skipped', () => {
-    const res = resolveEnvDetailed(levels({ env: '{bad json' }, { env: '{"A":"e"}' }));
+    const res = resolveEnvDetailed(
+      levels({ env: '{bad json' }, { env: '{"A":"e"}' }),
+    );
     expect(res.entries.find((e) => e.key === 'A')?.value).toBe('e');
     expect(res.warnings.some((w) => w.startsWith('service.env'))).toBe(true);
   });
 
   // Cas 5 : JSON malformé au niveau Environment → erreur loggée + niveau ignoré
   it('cas 5 — malformed JSON at environment is reported and skipped', () => {
-    const res = resolveEnvDetailed(levels({ env: '{"A":"svc"}' }, { env: 'not-json' }));
+    const res = resolveEnvDetailed(
+      levels({ env: '{"A":"svc"}' }, { env: 'not-json' }),
+    );
     expect(res.entries.find((e) => e.key === 'A')?.value).toBe('svc');
-    expect(res.warnings.some((w) => w.startsWith('environment.env'))).toBe(true);
+    expect(res.warnings.some((w) => w.startsWith('environment.env'))).toBe(
+      true,
+    );
   });
 
   // Cas 6 : JSON malformé au niveau ServiceEnvironment → niveaux précédents utilisés (dégradation gracieuse)
   it('cas 6 — malformed JSON at serviceEnvironment degrades gracefully', () => {
-    const res = resolveEnvDetailed(levels({ env: '{"A":"svc"}' }, {}, { env: '{bad' }));
+    const res = resolveEnvDetailed(
+      levels({ env: '{"A":"svc"}' }, {}, { env: '{bad' }),
+    );
     expect(res.entries.find((e) => e.key === 'A')?.value).toBe('svc');
-    expect(res.warnings.some((w) => w.startsWith('serviceEnvironment.env'))).toBe(true);
+    expect(
+      res.warnings.some((w) => w.startsWith('serviceEnvironment.env')),
+    ).toBe(true);
   });
 
   // Cas 7 : un secret n'est PAS écrasé par un env non-secret d'un niveau supérieur → le secret GAGNE
@@ -94,21 +110,27 @@ describe('resolveEnvVars / resolveEnvDetailed', () => {
 
   // Cas 8 : secretsEnv vide ("{}") → aucune variable secrète, pas d'erreur
   it('cas 8 — empty secretsEnv yields no secret vars and no warning', () => {
-    const res = resolveEnvDetailed(levels({ env: '{"A":"1"}', secretsEnv: '{}' }));
+    const res = resolveEnvDetailed(
+      levels({ env: '{"A":"1"}', secretsEnv: '{}' }),
+    );
     expect(res.entries.filter((e) => e.isSecret)).toHaveLength(0);
     expect(res.warnings).toEqual([]);
   });
 
   // Cas 9 : secretsEnv null/undefined → traité comme "{}", pas d'erreur
   it('cas 9 — null/undefined secretsEnv is treated as {} with no warning', () => {
-    const res = resolveEnvDetailed(levels({ env: '{"A":"1"}', secretsEnv: null }));
+    const res = resolveEnvDetailed(
+      levels({ env: '{"A":"1"}', secretsEnv: null }),
+    );
     expect(res.warnings).toEqual([]);
     expect(res.entries.find((e) => e.key === 'A')?.isSecret).toBe(false);
   });
 
   // Cas 10 : même clé dans env ET secretsEnv du même niveau → secretsEnv gagne
   it('cas 10 — within a level, secretsEnv overrides env on the same key', () => {
-    const res = resolveEnvDetailed(levels({ env: '{"K":"plain"}', secretsEnv: '{"K":"secret"}' }));
+    const res = resolveEnvDetailed(
+      levels({ env: '{"K":"plain"}', secretsEnv: '{"K":"secret"}' }),
+    );
     const k = res.entries.find((e) => e.key === 'K');
     expect(k?.value).toBe('secret');
     expect(k?.isSecret).toBe(true);

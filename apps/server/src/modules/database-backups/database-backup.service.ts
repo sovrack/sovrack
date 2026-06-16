@@ -100,11 +100,15 @@ export class DatabaseBackupService {
 
     const type = env.service.databaseType;
     if (!type) {
-      throw new BadRequestException('Ce service n’est pas une base de données managée');
+      throw new BadRequestException(
+        'Ce service n’est pas une base de données managée',
+      );
     }
     const spec = this.dumpSpec(type);
     if (!spec) {
-      throw new BadRequestException(`Sauvegarde logique non supportée pour ${type}`);
+      throw new BadRequestException(
+        `Sauvegarde logique non supportée pour ${type}`,
+      );
     }
 
     const container = await this.resolveRunningContainer(serviceEnvId);
@@ -143,10 +147,15 @@ export class DatabaseBackupService {
         },
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Échec de la sauvegarde';
+      const message =
+        error instanceof Error ? error.message : 'Échec de la sauvegarde';
       return this.prisma.databaseBackup.update({
         where: { id: backup.id },
-        data: { status: BackupStatus.FAILED, error: message, finishedAt: new Date() },
+        data: {
+          status: BackupStatus.FAILED,
+          error: message,
+          finishedAt: new Date(),
+        },
       });
     }
   }
@@ -155,17 +164,29 @@ export class DatabaseBackupService {
     switch (type) {
       case ManagedServiceType.POSTGRES:
         return {
-          cmd: ['sh', '-c', 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U "$POSTGRES_USER" -d "${POSTGRES_DB:-$POSTGRES_USER}"'],
+          cmd: [
+            'sh',
+            '-c',
+            'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U "$POSTGRES_USER" -d "${POSTGRES_DB:-$POSTGRES_USER}"',
+          ],
           ext: 'sql',
         };
       case ManagedServiceType.MYSQL:
         return {
-          cmd: ['sh', '-c', 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --databases "${MYSQL_DATABASE:-app}"'],
+          cmd: [
+            'sh',
+            '-c',
+            'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --databases "${MYSQL_DATABASE:-app}"',
+          ],
           ext: 'sql',
         };
       case ManagedServiceType.MONGODB:
         return {
-          cmd: ['sh', '-c', 'mongodump --archive --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin'],
+          cmd: [
+            'sh',
+            '-c',
+            'mongodump --archive --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin',
+          ],
           ext: 'archive',
         };
       // REDIS / RABBITMQ have no portable logical dump.
@@ -183,7 +204,9 @@ export class DatabaseBackupService {
       select: { serverId: true, name: true },
     });
     if (!container) {
-      throw new BadRequestException('Aucun conteneur de base de données en cours d’exécution');
+      throw new BadRequestException(
+        'Aucun conteneur de base de données en cours d’exécution',
+      );
     }
     return container;
   }

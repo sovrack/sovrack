@@ -41,7 +41,9 @@ export class ServersJobsService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     const ghostJobs = await this.prisma.serverJob.findMany({
-      where: { status: { in: [ServerJobStatus.RUNNING, ServerJobStatus.PENDING] } },
+      where: {
+        status: { in: [ServerJobStatus.RUNNING, ServerJobStatus.PENDING] },
+      },
       select: { id: true, serverId: true },
     });
 
@@ -55,7 +57,8 @@ export class ServersJobsService implements OnModuleInit {
       where: { id: { in: ghostJobs.map((j) => j.id) } },
       data: {
         status: ServerJobStatus.FAILED,
-        error: "Job interrompu lors du redémarrage du backend. Relancez l'opération.",
+        error:
+          "Job interrompu lors du redémarrage du backend. Relancez l'opération.",
         finishedAt: new Date(),
       },
     });
@@ -88,7 +91,8 @@ export class ServersJobsService implements OnModuleInit {
       where: { id: { in: stale.map((j) => j.id) } },
       data: {
         status: ServerJobStatus.FAILED,
-        error: 'Job bloqué trop longtemps — nettoyage automatique toutes les 5 minutes.',
+        error:
+          'Job bloqué trop longtemps — nettoyage automatique toutes les 5 minutes.',
         finishedAt: new Date(),
       },
     });
@@ -123,7 +127,10 @@ export class ServersJobsService implements OnModuleInit {
     }
   }
 
-  async forceFailJob(serverId: string, jobId: string): Promise<ServerJobPublic> {
+  async forceFailJob(
+    serverId: string,
+    jobId: string,
+  ): Promise<ServerJobPublic> {
     const job = await this.prisma.serverJob.findFirst({
       where: { id: jobId, serverId },
     });
@@ -132,8 +139,13 @@ export class ServersJobsService implements OnModuleInit {
       throw new NotFoundException('Job serveur non trouvé');
     }
 
-    if (job.status === ServerJobStatus.SUCCESS || job.status === ServerJobStatus.FAILED) {
-      throw new BadRequestException('Ce job est déjà terminé et ne peut pas être annulé.');
+    if (
+      job.status === ServerJobStatus.SUCCESS ||
+      job.status === ServerJobStatus.FAILED
+    ) {
+      throw new BadRequestException(
+        'Ce job est déjà terminé et ne peut pas être annulé.',
+      );
     }
 
     const updated = await this.prisma.serverJob.update({
@@ -414,7 +426,9 @@ export class ServersJobsService implements OnModuleInit {
   }
 
   private resolveDefaultJobTimeoutMs(): number {
-    const candidate = Number(this.configService.get<string>('SERVER_JOB_TIMEOUT_MS', '300000'));
+    const candidate = Number(
+      this.configService.get<string>('SERVER_JOB_TIMEOUT_MS', '300000'),
+    );
     if (Number.isFinite(candidate) && candidate >= 10_000) {
       return Math.floor(candidate);
     }

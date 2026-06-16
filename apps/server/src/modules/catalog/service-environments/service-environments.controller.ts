@@ -41,16 +41,21 @@ export class ServiceEnvironmentsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all project links (by service or environment)' })
+  @ApiOperation({
+    summary: 'List all project links (by service or environment)',
+  })
   async findAll(
     @Param('projectId') projectId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return { message: 'Utilisez GET /services/:id/environments ou GET /environments/:id/services' };
+    return {
+      message:
+        'Utilisez GET /services/:id/environments ou GET /environments/:id/services',
+    };
   }
 
   @Get(':id')
-  @ApiOperation({ summary: "Service-environment link details" })
+  @ApiOperation({ summary: 'Service-environment link details' })
   async findOne(
     @Param('projectId') projectId: string,
     @Param('id') id: string,

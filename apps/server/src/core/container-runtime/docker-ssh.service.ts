@@ -29,7 +29,10 @@ export class DockerSshService {
   }
 
   /** `docker stats` for a single container; returns the raw line or `NOT_FOUND`. */
-  async containerStats(conn: SshConnection, containerName: string): Promise<string> {
+  async containerStats(
+    conn: SshConnection,
+    containerName: string,
+  ): Promise<string> {
     const r = await this.ssh.exec(
       conn,
       `docker stats --no-stream --format ${DockerSshService.sq(DockerSshService.STATS_FORMAT)} ${DockerSshService.sq(containerName)} 2>/dev/null || echo "NOT_FOUND"`,
@@ -38,7 +41,10 @@ export class DockerSshService {
   }
 
   /** `docker stats` for all containers whose name matches a project slug. */
-  async projectStats(conn: SshConnection, projectSlug: string): Promise<string> {
+  async projectStats(
+    conn: SshConnection,
+    projectSlug: string,
+  ): Promise<string> {
     const r = await this.ssh.exec(
       conn,
       `docker stats --no-stream --format ${DockerSshService.sq(DockerSshService.STATS_FORMAT)} 2>/dev/null | grep ${DockerSshService.sq(`^[^|]*|${projectSlug}`)} || true`,
@@ -47,7 +53,10 @@ export class DockerSshService {
   }
 
   /** `docker ps` status string for a single named container. */
-  async containerStatus(conn: SshConnection, containerName: string): Promise<string> {
+  async containerStatus(
+    conn: SshConnection,
+    containerName: string,
+  ): Promise<string> {
     const r = await this.ssh.exec(
       conn,
       `docker ps --filter ${DockerSshService.sq(`name=${containerName}`)} --format ${DockerSshService.sq('{{.Status}}')} 2>/dev/null`,
@@ -82,7 +91,10 @@ export class DockerSshService {
 
   /** All container names (`docker ps -a`). */
   async listContainerNames(conn: SshConnection): Promise<string> {
-    const r = await this.ssh.exec(conn, `docker ps -a --format ${DockerSshService.sq('{{.Names}}')}`);
+    const r = await this.ssh.exec(
+      conn,
+      `docker ps -a --format ${DockerSshService.sq('{{.Names}}')}`,
+    );
     return r.stdout.trim();
   }
 

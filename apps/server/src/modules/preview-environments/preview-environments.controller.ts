@@ -35,13 +35,18 @@ export class PreviewEnvironmentsController {
 
   @Get()
   @ApiOperation({ summary: 'List active preview environments' })
-  async list(@Param('projectId') projectId: string, @GetUser() user: JwtPayload) {
+  async list(
+    @Param('projectId') projectId: string,
+    @GetUser() user: JwtPayload,
+  ) {
     await this.assertAccess(projectId, user);
     return this.previews.listForProject(projectId);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Ouvrir un environnement de preview pour une merge request' })
+  @ApiOperation({
+    summary: 'Ouvrir un environnement de preview pour une merge request',
+  })
   async open(
     @Param('projectId') projectId: string,
     @Body() dto: OpenPreviewDto,
@@ -62,8 +67,14 @@ export class PreviewEnvironmentsController {
     return this.previews.closePreview(projectId, mergeRequestId);
   }
 
-  private async assertAccess(projectId: string, user: JwtPayload): Promise<void> {
-    const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
+  private async assertAccess(
+    projectId: string,
+    user: JwtPayload,
+  ): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true },
+    });
     if (!project) throw new NotFoundException('Projet non trouvé');
     if (user.role === Role.ADMIN) return;
     const member = await this.prisma.projectMember.findUnique({

@@ -25,10 +25,18 @@ export class LoggerService {
             winston.format.errors({ stack: true }),
             winston.format.colorize(),
             winston.format.printf((info) => {
-              const { timestamp, level, message, context, correlationId, deploymentId } =
-                info as Record<string, unknown>;
+              const {
+                timestamp,
+                level,
+                message,
+                context,
+                correlationId,
+                deploymentId,
+              } = info as Record<string, unknown>;
               const ctx = context ? ` [${String(context)}]` : '';
-              const corr = correlationId ? ` (req:${String(correlationId)})` : '';
+              const corr = correlationId
+                ? ` (req:${String(correlationId)})`
+                : '';
               const dep = deploymentId ? ` (dep:${String(deploymentId)})` : '';
               return `${String(timestamp)} ${level}${ctx}${corr}${dep} ${String(message)}`;
             }),
@@ -41,7 +49,9 @@ export class LoggerService {
   }
 
   /** Merge the active async-context (correlationId, deploymentId, …) into a log. */
-  private withContext(fields: Record<string, unknown>): Record<string, unknown> {
+  private withContext(
+    fields: Record<string, unknown>,
+  ): Record<string, unknown> {
     return { ...getLogContext(), ...fields };
   }
 

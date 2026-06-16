@@ -24,10 +24,12 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<Request & { user?: JwtPayload }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: JwtPayload }>();
     const user = request.user;
 
-    if (!user?.role || !requiredRoles.includes(user.role as Role)) {
+    if (!user?.role || !requiredRoles.includes(user.role)) {
       throw new ForbiddenException('Accès refusé: rôle insuffisant');
     }
 

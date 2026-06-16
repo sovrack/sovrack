@@ -96,7 +96,10 @@ export class AutomationRunnerService {
         errorMessage: null,
       },
     });
-    this.gateway.emitRunStatus({ runId, status: ServerOperationStatus.RUNNING });
+    this.gateway.emitRunStatus({
+      runId,
+      status: ServerOperationStatus.RUNNING,
+    });
 
     await this.appendRunLog(runId, {
       level: ServerLogLevel.INFO,
@@ -395,7 +398,9 @@ export class AutomationRunnerService {
   }
 
   private resolveTargetTimeoutMs(): number {
-    const raw = Number(this.configService.get<string>('AUTOMATION_TARGET_TIMEOUT_MS', '300000'));
+    const raw = Number(
+      this.configService.get<string>('AUTOMATION_TARGET_TIMEOUT_MS', '300000'),
+    );
     if (Number.isFinite(raw) && raw >= 60_000) {
       return Math.floor(raw);
     }

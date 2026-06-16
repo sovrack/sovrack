@@ -67,7 +67,9 @@ export class DockerConnectionsService {
   }
 
   async listAll(): Promise<DockerConnection[]> {
-    return this.prisma.dockerConnection.findMany({ orderBy: { createdAt: 'desc' } });
+    return this.prisma.dockerConnection.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async listForHealthCheck(): Promise<
@@ -104,22 +106,36 @@ export class DockerConnectionsService {
       circuitOpenedAt?: Date | null;
     },
   ): Promise<void> {
-    await this.prisma.dockerConnection.updateMany({ where: { serverId }, data });
+    await this.prisma.dockerConnection.updateMany({
+      where: { serverId },
+      data,
+    });
   }
 
   async remove(serverId: string): Promise<{ ok: true }> {
-    await this.prisma.dockerConnection.delete({ where: { serverId } }).catch((err: unknown) => {
-      if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'P2025') {
-        throw new NotFoundException(`Aucune connexion Docker à supprimer pour le serveur ${serverId}`);
-      }
-      throw err;
-    });
+    await this.prisma.dockerConnection
+      .delete({ where: { serverId } })
+      .catch((err: unknown) => {
+        if (
+          err &&
+          typeof err === 'object' &&
+          'code' in err &&
+          (err as { code: string }).code === 'P2025'
+        ) {
+          throw new NotFoundException(
+            `Aucune connexion Docker à supprimer pour le serveur ${serverId}`,
+          );
+        }
+        throw err;
+      });
     return { ok: true };
   }
 
   // ─── TLS material ─────────────────────────────────────────────────────────
 
-  async getDecryptedTls(serverId: string): Promise<{ ca: string; cert: string; key: string; endpoint: string }> {
+  async getDecryptedTls(
+    serverId: string,
+  ): Promise<{ ca: string; cert: string; key: string; endpoint: string }> {
     const conn = await this.findForServer(serverId);
     return {
       ca: this.crypto.decrypt(conn.tlsCaCert),
@@ -131,7 +147,11 @@ export class DockerConnectionsService {
 
   // ─── Reachability probe ───────────────────────────────────────────────────
 
-  async probeReachability(serverId: string): Promise<{ isReachable: true; apiVersion: string | null; latencyMs: number }> {
+  async probeReachability(serverId: string): Promise<{
+    isReachable: true;
+    apiVersion: string | null;
+    latencyMs: number;
+  }> {
     const conn = await this.findForServer(serverId);
     const parsed = this.parseEndpoint(conn.endpoint);
 
@@ -140,7 +160,10 @@ export class DockerConnectionsService {
     const key = this.crypto.decrypt(conn.tlsClientKey);
 
     const start = Date.now();
-    const result = await new Promise<{ apiVersion: string | null; error: Error | null }>((resolve) => {
+    const result = await new Promise<{
+      apiVersion: string | null;
+      error: Error | null;
+    }>((resolve) => {
       const socket = tls.connect({
         host: parsed.host,
         port: parsed.port,
@@ -168,21 +191,33 @@ export class DockerConnectionsService {
       });
       socket.on('end', () => resolve({ apiVersion, error: null }));
       socket.on('error', (err) => resolve({ apiVersion, error: err }));
-      socket.on('timeout', () => socket.destroy(new Error('TLS handshake timeout')));
+      socket.on('timeout', () =>
+        socket.destroy(new Error('TLS handshake timeout')),
+      );
     });
     const latencyMs = Date.now() - start;
 
     if (result.error) {
       await this.prisma.dockerConnection.update({
         where: { serverId },
-        data: { isReachable: false, lastCheckedAt: new Date(), apiVersion: null },
+        data: {
+          isReachable: false,
+          lastCheckedAt: new Date(),
+          apiVersion: null,
+        },
       });
-      throw new BadRequestException(`Connexion Docker injoignable: ${result.error.message}`);
+      throw new BadRequestException(
+        `Connexion Docker injoignable: ${result.error.message}`,
+      );
     }
 
     await this.prisma.dockerConnection.update({
       where: { serverId },
-      data: { isReachable: true, lastCheckedAt: new Date(), apiVersion: result.apiVersion },
+      data: {
+        isReachable: true,
+        lastCheckedAt: new Date(),
+        apiVersion: result.apiVersion,
+      },
     });
 
     return { isReachable: true, apiVersion: result.apiVersion, latencyMs };
@@ -195,7 +230,9 @@ export class DockerConnectionsService {
     try {
       url = new URL(endpoint);
     } catch {
-      throw new BadRequestException(`Endpoint Docker invalide: "${endpoint}". Format: tcp://host:port`);
+      throw new BadRequestException(
+        `Endpoint Docker invalide: "${endpoint}". Format: tcp://host:port`,
+      );
     }
     if (url.protocol !== 'tcp:') {
       throw new BadRequestException(
@@ -204,7 +241,9 @@ export class DockerConnectionsService {
     }
     const port = Number(url.port);
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
-      throw new BadRequestException(`Endpoint Docker invalide: port "${url.port}" hors plage.`);
+      throw new BadRequestException(
+        `Endpoint Docker invalide: port "${url.port}" hors plage.`,
+      );
     }
     return { host: url.hostname.replace(/^\[|\]$/g, ''), port };
   }

@@ -17,8 +17,7 @@ export function generateNestjsDockerfile(
     'COPY . .',
     ...(isNestJs
       ? ['RUN npm run build']
-      : ['RUN npm run build 2>/dev/null; true']
-    ),
+      : ['RUN npm run build 2>/dev/null; true']),
     '',
     'FROM node:20-alpine AS production',
     'WORKDIR /app',

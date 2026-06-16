@@ -84,7 +84,9 @@ function parseSource(
   }
 
   const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+  for (const [key, value] of Object.entries(
+    parsed as Record<string, unknown>,
+  )) {
     if (typeof value === 'string') {
       out[key] = value;
     } else if (typeof value === 'number' || typeof value === 'boolean') {
@@ -125,7 +127,11 @@ export function resolveEnvDetailed(levels: EnvLevel[]): ResolvedEnvDetailed {
 
   for (const level of levels) {
     // Non-secrets first, then secrets, so secrets win within the same level.
-    apply(parseSource(level.env, `${level.levelName}.env`, warnings), level.levelName, false);
+    apply(
+      parseSource(level.env, `${level.levelName}.env`, warnings),
+      level.levelName,
+      false,
+    );
     apply(
       parseSource(level.secretsEnv, `${level.levelName}.secretsEnv`, warnings),
       level.levelName,
@@ -133,12 +139,14 @@ export function resolveEnvDetailed(levels: EnvLevel[]): ResolvedEnvDetailed {
     );
   }
 
-  const entries: ResolvedEnvEntry[] = Array.from(resolved.entries()).map(([key, r]) => ({
-    key,
-    value: r.value,
-    origin: r.origin,
-    isSecret: r.isSecret,
-  }));
+  const entries: ResolvedEnvEntry[] = Array.from(resolved.entries()).map(
+    ([key, r]) => ({
+      key,
+      value: r.value,
+      origin: r.origin,
+      isSecret: r.isSecret,
+    }),
+  );
 
   return { entries, warnings };
 }

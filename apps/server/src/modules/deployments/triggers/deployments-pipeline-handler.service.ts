@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { DeploymentStatus, GitProviderType, PipelineRunStatus } from '@prisma/client';
+import {
+  DeploymentStatus,
+  GitProviderType,
+  PipelineRunStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import {
   DEPLOYMENT_PIPELINE_UPDATED,
@@ -64,7 +68,10 @@ export class DeploymentsPipelineHandlerService {
       })
       .catch(() => null);
 
-    const deployment = await this.findDeployment(externalId, existingRun?.deploymentId);
+    const deployment = await this.findDeployment(
+      externalId,
+      existingRun?.deploymentId,
+    );
     if (!deployment) return { status: 'ignored' };
 
     // ── 2. Upsert PipelineRun (now we have projectId from deployment) ─────────
@@ -134,7 +141,10 @@ export class DeploymentsPipelineHandlerService {
       });
       if (!updated) return { status: 'ignored' };
 
-      this.gateway.emitStatus({ deploymentId: updated.id, status: updated.status });
+      this.gateway.emitStatus({
+        deploymentId: updated.id,
+        status: updated.status,
+      });
       this.gateway.emitFinished({
         deploymentId: updated.id,
         status: updated.status,
@@ -175,24 +185,35 @@ export class DeploymentsPipelineHandlerService {
 
   private toPipelineRunStatus(status: string): PipelineRunStatus {
     switch (status.toLowerCase()) {
-      case 'success':   return PipelineRunStatus.SUCCESS;
-      case 'failed':    return PipelineRunStatus.FAILED;
+      case 'success':
+        return PipelineRunStatus.SUCCESS;
+      case 'failed':
+        return PipelineRunStatus.FAILED;
       case 'canceled':
-      case 'cancelled': return PipelineRunStatus.CANCELED;
-      case 'running':   return PipelineRunStatus.RUNNING;
-      case 'ignored':   return PipelineRunStatus.IGNORED;
-      default:          return PipelineRunStatus.PENDING;
+      case 'cancelled':
+        return PipelineRunStatus.CANCELED;
+      case 'running':
+        return PipelineRunStatus.RUNNING;
+      case 'ignored':
+        return PipelineRunStatus.IGNORED;
+      default:
+        return PipelineRunStatus.PENDING;
     }
   }
 
   private toDeploymentStatus(status: string): DeploymentStatus {
     switch (status.toLowerCase()) {
-      case 'success':   return DeploymentStatus.SUCCESS;
-      case 'failed':    return DeploymentStatus.FAILED;
+      case 'success':
+        return DeploymentStatus.SUCCESS;
+      case 'failed':
+        return DeploymentStatus.FAILED;
       case 'canceled':
-      case 'cancelled': return DeploymentStatus.CANCELED;
-      case 'running':   return DeploymentStatus.RUNNING;
-      default:          return DeploymentStatus.PENDING;
+      case 'cancelled':
+        return DeploymentStatus.CANCELED;
+      case 'running':
+        return DeploymentStatus.RUNNING;
+      default:
+        return DeploymentStatus.PENDING;
     }
   }
 
@@ -204,10 +225,9 @@ export class DeploymentsPipelineHandlerService {
       environmentName: deployment.environment.name,
       branch: deployment.branch,
       triggeredBy: deployment.user?.fullName ?? 'Système',
-      pipelineUrl:
-        deployment.externalPipelineId
-          ? `${deployment.service?.repoPath ?? ''}/-/pipelines/${String(deployment.externalPipelineId)}`
-          : null,
+      pipelineUrl: deployment.externalPipelineId
+        ? `${deployment.service?.repoPath ?? ''}/-/pipelines/${String(deployment.externalPipelineId)}`
+        : null,
     });
   }
 }

@@ -107,11 +107,17 @@ export class ServersCoreService {
       },
     });
 
-    await this.auditService.record(actorUserId, 'SERVER_CREATE', 'Server', server.id, {
-      name: server.name,
-      host: server.host,
-      connectionMode: server.connectionMode,
-    });
+    await this.auditService.record(
+      actorUserId,
+      'SERVER_CREATE',
+      'Server',
+      server.id,
+      {
+        name: server.name,
+        host: server.host,
+        connectionMode: server.connectionMode,
+      },
+    );
     await this.audit.record(server.id, 'SERVER_CREATE', actorUserId, {
       name: server.name,
       host: server.host,
@@ -282,9 +288,15 @@ export class ServersCoreService {
       data,
     });
 
-    await this.auditService.record(actorUserId, 'SERVER_UPDATE', 'Server', updated.id, {
-      changedFields: Object.keys(dto),
-    });
+    await this.auditService.record(
+      actorUserId,
+      'SERVER_UPDATE',
+      'Server',
+      updated.id,
+      {
+        changedFields: Object.keys(dto),
+      },
+    );
     await this.audit.record(updated.id, 'SERVER_EDIT', actorUserId, {
       changedFields: Object.keys(dto),
     });
@@ -343,7 +355,10 @@ export class ServersCoreService {
       );
     }
 
-    const job = await this.jobs.createJobAtomic(server.id, ServerJobType.VERIFY);
+    const job = await this.jobs.createJobAtomic(
+      server.id,
+      ServerJobType.VERIFY,
+    );
     await this.audit.record(server.id, 'SERVER_VALIDATE_SSH', actorUserId, {
       jobId: job.id,
     });
@@ -615,9 +630,15 @@ export class ServersCoreService {
       data: { infraRole } as Prisma.ServerUpdateInput,
     });
 
-    await this.auditService.record(actorUserId, 'SERVER_SET_INFRA_ROLE', 'Server', updated.id, {
-      infraRole,
-    });
+    await this.auditService.record(
+      actorUserId,
+      'SERVER_SET_INFRA_ROLE',
+      'Server',
+      updated.id,
+      {
+        infraRole,
+      },
+    );
 
     return this.toPublic(updated);
   }
@@ -646,7 +667,11 @@ export class ServersCoreService {
         },
       },
     });
-    const envIds = [...new Set(containers.map((c) => c.deployment?.environmentId).filter(Boolean))] as string[];
+    const envIds = [
+      ...new Set(
+        containers.map((c) => c.deployment?.environmentId).filter(Boolean),
+      ),
+    ] as string[];
     if (envIds.length === 0) return [];
     return await this.prisma.environment.findMany({
       where: { id: { in: envIds } },
@@ -657,7 +682,10 @@ export class ServersCoreService {
 
   // ─── Ping (test SSH rapide) ───────────────────────────────────────────────
 
-  async pingServer(id: string, actorUserId: string): Promise<{ ok: boolean; message: string }> {
+  async pingServer(
+    id: string,
+    actorUserId: string,
+  ): Promise<{ ok: boolean; message: string }> {
     const server = await this.prisma.server.findUnique({ where: { id } });
     if (!server) {
       throw new NotFoundException(`Serveur "${id}" non trouvé`);

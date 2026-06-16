@@ -99,11 +99,15 @@ export class ReconcilerService {
     }
 
     // Anti-storm: skip if we just auto-healed this env.
-    if (last.isAutoHealed && Date.now() - last.createdAt.getTime() < HEAL_COOLDOWN_MS) {
+    if (
+      last.isAutoHealed &&
+      Date.now() - last.createdAt.getTime() < HEAL_COOLDOWN_MS
+    ) {
       return;
     }
 
-    const serverId = (last.resolvedRefs as { serverId?: string } | null)?.serverId;
+    const serverId = (last.resolvedRefs as { serverId?: string } | null)
+      ?.serverId;
     if (!serverId) {
       return; // no resolved server (legacy row) → cannot inspect
     }
@@ -119,7 +123,10 @@ export class ReconcilerService {
       return;
     }
 
-    const inspect = await this.dockerApi.inspectContainer(serverId, container.dockerId);
+    const inspect = await this.dockerApi.inspectContainer(
+      serverId,
+      container.dockerId,
+    );
     const status = inspect.State?.Status ?? 'unknown';
     if (!DEAD_STATES.has(status)) {
       return; // observed == desired (running) → nothing to do
@@ -155,8 +162,10 @@ export class ReconcilerService {
         branch: last.branch,
         status: DeploymentStatus.PENDING,
         startedAt: new Date(),
-        specSnapshot: (last.specSnapshot ?? Prisma.JsonNull) as Prisma.InputJsonValue,
-        resolvedRefs: (last.resolvedRefs ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+        specSnapshot: (last.specSnapshot ??
+          Prisma.JsonNull) as Prisma.InputJsonValue,
+        resolvedRefs: (last.resolvedRefs ??
+          Prisma.JsonNull) as Prisma.InputJsonValue,
         dockerImage: last.dockerImage,
         imageSha: last.imageSha,
         isAutoHealed: true,

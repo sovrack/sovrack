@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { GitProviderType } from '@prisma/client';
-import type { ICiGenerator, CiGenerateOptions } from '../../interfaces/ci-generator.interface';
+import type {
+  ICiGenerator,
+  CiGenerateOptions,
+} from '../../interfaces/ci-generator.interface';
 
 export type GitlabCiGenerateOptions = {
   registryUrl?: string;
@@ -19,7 +22,9 @@ const TEST_PROFILES: Record<string, TestStageProfile> = {
   nodejs: {
     image: 'node:20-alpine',
     cachePaths: ['node_modules/', '.npm/'],
-    beforeScript: ['if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then npm ci --cache .npm --prefer-offline; else npm install --cache .npm --prefer-offline; fi'],
+    beforeScript: [
+      'if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then npm ci --cache .npm --prefer-offline; else npm install --cache .npm --prefer-offline; fi',
+    ],
     script: [
       'npm run lint --if-present',
       'npm run test --if-present -- --passWithNoTests',
@@ -37,13 +42,18 @@ const TEST_PROFILES: Record<string, TestStageProfile> = {
   go: {
     image: 'golang:1.22-alpine',
     cachePaths: ['.go-cache/'],
-    beforeScript: ['export GOCACHE="$CI_PROJECT_DIR/.go-cache"', 'go mod download'],
+    beforeScript: [
+      'export GOCACHE="$CI_PROJECT_DIR/.go-cache"',
+      'go mod download',
+    ],
     script: ['go test ./...'],
   },
   java: {
     image: 'maven:3.9-eclipse-temurin-21',
     cachePaths: ['.m2/repository/'],
-    beforeScript: ['export MAVEN_OPTS="-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"'],
+    beforeScript: [
+      'export MAVEN_OPTS="-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"',
+    ],
     script: ['mvn test -B'],
   },
   ruby: {

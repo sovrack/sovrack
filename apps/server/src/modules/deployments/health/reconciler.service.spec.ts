@@ -39,7 +39,9 @@ describe('ReconcilerService', () => {
 
   beforeEach(() => {
     prisma = {
-      serviceEnvironment: { findMany: jest.fn().mockResolvedValue([makeCandidate()]) },
+      serviceEnvironment: {
+        findMany: jest.fn().mockResolvedValue([makeCandidate()]),
+      },
       deployment: {
         count: jest.fn().mockResolvedValue(0),
         update: jest.fn().mockResolvedValue({}),
@@ -58,7 +60,9 @@ describe('ReconcilerService', () => {
   });
 
   it('does nothing when the container is RUNNING', async () => {
-    dockerApi.inspectContainer.mockResolvedValue({ State: { Status: 'running' } });
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'running' },
+    });
     await service.reconcile();
     expect(prisma.deployment.create).not.toHaveBeenCalled();
     expect(executor.executeDeploy).not.toHaveBeenCalled();
@@ -66,7 +70,9 @@ describe('ReconcilerService', () => {
   });
 
   it('creates an auto-heal deployment when the container is EXITED', async () => {
-    dockerApi.inspectContainer.mockResolvedValue({ State: { Status: 'exited' } });
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'exited' },
+    });
     await service.reconcile();
     expect(prisma.deployment.create).toHaveBeenCalledTimes(1);
     expect(prisma.deployment.create.mock.calls[0][0].data).toMatchObject({
@@ -80,14 +86,18 @@ describe('ReconcilerService', () => {
 
   it('skips when a deployment is already in flight', async () => {
     prisma.deployment.count.mockResolvedValue(1);
-    dockerApi.inspectContainer.mockResolvedValue({ State: { Status: 'exited' } });
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'exited' },
+    });
     await service.reconcile();
     expect(dockerApi.inspectContainer).not.toHaveBeenCalled();
     expect(prisma.deployment.create).not.toHaveBeenCalled();
   });
 
   it('does not crash when the Docker API call fails', async () => {
-    dockerApi.inspectContainer.mockRejectedValue(new Error('no docker connection'));
+    dockerApi.inspectContainer.mockRejectedValue(
+      new Error('no docker connection'),
+    );
     await expect(service.reconcile()).resolves.toBeUndefined();
     expect(prisma.deployment.create).not.toHaveBeenCalled();
   });
@@ -96,7 +106,9 @@ describe('ReconcilerService', () => {
     prisma.serviceEnvironment.findMany.mockResolvedValue([
       makeCandidate({ isAutoHealed: true, createdAt: new Date() }),
     ]);
-    dockerApi.inspectContainer.mockResolvedValue({ State: { Status: 'exited' } });
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'exited' },
+    });
     await service.reconcile();
     expect(dockerApi.inspectContainer).not.toHaveBeenCalled();
     expect(prisma.deployment.create).not.toHaveBeenCalled();

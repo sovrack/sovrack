@@ -47,27 +47,44 @@ export class ServicesController {
     @Body() dto: CreateServiceDto,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.servicesService.create(projectId, dto, user.id, user.role);
+    return await this.servicesService.create(
+      projectId,
+      dto,
+      user.id,
+      user.role,
+    );
   }
 
   @Post('discover-group')
-  @ApiOperation({ summary: 'Discover the repos of a group/org to create services' })
+  @ApiOperation({
+    summary: 'Discover the repos of a group/org to create services',
+  })
   async discoverGroup(
     @Param('projectId') projectId: string,
     @Body() dto: DiscoverGroupDto,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.servicesService.discoverGroup(projectId, dto, user.id, user.role);
+    return await this.servicesService.discoverGroup(
+      projectId,
+      dto,
+      user.id,
+      user.role,
+    );
   }
 
   @Get(':serviceId')
-  @ApiOperation({ summary: "Service details" })
+  @ApiOperation({ summary: 'Service details' })
   async findOne(
     @Param('projectId') projectId: string,
     @Param('serviceId') serviceId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.servicesService.findOne(projectId, serviceId, user.id, user.role);
+    return await this.servicesService.findOne(
+      projectId,
+      serviceId,
+      user.id,
+      user.role,
+    );
   }
 
   @Put(':serviceId')
@@ -78,7 +95,13 @@ export class ServicesController {
     @Body() dto: UpdateServiceDto,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.servicesService.update(projectId, serviceId, dto, user.id, user.role);
+    return await this.servicesService.update(
+      projectId,
+      serviceId,
+      dto,
+      user.id,
+      user.role,
+    );
   }
 
   @Delete(':serviceId')

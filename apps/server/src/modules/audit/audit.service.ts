@@ -91,7 +91,8 @@ export class AuditService {
               action: row.action,
               resourceType: row.resourceType,
               resourceId: row.resourceId,
-              metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+              metadata:
+                (row.metadata as Record<string, unknown> | null) ?? null,
               createdAt: row.createdAt,
               user: row.user,
             },

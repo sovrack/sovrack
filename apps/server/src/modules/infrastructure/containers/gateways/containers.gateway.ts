@@ -38,7 +38,9 @@ export class ContainersGateway implements OnGatewayDisconnect {
   ): Promise<void> {
     this.stopStream(client.id);
 
-    const container = await this.containersService.findOne(payload.containerId).catch(() => null);
+    const container = await this.containersService
+      .findOne(payload.containerId)
+      .catch(() => null);
     if (!container) {
       client.emit('container:error', { message: 'Container introuvable' });
       return;
@@ -60,8 +62,11 @@ export class ContainersGateway implements OnGatewayDisconnect {
         }
       } catch (err) {
         if (!controller.signal.aborted) {
-          const message = err instanceof Error ? err.message : 'Erreur log stream';
-          this.logger.error(`Log stream error for container ${payload.containerId}: ${message}`);
+          const message =
+            err instanceof Error ? err.message : 'Erreur log stream';
+          this.logger.error(
+            `Log stream error for container ${payload.containerId}: ${message}`,
+          );
           client.emit('container:error', { message });
         }
       } finally {

@@ -20,7 +20,8 @@ export class SslRenewalService {
   async renewExpiringCertificates(): Promise<void> {
     this.logger.log('Running scheduled SSL certificate renewal check...');
 
-    const expiring = await this.sslCertificateService.getExpiringCertificates(30);
+    const expiring =
+      await this.sslCertificateService.getExpiringCertificates(30);
 
     if (expiring.length === 0) {
       this.logger.log('No certificates expiring within 30 days.');
@@ -32,7 +33,9 @@ export class SslRenewalService {
     for (const cert of expiring) {
       try {
         await this.renewCertificate(cert.domainName);
-        this.logger.log(`Successfully renewed certificate for: ${cert.domainName}`);
+        this.logger.log(
+          `Successfully renewed certificate for: ${cert.domainName}`,
+        );
       } catch (error) {
         this.logger.error(
           `Failed to renew certificate for ${cert.domainName}: ${

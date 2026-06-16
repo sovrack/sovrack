@@ -159,8 +159,9 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
   },
   {
     key: 'enable_ssl',
-    label: 'Activer SSL / HTTPS (Let\'s Encrypt)',
-    description: 'Installs Certbot and obtains a Let\'s Encrypt certificate for the configured domains. Automatic renewal enabled.',
+    label: "Activer SSL / HTTPS (Let's Encrypt)",
+    description:
+      "Installs Certbot and obtains a Let's Encrypt certificate for the configured domains. Automatic renewal enabled.",
     playbookPath: 'prepare-server.yml',
     category: 'web',
     roles: ['ssl'],

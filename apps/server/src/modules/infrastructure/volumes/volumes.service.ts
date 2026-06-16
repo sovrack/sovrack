@@ -6,10 +6,7 @@ import { CreateVolumeDto, UpdateVolumeDto } from './dto/volume.dto';
 export class VolumesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(filters: {
-    serverId?: string;
-    serviceId?: string;
-  }) {
+  async findAll(filters: { serverId?: string; serviceId?: string }) {
     return this.prisma.volume.findMany({
       where: {
         ...(filters.serverId && { serverId: filters.serverId }),

@@ -16,7 +16,15 @@ import { CryptoService } from '../crypto/crypto.service';
  */
 describe('DockerConnectionsService', () => {
   let service: DockerConnectionsService;
-  let prisma: { dockerConnection: { findUnique: jest.Mock; upsert: jest.Mock; findMany: jest.Mock; delete: jest.Mock; update: jest.Mock } };
+  let prisma: {
+    dockerConnection: {
+      findUnique: jest.Mock;
+      upsert: jest.Mock;
+      findMany: jest.Mock;
+      delete: jest.Mock;
+      update: jest.Mock;
+    };
+  };
   let crypto: { encrypt: jest.Mock; decrypt: jest.Mock };
 
   beforeEach(async () => {

@@ -29,24 +29,59 @@ type ToolRequirement = {
 
 const BUILD_SOURCE_TOOLS: Record<BuildSource, ToolRequirement[]> = {
   NIXPACKS_LOCAL: [
-    { binary: 'nixpacks', checkCommand: 'command -v nixpacks', label: 'Nixpacks', role: 'nixpacks' },
-    { binary: 'docker',   checkCommand: 'command -v docker',   label: 'Docker',   role: 'docker' },
+    {
+      binary: 'nixpacks',
+      checkCommand: 'command -v nixpacks',
+      label: 'Nixpacks',
+      role: 'nixpacks',
+    },
+    {
+      binary: 'docker',
+      checkCommand: 'command -v docker',
+      label: 'Docker',
+      role: 'docker',
+    },
   ],
   NIXPACKS_REGISTRY: [
-    { binary: 'docker',   checkCommand: 'command -v docker',   label: 'Docker',   role: 'docker' },
+    {
+      binary: 'docker',
+      checkCommand: 'command -v docker',
+      label: 'Docker',
+      role: 'docker',
+    },
   ],
   DOCKERFILE_LOCAL: [
-    { binary: 'docker',   checkCommand: 'command -v docker',   label: 'Docker',   role: 'docker' },
+    {
+      binary: 'docker',
+      checkCommand: 'command -v docker',
+      label: 'Docker',
+      role: 'docker',
+    },
   ],
   DOCKERFILE_REGISTRY: [
-    { binary: 'docker',   checkCommand: 'command -v docker',   label: 'Docker',   role: 'docker' },
+    {
+      binary: 'docker',
+      checkCommand: 'command -v docker',
+      label: 'Docker',
+      role: 'docker',
+    },
   ],
   DOCKER_COMPOSE: [
-    { binary: 'docker',   checkCommand: 'command -v docker',   label: 'Docker',   role: 'docker' },
+    {
+      binary: 'docker',
+      checkCommand: 'command -v docker',
+      label: 'Docker',
+      role: 'docker',
+    },
   ],
   STATIC: [],
   EXTERNAL_IMAGE: [
-    { binary: 'docker',   checkCommand: 'command -v docker',   label: 'Docker',   role: 'docker' },
+    {
+      binary: 'docker',
+      checkCommand: 'command -v docker',
+      label: 'Docker',
+      role: 'docker',
+    },
   ],
 };
 
@@ -99,23 +134,32 @@ export class DeploymentsValidationService {
         where: { id: serviceEnvId },
         include: {
           service: {
-            select: { type: true, databaseType: true, databaseCredentials: true },
+            select: {
+              type: true,
+              databaseType: true,
+              databaseCredentials: true,
+            },
           },
         },
       });
       if (serviceEnv?.service.type === 'DATABASE') {
         const svc = serviceEnv.service;
         if (!svc.databaseType) {
-          throw new BadRequestException('databaseType est requis pour un service DATABASE');
+          throw new BadRequestException(
+            'databaseType est requis pour un service DATABASE',
+          );
         }
         if (svc.databaseCredentials) {
-          const creds = typeof svc.databaseCredentials === 'string'
-            ? JSON.parse(svc.databaseCredentials)
-            : svc.databaseCredentials;
+          const creds =
+            typeof svc.databaseCredentials === 'string'
+              ? JSON.parse(svc.databaseCredentials)
+              : svc.databaseCredentials;
           if (typeof creds === 'object' && creds !== null) {
             const c = creds as Record<string, unknown>;
             if (!c.user || !c.password || !c.dbName) {
-              throw new BadRequestException('databaseCredentials doit contenir user, password et dbName');
+              throw new BadRequestException(
+                'databaseCredentials doit contenir user, password et dbName',
+              );
             }
           }
         }
@@ -147,7 +191,12 @@ export class DeploymentsValidationService {
     const requirements = BUILD_SOURCE_TOOLS[buildSource] ?? [];
 
     // Pre-flight: verify repo is accessible for local build sources
-    const localBuildSources: BuildSource[] = ['NIXPACKS_LOCAL', 'DOCKERFILE_LOCAL', 'DOCKER_COMPOSE', 'STATIC'];
+    const localBuildSources: BuildSource[] = [
+      'NIXPACKS_LOCAL',
+      'DOCKERFILE_LOCAL',
+      'DOCKER_COMPOSE',
+      'STATIC',
+    ];
     if ((localBuildSources as string[]).includes(buildSource)) {
       await this.checkRepoCloneable(projectId, undefined);
     }
@@ -191,7 +240,8 @@ export class DeploymentsValidationService {
       where: { id: serverId },
       select: { installedTools: true },
     });
-    const installedTools = (server?.installedTools as InstalledTool[] | null) ?? [];
+    const installedTools =
+      (server?.installedTools as InstalledTool[] | null) ?? [];
     for (const tool of installedTools) {
       if (tool.status === 'INSTALLED') {
         confirmed.add(tool.toolKey);
@@ -223,25 +273,35 @@ export class DeploymentsValidationService {
 
       // Use GIT_ASKPASS with env-var-backed script to avoid leaking the token
       // on the CLI (visible via ps) or embedded in a temp file.
-      askpassPath = join(tmpdir(), `git-askpass-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-      await writeFile(askpassPath, [
-        '#!/bin/sh',
-        'case "$1" in',
-        '  *Username*) echo "$GIT_ASKPASS_USER" ;;',
-        '  *Password*) echo "$GIT_ASKPASS_PASS" ;;',
-        'esac',
-      ].join('\n'), { mode: 0o500 });
+      askpassPath = join(
+        tmpdir(),
+        `git-askpass-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      );
+      await writeFile(
+        askpassPath,
+        [
+          '#!/bin/sh',
+          'case "$1" in',
+          '  *Username*) echo "$GIT_ASKPASS_USER" ;;',
+          '  *Password*) echo "$GIT_ASKPASS_PASS" ;;',
+          'esac',
+        ].join('\n'),
+        { mode: 0o500 },
+      );
 
-      const { stderr } = await exec(`git ls-remote --heads "${creds.repoUrl}"`, {
-        timeout: 15_000,
-        env: {
-          ...process.env,
-          GIT_TERMINAL_PROMPT: '0',
-          GIT_ASKPASS: askpassPath,
-          GIT_ASKPASS_USER: authUser,
-          GIT_ASKPASS_PASS: creds.token,
+      const { stderr } = await exec(
+        `git ls-remote --heads "${creds.repoUrl}"`,
+        {
+          timeout: 15_000,
+          env: {
+            ...process.env,
+            GIT_TERMINAL_PROMPT: '0',
+            GIT_ASKPASS: askpassPath,
+            GIT_ASKPASS_USER: authUser,
+            GIT_ASKPASS_PASS: creds.token,
+          },
         },
-      });
+      );
 
       if (stderr && stderr.includes('fatal')) {
         throw new Error(stderr);
@@ -249,7 +309,9 @@ export class DeploymentsValidationService {
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err);
       const safe = raw.split('\n')[0];
-      this.logger.warn(`[validate] Repo not cloneable for project ${projectId}: ${safe}`);
+      this.logger.warn(
+        `[validate] Repo not cloneable for project ${projectId}: ${safe}`,
+      );
       throw new BadRequestException(
         `Dépôt Git inaccessible. Vérifiez que le token est valide et que le chemin du dépôt est correct : ${safe}`,
       );

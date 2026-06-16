@@ -1,16 +1,17 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { createDeploymentsWorker } from '../../../core/queue/queue.provider';
-import type { DeployJobData, RollbackJobData } from '../../../core/queue/queue.service';
+import type {
+  DeployJobData,
+  RollbackJobData,
+} from '../../../core/queue/queue.service';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 
 @Injectable()
 export class DeploymentsProcessor implements OnModuleInit {
   private readonly logger = new Logger(DeploymentsProcessor.name);
 
-  constructor(
-    private readonly executor: DockerDeployExecutorService,
-  ) {}
+  constructor(private readonly executor: DockerDeployExecutorService) {}
 
   async onModuleInit(): Promise<void> {
     const worker = createDeploymentsWorker(this.processJob.bind(this));
@@ -42,6 +43,9 @@ export class DeploymentsProcessor implements OnModuleInit {
     // A rollback deployment record is pre-created by DeploymentsRollbackService
     // before the job is enqueued. The job just needs to execute the deploy with
     // the pinned image override that was resolved at creation time.
-    await this.executor.executeDeploy(data.deploymentId, data.targetDeploymentId);
+    await this.executor.executeDeploy(
+      data.deploymentId,
+      data.targetDeploymentId,
+    );
   }
 }

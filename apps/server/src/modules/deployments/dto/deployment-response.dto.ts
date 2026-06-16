@@ -14,16 +14,32 @@ export class DeploymentResponseDto {
   @ApiPropertyOptional({ type: String, nullable: true })
   dockerImage!: string | null;
 
-  @ApiPropertyOptional({ type: String, nullable: true, description: 'Immutable image digest (sha256:…) — the rollback target.' })
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Immutable image digest (sha256:…) — the rollback target.',
+  })
   imageSha?: string | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Immutable Release: frozen desired state captured at deploy time (source, build).' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Immutable Release: frozen desired state captured at deploy time (source, build).',
+  })
   specSnapshot?: Record<string, unknown> | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Concrete refs this deployment resolved to (server, environment).' })
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Concrete refs this deployment resolved to (server, environment).',
+  })
   resolvedRefs?: Record<string, unknown> | null;
 
-  @ApiPropertyOptional({ isArray: true, description: 'Structured reconciliation status (Progressing/Ready/Degraded with reason+message).' })
+  @ApiPropertyOptional({
+    isArray: true,
+    description:
+      'Structured reconciliation status (Progressing/Ready/Degraded with reason+message).',
+  })
   conditions?: Record<string, unknown>[] | null;
 
   @ApiPropertyOptional({ type: Number, nullable: true })
@@ -56,13 +72,21 @@ export class DeploymentResponseDto {
   @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
 
-  @ApiPropertyOptional({ type: String, nullable: true, description: 'External pipeline ID (GitLab or GitHub)' })
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'External pipeline ID (GitLab or GitHub)',
+  })
   externalPipelineId?: string | null;
 
   @ApiPropertyOptional({
     nullable: true,
     description: 'Database connection info (type, version, credentials masked)',
-    example: { databaseType: 'POSTGRES', databaseVersion: '16', credentials: { user: 'app', dbName: 'app' } },
+    example: {
+      databaseType: 'POSTGRES',
+      databaseVersion: '16',
+      credentials: { user: 'app', dbName: 'app' },
+    },
   })
   databaseInfo?: {
     databaseType: string;

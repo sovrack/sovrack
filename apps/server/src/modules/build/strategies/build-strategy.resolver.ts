@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { DeploymentStrategy } from '@prisma/client';
-import type { BuildContext, BuildSource, DeployRoute } from './build-strategy.interface';
+import type {
+  BuildContext,
+  BuildSource,
+  DeployRoute,
+} from './build-strategy.interface';
 
 /**
  * Single source of truth for how a deployment is realised.
@@ -59,7 +63,9 @@ export class BuildStrategyResolver {
 
     const route = ROUTES[ctx.buildSource];
     if (!route) {
-      throw new Error(`No route registered for buildSource: ${String(ctx.buildSource)}`);
+      throw new Error(
+        `No route registered for buildSource: ${String(ctx.buildSource)}`,
+      );
     }
     return route;
   }

@@ -5,8 +5,14 @@ import { generateGoDockerfile } from './go.dockerfile';
 import { generateJavaDockerfile } from './java.dockerfile';
 import { generateNestjsDockerfile } from './nestjs.dockerfile';
 import { generateNextjsDockerfile } from './nextjs.dockerfile';
-import { generateLaravelDockerfile, generatePhpDockerfile } from './php.dockerfile';
-import { generateDjangoDockerfile, generatePythonDockerfile } from './python.dockerfile';
+import {
+  generateLaravelDockerfile,
+  generatePhpDockerfile,
+} from './php.dockerfile';
+import {
+  generateDjangoDockerfile,
+  generatePythonDockerfile,
+} from './python.dockerfile';
 import { generateReactDockerfile } from './react.dockerfile';
 import { generatePostgresDockerfile } from '../../../../templates/docker-images/postgres.dockerfile';
 import { generateRedisDockerfile } from '../../../../templates/docker-images/redis.dockerfile';

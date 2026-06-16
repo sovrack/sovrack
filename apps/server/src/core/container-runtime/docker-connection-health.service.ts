@@ -21,7 +21,12 @@ export type DockerConnectionRecoveredEvent = {
 export type ProbeOutcome =
   | { kind: 'skipped'; reason: 'ok' | 'cooldown' }
   | { kind: 'recovered'; serverId: string; endpoint: string }
-  | { kind: 'unreachable'; serverId: string; endpoint: string; lastError: string };
+  | {
+      kind: 'unreachable';
+      serverId: string;
+      endpoint: string;
+      lastError: string;
+    };
 
 export type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 
@@ -63,7 +68,9 @@ export class DockerConnectionHealthService {
     if (!this.enabled) return;
     const connections = await this.dockerConnections.listForHealthCheck();
     if (connections.length === 0) return;
-    this.logger.log(`docker-connection health: probing ${connections.length} connection(s)`);
+    this.logger.log(
+      `docker-connection health: probing ${connections.length} connection(s)`,
+    );
     for (const conn of connections) {
       try {
         await this.probeOne(conn);
@@ -79,20 +86,27 @@ export class DockerConnectionHealthService {
     const state = (conn.circuitState as CircuitState) ?? 'CLOSED';
 
     if (state === 'OPEN') {
-      const openedAt = conn.circuitOpenedAt ? new Date(conn.circuitOpenedAt).getTime() : 0;
+      const openedAt = conn.circuitOpenedAt
+        ? new Date(conn.circuitOpenedAt).getTime()
+        : 0;
       if (Date.now() - openedAt < OPEN_COOLDOWN_MS) {
         // Breaker open and still cooling down → absorb the failure silently.
         return { kind: 'skipped', reason: 'cooldown' };
       }
       // Cooldown elapsed → try a single probe in HALF_OPEN.
-      await this.dockerConnections.persistCircuit(conn.serverId, { circuitState: 'HALF_OPEN' });
+      await this.dockerConnections.persistCircuit(conn.serverId, {
+        circuitState: 'HALF_OPEN',
+      });
       return this.attempt(conn, 'HALF_OPEN');
     }
 
     return this.attempt(conn, state);
   }
 
-  private async attempt(conn: HealthConnection, state: CircuitState): Promise<ProbeOutcome> {
+  private async attempt(
+    conn: HealthConnection,
+    state: CircuitState,
+  ): Promise<ProbeOutcome> {
     try {
       await this.dockerConnections.probeReachability(conn.serverId);
 
@@ -107,13 +121,21 @@ export class DockerConnectionHealthService {
           serverId: conn.serverId,
           endpoint: conn.endpoint,
         } satisfies DockerConnectionRecoveredEvent);
-        this.logger.log(`docker-connection ${conn.serverId} (${conn.endpoint}) recovered`);
-        return { kind: 'recovered', serverId: conn.serverId, endpoint: conn.endpoint };
+        this.logger.log(
+          `docker-connection ${conn.serverId} (${conn.endpoint}) recovered`,
+        );
+        return {
+          kind: 'recovered',
+          serverId: conn.serverId,
+          endpoint: conn.endpoint,
+        };
       }
 
       // CLOSED + success → clear any partial failure streak.
       if (conn.consecutiveFailures > 0) {
-        await this.dockerConnections.persistCircuit(conn.serverId, { consecutiveFailures: 0 });
+        await this.dockerConnections.persistCircuit(conn.serverId, {
+          consecutiveFailures: 0,
+        });
       }
       return { kind: 'skipped', reason: 'ok' };
     } catch (error) {
@@ -127,7 +149,9 @@ export class DockerConnectionHealthService {
           circuitOpenedAt: new Date(),
           consecutiveFailures: failures,
         });
-        this.logger.warn(`docker-connection ${conn.serverId} still down (half-open probe failed)`);
+        this.logger.warn(
+          `docker-connection ${conn.serverId} still down (half-open probe failed)`,
+        );
         return { kind: 'skipped', reason: 'cooldown' };
       }
 
@@ -147,11 +171,18 @@ export class DockerConnectionHealthService {
         this.logger.warn(
           `docker-connection ${conn.serverId} (${conn.endpoint}) unreachable after ${failures} checks: ${lastError}`,
         );
-        return { kind: 'unreachable', serverId: conn.serverId, endpoint: conn.endpoint, lastError };
+        return {
+          kind: 'unreachable',
+          serverId: conn.serverId,
+          endpoint: conn.endpoint,
+          lastError,
+        };
       }
 
       // Below threshold → just record the failure, no alert.
-      await this.dockerConnections.persistCircuit(conn.serverId, { consecutiveFailures: failures });
+      await this.dockerConnections.persistCircuit(conn.serverId, {
+        consecutiveFailures: failures,
+      });
       return { kind: 'skipped', reason: 'cooldown' };
     }
   }

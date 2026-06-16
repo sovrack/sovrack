@@ -8,11 +8,7 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role, RegistryProviderType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
@@ -67,7 +63,10 @@ export class ContainerRegistriesController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update a registry configuration' })
-  async updateRegistry(@Param('id') id: string, @Body() dto: UpdateRegistryConfigDto) {
+  async updateRegistry(
+    @Param('id') id: string,
+    @Body() dto: UpdateRegistryConfigDto,
+  ) {
     return this.registries.updateRegistryConfig(id, dto);
   }
 

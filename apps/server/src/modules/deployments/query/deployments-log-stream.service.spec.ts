@@ -132,14 +132,16 @@ describe('DeploymentsLogStreamService', () => {
 
   it('cancels the stream when unsubscribe() is called', async () => {
     const ac = new AbortController();
-    dockerRemote.streamContainerLogs.mockReturnValue(makeIterable(
-      // A long stream that would keep yielding — we abort mid-way.
-      Array.from({ length: 1000 }, (_, i) => ({
-        stream: 'stdout' as const,
-        line: `line ${i}`,
-      })),
-      ac.signal,
-    ));
+    dockerRemote.streamContainerLogs.mockReturnValue(
+      makeIterable(
+        // A long stream that would keep yielding — we abort mid-way.
+        Array.from({ length: 1000 }, (_, i) => ({
+          stream: 'stdout' as const,
+          line: `line ${i}`,
+        })),
+        ac.signal,
+      ),
+    );
     const key = await service.subscribe(mockSocket as never, {
       deploymentId: 'dep_1',
       serverId: 'srv_1',
@@ -151,8 +153,9 @@ describe('DeploymentsLogStreamService', () => {
     expect(cancelled).toBe(true);
     // The pump exits and the subscription is removed.
     expect(
-      (service as unknown as { subscriptions: Map<string, unknown> })
-        .subscriptions.has(key!),
+      (
+        service as unknown as { subscriptions: Map<string, unknown> }
+      ).subscriptions.has(key!),
     ).toBe(false);
   });
 
@@ -206,8 +209,9 @@ describe('DeploymentsLogStreamService', () => {
     );
     expect(errorEmit?.[1].message).toBe('TLS handshake failed');
     expect(
-      (service as unknown as { subscriptions: Map<string, unknown> })
-        .subscriptions.has(key!),
+      (
+        service as unknown as { subscriptions: Map<string, unknown> }
+      ).subscriptions.has(key!),
     ).toBe(false);
   });
 

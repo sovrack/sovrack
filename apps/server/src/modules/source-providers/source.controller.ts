@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -26,7 +19,9 @@ export class SourceController {
   @Get('source/providers')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all source providers (GitHub + GitLab) with their type' })
+  @ApiOperation({
+    summary: 'List all source providers (GitHub + GitLab) with their type',
+  })
   @ApiResponse({ status: 200, description: 'Liste des providers source' })
   async listProviders() {
     return await this.gitProvidersService.listSourceProviders();
@@ -35,7 +30,9 @@ export class SourceController {
   @Post('projects/:id/source/connect')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Connect a Git source (GitLab or GitHub) to a project' })
+  @ApiOperation({
+    summary: 'Connect a Git source (GitLab or GitHub) to a project',
+  })
   @ApiResponse({ status: 201, description: 'Source connected' })
   @ApiResponse({ status: 400, description: 'Connection failed' })
   async connectSource(

@@ -224,7 +224,9 @@ export class DomainsService {
         select: { id: true },
       });
       if (!se) {
-        throw new NotFoundException('ServiceEnvironment introuvable pour ce record DNS');
+        throw new NotFoundException(
+          'ServiceEnvironment introuvable pour ce record DNS',
+        );
       }
     }
   }

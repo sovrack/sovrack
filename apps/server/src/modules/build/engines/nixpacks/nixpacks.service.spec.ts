@@ -57,7 +57,8 @@ describe('NixpacksService', () => {
     spawnMock.mockReset();
 
     fakeSourceDir = mkdtempSync(join(tmpdir(), 'nixpacks-test-src-'));
-    fakeNixpacksBin = mkdtempSync(join(tmpdir(), 'nixpacks-test-bin-')) + '/nixpacks';
+    fakeNixpacksBin =
+      mkdtempSync(join(tmpdir(), 'nixpacks-test-bin-')) + '/nixpacks';
     writeFileSync(fakeNixpacksBin, '#!/bin/sh\necho "1.30.0"');
     process.env.NIXPACKS_BIN = fakeNixpacksBin;
 
@@ -99,7 +100,11 @@ describe('NixpacksService', () => {
       setupSpawnSuccess();
       const fresh = new NixpacksService();
       await fresh.onModuleInit();
-      expect(spawnMock).toHaveBeenCalledWith(fakeNixpacksBin, ['--version'], expect.any(Object));
+      expect(spawnMock).toHaveBeenCalledWith(
+        fakeNixpacksBin,
+        ['--version'],
+        expect.any(Object),
+      );
     });
 
     it('should fall back to /usr/local/bin/nixpacks when env is not set', async () => {
@@ -141,7 +146,10 @@ describe('NixpacksService', () => {
       setupSpawnSuccess((args) => {
         const outIdx = args.indexOf('--out');
         const outDir = args[outIdx + 1];
-        writeFileSync(join(outDir, 'Dockerfile'), 'FROM node:20\nCMD ["node", "index.js"]');
+        writeFileSync(
+          join(outDir, 'Dockerfile'),
+          'FROM node:20\nCMD ["node", "index.js"]',
+        );
         writeFileSync(
           join(outDir, 'plan.json'),
           JSON.stringify({
@@ -174,7 +182,10 @@ describe('NixpacksService', () => {
       setupSpawnSuccess((args) => {
         const outDir = args[args.indexOf('--out') + 1];
         writeFileSync(join(outDir, 'Dockerfile'), 'FROM scratch');
-        writeFileSync(join(outDir, 'plan.json'), JSON.stringify({ providers: [{ name: 'go' }] }));
+        writeFileSync(
+          join(outDir, 'plan.json'),
+          JSON.stringify({ providers: [{ name: 'go' }] }),
+        );
       });
 
       const result = await service.generatePlan(fakeSourceDir);
@@ -196,10 +207,15 @@ describe('NixpacksService', () => {
     it('should throw when Dockerfile is missing from Nixpacks output', async () => {
       setupSpawnSuccess((args) => {
         const outDir = args[args.indexOf('--out') + 1];
-        writeFileSync(join(outDir, 'plan.json'), JSON.stringify({ providers: [] }));
+        writeFileSync(
+          join(outDir, 'plan.json'),
+          JSON.stringify({ providers: [] }),
+        );
       });
 
-      await expect(service.generatePlan(fakeSourceDir)).rejects.toThrow(/Dockerfile ou plan\.json/);
+      await expect(service.generatePlan(fakeSourceDir)).rejects.toThrow(
+        /Dockerfile ou plan\.json/,
+      );
     });
 
     it('should throw when plan.json is missing from Nixpacks output', async () => {
@@ -208,13 +224,17 @@ describe('NixpacksService', () => {
         writeFileSync(join(outDir, 'Dockerfile'), 'FROM scratch');
       });
 
-      await expect(service.generatePlan(fakeSourceDir)).rejects.toThrow(/Dockerfile ou plan\.json/);
+      await expect(service.generatePlan(fakeSourceDir)).rejects.toThrow(
+        /Dockerfile ou plan\.json/,
+      );
     });
 
     it('should propagate Nixpacks failure as BadRequestException', async () => {
       setupSpawnFailure(1, 'syntax error in package.json');
 
-      await expect(service.generatePlan(fakeSourceDir)).rejects.toThrow(/Nixpacks a échoué/);
+      await expect(service.generatePlan(fakeSourceDir)).rejects.toThrow(
+        /Nixpacks a échoué/,
+      );
     });
 
     it('should require binary when not available', async () => {
@@ -222,7 +242,9 @@ describe('NixpacksService', () => {
       const fresh = new NixpacksService();
       await fresh.onModuleInit();
 
-      await expect(fresh.generatePlan(fakeSourceDir)).rejects.toThrow(/Nixpacks n'est pas installé/);
+      await expect(fresh.generatePlan(fakeSourceDir)).rejects.toThrow(
+        /Nixpacks n'est pas installé/,
+      );
     });
 
     it('should clean up the tmp output directory after success', async () => {
@@ -252,7 +274,10 @@ describe('NixpacksService', () => {
   describe('buildImage()', () => {
     it('should throw BadRequestException when source path does not exist', async () => {
       await expect(
-        service.buildImage({ sourcePath: '/no/such/path', imageTag: 'myapp:dev' }),
+        service.buildImage({
+          sourcePath: '/no/such/path',
+          imageTag: 'myapp:dev',
+        }),
       ).rejects.toThrow(/Chemin source introuvable/);
     });
 
@@ -281,7 +306,10 @@ describe('NixpacksService', () => {
           setImmediate(() => {
             const outDir = args[args.indexOf('--out') + 1];
             writeFileSync(join(outDir, 'Dockerfile'), 'FROM node:20');
-            writeFileSync(join(outDir, 'plan.json'), JSON.stringify({ providers: [{ name: 'node' }] }));
+            writeFileSync(
+              join(outDir, 'plan.json'),
+              JSON.stringify({ providers: [{ name: 'node' }] }),
+            );
             child.emit('close', 0);
           });
         }
@@ -296,8 +324,10 @@ describe('NixpacksService', () => {
       expect(buildArgs).toEqual([
         'build',
         fakeSourceDir,
-        '--name', 'myapp:abc123',
-        '--tag', 'myapp:abc123',
+        '--name',
+        'myapp:abc123',
+        '--tag',
+        'myapp:abc123',
       ]);
       expect(result.imageTag).toBe('myapp:abc123');
       expect(result.dockerfile).toContain('FROM node:20');
@@ -433,7 +463,10 @@ describe('NixpacksService', () => {
         const child = new MockChild();
         if (args[0] === 'build') {
           setImmediate(() => {
-            child.stderr.emit('data', Buffer.from('npm install failed: ECONNREFUSED'));
+            child.stderr.emit(
+              'data',
+              Buffer.from('npm install failed: ECONNREFUSED'),
+            );
             child.emit('close', 137);
           });
         } else {
@@ -443,7 +476,10 @@ describe('NixpacksService', () => {
       });
 
       await expect(
-        service.buildImage({ sourcePath: fakeSourceDir, imageTag: 'myapp:fail' }),
+        service.buildImage({
+          sourcePath: fakeSourceDir,
+          imageTag: 'myapp:fail',
+        }),
       ).rejects.toThrow(/code 137.*npm install failed/);
     });
 
@@ -483,7 +519,10 @@ describe('NixpacksService', () => {
           setImmediate(() => {
             const outDir = args[args.indexOf('--out') + 1];
             writeFileSync(join(outDir, 'Dockerfile'), 'FROM node:20');
-            writeFileSync(join(outDir, 'plan.json'), JSON.stringify({ framework: 'remix' }));
+            writeFileSync(
+              join(outDir, 'plan.json'),
+              JSON.stringify({ framework: 'remix' }),
+            );
             child.emit('close', 0);
           });
         } else {

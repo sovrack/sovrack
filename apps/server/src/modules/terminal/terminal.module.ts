@@ -8,11 +8,7 @@ import { TerminalService } from './terminal.service';
 import { AppJwtModule } from '../../core/jwt/jwt.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    ServersSharedModule,
-    AppJwtModule,
-  ],
+  imports: [PrismaModule, ServersSharedModule, AppJwtModule],
   providers: [
     TerminalService,
     TerminalGateway,

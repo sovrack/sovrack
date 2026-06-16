@@ -54,7 +54,13 @@ export class DeploymentsCreateService {
             servers: {
               where: { isActive: true, isVerified: true },
               take: 1,
-              select: { id: true, name: true, host: true, port: true, username: true },
+              select: {
+                id: true,
+                name: true,
+                host: true,
+                port: true,
+                username: true,
+              },
             },
           },
         },
@@ -82,11 +88,24 @@ export class DeploymentsCreateService {
     );
 
     if (service.type === ServiceType.DATABASE) {
-      return this.createDatabaseDeployment(dto, actor, service, serviceEnv, environment);
+      return this.createDatabaseDeployment(
+        dto,
+        actor,
+        service,
+        serviceEnv,
+        environment,
+      );
     }
 
     const config = await this.configResolver.resolve(dto, service, project);
-    const { buildSource, isLocalBuild, branch, dockerImage, resolvedNixpacksConfig, resolvedStaticConfig } = config;
+    const {
+      buildSource,
+      isLocalBuild,
+      branch,
+      dockerImage,
+      resolvedNixpacksConfig,
+      resolvedStaticConfig,
+    } = config;
     const server = environment.servers[0] ?? null;
 
     let deployment = await this.prisma.$transaction(async (tx) => {
@@ -106,7 +125,11 @@ export class DeploymentsCreateService {
         data: {
           status: DeploymentStatus.FAILED,
           finishedAt: new Date(),
-          conditions: { type: 'Degraded', reason: 'StaleRecovery', message: 'Déploiement récupéré après un crash du service.' } as unknown as Prisma.InputJsonValue,
+          conditions: {
+            type: 'Degraded',
+            reason: 'StaleRecovery',
+            message: 'Déploiement récupéré après un crash du service.',
+          } as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -120,21 +143,24 @@ export class DeploymentsCreateService {
       if (active) {
         throw new BadRequestException(
           `Un déploiement est déjà en cours pour ce service sur cet environnement ` +
-          `(ID: ${active.id}, statut: ${active.status}).`,
+            `(ID: ${active.id}, statut: ${active.status}).`,
         );
       }
 
-      const build = await this.buildsService.create({
-        projectId: project.id,
-        serviceId: service.id,
-        serviceEnvId: serviceEnv.id,
-        userId: actor.id,
-        branch,
-        buildPack: this.configResolver.buildSourceToBuildPack(buildSource),
-        isLocalBuild,
-        nixpacksConfig: resolvedNixpacksConfig as Prisma.InputJsonValue | null,
-        staticConfig: resolvedStaticConfig as Prisma.InputJsonValue | null,
-      }, tx);
+      const build = await this.buildsService.create(
+        {
+          projectId: project.id,
+          serviceId: service.id,
+          serviceEnvId: serviceEnv.id,
+          userId: actor.id,
+          branch,
+          buildPack: this.configResolver.buildSourceToBuildPack(buildSource),
+          isLocalBuild,
+          nixpacksConfig: resolvedNixpacksConfig,
+          staticConfig: resolvedStaticConfig,
+        },
+        tx,
+      );
 
       // Immutable Release : on gèle TOUTE la config de build au moment du deploy
       // (reproductibilité + audit). Lu par le reconciler ; sera la source unique
@@ -167,9 +193,10 @@ export class DeploymentsCreateService {
           branch,
           status: DeploymentStatus.PENDING,
           startedAt: new Date(),
-          strategy: dto.strategy === 'blue-green'
-            ? DeploymentStrategy.BLUE_GREEN
-            : DeploymentStrategy.STANDARD,
+          strategy:
+            dto.strategy === 'blue-green'
+              ? DeploymentStrategy.BLUE_GREEN
+              : DeploymentStrategy.STANDARD,
           buildId: build.id,
           specSnapshot: specSnapshot as unknown as Prisma.InputJsonValue,
           resolvedRefs: resolvedRefs as unknown as Prisma.InputJsonValue,
@@ -178,17 +205,21 @@ export class DeploymentsCreateService {
       });
     });
 
-    this.auditService.record(actor.id, 'DEPLOYMENT_CREATE', 'Deployment', deployment.id, {
-      projectId: project.id,
-      environmentId: environment.id,
-      serviceId: service.id,
-      serviceEnvId: serviceEnv.id,
-      branch,
-      buildSource,
-      isLocalBuild,
-    }).catch((err: unknown) => {
-      this.logger.warn(`Audit record failed for deployment ${deployment.id}: ${err instanceof Error ? err.message : 'unknown error'}`);
-    });
+    this.auditService
+      .record(actor.id, 'DEPLOYMENT_CREATE', 'Deployment', deployment.id, {
+        projectId: project.id,
+        environmentId: environment.id,
+        serviceId: service.id,
+        serviceEnvId: serviceEnv.id,
+        branch,
+        buildSource,
+        isLocalBuild,
+      })
+      .catch((err: unknown) => {
+        this.logger.warn(
+          `Audit record failed for deployment ${deployment.id}: ${err instanceof Error ? err.message : 'unknown error'}`,
+        );
+      });
 
     this.gateway.emitStarted({
       deploymentId: deployment.id,
@@ -200,14 +231,17 @@ export class DeploymentsCreateService {
 
     const route = this.buildStrategyResolver.resolve({
       buildSource,
-      strategy: dto.strategy === 'blue-green'
-        ? DeploymentStrategy.BLUE_GREEN
-        : DeploymentStrategy.STANDARD,
+      strategy:
+        dto.strategy === 'blue-green'
+          ? DeploymentStrategy.BLUE_GREEN
+          : DeploymentStrategy.STANDARD,
       dockerImage,
     });
 
     if (route.needsDirectTrigger) {
-      this.logger.log(`[CreateDeployment] Direct deploy (${buildSource}) — ${route.reason}`);
+      this.logger.log(
+        `[CreateDeployment] Direct deploy (${buildSource}) — ${route.reason}`,
+      );
       deployment = await this.prisma.deployment.update({
         where: { id: deployment.id },
         data: {
@@ -216,7 +250,10 @@ export class DeploymentsCreateService {
           dockerImage,
         },
       });
-      this.gateway.emitStatus({ deploymentId: deployment.id, status: deployment.status });
+      this.gateway.emitStatus({
+        deploymentId: deployment.id,
+        status: deployment.status,
+      });
 
       await this.queueService.enqueueDeploy(deployment.id);
       return deployment;
@@ -225,10 +262,16 @@ export class DeploymentsCreateService {
     let pipeline: PipelineItem;
     try {
       pipeline = await this.gitProvidersService.triggerPipeline(
-        project.id, branch, actor.id, actor.role,
+        project.id,
+        branch,
+        actor.id,
+        actor.role,
       );
     } catch (error) {
-      const reason = error instanceof Error ? error.message : 'Échec du déclenchement du pipeline CI';
+      const reason =
+        error instanceof Error
+          ? error.message
+          : 'Échec du déclenchement du pipeline CI';
 
       const failed = await this.prisma.deployment.update({
         where: { id: deployment.id },
@@ -239,21 +282,45 @@ export class DeploymentsCreateService {
         },
       });
 
-      this.gateway.emitStatus({ deploymentId: failed.id, status: failed.status });
-      this.gateway.emitFinished({ deploymentId: failed.id, status: failed.status, finishedAt: failed.finishedAt });
+      this.gateway.emitStatus({
+        deploymentId: failed.id,
+        status: failed.status,
+      });
+      this.gateway.emitFinished({
+        deploymentId: failed.id,
+        status: failed.status,
+        finishedAt: failed.finishedAt,
+      });
       throw error;
     }
 
     const pipelineIdBigInt = BigInt(pipeline.id);
-    const providerType = await this.gitProvidersService.resolveProviderType(project.id);
+    const providerType = await this.gitProvidersService.resolveProviderType(
+      project.id,
+    );
 
     await this.prisma.pipelineRun.upsert({
-      where: { externalId_provider: { externalId: pipelineIdBigInt, provider: providerType } },
-      create: {
-        externalId: pipelineIdBigInt, provider: providerType, status: 'RUNNING', branch,
-        webUrl: pipeline.webUrl, projectId: project.id, serviceEnvId: serviceEnv.id, deploymentId: deployment.id,
+      where: {
+        externalId_provider: {
+          externalId: pipelineIdBigInt,
+          provider: providerType,
+        },
       },
-      update: { deploymentId: deployment.id, status: 'RUNNING', webUrl: pipeline.webUrl },
+      create: {
+        externalId: pipelineIdBigInt,
+        provider: providerType,
+        status: 'RUNNING',
+        branch,
+        webUrl: pipeline.webUrl,
+        projectId: project.id,
+        serviceEnvId: serviceEnv.id,
+        deploymentId: deployment.id,
+      },
+      update: {
+        deploymentId: deployment.id,
+        status: 'RUNNING',
+        webUrl: pipeline.webUrl,
+      },
     });
 
     deployment = await this.prisma.deployment.update({
@@ -266,7 +333,10 @@ export class DeploymentsCreateService {
       },
     });
 
-    this.gateway.emitStatus({ deploymentId: deployment.id, status: deployment.status });
+    this.gateway.emitStatus({
+      deploymentId: deployment.id,
+      status: deployment.status,
+    });
     return deployment;
   }
 
@@ -274,15 +344,19 @@ export class DeploymentsCreateService {
     dto: CreateDeploymentDto,
     actor: { id: string; role: string },
     service: {
-      id: string; name: string;
-      databaseType: any; databaseVersion: string | null;
+      id: string;
+      name: string;
+      databaseType: any;
+      databaseVersion: string | null;
       databaseCredentials: Prisma.JsonValue | null;
     },
     serviceEnv: any,
     environment: any,
   ): Promise<Deployment> {
     if (!service.databaseType) {
-      throw new BadRequestException('databaseType est requis pour un service DATABASE');
+      throw new BadRequestException(
+        'databaseType est requis pour un service DATABASE',
+      );
     }
 
     const project = environment.project;
@@ -302,58 +376,95 @@ export class DeploymentsCreateService {
           startedAt: { lt: staleTimeout },
         },
         data: {
-          status: DeploymentStatus.FAILED, finishedAt: new Date(),
-          conditions: { type: 'Degraded', reason: 'StaleRecovery', message: 'Déploiement récupéré après un crash du service.' } as unknown as Prisma.InputJsonValue,
+          status: DeploymentStatus.FAILED,
+          finishedAt: new Date(),
+          conditions: {
+            type: 'Degraded',
+            reason: 'StaleRecovery',
+            message: 'Déploiement récupéré après un crash du service.',
+          } as unknown as Prisma.InputJsonValue,
         },
       });
 
       const active = await tx.deployment.findFirst({
-        where: { serviceEnvId: serviceEnv.id, status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] } },
+        where: {
+          serviceEnvId: serviceEnv.id,
+          status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
+        },
         select: { id: true, status: true, createdAt: true },
       });
       if (active) {
-        throw new BadRequestException(`Un déploiement est déjà en cours (ID: ${active.id}, statut: ${active.status}).`);
+        throw new BadRequestException(
+          `Un déploiement est déjà en cours (ID: ${active.id}, statut: ${active.status}).`,
+        );
       }
 
       const specSnapshot = {
-        capturedAt: new Date().toISOString(), buildSource: 'EXTERNAL_IMAGE',
-        isLocalBuild: false, strategy: 'STANDARD',
-        databaseType: service.databaseType, databaseVersion: service.databaseVersion,
+        capturedAt: new Date().toISOString(),
+        buildSource: 'EXTERNAL_IMAGE',
+        isLocalBuild: false,
+        strategy: 'STANDARD',
+        databaseType: service.databaseType,
+        databaseVersion: service.databaseVersion,
         databaseImage: dbConfig.image,
       };
 
       return tx.deployment.create({
         data: {
-          projectId: project.id, serviceId: service.id, serviceEnvId: serviceEnv.id,
-          environmentId: environment.id, userId: actor.id,
+          projectId: project.id,
+          serviceId: service.id,
+          serviceEnvId: serviceEnv.id,
+          environmentId: environment.id,
+          userId: actor.id,
           branch: dto.branch ?? 'main',
-          status: DeploymentStatus.PENDING, startedAt: new Date(),
+          status: DeploymentStatus.PENDING,
+          startedAt: new Date(),
           strategy: DeploymentStrategy.STANDARD,
           dockerImage: dbConfig.image,
           specSnapshot: specSnapshot as unknown as Prisma.InputJsonValue,
-          resolvedRefs: { serverId: server?.id ?? null } as unknown as Prisma.InputJsonValue,
+          resolvedRefs: {
+            serverId: server?.id ?? null,
+          } as unknown as Prisma.InputJsonValue,
         },
       });
     });
 
-    this.auditService.record(actor.id, 'DEPLOYMENT_CREATE', 'Deployment', deployment.id, {
-      projectId: project.id, environmentId: environment.id, serviceId: service.id,
-      serviceEnvId: serviceEnv.id, buildSource: 'EXTERNAL_IMAGE', databaseType: service.databaseType,
-    }).catch((err: unknown) => {
-      this.logger.warn(`Audit record failed: ${err instanceof Error ? err.message : 'unknown error'}`);
-    });
+    this.auditService
+      .record(actor.id, 'DEPLOYMENT_CREATE', 'Deployment', deployment.id, {
+        projectId: project.id,
+        environmentId: environment.id,
+        serviceId: service.id,
+        serviceEnvId: serviceEnv.id,
+        buildSource: 'EXTERNAL_IMAGE',
+        databaseType: service.databaseType,
+      })
+      .catch((err: unknown) => {
+        this.logger.warn(
+          `Audit record failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+        );
+      });
 
     this.gateway.emitStarted({
-      deploymentId: deployment.id, projectId: deployment.projectId,
-      environmentId: deployment.environmentId, status: deployment.status, startedAt: deployment.startedAt,
+      deploymentId: deployment.id,
+      projectId: deployment.projectId,
+      environmentId: deployment.environmentId,
+      status: deployment.status,
+      startedAt: deployment.startedAt,
     });
 
     const updated = await this.prisma.deployment.update({
       where: { id: deployment.id },
-      data: { status: DeploymentStatus.RUNNING, logs: 'Déploiement base de données lancé directement.', dockerImage: dbConfig.image },
+      data: {
+        status: DeploymentStatus.RUNNING,
+        logs: 'Déploiement base de données lancé directement.',
+        dockerImage: dbConfig.image,
+      },
     });
 
-    this.gateway.emitStatus({ deploymentId: updated.id, status: updated.status });
+    this.gateway.emitStatus({
+      deploymentId: updated.id,
+      status: updated.status,
+    });
 
     await this.queueService.enqueueDeploy(updated.id);
 

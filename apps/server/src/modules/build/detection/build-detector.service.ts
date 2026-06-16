@@ -109,9 +109,10 @@ export class BuildDetectorService {
       : null;
     const token = oauthToken || adminToken || '';
     const baseUrl = isGitHub
-      ? (config.providerUrl === 'https://github.com' || config.providerUrl === 'http://github.com'
-          ? 'https://api.github.com'
-          : `${config.providerUrl.replace(/\/$/, '')}/api/v3`)
+      ? config.providerUrl === 'https://github.com' ||
+        config.providerUrl === 'http://github.com'
+        ? 'https://api.github.com'
+        : `${config.providerUrl.replace(/\/$/, '')}/api/v3`
       : config.providerUrl.replace(/\/$/, '');
     let ref = repo.defaultBranch || 'main';
 
@@ -132,14 +133,22 @@ export class BuildDetectorService {
     try {
       if (isGitHub) {
         repoId = repo.repoPath ?? '';
-        if (!repoId) throw new NotFoundException('Nom de dépôt GitHub introuvable');
-        files = await this.listGitHubRepositoryFiles(baseUrl, repoId, token, ref);
+        if (!repoId)
+          throw new NotFoundException('Nom de dépôt GitHub introuvable');
+        files = await this.listGitHubRepositoryFiles(
+          baseUrl,
+          repoId,
+          token,
+          ref,
+        );
       } else {
         repoId = this.resolveGitlabProjectId(repo);
         files = await this.listGitLabRepositoryFiles(baseUrl, repoId, token);
       }
     } catch (err) {
-      this.logger.warn(`listRepositoryFiles failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `listRepositoryFiles failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
       return this.fallbackUnknownResult(
         isGitHub
           ? 'Unable to read repository tree from GitHub.'
@@ -169,7 +178,8 @@ export class BuildDetectorService {
   }
 
   private resolveGitlabProjectId(repo: { repoPath?: string | null }): string {
-    if (!repo.repoPath) throw new NotFoundException('Chemin GitLab du dépôt introuvable');
+    if (!repo.repoPath)
+      throw new NotFoundException('Chemin GitLab du dépôt introuvable');
     return repo.repoPath;
   }
 
@@ -178,7 +188,6 @@ export class BuildDetectorService {
     gitlabId: string,
     token: string,
   ): Promise<string[]> {
-
     const all: string[] = [];
     let page = 1;
     const perPage = 100;
@@ -354,7 +363,10 @@ export class BuildDetectorService {
         );
         const { content, encoding } = res.data;
         if (!content) return null;
-        if (encoding === 'base64') return Buffer.from(content.replace(/\n/g, ''), 'base64').toString('utf-8');
+        if (encoding === 'base64')
+          return Buffer.from(content.replace(/\n/g, ''), 'base64').toString(
+            'utf-8',
+          );
         return content;
       } else {
         const res = await firstValueFrom(
@@ -370,9 +382,12 @@ export class BuildDetectorService {
         return typeof res.data === 'string' ? res.data : null;
       }
     } catch (error: unknown) {
-      const status = (error as { response?: { status?: number } })?.response?.status;
+      const status = (error as { response?: { status?: number } })?.response
+        ?.status;
       if (status && status !== 404) {
-        this.logger.warn(`fetchRawFile error (status=${status}): ${this.errorMessage(error)}`);
+        this.logger.warn(
+          `fetchRawFile error (status=${status}): ${this.errorMessage(error)}`,
+        );
       }
       return null;
     }
@@ -430,7 +445,9 @@ export class BuildDetectorService {
         file.endsWith('compose.yml') ||
         file.endsWith('compose.yaml'),
     );
-    const hasCiConfig = fileSet.has('.gitlab-ci.yml') || lowerFiles.some((file) => file.startsWith('.github/workflows/'));
+    const hasCiConfig =
+      fileSet.has('.gitlab-ci.yml') ||
+      lowerFiles.some((file) => file.startsWith('.github/workflows/'));
 
     const packageManager = this.detectPackageManager(fileSet, signals);
     const packageDeps = this.mergeDependencies(signals.packageJson);

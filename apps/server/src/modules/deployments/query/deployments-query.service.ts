@@ -2,9 +2,17 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { CryptoService } from '../../../core/crypto/crypto.service';
-import { PaginationDto, PaginatedResult, paginate } from '../../../core/http/pagination.dto';
+import {
+  PaginationDto,
+  PaginatedResult,
+  paginate,
+} from '../../../core/http/pagination.dto';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
-import { EnvLevel, EnvOrigin, resolveEnvDetailed } from '../utils/env-resolver.util';
+import {
+  EnvLevel,
+  EnvOrigin,
+  resolveEnvDetailed,
+} from '../utils/env-resolver.util';
 
 export interface EnvPreviewVariable {
   key: string;
@@ -124,7 +132,9 @@ export class DeploymentsQueryService {
     userId: string,
     userRole: Role,
     pagination?: PaginationDto,
-  ): Promise<DeploymentWithRelations[] | PaginatedResult<DeploymentWithRelations>> {
+  ): Promise<
+    DeploymentWithRelations[] | PaginatedResult<DeploymentWithRelations>
+  > {
     const where: Prisma.DeploymentWhereInput | undefined =
       userRole === Role.ADMIN
         ? undefined
@@ -157,7 +167,11 @@ export class DeploymentsQueryService {
   }
 
   async findByProject(projectId: string, userId: string, userRole: Role) {
-    await this.authorizationService.assertCanAccessProject(projectId, userId, userRole);
+    await this.authorizationService.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
     const rows = await this.prisma.deployment.findMany({
       where: { projectId },
       orderBy: { createdAt: 'desc' },

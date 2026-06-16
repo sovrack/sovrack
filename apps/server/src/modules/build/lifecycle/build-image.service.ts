@@ -43,6 +43,4 @@ export class BuildImageService {
       return `${sanitizeDockerTag(projectName)}:${sanitizeDockerTag(branch)}`;
     }
   }
-
-
 }

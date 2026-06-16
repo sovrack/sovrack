@@ -39,7 +39,8 @@ export class ServerValidationController {
 
   @Post(':id/validate-ssh')
   @ApiOperation({
-    summary: 'Validate the SSH connection, auth, sudo and minimal prerequisites',
+    summary:
+      'Validate the SSH connection, auth, sudo and minimal prerequisites',
     description:
       'VPS hosts are agentless SSH targets. This step never tries to install Ansible on the VPS.',
   })

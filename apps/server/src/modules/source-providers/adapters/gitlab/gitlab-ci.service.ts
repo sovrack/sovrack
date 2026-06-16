@@ -1,10 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { GitProviderType, Role } from '@prisma/client';
 import { PrismaService } from '../../../../core/database/prisma.service';
-import {
-  GitlabClient,
-  GitlabPipelineItem,
-} from './gitlab.client';
+import { GitlabClient, GitlabPipelineItem } from './gitlab.client';
 import { GitlabAuthorizationService } from './gitlab-authorization.service';
 import { GitlabProjectConfigService } from './gitlab-project-config.service';
 import { GitlabWebhookHandler } from './gitlab-webhook.handler';
@@ -26,7 +23,10 @@ export class GitlabCiService {
   ): Promise<GitlabPipelineItem[]> {
     await this.auth.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.projectConfig.getProjectConfig(projectId);
-    const repoId = this.projectConfig.assertRepoSource(config, 'récupération des pipelines');
+    const repoId = this.projectConfig.assertRepoSource(
+      config,
+      'récupération des pipelines',
+    );
 
     const pipelines = await this.apiService.getPipelines(
       config,

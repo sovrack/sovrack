@@ -51,7 +51,9 @@ export class AppController {
     };
   }
 
-  private async resolveWebhookConfigStatus(): Promise<HealthResponse['webhook']> {
+  private async resolveWebhookConfigStatus(): Promise<
+    HealthResponse['webhook']
+  > {
     const autoConfigure = !['0', 'false', 'no', 'off'].includes(
       this.configService
         .get<string>('GITLAB_WEBHOOK_AUTO_CONFIGURE', 'true')

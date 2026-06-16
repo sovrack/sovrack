@@ -14,7 +14,10 @@ import { ALLOWED_PUSH_FILES } from '../../../../core/utils/file-constants';
 import { normalizeRepoPath } from '../../../../core/utils/repo-path.util';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
 import { GithubClient } from './github.client';
-import type { RepoWriteResult, GitCredentials } from '../../contracts/git-provider.contract';
+import type {
+  RepoWriteResult,
+  GitCredentials,
+} from '../../contracts/git-provider.contract';
 
 /**
  * Low-level GitHub file I/O:
@@ -40,7 +43,8 @@ export class GithubFileService {
     filePath: string,
     ref = 'HEAD',
   ): Promise<string | null> {
-    const { token, apiBase, fullRepoName } = await this.resolveCredentials(projectId);
+    const { token, apiBase, fullRepoName } =
+      await this.resolveCredentials(projectId);
     try {
       const res = await firstValueFrom(
         this.httpService.get<{ content?: string; encoding?: string }>(
@@ -50,11 +54,18 @@ export class GithubFileService {
       );
       const { content, encoding } = res.data;
       if (!content) return null;
-      if (encoding === 'base64') return Buffer.from(content.replace(/\n/g, ''), 'base64').toString('utf-8');
+      if (encoding === 'base64')
+        return Buffer.from(content.replace(/\n/g, ''), 'base64').toString(
+          'utf-8',
+        );
       return content;
     } catch (err: unknown) {
       if (this.extractStatus(err) === 404) return null;
-      this.throwMapped('lecture du fichier', err, `Impossible de lire ${filePath}`);
+      this.throwMapped(
+        'lecture du fichier',
+        err,
+        `Impossible de lire ${filePath}`,
+      );
     }
   }
 
@@ -73,12 +84,19 @@ export class GithubFileService {
       );
     }
 
-    const { token, apiBase, fullRepoName, defaultBranch } = await this.resolveCredentials(projectId);
+    const { token, apiBase, fullRepoName, defaultBranch } =
+      await this.resolveCredentials(projectId);
     const fileStatuses: Record<string, 'CREATED' | 'UPDATED' | 'SKIPPED'> = {};
 
     for (const [filePath, content] of Object.entries(files)) {
       const encodedContent = Buffer.from(content).toString('base64');
-      const existingSha = await this.getFileSha(apiBase, token, fullRepoName, filePath, defaultBranch);
+      const existingSha = await this.getFileSha(
+        apiBase,
+        token,
+        fullRepoName,
+        filePath,
+        defaultBranch,
+      );
       const body: Record<string, unknown> = {
         message: `chore(build): upsert ${filePath} via platform`,
         content: encodedContent,
@@ -96,7 +114,11 @@ export class GithubFileService {
         );
         fileStatuses[filePath] = existingSha ? 'UPDATED' : 'CREATED';
       } catch (err: unknown) {
-        this.throwMapped(`écriture de ${filePath}`, err, `Impossible d'écrire ${filePath} sur GitHub.`);
+        this.throwMapped(
+          `écriture de ${filePath}`,
+          err,
+          `Impossible d'écrire ${filePath} sur GitHub.`,
+        );
       }
     }
 
@@ -104,8 +126,11 @@ export class GithubFileService {
   }
 
   async resolveGitCredentials(projectId: string): Promise<GitCredentials> {
-    const { token, fullRepoName, apiBase } = await this.resolveCredentials(projectId);
-    const host = apiBase.replace('https://api.', '').replace(/^https?:\/\//, '');
+    const { token, fullRepoName, apiBase } =
+      await this.resolveCredentials(projectId);
+    const host = apiBase
+      .replace('https://api.', '')
+      .replace(/^https?:\/\//, '');
     const repoUrl = `https://${host}/${normalizeRepoPath(fullRepoName)}.git`;
     return { repoUrl, token };
   }
@@ -128,7 +153,10 @@ export class GithubFileService {
     const gitProviderConfig = await this.prisma.gitProviderConfig.findUnique({
       where: { id: svc.providerId },
     });
-    if (!gitProviderConfig || gitProviderConfig.type !== GitProviderType.GITHUB) {
+    if (
+      !gitProviderConfig ||
+      gitProviderConfig.type !== GitProviderType.GITHUB
+    ) {
       throw new NotFoundException('Projet non connecté à GitHub');
     }
     const provider = gitProviderConfig;
@@ -136,10 +164,15 @@ export class GithubFileService {
       ? await this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
       : '';
     const oauthToken = provider.oauthAccessToken
-      ? await this.gitProviderRegistry.decryptProviderToken(provider.oauthAccessToken)
+      ? await this.gitProviderRegistry.decryptProviderToken(
+          provider.oauthAccessToken,
+        )
       : '';
     const token = oauthToken || adminToken;
-    if (!token) throw new BadRequestException('Aucun token GitHub configuré pour ce provider');
+    if (!token)
+      throw new BadRequestException(
+        'Aucun token GitHub configuré pour ce provider',
+      );
     const apiBase = this.api.buildApiBase(provider.providerUrl);
 
     const fullRepoName = this.extractFullRepoName(svc.repoPath ?? '');
@@ -194,9 +227,12 @@ export class GithubFileService {
   private throwMapped(action: string, err: unknown, fallback: string): never {
     const status = this.extractStatus(err);
     this.logger.error(`[GitHub] ${action} failed (status=${String(status)})`);
-    if (status === 401) throw new UnauthorizedException('Token GitHub invalide ou expiré.');
-    if (status === 403) throw new ForbiddenException('Permission refusée par GitHub.');
-    if (status === 404) throw new NotFoundException(`${fallback} (introuvable).`);
+    if (status === 401)
+      throw new UnauthorizedException('Token GitHub invalide ou expiré.');
+    if (status === 403)
+      throw new ForbiddenException('Permission refusée par GitHub.');
+    if (status === 404)
+      throw new NotFoundException(`${fallback} (introuvable).`);
     if (status === 409) throw new BadRequestException(`${fallback} (conflit).`);
     throw new BadRequestException(fallback);
   }

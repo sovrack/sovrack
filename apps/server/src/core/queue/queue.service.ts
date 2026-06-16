@@ -33,7 +33,9 @@ export class QueueService {
         removeOnFail: { age: 86400 },
       },
     );
-    this.logger.log(`Deploy job ${job.id} enqueued for deployment ${deploymentId}`);
+    this.logger.log(
+      `Deploy job ${job.id} enqueued for deployment ${deploymentId}`,
+    );
     return job.id ?? '';
   }
 
@@ -51,7 +53,9 @@ export class QueueService {
         removeOnFail: { age: 86400 },
       },
     );
-    this.logger.log(`Rollback job ${job.id} enqueued: ${deploymentId} → ${targetDeploymentId}`);
+    this.logger.log(
+      `Rollback job ${job.id} enqueued: ${deploymentId} → ${targetDeploymentId}`,
+    );
     return job.id ?? '';
   }
 

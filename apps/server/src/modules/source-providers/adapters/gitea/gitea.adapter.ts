@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Role, GitProviderType } from '@prisma/client';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
@@ -43,18 +47,32 @@ export class GiteaAdapter implements IGitProvider {
     private readonly api: GiteaClient,
   ) {}
 
-  async listRepos(projectId: string, _userId: string, _userRole: Role): Promise<RepoItem[]> {
+  async listRepos(
+    projectId: string,
+    _userId: string,
+    _userRole: Role,
+  ): Promise<RepoItem[]> {
     const { apiBase, token } = await this.resolveConnection(projectId);
     return this.api.listRepos(apiBase, token);
   }
 
-  async listBranches(projectId: string, _userId: string, _userRole: Role): Promise<BranchItem[]> {
-    const { apiBase, token, fullRepoName, defaultBranch } = await this.resolveConnection(projectId);
+  async listBranches(
+    projectId: string,
+    _userId: string,
+    _userRole: Role,
+  ): Promise<BranchItem[]> {
+    const { apiBase, token, fullRepoName, defaultBranch } =
+      await this.resolveConnection(projectId);
     return this.api.listBranches(apiBase, token, fullRepoName, defaultBranch);
   }
 
-  async listPipelines(projectId: string, _userId: string, _userRole: Role): Promise<PipelineItem[]> {
-    const { apiBase, token, fullRepoName } = await this.resolveConnection(projectId);
+  async listPipelines(
+    projectId: string,
+    _userId: string,
+    _userRole: Role,
+  ): Promise<PipelineItem[]> {
+    const { apiBase, token, fullRepoName } =
+      await this.resolveConnection(projectId);
     return this.api.listActionRuns(apiBase, token, fullRepoName);
   }
 
@@ -65,17 +83,32 @@ export class GiteaAdapter implements IGitProvider {
     _userRole: Role,
     _preferredRepoId?: number,
   ): Promise<PipelineItem> {
-    const { apiBase, token, fullRepoName } = await this.resolveConnection(projectId);
-    return this.api.triggerWorkflow(apiBase, token, fullRepoName, branch, GiteaAdapter.DEFAULT_WORKFLOW);
+    const { apiBase, token, fullRepoName } =
+      await this.resolveConnection(projectId);
+    return this.api.triggerWorkflow(
+      apiBase,
+      token,
+      fullRepoName,
+      branch,
+      GiteaAdapter.DEFAULT_WORKFLOW,
+    );
   }
 
-  async resolveRepositoryPath(projectId: string, _repoId?: number | string): Promise<string> {
+  async resolveRepositoryPath(
+    projectId: string,
+    _repoId?: number | string,
+  ): Promise<string> {
     const { fullRepoName } = await this.resolveConnection(projectId);
     return fullRepoName;
   }
 
-  async readFile(projectId: string, filePath: string, ref?: string): Promise<string | null> {
-    const { apiBase, token, fullRepoName } = await this.resolveConnection(projectId);
+  async readFile(
+    projectId: string,
+    filePath: string,
+    ref?: string,
+  ): Promise<string | null> {
+    const { apiBase, token, fullRepoName } =
+      await this.resolveConnection(projectId);
     return this.api.readFile(apiBase, token, fullRepoName, filePath, ref);
   }
 
@@ -84,11 +117,15 @@ export class GiteaAdapter implements IGitProvider {
     files: Record<string, string>,
     _serviceId?: string,
   ): Promise<RepoWriteResult> {
-    const { apiBase, token, fullRepoName, defaultBranch } = await this.resolveConnection(projectId);
+    const { apiBase, token, fullRepoName, defaultBranch } =
+      await this.resolveConnection(projectId);
     const fileStatuses: Record<string, 'CREATED' | 'UPDATED' | 'SKIPPED'> = {};
     for (const [path, content] of Object.entries(files)) {
       // Never overwrite the workflow file — users own their CI definition.
-      if (path.startsWith('.gitea/workflows/') || path.startsWith('.github/workflows/')) {
+      if (
+        path.startsWith('.gitea/workflows/') ||
+        path.startsWith('.github/workflows/')
+      ) {
         fileStatuses[path] = 'SKIPPED';
         continue;
       }
@@ -111,11 +148,20 @@ export class GiteaAdapter implements IGitProvider {
     secret: string,
     _serviceId?: string,
   ): Promise<WebhookConfigResult> {
-    const { apiBase, token, fullRepoName } = await this.resolveConnection(projectId);
-    return this.api.createWebhook(apiBase, token, fullRepoName, webhookUrl, secret);
+    const { apiBase, token, fullRepoName } =
+      await this.resolveConnection(projectId);
+    return this.api.createWebhook(
+      apiBase,
+      token,
+      fullRepoName,
+      webhookUrl,
+      secret,
+    );
   }
 
-  async resolveRegistryCredentials(projectId: string): Promise<RegistryCredentials> {
+  async resolveRegistryCredentials(
+    projectId: string,
+  ): Promise<RegistryCredentials> {
     const { token, host, username } = await this.resolveConnection(projectId);
     // Gitea ships an OCI-compatible package registry on the same host; it
     // authenticates with the user's name + a token.
@@ -132,14 +178,29 @@ export class GiteaAdapter implements IGitProvider {
     return `${host}/${fullRepoName.toLowerCase()}:${tag}`;
   }
 
-  async resolveGitCredentials(projectId: string, _serviceId?: string): Promise<GitCredentials> {
-    const { token, host, fullRepoName } = await this.resolveConnection(projectId);
+  async resolveGitCredentials(
+    projectId: string,
+    _serviceId?: string,
+  ): Promise<GitCredentials> {
+    const { token, host, fullRepoName } =
+      await this.resolveConnection(projectId);
     return { repoUrl: `https://${host}/${fullRepoName}.git`, token };
   }
 
-  async postComment(projectId: string, mergeRequestId: string, body: string): Promise<void> {
-    const { apiBase, token, fullRepoName } = await this.resolveConnection(projectId);
-    await this.api.createIssueComment(apiBase, token, fullRepoName, mergeRequestId, body);
+  async postComment(
+    projectId: string,
+    mergeRequestId: string,
+    body: string,
+  ): Promise<void> {
+    const { apiBase, token, fullRepoName } =
+      await this.resolveConnection(projectId);
+    await this.api.createIssueComment(
+      apiBase,
+      token,
+      fullRepoName,
+      mergeRequestId,
+      body,
+    );
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -165,11 +226,15 @@ export class GiteaAdapter implements IGitProvider {
         ? this.gitProviderConfig.decryptProviderToken(provider.adminToken)
         : '';
     if (!token) {
-      throw new BadRequestException('Aucun token Gitea configuré pour ce provider');
+      throw new BadRequestException(
+        'Aucun token Gitea configuré pour ce provider',
+      );
     }
 
     const apiBase = this.api.buildApiBase(provider.providerUrl);
-    const host = provider.providerUrl.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+    const host = provider.providerUrl
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/+$/, '');
 
     return {
       token,
@@ -184,7 +249,9 @@ export class GiteaAdapter implements IGitProvider {
   /** Extract `owner/repo` from a stored repo URL or path. */
   private extractFullRepoName(repoPath: string, host: string): string {
     const escapedHost = host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = repoPath.match(new RegExp(`${escapedHost}[:/]([^/]+/[^/.]+)`, 'i'));
+    const match = repoPath.match(
+      new RegExp(`${escapedHost}[:/]([^/]+/[^/.]+)`, 'i'),
+    );
     return match?.[1] ?? repoPath.replace(/\.git$/, '');
   }
 }

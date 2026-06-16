@@ -1,9 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import type {
   RepoItem,
@@ -102,10 +98,12 @@ export class GiteaClient {
   ): Promise<PipelineItem[]> {
     try {
       const res = await firstValueFrom(
-        this.httpService.get<{ workflow_runs?: GiteaActionRunRaw[] } | GiteaActionRunRaw[]>(
-          `${apiBase}/repos/${fullRepoName}/actions/tasks`,
-          { headers: this.authHeaders(token), params: { limit: 30 } },
-        ),
+        this.httpService.get<
+          { workflow_runs?: GiteaActionRunRaw[] } | GiteaActionRunRaw[]
+        >(`${apiBase}/repos/${fullRepoName}/actions/tasks`, {
+          headers: this.authHeaders(token),
+          params: { limit: 30 },
+        }),
       );
       const runs = Array.isArray(res.data)
         ? res.data
@@ -203,7 +201,13 @@ export class GiteaClient {
     branch: string,
     message: string,
   ): Promise<'CREATED' | 'UPDATED'> {
-    const sha = await this.getFileSha(apiBase, token, fullRepoName, filePath, branch);
+    const sha = await this.getFileSha(
+      apiBase,
+      token,
+      fullRepoName,
+      filePath,
+      branch,
+    );
     await firstValueFrom(
       this.httpService.put(
         `${apiBase}/repos/${fullRepoName}/contents/${encodeURIComponent(filePath)}`,
@@ -257,7 +261,10 @@ export class GiteaClient {
     );
   }
 
-  async verifyToken(apiBase: string, token: string): Promise<{ login: string }> {
+  async verifyToken(
+    apiBase: string,
+    token: string,
+  ): Promise<{ login: string }> {
     const res = await firstValueFrom(
       this.httpService.get<{ login: string }>(`${apiBase}/user`, {
         headers: this.authHeaders(token),

@@ -116,7 +116,12 @@ export class TerminalService {
   }
 
   private resolveInactivityTimeoutMs(): number {
-    const raw = Number(this.configService.get<string>('TERMINAL_SSH_INACTIVITY_TIMEOUT_MS', '300000'));
+    const raw = Number(
+      this.configService.get<string>(
+        'TERMINAL_SSH_INACTIVITY_TIMEOUT_MS',
+        '300000',
+      ),
+    );
     if (Number.isFinite(raw) && raw >= 60_000) {
       return Math.floor(raw);
     }

@@ -60,7 +60,7 @@ export class EnvironmentsController {
   }
 
   @Get(':envId')
-  @ApiOperation({ summary: "Project environment details" })
+  @ApiOperation({ summary: 'Project environment details' })
   async findOne(
     @Param('id') projectId: string,
     @Param('envId') envId: string,
@@ -162,6 +162,11 @@ export class EnvironmentsController {
     @Param('envId') envId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.serviceEnvsService.findByEnvironment(projectId, envId, user.id, user.role);
+    return await this.serviceEnvsService.findByEnvironment(
+      projectId,
+      envId,
+      user.id,
+      user.role,
+    );
   }
 }

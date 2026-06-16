@@ -13,12 +13,7 @@ import { AuditModule } from '../../audit';
  * Gère la connexion et la validation JWT
  */
 @Module({
-  imports: [
-    UsersModule,
-    PassportModule,
-    AppJwtModule,
-    AuditModule,
-  ],
+  imports: [UsersModule, PassportModule, AppJwtModule, AuditModule],
   providers: [AuthService, RolesGuard, LoginRateLimitGuard],
   controllers: [AuthController],
 })

@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { BuildPack, GitProviderType, ManagedServiceType, ServiceType, SourceType } from '@prisma/client';
+import {
+  BuildPack,
+  GitProviderType,
+  ManagedServiceType,
+  ServiceType,
+  SourceType,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsEnum,
@@ -126,7 +132,10 @@ export class CreateServiceDto {
   @IsString()
   composeServiceName?: string;
 
-  @ApiPropertyOptional({ enum: ManagedServiceType, example: ManagedServiceType.POSTGRES })
+  @ApiPropertyOptional({
+    enum: ManagedServiceType,
+    example: ManagedServiceType.POSTGRES,
+  })
   @IsOptional()
   @IsEnum(ManagedServiceType)
   databaseType?: ManagedServiceType;
@@ -158,7 +167,9 @@ export class CreateServiceDto {
   @Min(0)
   replicas?: number;
 
-  @ApiPropertyOptional({ description: 'Source connection (GitLab/GitHub) on creation' })
+  @ApiPropertyOptional({
+    description: 'Source connection (GitLab/GitHub) on creation',
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => SourceConnectionDto)

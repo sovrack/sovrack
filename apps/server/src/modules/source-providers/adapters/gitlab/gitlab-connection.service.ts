@@ -11,9 +11,7 @@ export type GitlabConnectionInput = {
 
 @Injectable()
 export class GitlabConnectionService {
-  constructor(
-    private readonly gitProviderRegistry: GitProviderConfigService,
-  ) {}
+  constructor(private readonly gitProviderRegistry: GitProviderConfigService) {}
 
   normalizeUrl(url: string): string {
     return url.trim().replace(/\/+$/, '');
@@ -69,7 +67,10 @@ export class GitlabConnectionService {
   }
 
   normalizeRepositoryPath(value: string): string {
-    let s = value.trim().replace(/\.git$/i, '').replace(/\/+$/, '');
+    let s = value
+      .trim()
+      .replace(/\.git$/i, '')
+      .replace(/\/+$/, '');
     try {
       const url = new URL(s);
       s = url.pathname;
@@ -102,7 +103,9 @@ export class GitlabConnectionService {
     };
   }
 
-  async resolveGitlabConnectionInput(dto: ConnectGitlabDto): Promise<GitlabConnectionInput> {
+  async resolveGitlabConnectionInput(
+    dto: ConnectGitlabDto,
+  ): Promise<GitlabConnectionInput> {
     const manualUrl = this.normalizeOptionalString(dto.gitlabUrl);
     const manualToken = this.normalizeOptionalString(dto.gitlabToken);
 
@@ -120,9 +123,7 @@ export class GitlabConnectionService {
       }
 
       const providerCredentials =
-        await this.gitProviderRegistry.resolveGitlabCredentials(
-          dto.providerId,
-        );
+        await this.gitProviderRegistry.resolveGitlabCredentials(dto.providerId);
 
       return {
         gitlabUrl: manualUrl ?? providerCredentials.providerUrl,

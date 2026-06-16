@@ -6,7 +6,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-import type { RepoItem, BranchItem, PipelineItem } from '../../contracts/git-provider.contract';
+import type {
+  RepoItem,
+  BranchItem,
+  PipelineItem,
+} from '../../contracts/git-provider.contract';
 
 type GithubRepoRaw = {
   id: number;
@@ -61,7 +65,11 @@ export class GithubClient {
    * fall back to `/users/:owner/repos` on 404 (GitHub returns 404 for an
    * org endpoint when `owner` is actually a personal account).
    */
-  async listOrgRepos(apiBase: string, token: string, owner: string): Promise<RepoItem[]> {
+  async listOrgRepos(
+    apiBase: string,
+    token: string,
+    owner: string,
+  ): Promise<RepoItem[]> {
     const path = encodeURIComponent(owner);
     let raw: GithubRepoRaw[];
     try {
@@ -197,13 +205,17 @@ export class GithubClient {
     );
   }
 
-  async verifyToken(apiBase: string, token: string): Promise<{ login: string; name: string }> {
+  async verifyToken(
+    apiBase: string,
+    token: string,
+  ): Promise<{ login: string; name: string }> {
     const res = await firstValueFrom(
       this.httpService.get<{ login: string; name: string }>(`${apiBase}/user`, {
         headers: { Authorization: `Bearer ${token}` },
       }),
     );
-    if (!res.data?.login) throw new BadRequestException('Token GitHub invalide');
+    if (!res.data?.login)
+      throw new BadRequestException('Token GitHub invalide');
     return res.data;
   }
 

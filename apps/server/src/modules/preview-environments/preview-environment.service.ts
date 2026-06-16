@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ServiceType, SourceType } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
 import { SourceProvidersService } from '../source-providers/source-providers.service';
@@ -30,7 +35,11 @@ export class PreviewEnvironmentService {
     private readonly sourceProviders: SourceProvidersService,
   ) {}
 
-  async openPreview(projectId: string, mergeRequestId: string, branch: string): Promise<PreviewSummary> {
+  async openPreview(
+    projectId: string,
+    mergeRequestId: string,
+    branch: string,
+  ): Promise<PreviewSummary> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       select: { id: true },
@@ -38,7 +47,11 @@ export class PreviewEnvironmentService {
     if (!project) throw new NotFoundException('Projet non trouvé');
 
     const services = await this.prisma.service.findMany({
-      where: { projectId, type: ServiceType.APPLICATION, sourceType: SourceType.GIT },
+      where: {
+        projectId,
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.GIT,
+      },
       select: { id: true },
     });
     if (services.length === 0) {
@@ -47,13 +60,22 @@ export class PreviewEnvironmentService {
 
     const envName = `preview-mr-${mergeRequestId}`;
     const environment =
-      (await this.prisma.environment.findFirst({ where: { projectId, name: envName } })) ??
-      (await this.prisma.environment.create({ data: { projectId, name: envName } }));
+      (await this.prisma.environment.findFirst({
+        where: { projectId, name: envName },
+      })) ??
+      (await this.prisma.environment.create({
+        data: { projectId, name: envName },
+      }));
 
     const serviceEnvironmentIds: string[] = [];
     for (const svc of services) {
       const existing = await this.prisma.serviceEnvironment.findUnique({
-        where: { serviceId_environmentId: { serviceId: svc.id, environmentId: environment.id } },
+        where: {
+          serviceId_environmentId: {
+            serviceId: svc.id,
+            environmentId: environment.id,
+          },
+        },
       });
       const data = {
         isPreview: true,
@@ -63,7 +85,10 @@ export class PreviewEnvironmentService {
         archivedAt: null,
       };
       const se = existing
-        ? await this.prisma.serviceEnvironment.update({ where: { id: existing.id }, data })
+        ? await this.prisma.serviceEnvironment.update({
+            where: { id: existing.id },
+            data,
+          })
         : await this.prisma.serviceEnvironment.create({
             data: { serviceId: svc.id, environmentId: environment.id, ...data },
           });
@@ -76,12 +101,25 @@ export class PreviewEnvironmentService {
       `🔎 Preview environment ready for \`${branch}\` — ${serviceEnvironmentIds.length} service(s).`,
     );
 
-    return { environmentId: environment.id, mergeRequestId, branch, serviceEnvironmentIds };
+    return {
+      environmentId: environment.id,
+      mergeRequestId,
+      branch,
+      serviceEnvironmentIds,
+    };
   }
 
-  async closePreview(projectId: string, mergeRequestId: string): Promise<{ closed: number }> {
+  async closePreview(
+    projectId: string,
+    mergeRequestId: string,
+  ): Promise<{ closed: number }> {
     const previews = await this.prisma.serviceEnvironment.findMany({
-      where: { previewMrId: mergeRequestId, isPreview: true, archivedAt: null, service: { projectId } },
+      where: {
+        previewMrId: mergeRequestId,
+        isPreview: true,
+        archivedAt: null,
+        service: { projectId },
+      },
       select: { id: true },
     });
     if (previews.length > 0) {
@@ -89,7 +127,11 @@ export class PreviewEnvironmentService {
         where: { id: { in: previews.map((p) => p.id) } },
         data: { archivedAt: new Date() },
       });
-      await this.tryComment(projectId, mergeRequestId, '🧹 Preview environment torn down.');
+      await this.tryComment(
+        projectId,
+        mergeRequestId,
+        '🧹 Preview environment torn down.',
+      );
     }
     return { closed: previews.length };
   }
@@ -108,7 +150,11 @@ export class PreviewEnvironmentService {
     });
   }
 
-  private async tryComment(projectId: string, mergeRequestId: string, body: string): Promise<void> {
+  private async tryComment(
+    projectId: string,
+    mergeRequestId: string,
+    body: string,
+  ): Promise<void> {
     try {
       const provider = await this.sourceProviders.forProject(projectId);
       if (provider.postComment) {

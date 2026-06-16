@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DeploymentStatus, GitProviderType, PipelineRunStatus } from '@prisma/client';
+import {
+  DeploymentStatus,
+  GitProviderType,
+  PipelineRunStatus,
+} from '@prisma/client';
 import { DeploymentsPipelineHandlerService } from './deployments-pipeline-handler.service';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
@@ -83,10 +87,17 @@ describe('DeploymentsPipelineHandlerService', () => {
       });
       prisma.deployment.updateMany.mockResolvedValue({ count: 1 });
 
-      const result = await service.handlePipelineUpdate(PIPELINE_ID, 'success', 'my-image:sha256');
+      const result = await service.handlePipelineUpdate(
+        PIPELINE_ID,
+        'success',
+        'my-image:sha256',
+      );
 
       expect(result).toEqual({ status: 'ok' });
-      expect(ansible.executeDeploy).toHaveBeenCalledWith(DEPLOYMENT_ID, 'my-image:sha256');
+      expect(ansible.executeDeploy).toHaveBeenCalledWith(
+        DEPLOYMENT_ID,
+        'my-image:sha256',
+      );
     });
 
     it('on SUCCESS — returns ignored when deployment already claimed (race condition)', async () => {
@@ -153,10 +164,15 @@ describe('DeploymentsPipelineHandlerService', () => {
       });
       prisma.deployment.findUnique.mockResolvedValueOnce(null);
 
-      const result = await service.handlePipelineUpdate(PIPELINE_ID, 'canceled');
+      const result = await service.handlePipelineUpdate(
+        PIPELINE_ID,
+        'canceled',
+      );
 
       expect(result).toEqual({ status: 'ok' });
-      const updateManyCall = prisma.deployment.updateMany.mock.calls[0][0] as { data: { status: DeploymentStatus } };
+      const updateManyCall = prisma.deployment.updateMany.mock.calls[0][0] as {
+        data: { status: DeploymentStatus };
+      };
       expect(updateManyCall.data.status).toBe(DeploymentStatus.CANCELED);
     });
 
@@ -177,7 +193,10 @@ describe('DeploymentsPipelineHandlerService', () => {
       await service.handlePipelineUpdate(PIPELINE_ID, 'success');
 
       expect(prisma.deployment.findFirst).not.toHaveBeenCalled();
-      expect(ansible.executeDeploy).toHaveBeenCalledWith(DEPLOYMENT_ID, undefined);
+      expect(ansible.executeDeploy).toHaveBeenCalledWith(
+        DEPLOYMENT_ID,
+        undefined,
+      );
     });
 
     it('upserts PipelineRun with correct status and provider', async () => {
@@ -190,7 +209,12 @@ describe('DeploymentsPipelineHandlerService', () => {
       });
       prisma.deployment.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.handlePipelineUpdate(PIPELINE_ID, 'running', undefined, GitProviderType.GITHUB);
+      await service.handlePipelineUpdate(
+        PIPELINE_ID,
+        'running',
+        undefined,
+        GitProviderType.GITHUB,
+      );
 
       expect(prisma.pipelineRun.upsert).toHaveBeenCalledWith(
         expect.objectContaining({

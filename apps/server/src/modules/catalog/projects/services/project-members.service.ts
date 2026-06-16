@@ -48,7 +48,11 @@ export class ProjectMembersService {
     userRole: Role,
     dto: AddMemberDto,
   ): Promise<ProjectWithMembers> {
-    await this.projectsService.assertCanManageProject(projectId, userId, userRole);
+    await this.projectsService.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const lookup = dto.userId
       ? { id: dto.userId }
@@ -100,7 +104,11 @@ export class ProjectMembersService {
     userRole: Role,
     targetUserId: string,
   ): Promise<ProjectWithMembers> {
-    await this.projectsService.assertCanManageProject(projectId, userId, userRole);
+    await this.projectsService.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const membership = await this.prisma.projectMember.findUnique({
       where: {
@@ -139,7 +147,11 @@ export class ProjectMembersService {
     userId: string,
     userRole: Role,
   ): Promise<ProjectWithMembers['members']> {
-    await this.projectsService.assertCanAccessProject(projectId, userId, userRole);
+    await this.projectsService.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const members = await this.prisma.projectMember.findMany({
       where: { projectId },

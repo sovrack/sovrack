@@ -498,7 +498,8 @@ export class ServersConnectionService {
   }
 
   private isAutoSudoersEnabled(): boolean {
-    const raw = (this.configService.get<string>('SERVER_AUTO_CONFIGURE_SUDOERS', 'false'))
+    const raw = this.configService
+      .get<string>('SERVER_AUTO_CONFIGURE_SUDOERS', 'false')
       .trim()
       .toLowerCase();
     return raw === '1' || raw === 'true' || raw === 'yes';
@@ -518,7 +519,9 @@ export class ServersConnectionService {
   }
 
   private isTrustOnFirstUseEnabled(): boolean {
-    const raw = this.configService.get<string>('ANSIBLE_HOST_KEY_TRUST_ON_FIRST_USE', 'false').trim();
+    const raw = this.configService
+      .get<string>('ANSIBLE_HOST_KEY_TRUST_ON_FIRST_USE', 'false')
+      .trim();
     if (raw) {
       const normalized = raw.toLowerCase();
       return (
@@ -526,7 +529,9 @@ export class ServersConnectionService {
       );
     }
 
-    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development').toLowerCase();
+    const nodeEnv = this.configService
+      .get<string>('NODE_ENV', 'development')
+      .toLowerCase();
     return nodeEnv !== 'production';
   }
 }

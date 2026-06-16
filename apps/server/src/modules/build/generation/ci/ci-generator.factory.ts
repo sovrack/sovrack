@@ -6,7 +6,9 @@ import { GitlabCiGenerator } from './gitlab-ci.generator';
 import { GithubActionsGenerator } from './github-actions.generator';
 
 function assertNever(value: never): never {
-  throw new Error(`Unhandled GitProviderType in CiGeneratorFactory: ${String(value)}`);
+  throw new Error(
+    `Unhandled GitProviderType in CiGeneratorFactory: ${String(value)}`,
+  );
 }
 
 @Injectable()
@@ -30,7 +32,9 @@ export class CiGeneratorFactory {
 
     const repo = project?.providerRepos?.[0];
     if (!repo) {
-      throw new NotFoundException(`No git config found for project ${projectId}`);
+      throw new NotFoundException(
+        `No git config found for project ${projectId}`,
+      );
     }
 
     return this.forProvider(repo.provider.type);

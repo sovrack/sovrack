@@ -59,7 +59,8 @@ export class ContainerStatsService {
       where: { deploymentId },
       include: { server: true },
     });
-    if (!container?.server) throw new NotFoundException('Container/serveur non trouvé');
+    if (!container?.server)
+      throw new NotFoundException('Container/serveur non trouvé');
     const server = container.server;
     const decryptedKey = this.serversCryptoService.decrypt(server.sshKey);
 
@@ -194,10 +195,12 @@ export class ContainerStatsService {
   }
 
   private slugify(value: string): string {
-    return value
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9._-]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'app';
+    return (
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'app'
+    );
   }
 }

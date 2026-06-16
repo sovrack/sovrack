@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Role, GitProviderType, SourceType } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../../../core/database/prisma.service';
@@ -40,7 +44,11 @@ export class GithubAdapter implements IGitProvider {
     private readonly crypto: CryptoService,
   ) {}
 
-  async listRepos(projectId: string, userId: string, userRole: Role): Promise<RepoItem[]> {
+  async listRepos(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<RepoItem[]> {
     const { token, apiBase } = await this.resolveProjectCredentials(projectId);
     return this.api.listRepos(apiBase, token);
   }
@@ -56,7 +64,11 @@ export class GithubAdapter implements IGitProvider {
     return this.api.listBranches(apiBase, token, fullRepoName, defaultBranch);
   }
 
-  async listPipelines(projectId: string, userId: string, userRole: Role): Promise<PipelineItem[]> {
+  async listPipelines(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<PipelineItem[]> {
     const { token, apiBase, fullRepoName } =
       await this.resolveProjectCredentials(projectId);
     return this.api.listWorkflowRuns(apiBase, token, fullRepoName);
@@ -110,19 +122,30 @@ export class GithubAdapter implements IGitProvider {
         where: { id: providerId },
       });
       if (!provider || provider.type !== GitProviderType.GITHUB) {
-        throw new NotFoundException(`Provider GitHub ${providerId} introuvable`);
+        throw new NotFoundException(
+          `Provider GitHub ${providerId} introuvable`,
+        );
       }
       const adminToken = provider.adminToken
-        ? await this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
+        ? await this.gitProviderRegistry.decryptProviderToken(
+            provider.adminToken,
+          )
         : '';
       const oauthToken = provider.oauthAccessToken
-        ? await this.gitProviderRegistry.decryptProviderToken(provider.oauthAccessToken)
+        ? await this.gitProviderRegistry.decryptProviderToken(
+            provider.oauthAccessToken,
+          )
         : '';
       const resolved = token || oauthToken || adminToken;
       if (!resolved) {
-        throw new BadRequestException('Aucun token GitHub disponible pour ce provider');
+        throw new BadRequestException(
+          'Aucun token GitHub disponible pour ce provider',
+        );
       }
-      return { apiBase: this.api.buildApiBase(provider.providerUrl), token: resolved };
+      return {
+        apiBase: this.api.buildApiBase(provider.providerUrl),
+        token: resolved,
+      };
     }
 
     if (!token) {
@@ -137,9 +160,11 @@ export class GithubAdapter implements IGitProvider {
   // resolve the credentials from the GitHubProviderConfig linked to
   // the project and return them in the common shape.
 
-  async resolveRegistryCredentials(
-    projectId: string,
-  ): Promise<{ username: string; password: string; registryUrl?: string | null }> {
+  async resolveRegistryCredentials(projectId: string): Promise<{
+    username: string;
+    password: string;
+    registryUrl?: string | null;
+  }> {
     const { token } = await this.resolveProjectCredentials(projectId);
     // GitHub Packages uses the GitHub username as the registry username
     // and the PAT as the password. We don't know the username here
@@ -183,7 +208,10 @@ export class GithubAdapter implements IGitProvider {
       where: { id: svc.providerId },
     });
 
-    if (!gitProviderConfig || gitProviderConfig.type !== GitProviderType.GITHUB) {
+    if (
+      !gitProviderConfig ||
+      gitProviderConfig.type !== GitProviderType.GITHUB
+    ) {
       throw new NotFoundException('Projet non connecté à GitHub');
     }
 
@@ -192,12 +220,16 @@ export class GithubAdapter implements IGitProvider {
       ? await this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
       : '';
     const oauthToken = provider.oauthAccessToken
-      ? await this.gitProviderRegistry.decryptProviderToken(provider.oauthAccessToken)
+      ? await this.gitProviderRegistry.decryptProviderToken(
+          provider.oauthAccessToken,
+        )
       : '';
     const token = oauthToken || adminToken;
 
     if (!token) {
-      throw new BadRequestException('Aucun token GitHub configuré pour ce provider');
+      throw new BadRequestException(
+        'Aucun token GitHub configuré pour ce provider',
+      );
     }
 
     const apiBase = this.api.buildApiBase(provider.providerUrl);
@@ -207,10 +239,7 @@ export class GithubAdapter implements IGitProvider {
       const repoLink = await this.prisma.gitProviderRepo.findFirst({
         where: {
           providerId: provider.id,
-          OR: [
-            { id: repoId },
-            { repoPath: repoId },
-          ],
+          OR: [{ id: repoId }, { repoPath: repoId }],
         },
       });
       if (repoLink) {
@@ -237,7 +266,11 @@ export class GithubAdapter implements IGitProvider {
 
   // ─── IGitProvider — File operations ───────────────────────────────────────
 
-  async readFile(projectId: string, filePath: string, ref?: string): Promise<string | null> {
+  async readFile(
+    projectId: string,
+    filePath: string,
+    ref?: string,
+  ): Promise<string | null> {
     return this.fileService.readFile(projectId, filePath, ref);
   }
 
@@ -257,12 +290,19 @@ export class GithubAdapter implements IGitProvider {
     secret: string,
     _serviceId?: string,
   ): Promise<WebhookConfigResult> {
-    return this.webhookConfigurator.configureWebhook(projectId, webhookUrl, secret);
+    return this.webhookConfigurator.configureWebhook(
+      projectId,
+      webhookUrl,
+      secret,
+    );
   }
 
   // ─── IGitProvider — Git credentials for local VPS builds ─────────────────
 
-  async resolveGitCredentials(projectId: string, _serviceId?: string): Promise<GitCredentials> {
+  async resolveGitCredentials(
+    projectId: string,
+    _serviceId?: string,
+  ): Promise<GitCredentials> {
     return this.fileService.resolveGitCredentials(projectId);
   }
 
@@ -281,20 +321,27 @@ export class GithubAdapter implements IGitProvider {
       where: { id: projectId },
       select: { name: true },
     });
-     const slug = sanitizeDockerTag(project?.name ?? projectId);
+    const slug = sanitizeDockerTag(project?.name ?? projectId);
 
-     const tag = sanitizeDockerTag(branch);
+    const tag = sanitizeDockerTag(branch);
 
     const gitProviderConfig = svc?.providerId
-      ? await this.prisma.gitProviderConfig.findUnique({ where: { id: svc.providerId }, select: { providerUrl: true } })
+      ? await this.prisma.gitProviderConfig.findUnique({
+          where: { id: svc.providerId },
+          select: { providerUrl: true },
+        })
       : null;
 
     const customRegistry = gitProviderConfig?.providerUrl?.trim()
-      ? gitProviderConfig.providerUrl.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '')
+      ? gitProviderConfig.providerUrl
+          .trim()
+          .replace(/^https?:\/\//i, '')
+          .replace(/\/+$/, '')
       : null;
 
     const registry = customRegistry ?? 'ghcr.io';
-    const repoName = this.extractFullRepoName(svc?.repoPath ?? '').toLowerCase() || slug;
+    const repoName =
+      this.extractFullRepoName(svc?.repoPath ?? '').toLowerCase() || slug;
 
     return `${registry}/${repoName}:${tag}`;
   }
@@ -305,7 +352,9 @@ export class GithubAdapter implements IGitProvider {
     projectId: string,
     dto: ConnectGithubDto,
   ): Promise<{ id: string; repoPath: string; defaultBranch: string }> {
-    const repoName = dto.repoPath.replace(/^https?:\/\/[^/]+\//, '').replace(/\.git$/, '');
+    const repoName = dto.repoPath
+      .replace(/^https?:\/\/[^/]+\//, '')
+      .replace(/\.git$/, '');
     const repoUrl = `https://github.com/${repoName}.git`;
     const defaultBranch = dto.defaultBranch || 'main';
     const sourceType = dto.sourceType ?? SourceType.GIT;
@@ -356,6 +405,4 @@ export class GithubAdapter implements IGitProvider {
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────
-
-
 }

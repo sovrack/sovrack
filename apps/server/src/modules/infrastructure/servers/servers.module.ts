@@ -10,11 +10,7 @@ import { ServerDetectionController } from './controllers/server-detection.contro
 import { DockerConnectionNotificationsListener } from './services/docker-connection-notifications.listener';
 
 @Module({
-  imports: [
-    AppJwtModule,
-    ServersSharedModule,
-    NotificationsModule,
-  ],
+  imports: [AppJwtModule, ServersSharedModule, NotificationsModule],
   controllers: [
     ServerManagementController,
     DockerConnectionController,
@@ -22,9 +18,7 @@ import { DockerConnectionNotificationsListener } from './services/docker-connect
     ServerValidationController,
     ServerDetectionController,
   ],
-  providers: [
-    DockerConnectionNotificationsListener,
-  ],
+  providers: [DockerConnectionNotificationsListener],
   exports: [ServersSharedModule],
 })
 export class ServersModule {}

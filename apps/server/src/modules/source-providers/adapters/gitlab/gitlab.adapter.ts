@@ -1,9 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
-  GitProviderType,
-  SourceType,
-  Role,
-} from '@prisma/client';
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { GitProviderType, SourceType, Role } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
@@ -77,7 +77,9 @@ export class GitlabAdapter implements IGitProvider {
     let groupPath: string | null = null;
 
     if (dto.repoPath) {
-      const normalizedRepoPath = this.connection.normalizeRepositoryPath(dto.repoPath);
+      const normalizedRepoPath = this.connection.normalizeRepositoryPath(
+        dto.repoPath,
+      );
       const repository = await this.apiService.getProjectByConnection(
         baseUrl,
         normalizedRepoPath,
@@ -153,7 +155,8 @@ export class GitlabAdapter implements IGitProvider {
         const created = await this.prisma.service.create({
           data: {
             projectId,
-            name: repoPath.split('/').pop() ?? `project-${projectId.slice(0, 8)}`,
+            name:
+              repoPath.split('/').pop() ?? `project-${projectId.slice(0, 8)}`,
             type: 'APPLICATION' as any,
             sourceType: SourceType.GIT,
             repoPath,
@@ -206,7 +209,8 @@ export class GitlabAdapter implements IGitProvider {
         );
         for (const repo of repos) {
           if (!repo.path_with_namespace) continue;
-          const repoBranch = repo.default_branch ?? repo.defaultBranch ?? 'main';
+          const repoBranch =
+            repo.default_branch ?? repo.defaultBranch ?? 'main';
           await this.prisma.gitProviderRepo.upsert({
             where: {
               providerId_repoPath: {
@@ -317,7 +321,10 @@ export class GitlabAdapter implements IGitProvider {
       );
     }
 
-    const repoId = this.projectConfig.assertRepoSource(config, 'récupération du repository');
+    const repoId = this.projectConfig.assertRepoSource(
+      config,
+      'récupération du repository',
+    );
     return await this.apiService.getRepos(config, repoId, (url) =>
       this.connection.normalizeUrl(url),
     );
@@ -401,7 +408,8 @@ export class GitlabAdapter implements IGitProvider {
       config,
       fallbackProjectSlug,
       preferredRepoId,
-      normalizeRepositoryPath: (value) => this.connection.normalizeRepositoryPath(value),
+      normalizeRepositoryPath: (value) =>
+        this.connection.normalizeRepositoryPath(value),
       normalizeUrl: (value) => this.connection.normalizeUrl(value),
       resolveRepoIdForAction: async (candidateConfig, action, selectedRepoId) =>
         await this.projectConfig.resolveRepoIdForAction(
@@ -450,10 +458,20 @@ export class GitlabAdapter implements IGitProvider {
       userRole,
       preferredRepoId,
     );
-    return { id: raw.id, status: raw.status, ref: raw.ref, sha: raw.sha, webUrl: raw.web_url };
+    return {
+      id: raw.id,
+      status: raw.status,
+      ref: raw.ref,
+      sha: raw.sha,
+      webUrl: raw.web_url,
+    };
   }
 
-  async listRepos(projectId: string, userId: string, userRole: Role): Promise<RepoItem[]> {
+  async listRepos(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<RepoItem[]> {
     const raw = await this.getRepos(projectId, userId, userRole);
     return raw.map((r) => ({
       id: Number(r.id ?? 0),
@@ -465,19 +483,29 @@ export class GitlabAdapter implements IGitProvider {
     }));
   }
 
-  async listBranches(projectId: string, userId: string, userRole: Role): Promise<BranchItem[]> {
+  async listBranches(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<BranchItem[]> {
     const raw = await this.getBranches(projectId, userId, userRole);
     return raw.map((b) => {
       const branch = b as Record<string, unknown>;
       return {
         name: String(branch['name'] ?? ''),
         isDefault: Boolean(branch['default'] ?? false),
-        commitSha: String((branch['commit'] as Record<string,unknown>)?.['id'] ?? ''),
+        commitSha: String(
+          (branch['commit'] as Record<string, unknown>)?.['id'] ?? '',
+        ),
       };
     });
   }
 
-  async listPipelines(projectId: string, userId: string, userRole: Role): Promise<PipelineItem[]> {
+  async listPipelines(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<PipelineItem[]> {
     const raw = await this.ci.getPipelines(projectId, userId, userRole);
     return raw.map((p) => ({
       id: p.id,
@@ -488,7 +516,9 @@ export class GitlabAdapter implements IGitProvider {
     }));
   }
 
-  async resolveRegistryCredentials(projectId: string): Promise<RegistryCredentials> {
+  async resolveRegistryCredentials(
+    projectId: string,
+  ): Promise<RegistryCredentials> {
     const svc = await this.prisma.service.findFirst({
       where: { projectId, providerId: { not: null } },
     });
@@ -509,7 +539,10 @@ export class GitlabAdapter implements IGitProvider {
       ...gitProviderConfig,
       projectId,
       providerUrl: gitProviderConfig.providerUrl,
-      providerToken: gitProviderConfig.adminToken || gitProviderConfig.oauthAccessToken || '',
+      providerToken:
+        gitProviderConfig.adminToken ||
+        gitProviderConfig.oauthAccessToken ||
+        '',
       sourceType: svc.sourceType,
       defaultBranch: svc.branch,
       externalId: null,
@@ -548,7 +581,10 @@ export class GitlabAdapter implements IGitProvider {
       ...gitProviderConfig,
       projectId,
       providerUrl: gitProviderConfig.providerUrl,
-      providerToken: gitProviderConfig.adminToken || gitProviderConfig.oauthAccessToken || '',
+      providerToken:
+        gitProviderConfig.adminToken ||
+        gitProviderConfig.oauthAccessToken ||
+        '',
       sourceType: svc.sourceType,
       defaultBranch: svc.branch,
       externalId: null,
@@ -569,7 +605,11 @@ export class GitlabAdapter implements IGitProvider {
     );
   }
 
-  async readFile(projectId: string, filePath: string, ref?: string): Promise<string | null> {
+  async readFile(
+    projectId: string,
+    filePath: string,
+    ref?: string,
+  ): Promise<string | null> {
     return this.fileService.readFile(projectId, filePath, ref);
   }
 
@@ -587,10 +627,18 @@ export class GitlabAdapter implements IGitProvider {
     secret: string,
     serviceId?: string,
   ): Promise<WebhookConfigResult> {
-    return this.webhookConfigurator.configureWebhook(projectId, webhookUrl, secret, serviceId);
+    return this.webhookConfigurator.configureWebhook(
+      projectId,
+      webhookUrl,
+      secret,
+      serviceId,
+    );
   }
 
-  async resolveGitCredentials(projectId: string, serviceId?: string): Promise<GitCredentials> {
+  async resolveGitCredentials(
+    projectId: string,
+    serviceId?: string,
+  ): Promise<GitCredentials> {
     return this.fileService.resolveGitCredentials(projectId, serviceId);
   }
 
@@ -606,21 +654,26 @@ export class GitlabAdapter implements IGitProvider {
       where: { id: projectId },
       select: { name: true },
     });
-     const slug = sanitizeDockerTag(project?.name ?? projectId);
+    const slug = sanitizeDockerTag(project?.name ?? projectId);
 
-     const tag = sanitizeDockerTag(branch);
+    const tag = sanitizeDockerTag(branch);
 
     if (!svc?.providerId) {
       return `${slug}:${tag}`;
     }
-    const gitProviderConfig = await this.prisma.gitProviderConfig.findUnique({ where: { id: svc.providerId } });
+    const gitProviderConfig = await this.prisma.gitProviderConfig.findUnique({
+      where: { id: svc.providerId },
+    });
     if (!gitProviderConfig) return `${slug}:${tag}`;
 
     const config: any = {
       ...gitProviderConfig,
       projectId,
       providerUrl: gitProviderConfig.providerUrl,
-      providerToken: gitProviderConfig.adminToken || gitProviderConfig.oauthAccessToken || '',
+      providerToken:
+        gitProviderConfig.adminToken ||
+        gitProviderConfig.oauthAccessToken ||
+        '',
       sourceType: svc.sourceType,
       defaultBranch: svc.branch,
       externalId: null,
@@ -640,11 +693,19 @@ export class GitlabAdapter implements IGitProvider {
         where: { id: serviceId },
         select: { name: true },
       });
-      if (svcDetail?.name) projectSlug = `${slug}-${sanitizeDockerTag(svcDetail.name)}`;
+      if (svcDetail?.name)
+        projectSlug = `${slug}-${sanitizeDockerTag(svcDetail.name)}`;
     }
 
-    const registryHost = this.credential.resolveRegistryHost(gitProviderConfig.providerUrl, gitProviderConfig.providerUrl);
-    const repoPath = await this.resolveRepositoryPathFromConfig(config, projectSlug, preferredRepoId);
+    const registryHost = this.credential.resolveRegistryHost(
+      gitProviderConfig.providerUrl,
+      gitProviderConfig.providerUrl,
+    );
+    const repoPath = await this.resolveRepositoryPathFromConfig(
+      config,
+      projectSlug,
+      preferredRepoId,
+    );
     const finalPath =
       this.credential.isPlaceholderPath(config, repoPath) && svc?.repoPath
         ? (this.credential.extractPathFromUrl(svc.repoPath) ?? repoPath)
@@ -652,5 +713,4 @@ export class GitlabAdapter implements IGitProvider {
 
     return `${registryHost}/${finalPath}:${tag}`;
   }
-
 }

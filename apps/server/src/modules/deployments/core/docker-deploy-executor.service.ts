@@ -1,9 +1,13 @@
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import {
-  BadRequestException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
-import { ContainerStatus, Deployment, DeploymentStatus, DeploymentStrategy, ManagedServiceType, Prisma, ServiceType } from '@prisma/client';
+  ContainerStatus,
+  Deployment,
+  DeploymentStatus,
+  DeploymentStrategy,
+  ManagedServiceType,
+  Prisma,
+  ServiceType,
+} from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { normalizeRepoPath } from '../../../core/utils/repo-path.util';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
@@ -14,7 +18,11 @@ import { ServerHostKeyService } from '../../infrastructure/servers/services/serv
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DeploymentsHealthcheckService } from '../health/deployments-healthcheck.service';
 import { EnvLevel, resolveEnvDetailed } from '../utils/env-resolver.util';
-import { getLogContext, runWithLogContext, setLogContext } from '../../../core/logger/log-context';
+import {
+  getLogContext,
+  runWithLogContext,
+  setLogContext,
+} from '../../../core/logger/log-context';
 import { randomUUID } from 'crypto';
 
 type DeploymentLogLevel = 'info' | 'error' | 'success';
@@ -62,7 +70,10 @@ export class DockerDeployExecutorService {
     // Establish (or inherit) a logging context so every line emitted during the
     // deploy carries the correlationId + deploymentId for end-to-end tracing.
     return runWithLogContext(
-      { correlationId: getLogContext().correlationId ?? randomUUID(), deploymentId },
+      {
+        correlationId: getLogContext().correlationId ?? randomUUID(),
+        deploymentId,
+      },
       () => this.executeDeployInternal(deploymentId, overrideImage),
     );
   }
@@ -75,7 +86,34 @@ export class DockerDeployExecutorService {
       where: { id: deploymentId },
       include: {
         project: { select: { id: true, name: true } },
-        service: { select: { id: true, name: true, port: true, env: true, secretsEnv: true, dockerComposeContent: true, repoPath: true, branch: true, startCommand: true, type: true, databaseType: true, databaseVersion: true, databaseCredentials: true, healthcheckPath: true, preDeployCommand: true, preDeployTimeout: true, shutdownTimeout: true, buildPack: true, dockerfile: true, nixpacksConfig: true, staticConfig: true, rootDir: true, volumes: { select: { name: true, mountPath: true } }, provider: { select: { providerUrl: true, adminToken: true } } } },
+        service: {
+          select: {
+            id: true,
+            name: true,
+            port: true,
+            env: true,
+            secretsEnv: true,
+            dockerComposeContent: true,
+            repoPath: true,
+            branch: true,
+            startCommand: true,
+            type: true,
+            databaseType: true,
+            databaseVersion: true,
+            databaseCredentials: true,
+            healthcheckPath: true,
+            preDeployCommand: true,
+            preDeployTimeout: true,
+            shutdownTimeout: true,
+            buildPack: true,
+            dockerfile: true,
+            nixpacksConfig: true,
+            staticConfig: true,
+            rootDir: true,
+            volumes: { select: { name: true, mountPath: true } },
+            provider: { select: { providerUrl: true, adminToken: true } },
+          },
+        },
         serviceEnv: {
           include: {
             environment: {
@@ -84,51 +122,85 @@ export class DockerDeployExecutorService {
                 name: true,
                 env: true,
                 secretsEnv: true,
-                servers: { where: { isActive: true, isVerified: true }, select: { id: true, name: true, host: true } },
+                servers: {
+                  where: { isActive: true, isVerified: true },
+                  select: { id: true, name: true, host: true },
+                },
               },
             },
           },
         },
-        environment: { select: { id: true, name: true, env: true, secretsEnv: true } },
+        environment: {
+          select: { id: true, name: true, env: true, secretsEnv: true },
+        },
         user: { select: { id: true, email: true, fullName: true, role: true } },
-        build: { select: { id: true, imageSha: true, buildPack: true, isLocalBuild: true } },
+        build: {
+          select: {
+            id: true,
+            imageSha: true,
+            buildPack: true,
+            isLocalBuild: true,
+          },
+        },
       },
     });
 
     if (!deployment) throw new BadRequestException('Déploiement non trouvé');
-    setLogContext({ serviceEnvId: deployment.serviceEnv?.id, userId: deployment.user?.id });
+    setLogContext({
+      serviceEnvId: deployment.serviceEnv?.id,
+      userId: deployment.user?.id,
+    });
 
     // Résoudre le serveur : d'abord via serviceEnv, puis via resolvedRefs (backward compat)
     const servers = deployment.serviceEnv?.environment.servers ?? [];
-    const resolvedRefs = deployment.resolvedRefs as { serverId?: string } | null;
+    const resolvedRefs = deployment.resolvedRefs as {
+      serverId?: string;
+    } | null;
     const serverId = servers[0]?.id ?? resolvedRefs?.serverId;
     if (!serverId) throw new BadRequestException('Aucun serveur cible trouvé');
 
-    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    const server = await this.prisma.server.findUnique({
+      where: { id: serverId },
+    });
     if (!server) throw new BadRequestException('Serveur cible introuvable');
-    if (!server.isVerified) throw new BadRequestException('Serveur non vérifié');
+    if (!server.isVerified)
+      throw new BadRequestException('Serveur non vérifié');
 
     const serviceName = deployment.service?.name ?? deployment.project.name;
     const containerPrefix = `deploy-${deployment.project.name}-${serviceName}-`
-      .toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '-');
     const containerName = `${containerPrefix}${deployment.id.slice(0, 8)}`;
     let servicePort = deployment.service?.port ?? 3000;
     const envResolution = resolveEnvDetailed(this.buildEnvLevels(deployment));
-    const envVars = envResolution.entries.map((entry) => `${entry.key}=${entry.value}`);
+    const envVars = envResolution.entries.map(
+      (entry) => `${entry.key}=${entry.value}`,
+    );
 
     let commandLogs = '';
     // Surface (do NOT swallow) any unresolved env/secret level so the operator
     // sees it in the live deploy log instead of getting a container missing
     // a critical variable silently. Non-blocking: the deploy continues.
     for (const warning of envResolution.warnings) {
-      this.emitGatewayLog(deployment.id, `[ENV] Variable non résolue: ${warning}`, 'error');
-      this.logger.warn(`Deployment ${deployment.id} env resolution warning: ${warning}`);
+      this.emitGatewayLog(
+        deployment.id,
+        `[ENV] Variable non résolue: ${warning}`,
+        'error',
+      );
+      this.logger.warn(
+        `Deployment ${deployment.id} env resolution warning: ${warning}`,
+      );
       commandLogs += `[ENV] ${warning}\n`;
     }
     let dbVolumeName: string | undefined;
     let dbVolumePath: string | undefined;
-    if (deployment.service?.type === ServiceType.DATABASE && deployment.service.databaseType) {
-      const dbConfig = this.getDatabaseContainerConfig(deployment.service.databaseType);
+    if (
+      deployment.service?.type === ServiceType.DATABASE &&
+      deployment.service.databaseType
+    ) {
+      const dbConfig = this.getDatabaseContainerConfig(
+        deployment.service.databaseType,
+      );
       servicePort = dbConfig.port;
       dbVolumeName = `${deployment.id}-data`;
       dbVolumePath = dbConfig.dataPath;
@@ -159,7 +231,11 @@ export class DockerDeployExecutorService {
       ? servicePort + DockerDeployExecutorService.BLUE_GREEN_PORT_OFFSET
       : servicePort;
     if (blueGreen) {
-      this.emitGatewayLog(deployment.id, `[BLUE-GREEN] Conteneur green sur le port ${publishPort} (blue reste actif).`, 'info');
+      this.emitGatewayLog(
+        deployment.id,
+        `[BLUE-GREEN] Conteneur green sur le port ${publishPort} (blue reste actif).`,
+        'info',
+      );
       commandLogs += `[BLUE-GREEN] Green publié sur ${publishPort}\n`;
     }
 
@@ -167,21 +243,38 @@ export class DockerDeployExecutorService {
       where: { id: deployment.id },
       data: {
         status: DeploymentStatus.RUNNING,
-        conditions: this.buildConditions('Progressing', 'DockerDeploy', 'Déploiement Docker en cours.'),
+        conditions: this.buildConditions(
+          'Progressing',
+          'DockerDeploy',
+          'Déploiement Docker en cours.',
+        ),
         logs: `${deployment.logs ?? ''}\nDéploiement Docker en cours...`.trim(),
       },
     });
 
     try {
-      const isLocalBuild = !!(deployment.build?.isLocalBuild);
-      const imageRef = await this.resolveImageRef(deployment, overrideImage, serverId);
+      const isLocalBuild = !!deployment.build?.isLocalBuild;
+      const imageRef = await this.resolveImageRef(
+        deployment,
+        overrideImage,
+        serverId,
+      );
       commandLogs += `Image résolue : ${imageRef}\n`;
 
       if (isLocalBuild) {
         // Build the image directly on the server via SSH.
-        commandLogs += await this.buildLocalImage(deployment, imageRef, serverId, server);
+        commandLogs += await this.buildLocalImage(
+          deployment,
+          imageRef,
+          serverId,
+          server,
+        );
       } else {
-        this.emitGatewayLog(deployment.id, `Pull de l'image ${imageRef}...`, 'info');
+        this.emitGatewayLog(
+          deployment.id,
+          `Pull de l'image ${imageRef}...`,
+          'info',
+        );
         await this.docker.pullImage(serverId, imageRef);
         commandLogs += `Image pullée : ${imageRef}\n`;
       }
@@ -190,11 +283,17 @@ export class DockerDeployExecutorService {
       // deploy id) so a redeploy never collides on the published port.
       const existing = await this.docker.listContainers(serverId, true);
       const stale = existing.filter((c) =>
-        (c.Names ?? []).some((n) => n.replace(/^\//, '').startsWith(containerPrefix)),
+        (c.Names ?? []).some((n) =>
+          n.replace(/^\//, '').startsWith(containerPrefix),
+        ),
       );
       for (const old of stale) {
         const oldName = (old.Names?.[0] ?? old.Id).replace(/^\//, '');
-        this.emitGatewayLog(deployment.id, `Suppression de l'ancien conteneur ${oldName}...`, 'info');
+        this.emitGatewayLog(
+          deployment.id,
+          `Suppression de l'ancien conteneur ${oldName}...`,
+          'info',
+        );
         await this.docker.removeContainer(serverId, old.Id, true);
         commandLogs += `Ancien conteneur supprimé : ${old.Id.slice(0, 12)}\n`;
       }
@@ -203,7 +302,11 @@ export class DockerDeployExecutorService {
       if (deployment.service?.preDeployCommand) {
         const preCmd = deployment.service.preDeployCommand;
         const preTimeout = deployment.service.preDeployTimeout ?? 120;
-        this.emitGatewayLog(deployment.id, `[PRE-DEPLOY] Running: ${preCmd}`, 'info');
+        this.emitGatewayLog(
+          deployment.id,
+          `[PRE-DEPLOY] Running: ${preCmd}`,
+          'info',
+        );
         const preContainer = await this.docker.createContainer(serverId, {
           Image: imageRef,
           name: `pre-${containerName}`,
@@ -213,12 +316,22 @@ export class DockerDeployExecutorService {
         });
         await this.docker.startContainer(serverId, preContainer.id);
         // Poll until the pre-deploy container exits.
-        const exitCode = await this.waitForContainerExit(serverId, preContainer.id, preTimeout);
+        const exitCode = await this.waitForContainerExit(
+          serverId,
+          preContainer.id,
+          preTimeout,
+        );
         if (exitCode !== 0) {
-          throw new BadRequestException(`Pre-deploy command failed with exit code ${String(exitCode)}: ${preCmd}`);
+          throw new BadRequestException(
+            `Pre-deploy command failed with exit code ${String(exitCode)}: ${preCmd}`,
+          );
         }
         commandLogs += `[PRE-DEPLOY] Completed successfully.\n`;
-        this.emitGatewayLog(deployment.id, `[PRE-DEPLOY] Completed successfully.`, 'info');
+        this.emitGatewayLog(
+          deployment.id,
+          `[PRE-DEPLOY] Completed successfully.`,
+          'info',
+        );
       }
 
       // ── Ensure per-project Docker network exists ────────────────────────
@@ -242,23 +355,33 @@ export class DockerDeployExecutorService {
         Image: imageRef,
         name: containerName,
         Env: envVars,
-        ExposedPorts: deployment.service?.type !== 'WORKER' && deployment.service?.type !== 'CRON'
-          ? { [`${servicePort}/tcp`]: {} }
-          : undefined,
+        ExposedPorts:
+          deployment.service?.type !== 'WORKER' &&
+          deployment.service?.type !== 'CRON'
+            ? { [`${servicePort}/tcp`]: {} }
+            : undefined,
         StopTimeout: stopTimeout,
         HostConfig: {
-          PortBindings: deployment.service?.type !== 'WORKER' && deployment.service?.type !== 'CRON'
-            ? { [`${servicePort}/tcp`]: [{ HostPort: String(publishPort) }] }
-            : {},
-          RestartPolicy: { Name: deployment.service?.type === 'CRON' ? 'no' : 'unless-stopped' },
+          PortBindings:
+            deployment.service?.type !== 'WORKER' &&
+            deployment.service?.type !== 'CRON'
+              ? { [`${servicePort}/tcp`]: [{ HostPort: String(publishPort) }] }
+              : {},
+          RestartPolicy: {
+            Name: deployment.service?.type === 'CRON' ? 'no' : 'unless-stopped',
+          },
           AutoRemove: false,
           Binds: [
-            ...(dbVolumeName && dbVolumePath ? [`${dbVolumeName}:${dbVolumePath}`] : []),
+            ...(dbVolumeName && dbVolumePath
+              ? [`${dbVolumeName}:${dbVolumePath}`]
+              : []),
             ...appBinds,
           ],
           NetworkMode: projectNetwork,
         },
-        Cmd: deployment.service?.startCommand ? ['sh', '-c', deployment.service.startCommand] : undefined,
+        Cmd: deployment.service?.startCommand
+          ? ['sh', '-c', deployment.service.startCommand]
+          : undefined,
       });
       commandLogs += `Conteneur créé : ${container.id.slice(0, 12)}\n`;
 
@@ -282,27 +405,37 @@ export class DockerDeployExecutorService {
       commandLogs += 'Enregistrement du conteneur en base de données\n';
 
       try {
-        const healthLogs = await this.healthcheckService.runPostDeployHealthChecks({
-          deploymentId: deployment.id,
-          environmentDomain: null,
-          serviceDomain: null,
-          serverHost: server.host,
-          serverId,
-          appPort: publishPort,
-          healthcheckPath: deployment.service?.healthcheckPath ?? null,
-        });
+        const healthLogs =
+          await this.healthcheckService.runPostDeployHealthChecks({
+            deploymentId: deployment.id,
+            environmentDomain: null,
+            serviceDomain: null,
+            serverHost: server.host,
+            serverId,
+            appPort: publishPort,
+            healthcheckPath: deployment.service?.healthcheckPath ?? null,
+          });
         commandLogs += `${healthLogs}\n`;
       } catch (healthError) {
         // Health-check failed → stop the broken container so it does not linger
         // in RUNNING, then rethrow so the outer catch marks the deploy FAILED.
-        this.emitGatewayLog(deployment.id, 'Health-check échoué : arrêt du conteneur défaillant.', 'error');
-        await this.docker.stopContainer(serverId, container.id).catch((stopErr: unknown) => {
-          this.logger.warn(
-            `Could not stop unhealthy container ${container.id}: ${stopErr instanceof Error ? stopErr.message : 'unknown'}`,
-          );
-        });
+        this.emitGatewayLog(
+          deployment.id,
+          'Health-check échoué : arrêt du conteneur défaillant.',
+          'error',
+        );
+        await this.docker
+          .stopContainer(serverId, container.id)
+          .catch((stopErr: unknown) => {
+            this.logger.warn(
+              `Could not stop unhealthy container ${container.id}: ${stopErr instanceof Error ? stopErr.message : 'unknown'}`,
+            );
+          });
         await this.prisma.container
-          .updateMany({ where: { dockerId: container.id }, data: { status: ContainerStatus.EXITED } })
+          .updateMany({
+            where: { dockerId: container.id },
+            data: { status: ContainerStatus.EXITED },
+          })
           .catch(() => undefined);
         throw healthError;
       }
@@ -312,7 +445,10 @@ export class DockerDeployExecutorService {
       // (provider fichier). Opt-in par la présence d'un Domain → aucun impact
       // sur les déploiements sans domaine.
       const traefikServiceEnvId = deployment.serviceEnv?.id;
-      if (traefikServiceEnvId && deployment.service?.type !== ServiceType.DATABASE) {
+      if (
+        traefikServiceEnvId &&
+        deployment.service?.type !== ServiceType.DATABASE
+      ) {
         const domainRow = await this.prisma.domain.findFirst({
           where: { serviceEnvId: traefikServiceEnvId },
           orderBy: { createdAt: 'desc' },
@@ -332,8 +468,13 @@ export class DockerDeployExecutorService {
           } catch (proxyError) {
             // Non bloquant : l'app tourne déjà (port hôte), seul le routage
             // domaine a échoué → on le signale sans faire échouer le déploiement.
-            const msg = proxyError instanceof Error ? proxyError.message : 'unknown';
-            this.emitGatewayLog(deployment.id, `[TRAEFIK] Route non configurée: ${msg}`, 'error');
+            const msg =
+              proxyError instanceof Error ? proxyError.message : 'unknown';
+            this.emitGatewayLog(
+              deployment.id,
+              `[TRAEFIK] Route non configurée: ${msg}`,
+              'error',
+            );
             commandLogs += `[TRAEFIK] Route non configurée: ${msg}\n`;
           }
         }
@@ -364,12 +505,20 @@ export class DockerDeployExecutorService {
         },
       });
 
-      this.gateway.emitStatus({ deploymentId: finished.id, status: finished.status });
-      this.gateway.emitFinished({ deploymentId: finished.id, status: finished.status, finishedAt: finished.finishedAt });
+      this.gateway.emitStatus({
+        deploymentId: finished.id,
+        status: finished.status,
+      });
+      this.gateway.emitFinished({
+        deploymentId: finished.id,
+        status: finished.status,
+        finishedAt: finished.finishedAt,
+      });
 
       return finished;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Échec du déploiement Docker';
+      const message =
+        error instanceof Error ? error.message : 'Échec du déploiement Docker';
 
       const failed = await this.prisma.deployment.update({
         where: { id: deployment.id },
@@ -381,8 +530,15 @@ export class DockerDeployExecutorService {
         },
       });
 
-      this.gateway.emitStatus({ deploymentId: failed.id, status: failed.status });
-      this.gateway.emitFinished({ deploymentId: failed.id, status: failed.status, finishedAt: failed.finishedAt });
+      this.gateway.emitStatus({
+        deploymentId: failed.id,
+        status: failed.status,
+      });
+      this.gateway.emitFinished({
+        deploymentId: failed.id,
+        status: failed.status,
+        finishedAt: failed.finishedAt,
+      });
 
       if (error instanceof BadRequestException) throw error;
       throw new BadRequestException('Déploiement Docker échoué');
@@ -395,14 +551,21 @@ export class DockerDeployExecutorService {
       select: { resolvedRefs: true },
     });
     if (!deployment) throw new BadRequestException('Déploiement non trouvé');
-    const refs = deployment.resolvedRefs as { serverId?: string; containerName?: string } | null;
+    const refs = deployment.resolvedRefs as {
+      serverId?: string;
+      containerName?: string;
+    } | null;
     if (!refs?.serverId) throw new BadRequestException('Aucun serveur cible');
     const serverId = refs.serverId;
     const containers = await this.docker.listContainers(serverId, true);
     for (const c of containers) {
       if (refs.containerName && c.Names?.includes(`/${refs.containerName}`)) {
         const logs: string[] = [];
-        for await (const chunk of this.docker.streamContainerLogs(serverId, c.Id, { follow: false, tail })) {
+        for await (const chunk of this.docker.streamContainerLogs(
+          serverId,
+          c.Id,
+          { follow: false, tail },
+        )) {
           logs.push(chunk.line);
         }
         return logs.join('\n');
@@ -438,27 +601,45 @@ export class DockerDeployExecutorService {
   ): Promise<string> {
     const svc = deployment.service;
     if (!svc?.repoPath) {
-      throw new BadRequestException('Local build requires service.repoPath to be set');
+      throw new BadRequestException(
+        'Local build requires service.repoPath to be set',
+      );
     }
 
-    const buildPack = (svc.buildPack ?? deployment.build?.buildPack ?? 'DOCKERFILE').toString().toUpperCase();
+    const buildPack = (
+      svc.buildPack ??
+      deployment.build?.buildPack ??
+      'DOCKERFILE'
+    )
+      .toString()
+      .toUpperCase();
     const providerUrl = svc.provider?.providerUrl ?? '';
     const token = svc.provider?.adminToken
       ? this.crypto.decrypt(svc.provider.adminToken)
       : '';
     const repoPath = normalizeRepoPath(svc.repoPath);
     // Build a HTTPS clone URL with embedded token for authenticated access.
-    const cloneUrl = token && providerUrl
-      ? `${providerUrl.replace(/\/$/, '')}/${repoPath}.git`.replace('https://', `https://oauth2:${token}@`)
-      : `${providerUrl.replace(/\/$/, '')}/${repoPath}.git`;
+    const cloneUrl =
+      token && providerUrl
+        ? `${providerUrl.replace(/\/$/, '')}/${repoPath}.git`.replace(
+            'https://',
+            `https://oauth2:${token}@`,
+          )
+        : `${providerUrl.replace(/\/$/, '')}/${repoPath}.git`;
     const branch = deployment.branch || 'main';
     const rootDir = svc.rootDir?.replace(/^\//, '') ?? '.';
     const workDir = `/tmp/build-${deployment.id.slice(0, 8)}`;
 
     let logs = '';
-    this.emitGatewayLog(deployment.id, `[LOCAL BUILD] Cloning ${repoPath} branch ${branch}...`, 'info');
+    this.emitGatewayLog(
+      deployment.id,
+      `[LOCAL BUILD] Cloning ${repoPath} branch ${branch}...`,
+      'info',
+    );
 
-    const pinnedHost = await this.serverHostKeys.resolveForConnection(server, { allowTrustOnFirstUse: false });
+    const pinnedHost = await this.serverHostKeys.resolveForConnection(server, {
+      allowTrustOnFirstUse: false,
+    });
     const conn = await this.ssh.connect({
       host: server.host,
       port: server.port,
@@ -471,7 +652,8 @@ export class DockerDeployExecutorService {
       const q = (s: string) => `'${s.replace(/'/g, "'\\''")}'`;
 
       // Clone
-      await this.ssh.execOrThrow(conn,
+      await this.ssh.execOrThrow(
+        conn,
         `rm -rf ${q(workDir)} && git clone --depth 1 -b ${q(branch)} ${q(cloneUrl)} ${q(workDir)}`,
         'Git clone failed',
       );
@@ -482,7 +664,8 @@ export class DockerDeployExecutorService {
 
       if (buildPack === 'NIXPACKS') {
         // nixpacks must be installed on the server
-        await this.ssh.execOrThrow(conn,
+        await this.ssh.execOrThrow(
+          conn,
           `cd ${q(buildCtx)} && nixpacks build . --name ${q(imageTag)}`,
           'Nixpacks build failed',
         );
@@ -490,32 +673,44 @@ export class DockerDeployExecutorService {
       } else if (buildPack === 'STATIC') {
         // Wrap static files in an nginx container
         const nginxConf = `server { listen 80; root /usr/share/nginx/html; index index.html; try_files $uri $uri/ /index.html; }`;
-        await this.ssh.execOrThrow(conn,
+        await this.ssh.execOrThrow(
+          conn,
           `cd ${q(buildCtx)} && printf 'FROM nginx:alpine\\nCOPY . /usr/share/nginx/html\\n' > Dockerfile.static && ` +
-          `printf '%s' ${q(nginxConf)} > nginx.conf.tmp && ` +
-          `docker build -f Dockerfile.static -t ${q(imageTag)} .`,
+            `printf '%s' ${q(nginxConf)} > nginx.conf.tmp && ` +
+            `docker build -f Dockerfile.static -t ${q(imageTag)} .`,
           'Static build failed',
         );
         logs += `[LOCAL BUILD] Static site packaged → ${imageTag}\n`;
       } else {
         // Default: DOCKERFILE
-        const dockerfilePath = svc.dockerfile ? 'Dockerfile.custom' : 'Dockerfile';
+        const dockerfilePath = svc.dockerfile
+          ? 'Dockerfile.custom'
+          : 'Dockerfile';
         if (svc.dockerfile) {
-          await this.ssh.execOrThrow(conn,
+          await this.ssh.execOrThrow(
+            conn,
             `printf '%s' ${q(svc.dockerfile)} > ${q(`${buildCtx}/Dockerfile.custom`)}`,
             'Failed to write custom Dockerfile',
           );
         }
-        await this.ssh.execOrThrow(conn,
+        await this.ssh.execOrThrow(
+          conn,
           `cd ${q(buildCtx)} && docker build -f ${q(dockerfilePath)} -t ${q(imageTag)} .`,
           'Docker build failed',
         );
         logs += `[LOCAL BUILD] Docker build OK → ${imageTag}\n`;
       }
-      this.emitGatewayLog(deployment.id, `[LOCAL BUILD] Image built: ${imageTag}`, 'info');
+      this.emitGatewayLog(
+        deployment.id,
+        `[LOCAL BUILD] Image built: ${imageTag}`,
+        'info',
+      );
     } finally {
       // Cleanup workspace (best-effort)
-      await this.ssh.exec(conn, `rm -rf ${`'${workDir.replace(/'/g, "'\\''")}'`}`);
+      await this.ssh.exec(
+        conn,
+        `rm -rf ${`'${workDir.replace(/'/g, "'\\''")}'`}`,
+      );
       await conn.dispose();
     }
     return logs;
@@ -561,7 +756,9 @@ export class DockerDeployExecutorService {
     ].join('\n');
     const b64 = Buffer.from(yaml, 'utf8').toString('base64');
 
-    const pinnedHost = await this.serverHostKeys.resolveForConnection(server, { allowTrustOnFirstUse: false });
+    const pinnedHost = await this.serverHostKeys.resolveForConnection(server, {
+      allowTrustOnFirstUse: false,
+    });
     const conn = await this.ssh.connect({
       host: server.host,
       port: server.port,
@@ -578,7 +775,11 @@ export class DockerDeployExecutorService {
     } finally {
       await conn.dispose();
     }
-    this.emitGatewayLog(deploymentId, `[TRAEFIK] Route ${domain} → ${containerName}:${String(servicePort)}`, 'info');
+    this.emitGatewayLog(
+      deploymentId,
+      `[TRAEFIK] Route ${domain} → ${containerName}:${String(servicePort)}`,
+      'info',
+    );
     return `[TRAEFIK] Route HTTPS configurée : https://${domain}\n`;
   }
 
@@ -586,7 +787,11 @@ export class DockerDeployExecutorService {
    * Poll Docker inspect until the given container has exited, then return the
    * exit code. Times out after `timeoutSec` seconds and returns -1.
    */
-  private async waitForContainerExit(serverId: string, containerId: string, timeoutSec: number): Promise<number> {
+  private async waitForContainerExit(
+    serverId: string,
+    containerId: string,
+    timeoutSec: number,
+  ): Promise<number> {
     const deadline = Date.now() + timeoutSec * 1000;
     while (Date.now() < deadline) {
       try {
@@ -602,8 +807,15 @@ export class DockerDeployExecutorService {
     return -1;
   }
 
-  emitGatewayLog(deploymentId: string, rawMessage: string, fallbackLevel: 'info' | 'error'): void {
-    const lines = rawMessage.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+  emitGatewayLog(
+    deploymentId: string,
+    rawMessage: string,
+    fallbackLevel: 'info' | 'error',
+  ): void {
+    const lines = rawMessage
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
     for (const line of lines) {
       this.gateway.emitLog({
         deploymentId,
@@ -614,7 +826,10 @@ export class DockerDeployExecutorService {
     }
   }
 
-  private inferLogLevel(message: string, fallbackLevel: 'info' | 'error'): DeploymentLogLevel {
+  private inferLogLevel(
+    message: string,
+    fallbackLevel: 'info' | 'error',
+  ): DeploymentLogLevel {
     if (/error|fail|fatal|exception/i.test(message)) return 'error';
     if (/success|ok|done|completed|ready/i.test(message)) return 'success';
     return fallbackLevel;
@@ -635,7 +850,8 @@ export class DockerDeployExecutorService {
     } | null;
     environment?: { env?: string | null; secretsEnv?: string | null } | null;
   }): EnvLevel[] {
-    const envLevel = deployment.serviceEnv?.environment ?? deployment.environment ?? null;
+    const envLevel =
+      deployment.serviceEnv?.environment ?? deployment.environment ?? null;
     // secretsEnv is encrypted at rest — decrypt before the resolver parses it
     // (decryptSafe passes through legacy plaintext / null unchanged).
     return [
@@ -677,7 +893,11 @@ export class DockerDeployExecutorService {
         type: 'EnvWarning',
         status: 'True',
         reason: 'EnvUnresolved',
-        message: `Variables d'environnement non résolues: ${envWarnings.join('; ')}`.slice(0, 1000),
+        message:
+          `Variables d'environnement non résolues: ${envWarnings.join('; ')}`.slice(
+            0,
+            1000,
+          ),
         lastTransitionAt: now,
       });
     }
@@ -685,7 +905,17 @@ export class DockerDeployExecutorService {
   }
 
   private async resolveImageRef(
-    deployment: { build?: { isLocalBuild?: boolean | null; imageSha?: string | null; buildPack?: string | null } | null; dockerImage?: string | null; service?: { id?: string | null; name?: string | null } | null; project: { id: string; name: string }; branch: string },
+    deployment: {
+      build?: {
+        isLocalBuild?: boolean | null;
+        imageSha?: string | null;
+        buildPack?: string | null;
+      } | null;
+      dockerImage?: string | null;
+      service?: { id?: string | null; name?: string | null } | null;
+      project: { id: string; name: string };
+      branch: string;
+    },
     overrideImage?: string,
     _serverId?: string,
   ): Promise<string> {
@@ -695,8 +925,11 @@ export class DockerDeployExecutorService {
     // Local builds produce an image tagged only on the server — no registry.
     if (deployment.build?.isLocalBuild) {
       const safeName = (deployment.service?.name ?? deployment.project.name)
-        .toLowerCase().replace(/[^a-z0-9_-]/g, '-');
-      const safeProject = deployment.project.name.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '-');
+      const safeProject = deployment.project.name
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '-');
       return `local/${safeProject}-${safeName}:${deployment.branch || 'latest'}`;
     }
 
@@ -706,7 +939,10 @@ export class DockerDeployExecutorService {
     return `platform/${deployment.project.id}:${deployment.branch || 'latest'}`;
   }
 
-  private async resolveImageDigest(serverId: string, imageRef: string): Promise<string | null> {
+  private async resolveImageDigest(
+    serverId: string,
+    imageRef: string,
+  ): Promise<string | null> {
     try {
       const info = await this.docker.inspectImage(serverId, imageRef);
       const digest = info?.RepoDigests?.[0];
@@ -738,7 +974,8 @@ export class DockerDeployExecutorService {
     greenDockerId: string,
     publishPort: number,
   ): Promise<string> {
-    if (!serviceEnvId) return '[BLUE-GREEN] Pas de service-env, cut-over ignoré\n';
+    if (!serviceEnvId)
+      return '[BLUE-GREEN] Pas de service-env, cut-over ignoré\n';
 
     let logs = '';
     // 1. Repoint the proxy rule(s) to the green port.
@@ -755,7 +992,11 @@ export class DockerDeployExecutorService {
 
     // 3. Retire the old blue container(s).
     const blues = await this.prisma.container.findMany({
-      where: { serviceEnvId, status: ContainerStatus.RUNNING, dockerId: { not: greenDockerId } },
+      where: {
+        serviceEnvId,
+        status: ContainerStatus.RUNNING,
+        dockerId: { not: greenDockerId },
+      },
       select: { id: true, dockerId: true, name: true },
     });
     for (const blue of blues) {
@@ -781,13 +1022,21 @@ export class DockerDeployExecutorService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private getDatabaseContainerConfig(databaseType: ManagedServiceType): { port: number; dataPath: string } {
+  private getDatabaseContainerConfig(databaseType: ManagedServiceType): {
+    port: number;
+    dataPath: string;
+  } {
     switch (databaseType) {
-      case 'POSTGRES': return { port: 5432, dataPath: '/var/lib/postgresql/data' };
-      case 'MYSQL':    return { port: 3306, dataPath: '/var/lib/mysql' };
-      case 'REDIS':    return { port: 6379, dataPath: '/data' };
-      case 'MONGODB':  return { port: 27017, dataPath: '/data/db' };
-      case 'RABBITMQ': return { port: 5672, dataPath: '/var/lib/rabbitmq' };
+      case 'POSTGRES':
+        return { port: 5432, dataPath: '/var/lib/postgresql/data' };
+      case 'MYSQL':
+        return { port: 3306, dataPath: '/var/lib/mysql' };
+      case 'REDIS':
+        return { port: 6379, dataPath: '/data' };
+      case 'MONGODB':
+        return { port: 27017, dataPath: '/data/db' };
+      case 'RABBITMQ':
+        return { port: 5672, dataPath: '/var/lib/rabbitmq' };
     }
   }
 
@@ -799,8 +1048,16 @@ export class DockerDeployExecutorService {
     let creds: Record<string, string | undefined> = {};
     if (rawCredentials) {
       if (typeof rawCredentials === 'string') {
-        try { creds = JSON.parse(rawCredentials); } catch { /* ignore */ }
-      } else if (typeof rawCredentials === 'object' && rawCredentials !== null && !Array.isArray(rawCredentials)) {
+        try {
+          creds = JSON.parse(rawCredentials);
+        } catch {
+          /* ignore */
+        }
+      } else if (
+        typeof rawCredentials === 'object' &&
+        rawCredentials !== null &&
+        !Array.isArray(rawCredentials)
+      ) {
         creds = rawCredentials as unknown as Record<string, string | undefined>;
       }
     }

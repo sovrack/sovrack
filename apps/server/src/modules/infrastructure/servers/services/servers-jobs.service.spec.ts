@@ -144,7 +144,10 @@ describe('ServersJobsService', () => {
     it('acquires the advisory lock and creates a job when none is active', async () => {
       const { service, tx } = createService();
       tx.serverJob.findFirst.mockResolvedValue(null);
-      tx.serverJob.create.mockResolvedValue({ id: 'job-new', serverId: 'srv-1' });
+      tx.serverJob.create.mockResolvedValue({
+        id: 'job-new',
+        serverId: 'srv-1',
+      });
 
       const job = await service.createJobAtomic('srv-1', ServerJobType.VERIFY);
 
@@ -162,7 +165,9 @@ describe('ServersJobsService', () => {
 
     it('rejects with ConflictException when an active job already exists', async () => {
       const { service, tx } = createService();
-      tx.serverJob.findFirst.mockResolvedValue({ type: ServerJobType.PREPARE_SERVER });
+      tx.serverJob.findFirst.mockResolvedValue({
+        type: ServerJobType.PREPARE_SERVER,
+      });
 
       await expect(
         service.createJobAtomic('srv-1', ServerJobType.VERIFY),

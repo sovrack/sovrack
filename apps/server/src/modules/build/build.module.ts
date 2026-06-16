@@ -19,7 +19,14 @@ import { NixpacksModule } from './engines/nixpacks/nixpacks.module';
 import { BuildStrategyResolver } from './strategies/build-strategy.resolver';
 
 @Module({
-  imports: [PrismaModule, HttpModule, CryptoModule, SourceProvidersModule, PlatformModule, NixpacksModule],
+  imports: [
+    PrismaModule,
+    HttpModule,
+    CryptoModule,
+    SourceProvidersModule,
+    PlatformModule,
+    NixpacksModule,
+  ],
   controllers: [BuildController],
   providers: [
     BuildOrchestratorService,

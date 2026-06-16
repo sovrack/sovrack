@@ -51,7 +51,9 @@ export class NotificationsService {
   ) {}
 
   private async getConfig(key: string): Promise<string | null> {
-    const record = await this.prisma.platformConfig.findUnique({ where: { key } });
+    const record = await this.prisma.platformConfig.findUnique({
+      where: { key },
+    });
     if (!record) return null;
     if (record.isSecret) {
       try {
@@ -63,7 +65,9 @@ export class NotificationsService {
     return record.value;
   }
 
-  async notifyDeploymentFinished(payload: DeploymentNotificationPayload): Promise<void> {
+  async notifyDeploymentFinished(
+    payload: DeploymentNotificationPayload,
+  ): Promise<void> {
     const [notifySuccess, notifyFailure] = await Promise.all([
       this.getConfig(NOTIFY_ON_SUCCESS_KEY),
       this.getConfig(NOTIFY_ON_FAILURE_KEY),
@@ -73,7 +77,11 @@ export class NotificationsService {
     const shouldNotifyFailure = notifyFailure !== 'false';
 
     if (payload.status === 'SUCCESS' && !shouldNotifySuccess) return;
-    if ((payload.status === 'FAILED' || payload.status === 'CANCELED') && !shouldNotifyFailure) return;
+    if (
+      (payload.status === 'FAILED' || payload.status === 'CANCELED') &&
+      !shouldNotifyFailure
+    )
+      return;
 
     await Promise.allSettled([
       this.sendSlackNotification(payload),
@@ -156,7 +164,9 @@ export class NotificationsService {
     try {
       const webhookUrl = await this.getConfig(SLACK_WEBHOOK_KEY);
       if (!webhookUrl) return;
-      await firstValueFrom(this.httpService.post(webhookUrl, { text }, { timeout: 8000 }));
+      await firstValueFrom(
+        this.httpService.post(webhookUrl, { text }, { timeout: 8000 }),
+      );
     } catch (error: unknown) {
       this.logger.warn(
         `Slack alert failed: ${error instanceof Error ? error.message : 'unknown error'}`,
@@ -165,7 +175,11 @@ export class NotificationsService {
   }
 
   /** Minimal email for non-deployment alerts; no-op when SMTP is not configured. */
-  private async sendSimpleEmail(subject: string, text: string, projectName: string): Promise<void> {
+  private async sendSimpleEmail(
+    subject: string,
+    text: string,
+    projectName: string,
+  ): Promise<void> {
     try {
       const [host, port, user, pass, from, to] = await Promise.all([
         this.getConfig(SMTP_HOST_KEY),
@@ -195,26 +209,42 @@ export class NotificationsService {
     }
   }
 
-  private async sendSlackNotification(payload: DeploymentNotificationPayload): Promise<void> {
+  private async sendSlackNotification(
+    payload: DeploymentNotificationPayload,
+  ): Promise<void> {
     try {
       const webhookUrl = await this.getConfig(SLACK_WEBHOOK_KEY);
       if (!webhookUrl) return;
 
-      const emoji = payload.status === 'SUCCESS' ? '✅' : payload.status === 'FAILED' ? '❌' : '⛔';
+      const emoji =
+        payload.status === 'SUCCESS'
+          ? '✅'
+          : payload.status === 'FAILED'
+            ? '❌'
+            : '⛔';
       const color = payload.status === 'SUCCESS' ? '#36a64f' : '#dc2626';
 
       const blocks = [
         {
           type: 'section',
-          text: { type: 'mrkdwn', text: `${emoji} *Déploiement ${payload.status}*` },
+          text: {
+            type: 'mrkdwn',
+            text: `${emoji} *Déploiement ${payload.status}*`,
+          },
         },
         {
           type: 'section',
           fields: [
             { type: 'mrkdwn', text: `*Projet:*\n${payload.projectName}` },
-            { type: 'mrkdwn', text: `*Environnement:*\n${payload.environmentName}` },
+            {
+              type: 'mrkdwn',
+              text: `*Environnement:*\n${payload.environmentName}`,
+            },
             { type: 'mrkdwn', text: `*Branche:*\n${payload.branch}` },
-            { type: 'mrkdwn', text: `*Déclenché par:*\n${payload.triggeredBy}` },
+            {
+              type: 'mrkdwn',
+              text: `*Déclenché par:*\n${payload.triggeredBy}`,
+            },
           ],
         },
       ];
@@ -222,20 +252,33 @@ export class NotificationsService {
       if (payload.pipelineUrl) {
         blocks.push({
           type: 'section',
-          text: { type: 'mrkdwn', text: `<${payload.pipelineUrl}|Voir le pipeline GitLab>` },
-        } as typeof blocks[0]);
+          text: {
+            type: 'mrkdwn',
+            text: `<${payload.pipelineUrl}|Voir le pipeline GitLab>`,
+          },
+        } as (typeof blocks)[0]);
       }
 
       await firstValueFrom(
-        this.httpService.post(webhookUrl, { attachments: [{ color, blocks }] }, { timeout: 8000 }),
+        this.httpService.post(
+          webhookUrl,
+          { attachments: [{ color, blocks }] },
+          { timeout: 8000 },
+        ),
       );
-      this.logger.log(`Slack notification sent for ${payload.deploymentId} (${payload.status})`);
+      this.logger.log(
+        `Slack notification sent for ${payload.deploymentId} (${payload.status})`,
+      );
     } catch (err) {
-      this.logger.warn(`Slack notification failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `Slack notification failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
-  private async sendEmailNotification(payload: DeploymentNotificationPayload): Promise<void> {
+  private async sendEmailNotification(
+    payload: DeploymentNotificationPayload,
+  ): Promise<void> {
     try {
       const [host, portStr, user, pass, from, to] = await Promise.all([
         this.getConfig(SMTP_HOST_KEY),
@@ -256,7 +299,12 @@ export class NotificationsService {
         auth: { user, pass },
       });
 
-      const emoji = payload.status === 'SUCCESS' ? '✅' : payload.status === 'FAILED' ? '❌' : '⛔';
+      const emoji =
+        payload.status === 'SUCCESS'
+          ? '✅'
+          : payload.status === 'FAILED'
+            ? '❌'
+            : '⛔';
       const subject = `${emoji} Déploiement ${payload.status} — ${payload.projectName}`;
 
       const html = `
@@ -271,9 +319,13 @@ export class NotificationsService {
       `;
 
       await transporter.sendMail({ from: from ?? user, to, subject, html });
-      this.logger.log(`Email notification sent for ${payload.deploymentId} (${payload.status})`);
+      this.logger.log(
+        `Email notification sent for ${payload.deploymentId} (${payload.status})`,
+      );
     } catch (err) {
-      this.logger.warn(`Email notification failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `Email notification failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -288,18 +340,27 @@ export class NotificationsService {
     smtpFrom: string;
     smtpTo: string;
   }> {
-    const [webhookUrl, notifySuccess, notifyFailure, smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, smtpTo] =
-      await Promise.all([
-        this.getConfig(SLACK_WEBHOOK_KEY),
-        this.getConfig(NOTIFY_ON_SUCCESS_KEY),
-        this.getConfig(NOTIFY_ON_FAILURE_KEY),
-        this.getConfig(SMTP_HOST_KEY),
-        this.getConfig(SMTP_PORT_KEY),
-        this.getConfig(SMTP_USER_KEY),
-        this.getConfig(SMTP_PASS_KEY),
-        this.getConfig(SMTP_FROM_KEY),
-        this.getConfig(SMTP_TO_KEY),
-      ]);
+    const [
+      webhookUrl,
+      notifySuccess,
+      notifyFailure,
+      smtpHost,
+      smtpPort,
+      smtpUser,
+      smtpPass,
+      smtpFrom,
+      smtpTo,
+    ] = await Promise.all([
+      this.getConfig(SLACK_WEBHOOK_KEY),
+      this.getConfig(NOTIFY_ON_SUCCESS_KEY),
+      this.getConfig(NOTIFY_ON_FAILURE_KEY),
+      this.getConfig(SMTP_HOST_KEY),
+      this.getConfig(SMTP_PORT_KEY),
+      this.getConfig(SMTP_USER_KEY),
+      this.getConfig(SMTP_PASS_KEY),
+      this.getConfig(SMTP_FROM_KEY),
+      this.getConfig(SMTP_TO_KEY),
+    ]);
 
     return {
       slackWebhookUrl: webhookUrl ?? '',
@@ -333,7 +394,11 @@ export class NotificationsService {
         update: { value: stored, isSecret },
       });
     };
-    const deleteIfEmpty = async (key: string, value: string | undefined, isSecret = false) => {
+    const deleteIfEmpty = async (
+      key: string,
+      value: string | undefined,
+      isSecret = false,
+    ) => {
       if (typeof value === 'string') {
         if (value.trim()) await upsert(key, value.trim(), isSecret);
         else await this.prisma.platformConfig.deleteMany({ where: { key } });
@@ -342,10 +407,16 @@ export class NotificationsService {
 
     await Promise.all([
       deleteIfEmpty(SLACK_WEBHOOK_KEY, settings.slackWebhookUrl, true),
-      ...(typeof settings.notifyOnSuccess === 'boolean' ? [upsert(NOTIFY_ON_SUCCESS_KEY, String(settings.notifyOnSuccess))] : []),
-      ...(typeof settings.notifyOnFailure === 'boolean' ? [upsert(NOTIFY_ON_FAILURE_KEY, String(settings.notifyOnFailure))] : []),
+      ...(typeof settings.notifyOnSuccess === 'boolean'
+        ? [upsert(NOTIFY_ON_SUCCESS_KEY, String(settings.notifyOnSuccess))]
+        : []),
+      ...(typeof settings.notifyOnFailure === 'boolean'
+        ? [upsert(NOTIFY_ON_FAILURE_KEY, String(settings.notifyOnFailure))]
+        : []),
       deleteIfEmpty(SMTP_HOST_KEY, settings.smtpHost),
-      ...(typeof settings.smtpPort === 'number' ? [upsert(SMTP_PORT_KEY, String(settings.smtpPort))] : []),
+      ...(typeof settings.smtpPort === 'number'
+        ? [upsert(SMTP_PORT_KEY, String(settings.smtpPort))]
+        : []),
       deleteIfEmpty(SMTP_USER_KEY, settings.smtpUser),
       deleteIfEmpty(SMTP_PASS_KEY, settings.smtpPass, true),
       deleteIfEmpty(SMTP_FROM_KEY, settings.smtpFrom),
@@ -366,13 +437,16 @@ export class NotificationsService {
       const verb = isDown ? 'INJOIGNABLE' : 'RÉCUPÉRÉ';
       const downPayload = payload as DockerConnectionDownPayload;
       const fields = [
-        { type: 'mrkdwn', text: `*Serveur:*\n${downPayload.serverName ?? downPayload.serverId}` },
+        {
+          type: 'mrkdwn',
+          text: `*Serveur:*\n${downPayload.serverName ?? downPayload.serverId}`,
+        },
         { type: 'mrkdwn', text: `*Endpoint Docker:*\n${payload.endpoint}` },
         ...(isDown
           ? [
               {
                 type: 'mrkdwn',
-                text: `*Erreur:*\n\`\`\`${(downPayload as DockerConnectionDownPayload).lastError.slice(0, 300)}\`\`\``,
+                text: `*Erreur:*\n\`\`\`${downPayload.lastError.slice(0, 300)}\`\`\``,
               },
             ]
           : []),
@@ -383,7 +457,10 @@ export class NotificationsService {
           blocks: [
             {
               type: 'section',
-              text: { type: 'mrkdwn', text: `${emoji} *Connexion Docker ${verb}*` },
+              text: {
+                type: 'mrkdwn',
+                text: `${emoji} *Connexion Docker ${verb}*`,
+              },
             },
             { type: 'section', fields },
           ],
@@ -434,10 +511,15 @@ export class NotificationsService {
         <table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
           <tr><td style="padding:6px 12px;font-weight:bold">Serveur</td><td style="padding:6px 12px">${downPayload.serverName ?? downPayload.serverId}</td></tr>
           <tr><td style="padding:6px 12px;font-weight:bold">Endpoint</td><td style="padding:6px 12px">${payload.endpoint}</td></tr>
-          ${isDown ? `<tr><td style="padding:6px 12px;font-weight:bold">Erreur</td><td style="padding:6px 12px"><code>${(downPayload as DockerConnectionDownPayload).lastError.slice(0, 1000).replace(/</g, '&lt;')}</code></td></tr>` : ''}
+          ${isDown ? `<tr><td style="padding:6px 12px;font-weight:bold">Erreur</td><td style="padding:6px 12px"><code>${downPayload.lastError.slice(0, 1000).replace(/</g, '&lt;')}</code></td></tr>` : ''}
         </table>
       `;
-      await transporter.sendMail({ from: from ?? user, to: smtpTo, subject, html });
+      await transporter.sendMail({
+        from: from ?? user,
+        to: smtpTo,
+        subject,
+        html,
+      });
     } catch (err) {
       this.logger.warn(
         `Docker connection email notification failed: ${

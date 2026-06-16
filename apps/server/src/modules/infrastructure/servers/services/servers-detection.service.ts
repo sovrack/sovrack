@@ -144,7 +144,9 @@ export class ServersDetectionService {
         const isInstalled = result.code === 0;
         installed[tool.key] = isInstalled;
         capabilities[tool.capabilityKey] = String(isInstalled);
-        installedTools.push(this.buildInstalledTool(tool, isInstalled, version || null));
+        installedTools.push(
+          this.buildInstalledTool(tool, isInstalled, version || null),
+        );
       }
 
       const updated = await this.prisma.server.update({
@@ -188,7 +190,14 @@ export class ServersDetectionService {
     const caps = (server?.capabilities as Record<string, string> | null) ?? {};
     const detectedAt = server?.lastDetectedAt ?? null;
     return Object.entries(caps)
-      .map(([key, value]) => ({ id: key, serverId, key, value, source: 'ssh-detection', detectedAt }))
+      .map(([key, value]) => ({
+        id: key,
+        serverId,
+        key,
+        value,
+        source: 'ssh-detection',
+        detectedAt,
+      }))
       .sort((a, b) => a.key.localeCompare(b.key));
   }
 

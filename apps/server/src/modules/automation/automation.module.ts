@@ -8,11 +8,7 @@ import { AutomationService } from './services/automation.service';
 import { AppJwtModule } from '../../core/jwt/jwt.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    InfrastructureModule,
-    AppJwtModule,
-  ],
+  imports: [PrismaModule, InfrastructureModule, AppJwtModule],
   controllers: [AutomationController],
   providers: [AutomationService, AutomationRunnerService, AutomationGateway],
   exports: [AutomationService],

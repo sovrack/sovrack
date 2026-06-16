@@ -70,10 +70,12 @@ describe('DockerApiService', () => {
     service = moduleRef.get(DockerApiService);
     // Seed the internal cache with a mock client — DockerApiService builds a
     // real `Docker` from dockerode which we can't easily mock at construction.
-    (service as unknown as { clientCache: Map<string, unknown> }).clientCache.set(
-      'srv_1:tcp://docker.example.com:2376',
-      { client: mockClient, endpoint: 'tcp://docker.example.com:2376' },
-    );
+    (
+      service as unknown as { clientCache: Map<string, unknown> }
+    ).clientCache.set('srv_1:tcp://docker.example.com:2376', {
+      client: mockClient,
+      endpoint: 'tcp://docker.example.com:2376',
+    });
   });
 
   describe('getClient (cache + TLS material)', () => {
@@ -200,7 +202,10 @@ describe('DockerApiService', () => {
       mockContainer.logs.mockResolvedValue(Readable.from([chunk]));
 
       const lines: string[] = [];
-      for await (const { line } of service.streamContainerLogs('srv_1', 'app')) {
+      for await (const { line } of service.streamContainerLogs(
+        'srv_1',
+        'app',
+      )) {
         lines.push(line);
       }
       expect(lines).toEqual(['ok']);
@@ -223,8 +228,9 @@ describe('DockerApiService', () => {
   describe('invalidateCache (cache eviction)', () => {
     it('drops all cached clients for the given serverId', () => {
       service.invalidateCache('srv_1');
-      const cache = (service as unknown as { clientCache: Map<string, unknown> })
-        .clientCache;
+      const cache = (
+        service as unknown as { clientCache: Map<string, unknown> }
+      ).clientCache;
       expect(cache.has('srv_1:tcp://docker.example.com:2376')).toBe(false);
     });
   });

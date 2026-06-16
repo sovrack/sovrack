@@ -78,7 +78,9 @@ export class EnvironmentsService {
         // Secrets de l'environnement chiffrés au repos (AES-256-GCM), comme
         // ServiceEnvironment.secretsEnv. Déchiffrés au déploiement (decryptSafe).
         secretsEnv:
-          dto.secretsEnv !== undefined ? this.crypto.encrypt(dto.secretsEnv) : undefined,
+          dto.secretsEnv !== undefined
+            ? this.crypto.encrypt(dto.secretsEnv)
+            : undefined,
       },
       include: environmentsInclude,
     });
@@ -171,7 +173,9 @@ export class EnvironmentsService {
     await this.assertCanManageProject(projectId, userId, userRole);
     await this.ensureEnvironmentExists(projectId, envId);
 
-    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    const server = await this.prisma.server.findUnique({
+      where: { id: serverId },
+    });
     if (!server) {
       throw new NotFoundException('Serveur non trouvé');
     }

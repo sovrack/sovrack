@@ -10,11 +10,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
@@ -85,7 +81,10 @@ export class SourceProvidersController {
 
   @Put('gitlab/providers/:id')
   @ApiOperation({ summary: 'Update a GitLab provider' })
-  async updateGitlabProvider(@Param('id') id: string, @Body() dto: UpdateGitlabProviderDto) {
+  async updateGitlabProvider(
+    @Param('id') id: string,
+    @Body() dto: UpdateGitlabProviderDto,
+  ) {
     return this.gitProviders.updateGitlabProvider(id, dto);
   }
 
@@ -110,12 +109,20 @@ export class SourceProvidersController {
 
   @Post('gitlab/providers/:id/oauth/start')
   @ApiOperation({ summary: 'Start GitLab OAuth for a provider' })
-  async startGitlabOAuthForProvider(@Param('id') id: string, @Req() req: Request) {
-    return this.oauth.startGitlabOAuthForProvider(id, this.resolvePublicBaseUrl(req));
+  async startGitlabOAuthForProvider(
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.oauth.startGitlabOAuthForProvider(
+      id,
+      this.resolvePublicBaseUrl(req),
+    );
   }
 
   @Post('test-gitlab')
-  @ApiOperation({ summary: 'Test the global GitLab connection (default provider)' })
+  @ApiOperation({
+    summary: 'Test the global GitLab connection (default provider)',
+  })
   async testGitlab() {
     return this.gitProviders.testGitlab();
   }
@@ -142,7 +149,10 @@ export class SourceProvidersController {
 
   @Put('github/providers/:id')
   @ApiOperation({ summary: 'Update a GitHub provider' })
-  async updateGithubProvider(@Param('id') id: string, @Body() dto: UpdateGithubProviderDto) {
+  async updateGithubProvider(
+    @Param('id') id: string,
+    @Body() dto: UpdateGithubProviderDto,
+  ) {
     return this.gitProviders.updateGithubProvider(id, dto);
   }
 
@@ -187,7 +197,10 @@ export class SourceProvidersController {
 
   @Put('gitea/providers/:id')
   @ApiOperation({ summary: 'Update a Gitea provider' })
-  async updateGiteaProvider(@Param('id') id: string, @Body() dto: UpdateGiteaProviderDto) {
+  async updateGiteaProvider(
+    @Param('id') id: string,
+    @Body() dto: UpdateGiteaProviderDto,
+  ) {
     return this.gitProviders.updateGiteaProvider(id, dto);
   }
 
@@ -207,9 +220,13 @@ export class SourceProvidersController {
   private resolvePublicBaseUrl(req: Request): string {
     const forwardedProto = req.header('x-forwarded-proto');
     const forwardedHost = req.header('x-forwarded-host');
-    const protocol = forwardedProto?.split(',')[0]?.trim() || req.protocol || 'http';
+    const protocol =
+      forwardedProto?.split(',')[0]?.trim() || req.protocol || 'http';
     const host = forwardedHost?.split(',')[0]?.trim() || req.get('host');
-    if (!host) throw new BadRequestException('Host HTTP manquant pour construire callback');
+    if (!host)
+      throw new BadRequestException(
+        'Host HTTP manquant pour construire callback',
+      );
     return `${protocol}://${host}`;
   }
 }

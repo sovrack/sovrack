@@ -25,7 +25,10 @@ type DecryptedDockerTls = {
 @Injectable()
 export class DockerApiService {
   private readonly logger = new Logger(DockerApiService.name);
-  private readonly clientCache = new Map<string, { client: Docker; endpoint: string }>();
+  private readonly clientCache = new Map<
+    string,
+    { client: Docker; endpoint: string }
+  >();
 
   constructor(private readonly dockerConnections: DockerConnectionsService) {}
 
@@ -38,11 +41,16 @@ export class DockerApiService {
     const tls = await this.dockerConnections.getDecryptedTls(serverId);
     const client = this.buildClient(conn.endpoint, tls);
     this.clientCache.set(cacheKey, { client, endpoint: conn.endpoint });
-    this.logger.log(`Docker client initialized for server ${serverId} at ${conn.endpoint}`);
+    this.logger.log(
+      `Docker client initialized for server ${serverId} at ${conn.endpoint}`,
+    );
     return client;
   }
 
-  async inspectImage(serverId: string, imageRef: string): Promise<Docker.ImageInspectInfo | null> {
+  async inspectImage(
+    serverId: string,
+    imageRef: string,
+  ): Promise<Docker.ImageInspectInfo | null> {
     const client = await this.getClient(serverId);
     try {
       return await client.getImage(imageRef).inspect();
@@ -52,7 +60,10 @@ export class DockerApiService {
     }
   }
 
-  async inspectContainer(serverId: string, containerName: string): Promise<Docker.ContainerInspectInfo> {
+  async inspectContainer(
+    serverId: string,
+    containerName: string,
+  ): Promise<Docker.ContainerInspectInfo> {
     const client = await this.getClient(serverId);
     return client.getContainer(containerName).inspect();
   }
@@ -66,21 +77,38 @@ export class DockerApiService {
     const container = client.getContainer(containerName);
     const follow = options.follow ?? true;
     const stream = (await (follow
-      ? container.logs({ follow: true, stdout: true, stderr: true, tail: options.tail ?? 100, ...(options.since !== undefined ? { since: options.since } : {}) })
-      : container.logs({ follow: false, stdout: true, stderr: true, tail: options.tail ?? 100, ...(options.since !== undefined ? { since: options.since } : {}) })
-    )) as unknown as AsyncIterable<Buffer>;
+      ? container.logs({
+          follow: true,
+          stdout: true,
+          stderr: true,
+          tail: options.tail ?? 100,
+          ...(options.since !== undefined ? { since: options.since } : {}),
+        })
+      : container.logs({
+          follow: false,
+          stdout: true,
+          stderr: true,
+          tail: options.tail ?? 100,
+          ...(options.since !== undefined ? { since: options.since } : {}),
+        }))) as unknown as AsyncIterable<Buffer>;
 
     for await (const chunk of stream) {
       yield* parseDockerStreamChunk(chunk);
     }
   }
 
-  async getContainerStats(serverId: string, containerName: string): Promise<unknown> {
+  async getContainerStats(
+    serverId: string,
+    containerName: string,
+  ): Promise<unknown> {
     const client = await this.getClient(serverId);
     return client.getContainer(containerName).stats({ stream: false });
   }
 
-  async listContainers(serverId: string, all = false): Promise<Docker.ContainerInfo[]> {
+  async listContainers(
+    serverId: string,
+    all = false,
+  ): Promise<Docker.ContainerInfo[]> {
     const client = await this.getClient(serverId);
     return client.listContainers({ all });
   }
@@ -91,7 +119,9 @@ export class DockerApiService {
   ): Promise<Docker.Container> {
     const client = await this.getClient(serverId);
     const container = await client.createContainer(spec);
-    this.logger.log(`Container created: ${spec.Image} → ${container.id.slice(0, 12)}`);
+    this.logger.log(
+      `Container created: ${spec.Image} → ${container.id.slice(0, 12)}`,
+    );
     return container;
   }
 
@@ -115,23 +145,39 @@ export class DockerApiService {
       await client.getNetwork(network).connect({ Container: containerName });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      if (!/already exists|already in (the )?network|endpoint with name/i.test(msg)) {
+      if (
+        !/already exists|already in (the )?network|endpoint with name/i.test(
+          msg,
+        )
+      ) {
         throw error;
       }
     }
   }
 
-  async stopContainer(serverId: string, containerName: string, timeoutSec = 10): Promise<void> {
+  async stopContainer(
+    serverId: string,
+    containerName: string,
+    timeoutSec = 10,
+  ): Promise<void> {
     const client = await this.getClient(serverId);
     await client.getContainer(containerName).stop({ t: timeoutSec });
   }
 
-  async restartContainer(serverId: string, containerName: string, timeoutSec = 10): Promise<void> {
+  async restartContainer(
+    serverId: string,
+    containerName: string,
+    timeoutSec = 10,
+  ): Promise<void> {
     const client = await this.getClient(serverId);
     await client.getContainer(containerName).restart({ t: timeoutSec });
   }
 
-  async removeContainer(serverId: string, containerName: string, force = false): Promise<void> {
+  async removeContainer(
+    serverId: string,
+    containerName: string,
+    force = false,
+  ): Promise<void> {
     const client = await this.getClient(serverId);
     await client.getContainer(containerName).remove({ force });
   }
@@ -190,12 +236,15 @@ export class DockerApiService {
       dockerfile: typeof context === 'object' ? context.dockerfile : undefined,
     });
     const result = await new Promise<string>((resolve, reject) => {
-      client.modem.followProgress(stream as unknown as NodeJS.ReadableStream, (err, res) => {
-        if (err) return reject(err);
-        const last = Array.isArray(res) ? res[res.length - 1] : res;
-        const imageId = (last?.aux?.ID as string) ?? opts.tag ?? 'unknown';
-        resolve(imageId);
-      });
+      client.modem.followProgress(
+        stream as unknown as NodeJS.ReadableStream,
+        (err, res) => {
+          if (err) return reject(err);
+          const last = Array.isArray(res) ? res[res.length - 1] : res;
+          const imageId = (last?.aux?.ID as string) ?? opts.tag ?? 'unknown';
+          resolve(imageId);
+        },
+      );
     });
     this.logger.log(`Image built: ${result}`);
     return result;
@@ -209,10 +258,13 @@ export class DockerApiService {
     const client = await this.getClient(serverId);
     const stream = await (client as any).pull(imageRef, { authconfig: auth });
     await new Promise<void>((resolve, reject) => {
-      client.modem.followProgress(stream as unknown as NodeJS.ReadableStream, (err) => {
-        if (err) return reject(err);
-        resolve();
-      });
+      client.modem.followProgress(
+        stream as unknown as NodeJS.ReadableStream,
+        (err) => {
+          if (err) return reject(err);
+          resolve();
+        },
+      );
     });
     this.logger.log(`Image pulled: ${imageRef}`);
   }
@@ -237,7 +289,11 @@ export class DockerApiService {
   async createNetwork(serverId: string, name: string): Promise<void> {
     const client = await this.getClient(serverId);
     try {
-      await client.createNetwork({ Name: name, Driver: 'bridge', CheckDuplicate: true });
+      await client.createNetwork({
+        Name: name,
+        Driver: 'bridge',
+        CheckDuplicate: true,
+      });
       this.logger.log(`Network created: ${name}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
@@ -257,12 +313,16 @@ export class DockerApiService {
     }
   }
 
-  private buildClient(endpoint: string, tls: DecryptedDockerTls | null): Docker {
+  private buildClient(
+    endpoint: string,
+    tls: DecryptedDockerTls | null,
+  ): Docker {
     const url = new URL(endpoint);
     // TLS material implies HTTPS transport even when the endpoint is written as
     // tcp:// — a Docker daemon on 2376 speaks HTTPS; sending plain HTTP yields
     // "Client sent an HTTP request to an HTTPS server".
-    const useHttps = url.protocol === 'https:' || !!(tls && (tls.ca || tls.cert || tls.key));
+    const useHttps =
+      url.protocol === 'https:' || !!(tls && (tls.ca || tls.cert || tls.key));
     const options: Docker.DockerOptions = {
       host: url.hostname,
       port: Number(url.port || (useHttps ? 2376 : 80)),

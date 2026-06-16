@@ -70,11 +70,7 @@ export class ProjectsController {
     @GetUser() user: JwtPayload,
     @Body() dto: ImportGitlabGroupDto,
   ) {
-    return await this.importService.importGitlabGroup(
-      user.id,
-      user.role,
-      dto,
-    );
+    return await this.importService.importGitlabGroup(user.id, user.role, dto);
   }
 
   @Get()
@@ -92,7 +88,10 @@ export class ProjectsController {
   @ApiOperation({ summary: 'Get the details of a project' })
   @ApiResponse({ status: 200, description: 'Project details fetched' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
-  @ApiResponse({ status: 403, description: 'Unauthorized access to the project' })
+  @ApiResponse({
+    status: 403,
+    description: 'Unauthorized access to the project',
+  })
   @ApiResponse({ status: 404, description: 'Project not found' })
   async findOne(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.projectsService.findOne(id, user.id, user.role);
@@ -144,7 +143,10 @@ export class ProjectsController {
   @ApiOperation({ summary: 'List project members' })
   @ApiResponse({ status: 200, description: 'Liste des membres du projet' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
-  @ApiResponse({ status: 403, description: 'Unauthorized access to the project' })
+  @ApiResponse({
+    status: 403,
+    description: 'Unauthorized access to the project',
+  })
   @ApiResponse({ status: 404, description: 'Project not found' })
   async getMembers(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.membersService.getMembers(id, user.id, user.role);

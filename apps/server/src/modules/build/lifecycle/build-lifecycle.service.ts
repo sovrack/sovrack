@@ -1,5 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Build, BuildPack, BuildStatus, BuildTrigger, Prisma } from '@prisma/client';
+import {
+  Build,
+  BuildPack,
+  BuildStatus,
+  BuildTrigger,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 
 /**
@@ -25,8 +31,6 @@ export class BuildLifecycleService {
   private readonly logger = new Logger(BuildLifecycleService.name);
 
   constructor(private readonly prisma: PrismaService) {}
-
-
 
   /**
    * Create a new Build row.
@@ -74,7 +78,10 @@ export class BuildLifecycleService {
   /**
    * Mark a build as started (used by the GitLab pipeline path).
    */
-  async markStarted(buildId: string, externalPipelineId?: bigint): Promise<Build> {
+  async markStarted(
+    buildId: string,
+    externalPipelineId?: bigint,
+  ): Promise<Build> {
     return this.prisma.build.update({
       where: { id: buildId },
       data: {
@@ -89,7 +96,10 @@ export class BuildLifecycleService {
    * Mark a build as succeeded, optionally with the immutable image digest
    * for rollback pinning.
    */
-  async markSucceeded(buildId: string, imageSha?: string | null): Promise<Build> {
+  async markSucceeded(
+    buildId: string,
+    imageSha?: string | null,
+  ): Promise<Build> {
     return this.prisma.build.update({
       where: { id: buildId },
       data: {

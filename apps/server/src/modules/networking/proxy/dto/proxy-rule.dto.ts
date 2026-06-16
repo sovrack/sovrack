@@ -33,7 +33,10 @@ export class CreateProxyRuleDto {
   @IsBoolean()
   sslEnabled?: boolean;
 
-  @ApiPropertyOptional({ enum: ProxyCertType, default: ProxyCertType.LETS_ENCRYPT })
+  @ApiPropertyOptional({
+    enum: ProxyCertType,
+    default: ProxyCertType.LETS_ENCRYPT,
+  })
   @IsOptional()
   @IsEnum(ProxyCertType)
   certType?: ProxyCertType;

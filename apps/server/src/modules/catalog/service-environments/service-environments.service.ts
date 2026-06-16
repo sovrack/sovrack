@@ -12,7 +12,15 @@ import { UpdateServiceEnvironmentDto } from './dto/update-service-environment.dt
 
 const serviceEnvInclude = {
   service: {
-    select: { id: true, name: true, type: true, port: true, branch: true, replicas: true, env: true },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      port: true,
+      branch: true,
+      replicas: true,
+      env: true,
+    },
   },
   environment: {
     select: { id: true, name: true, env: true },
@@ -61,7 +69,9 @@ export class ServiceEnvironmentsService {
       },
     });
     if (existing && existing.archivedAt === null) {
-      throw new ConflictException('Ce service est déjà lié à cet environnement');
+      throw new ConflictException(
+        'Ce service est déjà lié à cet environnement',
+      );
     }
 
     const overrides = {
@@ -74,7 +84,9 @@ export class ServiceEnvironmentsService {
       env: dto.env,
       // Encrypt secrets at rest; undefined leaves the stored value untouched.
       secretsEnv:
-        dto.secretsEnv !== undefined ? this.crypto.encrypt(dto.secretsEnv) : undefined,
+        dto.secretsEnv !== undefined
+          ? this.crypto.encrypt(dto.secretsEnv)
+          : undefined,
     };
 
     // Link already exists mais archivé → on RÉACTIVE la même ligne (archivedAt
@@ -163,9 +175,13 @@ export class ServiceEnvironmentsService {
       data: {
         ...(dto.branch !== undefined ? { branch: dto.branch } : {}),
         ...(dto.port !== undefined ? { port: dto.port } : {}),
-        ...(dto.startCommand !== undefined ? { startCommand: dto.startCommand } : {}),
+        ...(dto.startCommand !== undefined
+          ? { startCommand: dto.startCommand }
+          : {}),
         ...(dto.replicas !== undefined ? { replicas: dto.replicas } : {}),
-        ...(dto.healthcheckPath !== undefined ? { healthcheckPath: dto.healthcheckPath } : {}),
+        ...(dto.healthcheckPath !== undefined
+          ? { healthcheckPath: dto.healthcheckPath }
+          : {}),
         ...(dto.buildPack !== undefined ? { buildPack: dto.buildPack } : {}),
         ...(dto.env !== undefined ? { env: dto.env } : {}),
         ...(dto.autoDeploy !== undefined ? { autoDeploy: dto.autoDeploy } : {}),
@@ -192,7 +208,9 @@ export class ServiceEnvironmentsService {
 
     // Intégrité réseau : ne pas laisser un domaine public router vers un
     // service archivé — exiger le détachement préalable des domaines.
-    const activeDomains = await this.prisma.domain.count({ where: { serviceEnvId: id } });
+    const activeDomains = await this.prisma.domain.count({
+      where: { serviceEnvId: id },
+    });
     if (activeDomains > 0) {
       throw new ConflictException(
         `Impossible d'archiver : ${activeDomains} domaine(s) pointent encore vers ce service. Détachez-les d'abord.`,
@@ -222,7 +240,9 @@ export class ServiceEnvironmentsService {
     const results: ServiceEnvWithRelations[] = [];
     for (const env of envs) {
       const existing = await this.prisma.serviceEnvironment.findUnique({
-        where: { serviceId_environmentId: { serviceId, environmentId: env.id } },
+        where: {
+          serviceId_environmentId: { serviceId, environmentId: env.id },
+        },
       });
       if (!existing) {
         const link = await this.prisma.serviceEnvironment.create({
@@ -286,7 +306,9 @@ export class ServiceEnvironmentsService {
     });
 
     if (membership?.role !== ProjectRole.OWNER) {
-      throw new ForbiddenException('Action réservée au OWNER du projet ou ADMIN');
+      throw new ForbiddenException(
+        'Action réservée au OWNER du projet ou ADMIN',
+      );
     }
   }
 

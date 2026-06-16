@@ -55,7 +55,11 @@ export class BuildSetupService {
     userId: string,
     userRole: Role,
   ): Promise<{ types: string[] }> {
-    await this.buildService.assertCanConfigureBuild(projectId, userId, userRole);
+    await this.buildService.assertCanConfigureBuild(
+      projectId,
+      userId,
+      userRole,
+    );
     return { types: SUPPORTED_TYPES };
   }
 
@@ -66,7 +70,11 @@ export class BuildSetupService {
     userRole: Role,
     serviceId?: string,
   ): Promise<void> {
-    await this.buildService.assertCanConfigureBuild(projectId, userId, userRole);
+    await this.buildService.assertCanConfigureBuild(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -114,7 +122,11 @@ export class BuildSetupService {
     userId: string,
     userRole: Role,
   ): Promise<{ results: BuildPrepareServiceResult[] }> {
-    await this.buildService.assertCanConfigureBuild(projectId, userId, userRole);
+    await this.buildService.assertCanConfigureBuild(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -186,7 +198,11 @@ export class BuildSetupService {
     userId: string,
     userRole: Role,
   ): Promise<{ results: BuildPrepareServiceResult[] }> {
-    await this.buildService.assertCanConfigureBuild(projectId, userId, userRole);
+    await this.buildService.assertCanConfigureBuild(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -271,7 +287,8 @@ export class BuildSetupService {
     ]);
 
     const tokenConfigured = Boolean(
-      providerRepo?.provider?.adminToken || providerRepo?.provider?.oauthAccessToken,
+      providerRepo?.provider?.adminToken ||
+      providerRepo?.provider?.oauthAccessToken,
     );
     const sourceType = providerRepo ? 'REPO' : null;
 
@@ -376,7 +393,9 @@ export class BuildSetupService {
       });
     }
 
-    logger.log(`docker-compose extrait depuis ${filePath} (${content.length} chars)`);
+    logger.log(
+      `docker-compose extrait depuis ${filePath} (${content.length} chars)`,
+    );
     return { content, filePath };
   }
 
@@ -416,7 +435,7 @@ export class BuildSetupService {
         key: 'BUILDPACK',
         label: 'Buildpacks (pack CLI)',
         description:
-          'Heroku-style buildpacks. Détection automatique de l\'image de base, support de Heroku, Google, Paketo buildpacks.',
+          "Heroku-style buildpacks. Détection automatique de l'image de base, support de Heroku, Google, Paketo buildpacks.",
         requiresDockerfile: false,
         supportsLocal: true,
         available: true,

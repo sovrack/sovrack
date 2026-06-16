@@ -5,8 +5,11 @@ import type { BuildSource } from './build-strategy.interface';
 describe('BuildStrategyResolver', () => {
   const resolver = new BuildStrategyResolver();
 
-  const resolve = (buildSource: BuildSource, strategy: DeploymentStrategy = DeploymentStrategy.STANDARD, dockerImage: string | null = null) =>
-    resolver.resolve({ buildSource, strategy, dockerImage });
+  const resolve = (
+    buildSource: BuildSource,
+    strategy: DeploymentStrategy = DeploymentStrategy.STANDARD,
+    dockerImage: string | null = null,
+  ) => resolver.resolve({ buildSource, strategy, dockerImage });
 
   describe('STATIC', () => {
     it('routes to deploy-static.yml, needsDirectTrigger=true', () => {
@@ -52,7 +55,11 @@ describe('BuildStrategyResolver', () => {
 
   describe('EXTERNAL_IMAGE', () => {
     it('routes to deploy.yml, needsDirectTrigger=true', () => {
-      const r = resolve('EXTERNAL_IMAGE', DeploymentStrategy.STANDARD, 'docker.io/nginx:latest');
+      const r = resolve(
+        'EXTERNAL_IMAGE',
+        DeploymentStrategy.STANDARD,
+        'docker.io/nginx:latest',
+      );
       expect(r.needsDirectTrigger).toBe(true);
     });
   });
@@ -76,9 +83,13 @@ describe('BuildStrategyResolver', () => {
 
   describe('exhaustive: every BuildSource has a route', () => {
     const allSources: BuildSource[] = [
-      'DOCKERFILE_REGISTRY', 'DOCKERFILE_LOCAL',
-      'NIXPACKS_REGISTRY', 'NIXPACKS_LOCAL',
-      'DOCKER_COMPOSE', 'STATIC', 'EXTERNAL_IMAGE',
+      'DOCKERFILE_REGISTRY',
+      'DOCKERFILE_LOCAL',
+      'NIXPACKS_REGISTRY',
+      'NIXPACKS_LOCAL',
+      'DOCKER_COMPOSE',
+      'STATIC',
+      'EXTERNAL_IMAGE',
     ];
     it.each(allSources)('%s resolves to a valid route', (src) => {
       const r = resolve(src);

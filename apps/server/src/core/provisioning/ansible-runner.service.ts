@@ -22,7 +22,7 @@ export type AnsibleRunInput = {
   privateKey: string;
   playbookPath: string;
   extraVars: Record<string, unknown>;
-  strictHostKeyChecking?: string;  // 'yes' | 'no' | 'accept-new' — default 'yes'
+  strictHostKeyChecking?: string; // 'yes' | 'no' | 'accept-new' — default 'yes'
   knownHostsPath?: string;
 };
 
@@ -56,14 +56,20 @@ export class AnsibleRunnerService {
       throw new BadRequestException(`JOB_TIMEOUT_${String(options.timeoutMs)}`);
     }
 
-    const tmpDir = join(tmpdir(), `ansible-run-${input.serverId}-${Date.now()}`);
+    const tmpDir = join(
+      tmpdir(),
+      `ansible-run-${input.serverId}-${Date.now()}`,
+    );
     const sshKeyPath = join(tmpDir, 'ssh_key');
     const inventoryPath = join(tmpDir, 'inventory.ini');
     const ansibleCfg = this.resolveAnsibleConfigPath();
 
     try {
       await mkdir(tmpDir, { recursive: true });
-      await writeFile(sshKeyPath, input.privateKey, { encoding: 'utf-8', mode: 0o600 });
+      await writeFile(sshKeyPath, input.privateKey, {
+        encoding: 'utf-8',
+        mode: 0o600,
+      });
       await chmod(sshKeyPath, 0o600);
       await writeFile(inventoryPath, this.generateInventory(input), 'utf-8');
 
@@ -93,7 +99,17 @@ export class AnsibleRunnerService {
     }
   }
 
-  generateInventory(input: Pick<AnsibleRunInput, 'serverId' | 'host' | 'port' | 'username' | 'strictHostKeyChecking' | 'knownHostsPath'>): string {
+  generateInventory(
+    input: Pick<
+      AnsibleRunInput,
+      | 'serverId'
+      | 'host'
+      | 'port'
+      | 'username'
+      | 'strictHostKeyChecking'
+      | 'knownHostsPath'
+    >,
+  ): string {
     const safeHost = this.sanitize(input.host);
     const safePort = Math.max(1, Math.min(65535, input.port));
     const safeUser = this.sanitize(input.username);
@@ -103,7 +119,9 @@ export class AnsibleRunnerService {
       `-o StrictHostKeyChecking=${hostKeyChecking}`,
       '-o ConnectTimeout=10',
       '-o IdentitiesOnly=yes',
-      ...(input.knownHostsPath ? [`-o UserKnownHostsFile=${input.knownHostsPath}`] : []),
+      ...(input.knownHostsPath
+        ? [`-o UserKnownHostsFile=${input.knownHostsPath}`]
+        : []),
     ];
 
     return [
@@ -118,22 +136,30 @@ export class AnsibleRunnerService {
   }
 
   resolvePlaybookBin(): string {
-    const venvPath = this.configService.get<string>('ANSIBLE_VENV_PATH', '').trim();
+    const venvPath = this.configService
+      .get<string>('ANSIBLE_VENV_PATH', '')
+      .trim();
     if (!venvPath) return 'ansible-playbook';
     const abs = resolve(venvPath);
     const bin = join(abs, 'bin', 'ansible-playbook');
     if (existsSync(bin)) return bin;
-    this.logger.warn(`ANSIBLE_VENV_PATH set but ansible-playbook not found at ${bin}, using global.`);
+    this.logger.warn(
+      `ANSIBLE_VENV_PATH set but ansible-playbook not found at ${bin}, using global.`,
+    );
     return 'ansible-playbook';
   }
 
   resolvePlaybooksRoot(): string {
-    const configured = this.configService.get<string>('ANSIBLE_PLAYBOOKS_PATH', '').trim();
+    const configured = this.configService
+      .get<string>('ANSIBLE_PLAYBOOKS_PATH', '')
+      .trim();
     if (configured) return resolve(configured);
     return resolve(process.cwd(), '../devops/ansible/playbooks');
   }
 
-  resolveAnsibleConfigPath(playbooks = this.resolvePlaybooksRoot()): string | undefined {
+  resolveAnsibleConfigPath(
+    playbooks = this.resolvePlaybooksRoot(),
+  ): string | undefined {
     const cfgPath = resolve(playbooks, '../ansible.cfg');
     return existsSync(cfgPath) ? cfgPath : undefined;
   }
@@ -179,7 +205,8 @@ export class AnsibleRunnerService {
         for (const line of raw.split(/\r?\n/)) {
           const message = redactSecrets(line.trim());
           if (!message) continue;
-          const level: AnsibleLogEvent['level'] = source === 'stderr' ? 'warning' : 'info';
+          const level: AnsibleLogEvent['level'] =
+            source === 'stderr' ? 'warning' : 'info';
           fullOutput += `${message}\n`;
           recentLogs.push(message);
           if (recentLogs.length > 20) recentLogs.shift();
@@ -190,7 +217,9 @@ export class AnsibleRunnerService {
       const kill = () => {
         if (!proc || proc.killed) return;
         proc.kill('SIGTERM');
-        setTimeout(() => { if (proc && !proc.killed) proc.kill('SIGKILL'); }, 5_000);
+        setTimeout(() => {
+          if (proc && !proc.killed) proc.kill('SIGKILL');
+        }, 5_000);
       };
 
       let abortDetach: (() => void) | null = null;
@@ -201,8 +230,18 @@ export class AnsibleRunnerService {
         abortDetach?.();
       };
 
-      const succeed = () => { if (settled) return; settled = true; cleanup(); resolve(fullOutput); };
-      const fail = (e: Error) => { if (settled) return; settled = true; cleanup(); reject(e); };
+      const succeed = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(fullOutput);
+      };
+      const fail = (e: Error) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(e);
+      };
 
       const onTimeout = () => {
         this.logger.warn(`Ansible timeout (${String(options.timeoutMs)}ms)`);
@@ -212,7 +251,11 @@ export class AnsibleRunnerService {
         const detail = lastLines
           ? `Ansible a dépassé le délai de ${mins} min.\nDernier output:\n${lastLines}`
           : `Ansible a dépassé le délai de ${mins} min.`;
-        fail(new BadRequestException(`JOB_TIMEOUT_${String(options.timeoutMs)}\n${detail}`));
+        fail(
+          new BadRequestException(
+            `JOB_TIMEOUT_${String(options.timeoutMs)}\n${detail}`,
+          ),
+        );
       };
 
       killTimer = setTimeout(onTimeout, options.timeoutMs);
@@ -236,17 +279,24 @@ export class AnsibleRunnerService {
       proc.stderr?.on('data', (d: Buffer) => emit('stderr', d.toString()));
 
       proc.on('close', (code) => {
-        if (code === 0) { succeed(); return; }
+        if (code === 0) {
+          succeed();
+          return;
+        }
         const rootCause = this.extractRootCause(fullOutput, recentLogs);
-        fail(new BadRequestException(
-          `Ansible a échoué (code ${String(code)}). Cause racine :\n${rootCause}`,
-        ));
+        fail(
+          new BadRequestException(
+            `Ansible a échoué (code ${String(code)}). Cause racine :\n${rootCause}`,
+          ),
+        );
       });
 
       proc.on('error', (err: Error) => {
-        fail(new InternalServerErrorException(
-          `Cannot launch ansible-playbook: ${err.message}`,
-        ));
+        fail(
+          new InternalServerErrorException(
+            `Cannot launch ansible-playbook: ${err.message}`,
+          ),
+        );
       });
     });
   }
@@ -258,10 +308,7 @@ export class AnsibleRunnerService {
    *  2. Lignes `FAILED! =>` avec JSON
    *  3. Dernières lignes du log en fallback
    */
-  private extractRootCause(
-    fullOutput: string,
-    recentLogs: string[],
-  ): string {
+  private extractRootCause(fullOutput: string, recentLogs: string[]): string {
     // Pattern 1: fatal lines with JSON error payload
     const fatalMatch = fullOutput.match(/fatal:.*?FAILED!\s*=>\s*(\{.*\})/s);
     if (fatalMatch?.[1]) {
@@ -288,7 +335,8 @@ export class AnsibleRunnerService {
     }
 
     // Pattern 3: error/fatal/exception lines
-    const errorLines = fullOutput.split('\n')
+    const errorLines = fullOutput
+      .split('\n')
       .filter((l) => /error|fail|fatal|exception/i.test(l))
       .slice(0, 5)
       .filter((l) => l.trim().length > 0);

@@ -70,12 +70,14 @@ export class CreateDeploymentDto {
 
   @ApiPropertyOptional({
     example: 'docker.io/myorg/myapp:latest',
-    description: 'Image Docker externe (obligatoire si buildSource=EXTERNAL_IMAGE)',
+    description:
+      'Image Docker externe (obligatoire si buildSource=EXTERNAL_IMAGE)',
   })
   @IsOptional()
   @IsString({ message: 'overrideImage doit être une chaîne de caractères' })
   @Matches(/^[a-zA-Z0-9][a-zA-Z0-9._\/-]*(?::[a-zA-Z0-9._-]+)?$/, {
-    message: 'overrideImage doit être un nom d\'image Docker valide (ex: docker.io/nginx:latest)',
+    message:
+      "overrideImage doit être un nom d'image Docker valide (ex: docker.io/nginx:latest)",
   })
   overrideImage?: string;
 
@@ -94,7 +96,8 @@ export class CreateDeploymentDto {
   };
 
   @ApiPropertyOptional({
-    description: 'Static site configuration: source dir, build cmd, SPA mode, etc.',
+    description:
+      'Static site configuration: source dir, build cmd, SPA mode, etc.',
   })
   @IsOptional()
   @IsObject()

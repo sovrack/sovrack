@@ -25,13 +25,20 @@ export class GithubWebhookConfiguratorService {
     webhookUrl: string,
     secret: string,
   ): Promise<WebhookConfigResult> {
-    const { token, apiBase, fullRepoName } = await this.fileService.resolveCredentials(projectId);
+    const { token, apiBase, fullRepoName } =
+      await this.fileService.resolveCredentials(projectId);
     const hooksUrl = `${apiBase}/repos/${fullRepoName}/hooks`;
     const headers = this.headers(token);
 
-    const existingId = await this.findExistingHook(hooksUrl, headers, webhookUrl);
+    const existingId = await this.findExistingHook(
+      hooksUrl,
+      headers,
+      webhookUrl,
+    );
     if (existingId !== null) {
-      this.logger.warn(`GitHub webhook already exists (hookId=${existingId}) for ${fullRepoName}.`);
+      this.logger.warn(
+        `GitHub webhook already exists (hookId=${existingId}) for ${fullRepoName}.`,
+      );
       return { hookId: existingId, url: webhookUrl };
     }
 
@@ -53,10 +60,14 @@ export class GithubWebhookConfiguratorService {
           { headers },
         ),
       );
-      this.logger.log(`GitHub webhook configured for ${fullRepoName} (hookId=${res.data.id})`);
+      this.logger.log(
+        `GitHub webhook configured for ${fullRepoName} (hookId=${res.data.id})`,
+      );
       return { hookId: res.data.id, url: webhookUrl };
     } catch (err: unknown) {
-      this.logger.error(`Failed to configure GitHub webhook for ${fullRepoName}: ${String(err)}`);
+      this.logger.error(
+        `Failed to configure GitHub webhook for ${fullRepoName}: ${String(err)}`,
+      );
       throw err;
     }
   }
@@ -68,7 +79,10 @@ export class GithubWebhookConfiguratorService {
   ): Promise<number | null> {
     try {
       const res = await firstValueFrom(
-        this.httpService.get<Array<{ id: number; config: { url?: string } }>>(hooksUrl, { headers }),
+        this.httpService.get<Array<{ id: number; config: { url?: string } }>>(
+          hooksUrl,
+          { headers },
+        ),
       );
       const match = res.data.find((h) => h.config?.url === webhookUrl);
       return match?.id ?? null;

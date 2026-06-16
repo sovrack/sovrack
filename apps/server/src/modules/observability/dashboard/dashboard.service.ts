@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { DeploymentStatus, ServerStatus } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 
-export type DayActivity = { date: string; total: number; success: number; failed: number };
+export type DayActivity = {
+  date: string;
+  total: number;
+  success: number;
+  failed: number;
+};
 
 export type TopProject = {
   id: string;
@@ -99,9 +104,7 @@ export class DashboardService {
       }),
     ]);
 
-    const deployments7d = deployments30d.filter(
-      (d) => d.createdAt >= since7d,
-    );
+    const deployments7d = deployments30d.filter((d) => d.createdAt >= since7d);
 
     // Success rate (7d)
     const success7d = deployments7d.filter((d) =>
@@ -122,8 +125,7 @@ export class DashboardService {
         ? Math.round(
             withDuration.reduce(
               (sum, d) =>
-                sum +
-                (d.finishedAt!.getTime() - d.startedAt!.getTime()) / 1000,
+                sum + (d.finishedAt!.getTime() - d.startedAt!.getTime()) / 1000,
               0,
             ) / withDuration.length,
           )
@@ -131,7 +133,10 @@ export class DashboardService {
 
     // Idle projects (no deploy in last 7d)
     const activeProjectIds = new Set(deployments7d.map((d) => d.projectId));
-    const idleProjectsCount = Math.max(totalProjects - activeProjectIds.size, 0);
+    const idleProjectsCount = Math.max(
+      totalProjects - activeProjectIds.size,
+      0,
+    );
 
     // Activity chart: last 7 days
     const activity: DayActivity[] = Array.from({ length: 7 }, (_, i) => {
@@ -146,7 +151,8 @@ export class DashboardService {
       return {
         date: d.toISOString().slice(0, 10),
         total: dayDeploys.length,
-        success: dayDeploys.filter((dep) => SUCCESS.includes(dep.status)).length,
+        success: dayDeploys.filter((dep) => SUCCESS.includes(dep.status))
+          .length,
         failed: dayDeploys.filter((dep) => FAILED.includes(dep.status)).length,
       };
     });
@@ -154,7 +160,13 @@ export class DashboardService {
     // Top 5 projects by deploy count (30d)
     const projectMap = new Map<
       string,
-      { name: string; count: number; lastAt: Date | null; success: number; finished: number }
+      {
+        name: string;
+        count: number;
+        lastAt: Date | null;
+        success: number;
+        finished: number;
+      }
     >();
     for (const d of deployments30d) {
       const existing = projectMap.get(d.projectId) ?? {
@@ -183,7 +195,8 @@ export class DashboardService {
         name: v.name,
         deployCount: v.count,
         lastDeployedAt: v.lastAt?.toISOString() ?? null,
-        successRate: v.finished > 0 ? Math.round((v.success / v.finished) * 100) : 0,
+        successRate:
+          v.finished > 0 ? Math.round((v.success / v.finished) * 100) : 0,
       }));
 
     // Server status breakdown
@@ -193,12 +206,14 @@ export class DashboardService {
       else if (
         s.status === ServerStatus.PREPARING ||
         s.status === ServerStatus.PREPARATION_PENDING
-      ) serverStatusCount.preparing++;
+      )
+        serverStatusCount.preparing++;
       else if (
         s.status === ServerStatus.PREPARATION_FAILED ||
         s.status === ServerStatus.VALIDATION_FAILED ||
         s.status === ServerStatus.UNREACHABLE
-      ) serverStatusCount.error++;
+      )
+        serverStatusCount.error++;
       else serverStatusCount.offline++;
     }
 
@@ -212,7 +227,8 @@ export class DashboardService {
         successRate7d,
         avgDurationSeconds,
         runningCount: running,
-        failedCount: deployments7d.filter((d) => FAILED.includes(d.status)).length,
+        failedCount: deployments7d.filter((d) => FAILED.includes(d.status))
+          .length,
         idleProjectsCount,
       },
       activity,

@@ -15,7 +15,13 @@ import { ServersCoreService } from './services';
  * during onboarding.
  */
 @Module({
-  imports: [PrismaModule, AppJwtModule, InfrastructureCoreModule, InfrastructureModule, AuditModule],
+  imports: [
+    PrismaModule,
+    AppJwtModule,
+    InfrastructureCoreModule,
+    InfrastructureModule,
+    AuditModule,
+  ],
   providers: [ServersCoreService],
   exports: [ServersCoreService, InfrastructureCoreModule],
 })

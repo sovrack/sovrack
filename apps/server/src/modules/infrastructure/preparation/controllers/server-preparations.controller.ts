@@ -43,7 +43,7 @@ export class ServerPreparationsController {
   }
 
   @Get(':id/logs')
-  @ApiOperation({ summary: "Read the persisted logs of a provisioning job" })
+  @ApiOperation({ summary: 'Read the persisted logs of a provisioning job' })
   @ApiOkResponse({ type: ServerPreparationLogDto, isArray: true })
   async logs(@Param('id') id: string, @Query('afterLine') afterLine?: string) {
     return await this.prep.getPreparationLogs(

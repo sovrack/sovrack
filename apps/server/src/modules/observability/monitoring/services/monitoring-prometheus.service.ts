@@ -28,7 +28,9 @@ export class MonitoringPrometheusService {
   ) {}
 
   async getPrometheusStatus() {
-    const prometheusUrl = await this.getConfigValue('MONITORING_PROMETHEUS_URL');
+    const prometheusUrl = await this.getConfigValue(
+      'MONITORING_PROMETHEUS_URL',
+    );
     if (!prometheusUrl) {
       return {
         configured: false,
@@ -59,7 +61,9 @@ export class MonitoringPrometheusService {
       );
 
       const targets = targetsRes.data?.data?.activeTargets ?? [];
-      const upTargets = targets.filter((target) => target.health === 'up').length;
+      const upTargets = targets.filter(
+        (target) => target.health === 'up',
+      ).length;
       const downTargets = Math.max(targets.length - upTargets, 0);
 
       return {
@@ -87,7 +91,9 @@ export class MonitoringPrometheusService {
   async fetchPrometheusMetricsByHost(): Promise<
     Map<string, MonitoringMetricSnapshot>
   > {
-    const prometheusUrl = await this.getConfigValue('MONITORING_PROMETHEUS_URL');
+    const prometheusUrl = await this.getConfigValue(
+      'MONITORING_PROMETHEUS_URL',
+    );
     if (!prometheusUrl) {
       return new Map();
     }
@@ -124,7 +130,10 @@ export class MonitoringPrometheusService {
         normalized,
         'sum by(instance) (rate(node_network_transmit_bytes_total{device!~"lo"}[5m]))',
       ),
-      this.queryPrometheus(normalized, '(node_time_seconds - node_boot_time_seconds)'),
+      this.queryPrometheus(
+        normalized,
+        '(node_time_seconds - node_boot_time_seconds)',
+      ),
     ]);
 
     const metricMap = new Map<string, MonitoringMetricSnapshot>();

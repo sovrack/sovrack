@@ -10,7 +10,14 @@ import { MonitoringStatsService } from './services/monitoring-stats.service';
 import { MonitoringPrometheusService } from './services/monitoring-prometheus.service';
 
 @Module({
-  imports: [PrismaModule, HttpModule, PlatformModule, AutomationModule, ServersModule, ContainersModule],
+  imports: [
+    PrismaModule,
+    HttpModule,
+    PlatformModule,
+    AutomationModule,
+    ServersModule,
+    ContainersModule,
+  ],
   controllers: [MonitoringController],
   providers: [
     MonitoringService,

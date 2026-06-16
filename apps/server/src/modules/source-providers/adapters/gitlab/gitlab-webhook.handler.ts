@@ -66,7 +66,9 @@ export class GitlabWebhookHandler implements IWebhookHandler {
   async handleIncoming(
     endpoint: WebhookEndpointContext,
     rawPayload: Record<string, unknown>,
-    options: { verified: boolean; signatureError?: string } = { verified: true },
+    options: { verified: boolean; signatureError?: string } = {
+      verified: true,
+    },
   ): Promise<WebhookHandleResult> {
     if (!endpoint.isActive) {
       return { status: 'ignored' };
@@ -132,7 +134,10 @@ export class GitlabWebhookHandler implements IWebhookHandler {
       webhookStatus,
       provider: GitProviderType.GITLAB,
     };
-    await this.eventEmitter.emitAsync(DEPLOYMENT_PIPELINE_UPDATED, pipelineEvent);
+    await this.eventEmitter.emitAsync(
+      DEPLOYMENT_PIPELINE_UPDATED,
+      pipelineEvent,
+    );
 
     if (transitionedToSuccess) {
       const autoDeployEvent: AutoDeployTriggerEvent = {
@@ -141,7 +146,10 @@ export class GitlabWebhookHandler implements IWebhookHandler {
         pipelineId,
         serviceId: target.serviceId ?? undefined,
       };
-      await this.eventEmitter.emitAsync(DEPLOYMENT_AUTO_DEPLOY_TRIGGER, autoDeployEvent);
+      await this.eventEmitter.emitAsync(
+        DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
+        autoDeployEvent,
+      );
     }
 
     // Keep the Build row in sync with the pipeline outcome. For REGISTRY
@@ -189,7 +197,10 @@ export class GitlabWebhookHandler implements IWebhookHandler {
         },
       });
       if (se) {
-        return { serviceId: se.serviceId, branch: se.branch ?? se.service.branch };
+        return {
+          serviceId: se.serviceId,
+          branch: se.branch ?? se.service.branch,
+        };
       }
     }
     const svc = await this.prisma.service.findFirst({
@@ -265,7 +276,10 @@ export class GitlabWebhookHandler implements IWebhookHandler {
         return;
       }
 
-      if (pipelineStatus === PipelineRunStatus.RUNNING && build.status === 'NOT_BUILT') {
+      if (
+        pipelineStatus === PipelineRunStatus.RUNNING &&
+        build.status === 'NOT_BUILT'
+      ) {
         await this.prisma.build.update({
           where: { id: build.id },
           data: {

@@ -4,12 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  Project,
-  ProjectRole,
-  Prisma,
-  Role,
-} from '@prisma/client';
+import { Project, ProjectRole, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import {
@@ -19,7 +14,6 @@ import {
 } from '../../../core/http/pagination.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-
 
 const projectWithMembersInclude = {
   members: {
@@ -108,14 +102,19 @@ export class ProjectsService {
       include: projectWithMembersInclude,
     });
 
-    await this.auditService.record(userId, 'PROJECT_CREATE', 'Project', project.id, {
-      name: project.name,
-      ownerId,
-    });
+    await this.auditService.record(
+      userId,
+      'PROJECT_CREATE',
+      'Project',
+      project.id,
+      {
+        name: project.name,
+        ownerId,
+      },
+    );
 
     return project;
   }
-
 
   /**
    * Liste les projets selon le rôle utilisateur.
@@ -232,9 +231,7 @@ export class ProjectsService {
       await tx.build.deleteMany({ where: { projectId } });
       await tx.dnsRecord.deleteMany({
         where: {
-          OR: [
-            { domain: { projectId } },
-          ],
+          OR: [{ domain: { projectId } }],
         },
       });
       await tx.domain.deleteMany({ where: { projectId } });
@@ -242,7 +239,12 @@ export class ProjectsService {
       await tx.projectMember.deleteMany({ where: { projectId } });
       await tx.project.deleteMany({ where: { id: projectId } });
     });
-    await this.auditService.record(userId, 'PROJECT_DELETE', 'Project', projectId);
+    await this.auditService.record(
+      userId,
+      'PROJECT_DELETE',
+      'Project',
+      projectId,
+    );
   }
 
   /**
@@ -308,7 +310,6 @@ export class ProjectsService {
       throw new ForbiddenException('Action réservée aux administrateurs');
     }
   }
-
 
   /**
    * Vérifie l'existence du projet.

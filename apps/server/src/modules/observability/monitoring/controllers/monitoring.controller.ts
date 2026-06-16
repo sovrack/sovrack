@@ -1,4 +1,14 @@
-import { Body, Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  DefaultValuePipe,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { GetUser } from '../../../../core/decorators/get-user.decorator';
@@ -99,11 +109,16 @@ export class MonitoringController {
   }
 
   @Get('containers/project/:projectId')
-  @ApiOperation({ summary: 'List running containers for a project on a server' })
+  @ApiOperation({
+    summary: 'List running containers for a project on a server',
+  })
   async projectContainers(
     @Param('projectId') projectId: string,
     @Query('serverId') serverId: string,
   ) {
-    return await this.containerMonitoring.listProjectContainers(projectId, serverId);
+    return await this.containerMonitoring.listProjectContainers(
+      projectId,
+      serverId,
+    );
   }
 }

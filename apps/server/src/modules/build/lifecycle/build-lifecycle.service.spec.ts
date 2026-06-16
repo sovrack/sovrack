@@ -1,10 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import {
-  BuildPack,
-  BuildStatus,
-  BuildTrigger,
-} from '@prisma/client';
+import { BuildPack, BuildStatus, BuildTrigger } from '@prisma/client';
 import { BuildLifecycleService } from './build-lifecycle.service';
 import { PrismaService } from '../../../core/database/prisma.service';
 

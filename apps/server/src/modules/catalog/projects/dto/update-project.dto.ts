@@ -14,6 +14,4 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsString({ message: 'La description doit être une chaîne de caractères' })
   description?: string;
-
-
 }

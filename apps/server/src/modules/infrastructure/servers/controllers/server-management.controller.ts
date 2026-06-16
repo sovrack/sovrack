@@ -224,7 +224,9 @@ export class ServerManagementController {
   }
 
   @Get(':id/environments')
-  @ApiOperation({ summary: 'List environments assigned to this server (all projects)' })
+  @ApiOperation({
+    summary: 'List environments assigned to this server (all projects)',
+  })
   @ApiOkResponse({ description: 'Environnements utilisant ce serveur' })
   async listServerEnvironments(@Param('id') id: string) {
     return await this.core.listEnvironmentsForServer(id);
@@ -239,7 +241,10 @@ export class ServerManagementController {
 
   @Post(':id/jobs/:jobId/cancel')
   @ApiOperation({ summary: 'Force-finish a stuck or ghost job' })
-  @ApiOkResponse({ description: 'Job marked as failed', type: ServerJobResponseDto })
+  @ApiOkResponse({
+    description: 'Job marked as failed',
+    type: ServerJobResponseDto,
+  })
   async cancelJob(@Param('id') id: string, @Param('jobId') jobId: string) {
     return await this.core.cancelJob(id, jobId);
   }

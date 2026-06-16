@@ -107,11 +107,17 @@ export class ServerPreparationService implements OnModuleInit {
 
     for (const prep of orphaned) {
       try {
-        await this.state.transitionPreparation(prep.id, ServerPreparationStatus.FAILED, {
-          finishedAt: new Date(),
-          summary: 'Provisioning interrupted during a backend restart. Re-run the provisioning.',
-          errorMessage: 'Préparation interrompue lors du redémarrage du backend.',
-        });
+        await this.state.transitionPreparation(
+          prep.id,
+          ServerPreparationStatus.FAILED,
+          {
+            finishedAt: new Date(),
+            summary:
+              'Provisioning interrupted during a backend restart. Re-run the provisioning.',
+            errorMessage:
+              'Préparation interrompue lors du redémarrage du backend.',
+          },
+        );
         await this.prisma.server.update({
           where: { id: prep.serverId },
           data: { status: ServerStatus.PREPARATION_FAILED },
@@ -291,16 +297,12 @@ export class ServerPreparationService implements OnModuleInit {
 
     let job: ServerJob;
     try {
-      job = await this.jobs.createJob(
-        server.id,
-        ServerJobType.PREPARE_SERVER,
-        {
-          preparationId: preparation.id,
-          selectedOptions: resolved.selectedOptions,
-          resolvedRoles,
-          retryOfPreparationId: options?.retryOfPreparationId ?? null,
-        },
-      );
+      job = await this.jobs.createJob(server.id, ServerJobType.PREPARE_SERVER, {
+        preparationId: preparation.id,
+        selectedOptions: resolved.selectedOptions,
+        resolvedRoles,
+        retryOfPreparationId: options?.retryOfPreparationId ?? null,
+      });
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -452,10 +454,14 @@ export class ServerPreparationService implements OnModuleInit {
       });
     }
 
-    await this.state.transitionPreparation(id, ServerPreparationStatus.CANCELED, {
-      finishedAt: new Date(),
-      summary: 'Provisioning canceled by an administrator.',
-    });
+    await this.state.transitionPreparation(
+      id,
+      ServerPreparationStatus.CANCELED,
+      {
+        finishedAt: new Date(),
+        summary: 'Provisioning canceled by an administrator.',
+      },
+    );
     const updated = await this.getPreparation(id);
 
     await this.prisma.server.update({
@@ -689,15 +695,16 @@ export class ServerPreparationService implements OnModuleInit {
 
     // Human-readable error message: strip the JOB_TIMEOUT_ sentinel and use the detail line
     const displayError = isTimeout
-      ? (message.split('\n').slice(1).join('\n').trim() || 'Ansible a dépassé le délai configuré.')
+      ? message.split('\n').slice(1).join('\n').trim() ||
+        'Ansible a dépassé le délai configuré.'
       : this.redactSecrets(message);
 
     const displaySummary = isTimeout
       ? hasSuccessfulTask
         ? 'Timeout: certains rôles ont réussi avant que le délai soit atteint.'
-        : 'Timeout: aucun rôle n\'a pu terminer dans le délai imparti.'
+        : "Timeout: aucun rôle n'a pu terminer dans le délai imparti."
       : hasSuccessfulTask
-        ? 'Préparation partielle: certains rôles ont réussi avant l\'échec.'
+        ? "Préparation partielle: certains rôles ont réussi avant l'échec."
         : 'Préparation échouée.';
 
     await this.state.transitionPreparation(preparationId, prepStatus, {
@@ -862,32 +869,34 @@ export class ServerPreparationService implements OnModuleInit {
   }
 
   private resolvePreparationTimeoutMs(roles: string[] = []): number {
-    const fromEnv = Number(this.configService.get<string>('SERVER_PREPARATION_TIMEOUT_MS', '0'));
+    const fromEnv = Number(
+      this.configService.get<string>('SERVER_PREPARATION_TIMEOUT_MS', '0'),
+    );
     if (Number.isFinite(fromEnv) && fromEnv >= 60_000) {
       return Math.floor(fromEnv);
     }
     // Dynamic: heavier roles (package installs) get more time
     const ROLE_BUDGET_MS: Record<string, number> = {
-      system_base:      3 * 60_000,   // 3 min — apt update + base packages
-      docker:          20 * 60_000,   // 20 min — download + install + start daemon
-      nixpacks:        10 * 60_000,   // 10 min
-      nodejs:          10 * 60_000,   // 10 min
-      postgres:        10 * 60_000,   // 10 min
-      redis:            5 * 60_000,   //  5 min
-      gitlab_runner:   10 * 60_000,   // 10 min
-      nginx:            5 * 60_000,
-      ssl:              5 * 60_000,
-      firewall:         3 * 60_000,
-      fail2ban:         3 * 60_000,
-      swap:             2 * 60_000,
-      monitoring:       5 * 60_000,
-      node_exporter:    5 * 60_000,
-      cadvisor:         5 * 60_000,
-      prometheus:       8 * 60_000,
-      grafana:          8 * 60_000,
-      alertmanager:     5 * 60_000,
-      backup:           3 * 60_000,
-      logrotate:        2 * 60_000,
+      system_base: 3 * 60_000, // 3 min — apt update + base packages
+      docker: 20 * 60_000, // 20 min — download + install + start daemon
+      nixpacks: 10 * 60_000, // 10 min
+      nodejs: 10 * 60_000, // 10 min
+      postgres: 10 * 60_000, // 10 min
+      redis: 5 * 60_000, //  5 min
+      gitlab_runner: 10 * 60_000, // 10 min
+      nginx: 5 * 60_000,
+      ssl: 5 * 60_000,
+      firewall: 3 * 60_000,
+      fail2ban: 3 * 60_000,
+      swap: 2 * 60_000,
+      monitoring: 5 * 60_000,
+      node_exporter: 5 * 60_000,
+      cadvisor: 5 * 60_000,
+      prometheus: 8 * 60_000,
+      grafana: 8 * 60_000,
+      alertmanager: 5 * 60_000,
+      backup: 3 * 60_000,
+      logrotate: 2 * 60_000,
       security_hardening: 3 * 60_000,
     };
     const DEFAULT_BUDGET_MS = 5 * 60_000;

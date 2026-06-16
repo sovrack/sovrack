@@ -47,7 +47,9 @@ export class WebhookAuditController {
     @Query('status') status?: WebhookEventStatus,
     @Query('limit') limit?: string,
   ) {
-    const parsedLimit = limit ? Math.min(500, Math.max(1, parseInt(limit, 10) || 100)) : 100;
+    const parsedLimit = limit
+      ? Math.min(500, Math.max(1, parseInt(limit, 10) || 100))
+      : 100;
     return this.webhooksService.listEventsForProject(projectId, {
       limit: parsedLimit,
       ...(status ? { status } : {}),
@@ -75,7 +77,8 @@ export class WebhookAuditController {
     @Body() body: { enabled: boolean },
   ) {
     // Verify the endpoint belongs to this project (defense in depth)
-    const endpoints = await this.webhooksService.listEndpointsForProject(projectId);
+    const endpoints =
+      await this.webhooksService.listEndpointsForProject(projectId);
     if (!endpoints.find((e) => e.id === endpointId)) {
       throw new NotFoundException(
         `Endpoint ${endpointId} introuvable sur le projet ${projectId}`,

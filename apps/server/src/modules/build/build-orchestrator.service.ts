@@ -39,7 +39,12 @@ export class BuildOrchestratorService {
     overwriteGitlabCi?: boolean,
   ): Promise<BuildPrepareResponse> {
     await this.assertCanConfigureBuild(projectId, userId, userRole);
-    return await this.prepareServiceInternal(projectId, serviceId, overwriteDockerfile, overwriteGitlabCi);
+    return await this.prepareServiceInternal(
+      projectId,
+      serviceId,
+      overwriteDockerfile,
+      overwriteGitlabCi,
+    );
   }
 
   async pushFiles(
@@ -64,14 +69,13 @@ export class BuildOrchestratorService {
     await provider.writeFiles(
       projectId,
       {
-        Dockerfile: 'FROM node:20\nWORKDIR /app\nCOPY . .\nRUN npm ci\nCMD ["node", "dist/main"]',
+        Dockerfile:
+          'FROM node:20\nWORKDIR /app\nCOPY . .\nRUN npm ci\nCMD ["node", "dist/main"]',
         '.dockerignore': this.dockerignoreGenerator.generate(),
       },
       serviceId,
     );
   }
-
-
 
   async assertCanConfigureBuild(
     projectId: string,
@@ -139,14 +143,29 @@ export class BuildOrchestratorService {
       serviceId,
     );
     const knownLanguageAliases = new Set([
-      'nodejs', 'nestjs', 'nextjs', 'react', 'python', 'django',
-      'go', 'golang', 'java', 'spring-boot', 'ruby', 'php', 'laravel', 'rust',
+      'nodejs',
+      'nestjs',
+      'nextjs',
+      'react',
+      'python',
+      'django',
+      'go',
+      'golang',
+      'java',
+      'spring-boot',
+      'ruby',
+      'php',
+      'laravel',
+      'rust',
     ]);
     const type = detected.recommendedBuildType || detected.type;
     const port = detected.recommendedPort ?? 3000;
     const startCmd = detected.recommendedStartCommand ?? 'node index.js';
 
-    const dockerfileContent = this.dockerfileGenerator.generate(type, { port, startCmd });
+    const dockerfileContent = this.dockerfileGenerator.generate(type, {
+      port,
+      startCmd,
+    });
     const dockerignoreContent = this.dockerignoreGenerator.generate();
     const branches = [service?.branch].filter((b): b is string => Boolean(b));
     const uniqueBranches = Array.from(new Set(branches));
@@ -186,7 +205,10 @@ export class BuildOrchestratorService {
       });
     }
 
-    const pipelineUrl = await this.resolveLatestPipelineUrl(projectId, serviceId);
+    const pipelineUrl = await this.resolveLatestPipelineUrl(
+      projectId,
+      serviceId,
+    );
     const serviceResult = this.buildSuccessServiceResult(
       { id: project.id, name: project.name },
       service,
@@ -228,7 +250,8 @@ export class BuildOrchestratorService {
       status: 'SUCCESS',
       message: 'Préparation terminée avec succès.',
       dockerfileStatus: pushResult?.fileStatuses?.['Dockerfile'] ?? 'SKIPPED',
-      dockerignoreStatus: pushResult?.fileStatuses?.['.dockerignore'] ?? 'SKIPPED',
+      dockerignoreStatus:
+        pushResult?.fileStatuses?.['.dockerignore'] ?? 'SKIPPED',
       ciStatus: 'SKIPPED',
       pipelineUrl,
     };

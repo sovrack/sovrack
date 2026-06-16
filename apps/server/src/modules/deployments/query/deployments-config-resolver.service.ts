@@ -31,13 +31,23 @@ export class DeploymentsConfigResolver {
 
   constructor(private readonly dockerService: BuildImageService) {}
 
-  async resolve(dto: CreateDeploymentDto, service: any, project: any): Promise<DeploymentConfig> {
+  async resolve(
+    dto: CreateDeploymentDto,
+    service: any,
+    project: any,
+  ): Promise<DeploymentConfig> {
     const buildSource = this.resolveBuildSource(dto, service);
     const isLocalBuild = this.isLocalBuildSource(buildSource);
 
     const branch = dto.branch ?? service.branch ?? 'main';
 
-    const dockerImage = await this.resolveDockerImage(dto, buildSource, service, project, branch);
+    const dockerImage = await this.resolveDockerImage(
+      dto,
+      buildSource,
+      service,
+      project,
+      branch,
+    );
 
     const resolvedNixpacksConfig =
       dto.nixpacksConfig ??
@@ -70,7 +80,10 @@ export class DeploymentsConfigResolver {
       // Priorité à overrideImage ; sinon l'image EST le repoPath du service
       // (sourceType DOCKER_IMAGE stocke la référence d'image dans repoPath).
       const image = dto.overrideImage ?? service?.repoPath;
-      if (!image) throw new Error('Image externe introuvable (overrideImage ou repoPath requis)');
+      if (!image)
+        throw new Error(
+          'Image externe introuvable (overrideImage ou repoPath requis)',
+        );
       return image as string;
     }
     if (buildSource === 'DOCKER_COMPOSE') {
@@ -117,8 +130,10 @@ export class DeploymentsConfigResolver {
   }
 
   buildSourceToBuildPack(src: BuildSource): BuildPack {
-    if (src === 'DOCKERFILE_REGISTRY' || src === 'DOCKERFILE_LOCAL') return BuildPack.DOCKERFILE;
-    if (src === 'NIXPACKS_REGISTRY' || src === 'NIXPACKS_LOCAL') return BuildPack.NIXPACKS;
+    if (src === 'DOCKERFILE_REGISTRY' || src === 'DOCKERFILE_LOCAL')
+      return BuildPack.DOCKERFILE;
+    if (src === 'NIXPACKS_REGISTRY' || src === 'NIXPACKS_LOCAL')
+      return BuildPack.NIXPACKS;
     if (src === 'DOCKER_COMPOSE') return BuildPack.DOCKER_COMPOSE;
     if (src === 'STATIC') return BuildPack.STATIC;
     return BuildPack.NONE;
@@ -131,15 +146,35 @@ export class DeploymentsConfigResolver {
     const version = service.databaseVersion || 'latest';
     switch (service.databaseType!) {
       case 'POSTGRES':
-        return { image: `postgres:${version}-alpine`, port: 5432, volumes: [{ containerPath: '/var/lib/postgresql/data' }] };
+        return {
+          image: `postgres:${version}-alpine`,
+          port: 5432,
+          volumes: [{ containerPath: '/var/lib/postgresql/data' }],
+        };
       case 'MYSQL':
-        return { image: `mysql:${version}-oracle`, port: 3306, volumes: [{ containerPath: '/var/lib/mysql' }] };
+        return {
+          image: `mysql:${version}-oracle`,
+          port: 3306,
+          volumes: [{ containerPath: '/var/lib/mysql' }],
+        };
       case 'REDIS':
-        return { image: `redis:${version}-alpine`, port: 6379, volumes: [{ containerPath: '/data' }] };
+        return {
+          image: `redis:${version}-alpine`,
+          port: 6379,
+          volumes: [{ containerPath: '/data' }],
+        };
       case 'MONGODB':
-        return { image: `mongo:${version}`, port: 27017, volumes: [{ containerPath: '/data/db' }] };
+        return {
+          image: `mongo:${version}`,
+          port: 27017,
+          volumes: [{ containerPath: '/data/db' }],
+        };
       case 'RABBITMQ':
-        return { image: `rabbitmq:${version}-alpine`, port: 5672, volumes: [{ containerPath: '/var/lib/rabbitmq' }] };
+        return {
+          image: `rabbitmq:${version}-alpine`,
+          port: 5672,
+          volumes: [{ containerPath: '/var/lib/rabbitmq' }],
+        };
     }
   }
 }

@@ -21,11 +21,23 @@ describe('DeploymentsHealthcheckService — progressive 3-phase', () => {
   } as unknown as SshExecutorService;
 
   const mockPrisma = {
-    server: { findUnique: jest.fn().mockResolvedValue({ id: 'srv-1', host: '10.0.0.1', port: 22, username: 'ubuntu', sshKey: 'enc-key' }) },
+    server: {
+      findUnique: jest.fn().mockResolvedValue({
+        id: 'srv-1',
+        host: '10.0.0.1',
+        port: 22,
+        username: 'ubuntu',
+        sshKey: 'enc-key',
+      }),
+    },
   } as unknown as PrismaService;
 
-  const mockCrypto = { decrypt: jest.fn().mockReturnValue('plain-key') } as unknown as ServersCryptoService;
-  const mockHostKeys = { resolveForConnection: jest.fn().mockResolvedValue({ keyBase64: 'abc' }) } as unknown as ServerHostKeyService;
+  const mockCrypto = {
+    decrypt: jest.fn().mockReturnValue('plain-key'),
+  } as unknown as ServersCryptoService;
+  const mockHostKeys = {
+    resolveForConnection: jest.fn().mockResolvedValue({ keyBase64: 'abc' }),
+  } as unknown as ServerHostKeyService;
 
   function makeService(overrides: Record<string, string> = {}) {
     const config: Record<string, string> = {
@@ -37,9 +49,18 @@ describe('DeploymentsHealthcheckService — progressive 3-phase', () => {
       DEPLOY_HEALTHCHECK_ENABLED: 'true',
       ...overrides,
     };
-    const configService = { get: (key: string) => config[key] } as unknown as ConfigService;
+    const configService = {
+      get: (key: string) => config[key],
+    } as unknown as ConfigService;
     const gateway = { emitLog: jest.fn() } as unknown as DeploymentsGateway;
-    return new DeploymentsHealthcheckService(configService, gateway, mockPrisma, mockSsh, mockCrypto, mockHostKeys);
+    return new DeploymentsHealthcheckService(
+      configService,
+      gateway,
+      mockPrisma,
+      mockSsh,
+      mockCrypto,
+      mockHostKeys,
+    );
   }
 
   const params = {
@@ -75,7 +96,9 @@ describe('DeploymentsHealthcheckService — progressive 3-phase', () => {
   it('throws with the last responses when never ready', async () => {
     sshResponses = ['503', '503', '503'];
     const service = makeService({ DEPLOY_HEALTHCHECK_RETRIES: '3' });
-    await expect(service.runPostDeployHealthChecks(params)).rejects.toThrow(/HTTP 503/);
+    await expect(service.runPostDeployHealthChecks(params)).rejects.toThrow(
+      /HTTP 503/,
+    );
     expect(mockSshExec).toHaveBeenCalledTimes(3);
   });
 

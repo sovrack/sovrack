@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Deployment, DeploymentStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
@@ -43,7 +39,9 @@ export class DeploymentsRollbackService {
         // Scope to the exact same service so a rollback of service A never
         // accidentally picks up the latest SUCCESS of service B in the same env.
         ...(deployment.serviceId ? { serviceId: deployment.serviceId } : {}),
-        ...(deployment.serviceEnvId ? { serviceEnvId: deployment.serviceEnvId } : {}),
+        ...(deployment.serviceEnvId
+          ? { serviceEnvId: deployment.serviceEnvId }
+          : {}),
         status: DeploymentStatus.SUCCESS,
         id: {
           not: deployment.id,
@@ -89,7 +87,8 @@ export class DeploymentsRollbackService {
         rolledBackAt: new Date(),
         previousDeploymentId: previousSuccess.id,
         startedAt: new Date(),
-        logs: `Rollback depuis ${previousSuccess.id}` +
+        logs:
+          `Rollback depuis ${previousSuccess.id}` +
           (previousSuccess.imageSha
             ? ` (pinned to sha ${previousSuccess.imageSha})`
             : ''),
@@ -123,5 +122,4 @@ export class DeploymentsRollbackService {
       rollbackImageRef,
     );
   }
-
 }

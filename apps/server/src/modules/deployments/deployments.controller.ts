@@ -78,7 +78,7 @@ export class DeploymentsController {
     return await this.validationService.validate(
       dto.projectId,
       dto.environmentId,
-      (dto.buildSource ?? 'DOCKERFILE_LOCAL'),
+      dto.buildSource ?? 'DOCKERFILE_LOCAL',
       user.id,
       dto.serviceEnvId,
     );
@@ -95,7 +95,10 @@ export class DeploymentsController {
     description: 'Invalid deployment preconditions',
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
-  @ApiResponse({ status: 403, description: 'Unauthorized access to the project' })
+  @ApiResponse({
+    status: 403,
+    description: 'Unauthorized access to the project',
+  })
   async create(@Body() dto: CreateDeploymentDto, @GetUser() user: JwtPayload) {
     return await this.createService.create(dto, user.id);
   }
@@ -119,11 +122,7 @@ export class DeploymentsController {
     @GetUser() user: JwtPayload,
     @Query() pagination: PaginationDto,
   ) {
-    return await this.queryService.findAll(
-      user.id,
-      user.role,
-      pagination,
-    );
+    return await this.queryService.findAll(user.id, user.role, pagination);
   }
 
   @Get('project/:projectId')
@@ -134,17 +133,16 @@ export class DeploymentsController {
     isArray: true,
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
-  @ApiResponse({ status: 403, description: 'Unauthorized access to the project' })
+  @ApiResponse({
+    status: 403,
+    description: 'Unauthorized access to the project',
+  })
   @ApiResponse({ status: 404, description: 'Project not found' })
   async findByProject(
     @Param('projectId') projectId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.queryService.findByProject(
-      projectId,
-      user.id,
-      user.role,
-    );
+    return await this.queryService.findByProject(projectId, user.id, user.role);
   }
 
   // Declared BEFORE @Get(':id') so the static 'preview-env' segment is not
@@ -154,16 +152,20 @@ export class DeploymentsController {
     summary: 'Preview the variables that will be injected (secrets masked)',
   })
   @ApiOkResponse({
-    description: 'Resolved variables (origin + isSecret) and resolution warnings',
+    description:
+      'Resolved variables (origin + isSecret) and resolution warnings',
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
-  @ApiResponse({ status: 404, description: 'Service-environment link not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Service-environment link not found',
+  })
   async previewEnv(@Query('serviceEnvId') serviceEnvId: string) {
     return await this.queryService.previewEnv(serviceEnvId);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: "Deployment details" })
+  @ApiOperation({ summary: 'Deployment details' })
   @ApiOkResponse({
     description: 'Deployment details',
     type: DeploymentDetailedResponseDto,

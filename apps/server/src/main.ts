@@ -69,7 +69,10 @@ function assertRequiredEnv(): void {
 }
 
 function resolveAllowedOrigins(): string[] {
-  const envOrigins = [process.env.FRONTEND_URLS ?? '', process.env.FRONTEND_URL ?? '']
+  const envOrigins = [
+    process.env.FRONTEND_URLS ?? '',
+    process.env.FRONTEND_URL ?? '',
+  ]
     .filter((value): value is string => Boolean(value))
     .flatMap((value) => value.split(','))
     .map((value) => value.trim())
@@ -93,7 +96,10 @@ function resolveAllowedOrigins(): string[] {
   return localDevOrigins;
 }
 
-function isAllowedCorsOrigin(origin: string, allowedOrigins: Set<string>): boolean {
+function isAllowedCorsOrigin(
+  origin: string,
+  allowedOrigins: Set<string>,
+): boolean {
   if (allowedOrigins.has(origin)) {
     return true;
   }
@@ -158,7 +164,10 @@ async function bootstrap() {
 
   // CORS pour le frontend
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin || isAllowedCorsOrigin(origin, allowedOrigins)) {
         callback(null, true);
         return;
@@ -200,7 +209,7 @@ function reportWebhookConfiguration(logger: LoggerService): void {
   const rawWebhookUrl = (process.env.WEBHOOK_URL ?? '').trim();
   if (!rawWebhookUrl) {
     logger.warn(
-      'WEBHOOK_URL non définie dans l\'env. Les webhooks GitLab/GitHub utiliseront PlatformConfig.WEBHOOK_BASE_URL (DB, modifiable via UI Réglages).',
+      "WEBHOOK_URL non définie dans l'env. Les webhooks GitLab/GitHub utiliseront PlatformConfig.WEBHOOK_BASE_URL (DB, modifiable via UI Réglages).",
       'Bootstrap',
     );
     return;

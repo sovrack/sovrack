@@ -95,7 +95,10 @@ export class DeploymentsGateway
   // Les clients sans token valide sont immédiatement déconnectés.
   handleConnection(client: Socket): void {
     const authData = client.handshake.auth as Record<string, unknown>;
-    const cookieName = this.configService.get<string>('AUTH_COOKIE_NAME', AUTH_COOKIE_NAME_DEFAULT);
+    const cookieName = this.configService.get<string>(
+      'AUTH_COOKIE_NAME',
+      AUTH_COOKIE_NAME_DEFAULT,
+    );
     const cookieToken = extractTokenFromCookieHeader(
       client.handshake.headers.cookie,
       cookieName,
@@ -294,9 +297,10 @@ export class DeploymentsGateway
   }
 
   @SubscribeMessage('logs:unsubscribe')
-  handleLogsUnsubscribe(
-    @MessageBody() payload: { subscriptionKey?: string },
-  ): { ok: boolean; cancelled?: boolean } {
+  handleLogsUnsubscribe(@MessageBody() payload: { subscriptionKey?: string }): {
+    ok: boolean;
+    cancelled?: boolean;
+  } {
     const key = payload?.subscriptionKey;
     if (!key) return { ok: false };
     return { ok: true, cancelled: this.logStreamService.unsubscribe(key) };

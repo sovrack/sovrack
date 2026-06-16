@@ -67,7 +67,11 @@ describe('WebhooksService', () => {
         provider: GitProviderType.GITLAB,
         events: ['push'],
       });
-      expect(result).toEqual({ id: 'ep_1', webhookToken: 'tok-123', secret: '' });
+      expect(result).toEqual({
+        id: 'ep_1',
+        webhookToken: 'tok-123',
+        secret: '',
+      });
       expect(prisma.webhookEndpoint.create).not.toHaveBeenCalled();
     });
 
@@ -98,9 +102,9 @@ describe('WebhooksService', () => {
 
   describe('buildPublicUrl', () => {
     it('strips trailing slashes from the base URL', () => {
-      expect(service.buildPublicUrl('https://platform.example.com/', 'tok')).toBe(
-        'https://platform.example.com/webhooks/incoming/tok',
-      );
+      expect(
+        service.buildPublicUrl('https://platform.example.com/', 'tok'),
+      ).toBe('https://platform.example.com/webhooks/incoming/tok');
     });
     it('appends /webhooks/incoming/<token> to the base URL (P4-#2 unified endpoint)', () => {
       expect(service.buildPublicUrl('https://p.example.com', 'abc')).toBe(
@@ -190,7 +194,9 @@ describe('WebhooksService', () => {
 
     it('markFailed with deadLetter=true sets status=DEAD_LETTER', async () => {
       prisma.webhookEvent.update.mockResolvedValue({});
-      await service.markFailed('evt_1', 'retries exhausted', { deadLetter: true });
+      await service.markFailed('evt_1', 'retries exhausted', {
+        deadLetter: true,
+      });
       expect(prisma.webhookEvent.update.mock.calls[0][0].data.status).toBe(
         WebhookEventStatus.DEAD_LETTER,
       );
@@ -237,7 +243,14 @@ describe('WebhooksService', () => {
       // O(1) via the unique index on webhookToken.
       expect(prisma.webhookEndpoint.findUnique).toHaveBeenCalledWith({
         where: { webhookToken: 'tok-123' },
-        select: { id: true, projectId: true, serviceEnvId: true, serviceId: true, provider: true, isActive: true },
+        select: {
+          id: true,
+          projectId: true,
+          serviceEnvId: true,
+          serviceId: true,
+          provider: true,
+          isActive: true,
+        },
       });
     });
 

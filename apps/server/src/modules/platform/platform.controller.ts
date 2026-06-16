@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -49,7 +42,10 @@ export class PlatformController {
   @Put(':key')
   @ApiOperation({ summary: 'Update a global configuration' })
   @ApiResponse({ status: 200, description: 'Configuration updated' })
-  async setConfig(@Param('key') key: string, @Body() dto: UpdatePlatformConfigDto) {
+  async setConfig(
+    @Param('key') key: string,
+    @Body() dto: UpdatePlatformConfigDto,
+  ) {
     return this.platform.set(key, dto.value, dto.isSecret);
   }
 }

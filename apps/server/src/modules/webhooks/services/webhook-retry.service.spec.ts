@@ -11,7 +11,9 @@ import { WebhookRetryService } from './webhook-retry.service';
 
 describe('WebhooksService.markFailed — exponential backoff', () => {
   function makeService(currentAttempts: number) {
-    const update = jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...data }));
+    const update = jest
+      .fn()
+      .mockImplementation(({ data }) => Promise.resolve({ ...data }));
     const prisma = {
       webhookEvent: {
         findUnique: jest.fn().mockResolvedValue({ attempts: currentAttempts }),
@@ -27,9 +29,9 @@ describe('WebhooksService.markFailed — exponential backoff', () => {
     await service.markFailed('e1', 'boom');
     const data = update.mock.calls[0][0].data;
     expect(data.status).toBe(WebhookEventStatus.FAILED);
-    expect((data.nextRetryAt as Date).getTime() - before).toBeGreaterThanOrEqual(
-      WEBHOOK_RETRY_BACKOFF_MS[1] - 1000,
-    );
+    expect(
+      (data.nextRetryAt as Date).getTime() - before,
+    ).toBeGreaterThanOrEqual(WEBHOOK_RETRY_BACKOFF_MS[1] - 1000);
     expect((data.nextRetryAt as Date).getTime() - before).toBeLessThanOrEqual(
       WEBHOOK_RETRY_BACKOFF_MS[1] + 1000,
     );
@@ -41,9 +43,9 @@ describe('WebhooksService.markFailed — exponential backoff', () => {
     await service.markFailed('e1', 'boom');
     const data = update.mock.calls[0][0].data;
     expect(data.status).toBe(WebhookEventStatus.FAILED);
-    expect((data.nextRetryAt as Date).getTime() - before).toBeGreaterThanOrEqual(
-      WEBHOOK_RETRY_BACKOFF_MS[4] - 1000,
-    );
+    expect(
+      (data.nextRetryAt as Date).getTime() - before,
+    ).toBeGreaterThanOrEqual(WEBHOOK_RETRY_BACKOFF_MS[4] - 1000);
   });
 
   it('5th failure → DEAD_LETTER, nextRetryAt null', async () => {
@@ -81,7 +83,9 @@ describe('WebhookRetryService', () => {
       listDueRetries: jest.fn().mockResolvedValue([event]),
       claimForRetry: jest.fn().mockResolvedValue(true),
       markProcessed: jest.fn().mockResolvedValue(undefined),
-      markFailed: jest.fn().mockResolvedValue({ status: WebhookEventStatus.FAILED, attempts: 2 }),
+      markFailed: jest
+        .fn()
+        .mockResolvedValue({ status: WebhookEventStatus.FAILED, attempts: 2 }),
       findEventForRetry: jest.fn().mockResolvedValue(event),
       resetForReplay: jest.fn().mockResolvedValue(undefined),
     } as unknown as WebhooksService;
@@ -109,7 +113,9 @@ describe('WebhookRetryService', () => {
 
   it('on dispatch failure → markFailed, no dead-letter notification yet', async () => {
     const { service, webhooks, notifications, handler } = makeHarness();
-    (handler.handleIncoming as jest.Mock).mockRejectedValue(new Error('still failing'));
+    (handler.handleIncoming as jest.Mock).mockRejectedValue(
+      new Error('still failing'),
+    );
     await service.retryFailedWebhooks();
     expect(webhooks.markFailed).toHaveBeenCalledWith('evt-1', 'still failing');
     expect(notifications.notifyWebhookDeadLetter).not.toHaveBeenCalled();
@@ -117,7 +123,9 @@ describe('WebhookRetryService', () => {
 
   it('notifies the admin when a failure dead-letters the event', async () => {
     const { service, webhooks, notifications, handler } = makeHarness();
-    (handler.handleIncoming as jest.Mock).mockRejectedValue(new Error('exhausted'));
+    (handler.handleIncoming as jest.Mock).mockRejectedValue(
+      new Error('exhausted'),
+    );
     (webhooks.markFailed as jest.Mock).mockResolvedValue({
       status: WebhookEventStatus.DEAD_LETTER,
       attempts: 5,

@@ -76,9 +76,21 @@ export interface IGitProvider {
 
   // ─── Repository operations ────────────────────────────────────────────────
 
-  listRepos(projectId: string, userId: string, userRole: Role): Promise<RepoItem[]>;
-  listBranches(projectId: string, userId: string, userRole: Role): Promise<BranchItem[]>;
-  listPipelines(projectId: string, userId: string, userRole: Role): Promise<PipelineItem[]>;
+  listRepos(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<RepoItem[]>;
+  listBranches(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<BranchItem[]>;
+  listPipelines(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<PipelineItem[]>;
 
   triggerPipeline(
     projectId: string,
@@ -88,7 +100,10 @@ export interface IGitProvider {
     preferredRepoId?: number,
   ): Promise<PipelineItem>;
 
-  resolveRepositoryPath(projectId: string, repoId?: number | string): Promise<string>;
+  resolveRepositoryPath(
+    projectId: string,
+    repoId?: number | string,
+  ): Promise<string>;
 
   // ─── File operations (used by build module to push Dockerfile etc.) ───────
 
@@ -96,7 +111,11 @@ export interface IGitProvider {
    * Read a file from the repository at the given ref (branch/commit).
    * Returns null if the file does not exist.
    */
-  readFile(projectId: string, filePath: string, ref?: string): Promise<string | null>;
+  readFile(
+    projectId: string,
+    filePath: string,
+    ref?: string,
+  ): Promise<string | null>;
 
   /**
    * Write one or more files to the repository on the default branch.
@@ -150,13 +169,20 @@ export interface IGitProvider {
    * Resolve Git credentials (token + repo URL) for a local VPS build
    * that needs to clone/pull the source code.
    */
-  resolveGitCredentials(projectId: string, serviceId?: string): Promise<GitCredentials>;
+  resolveGitCredentials(
+    projectId: string,
+    serviceId?: string,
+  ): Promise<GitCredentials>;
 
   /**
    * Post a comment on a merge/pull request (e.g. a preview-environment URL).
    * Optional capability — providers that don't implement it are simply skipped.
    */
-  postComment?(projectId: string, mergeRequestId: string, body: string): Promise<void>;
+  postComment?(
+    projectId: string,
+    mergeRequestId: string,
+    body: string,
+  ): Promise<void>;
 
   // NOTE: Webhook *reception* is no longer part of this contract. It lives
   // in the unified webhooks module via IWebhookHandler. Providers only

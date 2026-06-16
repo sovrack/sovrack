@@ -11,6 +11,8 @@ export const ACTIVE_FILTER = { archivedAt: null } as const;
  * Merge the active-only filter into an existing Prisma `where`. The caller's
  * own conditions win except for `archivedAt`, which is forced to null.
  */
-export function activeWhere<T extends object>(where?: T): T & { archivedAt: null } {
+export function activeWhere<T extends object>(
+  where?: T,
+): T & { archivedAt: null } {
   return { ...(where ?? ({} as T)), archivedAt: null };
 }

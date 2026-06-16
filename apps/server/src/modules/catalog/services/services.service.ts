@@ -103,40 +103,43 @@ export class ServicesService {
 
     let service: Awaited<ReturnType<typeof this.prisma.service.create>>;
     try {
-    service = await this.prisma.service.create({
-      data: {
-        projectId,
-        name: dto.name.trim(),
-        type: dto.type,
-        description: dto.description?.trim(),
-        sourceType: dto.sourceType,
-        repoPath: dto.repoPath ? normalizeRepoPath(dto.repoPath) : undefined,
-        branch: dto.branch?.trim() || 'main',
-        providerId: dto.providerId?.trim(),
-        rootDir: dto.rootDir?.trim() || '/',
-        buildPack: dto.buildPack,
-        buildType: dto.buildType?.trim(),
-        dockerfile: dto.dockerfile,
-        port: dto.port ?? 3000,
-        startCommand: dto.startCommand?.trim(),
-        buildArgs: dto.buildArgs || undefined,
-        nixpacksConfig: dto.nixpacksConfig || undefined,
-        staticConfig: dto.staticConfig || undefined,
-        dockerComposeContent: dto.dockerComposeContent,
-        composeServiceName: dto.composeServiceName?.trim(),
-        databaseType: dto.databaseType,
-        databaseVersion: dto.databaseVersion?.trim() || 'latest',
-        databaseCredentials:
-          dto.type === ServiceType.DATABASE
-            ? this.ensureDatabaseCredentials(dto.databaseCredentials)
-            : dto.databaseCredentials || undefined,
-        env: dto.env,
-        healthcheckPath: dto.healthcheckPath?.trim(),
-        replicas: dto.replicas ?? 1,
-      },
-    });
+      service = await this.prisma.service.create({
+        data: {
+          projectId,
+          name: dto.name.trim(),
+          type: dto.type,
+          description: dto.description?.trim(),
+          sourceType: dto.sourceType,
+          repoPath: dto.repoPath ? normalizeRepoPath(dto.repoPath) : undefined,
+          branch: dto.branch?.trim() || 'main',
+          providerId: dto.providerId?.trim(),
+          rootDir: dto.rootDir?.trim() || '/',
+          buildPack: dto.buildPack,
+          buildType: dto.buildType?.trim(),
+          dockerfile: dto.dockerfile,
+          port: dto.port ?? 3000,
+          startCommand: dto.startCommand?.trim(),
+          buildArgs: dto.buildArgs || undefined,
+          nixpacksConfig: dto.nixpacksConfig || undefined,
+          staticConfig: dto.staticConfig || undefined,
+          dockerComposeContent: dto.dockerComposeContent,
+          composeServiceName: dto.composeServiceName?.trim(),
+          databaseType: dto.databaseType,
+          databaseVersion: dto.databaseVersion?.trim() || 'latest',
+          databaseCredentials:
+            dto.type === ServiceType.DATABASE
+              ? this.ensureDatabaseCredentials(dto.databaseCredentials)
+              : dto.databaseCredentials || undefined,
+          env: dto.env,
+          healthcheckPath: dto.healthcheckPath?.trim(),
+          replicas: dto.replicas ?? 1,
+        },
+      });
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
         throw new ConflictException(
           `Un service nommé "${dto.name.trim()}" existe déjà dans ce projet. Choisissez un autre nom.`,
         );
@@ -191,27 +194,63 @@ export class ServicesService {
       data: {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
         ...(dto.type !== undefined ? { type: dto.type } : {}),
-        ...(dto.description !== undefined ? { description: dto.description?.trim() } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description?.trim() }
+          : {}),
         ...(dto.sourceType !== undefined ? { sourceType: dto.sourceType } : {}),
-        ...(dto.repoPath !== undefined ? { repoPath: dto.repoPath ? normalizeRepoPath(dto.repoPath) : undefined } : {}),
-        ...(dto.branch !== undefined ? { branch: dto.branch?.trim() || 'main' } : {}),
-        ...(dto.providerId !== undefined ? { providerId: dto.providerId?.trim() } : {}),
-        ...(dto.rootDir !== undefined ? { rootDir: dto.rootDir?.trim() || '/' } : {}),
+        ...(dto.repoPath !== undefined
+          ? {
+              repoPath: dto.repoPath
+                ? normalizeRepoPath(dto.repoPath)
+                : undefined,
+            }
+          : {}),
+        ...(dto.branch !== undefined
+          ? { branch: dto.branch?.trim() || 'main' }
+          : {}),
+        ...(dto.providerId !== undefined
+          ? { providerId: dto.providerId?.trim() }
+          : {}),
+        ...(dto.rootDir !== undefined
+          ? { rootDir: dto.rootDir?.trim() || '/' }
+          : {}),
         ...(dto.buildPack !== undefined ? { buildPack: dto.buildPack } : {}),
-        ...(dto.buildType !== undefined ? { buildType: dto.buildType?.trim() } : {}),
+        ...(dto.buildType !== undefined
+          ? { buildType: dto.buildType?.trim() }
+          : {}),
         ...(dto.dockerfile !== undefined ? { dockerfile: dto.dockerfile } : {}),
         ...(dto.port !== undefined ? { port: dto.port } : {}),
-        ...(dto.startCommand !== undefined ? { startCommand: dto.startCommand?.trim() } : {}),
-        ...(dto.buildArgs !== undefined ? { buildArgs: dto.buildArgs || null } : {}),
-        ...(dto.nixpacksConfig !== undefined ? { nixpacksConfig: dto.nixpacksConfig || null } : {}),
-        ...(dto.staticConfig !== undefined ? { staticConfig: dto.staticConfig || null } : {}),
-        ...(dto.dockerComposeContent !== undefined ? { dockerComposeContent: dto.dockerComposeContent } : {}),
-        ...(dto.composeServiceName !== undefined ? { composeServiceName: dto.composeServiceName?.trim() } : {}),
-        ...(dto.databaseType !== undefined ? { databaseType: dto.databaseType } : {}),
-        ...(dto.databaseVersion !== undefined ? { databaseVersion: dto.databaseVersion?.trim() || 'latest' } : {}),
-        ...(dto.databaseCredentials !== undefined ? { databaseCredentials: dto.databaseCredentials || null } : {}),
+        ...(dto.startCommand !== undefined
+          ? { startCommand: dto.startCommand?.trim() }
+          : {}),
+        ...(dto.buildArgs !== undefined
+          ? { buildArgs: dto.buildArgs || null }
+          : {}),
+        ...(dto.nixpacksConfig !== undefined
+          ? { nixpacksConfig: dto.nixpacksConfig || null }
+          : {}),
+        ...(dto.staticConfig !== undefined
+          ? { staticConfig: dto.staticConfig || null }
+          : {}),
+        ...(dto.dockerComposeContent !== undefined
+          ? { dockerComposeContent: dto.dockerComposeContent }
+          : {}),
+        ...(dto.composeServiceName !== undefined
+          ? { composeServiceName: dto.composeServiceName?.trim() }
+          : {}),
+        ...(dto.databaseType !== undefined
+          ? { databaseType: dto.databaseType }
+          : {}),
+        ...(dto.databaseVersion !== undefined
+          ? { databaseVersion: dto.databaseVersion?.trim() || 'latest' }
+          : {}),
+        ...(dto.databaseCredentials !== undefined
+          ? { databaseCredentials: dto.databaseCredentials || null }
+          : {}),
         ...(dto.env !== undefined ? { env: dto.env } : {}),
-        ...(dto.healthcheckPath !== undefined ? { healthcheckPath: dto.healthcheckPath?.trim() } : {}),
+        ...(dto.healthcheckPath !== undefined
+          ? { healthcheckPath: dto.healthcheckPath?.trim() }
+          : {}),
         ...(dto.replicas !== undefined ? { replicas: dto.replicas } : {}),
       },
       include: serviceInclude,
@@ -322,7 +361,9 @@ export class ServicesService {
     });
 
     if (membership?.role !== ProjectRole.OWNER) {
-      throw new ForbiddenException('Action réservée au OWNER du projet ou ADMIN');
+      throw new ForbiddenException(
+        'Action réservée au OWNER du projet ou ADMIN',
+      );
     }
   }
 }

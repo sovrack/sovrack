@@ -24,28 +24,57 @@ describe('DeploymentsLogSearchService', () => {
   }
 
   it('filters by case-insensitive substring', async () => {
-    const res = await makeService().searchLogs('d1', 'u1', Role.ADMIN, 'health');
+    const res = await makeService().searchLogs(
+      'd1',
+      'u1',
+      Role.ADMIN,
+      'health',
+    );
     expect(res.total).toBe(2);
-    expect(res.hits.every((h) => h.message.toLowerCase().includes('health'))).toBe(true);
+    expect(
+      res.hits.every((h) => h.message.toLowerCase().includes('health')),
+    ).toBe(true);
   });
 
   it('infers ERROR / WARN levels and filters on them', async () => {
-    const errors = await makeService().searchLogs('d1', 'u1', Role.ADMIN, '', 'ERROR');
+    const errors = await makeService().searchLogs(
+      'd1',
+      'u1',
+      Role.ADMIN,
+      '',
+      'ERROR',
+    );
     expect(errors.hits).toHaveLength(1);
     expect(errors.hits[0].level).toBe('ERROR');
 
-    const warns = await makeService().searchLogs('d1', 'u1', Role.ADMIN, '', 'WARN');
+    const warns = await makeService().searchLogs(
+      'd1',
+      'u1',
+      Role.ADMIN,
+      '',
+      'WARN',
+    );
     expect(warns.hits).toHaveLength(1);
     expect(warns.hits[0].level).toBe('WARN');
   });
 
   it('returns line numbers (1-based)', async () => {
-    const res = await makeService().searchLogs('d1', 'u1', Role.ADMIN, 'connection refused');
+    const res = await makeService().searchLogs(
+      'd1',
+      'u1',
+      Role.ADMIN,
+      'connection refused',
+    );
     expect(res.hits[0].lineNumber).toBe(3);
   });
 
   it('handles empty logs without crashing', async () => {
-    const res = await makeService(null).searchLogs('d1', 'u1', Role.ADMIN, 'error');
+    const res = await makeService(null).searchLogs(
+      'd1',
+      'u1',
+      Role.ADMIN,
+      'error',
+    );
     expect(res).toEqual({ hits: [], total: 0 });
   });
 
@@ -55,7 +84,12 @@ describe('DeploymentsLogSearchService', () => {
     } as unknown as PrismaService;
     const findOne = jest.fn().mockResolvedValue({ id: 'd1' });
     const query = { findOne } as unknown as DeploymentsQueryService;
-    await new DeploymentsLogSearchService(prisma, query).searchLogs('d1', 'u1', Role.DEVELOPER, 'x');
+    await new DeploymentsLogSearchService(prisma, query).searchLogs(
+      'd1',
+      'u1',
+      Role.DEVELOPER,
+      'x',
+    );
     expect(findOne).toHaveBeenCalledWith('d1', 'u1', Role.DEVELOPER);
   });
 });

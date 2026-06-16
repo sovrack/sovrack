@@ -1,14 +1,5 @@
-import {
-  Controller,
-  Get,
-  Param,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { GetUser } from '../../../../core/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../../core/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../../core/jwt/dto/jwt-payload.dto';
@@ -25,10 +16,7 @@ export class GithubController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'List GitHub repositories for a project' })
-  async listRepos(
-    @Param('id') projectId: string,
-    @GetUser() user: JwtPayload,
-  ) {
+  async listRepos(@Param('id') projectId: string, @GetUser() user: JwtPayload) {
     return await this.githubService.listRepos(projectId, user.id, user.role);
   }
 
@@ -57,6 +45,10 @@ export class GithubController {
     @Param('id') projectId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.githubService.listPipelines(projectId, user.id, user.role);
+    return await this.githubService.listPipelines(
+      projectId,
+      user.id,
+      user.role,
+    );
   }
 }

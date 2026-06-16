@@ -16,13 +16,17 @@ describe('DockerDeployExecutorService — blue-green cut-over', () => {
     const prisma = {
       proxyRule: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       container: {
-        findMany: jest.fn().mockResolvedValue([
-          { id: 'c-blue', dockerId: 'docker-blue', name: 'app-blue' },
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'c-blue', dockerId: 'docker-blue', name: 'app-blue' },
+          ]),
         update: jest.fn().mockResolvedValue({}),
       },
     } as unknown as PrismaService;
-    const docker = { removeContainer: jest.fn().mockResolvedValue(undefined) } as unknown as DockerApiService;
+    const docker = {
+      removeContainer: jest.fn().mockResolvedValue(undefined),
+    } as unknown as DockerApiService;
     const service = new DockerDeployExecutorService(
       prisma,
       docker,
@@ -30,16 +34,24 @@ describe('DockerDeployExecutorService — blue-green cut-over', () => {
       {} as DeploymentsHealthcheckService,
       { decryptSafe: (v: string | null) => v } as unknown as CryptoService,
       {} as unknown as import('../../../core/ssh/ssh-executor.service').SshExecutorService,
-      { decrypt: (v: string) => v } as unknown as import('../../infrastructure/servers/services/servers-crypto.service').ServersCryptoService,
-      { resolveForConnection: jest.fn() } as unknown as import('../../infrastructure/servers/services/server-host-key.service').ServerHostKeyService,
+      {
+        decrypt: (v: string) => v,
+      } as unknown as import('../../infrastructure/servers/services/servers-crypto.service').ServersCryptoService,
+      {
+        resolveForConnection: jest.fn(),
+      } as unknown as import('../../infrastructure/servers/services/server-host-key.service').ServerHostKeyService,
     );
     // Skip the real 3s drain.
-    jest.spyOn(service as unknown as { sleep: () => Promise<void> }, 'sleep').mockResolvedValue(undefined);
+    jest
+      .spyOn(service as unknown as { sleep: () => Promise<void> }, 'sleep')
+      .mockResolvedValue(undefined);
     return { service, prisma, docker };
   }
 
   const cutover = (s: DockerDeployExecutorService, ...args: unknown[]) =>
-    (s as unknown as { cutoverBlueGreen: (...a: unknown[]) => Promise<string> }).cutoverBlueGreen(...args);
+    (
+      s as unknown as { cutoverBlueGreen: (...a: unknown[]) => Promise<string> }
+    ).cutoverBlueGreen(...args);
 
   it('repoints proxy to the green port, drains, then removes blue', async () => {
     const { service, prisma, docker } = build();
@@ -52,10 +64,18 @@ describe('DockerDeployExecutorService — blue-green cut-over', () => {
     // Blue is selected by excluding the green dockerId.
     expect(prisma.container.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { serviceEnvId: 'env-1', status: ContainerStatus.RUNNING, dockerId: { not: 'docker-green' } },
+        where: {
+          serviceEnvId: 'env-1',
+          status: ContainerStatus.RUNNING,
+          dockerId: { not: 'docker-green' },
+        },
       }),
     );
-    expect(docker.removeContainer).toHaveBeenCalledWith('srv-1', 'docker-blue', true);
+    expect(docker.removeContainer).toHaveBeenCalledWith(
+      'srv-1',
+      'docker-blue',
+      true,
+    );
     expect(prisma.container.update).toHaveBeenCalledWith({
       where: { id: 'c-blue' },
       data: { status: ContainerStatus.EXITED },
@@ -72,7 +92,11 @@ describe('DockerDeployExecutorService — blue-green cut-over', () => {
 
   it('does not crash if removing a blue container fails', async () => {
     const { service, docker } = build();
-    (docker.removeContainer as jest.Mock).mockRejectedValueOnce(new Error('boom'));
-    await expect(cutover(service, 'env-1', 'srv-1', 'docker-green', 3001)).resolves.toBeDefined();
+    (docker.removeContainer as jest.Mock).mockRejectedValueOnce(
+      new Error('boom'),
+    );
+    await expect(
+      cutover(service, 'env-1', 'srv-1', 'docker-green', 3001),
+    ).resolves.toBeDefined();
   });
 });

@@ -8,7 +8,11 @@ export interface ServerCapabilities {
   [key: string]: string | undefined;
 }
 
-export type InstalledToolStatus = 'INSTALLED' | 'MISSING' | 'FAILED' | 'UNKNOWN';
+export type InstalledToolStatus =
+  | 'INSTALLED'
+  | 'MISSING'
+  | 'FAILED'
+  | 'UNKNOWN';
 
 /** One detected tool, stored in the Server.installedTools JSON array. */
 export interface InstalledTool {

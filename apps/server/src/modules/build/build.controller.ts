@@ -68,7 +68,13 @@ export class BuildController {
     @Body() dto: CreateBuildConfigDto,
     @Query('serviceId') serviceId?: string,
   ) {
-    await this.setupService.updateBuildConfig(id, dto, user.id, user.role, serviceId);
+    await this.setupService.updateBuildConfig(
+      id,
+      dto,
+      user.id,
+      user.role,
+      serviceId,
+    );
     return { message: 'Configuration mise à jour' };
   }
 
@@ -163,7 +169,9 @@ export class BuildController {
     @Query('branch') branch?: string,
     @Query('limit') limit?: string,
   ) {
-    const parsedLimit = limit ? Math.min(200, Math.max(1, parseInt(limit, 10) || 50)) : 50;
+    const parsedLimit = limit
+      ? Math.min(200, Math.max(1, parseInt(limit, 10) || 50))
+      : 50;
     return this.buildsService.listForProject(projectId, {
       ...(status ? { status } : {}),
       ...(branch ? { branch } : {}),

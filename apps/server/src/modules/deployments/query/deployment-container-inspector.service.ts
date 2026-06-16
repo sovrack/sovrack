@@ -18,7 +18,9 @@ import {
  */
 @Injectable()
 export class DeploymentContainerInspectorService {
-  private readonly logger = new Logger(DeploymentContainerInspectorService.name);
+  private readonly logger = new Logger(
+    DeploymentContainerInspectorService.name,
+  );
 
   constructor(
     private readonly prisma: PrismaService,
@@ -39,17 +41,26 @@ export class DeploymentContainerInspectorService {
 
     if (!deployment) throw new BadRequestException('Déploiement introuvable');
 
-    const resolvedRefs = deployment.resolvedRefs as { serverId?: string } | null;
+    const resolvedRefs = deployment.resolvedRefs as {
+      serverId?: string;
+    } | null;
     const serverId = resolvedRefs?.serverId;
-    if (!serverId) throw new BadRequestException('Aucun serveur associé à ce déploiement');
+    if (!serverId)
+      throw new BadRequestException('Aucun serveur associé à ce déploiement');
 
-    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new BadRequestException('Serveur introuvable');
-    if (!server.sshKey) throw new BadRequestException('Aucune clé SSH configurée sur ce serveur');
-
-    const pinnedHost = await this.serverHostKeyService.resolveForConnection(server, {
-      allowTrustOnFirstUse: false,
+    const server = await this.prisma.server.findUnique({
+      where: { id: serverId },
     });
+    if (!server) throw new BadRequestException('Serveur introuvable');
+    if (!server.sshKey)
+      throw new BadRequestException('Aucune clé SSH configurée sur ce serveur');
+
+    const pinnedHost = await this.serverHostKeyService.resolveForConnection(
+      server,
+      {
+        allowTrustOnFirstUse: false,
+      },
+    );
 
     const decryptedKey = this.serversCryptoService.decrypt(server.sshKey);
 
@@ -68,7 +79,10 @@ export class DeploymentContainerInspectorService {
         ? `${deployment.serviceId}`
         : deploymentId;
 
-      let container = await this.dockerSsh.findContainerByName(conn, containerName);
+      let container = await this.dockerSsh.findContainerByName(
+        conn,
+        containerName,
+      );
       if (!container) {
         const allNames = await this.dockerSsh.listContainerNames(conn);
         container = allNames.split('\n')[0] ?? '';
@@ -95,7 +109,10 @@ export class DeploymentContainerInspectorService {
     if (!imageRef || imageRef.startsWith('compose://')) return null;
 
     try {
-      const info = await this.dockerRemoteService.inspectImage(serverId, imageRef);
+      const info = await this.dockerRemoteService.inspectImage(
+        serverId,
+        imageRef,
+      );
       if (info) {
         const digest = info.RepoDigests?.[0] ?? info.Id;
         if (digest && digest.startsWith('sha256:')) return digest;

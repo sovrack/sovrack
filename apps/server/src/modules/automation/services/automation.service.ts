@@ -204,9 +204,13 @@ export class AutomationService {
     const run = await this.prisma.serverOperation.findUnique({ where: { id } });
     if (!run) throw new NotFoundException('Automation run not found');
     if (ACTIVE_RUN_STATUSES.includes(run.status)) {
-      throw new BadRequestException('Cannot delete an active run. Cancel it first.');
+      throw new BadRequestException(
+        'Cannot delete an active run. Cancel it first.',
+      );
     }
-    await this.prisma.serverOperationLog.deleteMany({ where: { operationId: id } });
+    await this.prisma.serverOperationLog.deleteMany({
+      where: { operationId: id },
+    });
     await this.prisma.serverOperation.delete({ where: { id } });
     return { deleted: true };
   }

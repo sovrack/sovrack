@@ -104,7 +104,10 @@ describe('ServersCryptoService', () => {
     it('should decrypt legacy CryptoJS ciphertexts', () => {
       const plaintext = 'legacy-secret-data';
       const secret = 'this-is-a-test-secret-key-that-is-at-least-32-char';
-      const legacyEncrypted = CryptoJS.AES.encrypt(plaintext, secret).toString();
+      const legacyEncrypted = CryptoJS.AES.encrypt(
+        plaintext,
+        secret,
+      ).toString();
 
       const decrypted = service.decrypt(legacyEncrypted);
       expect(decrypted).toBe(plaintext);

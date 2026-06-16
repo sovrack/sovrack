@@ -99,7 +99,11 @@ export class ServerResponseDto {
   @ApiProperty()
   hasRunner!: boolean;
 
-  @ApiPropertyOptional({ type: String, description: 'Infrastructure role: NONE | STAGING | PRODUCTION | DATABASE | RUNNER | MONITORING' })
+  @ApiPropertyOptional({
+    type: String,
+    description:
+      'Infrastructure role: NONE | STAGING | PRODUCTION | DATABASE | RUNNER | MONITORING',
+  })
   infraRole?: string;
 
   @ApiProperty({ format: 'date-time' })
@@ -111,7 +115,8 @@ export class ServerResponseDto {
   @ApiPropertyOptional({
     type: () => ServerActiveJobDto,
     nullable: true,
-    description: 'Job actuellement actif (RUNNING/PENDING) verrouillant ce serveur, sinon null.',
+    description:
+      'Job actuellement actif (RUNNING/PENDING) verrouillant ce serveur, sinon null.',
   })
   activeJob?: ServerActiveJobDto | null;
 }

@@ -259,11 +259,7 @@ export class GitlabController {
     @Param('id') projectId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.gitlabCore.getGitlabConfig(
-      projectId,
-      user.id,
-      user.role,
-    );
+    return await this.gitlabCore.getGitlabConfig(projectId, user.id, user.role);
   }
 
   private parseOptionalRepoId(repoId: string | undefined): number | undefined {

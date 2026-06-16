@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DeploymentStatus, BuildPack, BuildTrigger, BuildStatus } from '@prisma/client';
+import {
+  DeploymentStatus,
+  BuildPack,
+  BuildTrigger,
+  BuildStatus,
+} from '@prisma/client';
 import { DeploymentsAutoTriggerService } from './deployments-auto-trigger.service';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
@@ -19,7 +24,11 @@ const makeSvcEnv = (overrides = {}) => ({
   serviceId: SVC_ID,
   environmentId: ENV_ID,
   buildPack: null,
-  service: { buildPack: BuildPack.DOCKERFILE, nixpacksConfig: null, staticConfig: null },
+  service: {
+    buildPack: BuildPack.DOCKERFILE,
+    nixpacksConfig: null,
+    staticConfig: null,
+  },
   environment: { id: ENV_ID },
   ...overrides,
 });
@@ -95,8 +104,8 @@ describe('DeploymentsAutoTriggerService', () => {
         startedAt: new Date(),
       };
       buildsService.create.mockResolvedValue(build);
-      prisma.$transaction.mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) =>
-        fn(prisma),
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
       );
       prisma.deployment.create.mockResolvedValue(deployment);
 
@@ -116,14 +125,22 @@ describe('DeploymentsAutoTriggerService', () => {
       expect(gateway.emitStarted).toHaveBeenCalledWith(
         expect.objectContaining({ deploymentId: DEPLOYMENT_ID }),
       );
-      expect(queue.enqueueDeploy).toHaveBeenCalledWith(DEPLOYMENT_ID, undefined);
+      expect(queue.enqueueDeploy).toHaveBeenCalledWith(
+        DEPLOYMENT_ID,
+        undefined,
+      );
     });
 
     it('skips ServiceEnvironment when deployment with same pipeline ID already exists', async () => {
       prisma.serviceEnvironment.findMany.mockResolvedValue([makeSvcEnv()]);
       prisma.deployment.findFirst.mockResolvedValue({ id: 'existing-deploy' });
 
-      await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH, undefined, 42);
+      await service.triggerAutoDeployIfConfigured(
+        PROJECT_ID,
+        BRANCH,
+        undefined,
+        42,
+      );
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(queue.enqueueDeploy).not.toHaveBeenCalled();
@@ -131,37 +148,58 @@ describe('DeploymentsAutoTriggerService', () => {
 
     it('uses NIXPACKS buildPack from service when ServiceEnvironment buildPack is null', async () => {
       prisma.serviceEnvironment.findMany.mockResolvedValue([
-        makeSvcEnv({ service: { buildPack: BuildPack.NIXPACKS, nixpacksConfig: null, staticConfig: null } }),
+        makeSvcEnv({
+          service: {
+            buildPack: BuildPack.NIXPACKS,
+            nixpacksConfig: null,
+            staticConfig: null,
+          },
+        }),
       ]);
       prisma.deployment.findFirst.mockResolvedValue(null);
       buildsService.create.mockResolvedValue({ id: BUILD_ID });
-      prisma.$transaction.mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) =>
-        fn(prisma),
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
       );
       prisma.deployment.create.mockResolvedValue({
-        id: DEPLOYMENT_ID, projectId: PROJECT_ID, environmentId: ENV_ID, status: DeploymentStatus.PENDING, startedAt: new Date(),
+        id: DEPLOYMENT_ID,
+        projectId: PROJECT_ID,
+        environmentId: ENV_ID,
+        status: DeploymentStatus.PENDING,
+        startedAt: new Date(),
       });
 
       await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
 
       expect(buildsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ buildPack: BuildPack.NIXPACKS, isLocalBuild: true }),
+        expect.objectContaining({
+          buildPack: BuildPack.NIXPACKS,
+          isLocalBuild: true,
+        }),
         prisma,
       );
     });
 
     it('handles per-ServiceEnvironment errors gracefully without stopping others', async () => {
       const svcEnv2 = makeSvcEnv({ id: 'svcenv-2', environmentId: 'env-2' });
-      prisma.serviceEnvironment.findMany.mockResolvedValue([makeSvcEnv(), svcEnv2]);
+      prisma.serviceEnvironment.findMany.mockResolvedValue([
+        makeSvcEnv(),
+        svcEnv2,
+      ]);
       prisma.deployment.findFirst.mockResolvedValue(null);
 
       prisma.$transaction
         .mockRejectedValueOnce(new Error('DB error on svcenv-1'))
-        .mockImplementationOnce(async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma));
+        .mockImplementationOnce(
+          async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
+        );
 
       const deployment2 = {
-        id: 'deploy-2', projectId: PROJECT_ID, environmentId: 'env-2',
-        status: DeploymentStatus.PENDING, startedAt: new Date(),
+        id: 'deploy-2',
+        projectId: PROJECT_ID,
+        environmentId: 'env-2',
+        status: DeploymentStatus.PENDING,
+        startedAt: new Date(),
       };
       buildsService.create.mockResolvedValue({ id: BUILD_ID });
       prisma.deployment.create.mockResolvedValue(deployment2);

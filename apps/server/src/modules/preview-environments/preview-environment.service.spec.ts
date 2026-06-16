@@ -23,14 +23,20 @@ describe('PreviewEnvironmentService', () => {
   beforeEach(() => {
     prisma = {
       project: { findUnique: jest.fn().mockResolvedValue({ id: 'p1' }) },
-      service: { findMany: jest.fn().mockResolvedValue([{ id: 's1' }, { id: 's2' }]) },
+      service: {
+        findMany: jest.fn().mockResolvedValue([{ id: 's1' }, { id: 's2' }]),
+      },
       environment: {
         findFirst: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue({ id: 'env-mr-42' }),
       },
       serviceEnvironment: {
         findUnique: jest.fn().mockResolvedValue(null),
-        create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: `se-${data.serviceId}` })),
+        create: jest
+          .fn()
+          .mockImplementation(({ data }) =>
+            Promise.resolve({ id: `se-${data.serviceId}` }),
+          ),
         update: jest.fn().mockResolvedValue({ id: 'se-existing' }),
         findMany: jest.fn().mockResolvedValue([{ id: 'se-1' }, { id: 'se-2' }]),
         updateMany: jest.fn().mockResolvedValue({ count: 2 }),
@@ -51,14 +57,20 @@ describe('PreviewEnvironmentService', () => {
       data: { projectId: 'p1', name: 'preview-mr-42' },
     });
     expect(prisma.serviceEnvironment.create).toHaveBeenCalledTimes(2);
-    expect(prisma.serviceEnvironment.create.mock.calls[0][0].data).toMatchObject({
+    expect(
+      prisma.serviceEnvironment.create.mock.calls[0][0].data,
+    ).toMatchObject({
       isPreview: true,
       previewMrId: '42',
       previewBranch: 'feature/login',
       branch: 'feature/login',
     });
     expect(result.serviceEnvironmentIds).toEqual(['se-s1', 'se-s2']);
-    expect(postComment).toHaveBeenCalledWith('p1', '42', expect.stringContaining('feature/login'));
+    expect(postComment).toHaveBeenCalledWith(
+      'p1',
+      '42',
+      expect.stringContaining('feature/login'),
+    );
   });
 
   it('reuses an existing preview service-environment (un-archives it)', async () => {
@@ -73,12 +85,16 @@ describe('PreviewEnvironmentService', () => {
 
   it('rejects a project with no application services', async () => {
     prisma.service.findMany.mockResolvedValue([]);
-    await expect(service.openPreview('p1', '42', 'b')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.openPreview('p1', '42', 'b')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('throws when the project does not exist', async () => {
     prisma.project.findUnique.mockResolvedValue(null);
-    await expect(service.openPreview('missing', '42', 'b')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.openPreview('missing', '42', 'b'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('closePreview soft-deletes preview service-environments', async () => {

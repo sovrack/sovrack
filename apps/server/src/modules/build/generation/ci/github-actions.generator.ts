@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { GitProviderType } from '@prisma/client';
-import type { ICiGenerator, CiGenerateOptions } from '../../interfaces/ci-generator.interface';
+import type {
+  ICiGenerator,
+  CiGenerateOptions,
+} from '../../interfaces/ci-generator.interface';
 
 type TestJobProfile = {
   runsOn: string;
@@ -59,7 +62,9 @@ const TEST_PROFILES: Record<string, TestJobProfile> = {
   },
   rust: {
     runsOn: 'ubuntu-latest',
-    setupSteps: ['- uses: actions/cache@v4\n          with:\n            path: target\n            key: ${{ runner.os }}-cargo-${{ hashFiles(\'**/Cargo.lock\') }}'],
+    setupSteps: [
+      "- uses: actions/cache@v4\n          with:\n            path: target\n            key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}",
+    ],
     testSteps: ['run: cargo test --release'],
   },
 };
@@ -104,9 +109,13 @@ export class GithubActionsGenerator implements ICiGenerator {
   }
 
   generate(options: CiGenerateOptions): string {
-    const branches = options.branches?.length ? options.branches : ['main', 'develop'];
+    const branches = options.branches?.length
+      ? options.branches
+      : ['main', 'develop'];
     const testProfile = resolveTestProfile(options.projectType);
-    const imageRepo = options.imageRepository ?? 'ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}';
+    const imageRepo =
+      options.imageRepository ??
+      'ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}';
 
     const branchList = branches.map((b) => `      - ${b}`).join('\n');
 
@@ -126,8 +135,12 @@ export class GithubActionsGenerator implements ICiGenerator {
     ];
 
     if (testProfile) {
-      const setupStepsYml = testProfile.setupSteps.map((s) => `        ${s}`).join('\n');
-      const testStepsYml = testProfile.testSteps.map((s) => `        - ${s}`).join('\n');
+      const setupStepsYml = testProfile.setupSteps
+        .map((s) => `        ${s}`)
+        .join('\n');
+      const testStepsYml = testProfile.testSteps
+        .map((s) => `        - ${s}`)
+        .join('\n');
 
       lines.push(
         '  test:',

@@ -66,7 +66,9 @@ export class DockerConnectionNotificationsListener {
     }
   }
 
-  private async safeResolveServerName(serverId: string): Promise<string | undefined> {
+  private async safeResolveServerName(
+    serverId: string,
+  ): Promise<string | undefined> {
     try {
       const server = await this.prisma.server.findUnique({
         where: { id: serverId },

@@ -17,15 +17,11 @@ const STALE_THRESHOLD_MINUTES = 45;
 export class DeploymentsStaleRecoveryService {
   private readonly logger = new Logger(DeploymentsStaleRecoveryService.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   @Cron(CronExpression.EVERY_10_MINUTES)
   async recoverStaleDeployments(): Promise<void> {
-    const cutoff = new Date(
-      Date.now() - STALE_THRESHOLD_MINUTES * 60 * 1_000,
-    );
+    const cutoff = new Date(Date.now() - STALE_THRESHOLD_MINUTES * 60 * 1_000);
 
     const { count } = await this.prisma.deployment.updateMany({
       where: {

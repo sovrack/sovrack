@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { DeploymentStatus, PipelineRunStatus, ServerStatus } from '@prisma/client';
+import {
+  DeploymentStatus,
+  PipelineRunStatus,
+  ServerStatus,
+} from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { AUTOMATION_ACTIONS } from '../../../automation/shared/automation-options';
@@ -22,7 +26,9 @@ type AlertItem = {
 export class MonitoringStatsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getServerMonitoring(metricByHost: Map<string, MonitoringMetricSnapshot>) {
+  async getServerMonitoring(
+    metricByHost: Map<string, MonitoringMetricSnapshot>,
+  ) {
     const servers = await this.prisma.server.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
@@ -45,7 +51,10 @@ export class MonitoringStatsService {
       },
     });
 
-    const projectsByServer = new Map<string, Map<string, { id: string; name: string }>>();
+    const projectsByServer = new Map<
+      string,
+      Map<string, { id: string; name: string }>
+    >();
     for (const c of containers) {
       if (!c.deployment) continue;
       if (!projectsByServer.has(c.serverId)) {
@@ -249,12 +258,14 @@ export class MonitoringStatsService {
         .length,
       running: deployments.filter((d) => d.status === DeploymentStatus.RUNNING)
         .length,
-      succeeded: deployments.filter((d) => d.status === DeploymentStatus.SUCCESS)
-        .length,
+      succeeded: deployments.filter(
+        (d) => d.status === DeploymentStatus.SUCCESS,
+      ).length,
       failed: deployments.filter((d) => d.status === DeploymentStatus.FAILED)
         .length,
-      canceled: deployments.filter((d) => d.status === DeploymentStatus.CANCELED)
-        .length,
+      canceled: deployments.filter(
+        (d) => d.status === DeploymentStatus.CANCELED,
+      ).length,
       successRate7d:
         deploymentsLast7d.length > 0
           ? Math.round((success7d / deploymentsLast7d.length) * 100)
@@ -350,15 +361,17 @@ export class MonitoringStatsService {
       serverId: server.id,
     }));
 
-    const deploymentAlerts: AlertItem[] = failedDeployments.map((deployment) => ({
-      id: `deployment-${deployment.id}`,
-      severity: 'warning',
-      status: 'firing',
-      summary: `Failed deployment on project ${deployment.project.name}`,
-      source: 'platform',
-      startsAt: deployment.createdAt.toISOString(),
-      projectId: deployment.projectId,
-    }));
+    const deploymentAlerts: AlertItem[] = failedDeployments.map(
+      (deployment) => ({
+        id: `deployment-${deployment.id}`,
+        severity: 'warning',
+        status: 'firing',
+        summary: `Failed deployment on project ${deployment.project.name}`,
+        source: 'platform',
+        startsAt: deployment.createdAt.toISOString(),
+        projectId: deployment.projectId,
+      }),
+    );
 
     const items = [...serverAlerts, ...deploymentAlerts];
 

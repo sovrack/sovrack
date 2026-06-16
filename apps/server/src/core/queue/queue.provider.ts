@@ -21,7 +21,9 @@ function requireRedisUrl(): string {
 export const bullQueueProvider: FactoryProvider<Queue> = {
   provide: 'DEPLOYMENTS_QUEUE',
   useFactory: () => {
-    return new Queue(DEPLOYMENTS_QUEUE, { connection: { url: requireRedisUrl() } });
+    return new Queue(DEPLOYMENTS_QUEUE, {
+      connection: { url: requireRedisUrl() },
+    });
   },
 };
 

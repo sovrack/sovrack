@@ -74,7 +74,9 @@ export class ServerHostKeyService {
   }
 
   resolveStrictHostKeyChecking(): 'yes' | 'no' | 'ask' | 'accept-new' {
-    const raw = this.configService.get<string>('ANSIBLE_STRICT_HOST_KEY_CHECKING', 'accept-new').trim();
+    const raw = this.configService
+      .get<string>('ANSIBLE_STRICT_HOST_KEY_CHECKING', 'accept-new')
+      .trim();
     if (raw) {
       const value = raw.toLowerCase();
       if (
@@ -103,7 +105,9 @@ export class ServerHostKeyService {
   }
 
   resolveKnownHostsPath(): string {
-    const configured = this.configService.get<string>('ANSIBLE_KNOWN_HOSTS_PATH', '').trim();
+    const configured = this.configService
+      .get<string>('ANSIBLE_KNOWN_HOSTS_PATH', '')
+      .trim();
     if (configured) {
       return resolve(configured.replace(/[\n\r"'\\;|&$`]/g, '').trim());
     }
@@ -319,6 +323,10 @@ export class ServerHostKeyService {
   }
 
   private isProduction(): boolean {
-    return this.configService.get<string>('NODE_ENV', 'development').toLowerCase() === 'production';
+    return (
+      this.configService
+        .get<string>('NODE_ENV', 'development')
+        .toLowerCase() === 'production'
+    );
   }
 }

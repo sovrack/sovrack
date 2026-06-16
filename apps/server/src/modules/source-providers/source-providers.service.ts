@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { GitProviderType } from '@prisma/client';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
@@ -72,14 +76,18 @@ export class SourceProvidersService {
       select: { providerId: true },
     });
     if (!svc?.providerId) {
-      throw new NotFoundException(`Aucune config Git trouvée pour le service ${serviceId}`);
+      throw new NotFoundException(
+        `Aucune config Git trouvée pour le service ${serviceId}`,
+      );
     }
     const config = await this.prisma.gitProviderConfig.findUnique({
       where: { id: svc.providerId },
       select: { type: true },
     });
     if (!config) {
-      throw new NotFoundException(`Aucune config Git trouvée pour le service ${serviceId}`);
+      throw new NotFoundException(
+        `Aucune config Git trouvée pour le service ${serviceId}`,
+      );
     }
     return this.forType(config.type ?? GitProviderType.GITLAB);
   }
@@ -98,14 +106,18 @@ export class SourceProvidersService {
       select: { providerId: true },
     });
     if (!svc?.providerId) {
-      throw new NotFoundException(`Aucune config Git trouvée pour le projet ${projectId}`);
+      throw new NotFoundException(
+        `Aucune config Git trouvée pour le projet ${projectId}`,
+      );
     }
     const config = await this.prisma.gitProviderConfig.findUnique({
       where: { id: svc.providerId },
       select: { type: true },
     });
     if (!config) {
-      throw new NotFoundException(`Aucune config Git trouvée pour le projet ${projectId}`);
+      throw new NotFoundException(
+        `Aucune config Git trouvée pour le projet ${projectId}`,
+      );
     }
     return this.forType(config.type ?? GitProviderType.GITLAB);
   }
@@ -125,17 +137,29 @@ export class SourceProvidersService {
 
   // ─── Méthodes directes (raccourci sans forProject) ────────────────────────
 
-  async listRepos(projectId: string, userId: string, userRole: Role): Promise<RepoItem[]> {
+  async listRepos(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<RepoItem[]> {
     const provider = await this.forProject(projectId);
     return provider.listRepos(projectId, userId, userRole);
   }
 
-  async listBranches(projectId: string, userId: string, userRole: Role): Promise<BranchItem[]> {
+  async listBranches(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<BranchItem[]> {
     const provider = await this.forProject(projectId);
     return provider.listBranches(projectId, userId, userRole);
   }
 
-  async listPipelines(projectId: string, userId: string, userRole: Role): Promise<PipelineItem[]> {
+  async listPipelines(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<PipelineItem[]> {
     const provider = await this.forProject(projectId);
     return provider.listPipelines(projectId, userId, userRole);
   }
@@ -148,7 +172,13 @@ export class SourceProvidersService {
     preferredRepoId?: number,
   ): Promise<PipelineItem> {
     const provider = await this.forProject(projectId);
-    return provider.triggerPipeline(projectId, branch, userId, userRole, preferredRepoId);
+    return provider.triggerPipeline(
+      projectId,
+      branch,
+      userId,
+      userRole,
+      preferredRepoId,
+    );
   }
 
   async resolveProviderType(projectId: string): Promise<GitProviderType> {
@@ -201,12 +231,17 @@ export class SourceProvidersService {
   ): Promise<void> {
     switch (provider) {
       case GitProviderType.GITLAB:
-        await this.gitlabCore.connectProject(projectId, {
-          gitlabToken: token,
-          repoPath,
-          defaultBranch: branch ?? 'main',
-          providerId,
-        }, userId, userRole);
+        await this.gitlabCore.connectProject(
+          projectId,
+          {
+            gitlabToken: token,
+            repoPath,
+            defaultBranch: branch ?? 'main',
+            providerId,
+          },
+          userId,
+          userRole,
+        );
         break;
       case GitProviderType.GITHUB:
         await this.github.connectProject(projectId, {
@@ -228,13 +263,18 @@ export class SourceProvidersService {
   ): Promise<{ repoPath: string; name: string; defaultBranch: string }[]> {
     switch (provider) {
       case GitProviderType.GITLAB: {
-        const connection = await this.gitlabConnection.resolveGitlabConnectionInput({
-          gitlabToken: token,
-          providerId,
-        });
-        const baseUrl = this.gitlabConnection.normalizeUrl(connection.gitlabUrl);
+        const connection =
+          await this.gitlabConnection.resolveGitlabConnectionInput({
+            gitlabToken: token,
+            providerId,
+          });
+        const baseUrl = this.gitlabConnection.normalizeUrl(
+          connection.gitlabUrl,
+        );
         const repos = await this.gitlabApi.listGroupRepositoriesByConnection(
-          baseUrl, groupPath, connection.gitlabToken,
+          baseUrl,
+          groupPath,
+          connection.gitlabToken,
         );
         return repos.map((r: any) => ({
           repoPath: r.path_with_namespace ?? r.path ?? String(r.id),
@@ -257,13 +297,18 @@ export class SourceProvidersService {
   ): Promise<unknown> {
     switch (dto.provider) {
       case GitProviderType.GITLAB: {
-        return this.gitlabCore.connectProject(projectId, {
-          gitlabToken: dto.token,
-          providerId: dto.providerId,
-          repoPath: dto.repoPath,
-          groupPath: dto.groupPath,
-          defaultBranch: dto.defaultBranch ?? 'main',
-        }, userId, userRole);
+        return this.gitlabCore.connectProject(
+          projectId,
+          {
+            gitlabToken: dto.token,
+            providerId: dto.providerId,
+            repoPath: dto.repoPath,
+            groupPath: dto.groupPath,
+            defaultBranch: dto.defaultBranch ?? 'main',
+          },
+          userId,
+          userRole,
+        );
       }
       case GitProviderType.GITHUB: {
         return this.github.connectProject(projectId, {

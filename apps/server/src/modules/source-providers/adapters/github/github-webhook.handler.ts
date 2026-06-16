@@ -76,7 +76,10 @@ export class GithubWebhookHandler implements IWebhookHandler {
       return this.handlePushEvent(endpoint, payload as GithubPushPayload);
     }
     if (eventType === 'workflow_run') {
-      return this.handleWorkflowRunEvent(endpoint, payload as GithubWorkflowRunPayload);
+      return this.handleWorkflowRunEvent(
+        endpoint,
+        payload as GithubWorkflowRunPayload,
+      );
     }
     return { status: 'ignored' };
   }
@@ -100,7 +103,10 @@ export class GithubWebhookHandler implements IWebhookHandler {
       pipelineId: 0, // No GitLab-style pipeline equivalent for a raw push
       serviceId: serviceId ?? undefined,
     };
-    await this.eventEmitter.emitAsync(DEPLOYMENT_AUTO_DEPLOY_TRIGGER, autoDeployEvent);
+    await this.eventEmitter.emitAsync(
+      DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
+      autoDeployEvent,
+    );
 
     return { status: 'ok' };
   }
@@ -128,7 +134,10 @@ export class GithubWebhookHandler implements IWebhookHandler {
       webhookStatus: status,
       provider: GitProviderType.GITHUB,
     };
-    await this.eventEmitter.emitAsync(DEPLOYMENT_PIPELINE_UPDATED, pipelineEvent);
+    await this.eventEmitter.emitAsync(
+      DEPLOYMENT_PIPELINE_UPDATED,
+      pipelineEvent,
+    );
 
     if (status === 'success' && branch) {
       const serviceId = await this.resolveServiceId(endpoint);
@@ -138,7 +147,10 @@ export class GithubWebhookHandler implements IWebhookHandler {
         pipelineId: runId,
         serviceId: serviceId ?? undefined,
       };
-      await this.eventEmitter.emitAsync(DEPLOYMENT_AUTO_DEPLOY_TRIGGER, autoDeployEvent);
+      await this.eventEmitter.emitAsync(
+        DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
+        autoDeployEvent,
+      );
     }
 
     return { status: 'ok' };
@@ -169,7 +181,9 @@ export class GithubWebhookHandler implements IWebhookHandler {
     return svc?.id ?? null;
   }
 
-  private detectEventType(payload: Record<string, unknown>): string | undefined {
+  private detectEventType(
+    payload: Record<string, unknown>,
+  ): string | undefined {
     if ('workflow_run' in payload) return 'workflow_run';
     if ('ref' in payload && 'repository' in payload) return 'push';
     return undefined;

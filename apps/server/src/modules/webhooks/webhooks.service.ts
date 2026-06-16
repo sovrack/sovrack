@@ -1,6 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { GitProviderType, Prisma, WebhookEvent, WebhookEventStatus } from '@prisma/client';
+import {
+  GitProviderType,
+  Prisma,
+  WebhookEvent,
+  WebhookEventStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
 import { WebhookEndpointContext } from './interfaces/webhook-handler.interface';
 
@@ -117,7 +122,9 @@ export class WebhooksService {
    * `isActive` — the caller (controller) does that to return the right
    * HTTP status (404 for unknown, 403/ignored for disabled).
    */
-  async findByToken(webhookToken: string): Promise<WebhookEndpointContext | null> {
+  async findByToken(
+    webhookToken: string,
+  ): Promise<WebhookEndpointContext | null> {
     return this.prisma.webhookEndpoint.findUnique({
       where: { webhookToken },
       select: {
@@ -233,16 +240,23 @@ export class WebhooksService {
       select: { attempts: true },
     });
     const nextAttempt = (current?.attempts ?? 0) + 1;
-    const isDeadLetter = options.deadLetter === true || nextAttempt >= WEBHOOK_MAX_ATTEMPTS;
+    const isDeadLetter =
+      options.deadLetter === true || nextAttempt >= WEBHOOK_MAX_ATTEMPTS;
     const backoffMs = WEBHOOK_RETRY_BACKOFF_MS[nextAttempt];
     const nextRetryAt = isDeadLetter
       ? null
-      : (options.nextRetryAt ?? new Date(Date.now() + (backoffMs ?? WEBHOOK_RETRY_BACKOFF_MS[WEBHOOK_MAX_ATTEMPTS - 1])));
+      : (options.nextRetryAt ??
+        new Date(
+          Date.now() +
+            (backoffMs ?? WEBHOOK_RETRY_BACKOFF_MS[WEBHOOK_MAX_ATTEMPTS - 1]),
+        ));
 
     return this.prisma.webhookEvent.update({
       where: { id: eventId },
       data: {
-        status: isDeadLetter ? WebhookEventStatus.DEAD_LETTER : WebhookEventStatus.FAILED,
+        status: isDeadLetter
+          ? WebhookEventStatus.DEAD_LETTER
+          : WebhookEventStatus.FAILED,
         lastAttemptAt: new Date(),
         attempts: { increment: 1 },
         errorMessage: errorMessage.slice(0, 50_000),
@@ -280,7 +294,14 @@ export class WebhooksService {
         attempts: true,
         payload: true,
         endpoint: {
-          select: { id: true, projectId: true, serviceEnvId: true, serviceId: true, provider: true, isActive: true },
+          select: {
+            id: true,
+            projectId: true,
+            serviceEnvId: true,
+            serviceId: true,
+            provider: true,
+            isActive: true,
+          },
         },
       },
     });
@@ -316,7 +337,14 @@ export class WebhooksService {
         attempts: true,
         payload: true,
         endpoint: {
-          select: { id: true, projectId: true, serviceEnvId: true, serviceId: true, provider: true, isActive: true },
+          select: {
+            id: true,
+            projectId: true,
+            serviceEnvId: true,
+            serviceId: true,
+            provider: true,
+            isActive: true,
+          },
         },
       },
     });
@@ -372,7 +400,9 @@ export class WebhooksService {
       },
       orderBy: { receivedAt: 'desc' },
       take: options.limit ?? 100,
-      include: { endpoint: { select: { id: true, webhookToken: true, provider: true } } },
+      include: {
+        endpoint: { select: { id: true, webhookToken: true, provider: true } },
+      },
     });
   }
 

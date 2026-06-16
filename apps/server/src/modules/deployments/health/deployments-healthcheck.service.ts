@@ -1,6 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SshExecutorService, type SshConnection } from '../../../core/ssh/ssh-executor.service';
+import {
+  SshExecutorService,
+  type SshConnection,
+} from '../../../core/ssh/ssh-executor.service';
 import { ServerHostKeyService } from '../../infrastructure/servers/services/server-host-key.service';
 import { ServersCryptoService } from '../../infrastructure/servers/services/servers-crypto.service';
 import { PrismaService } from '../../../core/database/prisma.service';
@@ -79,11 +82,16 @@ export class DeploymentsHealthcheckService {
 
     // ── Phase 2 + 3 — liveness then readiness ───────────────────────────────
     // Open a single SSH connection for all probe attempts.
-    const server = await this.prisma.server.findUnique({ where: { id: params.serverId } });
+    const server = await this.prisma.server.findUnique({
+      where: { id: params.serverId },
+    });
     let sshConn: SshConnection | null = null;
     if (server) {
       try {
-        const pinnedHost = await this.serverHostKeys.resolveForConnection(server, { allowTrustOnFirstUse: false });
+        const pinnedHost = await this.serverHostKeys.resolveForConnection(
+          server,
+          { allowTrustOnFirstUse: false },
+        );
         sshConn = await this.ssh.connect({
           host: server.host,
           port: server.port,
@@ -92,7 +100,11 @@ export class DeploymentsHealthcheckService {
           expectedHostKey: pinnedHost.keyBase64,
         });
       } catch (connErr) {
-        this.emitGatewayLog(params.deploymentId, `[HEALTH] SSH connection failed, falling back to direct HTTP: ${connErr instanceof Error ? connErr.message : 'unknown'}`, 'error');
+        this.emitGatewayLog(
+          params.deploymentId,
+          `[HEALTH] SSH connection failed, falling back to direct HTTP: ${connErr instanceof Error ? connErr.message : 'unknown'}`,
+          'error',
+        );
       }
     }
 

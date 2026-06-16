@@ -4,7 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ProjectRole, Role, SourceType, ServiceType } from '@prisma/client';
+import {
+  Prisma,
+  ProjectRole,
+  Role,
+  SourceType,
+  ServiceType,
+} from '@prisma/client';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { ConnectGitlabDto } from '../../../source-providers/adapters/gitlab/dto/connect-gitlab.dto';
 import { GitlabAdapter } from '../../../source-providers/adapters/gitlab/gitlab.adapter';

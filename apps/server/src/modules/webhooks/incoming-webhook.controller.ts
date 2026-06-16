@@ -69,7 +69,11 @@ export class IncomingWebhookController {
     }
 
     const eventType = this.extractEventType(endpoint.provider, payload);
-    const deliveryId = this.extractDeliveryId(endpoint.provider, payload, rawHeaders);
+    const deliveryId = this.extractDeliveryId(
+      endpoint.provider,
+      payload,
+      rawHeaders,
+    );
 
     // 1. Record (best-effort — failure here is logged but does not throw).
     let eventId: string | null = null;
@@ -101,7 +105,8 @@ export class IncomingWebhookController {
       }
       return result;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'erreur inconnue';
+      const message =
+        error instanceof Error ? error.message : 'erreur inconnue';
       this.logger.error(
         `Dispatch failed for endpoint ${endpoint.id} (provider ${endpoint.provider}): ${message}`,
       );

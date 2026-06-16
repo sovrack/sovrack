@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { WebhookManagementService } from './webhook-management.service';
 
@@ -29,7 +22,8 @@ export class WebhookManagementController {
     @Query('serviceId') serviceId?: string,
     @Query('serviceEnvId') serviceEnvId?: string,
   ) {
-    if (serviceId) return this.webhookService.configureForService(projectId, serviceId);
+    if (serviceId)
+      return this.webhookService.configureForService(projectId, serviceId);
     return this.webhookService.configureForProject(projectId, serviceEnvId);
   }
 
@@ -49,7 +43,8 @@ export class WebhookManagementController {
     @Query('serviceId') serviceId?: string,
     @Query('serviceEnvId') serviceEnvId?: string,
   ) {
-    if (serviceId) await this.webhookService.setActiveForService(serviceId, false);
+    if (serviceId)
+      await this.webhookService.setActiveForService(serviceId, false);
     else await this.webhookService.setActive(projectId, false, serviceEnvId);
     return { status: 'paused' };
   }
@@ -60,7 +55,8 @@ export class WebhookManagementController {
     @Query('serviceId') serviceId?: string,
     @Query('serviceEnvId') serviceEnvId?: string,
   ) {
-    if (serviceId) await this.webhookService.setActiveForService(serviceId, true);
+    if (serviceId)
+      await this.webhookService.setActiveForService(serviceId, true);
     else await this.webhookService.setActive(projectId, true, serviceEnvId);
     return { status: 'resumed' };
   }

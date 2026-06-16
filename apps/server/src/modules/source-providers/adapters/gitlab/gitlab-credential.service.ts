@@ -14,9 +14,7 @@ export class GitlabCredentialService {
     const deployTokenValue = config.deployTokenValue
       ? this.cryptoService.decrypt(config.deployTokenValue)
       : '';
-    const gitlabToken = this.cryptoService.decrypt(
-      config.providerToken,
-    );
+    const gitlabToken = this.cryptoService.decrypt(config.providerToken);
 
     const isValidDeployToken =
       deployTokenValue &&
@@ -65,7 +63,10 @@ export class GitlabCredentialService {
   }
 
   cleanHost(v: string): string {
-    return v.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+    return v
+      .trim()
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/+$/, '');
   }
 
   extractRegistryUrl(gitlabUrl: string): string {
@@ -90,11 +91,23 @@ export class GitlabCredentialService {
   }
 
   isPlaceholderPath(
-    config: { externalId?: bigint | null; externalGroupId?: bigint | null; sourceType?: any },
+    config: {
+      externalId?: bigint | null;
+      externalGroupId?: bigint | null;
+      sourceType?: any;
+    },
     path: string,
   ): boolean {
-    if (config.externalId && path.startsWith(`project-${String(config.externalId)}/`)) return true;
-    if (config.externalGroupId && path.startsWith(`group-${String(config.externalGroupId)}/`)) return true;
+    if (
+      config.externalId &&
+      path.startsWith(`project-${String(config.externalId)}/`)
+    )
+      return true;
+    if (
+      config.externalGroupId &&
+      path.startsWith(`group-${String(config.externalGroupId)}/`)
+    )
+      return true;
     return false;
   }
 }

@@ -38,9 +38,13 @@ export class GitlabOAuthController {
   private resolvePublicBaseUrl(req: Request): string {
     const forwardedProto = req.header('x-forwarded-proto');
     const forwardedHost = req.header('x-forwarded-host');
-    const protocol = forwardedProto?.split(',')[0]?.trim() || req.protocol || 'http';
+    const protocol =
+      forwardedProto?.split(',')[0]?.trim() || req.protocol || 'http';
     const host = forwardedHost?.split(',')[0]?.trim() || req.get('host');
-    if (!host) throw new BadRequestException('Host HTTP manquant pour construire callback');
+    if (!host)
+      throw new BadRequestException(
+        'Host HTTP manquant pour construire callback',
+      );
     return `${protocol}://${host}`;
   }
 }
