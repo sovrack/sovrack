@@ -35,6 +35,7 @@ import { DeploymentStatusBadge } from '@/components/deployments/deployment-statu
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { ServiceConfigForm } from '@/components/projects/tabs/service/service-config-form';
+import { ServiceWebhook } from '@/components/projects/tabs/service/service-webhook';
 import { LogTerminal } from '@/components/log-terminal';
 import { useDeploymentSocket } from '@/hooks/deployments/use-deployment-socket';
 import type { Service } from '@/types/service';
@@ -261,7 +262,10 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
               </dl>
             </SectionCard>
           ) : (
-            <ServiceConfigForm projectId={projectId} service={service} onSaved={() => void load()} />
+            <>
+              <ServiceConfigForm projectId={projectId} service={service} onSaved={() => void load()} />
+              <ServiceWebhook projectId={projectId} serviceId={serviceId} />
+            </>
           )}
         </div>
       )}
@@ -420,6 +424,8 @@ function ServiceEnvironments({
 function EnvVarsEditor({ projectId, serviceEnvId }: { projectId: string; serviceEnvId: string }) {
   const [env, setEnv] = useState('');
   const [secrets, setSecrets] = useState('');
+  const [autoDeploy, setAutoDeploy] = useState(false);
+  const [autoBranch, setAutoBranch] = useState('main');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -431,6 +437,8 @@ function EnvVarsEditor({ projectId, serviceEnvId }: { projectId: string; service
         if (!alive) return;
         const raw = se.env as unknown;
         setEnv(typeof raw === 'string' ? raw : raw ? JSON.stringify(raw, null, 2) : '');
+        setAutoDeploy(!!se.autoDeploy);
+        setAutoBranch(se.autoBranch ?? 'main');
       })
       .catch(() => undefined)
       .finally(() => { if (alive) setLoading(false); });
@@ -440,7 +448,10 @@ function EnvVarsEditor({ projectId, serviceEnvId }: { projectId: string; service
   const save = async () => {
     setSaving(true); setMsg(null);
     try {
-      const payload: { env?: string; secretsEnv?: string } = {};
+      const payload: { env?: string; secretsEnv?: string; autoDeploy?: boolean; autoBranch?: string } = {
+        autoDeploy,
+        autoBranch: autoBranch.trim() || 'main',
+      };
       if (env.trim()) { JSON.parse(env); payload.env = env; } else { payload.env = '{}'; }
       if (secrets.trim()) { JSON.parse(secrets); payload.secretsEnv = secrets; }
       await environmentsService.updateServiceLink(projectId, serviceEnvId, payload);
@@ -461,6 +472,17 @@ function EnvVarsEditor({ projectId, serviceEnvId }: { projectId: string; service
         <p className="text-xs text-[var(--text-muted)]">Chargement…</p>
       ) : (
         <>
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2">
+            <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
+              <input type="checkbox" checked={autoDeploy} onChange={(e) => setAutoDeploy(e.target.checked)} />
+              Auto-deploy sur push
+            </label>
+            <span className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+              branche
+              <input value={autoBranch} onChange={(e) => setAutoBranch(e.target.value)} placeholder="main" disabled={!autoDeploy}
+                className="w-32 rounded-md border border-[var(--border)] bg-[var(--bg-app)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] outline-none disabled:opacity-50" />
+            </span>
+          </div>
           <div>
             <label className={lbl}>Variables (JSON)</label>
             <textarea rows={5} value={env} onChange={(e) => setEnv(e.target.value)}

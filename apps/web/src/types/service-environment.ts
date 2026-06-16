@@ -3,6 +3,8 @@ export type ServiceEnvironment = {
   serviceId: string;
   environmentId: string;
   env: Record<string, string> | null;
+  autoDeploy?: boolean;
+  autoBranch?: string | null;
   service: {
     id: string;
     name: string;

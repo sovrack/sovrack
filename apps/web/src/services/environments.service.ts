@@ -96,11 +96,12 @@ export const environmentsService = {
     return res.data;
   },
 
-  // Variables (claires + secrètes chiffrées au repos) de CE service × CET environnement.
+  // Config de CE service × CET environnement : variables (claires + secrètes
+  // chiffrées) + auto-deploy (push→deploy) + branche déclencheuse.
   async updateServiceLink(
     projectId: string,
     id: string,
-    payload: { env?: string; secretsEnv?: string },
+    payload: { env?: string; secretsEnv?: string; autoDeploy?: boolean; autoBranch?: string },
   ): Promise<void> {
     await api.put(`/projects/${projectId}/service-environments/${id}`, payload);
   },
