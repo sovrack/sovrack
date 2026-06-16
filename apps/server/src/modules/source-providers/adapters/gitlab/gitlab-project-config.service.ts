@@ -121,6 +121,11 @@ export class GitlabProjectConfigService {
       return Number(config.externalId);
     }
 
-    return repoIds[0];
+    // Legacy GROUP : on ne sélectionne PLUS un repo au hasard (repoIds[0]) —
+    // comportement imprévisible. Dans ce modèle tout est un Service git à
+    // repoPath précis ; une source « groupe » n'est pas déployable telle quelle.
+    throw new BadRequestException(
+      `Source GROUP non déployable : sélectionnez un dépôt précis (${action}).`,
+    );
   }
 }
