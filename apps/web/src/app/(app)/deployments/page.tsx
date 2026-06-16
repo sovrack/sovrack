@@ -14,7 +14,6 @@ import {
   Plus,
   Rocket,
   RotateCcw,
-  XCircle,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deploymentsService } from '@/services/deployments.service';
@@ -26,6 +25,7 @@ import { useAuth } from '@/hooks/auth/use-auth';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
 import { usePagination } from '@/hooks/shared/use-pagination';
 import { Pagination } from '@/components/ui/pagination';
+import { useConfirm } from '@/contexts/confirm-context';
 import type { ProjectRole } from '@/types/project';
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
@@ -73,7 +73,7 @@ const ENV_BADGE: Record<string, string> = {
   PRODUCTION: 'border-red-500/30 bg-red-500/10 text-red-400',
   STAGING:    'border-blue-500/30 bg-blue-500/10 text-blue-400',
   TESTING:    'border-amber-500/30 bg-amber-500/10 text-amber-400',
-  PREVIEW:    'border-purple-500/30 bg-purple-500/10 text-purple-400',
+  PREVIEW:    'border-indigo-500/30 bg-indigo-500/10 text-indigo-400',
 };
 
 const STATUS_OPTIONS: { label: string; value: DeploymentStatus | 'ALL'; count?: number }[] = [
@@ -205,6 +205,7 @@ export default function DeploymentsPage() {
   const [redeployProjectId, setRedeployProjectId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [rollingBackId, setRollingBackId] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   const { data, isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['deployments-page'],
@@ -236,7 +237,7 @@ export default function DeploymentsPage() {
     (isAdmin || projectRoleMap.get(dep.project.id) === 'OWNER');
 
   const handleRollback = async (depId: string) => {
-    if (!confirm('Roll back to the last stable version?')) return;
+    if (!(await confirm({ title: 'Roll back to the last stable version?', confirmLabel: 'Roll back', variant: 'danger' }))) return;
     setActionError(null); setRollingBackId(depId);
     try {
       const rb = await deploymentsService.rollback(depId);

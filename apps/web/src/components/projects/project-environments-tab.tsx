@@ -16,13 +16,15 @@ import clsx from 'clsx';
 import { environmentsService } from '@/services/environments.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DatabaseBackupsPanel } from '@/components/databases/database-backups-panel';
+import { useConfirm } from '@/contexts/confirm-context';
+import { useServers } from '@/hooks/servers/use-servers';
 import type { Environment, EnvName } from '@/types/environment';
 
 const ENV_BADGE: Record<string, string> = {
   PRODUCTION: 'border-red-500/30 bg-red-500/10 text-red-400',
   STAGING:    'border-blue-500/30 bg-blue-500/10 text-blue-400',
   TESTING:    'border-amber-500/30 bg-amber-500/10 text-amber-400',
-  PREVIEW:    'border-purple-500/30 bg-purple-500/10 text-purple-400',
+  PREVIEW:    'border-indigo-500/30 bg-indigo-500/10 text-indigo-400',
 };
 
 const ENV_NAMES: EnvName[] = ['STAGING', 'PRODUCTION', 'TESTING', 'PREVIEW'];
@@ -30,7 +32,7 @@ const ENV_NAMES: EnvName[] = ['STAGING', 'PRODUCTION', 'TESTING', 'PREVIEW'];
 const SERVICE_TYPE_STYLE: Record<string, string> = {
   APPLICATION: 'bg-blue-500/10 text-blue-300',
   DATABASE:    'bg-orange-500/10 text-orange-300',
-  MANAGED:     'bg-purple-500/10 text-purple-300',
+  MANAGED:     'bg-indigo-500/10 text-indigo-300',
 };
 
 function AddEnvDialog({
@@ -43,14 +45,25 @@ function AddEnvDialog({
   onCreated: () => void;
 }) {
   const [envName, setEnvName] = useState<EnvName>('STAGING');
+  const [serverIds, setServerIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const serversQuery = useServers();
+  const servers = serversQuery.data ?? [];
+
+  const toggleServer = (id: string) =>
+    setServerIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const handleCreate = async () => {
     setSaving(true);
     setError(null);
     try {
-      await environmentsService.create(projectId, { name: envName });
+      // An environment targets one or more VPS — create it, then attach the
+      // selected server(s). See ANALYSE_ET_PLAN_COMPLET §1 (environment = VPS selection).
+      const env = await environmentsService.create(projectId, { name: envName });
+      for (const serverId of serverIds) {
+        await environmentsService.assignServer(projectId, env.id, serverId);
+      }
       onCreated();
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -98,6 +111,34 @@ function AddEnvDialog({
               ))}
             </div>
           </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Target VPS</p>
+            {servers.length === 0 ? (
+              <p className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-2 text-xs text-[var(--text-muted)]">
+                No servers yet — add one in Remote Servers, then attach it here.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {servers.map((s) => {
+                  const selected = serverIds.includes(s.id);
+                  return (
+                    <button key={s.id} type="button" onClick={() => toggleServer(s.id)}
+                      className={clsx(
+                        'flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition',
+                        selected
+                          ? 'border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]'
+                          : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]',
+                      )}>
+                      {selected ? <CheckCircle2 size={13} /> : <Server size={13} />}
+                      <span className="flex-1 truncate">{s.name}</span>
+                      <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{s.status}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] px-5 py-4">
@@ -131,6 +172,7 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   const load = () => {
     setLoading(true);
@@ -141,10 +183,10 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [projectId]);
+  useEffect(() => { load(); }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = async (envId: string) => {
-    if (!confirm('Delete this environment?')) return;
+    if (!(await confirm({ title: 'Delete this environment?', confirmLabel: 'Delete', variant: 'danger' }))) return;
     setDeletingId(envId);
     try {
       await environmentsService.remove(projectId, envId);

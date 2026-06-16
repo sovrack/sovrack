@@ -3000,7 +3000,7 @@ export interface components {
             /** @example frontend */
             serviceName?: string;
             /** @enum {string} */
-            serviceType?: "APPLICATION" | "DATABASE" | "MANAGED";
+            serviceType?: "APPLICATION" | "DATABASE" | "MANAGED" | "WORKER" | "CRON";
         };
         ImportGitlabGroupDto: {
             /** @example my-app */
@@ -3159,7 +3159,7 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
-            /** @description Job actuellement actif (RUNNING/PENDING/BLOCKED) verrouillant ce serveur, sinon null. */
+            /** @description Job actuellement actif (RUNNING/PENDING) verrouillant ce serveur, sinon null. */
             activeJob?: components["schemas"]["ServerActiveJobDto"] | null;
         };
         CreateServerResponseDto: {
@@ -3196,7 +3196,7 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
-            /** @description Job actuellement actif (RUNNING/PENDING/BLOCKED) verrouillant ce serveur, sinon null. */
+            /** @description Job actuellement actif (RUNNING/PENDING) verrouillant ce serveur, sinon null. */
             activeJob?: components["schemas"]["ServerActiveJobDto"] | null;
             agentBootstrapToken?: string;
         };
@@ -3807,7 +3807,7 @@ export interface components {
              * @example APPLICATION
              * @enum {string}
              */
-            type?: "APPLICATION" | "DATABASE" | "MANAGED";
+            type?: "APPLICATION" | "DATABASE" | "MANAGED" | "WORKER" | "CRON";
             /** @example Backend API NestJS */
             description?: string;
             /**
@@ -3886,7 +3886,7 @@ export interface components {
              * @example APPLICATION
              * @enum {string}
              */
-            type?: "APPLICATION" | "DATABASE" | "MANAGED";
+            type?: "APPLICATION" | "DATABASE" | "MANAGED" | "WORKER" | "CRON";
             /** @example Backend API NestJS */
             description?: string;
             /**

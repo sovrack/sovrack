@@ -34,7 +34,6 @@ export function DeploymentLogsDialog({ open, deploymentId, initialStatus, onClos
   const [fetchError, setFetchError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const isActive = initialStatus === 'RUNNING' || initialStatus === 'PENDING';
 
   const { logs, status, isConnected } = useDeploymentSocket({
     deploymentId: deploymentId ?? '',

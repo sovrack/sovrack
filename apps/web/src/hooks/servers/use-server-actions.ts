@@ -4,6 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getApiErrorMessage } from '@/lib/api';
 import { serversService, type PrepareServerPayload } from '@/services/servers.service';
+import {
+  canCancelJob,
+  canRetryJob,
+  formatConnectionMode,
+  formatJobType,
+  getJobStatusClassName,
+} from '@/lib/server-utils';
 import type {
   CreateServerPayload,
   Server as ServerType,
@@ -312,31 +319,6 @@ export function useServerActions() {
     }
   };
 
-  const formatConnectionMode = (mode: ServerType['connectionMode']) => mode.toUpperCase();
-
-  const canRetryJob = (job: ServerJob) => {
-    const retryableStatuses: ServerJob['status'][] = ['FAILED', 'TIMEOUT', 'BLOCKED'];
-    return retryableStatuses.includes(job.status) && job.type !== 'REGISTER_RUNNER';
-  };
-
-  const canCancelJob = (job: ServerJob) => {
-    const cancelableStatuses: ServerJob['status'][] = ['RUNNING', 'PENDING', 'BLOCKED'];
-    return cancelableStatuses.includes(job.status);
-  };
-
-  const getJobStatusClassName = (status: ServerJob['status']) => {
-    if (status === 'SUCCESS') {
-      return 'border-green-500/20 bg-green-500/10 text-green-400';
-    }
-    if (status === 'FAILED' || status === 'TIMEOUT' || status === 'BLOCKED') {
-      return 'border-red-500/30 bg-red-500/10 text-red-400';
-    }
-    if (status === 'RUNNING' || status === 'PENDING') {
-      return 'border-blue-500/30 bg-blue-500/10 text-blue-300';
-    }
-    return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-400';
-  };
-
   const verifiedCount = useMemo(
     () => servers.filter((server) => server.isVerified).length,
     [servers],
@@ -385,19 +367,6 @@ export function useServerActions() {
     readyCount,
     unverifiedCount,
   };
-}
-
-export function formatJobType(type: ServerJob['type']) {
-  if (type === 'INSTALL_TOOLS') {
-    return 'Legacy setup';
-  }
-  if (type === 'PREPARE_SERVER') {
-    return 'Prepare Server';
-  }
-  if (type === 'REGISTER_RUNNER') {
-    return 'Register Runner';
-  }
-  return 'Validate SSH';
 }
 
 export type UseServerActionsReturn = ReturnType<typeof useServerActions>;

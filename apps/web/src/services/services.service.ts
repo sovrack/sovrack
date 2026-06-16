@@ -4,7 +4,7 @@ import type {
   CreateServicePayload,
   UpdateServicePayload,
   DiscoveredRepo,
-} from '@/types/extended/service';
+} from '@/types/service';
 
 /**
  * Service-level API (M3 model). Targets `POST /projects/:projectId/services`

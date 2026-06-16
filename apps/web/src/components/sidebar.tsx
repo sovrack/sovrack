@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { useSidebar } from '@/contexts/sidebar-context';
-import { useI18n } from '@/contexts/i18n-context';
 import { LogOut, Rocket, Settings } from 'lucide-react';
 import { APP_NAV_SECTIONS, isRouteActive } from '@/config/navigation';
 
@@ -51,34 +50,10 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-// Maps section id → i18n key
-const SECTION_I18N = {
-  operations: 'operations',
-  settings: 'settings',
-} as const;
-
-// Maps nav href → i18n nav key
-const NAV_ITEM_I18N: Record<string, keyof ReturnType<typeof useI18n>['t']['nav']> = {
-  '/dashboard': 'dashboard',
-  '/projects': 'projects',
-  '/deployments': 'deployments',
-  '/admin/servers': 'remoteServers',
-  '/terminal': 'terminal',
-  '/automation': 'automation',
-  '/monitoring': 'monitoring',
-  '/settings': 'platformSettings',
-  '/settings/ssh-keys': 'sshKeys',
-  '/settings/git': 'gitProviders',
-  '/settings/registry': 'registry',
-  '/settings/audit-logs': 'auditLogs',
-  '/admin/users': 'usersTeams',
-};
-
 export function Sidebar() {
   const pathname = usePathname();
   const { user, isAdmin, logout } = useAuth();
   const { collapsed } = useSidebar();
-  const { t } = useI18n();
 
   const initials = user?.fullName
     ? user.fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -116,20 +91,18 @@ export function Sidebar() {
           );
           if (visibleItems.length === 0) return null;
 
-          const sectionLabel = SECTION_I18N[section.id as keyof typeof SECTION_I18N];
           return (
             <div key={section.id}>
               {!collapsed && (
-                <SectionLabel label={sectionLabel ? t.nav[sectionLabel] : section.label} />
+                <SectionLabel label={section.label} />
               )}
               <nav className="space-y-0.5">
                 {visibleItems.map((item) => {
-                  const navKey = NAV_ITEM_I18N[item.href];
                   return (
                     <NavItem
                       key={item.href}
                       href={item.href}
-                      label={navKey ? t.nav[navKey] : item.label}
+                      label={item.label}
                       icon={item.icon}
                       isActive={isRouteActive(pathname, item.href)}
                       collapsed={collapsed}

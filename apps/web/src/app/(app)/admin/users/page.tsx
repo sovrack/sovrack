@@ -73,7 +73,6 @@ export default function AdminUsersPage() {
     data: users = [],
     isLoading: loadingUsers,
     error: usersQueryError,
-    refetch: refetchUsers,
   } = useQuery({
     queryKey: ['admin-users'],
     queryFn: () => usersService.getAll(),
@@ -84,7 +83,6 @@ export default function AdminUsersPage() {
     data: teams = [],
     isLoading: loadingTeams,
     error: teamsQueryError,
-    refetch: refetchTeams,
   } = useQuery({
     queryKey: ['admin-teams'],
     queryFn: () => teamsService.getAll(),
@@ -103,14 +101,6 @@ export default function AdminUsersPage() {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, 2600);
   }, []);
-
-  const refreshAll = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin-teams'] }),
-    ]);
-    await Promise.all([refetchUsers(), refetchTeams()]);
-  }, [queryClient, refetchTeams, refetchUsers]);
 
   const clearDialogQuery = useCallback(() => {
     const next = new URLSearchParams(searchParams.toString());

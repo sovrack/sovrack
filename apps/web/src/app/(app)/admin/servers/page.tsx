@@ -24,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
 import { ServerCard } from '@/components/servers/server-card';
 import { ServerDetailsDialog } from '@/components/servers/server-details-dialog';
 import { ServerKeyInstallDialog } from '@/components/servers/server-key-install-dialog';
@@ -54,7 +53,7 @@ function deriveRole(s: ServerType): ServerRole {
 
 const ROLE_META: Record<ServerRole, { label: string; color: string; icon: React.ReactNode }> = {
   APP: { label: 'App Server', color: 'border-blue-500/20 bg-blue-500/10 text-blue-400', icon: <Container size={10} /> },
-  CI_RUNNER: { label: 'CI Runner', color: 'border-purple-500/20 bg-purple-500/10 text-purple-400', icon: <GitMerge size={10} /> },
+  CI_RUNNER: { label: 'CI Runner', color: 'border-indigo-500/20 bg-indigo-500/10 text-indigo-400', icon: <GitMerge size={10} /> },
   APP_CI: { label: 'App + CI', color: 'border-green-500/20 bg-green-500/10 text-green-400', icon: <Activity size={10} /> },
   GENERAL: { label: 'General', color: 'border-[var(--border)] bg-[var(--hover)] text-[var(--text-muted)]', icon: <HelpCircle size={10} /> },
 };
@@ -168,6 +167,7 @@ export default function AdminServersPage() {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSetRole = async (id: string, role: ServerInfraRole) => {
     await serversService.setRole(id, role);
     await servers.fetchServers();

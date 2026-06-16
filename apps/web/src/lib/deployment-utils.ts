@@ -38,7 +38,7 @@ export const ENV_BADGE: Record<string, string> = {
   PRODUCTION: 'border-red-500/30 bg-red-500/10 text-red-400',
   STAGING:    'border-blue-500/30 bg-blue-500/10 text-blue-400',
   TESTING:    'border-amber-500/30 bg-amber-500/10 text-amber-400',
-  PREVIEW:    'border-purple-500/30 bg-purple-500/10 text-purple-400',
+  PREVIEW:    'border-indigo-500/30 bg-indigo-500/10 text-indigo-400',
 };
 
 export const STATUS_DOT: Record<string, string> = {

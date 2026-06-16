@@ -184,7 +184,7 @@ export function ServerPreparationPanel({
   }, [serverId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Cleanup on unmount */
-  useEffect(() => () => stopPolling(), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => stopPolling(), []);  
 
   /* Auto-scroll the log viewer to the newest line */
   useEffect(() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useCallback, useEffect, useMemo, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Activity,
@@ -8,9 +8,8 @@ import {
   Container as ContainerIcon,
   Database,
   FolderGit2,
-  GitBranch,
+  Layers,
   Loader2,
-  Play,
   RefreshCw,
   Rocket,
   ScrollText,
@@ -22,12 +21,14 @@ import { getApiErrorMessage } from '@/lib/api';
 import { servicesService } from '@/services/services.service';
 import { deploymentsService } from '@/services/deployments.service';
 import { containersService } from '@/services/containers.service';
+import { environmentsService } from '@/services/environments.service';
 import { monitoringService, type ContainerInfo } from '@/services/monitoring.service';
 import { DeployDialog } from '@/components/deployments/deploy-dialog';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
-import type { Service } from '@/types/extended/service';
+import { ServiceConfigForm } from '@/components/projects/tabs/service/service-config-form';
+import type { Service } from '@/types/service';
 import type { Deployment } from '@/types/deployment';
 
 type Tab = 'general' | 'environment' | 'logs' | 'deployments' | 'monitoring';
@@ -51,17 +52,22 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
   const [deployOpen, setDeployOpen] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [environments, setEnvironments] = useState<{ id: string; name: string }[]>([]);
+  const [selectedEnvId, setSelectedEnvId] = useState<string>('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [all, deps] = await Promise.all([
+      const [all, deps, envs] = await Promise.all([
         servicesService.getAll(projectId),
         deploymentsService.getByProject(projectId),
+        environmentsService.getAll(projectId),
       ]);
       setServices(all);
       setService(all.find((s) => s.id === serviceId) ?? null);
       setDeployments(deps.filter((d) => d.serviceId === serviceId));
+      setEnvironments(envs.map((e) => ({ id: e.id, name: e.name })));
+      setSelectedEnvId((prev) => prev || envs[0]?.id || '');
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -110,9 +116,27 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
             : service.repoUrl ?? service.sourceType ?? 'Application'
         }
         actions={
-          <Link href={`/projects/${projectId}`} className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
-            <ArrowLeft size={14} /> Project
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {lastDeployment && <DeploymentStatusBadge status={lastDeployment.status} />}
+            {environments.length > 0 && (
+              <label className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)]">
+                <Layers size={14} />
+                <select
+                  value={selectedEnvId}
+                  onChange={(e) => setSelectedEnvId(e.target.value)}
+                  className="bg-transparent text-[var(--text-primary)] outline-none"
+                  aria-label="Environnement cible"
+                >
+                  {environments.map((env) => (
+                    <option key={env.id} value={env.id}>{env.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <Link href={`/projects/${projectId}`} className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+              <ArrowLeft size={14} /> Project
+            </Link>
+          </div>
         }
       />
 
@@ -161,21 +185,21 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
             )}
           </SectionCard>
 
-          <SectionCard title="Provider" description="Where this service's code or image comes from.">
-            <div className="flex items-center gap-2">
-              <TypeIcon size={18} className="text-[var(--text-secondary)]" />
-              <span className="text-sm font-semibold text-[var(--text-primary)]">
-                {isDatabase ? `${service.databaseType} ${service.databaseVersion ?? ''}` : service.sourceType === 'DOCKER_IMAGE' ? 'Docker image' : 'Git repository'}
-              </span>
-            </div>
-            <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-              {service.repoUrl && <Field k="Repository" v={service.repoUrl} mono />}
-              {service.branch && <Field k="Branch" v={service.branch} icon={<GitBranch size={11} />} />}
-              {service.buildPack && <Field k="Build pack" v={service.buildPack} />}
-              {service.port != null && <Field k="Port" v={String(service.port)} />}
-              {service.startCommand && <Field k="Start command" v={service.startCommand} mono />}
-            </dl>
-          </SectionCard>
+          {isDatabase ? (
+            <SectionCard title="Database" description="Engine and connection details for this managed database.">
+              <div className="flex items-center gap-2">
+                <TypeIcon size={18} className="text-[var(--text-secondary)]" />
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
+                  {service.databaseType} {service.databaseVersion ?? ''}
+                </span>
+              </div>
+              <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                {service.port != null && <Field k="Port" v={String(service.port)} />}
+              </dl>
+            </SectionCard>
+          ) : (
+            <ServiceConfigForm projectId={projectId} service={service} onSaved={() => void load()} />
+          )}
         </div>
       )}
 
@@ -227,6 +251,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         onCreated={() => { setDeployOpen(false); void load(); }}
         services={services}
         initialServiceId={serviceId}
+        initialEnvironmentId={selectedEnvId || undefined}
       />
     </div>
   );

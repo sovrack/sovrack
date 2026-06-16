@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import {
   Activity,
-  ArrowRight,
   CheckCircle2,
-  Circle,
   Clock,
   GitBranch,
   Globe,
@@ -16,14 +14,13 @@ import {
   Settings2,
   Terminal,
   Users,
-  Wrench,
-  Zap,
 } from 'lucide-react';
 import type { ProjectDetail, GitlabConfig } from '@/types/project';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
 import type { Environment } from '@/types/environment';
 import { deploymentsService } from '@/services/deployments.service';
 import { getApiErrorMessage } from '@/lib/api';
+import { useConfirm } from '@/contexts/confirm-context';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
 import { DeploymentLogsDialog } from '@/components/projects/tabs/runs/deployment-logs-dialog';
 import { timeAgo, dur, resolveDeploymentUrl, ENV_BADGE } from '@/lib/deployment-utils';
@@ -37,8 +34,8 @@ type Props = {
   environments?: Environment[];
   onRollbackDone?: () => void;
   onTabChange?: (tab: string) => void;
-  onOpenBuild?: () => void;
   onDeploy?: () => void;
+  onDeployService?: (serviceId: string, envId: string) => void;
 };
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
@@ -50,126 +47,28 @@ export function ProjectOverview({
   environments = [],
   onRollbackDone,
   onTabChange,
-  onOpenBuild,
   onDeploy,
+  onDeployService,
 }: Props) {
   const [rollingBack, setRollingBack] = useState(false);
   const [rollbackError, setRollbackError] = useState<string | null>(null);
   const [logsTarget, setLogsTarget] = useState<{ id: string; status: DeploymentStatus } | null>(null);
+  const confirm = useConfirm();
 
   const canRollback = lastDeployment && (lastDeployment.status === 'SUCCESS' || lastDeployment.status === 'FAILED');
 
   const handleRollback = async () => {
-    if (!lastDeployment || !confirm('Rollback to the previous stable version?')) return;
+    if (!lastDeployment) return;
+    if (!(await confirm({ title: 'Rollback to the previous stable version?', confirmLabel: 'Roll back', variant: 'danger' }))) return;
     setRollingBack(true); setRollbackError(null);
     try { await deploymentsService.rollback(lastDeployment.id); onRollbackDone?.(); }
     catch (err) { setRollbackError(getApiErrorMessage(err)); }
     finally { setRollingBack(false); }
   };
 
-  /* ── Setup checklist ──────────────────────────────────────── */
-  type Step = { id: string; label: string; description: string; done: boolean; tab?: string; icon: React.ReactNode; action?: () => void };
-  const steps: Step[] = [
-    {
-      id: 'source',
-      label: 'Add a service',
-      description: 'Add an application (Git repo/group), database or Docker image',
-      done: !!sourceConfig,
-      tab: 'services',
-      icon: <GitBranch size={13} />,
-    },
-    {
-      id: 'environment',
-      label: 'Add an environment',
-      description: environments.length > 0
-        ? `${environments.length} environment${environments.length > 1 ? 's' : ''} configured`
-        : 'Assign a target VPS (staging, production…)',
-      done: environments.length > 0,
-      tab: 'environments',
-      icon: <Server size={13} />,
-    },
-    {
-      id: 'build',
-      label: 'Configure build',
-      description: 'Choose engine · generate Dockerfile & CI pipeline',
-      done: !!lastDeployment,
-      tab: 'services',
-      icon: <Wrench size={13} />,
-      action: onOpenBuild,
-    },
-    {
-      id: 'deploy',
-      label: 'First deployment',
-      description: lastDeployment
-        ? `Last run: ${lastDeployment.status} · ${timeAgo(lastDeployment.createdAt)}`
-        : 'Launch your first deployment',
-      done: !!lastDeployment && lastDeployment.status === 'SUCCESS',
-      tab: 'deployments',
-      icon: <Rocket size={13} />,
-      action: onDeploy,
-    },
-  ];
-
-  const allDone = steps.every((s) => s.done);
-  const nextStep = steps.find((s) => !s.done);
-
   return (
     <div className="space-y-5">
 
-      {/* ── Setup checklist — hidden once all done ─────────────── */}
-      {!allDone && (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3.5">
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-primary)]">Getting started</p>
-              <p className="text-xs text-[var(--text-muted)]">
-                {steps.filter((s) => s.done).length} / {steps.length} steps completed
-              </p>
-            </div>
-            {/* Progress bar */}
-            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--hover)]">
-              <div
-                className="h-full rounded-full bg-[var(--text-primary)] transition-all duration-500"
-                style={{ width: `${(steps.filter((s) => s.done).length / steps.length) * 100}%` }}
-              />
-            </div>
-          </div>
-          <div className="divide-y divide-[var(--border)]">
-            {steps.map((step) => {
-              const isNext = step.id === nextStep?.id;
-              const handleAction = step.action ?? (step.tab ? () => onTabChange?.(step.tab!) : undefined);
-              return (
-                <div key={step.id} className={`flex items-center gap-4 px-5 py-3.5 transition ${step.done ? 'opacity-60' : isNext ? '' : 'opacity-35'}`}>
-                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
-                    step.done
-                      ? 'border-green-500/40 bg-green-500/10 text-green-400'
-                      : isNext
-                        ? 'border-[var(--text-primary)]/40 bg-[var(--text-primary)]/10 text-[var(--text-primary)]'
-                        : 'border-[var(--border)] text-[var(--text-muted)]'
-                  }`}>
-                    {step.done ? <CheckCircle2 size={13} /> : <Circle size={13} />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-sm font-medium ${step.done ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-primary)]'}`}>
-                      {step.label}
-                    </p>
-                    <p className="truncate text-xs text-[var(--text-muted)]">{step.description}</p>
-                  </div>
-                  {isNext && handleAction && (
-                    <button
-                      type="button"
-                      onClick={handleAction}
-                      className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
-                    >
-                      Configure <ArrowRight size={11} />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ── Stats row ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -217,12 +116,48 @@ export function ProjectOverview({
                   </div>
 
                   {envServices.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {envServices.map((link) => (
-                        <span key={link.id} className="rounded border border-[var(--border)] bg-[var(--hover)] px-2 py-0.5 font-mono text-[10px] text-[var(--text-primary)]">
-                          {link.service?.name ?? '?'}
-                        </span>
-                      ))}
+                    <div className="mt-3 divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] overflow-hidden">
+                      {envServices.map((link) => {
+                        const dep = link.lastDeployment;
+                        const statusColor: Record<string, string> = {
+                          SUCCESS: 'text-green-400',
+                          FAILED: 'text-red-400',
+                          RUNNING: 'text-blue-400',
+                          PENDING: 'text-amber-400',
+                          CANCELED: 'text-zinc-400',
+                        };
+                        return (
+                          <div key={link.id} className="flex items-center gap-2 bg-[var(--hover)] px-3 py-2">
+                            <span className="flex-1 min-w-0">
+                              <span className="font-medium text-xs text-[var(--text-primary)] truncate">{link.service?.name ?? '?'}</span>
+                              {dep && (
+                                <span className={`ml-2 text-[10px] font-semibold ${statusColor[dep.status] ?? 'text-zinc-400'}`}>
+                                  {dep.status}
+                                </span>
+                              )}
+                              {dep?.branch && (
+                                <span className="ml-2 font-mono text-[10px] text-[var(--text-muted)]">
+                                  {dep.branch}
+                                </span>
+                              )}
+                              {dep?.createdAt && (
+                                <span className="ml-2 text-[10px] text-[var(--text-muted)]">
+                                  · {timeAgo(dep.createdAt)}
+                                </span>
+                              )}
+                            </span>
+                            {onDeployService && (
+                              <button
+                                type="button"
+                                onClick={() => onDeployService(link.serviceId, env.id)}
+                                className="shrink-0 flex items-center gap-1 rounded-lg bg-[var(--text-primary)] px-2 py-0.5 text-[10px] font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+                              >
+                                <Rocket size={8} /> Deploy
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -315,11 +250,11 @@ export function ProjectOverview({
             </div>
           </div>
         </div>
-      ) : allDone ? (
+      ) : (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-12 text-center">
           <Rocket size={28} className="mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm font-semibold text-[var(--text-primary)]">Ready to deploy</p>
-          <p className="mt-1 max-w-xs text-xs text-[var(--text-secondary)]">All steps completed. Launch your first deployment.</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">No deployments yet</p>
+          <p className="mt-1 max-w-xs text-xs text-[var(--text-secondary)]">Launch your first deployment.</p>
           {onDeploy && (
             <button
               type="button"
@@ -330,7 +265,7 @@ export function ProjectOverview({
             </button>
           )}
         </div>
-      ) : null}
+      )}
 
       <DeploymentLogsDialog
         open={logsTarget !== null}

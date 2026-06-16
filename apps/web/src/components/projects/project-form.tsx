@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { CreateProjectPayload, ProjectDetail } from '@/types/project';
+import type { CreateProjectPayload } from '@/types/project';
 import type { UserListItem } from '@/types/user';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';

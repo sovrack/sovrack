@@ -1,11 +1,9 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  Activity,
   ClipboardList,
   Database,
   FolderGit2,
   GitBranch,
-  Globe,
   KeyRound,
   LayoutDashboard,
   Rocket,

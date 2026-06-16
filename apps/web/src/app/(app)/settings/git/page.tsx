@@ -69,6 +69,7 @@ function EmptyProviders({ isAdmin, onAdd }: { isAdmin: boolean; onAdd: () => voi
 
 /* ─── Info banner ────────────────────────────────────────────────────────── */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function InfoBanner() {
   return (
     <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-[var(--text-secondary)]">
@@ -84,6 +85,7 @@ function InfoBanner() {
 
 /* ─── Upcoming providers teaser ─────────────────────────────────────────── */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function UpcomingProviders() {
   const upcoming = [
     { name: 'Gitea', icon: '🟢', desc: 'Self-hosted Gitea instances' },
@@ -129,6 +131,7 @@ function SkeletonLoading() {
 
 /* ─── Stats bar ──────────────────────────────────────────────────────────── */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function StatsBar({ providers }: { providers: GitlabProvider[] }) {
   if (providers.length === 0) return null;
   const configured = providers.filter((p) => p.status === 'CONFIGURED').length;

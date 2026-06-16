@@ -28,7 +28,7 @@ export function ContainersTab({ projectId }: Props) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadContainers = async (serverId: string) => {
     if (!serverId) return;
@@ -48,7 +48,7 @@ export function ContainersTab({ projectId }: Props) {
     void loadContainers(selectedServerId);
     autoRefreshRef.current = setInterval(() => void loadContainers(selectedServerId), 30_000);
     return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
-  }, [selectedServerId, projectId]);
+  }, [selectedServerId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRefresh = () => {
     if (!selectedServerId) return;

@@ -25,7 +25,6 @@ type UseProjectSourceParams = {
 
 export function useProjectSource({
   projectId,
-  project,
   refreshProject,
 }: UseProjectSourceParams) {
   const [sourceConfig, setSourceConfig] = useState<ProjectSourceConfig | null>(null);

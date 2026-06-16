@@ -9,7 +9,6 @@ import {
   GitCommitHorizontal,
   Globe,
   Loader2,
-  Plus,
   RefreshCw,
   Rocket,
   RotateCcw,
@@ -52,7 +51,7 @@ const STATUS_COLOR: Record<DeploymentStatus, string> = {
   PENDING: 'text-amber-400', CANCELED: 'text-zinc-400',
 };
 
-export function ProjectDeploymentsTab({ deployments, loading, error, projectId, onCreateClick, onRefresh }: Props) {
+export function ProjectDeploymentsTab({ deployments, loading, error, projectId, onRefresh }: Props) {
   const [statusFilter, setStatusFilter] = useState<DeploymentStatus | 'ALL'>('ALL');
   const [rollingBackId, setRollingBackId] = useState<string | null>(null);
   const [rollbackError, setRollbackError] = useState<string | null>(null);

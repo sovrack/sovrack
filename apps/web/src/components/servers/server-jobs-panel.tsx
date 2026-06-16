@@ -86,7 +86,7 @@ export function ServerJobsPanel({
               ) : (
                 <XCircle size={11} />
               )}
-              Cancel le job
+              Cancel job
             </button>
           </div>
         );

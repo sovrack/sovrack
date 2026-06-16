@@ -2,9 +2,7 @@
 
 import { BarChart2, ExternalLink, LineChart } from 'lucide-react';
 
-type Props = { projectId: string };
-
-export function MonitoringTab({ projectId: _projectId }: Props) {
+export function MonitoringTab() {
   const tools: {
     name: string;
     description: string;

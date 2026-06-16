@@ -19,6 +19,7 @@ import {
 } from '@/hooks/automation/use-automation';
 import { useAutomationLogStream } from '@/hooks/automation/use-automation-log-stream';
 import { useServers } from '@/hooks/servers/use-servers';
+import { useConfirm } from '@/contexts/confirm-context';
 import type { AutomationRun, AutomationRunLog, AutomationRunStatus } from '@/types/automation';
 
 const ACTIVE_RUN_STATUSES: AutomationRunStatus[] = ['QUEUED', 'RUNNING'];
@@ -47,6 +48,7 @@ export default function AutomationPage() {
   const startRun = useStartAutomationRun();
   const cancelRun = useCancelAutomationRun();
   const deleteRun = useDeleteAutomationRun();
+  const confirm = useConfirm();
   const [showHistory, setShowHistory] = useState(false);
 
   const [selectedActionKey, setSelectedActionKey] = useState('');
@@ -383,9 +385,9 @@ export default function AutomationPage() {
                       </Link>
                       <button
                         type="button"
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          if (confirm('Delete this run?')) {
+                          if (await confirm({ title: 'Delete this run?', confirmLabel: 'Delete', variant: 'danger' })) {
                             void deleteRun.mutateAsync(run.id).then(() => {
                               if (selectedRunId === run.id) setSelectedRunId(null);
                             });

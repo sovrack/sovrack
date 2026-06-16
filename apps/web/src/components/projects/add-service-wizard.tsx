@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
-  Boxes,
   Check,
   Container,
   Database,
   FolderGit2,
+  Layers,
   Loader2,
   Search,
   X,
@@ -19,21 +19,21 @@ import { projectsService } from '@/services/projects.service';
 import { servicesService } from '@/services/services.service';
 import type { SourceProviderOption } from '@/types/project';
 import type {
-  BuildPack,
   CreateServicePayload,
   DiscoveredRepo,
   ManagedServiceType,
-} from '@/types/extended/service';
+} from '@/types/service';
 
 /* ─── Catalog ───────────────────────────────────────────────────────────── */
 
-type ServiceKind = 'REPO' | 'GROUP' | 'DATABASE' | 'DOCKER';
+type ServiceKind = 'APPLICATION' | 'DATABASE' | 'DOCKER' | 'COMPOSE';
+type AppMode = 'repo' | 'group';
 
 const KINDS: { kind: ServiceKind; label: string; hint: string; icon: React.ReactNode }[] = [
-  { kind: 'REPO', label: 'Git repository', hint: 'Deploy a single repo (GitLab / GitHub / Gitea)', icon: <FolderGit2 size={20} /> },
-  { kind: 'GROUP', label: 'Git group', hint: 'Discover a group/org and add several repos at once', icon: <Boxes size={20} /> },
+  { kind: 'APPLICATION', label: 'Application', hint: 'Deploy from a Git repo or import a whole group (GitLab / GitHub / Gitea)', icon: <FolderGit2 size={20} /> },
   { kind: 'DATABASE', label: 'Database', hint: 'PostgreSQL, MySQL, Redis, MongoDB, RabbitMQ', icon: <Database size={20} /> },
   { kind: 'DOCKER', label: 'Docker image', hint: 'Deploy a prebuilt image from a registry', icon: <Container size={20} /> },
+  { kind: 'COMPOSE', label: 'Docker Compose', hint: 'Deploy a docker-compose.yml stack', icon: <Layers size={20} /> },
 ];
 
 const DATABASES: { type: ManagedServiceType; label: string; defaultVersion: string }[] = [
@@ -44,11 +44,29 @@ const DATABASES: { type: ManagedServiceType; label: string; defaultVersion: stri
   { type: 'RABBITMQ', label: 'RabbitMQ', defaultVersion: '3' },
 ];
 
-const BUILD_PACKS: BuildPack[] = ['NIXPACKS', 'DOCKERFILE', 'STATIC', 'BUILDPACK'];
-
 function repoToName(repoPath: string): string {
   const seg = repoPath.trim().replace(/\/+$/, '').split('/').pop() ?? '';
   return seg || repoPath.trim();
+}
+
+/**
+ * Accepts a full git URL or a short path and returns only the path segment.
+ * e.g. https://gitlab.com/group/repo.git  →  group/repo
+ *      git@github.com:group/repo.git      →  group/repo
+ *      group/repo                         →  group/repo
+ */
+function normalizeRepoPath(input: string): string {
+  const s = input.trim().replace(/\.git$/i, '').replace(/\/+$/, '');
+  try {
+    const url = new URL(s);
+    return url.pathname.replace(/^\/+/, '');
+  } catch {
+    // not a full URL — handle SSH git@ syntax
+    if (s.includes('@') && s.includes(':')) {
+      return s.split(':').slice(1).join(':');
+    }
+    return s.replace(/^\/+/, '');
+  }
 }
 
 type Step = 1 | 2 | 3;
@@ -59,6 +77,8 @@ type Props = { projectId: string; open: boolean; onClose: () => void; onCreated:
 export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props) {
   const [step, setStep] = useState<Step>(1);
   const [kind, setKind] = useState<ServiceKind | null>(null);
+  const [appMode, setAppMode] = useState<AppMode>('repo');
+  const [platform, setPlatform] = useState<'GITLAB' | 'GITHUB' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -69,7 +89,6 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
   const [token, setToken] = useState('');
   const [repoPath, setRepoPath] = useState('');
   const [branch, setBranch] = useState('main');
-  const [buildPack, setBuildPack] = useState<BuildPack>('NIXPACKS');
   const [port, setPort] = useState('3000');
 
   const [groupPath, setGroupPath] = useState('');
@@ -80,6 +99,7 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
   const [databaseType, setDatabaseType] = useState<ManagedServiceType>('POSTGRES');
   const [databaseVersion, setDatabaseVersion] = useState('16');
   const [image, setImage] = useState('');
+  const [composeContent, setComposeContent] = useState('');
 
   const selectedProvider = useMemo(
     () => providers.find((p) => p.id === providerId) ?? null,
@@ -87,11 +107,11 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
   );
 
   const reset = useCallback(() => {
-    setStep(1); setKind(null); setError(null); setSubmitting(false);
+    setStep(1); setKind(null); setAppMode('repo'); setPlatform(null); setError(null); setSubmitting(false);
     setName(''); setToken(''); setRepoPath(''); setBranch('main');
-    setBuildPack('NIXPACKS'); setPort('3000'); setGroupPath('');
+    setPort('3000'); setGroupPath('');
     setDiscovered([]); setSelected(new Set());
-    setDatabaseType('POSTGRES'); setDatabaseVersion('16'); setImage('');
+    setDatabaseType('POSTGRES'); setDatabaseVersion('16'); setImage(''); setComposeContent('');
   }, []);
 
   useEffect(() => {
@@ -109,11 +129,17 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
 
   if (!open) return null;
 
-  const pickKind = (k: ServiceKind) => { setKind(k); setError(null); setStep(2); };
+  const pickKind = (k: ServiceKind) => { setKind(k); setPlatform(null); setError(null); setStep(2); };
+
+  const pickPlatform = (p: 'GITLAB' | 'GITHUB') => {
+    setPlatform(p);
+    const match = providers.filter((x) => x.type === p);
+    setProviderId(match.find((x) => x.isDefault)?.id || match[0]?.id || '');
+  };
 
   const discover = async () => {
-    if (!selectedProvider || !groupPath.trim() || !token.trim()) {
-      setError('Provider, group/org path and token are required.');
+    if (!selectedProvider || !groupPath.trim() || (!token.trim() && selectedProvider.status !== 'CONFIGURED')) {
+      setError('Provider and group/org path required (plus a token if the provider is not connected).');
       return;
     }
     setDiscovering(true); setError(null);
@@ -142,31 +168,38 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
 
   // Whether step 2 has enough to advance to review.
   const canReview = (() => {
-    if (kind === 'REPO') return Boolean(selectedProvider && repoPath.trim() && token.trim());
-    if (kind === 'GROUP') return selected.size > 0;
+    if (kind === 'APPLICATION') {
+      if (appMode === 'group') return selected.size > 0;
+      return Boolean(selectedProvider && repoPath.trim() && (token.trim() || selectedProvider.status === 'CONFIGURED'));
+    }
     if (kind === 'DATABASE') return name.trim().length > 0;
     if (kind === 'DOCKER') return Boolean(name.trim() && image.trim());
+    if (kind === 'COMPOSE') return Boolean(name.trim() && composeContent.trim());
     return false;
   })();
 
   const submit = async () => {
     setError(null); setSubmitting(true);
     try {
-      if (kind === 'REPO' && selectedProvider) {
+      if (kind === 'APPLICATION' && selectedProvider && appMode === 'repo') {
         const provider = selectedProvider.type as 'GITLAB' | 'GITHUB';
+        const normalizedPath = normalizeRepoPath(repoPath);
         const payload: CreateServicePayload = {
-          name: name.trim() || repoToName(repoPath),
+          name: name.trim() || repoToName(normalizedPath),
           type: 'APPLICATION',
           sourceType: 'GIT',
-          repoPath: repoPath.trim(),
+          repoPath: normalizedPath,
           branch: branch.trim() || 'main',
           providerId: selectedProvider.id,
-          buildPack,
           port: Number(port) || undefined,
-          source: { provider, repoPath: repoPath.trim(), token: token.trim(), branch: branch.trim() || 'main' },
+          // Token only needed when the provider isn't already connected — otherwise
+          // the platform reuses the stored provider credential.
+          ...(token.trim()
+            ? { source: { provider, repoPath: normalizedPath, token: token.trim(), branch: branch.trim() || 'main' } }
+            : {}),
         };
         await servicesService.create(projectId, payload);
-      } else if (kind === 'GROUP' && selectedProvider) {
+      } else if (kind === 'APPLICATION' && selectedProvider && appMode === 'group') {
         const provider = selectedProvider.type as 'GITLAB' | 'GITHUB';
         const repos = discovered.filter((r) => selected.has(r.repoPath));
         for (const repo of repos) {
@@ -177,8 +210,9 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
             repoPath: repo.repoPath,
             branch: repo.defaultBranch || 'main',
             providerId: selectedProvider.id,
-            buildPack,
-            source: { provider, repoPath: repo.repoPath, token: token.trim(), branch: repo.defaultBranch || 'main' },
+            ...(token.trim()
+              ? { source: { provider, repoPath: repo.repoPath, token: token.trim(), branch: repo.defaultBranch || 'main' } }
+              : {}),
           });
         }
       } else if (kind === 'DATABASE') {
@@ -196,6 +230,14 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
           repoPath: image.trim(),
           buildPack: 'NONE',
           port: Number(port) || undefined,
+        });
+      } else if (kind === 'COMPOSE') {
+        await servicesService.create(projectId, {
+          name: name.trim(),
+          type: 'APPLICATION',
+          sourceType: 'NONE',
+          buildPack: 'DOCKER_COMPOSE',
+          dockerComposeContent: composeContent,
         });
       }
       onCreated();
@@ -240,7 +282,7 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
 
           {/* Step 1 — type */}
           {step === 1 && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
               {KINDS.map((k) => (
                 <button
                   key={k.kind}
@@ -258,48 +300,104 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
             </div>
           )}
 
-          {/* Step 2 — configure */}
-          {step === 2 && kind === 'REPO' && (
-            <div className="space-y-4">
-              <ProviderSelect providers={providers} value={providerId} onChange={setProviderId} />
-              <Input label="Repository path" placeholder="group/project or owner/repo" value={repoPath} onChange={(e) => setRepoPath(e.target.value)} />
+          {/* Step 2a — choose Git platform (photo 2) */}
+          {step === 2 && kind === 'APPLICATION' && !platform && (
+            <div className="space-y-3">
+              <p className="text-sm text-[var(--text-secondary)]">Choose the Git platform for this service.</p>
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Branch" value={branch} onChange={(e) => setBranch(e.target.value)} />
-                <Input label="Port" value={port} onChange={(e) => setPort(e.target.value)} />
+                {([
+                  { type: 'GITLAB' as const, label: 'GitLab', icon: <FolderGit2 size={22} className="text-orange-400" />, hint: 'DevSecOps platform' },
+                  { type: 'GITHUB' as const, label: 'GitHub', icon: <FolderGit2 size={22} />, hint: 'Code hosting platform' },
+                ]).map((pl) => {
+                  const has = providers.some((p) => p.type === pl.type);
+                  return (
+                    <button
+                      key={pl.type}
+                      type="button"
+                      onClick={() => pickPlatform(pl.type)}
+                      className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-5 text-center transition hover:border-[var(--text-muted)] hover:bg-[var(--hover)]"
+                    >
+                      <span className="text-[var(--text-primary)]">{pl.icon}</span>
+                      <span className="text-sm font-semibold text-[var(--text-primary)]">{pl.label}</span>
+                      <span className="text-[11px] text-[var(--text-muted)]">{has ? pl.hint : 'Not configured — add it in Git Providers'}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <BuildPackSelect value={buildPack} onChange={setBuildPack} />
-              <Input label="Service name (optional)" placeholder={repoPath ? repoToName(repoPath) : 'api'} value={name} onChange={(e) => setName(e.target.value)} />
-              <Input label="Access token (PAT)" type="password" placeholder="Required to read the repo" value={token} onChange={(e) => setToken(e.target.value)} />
             </div>
           )}
 
-          {step === 2 && kind === 'GROUP' && (
+          {/* Step 2b — configure (photo 1) */}
+          {step === 2 && kind === 'APPLICATION' && platform && (
             <div className="space-y-4">
-              <ProviderSelect providers={providers} value={providerId} onChange={setProviderId} />
-              <div className="flex items-end gap-2">
-                <div className="flex-1"><Input label="Group / org path" placeholder="company/my-apps" value={groupPath} onChange={(e) => setGroupPath(e.target.value)} /></div>
-                <Button variant="secondary" onClick={() => void discover()} disabled={discovering} icon={discovering ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}>Discover</Button>
-              </div>
-              <Input label="Access token (PAT)" type="password" value={token} onChange={(e) => setToken(e.target.value)} />
-              {discovered.length > 0 && (
-                <div className="rounded-xl border border-[var(--border)]">
-                  <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2 text-xs text-[var(--text-muted)]">
-                    <span>{selected.size}/{discovered.length} selected</span>
-                    <button type="button" className="font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]" onClick={() => setSelected(new Set(selected.size === discovered.length ? [] : discovered.map((r) => r.repoPath)))}>
-                      {selected.size === discovered.length ? 'Clear all' : 'Select all'}
-                    </button>
-                  </div>
-                  <div className="max-h-48 overflow-auto p-1.5">
-                    {discovered.map((r) => (
-                      <label key={r.repoPath} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-[var(--hover)]">
-                        <input type="checkbox" checked={selected.has(r.repoPath)} onChange={() => toggleRepo(r.repoPath)} />
-                        <span className="font-mono text-xs text-[var(--text-primary)]">{r.repoPath}</span>
-                      </label>
+              <button type="button" onClick={() => setPlatform(null)} className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">← Change platform ({platform})</button>
+              {providers.filter((p) => p.type === platform).length === 0 ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                  No {platform} provider configured yet. <a href="/settings/git" className="font-semibold underline">Add one in Git Providers</a>, then reopen this wizard.
+                </div>
+              ) : (
+                <>
+                  <ProviderSelect providers={providers.filter((p) => p.type === platform)} value={providerId} onChange={setProviderId} />
+
+                  <div className="flex gap-1.5">
+                    {(['repo', 'group'] as AppMode[]).map((m) => (
+                      <button key={m} type="button" onClick={() => setAppMode(m)}
+                        className={`flex-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${appMode === m ? 'border-[var(--text-primary)] bg-[var(--hover)] text-[var(--text-primary)]' : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--hover)]'}`}>
+                        {m === 'repo' ? 'Single repository' : 'Import a whole group'}
+                      </button>
                     ))}
                   </div>
-                </div>
+
+                  {appMode === 'repo' ? (
+                <>
+                  <Input
+                    label="Repository path"
+                    placeholder="group/project or owner/repo (or paste full URL)"
+                    value={repoPath}
+                    onChange={(e) => setRepoPath(normalizeRepoPath(e.target.value))}
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input label="Branch" value={branch} onChange={(e) => setBranch(e.target.value)} />
+                    <Input label="Port" value={port} onChange={(e) => setPort(e.target.value)} />
+                  </div>
+                  <Input label="Service name (optional)" placeholder={repoPath ? repoToName(repoPath) : 'api'} value={name} onChange={(e) => setName(e.target.value)} />
+                </>
+              ) : (
+                <>
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1"><Input label="Group / org path" placeholder="company/my-apps" value={groupPath} onChange={(e) => setGroupPath(e.target.value)} /></div>
+                    <Button variant="secondary" onClick={() => void discover()} disabled={discovering} icon={discovering ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}>Discover</Button>
+                  </div>
+                  {discovered.length > 0 && (
+                    <div className="rounded-xl border border-[var(--border)]">
+                      <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2 text-xs text-[var(--text-muted)]">
+                        <span>{selected.size}/{discovered.length} selected</span>
+                        <button type="button" className="font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]" onClick={() => setSelected(new Set(selected.size === discovered.length ? [] : discovered.map((r) => r.repoPath)))}>
+                          {selected.size === discovered.length ? 'Clear all' : 'Select all'}
+                        </button>
+                      </div>
+                      <div className="max-h-48 overflow-auto p-1.5">
+                        {discovered.map((r) => (
+                          <label key={r.repoPath} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-[var(--hover)]">
+                            <input type="checkbox" checked={selected.has(r.repoPath)} onChange={() => toggleRepo(r.repoPath)} />
+                            <span className="font-mono text-xs text-[var(--text-primary)]">{r.repoPath}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-              <BuildPackSelect value={buildPack} onChange={setBuildPack} />
+
+                  <Input
+                    label={selectedProvider?.status === 'CONFIGURED' ? 'Access token (PAT) — optional, provider already connected' : 'Access token (PAT)'}
+                    type="password"
+                    placeholder={selectedProvider?.status === 'CONFIGURED' ? 'Leave empty to use the connected provider' : 'Required to read the repo'}
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
+                  />
+                </>
+              )}
             </div>
           )}
 
@@ -329,14 +427,31 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
             </div>
           )}
 
+          {step === 2 && kind === 'COMPOSE' && (
+            <div className="space-y-4">
+              <Input label="Service name" placeholder="my-stack" value={name} onChange={(e) => setName(e.target.value)} />
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">docker-compose.yml</label>
+                <textarea
+                  rows={10}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 font-mono text-xs text-[var(--text-primary)] outline-none"
+                  placeholder={'services:\n  app:\n    image: nginx:alpine\n    ports:\n      - "80:80"'}
+                  value={composeContent}
+                  onChange={(e) => setComposeContent(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Step 3 — review */}
           {step === 3 && (
             <dl className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4 text-sm">
               <Row k="Type" v={kindLabel} />
-              {kind === 'REPO' && (<><Row k="Provider" v={selectedProvider?.name ?? '—'} /><Row k="Repository" v={repoPath} /><Row k="Branch" v={branch} /><Row k="Build pack" v={buildPack} /><Row k="Name" v={name || repoToName(repoPath)} /></>)}
-              {kind === 'GROUP' && (<><Row k="Provider" v={selectedProvider?.name ?? '—'} /><Row k="Group" v={groupPath} /><Row k="Services to create" v={`${selected.size}`} /><Row k="Build pack" v={buildPack} /></>)}
+              {kind === 'APPLICATION' && appMode === 'repo' && (<><Row k="Provider" v={selectedProvider?.name ?? '—'} /><Row k="Repository" v={repoPath} /><Row k="Branch" v={branch} /><Row k="Name" v={name || repoToName(repoPath)} /></>)}
+              {kind === 'APPLICATION' && appMode === 'group' && (<><Row k="Provider" v={selectedProvider?.name ?? '—'} /><Row k="Group" v={groupPath} /><Row k="Services to create" v={`${selected.size}`} /></>)}
               {kind === 'DATABASE' && (<><Row k="Engine" v={DATABASES.find((d) => d.type === databaseType)?.label ?? databaseType} /><Row k="Version" v={databaseVersion} /><Row k="Name" v={name} /></>)}
               {kind === 'DOCKER' && (<><Row k="Image" v={image} /><Row k="Port" v={port} /><Row k="Name" v={name} /></>)}
+              {kind === 'COMPOSE' && (<><Row k="Name" v={name} /><Row k="Compose lines" v={`${composeContent.split('\n').length}`} /></>)}
             </dl>
           )}
         </div>
@@ -351,7 +466,7 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
           )}
           {step === 3 && (
             <Button onClick={() => void submit()} disabled={submitting} icon={submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}>
-              {kind === 'GROUP' ? `Create ${selected.size} service${selected.size > 1 ? 's' : ''}` : 'Create service'}
+              {kind === 'APPLICATION' && appMode === 'group' ? `Create ${selected.size} service${selected.size > 1 ? 's' : ''}` : 'Create service'}
             </Button>
           )}
         </div>
@@ -385,13 +500,3 @@ function ProviderSelect({ providers, value, onChange }: { providers: SourceProvi
   );
 }
 
-function BuildPackSelect({ value, onChange }: { value: BuildPack; onChange: (v: BuildPack) => void }) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Build pack</label>
-      <select value={value} onChange={(e) => onChange(e.target.value as BuildPack)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none">
-        {BUILD_PACKS.map((bp) => <option key={bp} value={bp}>{bp}</option>)}
-      </select>
-    </div>
-  );
-}

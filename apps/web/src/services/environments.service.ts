@@ -6,10 +6,36 @@ import type {
 } from '@/types/environment';
 import type { ServiceEnvironment } from '@/types/service-environment';
 
+type RawServiceLink = {
+  id: string;
+  serviceId: string;
+  environmentId: string;
+  env: Record<string, string> | null;
+  service: Record<string, unknown>;
+  deployments?: Array<{
+    id: string;
+    status: string;
+    branch: string | null;
+    createdAt: string;
+    finishedAt: string | null;
+    user: { fullName: string } | null;
+  }>;
+};
+
+function normalizeEnvironments(envs: unknown[]): Environment[] {
+  return (envs as Array<Record<string, unknown>>).map((env) => ({
+    ...(env as object),
+    serviceLinks: ((env.serviceLinks ?? []) as RawServiceLink[]).map((link) => ({
+      ...link,
+      lastDeployment: link.deployments?.[0] ?? null,
+    })),
+  })) as Environment[];
+}
+
 export const environmentsService = {
   async getAll(projectId: string): Promise<Environment[]> {
-    const res = await api.get<Environment[]>(`/projects/${projectId}/environments`);
-    return res.data;
+    const res = await api.get<unknown[]>(`/projects/${projectId}/environments`);
+    return normalizeEnvironments(res.data);
   },
 
   async create(projectId: string, payload: CreateEnvironmentPayload): Promise<Environment> {

@@ -11,7 +11,7 @@ const ORIGIN_META: Record<EnvOrigin, { label: string; className: string }> = {
   environment: { label: 'environment', className: 'text-teal-300 border-teal-500/30 bg-teal-500/10' },
   serviceEnvironment: {
     label: 'serviceEnv',
-    className: 'text-purple-300 border-purple-500/30 bg-purple-500/10',
+    className: 'text-indigo-300 border-indigo-500/30 bg-indigo-500/10',
   },
 };
 

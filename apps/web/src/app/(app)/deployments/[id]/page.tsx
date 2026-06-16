@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { useDeploymentSocket } from '@/hooks/deployments/use-deployment-socket';
+import { useConfirm } from '@/contexts/confirm-context';
 import type { Deployment, DeploymentStatus, LogLine } from '@/types/deployment';
 import type { ProjectRole } from '@/types/project';
 
@@ -253,6 +254,7 @@ export default function DeploymentDetailPage({ params }: Props) {
   const [projectRole, setProjectRole] = useState<ProjectRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const confirm = useConfirm();
   const [actionError, setActionError] = useState<string | null>(null);
   const [canceling, setCanceling] = useState(false);
   const [rollingBack, setRollingBack] = useState(false);
@@ -342,7 +344,7 @@ export default function DeploymentDetailPage({ params }: Props) {
   }, [deployment, isAdmin, user?.id]);
 
   const handleCancel = async () => {
-    if (!confirm('Cancel this deployment?')) return;
+    if (!(await confirm({ title: 'Cancel this deployment?', confirmLabel: 'Cancel deployment', variant: 'danger' }))) return;
     setCanceling(true);
     setActionError(null);
     try {
@@ -356,7 +358,7 @@ export default function DeploymentDetailPage({ params }: Props) {
   };
 
   const handleRollback = async () => {
-    if (!confirm('Roll back to the previous deployment?')) return;
+    if (!(await confirm({ title: 'Roll back to the previous deployment?', confirmLabel: 'Roll back', variant: 'danger' }))) return;
     setRollingBack(true);
     setActionError(null);
     try {

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Users, GitBranch, CheckCircle, XCircle, Rocket, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Users, CheckCircle, XCircle, Rocket, AlertCircle, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
 import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
 import type { ProjectListItem } from '@/types/project';

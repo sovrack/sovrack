@@ -457,7 +457,7 @@ export default function SettingsPage() {
             </div>
 
             <Button onClick={() => void handleSaveNotif()} disabled={savingNotif} loading={savingNotif} icon={savingNotif ? undefined : <Save size={14} />}>
-              Sauvegarder les notifications
+              Save notifications
             </Button>
           </div>
         </SectionCard>

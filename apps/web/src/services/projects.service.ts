@@ -74,11 +74,6 @@ export const projectsService = {
     return res.data;
   },
 
-  /** @deprecated Use `connectSourceConfig` instead */
-  async connectGitlab(projectId: string, payload: ConnectGitlabPayload): Promise<GitlabConfig> {
-    return this.connectSourceConfig(projectId, payload);
-  },
-
   async connectSource(
     projectId: string,
     payload: ConnectSourcePayload,
@@ -114,11 +109,6 @@ export const projectsService = {
   async getSourceConfig(projectId: string): Promise<GitlabConfig> {
     const res = await api.get<GitlabConfig>(`/projects/${projectId}/gitlab/config`);
     return res.data;
-  },
-
-  /** @deprecated Use `getSourceConfig` instead */
-  async getGitlabConfig(projectId: string): Promise<GitlabConfig> {
-    return this.getSourceConfig(projectId);
   },
 
   async getBranches(projectId: string, repoId?: number): Promise<GitlabBranch[]> {

@@ -35,7 +35,7 @@ function Chip({
     amber: 'border-amber-500/20 bg-amber-500/10 text-amber-300',
     red: 'border-red-500/20 bg-red-500/10 text-red-400',
     blue: 'border-blue-500/20 bg-blue-500/10 text-blue-400',
-    purple: 'border-purple-500/20 bg-purple-500/10 text-purple-400',
+    purple: 'border-indigo-500/20 bg-indigo-500/10 text-indigo-400',
     default: 'border-[var(--border)] bg-[var(--hover)] text-[var(--text-secondary)]',
   };
   return (

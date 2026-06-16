@@ -7403,7 +7403,9 @@
             "enum": [
               "APPLICATION",
               "DATABASE",
-              "MANAGED"
+              "MANAGED",
+              "WORKER",
+              "CRON"
             ]
           }
         },
@@ -7805,7 +7807,7 @@
           },
           "activeJob": {
             "nullable": true,
-            "description": "Job actuellement actif (RUNNING/PENDING/BLOCKED) verrouillant ce serveur, sinon null.",
+            "description": "Job actuellement actif (RUNNING/PENDING) verrouillant ce serveur, sinon null.",
             "type": "object",
             "allOf": [
               {
@@ -7941,7 +7943,7 @@
           },
           "activeJob": {
             "nullable": true,
-            "description": "Job actuellement actif (RUNNING/PENDING/BLOCKED) verrouillant ce serveur, sinon null.",
+            "description": "Job actuellement actif (RUNNING/PENDING) verrouillant ce serveur, sinon null.",
             "type": "object",
             "allOf": [
               {
@@ -9694,7 +9696,9 @@
             "enum": [
               "APPLICATION",
               "DATABASE",
-              "MANAGED"
+              "MANAGED",
+              "WORKER",
+              "CRON"
             ],
             "example": "APPLICATION"
           },
@@ -9857,7 +9861,9 @@
             "enum": [
               "APPLICATION",
               "DATABASE",
-              "MANAGED"
+              "MANAGED",
+              "WORKER",
+              "CRON"
             ],
             "example": "APPLICATION"
           },

@@ -4,53 +4,33 @@ import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Activity,
   ArrowLeft,
-  BarChart2,
-  Container,
-  Globe,
+  Boxes,
   Layers,
   Loader2,
+  Plus,
   Rocket,
   Settings,
-  Settings2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { useProject } from '@/hooks/projects/use-projects';
-import { useProjectDeployments } from '@/hooks/projects/use-project-deployments';
-import { useProjectSource } from '@/hooks/projects/use-project-source';
+import { useProjectServices } from '@/hooks/projects/use-project-services';
+import { useProjectEnvironments } from '@/hooks/projects/use-project-environments';
 import { useProjectMembers } from '@/hooks/projects/use-project-members';
+import { useConfirm } from '@/contexts/confirm-context';
 import { PageHeader } from '@/components/layout/page-header';
-import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
-import { ConfigurationTab } from '@/components/projects/project-build-tab';
-import { ProjectBuildSetupDialog } from '@/components/projects/project-build-setup-dialog';
+import { ProjectEnvironmentsTab } from '@/components/projects/project-environments-tab';
+import { ServicesList } from '@/components/projects/tabs/service/services-list';
+import { AddServiceWizard } from '@/components/projects/add-service-wizard';
 import { DeployDialog } from '@/components/deployments/deploy-dialog';
 import { ProjectMembersTab } from '@/components/projects/project-members-tab';
-import { ProjectOverview } from '@/components/projects/project-overview';
-import { ProjectSourceSetupDialog } from '@/components/projects/project-source-setup-dialog';
-import { ContainersTab } from '@/components/projects/tabs/containers/containers-tab';
-import { MonitoringTab } from '@/components/projects/tabs/monitoring/monitoring-tab';
-import { DomainsConfigSection } from '@/components/projects/tabs/configuration/domains-section';
 import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
-import { environmentsService } from '@/services/environments.service';
-import type { Environment } from '@/types/environment';
-import type { GitlabSourceType } from '@/types/project';
 
-type Tab =
-  | 'overview'
-  | 'services'
-  | 'environments'
-  | 'domains'
-  | 'deployments'
-  | 'containers'
-  | 'monitoring'
-  | 'settings';
+type Tab = 'services' | 'environments' | 'settings';
 
-const TAB_VALUES: Tab[] = [
-  'overview', 'services', 'environments', 'domains', 'deployments', 'containers', 'monitoring', 'settings',
-];
+const TAB_VALUES: Tab[] = ['services', 'environments', 'settings'];
 
 function parseTab(value: string | null): Tab | null {
   if (!value) return null;
@@ -68,34 +48,26 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const searchParams = useSearchParams();
   const { user, isAdmin } = useAuth();
   const { project, loading, error, refresh } = useProject(id);
-  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'overview');
+  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'services');
 
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [sourceDialogOpen, setSourceDialogOpen] = useState(false);
-  const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [buildDialogOpen, setBuildDialogOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deployOpen, setDeployOpen] = useState(false);
+  const [addServiceOpen, setAddServiceOpen] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>(undefined);
   const [selectedEnvId, setSelectedEnvId] = useState<string | undefined>(undefined);
 
   const members = useProjectMembers({ projectId: id, isAdmin, refreshProject: refresh });
-  const source = useProjectSource({ projectId: id, project, refreshProject: refresh });
-  const projectDeployments = useProjectDeployments(id);
-
-  useEffect(() => {
-    environmentsService.getAll(id).then(setEnvironments).catch(() => setEnvironments([]));
-  }, [id]);
+  const servicesQuery = useProjectServices(id);
+  const environmentsQuery = useProjectEnvironments(id);
+  const environments = environmentsQuery.data ?? [];
+  const confirm = useConfirm();
 
   useEffect(() => {
     const requestedTab = parseTab(searchParams.get('tab'));
-    const dialog = searchParams.get('dialog');
     if (requestedTab) {
       setTab(requestedTab);
-    } else if (dialog === 'source-setup' || dialog === 'build-setup') {
-      setTab('services');
     }
-    setSourceDialogOpen(dialog === 'source-setup');
-    setBuildDialogOpen(dialog === 'build-setup');
   }, [searchParams]);
 
   const replaceProjectQuery = (updates: Record<string, string | null>) => {
@@ -108,44 +80,32 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     router.replace(query ? `/projects/${id}?${query}` : `/projects/${id}`);
   };
 
-  const openSourceSetupDialog = () => {
-    setTab('services'); setSourceDialogOpen(true); setBuildDialogOpen(false);
-    replaceProjectQuery({ tab: 'services', dialog: 'source-setup' });
-  };
-
-  const openBuildSetupDialog = () => {
-    setTab('services'); setBuildDialogOpen(true); setSourceDialogOpen(false);
-    replaceProjectQuery({ tab: 'services', dialog: 'build-setup' });
-  };
-
-  const closeSourceDialog = () => { setSourceDialogOpen(false); replaceProjectQuery({ dialog: null }); };
-  const closeBuildDialog  = () => { setBuildDialogOpen(false);  replaceProjectQuery({ dialog: null }); };
-
-  const handleSourceNext = async () => { await refresh(); openBuildSetupDialog(); };
-  const handleBuildDone  = async () => {
-    await refresh(); setBuildDialogOpen(false);
-    replaceProjectQuery({ tab: 'services', dialog: null });
-  };
-
   const handleTabChange = (nextTab: Tab) => {
     setTab(nextTab);
     replaceProjectQuery({ tab: nextTab, dialog: null });
   };
 
   const handleDeployCreated = () => {
-    setTab('deployments');
-    replaceProjectQuery({ tab: 'deployments' });
-    projectDeployments.refresh();
+    setTab('services');
+    replaceProjectQuery({ tab: 'services' });
+    void servicesQuery.refetch();
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Delete "${project?.name}"? This action cannot be undone.`)) return;
+    const ok = await confirm({
+      title: `Delete "${project?.name}"?`,
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete project',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setDeleteLoading(true);
+    setDeleteError(null);
     try {
       await projectsService.remove(id);
       router.push('/projects');
-    } catch (deleteError) {
-      alert(getApiErrorMessage(deleteError));
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err));
       setDeleteLoading(false);
     }
   };
@@ -169,14 +129,9 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const isOwner = isAdmin || currentMember?.role === 'OWNER';
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'overview',       label: 'Overview',       icon: Rocket },
-    { id: 'services',       label: 'Services',       icon: Settings2 },
-    { id: 'environments',   label: 'Environments',  icon: Layers },
-    { id: 'domains',        label: 'Domains',        icon: Globe },
-    { id: 'deployments',    label: 'Deployments',    icon: Activity },
-    { id: 'containers',     label: 'Containers',     icon: Container },
-    { id: 'monitoring',     label: 'Monitoring',     icon: BarChart2 },
-    { id: 'settings',       label: 'Settings',       icon: Settings },
+    { id: 'services',     label: 'Services',        icon: Boxes },
+    { id: 'environments', label: 'Environments',    icon: Layers },
+    { id: 'settings',     label: 'Members & Access', icon: Settings },
   ];
 
   return (
@@ -191,6 +146,10 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
               className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
               <ArrowLeft size={15} /> Projects
             </Link>
+            <button type="button" onClick={() => setAddServiceOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
+              <Plus size={15} /> Add service
+            </button>
             <button type="button" onClick={() => setDeployOpen(true)}
               className="flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
               <Rocket size={15} /> Deploy
@@ -211,6 +170,16 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         )}
       </div>
 
+      {deleteError && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <span>{deleteError}</span>
+          <button type="button" onClick={() => setDeleteError(null)}
+            className="shrink-0 rounded-lg border border-red-500/30 px-2 py-0.5 text-xs hover:bg-red-500/20">
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Tabs nav */}
       <div className="border-b border-[var(--border)]">
         <nav className="flex flex-wrap gap-1">
@@ -229,72 +198,19 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       </div>
 
       {/* Tab panels */}
-      {tab === 'overview' && (
-        <ProjectOverview
-          project={project}
-          lastDeployment={projectDeployments.deployments[0] ?? null}
-          sourceConfig={source.sourceConfig}
-          environments={environments}
-          onRollbackDone={() => void projectDeployments.refresh()}
-          onTabChange={(t) => setTab(t as Tab)}
-          onOpenBuild={() => { setTab('services'); openBuildSetupDialog(); }}
-          onDeploy={() => { setSelectedServiceId(undefined); setDeployOpen(true); }}
-        />
-      )}
-
       {tab === 'services' && (
-        <ConfigurationTab
+        <ServicesList
           projectId={id}
-          project={project}
-          isAdmin={isAdmin}
-          isOwner={isOwner}
-          sourceType={source.sourceConfig?.sourceType ?? null}
-          hasEnvironment={environments.length > 0}
-          source={source}
-          scope="application"
-          onDeploy={() => { setSelectedServiceId(undefined); setDeployOpen(true); }}
-          onDeployService={(svcId) => { setSelectedServiceId(svcId); setDeployOpen(true); }}
-          onOpenSourceSetupDialog={openSourceSetupDialog}
+          services={servicesQuery.data ?? []}
+          onAddService={() => setAddServiceOpen(true)}
         />
       )}
 
       {tab === 'environments' && (
-        <ConfigurationTab
+        <ProjectEnvironmentsTab
           projectId={id}
-          project={project}
-          isAdmin={isAdmin}
-          isOwner={isOwner}
-          sourceType={source.sourceConfig?.sourceType ?? null}
-          hasEnvironment={environments.length > 0}
-          source={source}
-          scope="environments"
-          onDeploy={() => { setSelectedServiceId(undefined); setDeployOpen(true); }}
-          onDeployService={(svcId) => { setSelectedServiceId(svcId); setDeployOpen(true); }}
-          onOpenSourceSetupDialog={openSourceSetupDialog}
+          onChanged={() => void refresh()}
         />
-      )}
-
-      {tab === 'domains' && (
-        <DomainsConfigSection projectId={id} />
-      )}
-
-      {tab === 'deployments' && (
-        <ProjectDeploymentsTab
-          projectId={id}
-          deployments={projectDeployments.deployments}
-          loading={projectDeployments.loading}
-          error={projectDeployments.error}
-          onCreateClick={() => setDeployOpen(true)}
-          onRefresh={() => void projectDeployments.refresh()}
-        />
-      )}
-
-      {tab === 'containers' && (
-        <ContainersTab projectId={id} />
-      )}
-
-      {tab === 'monitoring' && (
-        <MonitoringTab projectId={id} />
       )}
 
       {tab === 'settings' && (
@@ -319,30 +235,17 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         />
       )}
 
-      <ProjectSourceSetupDialog
-        open={sourceDialogOpen}
+      <AddServiceWizard
         projectId={id}
-        initialGitlabUrl={source.sourceConfig?.gitlabUrl ?? null}
-        initialDefaultBranch={source.sourceConfig?.defaultBranch ?? null}
-        initialProviderId={source.sourceConfig?.providerId ?? null}
-        initialSourceType={(source.sourceConfig?.sourceType ?? null) as GitlabSourceType | null}
-        initialProjectId={source.sourceConfig?.gitlabId ?? null}
-        initialGroupId={source.sourceConfig?.gitlabGroupId ?? null}
-        onClose={closeSourceDialog}
-        onNext={() => handleSourceNext()}
-      />
-
-      <ProjectBuildSetupDialog
-        open={buildDialogOpen}
-        projectId={id}
-        onClose={closeBuildDialog}
-        onDone={handleBuildDone}
+        open={addServiceOpen}
+        onClose={() => setAddServiceOpen(false)}
+        onCreated={() => { setAddServiceOpen(false); void servicesQuery.refetch(); }}
       />
 
       <DeployDialog
         open={deployOpen}
         projectId={id}
-        services={[]}
+        services={servicesQuery.data ?? []}
         initialServiceId={selectedServiceId}
         initialEnvironmentId={selectedEnvId}
         onClose={() => { setDeployOpen(false); setSelectedServiceId(undefined); setSelectedEnvId(undefined); }}
