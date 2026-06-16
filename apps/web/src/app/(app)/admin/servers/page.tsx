@@ -26,6 +26,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { ServerCard } from '@/components/servers/server-card';
 import { ServerDetailsDialog } from '@/components/servers/server-details-dialog';
+import { ServerLogsDialog } from '@/components/servers/server-logs-dialog';
 import { ServerKeyInstallDialog } from '@/components/servers/server-key-install-dialog';
 import { ServerPrepareDialog } from '@/components/servers/server-prepare-dialog';
 import {
@@ -112,6 +113,7 @@ export default function AdminServersPage() {
   const [prepareServer, setPrepareServer] = useState<ServerType | null>(null);
   const prepareToolsQuery = useInstalledTools(prepareServer?.id ?? '');
   const [detailsServer, setDetailsServer] = useState<ServerType | null>(null);
+  const [logsServer, setLogsServer] = useState<ServerType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServerType | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -335,6 +337,7 @@ export default function AdminServersPage() {
                         onInstallKey={(s) => { setInstallKeyError(null); setInstallKeyServer(s); }}
                         onOpenPrepare={setPrepareServer}
                         onOpenDetails={setDetailsServer}
+                        onOpenLogs={setLogsServer}
                         onEdit={(s) => { setEditError(null); setEditServer(s); }}
                         onDelete={(s) => { setDeleteError(null); setDeleteTarget(s); }}
                       />
@@ -397,6 +400,13 @@ export default function AdminServersPage() {
         onRefreshJobs={servers.refreshJobs}
         onRetryJob={servers.handleRetryJob}
         onCancelJob={servers.handleCancelJob}
+      />
+
+      <ServerLogsDialog
+        open={Boolean(logsServer)}
+        serverId={logsServer?.id ?? null}
+        serverName={logsServer?.name}
+        onClose={() => setLogsServer(null)}
       />
 
       <ServerUpsertDialog

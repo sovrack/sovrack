@@ -23,6 +23,7 @@ type ServerCardProps = {
   onInstallKey: (server: ServerType) => void;
   onOpenPrepare: (server: ServerType) => void;
   onOpenDetails: (server: ServerType) => void;
+  onOpenLogs: (server: ServerType) => void;
   onEdit: (server: ServerType) => void;
   onDelete: (server: ServerType) => void;
 };
@@ -42,6 +43,7 @@ export function ServerCard({
   onInstallKey,
   onOpenPrepare,
   onOpenDetails,
+  onOpenLogs,
   onEdit,
   onDelete,
 }: ServerCardProps) {
@@ -143,6 +145,7 @@ export function ServerCard({
             onInstallKey={onInstallKey}
             onOpenPrepare={onOpenPrepare}
             onOpenDetails={onOpenDetails}
+            onOpenLogs={onOpenLogs}
             onEdit={onEdit}
             onDelete={onDelete}
           />
