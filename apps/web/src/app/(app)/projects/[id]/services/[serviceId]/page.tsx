@@ -166,7 +166,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         description={
           isDatabase
             ? `${service.databaseType ?? 'Database'} · ${service.databaseVersion ?? 'latest'}`
-            : service.repoUrl ?? service.sourceType ?? 'Application'
+            : service.repoPath ?? service.repoUrl ?? service.sourceType ?? 'Application'
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">

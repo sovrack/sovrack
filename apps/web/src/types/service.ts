@@ -31,6 +31,9 @@ export type Service = {
   sourceType: SourceType | null;
   name: string;
   description: string | null;
+  // Le backend (endpoint catalog) renvoie `repoPath` (owner/repo ou group/project).
+  // `repoUrl` est conservé pour compat (certains contrats l'exposent encore).
+  repoPath: string | null;
   repoUrl: string | null;
   branch: string | null;
   providerId: string | null;

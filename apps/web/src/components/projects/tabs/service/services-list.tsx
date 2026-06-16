@@ -20,7 +20,7 @@ function serviceSummary(svc: Service): string {
   if (svc.type === 'DATABASE') {
     return `${svc.databaseType ?? 'Database'} · ${svc.databaseVersion ?? 'latest'}`;
   }
-  const parts = [svc.repoUrl ?? svc.sourceType ?? 'Application'];
+  const parts = [svc.repoPath ?? svc.repoUrl ?? svc.sourceType ?? 'Application'];
   if (svc.buildPack) parts.push(svc.buildPack);
   if (svc.branch) parts.push(svc.branch);
   return parts.join(' · ');

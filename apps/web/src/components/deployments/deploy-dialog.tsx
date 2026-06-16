@@ -111,7 +111,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
       if (svc.type === 'DATABASE' || svc.sourceType === 'DOCKER_IMAGE') {
         return { hasSource: true, hasBuildConfig: true };
       }
-      const src = !!(svc.repoUrl);
+      const src = !!(svc.repoPath || svc.repoUrl);
       const build = !!(svc.buildPack);
       return { hasSource: src, hasBuildConfig: src && build };
     };

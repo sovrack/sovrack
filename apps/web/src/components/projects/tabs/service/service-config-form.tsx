@@ -47,7 +47,7 @@ export function ServiceConfigForm({
   const [replicas, setReplicas] = useState(service.replicas != null ? String(service.replicas) : '1');
   const [dockerfile, setDockerfile] = useState(service.dockerfile ?? '');
   const [providerId, setProviderId] = useState(service.providerId ?? '');
-  const [repoPath, setRepoPath] = useState(service.repoUrl ?? '');
+  const [repoPath, setRepoPath] = useState(service.repoPath ?? service.repoUrl ?? '');
   const [providers, setProviders] = useState<SourceProviderOption[]>([]);
 
   useEffect(() => {
