@@ -57,29 +57,36 @@ export const environmentsService = {
     await api.delete(`/projects/${projectId}/environments/${envId}`);
   },
 
+  // Le détail d'un environnement inclut déjà ses serveurs (environmentsInclude
+  // backend) — pas de route GET dédiée : on lit le détail et on renvoie .servers.
   async getServers(projectId: string, envId: string): Promise<unknown[]> {
-    const res = await api.get(`/projects/${projectId}/environments/${envId}/servers`);
-    return res.data as unknown[];
+    const env = await this.getById(projectId, envId);
+    return ((env as { servers?: unknown[] }).servers ?? []) as unknown[];
   },
 
+  // Backend : POST /projects/:id/environments/:envId/servers/:serverId (serverId
+  // dans le PATH, pas dans le body).
   async assignServer(projectId: string, envId: string, serverId: string): Promise<void> {
-    await api.post(`/projects/${projectId}/environments/${envId}/servers`, { serverId });
+    await api.post(`/projects/${projectId}/environments/${envId}/servers/${serverId}`);
   },
 
   async removeServer(projectId: string, envId: string, serverId: string): Promise<void> {
     await api.delete(`/projects/${projectId}/environments/${envId}/servers/${serverId}`);
   },
 
+  // Backend : GET /projects/:id/environments/:envId/services
   async getServiceLinks(projectId: string, envId: string): Promise<ServiceEnvironment[]> {
-    const res = await api.get(`/projects/${projectId}/environments/${envId}/service-links`);
+    const res = await api.get<ServiceEnvironment[]>(`/projects/${projectId}/environments/${envId}/services`);
     return res.data;
   },
 
-  async linkService(projectId: string, envId: string, serviceId: string, env?: string): Promise<void> {
-    await api.post(`/projects/${projectId}/environments/${envId}/service-links`, { serviceId, env });
+  // Backend : POST /projects/:id/environments/:envId/services/:serviceId
+  async linkService(projectId: string, envId: string, serviceId: string): Promise<void> {
+    await api.post(`/projects/${projectId}/environments/${envId}/services/${serviceId}`);
   },
 
-  async unlinkService(projectId: string, envId: string, serviceLinkId: string): Promise<void> {
-    await api.delete(`/projects/${projectId}/environments/${envId}/service-links/${serviceLinkId}`);
+  // Un "service link" EST un ServiceEnvironment → suppression via son contrôleur dédié.
+  async unlinkService(projectId: string, serviceLinkId: string): Promise<void> {
+    await api.delete(`/projects/${projectId}/service-environments/${serviceLinkId}`);
   },
 };

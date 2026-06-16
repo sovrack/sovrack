@@ -8,7 +8,6 @@ import {
   Boxes,
   Layers,
   Loader2,
-  Plus,
   Rocket,
   Settings,
 } from 'lucide-react';
@@ -146,10 +145,8 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
               className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
               <ArrowLeft size={15} /> Projects
             </Link>
-            <button type="button" onClick={() => setAddServiceOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
-              <Plus size={15} /> Add service
-            </button>
+            {/* « Add service » est contextuel à l'onglet Services (cf. ServicesList) —
+                on ne le duplique pas dans le header global. */}
             <button type="button" onClick={() => setDeployOpen(true)}
               className="flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
               <Rocket size={15} /> Deploy

@@ -23,7 +23,8 @@ import type { BuildSource, DeployValidationResult } from '@/types/deployment';
 type ValidationIssue = {
   type: 'no-source' | 'no-build-config' | 'no-environment' | 'no-branch';
   message: string;
-  redirectTab: string;
+  /** Lien direct vers l'endroit où corriger le problème (page service ou onglet env). */
+  href: string;
 };
 
 type Props = {
@@ -135,10 +136,13 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
         const def = brs.find((b) => b.default);
         setBranch(initialBranch ?? def?.name ?? brs[0]?.name ?? 'main');
 
+        // Le source ET le build pack se configurent dans la page du service
+        // (onglet General → ServiceConfigForm), PAS dans la liste des services.
+        const svcConfigHref = svc ? `/projects/${projectId}/services/${svc.id}` : `/projects/${projectId}`;
         const detected: ValidationIssue[] = [];
-        if (services.length > 0 && !src) detected.push({ type: 'no-source', message: 'Service has no Git source configured.', redirectTab: 'services' });
-        if (services.length > 0 && !buildReady) detected.push({ type: 'no-build-config', message: 'Build pack not configured for this service.', redirectTab: 'services' });
-        if (envs.length === 0) detected.push({ type: 'no-environment', message: 'No environment configured.', redirectTab: 'environments' });
+        if (services.length > 0 && !src) detected.push({ type: 'no-source', message: `${svc?.name ?? 'Service'} : aucune source Git configurée.`, href: svcConfigHref });
+        if (services.length > 0 && !buildReady) detected.push({ type: 'no-build-config', message: `${svc?.name ?? 'Service'} : build pack non configuré.`, href: svcConfigHref });
+        if (envs.length === 0) detected.push({ type: 'no-environment', message: 'Aucun environnement configuré.', href: `/projects/${projectId}?tab=environments` });
         setIssues(detected);
       })
       .catch((err) => setError(getApiErrorMessage(err)))
@@ -248,7 +252,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
                         <span className="text-xs text-amber-300">{issue.message}</span>
                       </div>
                       <Link
-                        href={`/projects/${projectId}?tab=${issue.redirectTab}`}
+                        href={issue.href}
                         onClick={onClose}
                         className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/20 px-2.5 py-1 text-[10px] font-semibold text-amber-300 hover:bg-amber-500/30"
                       >
@@ -307,7 +311,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
 
               {!loading && (
                 <p className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-2.5 text-[11px] text-[var(--text-muted)]">
-                  Each service builds with its own configured build type — edit it in the service&apos;s <strong>Configuration</strong> tab.
+                  Chaque service se construit avec son propre build — modifiez-le dans l&apos;onglet <strong>General</strong> du service.
                 </p>
               )}
 

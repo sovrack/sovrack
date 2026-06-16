@@ -2,6 +2,7 @@
 
 import { use, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Activity,
   ArrowLeft,
@@ -16,8 +17,10 @@ import {
   Settings2,
   StopCircle,
   TerminalSquare,
+  Trash2,
 } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api';
+import { useConfirm } from '@/contexts/confirm-context';
 import { servicesService } from '@/services/services.service';
 import { deploymentsService } from '@/services/deployments.service';
 import { containersService } from '@/services/containers.service';
@@ -42,8 +45,11 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 
 export default function ServiceDetailPage({ params }: { params: Promise<{ id: string; serviceId: string }> }) {
   const { id: projectId, serviceId } = use(params);
+  const router = useRouter();
+  const confirm = useConfirm();
 
   const [service, setService] = useState<Service | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +102,25 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  const handleDelete = async () => {
+    if (!service) return;
+    const ok = await confirm({
+      title: `Supprimer le service "${service.name}" ?`,
+      description: 'Le service est archivé (l\'historique des déploiements est conservé). Cette action le retire du projet.',
+      confirmLabel: 'Supprimer',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    setDeleting(true); setNotice(null);
+    try {
+      await servicesService.remove(projectId, serviceId);
+      router.push(`/projects/${projectId}`);
+    } catch (e) {
+      setNotice(getApiErrorMessage(e));
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center gap-2 p-6 text-sm text-[var(--text-secondary)]"><Loader2 size={15} className="animate-spin" /> Loading service…</div>;
   }
@@ -136,6 +161,11 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
             <Link href={`/projects/${projectId}`} className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
               <ArrowLeft size={14} /> Project
             </Link>
+            <button type="button" onClick={() => void handleDelete()} disabled={deleting}
+              title="Supprimer ce service"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50">
+              {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Delete
+            </button>
           </div>
         }
       />

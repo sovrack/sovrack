@@ -49,7 +49,7 @@ export function ServicesList({
             {services.length} service{services.length !== 1 ? 's' : ''} in this project
           </p>
         </div>
-        {onAddService && (
+        {onAddService && services.length > 0 && (
           <button type="button" onClick={onAddService}
             className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-3 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
             <Plus size={15} /> Add service
