@@ -35,8 +35,10 @@ import { DeploymentStatusBadge } from '@/components/deployments/deployment-statu
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { ServiceConfigForm } from '@/components/projects/tabs/service/service-config-form';
+import { LogTerminal } from '@/components/log-terminal';
+import { useDeploymentSocket } from '@/hooks/deployments/use-deployment-socket';
 import type { Service } from '@/types/service';
-import type { Deployment } from '@/types/deployment';
+import type { Deployment, DeploymentStatus } from '@/types/deployment';
 
 type Tab = 'general' | 'environment' | 'logs' | 'deployments' | 'monitoring';
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
@@ -276,7 +278,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* Logs */}
-      {tab === 'logs' && <ServiceLogs deploymentId={lastDeployment?.id ?? null} />}
+      {tab === 'logs' && <ServiceLogs deploymentId={lastDeployment?.id ?? null} initialStatus={lastDeployment?.status ?? null} />}
 
       {/* Deployments */}
       {tab === 'deployments' && (
@@ -491,34 +493,34 @@ function Field({ k, v, mono, icon }: { k: string; v: string; mono?: boolean; ico
   );
 }
 
-function ServiceLogs({ deploymentId }: { deploymentId: string | null }) {
-  const [logs, setLogs] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function ServiceLogs({ deploymentId, initialStatus }: { deploymentId: string | null; initialStatus: DeploymentStatus | null }) {
+  const [initialLogs, setInitialLogs] = useState<string | null>(null);
 
-  const fetchLogs = useCallback(async () => {
+  useEffect(() => {
     if (!deploymentId) return;
-    setLoading(true); setError(null);
-    try { setLogs(await deploymentsService.getContainerLogs(deploymentId)); }
-    catch (e) { setError(getApiErrorMessage(e)); }
-    finally { setLoading(false); }
+    let alive = true;
+    deploymentsService.getById(deploymentId)
+      .then((d) => { if (alive) setInitialLogs((d as { logs?: string | null }).logs ?? null); })
+      .catch(() => undefined);
+    return () => { alive = false; };
   }, [deploymentId]);
 
-  useEffect(() => { void fetchLogs(); }, [fetchLogs]);
+  // Flux WebSocket en direct : pendant un déploiement actif les lignes arrivent
+  // en temps réel ; sinon le hook rejoue les logs bufferisés du dernier déploiement.
+  const { logs, status } = useDeploymentSocket({
+    deploymentId: deploymentId ?? '',
+    enabled: !!deploymentId,
+    initialLogs,
+    initialStatus,
+  });
+  const isLive = status === 'PENDING' || status === 'RUNNING';
 
   return (
-    <SectionCard title="Container logs" description="Live logs from the latest deployment's container.">
+    <SectionCard title="Logs du déploiement" description="Flux en direct du dernier déploiement (build, run, health-check, route).">
       {!deploymentId ? (
-        <p className="text-sm text-[var(--text-muted)]">No deployment yet.</p>
+        <p className="text-sm text-[var(--text-muted)]">Aucun déploiement.</p>
       ) : (
-        <div className="space-y-2">
-          <button type="button" onClick={() => void fetchLogs()} disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] disabled:opacity-50">
-            <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          {error && <p className="text-xs text-red-400">{error}</p>}
-          <pre className="max-h-96 overflow-auto rounded-xl border border-[var(--border)] bg-black/60 p-4 font-mono text-xs leading-relaxed text-green-300 whitespace-pre-wrap">{logs ?? '# No logs available'}</pre>
-        </div>
+        <LogTerminal logs={logs} isLive={isLive} />
       )}
     </SectionCard>
   );
