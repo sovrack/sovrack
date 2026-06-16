@@ -5,7 +5,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ProjectRole, Role } from '@prisma/client';
+import { randomBytes } from 'crypto';
+import { Prisma, ProjectRole, Role, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { ACTIVE_FILTER } from '../../../core/database/prisma-active.helper';
 import { normalizeRepoPath } from '../../../core/utils/repo-path.util';
@@ -125,7 +126,10 @@ export class ServicesService {
         composeServiceName: dto.composeServiceName?.trim(),
         databaseType: dto.databaseType,
         databaseVersion: dto.databaseVersion?.trim() || 'latest',
-        databaseCredentials: dto.databaseCredentials || undefined,
+        databaseCredentials:
+          dto.type === ServiceType.DATABASE
+            ? this.ensureDatabaseCredentials(dto.databaseCredentials)
+            : dto.databaseCredentials || undefined,
         env: dto.env,
         healthcheckPath: dto.healthcheckPath?.trim(),
         replicas: dto.replicas ?? 1,
@@ -245,6 +249,25 @@ export class ServicesService {
         archivedAt: new Date(),
       },
     });
+  }
+
+  /**
+   * Garantit qu'un service DATABASE possède des identifiants FORTS. Si l'appelant
+   * n'en fournit pas (ou laisse un mot de passe vide/`changeme`), on génère un
+   * mot de passe aléatoire de 24 octets. Élimine le défaut historique `changeme`
+   * du moteur de déploiement (résolveur d'env DB).
+   */
+  private ensureDatabaseCredentials(
+    provided?: Record<string, string>,
+  ): Prisma.InputJsonValue {
+    const user = provided?.user?.trim() || 'app';
+    const dbName = provided?.dbName?.trim() || 'app';
+    const rawPassword = provided?.password?.trim();
+    const password =
+      rawPassword && rawPassword.toLowerCase() !== 'changeme'
+        ? rawPassword
+        : randomBytes(24).toString('base64url');
+    return { user, password, dbName };
   }
 
   private async ensureServiceExists(projectId: string, serviceId: string) {
