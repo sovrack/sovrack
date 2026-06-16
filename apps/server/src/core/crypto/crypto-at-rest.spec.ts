@@ -26,15 +26,25 @@ function withSecret<T>(secret: string, fn: () => T): T {
 }
 
 describe('CryptoService — secrets at rest (unit)', () => {
-  it('encrypt() produces base64 ciphertext, never the plaintext', () => {
+  it('encrypt() produces v2 (GCM) ciphertext, never the plaintext', () => {
     withSecret(VALID_SECRET, () => {
       const crypto = new CryptoService();
       const plaintext = 'glpat-super-secret-token';
       const ciphertext = crypto.encrypt(plaintext);
 
       expect(ciphertext).not.toContain(plaintext);
-      expect(ciphertext).toMatch(/^[A-Za-z0-9+/]+=*$/); // base64
+      expect(ciphertext).toMatch(/^v2:[A-Za-z0-9+/]+=*$/); // v2 = AES-256-GCM
       expect(crypto.decrypt(ciphertext)).toBe(plaintext);
+    });
+  });
+
+  it('rejette un ciphertext GCM altéré (authentification)', () => {
+    withSecret(VALID_SECRET, () => {
+      const crypto = new CryptoService();
+      const ciphertext = crypto.encrypt('integrity-matters');
+      // Flip le dernier caractère base64 → le tag d'authentification ne valide plus.
+      const tampered = ciphertext.slice(0, -2) + (ciphertext.endsWith('A=') ? 'B=' : 'A=');
+      expect(() => crypto.decrypt(tampered)).toThrow();
     });
   });
 
