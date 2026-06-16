@@ -57,6 +57,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
   const [tab, setTab] = useState<Tab>('general');
   const [deployOpen, setDeployOpen] = useState(false);
   const [stopping, setStopping] = useState(false);
+  const [redeploying, setRedeploying] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [environments, setEnvironments] = useState<{ id: string; name: string }[]>([]);
   const [selectedEnvId, setSelectedEnvId] = useState<string>('');
@@ -85,6 +86,31 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
 
   const lastDeployment = deployments[0] ?? null;
   const isDatabase = service?.type === 'DATABASE';
+
+  // Redeploy 1-clic : relance le service sur l'environnement sélectionné sans
+  // rouvrir le dialog. On résout le ServiceEnvironment (service × env) via les
+  // service-links ; à défaut (service non lié), on retombe sur le dialog.
+  const handleRedeploy = async () => {
+    const envId = selectedEnvId || environments[0]?.id;
+    if (!envId) { setDeployOpen(true); return; }
+    setRedeploying(true); setNotice(null);
+    try {
+      const links = await environmentsService.getServiceLinks(projectId, envId);
+      const link = links.find((l) => l.serviceId === serviceId);
+      if (!link) {
+        setNotice('Service non lié à cet environnement — ouverture du dialog.');
+        setDeployOpen(true);
+        return;
+      }
+      await deploymentsService.create({ serviceEnvId: link.id, branch: lastDeployment?.branch ?? undefined });
+      setNotice('Redeploy lancé.');
+      void load();
+    } catch (e) {
+      setNotice(getApiErrorMessage(e));
+    } finally {
+      setRedeploying(false);
+    }
+  };
 
   const handleStop = async () => {
     setStopping(true); setNotice(null);
@@ -193,9 +219,10 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
                 <Rocket size={15} /> Deploy
               </button>
-              <button type="button" onClick={() => setDeployOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
-                <RefreshCw size={15} /> Redeploy
+              <button type="button" onClick={() => void handleRedeploy()} disabled={redeploying}
+                title={lastDeployment ? 'Relancer le dernier déploiement' : 'Aucun déploiement précédent — ouvre le dialog'}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)] disabled:opacity-50">
+                {redeploying ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Redeploy
               </button>
               <button type="button" onClick={() => void handleStop()} disabled={stopping}
                 className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50">
