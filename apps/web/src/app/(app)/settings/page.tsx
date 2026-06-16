@@ -14,6 +14,7 @@ import { usersService } from '@/services/users.service';
 import type { PlatformConfigItem } from '@/types/platform-config';
 
 const PLATFORM_NAME_KEY = 'PLATFORM_NAME';
+const WEBHOOK_BASE_URL_KEY = 'WEBHOOK_BASE_URL';
 
 type NotifSettings = {
   slackWebhookUrl: string;
@@ -40,6 +41,7 @@ export default function SettingsPage() {
   const [loadingPlatform, setLoadingPlatform] = useState(false);
   const [savingPlatform, setSavingPlatform] = useState(false);
   const [platformName, setPlatformName] = useState('Deploy Automation');
+  const [webhookBaseUrl, setWebhookBaseUrl] = useState('');
 
   const [notifSettings, setNotifSettings] = useState<NotifSettings>({
     slackWebhookUrl: '', notifyOnSuccess: true, notifyOnFailure: true,
@@ -73,6 +75,7 @@ export default function SettingsPage() {
         rows.map((item) => [item.key, item]),
       );
       setPlatformName(map.get(PLATFORM_NAME_KEY)?.value || 'Deploy Automation');
+      setWebhookBaseUrl(map.get(WEBHOOK_BASE_URL_KEY)?.value || '');
     } catch (error) {
       setNotice({ tone: 'error', message: getApiErrorMessage(error) });
     } finally {
@@ -134,6 +137,11 @@ export default function SettingsPage() {
     try {
       await platformConfigService.update(PLATFORM_NAME_KEY, {
         value: platformName.trim(),
+        isSecret: false,
+      });
+      // URL publique du backend — utilisée pour construire les URLs de webhook.
+      await platformConfigService.update(WEBHOOK_BASE_URL_KEY, {
+        value: webhookBaseUrl.trim(),
         isSecret: false,
       });
       setNotice({ tone: 'success', message: 'Platform identity updated.' });
@@ -259,6 +267,26 @@ export default function SettingsPage() {
                 disabled={loadingPlatform || savingPlatform}
                 className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-60"
               />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                URL publique du backend (WEBHOOK_BASE_URL)
+              </label>
+              <input
+                type="url"
+                value={webhookBaseUrl}
+                onChange={(event) => setWebhookBaseUrl(event.target.value)}
+                disabled={loadingPlatform || savingPlatform}
+                placeholder="https://api.mondomaine.com  (local : http://localhost:3001)"
+                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 font-mono text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-60"
+              />
+              <p className="mt-1.5 text-xs text-[var(--text-muted)]">
+                URL où ce backend est joignable. Sert à construire les URLs de webhook
+                (<code>&lt;url&gt;/webhooks/incoming/&lt;token&gt;</code>). Pour un déclenchement
+                par GitLab/GitHub, elle doit être <strong>publique</strong> ; en local, on peut
+                mettre <code>http://localhost:3001</code> pour tester.
+              </p>
             </div>
 
             <Button
