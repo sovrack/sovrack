@@ -216,7 +216,6 @@ model User {
   auditLogs                   AuditLog[]
   sshKeys                     SshKey[]
   requestedServerPreparations ServerPreparation[] @relation("ServerPreparationRequestedBy")
-  automationRuns              AutomationRun[]
   serverOperations            ServerOperation[]   @relation("ServerOperationRequestedBy")
   createdAt                   DateTime            @default(now())
   updatedAt                   DateTime            @updatedAt
@@ -284,7 +283,6 @@ model Server {
   capabilities      Json?                    @default("{}")
   installedTools    Json?                    @default("[]")
   preparations      ServerPreparation[]
-  automationTargets AutomationRunTarget[]
   serverOperations  ServerOperationTarget[]
   dockerConnection  DockerConnection?
   containers       Container[]
@@ -929,81 +927,12 @@ model DnsRecord {
 
 // ============================================================
 // AUTOMATION MODULE
+// ------------------------------------------------------------
+// AutomationRun(+Target+Log) supprimés (P7) : entièrement remplacés par
+// ServerOperation(+Target+Log) — voir automation.service / automation-runner.
+// L'automation est une opération multi-cibles : c'est exactement ce que
+// ServerOperation modélise, donc aucune table dédiée n'est nécessaire.
 // ============================================================
-
-enum AutomationRunStatus {
-  QUEUED
-  RUNNING
-  SUCCEEDED
-  PARTIAL
-  FAILED
-  CANCELED
-  TIMEOUT
-}
-
-enum AutomationTargetStatus {
-  PENDING
-  RUNNING
-  SUCCEEDED
-  FAILED
-  SKIPPED
-  TIMEOUT
-}
-
-model AutomationRun {
-  id            String                @id @default(uuid())
-  actionKey     String
-  actionLabel   String
-  status        AutomationRunStatus   @default(QUEUED)
-  summary       String?
-  errorMessage  String?
-  extraVarsJson Json                  @default("{}")
-  requestedById String?
-  requestedBy   User?                 @relation(fields: [requestedById], references: [id], onDelete: SetNull)
-  startedAt     DateTime?
-  finishedAt    DateTime?
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  targets       AutomationRunTarget[]
-  logs          AutomationRunLog[]
-
-  @@index([status])
-  @@index([actionKey])
-  @@index([createdAt])
-  @@index([requestedById])
-}
-
-model AutomationRunTarget {
-  id            String                 @id @default(uuid())
-  runId         String
-  run           AutomationRun          @relation(fields: [runId], references: [id], onDelete: Cascade)
-  serverId      String
-  server        Server                 @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  status        AutomationTargetStatus @default(PENDING)
-  startedAt     DateTime?
-  finishedAt    DateTime?
-  errorMessage  String?
-  ansibleOutput String?                @db.Text
-
-  @@unique([runId, serverId])
-  @@index([runId])
-  @@index([serverId])
-}
-
-model AutomationRunLog {
-  id         String         @id @default(uuid())
-  runId      String
-  run        AutomationRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
-  serverId   String?
-  level      ServerLogLevel @default(INFO)
-  source     String         @default("orchestrator")
-  message    String         @db.Text
-  lineNumber Int
-  createdAt  DateTime       @default(now())
-
-  @@index([runId, lineNumber])
-  @@index([serverId])
-}
 
 // ============================================================================
 // Webhook observability (P4 of the refactoring plan).
@@ -1328,11 +1257,13 @@ model DatabaseBackup {
 }
 
 // ============================================================================
-// ServerOperation — moteur UNIFIÉ d'opérations serveur (P7).
-// Converge ServerJob (verify/install/prepare), ServerPreparation (+tasks/logs)
-// et AutomationRun (+targets/logs) en UN seul modèle. Phase 1 = ADDITIF (les
-// anciennes tables restent intactes) ; les phases suivantes migrent chaque
-// sous-système vers ce modèle, puis suppriment les anciennes tables.
+// ServerOperation — registre des opérations serveur MULTI-CIBLES (P7).
+// Modélise les opérations initiées par un admin sur N serveurs (automation /
+// actions ansible) : 1 opération → N targets (serveurs) → logs temps réel.
+// Remplace AutomationRun (supprimé). NE remplace PAS ServerJob/ServerPreparation,
+// qui forment le moteur de concurrence PAR-SERVEUR (verrou mutex par serveur via
+// index unique partiel + advisory lock, retry/attempts/timeout, tâches/logs UI) :
+// concern distinct, volontairement conservé — cf. servers-jobs / infra-preparation.
 // ============================================================================
 enum ServerOperationStatus {
   QUEUED
@@ -1352,14 +1283,6 @@ enum ServerOperationTargetStatus {
   SKIPPED
   TIMEOUT
   CANCELED
-}
-
-enum ServerOperationStepStatus {
-  PENDING
-  RUNNING
-  SUCCEEDED
-  FAILED
-  SKIPPED
 }
 
 model ServerOperation {
@@ -1384,7 +1307,6 @@ model ServerOperation {
   startedAt     DateTime?
   finishedAt    DateTime?
   targets       ServerOperationTarget[]
-  steps         ServerOperationStep[]
   logs          ServerOperationLog[]
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
@@ -1411,21 +1333,6 @@ model ServerOperationTarget {
   @@unique([operationId, serverId])
   @@index([operationId])
   @@index([serverId])
-}
-
-model ServerOperationStep {
-  id          String                @id @default(uuid())
-  operationId String
-  operation   ServerOperation       @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  roleKey     String?
-  name        String
-  orderIndex  Int
-  status      ServerOperationStepStatus @default(PENDING)
-  startedAt   DateTime?
-  finishedAt  DateTime?
-  message     String?               @db.Text
-
-  @@index([operationId, orderIndex])
 }
 
 model ServerOperationLog {
