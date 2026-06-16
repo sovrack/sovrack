@@ -87,7 +87,7 @@ export class AutomationGateway implements OnGatewayConnection {
       return { ok: false, error: 'runId manquant' };
     }
 
-    const run = await this.prisma.automationRun.findUnique({
+    const run = await this.prisma.serverOperation.findUnique({
       where: { id: runId },
       select: { id: true },
     });
