@@ -217,6 +217,7 @@ model User {
   sshKeys                     SshKey[]
   requestedServerPreparations ServerPreparation[] @relation("ServerPreparationRequestedBy")
   automationRuns              AutomationRun[]
+  serverOperations            ServerOperation[]   @relation("ServerOperationRequestedBy")
   createdAt                   DateTime            @default(now())
   updatedAt                   DateTime            @updatedAt
 }
@@ -284,6 +285,7 @@ model Server {
   installedTools    Json?                    @default("[]")
   preparations      ServerPreparation[]
   automationTargets AutomationRunTarget[]
+  serverOperations  ServerOperationTarget[]
   dockerConnection  DockerConnection?
   containers       Container[]
   volumes          Volume[]
@@ -1323,4 +1325,100 @@ model DatabaseBackup {
 
   @@index([serviceEnvironmentId, createdAt])
   @@index([status])
+}
+
+// ============================================================================
+// ServerOperation — moteur UNIFIÉ d'opérations serveur (P7).
+// Converge ServerJob (verify/install/prepare), ServerPreparation (+tasks/logs)
+// et AutomationRun (+targets/logs) en UN seul modèle. Phase 1 = ADDITIF (les
+// anciennes tables restent intactes) ; les phases suivantes migrent chaque
+// sous-système vers ce modèle, puis suppriment les anciennes tables.
+// ============================================================================
+enum ServerOperationStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILED
+  CANCELED
+}
+
+model ServerOperation {
+  id            String                @id @default(uuid())
+  actionKey     String // verify | install-tools | prepare | ssl | <action ansible>
+  actionLabel   String?
+  status        ServerOperationStatus @default(QUEUED)
+  triggerSource String                @default("USER")
+  profile       String?
+  requestedById String?
+  requestedBy   User?                 @relation("ServerOperationRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  paramsJson    Json                  @default("{}") // ex extraVarsJson / selectedOptionsJson
+  resolvedJson  Json? // ex resolvedRolesJson
+  summary       String?               @db.Text
+  errorMessage  String?               @db.Text
+  attempts      Int                   @default(0)
+  maxAttempts   Int                   @default(1)
+  timeoutMs     Int?
+  retryOfId     String?
+  retryOf       ServerOperation?      @relation("ServerOperationRetry", fields: [retryOfId], references: [id], onDelete: SetNull)
+  retries       ServerOperation[]     @relation("ServerOperationRetry")
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  targets       ServerOperationTarget[]
+  steps         ServerOperationStep[]
+  logs          ServerOperationLog[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([status])
+  @@index([actionKey])
+  @@index([createdAt])
+  @@index([requestedById])
+  @@index([retryOfId])
+}
+
+model ServerOperationTarget {
+  id           String                @id @default(uuid())
+  operationId  String
+  operation    ServerOperation       @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  serverId     String
+  server       Server                @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  status       ServerOperationStatus @default(QUEUED)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  errorMessage String?               @db.Text
+  output       String?               @db.Text
+
+  @@unique([operationId, serverId])
+  @@index([operationId])
+  @@index([serverId])
+}
+
+model ServerOperationStep {
+  id          String                @id @default(uuid())
+  operationId String
+  operation   ServerOperation       @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  roleKey     String?
+  name        String
+  orderIndex  Int
+  status      ServerOperationStatus @default(QUEUED)
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  message     String?               @db.Text
+
+  @@index([operationId, orderIndex])
+}
+
+model ServerOperationLog {
+  id          String          @id @default(uuid())
+  operationId String
+  operation   ServerOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  serverId    String?
+  level       ServerLogLevel  @default(INFO)
+  source      String          @default("orchestrator")
+  message     String          @db.Text
+  lineNumber  Int             @default(0)
+  createdAt   DateTime        @default(now())
+
+  @@index([operationId, lineNumber])
+  @@index([serverId])
 }
