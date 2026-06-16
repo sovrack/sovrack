@@ -81,6 +81,72 @@ export class WebhookManagementService {
     return { webhookUrl, isNew };
   }
 
+  /**
+   * Webhook PAR SERVICE (1 service = 1 repo = 1 webhook). La branche du push
+   * route ensuite vers le bon environnement (ServiceEnvironment.autoBranch).
+   * Idempotent ; enregistre l'URL sur le repo du service (best-effort).
+   */
+  async configureForService(
+    projectId: string,
+    serviceId: string,
+  ): Promise<{ webhookUrl: string; isNew: boolean }> {
+    const provider = await this.sourceProviders.forService(serviceId);
+
+    const before = await this.prisma.webhookEndpoint.findFirst({
+      where: { serviceId, provider: provider.type },
+      select: { id: true },
+    });
+    const endpoint = await this.webhooksService.getOrCreateEndpoint({
+      projectId,
+      serviceId,
+      provider: provider.type,
+      events: [],
+    });
+    const isNew = !before;
+
+    const webhookUrl = await this.platformService.buildWebhookUrl(
+      `webhooks/incoming/${endpoint.webhookToken}`,
+    );
+    try {
+      await provider.configureWebhook(projectId, webhookUrl, endpoint.webhookToken, undefined);
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Auto-register webhook on provider failed for service ${serviceId} (URL copiable manuellement): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    return { webhookUrl, isNew };
+  }
+
+  /** Statut webhook d'un service (URL, actif, dernier event). */
+  async getStatusForService(serviceId: string) {
+    const endpoint = await this.prisma.webhookEndpoint.findFirst({
+      where: { serviceId },
+      select: { id: true, isActive: true, webhookToken: true, provider: true, lastEventAt: true },
+    });
+    if (!endpoint) {
+      return { configured: false as const };
+    }
+    const webhookUrl = await this.platformService.buildWebhookUrl(
+      `webhooks/incoming/${endpoint.webhookToken}`,
+    );
+    return {
+      configured: true as const,
+      isActive: endpoint.isActive,
+      provider: endpoint.provider,
+      webhookUrl,
+      lastEventAt: endpoint.lastEventAt,
+    };
+  }
+
+  /** Pause/reprise du webhook d'un service. */
+  async setActiveForService(serviceId: string, isActive: boolean): Promise<void> {
+    const endpoint = await this.prisma.webhookEndpoint.findFirst({ where: { serviceId } });
+    if (!endpoint) throw new NotFoundException('Webhook endpoint not found for this service');
+    await this.prisma.webhookEndpoint.update({ where: { id: endpoint.id }, data: { isActive } });
+  }
+
   /** Pause or resume an endpoint without deleting it. */
   async setActive(projectId: string, isActive: boolean, serviceEnvId?: string): Promise<void> {
     const endpoint = await this.prisma.webhookEndpoint.findFirst({

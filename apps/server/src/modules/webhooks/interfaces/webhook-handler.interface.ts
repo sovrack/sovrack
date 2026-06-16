@@ -17,6 +17,8 @@ export interface WebhookEndpointContext {
   projectId: string;
   /** Bound ServiceEnvironment when the webhook targets a specific service/env. */
   serviceEnvId: string | null;
+  /** Bound Service (webhook PAR SERVICE) — la branche route ensuite vers l'env. */
+  serviceId: string | null;
   provider: GitProviderType;
   isActive: boolean;
 }

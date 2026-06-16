@@ -57,12 +57,14 @@ export class WebhooksService {
   async getOrCreateEndpoint(params: {
     projectId: string;
     serviceEnvId?: string | null;
+    serviceId?: string | null;
     provider: GitProviderType;
     events: string[];
   }): Promise<{ id: string; webhookToken: string; secret: string }> {
     const existing = await this.prisma.webhookEndpoint.findFirst({
       where: {
         projectId: params.projectId,
+        serviceId: params.serviceId ?? null,
         serviceEnvId: params.serviceEnvId ?? null,
         provider: params.provider,
       },
@@ -78,6 +80,7 @@ export class WebhooksService {
     const created = await this.prisma.webhookEndpoint.create({
       data: {
         projectId: params.projectId,
+        serviceId: params.serviceId ?? null,
         serviceEnvId: params.serviceEnvId ?? null,
         provider: params.provider,
         events: params.events,
@@ -121,6 +124,7 @@ export class WebhooksService {
         id: true,
         projectId: true,
         serviceEnvId: true,
+        serviceId: true,
         provider: true,
         isActive: true,
       },
@@ -276,7 +280,7 @@ export class WebhooksService {
         attempts: true,
         payload: true,
         endpoint: {
-          select: { id: true, projectId: true, serviceEnvId: true, provider: true, isActive: true },
+          select: { id: true, projectId: true, serviceEnvId: true, serviceId: true, provider: true, isActive: true },
         },
       },
     });
@@ -312,7 +316,7 @@ export class WebhooksService {
         attempts: true,
         payload: true,
         endpoint: {
-          select: { id: true, projectId: true, serviceEnvId: true, provider: true, isActive: true },
+          select: { id: true, projectId: true, serviceEnvId: true, serviceId: true, provider: true, isActive: true },
         },
       },
     });

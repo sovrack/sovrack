@@ -221,6 +221,7 @@ describe('WebhooksService', () => {
         id: 'ep_1',
         projectId: 'proj_1',
         serviceEnvId: null,
+        serviceId: null,
         provider: GitProviderType.GITLAB,
         isActive: true,
       });
@@ -229,13 +230,14 @@ describe('WebhooksService', () => {
         id: 'ep_1',
         projectId: 'proj_1',
         serviceEnvId: null,
+        serviceId: null,
         provider: GitProviderType.GITLAB,
         isActive: true,
       });
       // O(1) via the unique index on webhookToken.
       expect(prisma.webhookEndpoint.findUnique).toHaveBeenCalledWith({
         where: { webhookToken: 'tok-123' },
-        select: { id: true, projectId: true, serviceEnvId: true, provider: true, isActive: true },
+        select: { id: true, projectId: true, serviceEnvId: true, serviceId: true, provider: true, isActive: true },
       });
     });
 

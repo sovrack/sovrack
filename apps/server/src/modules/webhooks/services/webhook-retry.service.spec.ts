@@ -60,6 +60,7 @@ describe('WebhookRetryService', () => {
     id: 'ep-1',
     projectId: 'proj-1',
     serviceEnvId: null,
+    serviceId: null,
     provider: GitProviderType.GITLAB,
     isActive: true,
   };

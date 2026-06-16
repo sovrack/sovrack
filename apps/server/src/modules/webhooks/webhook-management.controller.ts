@@ -22,37 +22,46 @@ import { WebhookManagementService } from './webhook-management.service';
 export class WebhookManagementController {
   constructor(private readonly webhookService: WebhookManagementService) {}
 
+  // `serviceId` (recommandé) = webhook PAR SERVICE ; sinon serviceEnvId / projet (legacy).
   @Post('configure')
   async configure(
     @Param('projectId') projectId: string,
+    @Query('serviceId') serviceId?: string,
     @Query('serviceEnvId') serviceEnvId?: string,
   ) {
+    if (serviceId) return this.webhookService.configureForService(projectId, serviceId);
     return this.webhookService.configureForProject(projectId, serviceEnvId);
   }
 
   @Get('status')
   async status(
     @Param('projectId') projectId: string,
+    @Query('serviceId') serviceId?: string,
     @Query('serviceEnvId') serviceEnvId?: string,
   ) {
+    if (serviceId) return this.webhookService.getStatusForService(serviceId);
     return this.webhookService.getStatus(projectId, serviceEnvId);
   }
 
   @Post('pause')
   async pause(
     @Param('projectId') projectId: string,
+    @Query('serviceId') serviceId?: string,
     @Query('serviceEnvId') serviceEnvId?: string,
   ) {
-    await this.webhookService.setActive(projectId, false, serviceEnvId);
+    if (serviceId) await this.webhookService.setActiveForService(serviceId, false);
+    else await this.webhookService.setActive(projectId, false, serviceEnvId);
     return { status: 'paused' };
   }
 
   @Post('resume')
   async resume(
     @Param('projectId') projectId: string,
+    @Query('serviceId') serviceId?: string,
     @Query('serviceEnvId') serviceEnvId?: string,
   ) {
-    await this.webhookService.setActive(projectId, true, serviceEnvId);
+    if (serviceId) await this.webhookService.setActiveForService(serviceId, true);
+    else await this.webhookService.setActive(projectId, true, serviceEnvId);
     return { status: 'resumed' };
   }
 }

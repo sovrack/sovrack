@@ -168,6 +168,17 @@ export class GitlabWebhookHandler implements IWebhookHandler {
   private async resolveTarget(
     endpoint: WebhookEndpointContext,
   ): Promise<{ serviceId: string | null; branch: string | null }> {
+    // Webhook PAR SERVICE : identité directe (la branche du push route ensuite
+    // vers le bon environnement via ServiceEnvironment.autoBranch côté trigger).
+    if (endpoint.serviceId) {
+      const svc = await this.prisma.service.findUnique({
+        where: { id: endpoint.serviceId },
+        select: { id: true, branch: true },
+      });
+      if (svc) {
+        return { serviceId: svc.id, branch: svc.branch };
+      }
+    }
     if (endpoint.serviceEnvId) {
       const se = await this.prisma.serviceEnvironment.findUnique({
         where: { id: endpoint.serviceEnvId },

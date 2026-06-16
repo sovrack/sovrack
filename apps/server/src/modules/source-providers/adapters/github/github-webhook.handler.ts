@@ -152,6 +152,8 @@ export class GithubWebhookHandler implements IWebhookHandler {
   private async resolveServiceId(
     endpoint: WebhookEndpointContext,
   ): Promise<string | null> {
+    // Webhook PAR SERVICE : identité directe.
+    if (endpoint.serviceId) return endpoint.serviceId;
     if (endpoint.serviceEnvId) {
       const se = await this.prisma.serviceEnvironment.findUnique({
         where: { id: endpoint.serviceEnvId },

@@ -105,6 +105,7 @@ export class WebhookRetryService {
       id: endpoint.id,
       projectId: endpoint.projectId,
       serviceEnvId: endpoint.serviceEnvId,
+      serviceId: endpoint.serviceId,
       provider: endpoint.provider,
       isActive: endpoint.isActive,
     };
