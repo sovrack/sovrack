@@ -100,6 +100,27 @@ export class DockerApiService {
     await client.getContainer(containerName).start();
   }
 
+  /**
+   * Branche un conteneur sur un réseau Docker additionnel (ex: réseau partagé
+   * 'web' du reverse-proxy Traefik). Idempotent : ignore l'erreur « already
+   * exists »/« already in network ».
+   */
+  async connectNetwork(
+    serverId: string,
+    network: string,
+    containerName: string,
+  ): Promise<void> {
+    const client = await this.getClient(serverId);
+    try {
+      await client.getNetwork(network).connect({ Container: containerName });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (!/already exists|already in (the )?network|endpoint with name/i.test(msg)) {
+        throw error;
+      }
+    }
+  }
+
   async stopContainer(serverId: string, containerName: string, timeoutSec = 10): Promise<void> {
     const client = await this.getClient(serverId);
     await client.getContainer(containerName).stop({ t: timeoutSec });

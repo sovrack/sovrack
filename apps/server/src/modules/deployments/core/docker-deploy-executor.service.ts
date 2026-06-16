@@ -307,6 +307,38 @@ export class DockerDeployExecutorService {
         throw healthError;
       }
 
+      // ── Reverse-proxy Traefik : si un domaine est rattaché au service-env,
+      // brancher le conteneur sur le réseau 'web' + écrire la route dynamique
+      // (provider fichier). Opt-in par la présence d'un Domain → aucun impact
+      // sur les déploiements sans domaine.
+      const traefikServiceEnvId = deployment.serviceEnv?.id;
+      if (traefikServiceEnvId && deployment.service?.type !== ServiceType.DATABASE) {
+        const domainRow = await this.prisma.domain.findFirst({
+          where: { serviceEnvId: traefikServiceEnvId },
+          orderBy: { createdAt: 'desc' },
+          select: { name: true },
+        });
+        if (domainRow?.name) {
+          try {
+            commandLogs += await this.applyTraefikRoute(
+              serverId,
+              server,
+              traefikServiceEnvId,
+              domainRow.name,
+              containerName,
+              servicePort,
+              deployment.id,
+            );
+          } catch (proxyError) {
+            // Non bloquant : l'app tourne déjà (port hôte), seul le routage
+            // domaine a échoué → on le signale sans faire échouer le déploiement.
+            const msg = proxyError instanceof Error ? proxyError.message : 'unknown';
+            this.emitGatewayLog(deployment.id, `[TRAEFIK] Route non configurée: ${msg}`, 'error');
+            commandLogs += `[TRAEFIK] Route non configurée: ${msg}\n`;
+          }
+        }
+      }
+
       // Green is healthy → cut over: repoint the proxy rule, drain in-flight
       // requests on blue, then retire the old (blue) container(s).
       if (blueGreen) {
@@ -487,6 +519,67 @@ export class DockerDeployExecutorService {
       await conn.dispose();
     }
     return logs;
+  }
+
+  /**
+   * Branche le conteneur sur le réseau partagé 'web' et écrit la config dynamique
+   * Traefik (provider fichier) routant Host(domain) → http://<conteneur>:<port>
+   * en HTTPS (résolveur Let's Encrypt 'le'). Traefik recharge à chaud.
+   * Indépendant de la version du daemon Docker (cf. mémoire traefik-phase2).
+   */
+  private async applyTraefikRoute(
+    serverId: string,
+    server: { host: string; port: number; username: string; sshKey: string },
+    serviceEnvId: string,
+    domain: string,
+    containerName: string,
+    servicePort: number,
+    deploymentId: string,
+  ): Promise<string> {
+    // 1. Rendre le conteneur joignable par Traefik (réseau partagé 'web').
+    await this.docker.createNetwork(serverId, 'web').catch(() => undefined);
+    await this.docker.connectNetwork(serverId, 'web', containerName);
+
+    // 2. Config dynamique Traefik (encodée base64 pour éviter tout souci de
+    //    quoting — la règle Host contient des backticks).
+    const safeId = serviceEnvId.replace(/[^a-zA-Z0-9_-]/g, '-');
+    const yaml = [
+      'http:',
+      '  routers:',
+      `    ${safeId}:`,
+      `      rule: "Host(\`${domain}\`)"`,
+      '      entryPoints: ["websecure"]',
+      `      service: ${safeId}`,
+      '      tls:',
+      '        certResolver: le',
+      '  services:',
+      `    ${safeId}:`,
+      '      loadBalancer:',
+      '        servers:',
+      `          - url: "http://${containerName}:${String(servicePort)}"`,
+      '',
+    ].join('\n');
+    const b64 = Buffer.from(yaml, 'utf8').toString('base64');
+
+    const pinnedHost = await this.serverHostKeys.resolveForConnection(server, { allowTrustOnFirstUse: false });
+    const conn = await this.ssh.connect({
+      host: server.host,
+      port: server.port,
+      username: server.username,
+      privateKey: this.serversCrypto.decrypt(server.sshKey),
+      expectedHostKey: pinnedHost.keyBase64,
+    });
+    try {
+      await this.ssh.execOrThrow(
+        conn,
+        `sudo mkdir -p /opt/traefik/dynamic && echo ${b64} | base64 -d | sudo tee /opt/traefik/dynamic/${safeId}.yml >/dev/null`,
+        'Écriture de la route Traefik échouée',
+      );
+    } finally {
+      await conn.dispose();
+    }
+    this.emitGatewayLog(deploymentId, `[TRAEFIK] Route ${domain} → ${containerName}:${String(servicePort)}`, 'info');
+    return `[TRAEFIK] Route HTTPS configurée : https://${domain}\n`;
   }
 
   /**
