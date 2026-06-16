@@ -20,6 +20,8 @@ import { useProjectMembers } from '@/hooks/projects/use-project-members';
 import { useConfirm } from '@/contexts/confirm-context';
 import { PageHeader } from '@/components/layout/page-header';
 import { ProjectEnvironmentsTab } from '@/components/projects/project-environments-tab';
+import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
+import { useProjectDeployments } from '@/hooks/projects/use-project-deployments';
 import { ServicesList } from '@/components/projects/tabs/service/services-list';
 import { AddServiceWizard } from '@/components/projects/add-service-wizard';
 import { DeployDialog } from '@/components/deployments/deploy-dialog';
@@ -27,9 +29,9 @@ import { ProjectMembersTab } from '@/components/projects/project-members-tab';
 import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
 
-type Tab = 'services' | 'environments' | 'settings';
+type Tab = 'services' | 'deployments' | 'environments' | 'settings';
 
-const TAB_VALUES: Tab[] = ['services', 'environments', 'settings'];
+const TAB_VALUES: Tab[] = ['services', 'deployments', 'environments', 'settings'];
 
 function parseTab(value: string | null): Tab | null {
   if (!value) return null;
@@ -59,6 +61,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const members = useProjectMembers({ projectId: id, isAdmin, refreshProject: refresh });
   const servicesQuery = useProjectServices(id);
   const environmentsQuery = useProjectEnvironments(id);
+  const deploymentsQuery = useProjectDeployments(id);
   const environments = environmentsQuery.data ?? [];
   const confirm = useConfirm();
 
@@ -129,6 +132,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'services',     label: 'Services',        icon: Boxes },
+    { id: 'deployments',  label: 'Deployments',     icon: Rocket },
     { id: 'environments', label: 'Environments',    icon: Layers },
     { id: 'settings',     label: 'Members & Access', icon: Settings },
   ];
@@ -200,6 +204,16 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           projectId={id}
           services={servicesQuery.data ?? []}
           onAddService={() => setAddServiceOpen(true)}
+        />
+      )}
+
+      {tab === 'deployments' && (
+        <ProjectDeploymentsTab
+          deployments={deploymentsQuery.deployments}
+          loading={deploymentsQuery.loading}
+          error={deploymentsQuery.error}
+          projectId={id}
+          onRefresh={() => void deploymentsQuery.refresh()}
         />
       )}
 
