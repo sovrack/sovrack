@@ -238,10 +238,14 @@ export class DockerApiService {
 
   private buildClient(endpoint: string, tls: DecryptedDockerTls | null): Docker {
     const url = new URL(endpoint);
+    // TLS material implies HTTPS transport even when the endpoint is written as
+    // tcp:// — a Docker daemon on 2376 speaks HTTPS; sending plain HTTP yields
+    // "Client sent an HTTP request to an HTTPS server".
+    const useHttps = url.protocol === 'https:' || !!(tls && (tls.ca || tls.cert || tls.key));
     const options: Docker.DockerOptions = {
       host: url.hostname,
-      port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)),
-      protocol: url.protocol === 'https:' ? 'https' : 'http',
+      port: Number(url.port || (useHttps ? 2376 : 80)),
+      protocol: useHttps ? 'https' : 'http',
     };
     if (tls && (tls.ca || tls.cert || tls.key)) {
       if (tls.ca) options.ca = tls.ca;
