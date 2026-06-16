@@ -168,6 +168,8 @@ export class ServiceEnvironmentsService {
         ...(dto.healthcheckPath !== undefined ? { healthcheckPath: dto.healthcheckPath } : {}),
         ...(dto.buildPack !== undefined ? { buildPack: dto.buildPack } : {}),
         ...(dto.env !== undefined ? { env: dto.env } : {}),
+        ...(dto.autoDeploy !== undefined ? { autoDeploy: dto.autoDeploy } : {}),
+        ...(dto.autoBranch !== undefined ? { autoBranch: dto.autoBranch } : {}),
         // Encrypt secrets at rest before persisting.
         ...(dto.secretsEnv !== undefined
           ? { secretsEnv: this.crypto.encrypt(dto.secretsEnv) }

@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BuildPack } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -67,4 +68,14 @@ export class CreateServiceEnvironmentDto {
   @IsOptional()
   @IsString()
   secretsEnv?: string;
+
+  @ApiPropertyOptional({ description: 'Déploiement auto sur push (via webhook).', example: true })
+  @IsOptional()
+  @IsBoolean()
+  autoDeploy?: boolean;
+
+  @ApiPropertyOptional({ description: 'Branche déclenchant le déploiement auto.', example: 'main' })
+  @IsOptional()
+  @IsString()
+  autoBranch?: string;
 }
