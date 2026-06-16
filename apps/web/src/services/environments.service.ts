@@ -89,4 +89,19 @@ export const environmentsService = {
   async unlinkService(projectId: string, serviceLinkId: string): Promise<void> {
     await api.delete(`/projects/${projectId}/service-environments/${serviceLinkId}`);
   },
+
+  // Détail d'un ServiceEnvironment (inclut env ; secretsEnv jamais renvoyé en clair).
+  async getServiceLink(projectId: string, id: string): Promise<ServiceEnvironment> {
+    const res = await api.get<ServiceEnvironment>(`/projects/${projectId}/service-environments/${id}`);
+    return res.data;
+  },
+
+  // Variables (claires + secrètes chiffrées au repos) de CE service × CET environnement.
+  async updateServiceLink(
+    projectId: string,
+    id: string,
+    payload: { env?: string; secretsEnv?: string },
+  ): Promise<void> {
+    await api.put(`/projects/${projectId}/service-environments/${id}`, payload);
+  },
 };

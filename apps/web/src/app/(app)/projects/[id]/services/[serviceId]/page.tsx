@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   Activity,
   ArrowLeft,
+  ChevronDown,
   Container as ContainerIcon,
   Database,
   FolderGit2,
@@ -14,6 +15,7 @@ import {
   Plus,
   RefreshCw,
   Rocket,
+  Save,
   ScrollText,
   Settings2,
   StopCircle,
@@ -334,6 +336,7 @@ function ServiceEnvironments({
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null); // serviceEnvId déplié
 
   const linkFor = (envId: string) => envLinks.find((l) => l.environmentId === envId) ?? null;
 
@@ -356,8 +359,8 @@ function ServiceEnvironments({
 
   return (
     <SectionCard
-      title="Environments"
-      description="Choisissez les environnements où ce service est déployable. Chaque lien crée une instance déployable (service × environnement)."
+      title="Environments & variables"
+      description="Ce service tourne dans chaque environnement lié (1 lien = 1 instance déployable). Chaque instance a SES propres variables."
     >
       {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
       {environments.length === 0 ? (
@@ -371,33 +374,111 @@ function ServiceEnvironments({
       ) : (
         <div className="space-y-2">
           {environments.map((env) => {
-            const linked = !!linkFor(env.id);
+            const link = linkFor(env.id);
+            const linked = !!link;
             const busy = busyId === env.id;
+            const isOpen = !!link && openId === link.id;
             return (
-              <div key={env.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2">
-                <span className="flex items-center gap-2 text-sm">
-                  <Layers size={14} className="text-[var(--text-muted)]" />
-                  <span className="font-medium text-[var(--text-primary)]">{env.name}</span>
-                  {linked && (
-                    <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">Lié</span>
-                  )}
-                </span>
-                <button type="button" onClick={() => void toggle(env.id)} disabled={busy}
-                  className={linked
-                    ? 'inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50'
-                    : 'inline-flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50'}>
-                  {busy ? <Loader2 size={12} className="animate-spin" /> : linked ? <X size={12} /> : <Plus size={12} />}
-                  {linked ? 'Détacher' : 'Ajouter à cet environnement'}
-                </button>
+              <div key={env.id} className="overflow-hidden rounded-lg border border-[var(--border)]">
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="flex items-center gap-2 text-sm">
+                    <Layers size={14} className="text-[var(--text-muted)]" />
+                    <span className="font-medium text-[var(--text-primary)]">{env.name}</span>
+                    {linked && (
+                      <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">Lié</span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {linked && link && (
+                      <button type="button" onClick={() => setOpenId(isOpen ? null : link.id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+                        <ChevronDown size={12} className={isOpen ? 'rotate-180 transition' : 'transition'} /> Variables
+                      </button>
+                    )}
+                    <button type="button" onClick={() => void toggle(env.id)} disabled={busy}
+                      className={linked
+                        ? 'inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50'
+                        : 'inline-flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50'}>
+                      {busy ? <Loader2 size={12} className="animate-spin" /> : linked ? <X size={12} /> : <Plus size={12} />}
+                      {linked ? 'Détacher' : 'Ajouter à cet environnement'}
+                    </button>
+                  </div>
+                </div>
+                {isOpen && link && <EnvVarsEditor projectId={projectId} serviceEnvId={link.id} />}
               </div>
             );
           })}
         </div>
       )}
-      <p className="mt-3 text-xs text-[var(--text-muted)]">
-        Les variables (claires + secrètes) se configurent par environnement.
-      </p>
     </SectionCard>
+  );
+}
+
+/** Éditeur des variables d'UNE instance (ServiceEnvironment = service × env). */
+function EnvVarsEditor({ projectId, serviceEnvId }: { projectId: string; serviceEnvId: string }) {
+  const [env, setEnv] = useState('');
+  const [secrets, setSecrets] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    environmentsService.getServiceLink(projectId, serviceEnvId)
+      .then((se) => {
+        if (!alive) return;
+        const raw = se.env as unknown;
+        setEnv(typeof raw === 'string' ? raw : raw ? JSON.stringify(raw, null, 2) : '');
+      })
+      .catch(() => undefined)
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [projectId, serviceEnvId]);
+
+  const save = async () => {
+    setSaving(true); setMsg(null);
+    try {
+      const payload: { env?: string; secretsEnv?: string } = {};
+      if (env.trim()) { JSON.parse(env); payload.env = env; } else { payload.env = '{}'; }
+      if (secrets.trim()) { JSON.parse(secrets); payload.secretsEnv = secrets; }
+      await environmentsService.updateServiceLink(projectId, serviceEnvId, payload);
+      setMsg('Enregistré ✓'); setSecrets('');
+    } catch (e) {
+      setMsg(e instanceof SyntaxError ? 'JSON invalide.' : getApiErrorMessage(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const ta = 'w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]';
+  const lbl = 'mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]';
+
+  return (
+    <div className="space-y-3 border-t border-[var(--border)] bg-[var(--bg-app)]/40 px-3 py-3">
+      {loading ? (
+        <p className="text-xs text-[var(--text-muted)]">Chargement…</p>
+      ) : (
+        <>
+          <div>
+            <label className={lbl}>Variables (JSON)</label>
+            <textarea rows={5} value={env} onChange={(e) => setEnv(e.target.value)}
+              placeholder={'{\n  "NODE_ENV": "production"\n}'} className={ta} />
+          </div>
+          <div>
+            <label className={lbl}>Secrets (JSON · chiffrés au repos · écriture seule)</label>
+            <textarea rows={3} value={secrets} onChange={(e) => setSecrets(e.target.value)}
+              placeholder={'{ "DB_PASSWORD": "..." }  — laisser vide pour ne pas changer'} className={ta} />
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => void save()} disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50">
+              {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Enregistrer
+            </button>
+            {msg && <span className="text-xs text-[var(--text-secondary)]">{msg}</span>}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
