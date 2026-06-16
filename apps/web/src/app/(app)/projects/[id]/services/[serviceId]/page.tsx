@@ -11,6 +11,7 @@ import {
   FolderGit2,
   Layers,
   Loader2,
+  Plus,
   RefreshCw,
   Rocket,
   ScrollText,
@@ -18,6 +19,7 @@ import {
   StopCircle,
   TerminalSquare,
   Trash2,
+  X,
 } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/api';
 import { useConfirm } from '@/contexts/confirm-context';
@@ -262,15 +264,13 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Environment */}
       {tab === 'environment' && (
-        <SectionCard title="Environment variables" description="Variables are configured per environment.">
-          <p className="text-sm text-[var(--text-secondary)]">
-            This service&apos;s variables are managed per environment.{' '}
-            <Link href={`/projects/${projectId}?tab=environments`} className="underline hover:text-[var(--text-primary)]">
-              Open the Environments tab
-            </Link>{' '}
-            to edit non-secret config and encrypted secrets for each target.
-          </p>
-        </SectionCard>
+        <ServiceEnvironments
+          projectId={projectId}
+          serviceId={serviceId}
+          environments={environments}
+          envLinks={service.envLinks ?? []}
+          onChanged={() => void load()}
+        />
       )}
 
       {/* Logs */}
@@ -311,6 +311,93 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         initialEnvironmentId={selectedEnvId || undefined}
       />
     </div>
+  );
+}
+
+/**
+ * Sélecteur d'environnements DU service : choisir dans quels environnements ce
+ * service est déployable. Chaque lien = un ServiceEnvironment (service × env),
+ * l'unité déployable. Résout le cas « env créé après le service » (pas d'auto-lien).
+ */
+function ServiceEnvironments({
+  projectId,
+  serviceId,
+  environments,
+  envLinks,
+  onChanged,
+}: {
+  projectId: string;
+  serviceId: string;
+  environments: { id: string; name: string }[];
+  envLinks: { id: string; environmentId: string }[];
+  onChanged: () => void;
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const linkFor = (envId: string) => envLinks.find((l) => l.environmentId === envId) ?? null;
+
+  const toggle = async (envId: string) => {
+    setBusyId(envId); setError(null);
+    try {
+      const link = linkFor(envId);
+      if (link) {
+        await environmentsService.unlinkService(projectId, link.id);
+      } else {
+        await environmentsService.linkService(projectId, envId, serviceId);
+      }
+      onChanged();
+    } catch (e) {
+      setError(getApiErrorMessage(e));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <SectionCard
+      title="Environments"
+      description="Choisissez les environnements où ce service est déployable. Chaque lien crée une instance déployable (service × environnement)."
+    >
+      {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
+      {environments.length === 0 ? (
+        <p className="text-sm text-[var(--text-muted)]">
+          Aucun environnement — créez-en un dans l&apos;onglet{' '}
+          <Link href={`/projects/${projectId}?tab=environments`} className="underline hover:text-[var(--text-primary)]">
+            Environments
+          </Link>{' '}
+          du projet.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {environments.map((env) => {
+            const linked = !!linkFor(env.id);
+            const busy = busyId === env.id;
+            return (
+              <div key={env.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2">
+                <span className="flex items-center gap-2 text-sm">
+                  <Layers size={14} className="text-[var(--text-muted)]" />
+                  <span className="font-medium text-[var(--text-primary)]">{env.name}</span>
+                  {linked && (
+                    <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">Lié</span>
+                  )}
+                </span>
+                <button type="button" onClick={() => void toggle(env.id)} disabled={busy}
+                  className={linked
+                    ? 'inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50'
+                    : 'inline-flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50'}>
+                  {busy ? <Loader2 size={12} className="animate-spin" /> : linked ? <X size={12} /> : <Plus size={12} />}
+                  {linked ? 'Détacher' : 'Ajouter à cet environnement'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="mt-3 text-xs text-[var(--text-muted)]">
+        Les variables (claires + secrètes) se configurent par environnement.
+      </p>
+    </SectionCard>
   );
 }
 
