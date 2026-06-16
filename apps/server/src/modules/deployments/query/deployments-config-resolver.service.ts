@@ -94,7 +94,10 @@ export class DeploymentsConfigResolver {
     if (pack === BuildPack.STATIC) return 'STATIC';
     if (pack === BuildPack.DOCKER_COMPOSE) return 'DOCKER_COMPOSE';
     if (pack === BuildPack.NIXPACKS) return 'NIXPACKS_LOCAL';
-    return 'DOCKERFILE_REGISTRY';
+    // Default = LOCAL build (on the VPS): works without a CI/registry and stays
+    // coherent with the frontend deploy-dialog. The registry/pipeline path is
+    // opt-in via an explicit dto.buildSource = 'DOCKERFILE_REGISTRY' (P3).
+    return 'DOCKERFILE_LOCAL';
   }
 
   isLocalBuildSource(src: BuildSource): boolean {

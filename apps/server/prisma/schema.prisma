@@ -427,6 +427,9 @@ model ServerPreparationLog {
 model Environment {
   id           String               @id @default(uuid())
   name         String
+  // When true, only ADMIN platform role or project OWNER can deploy here.
+  // A project DEVELOPER receives ForbiddenException on deploy attempts.
+  isProtected  Boolean              @default(false)
   env          String?              @db.Text // JSON — variables NON-secrètes de l'environnement
   secretsEnv   String?              @db.Text // JSON — secrets de l'environnement (chiffré au repos)
   project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -454,6 +457,13 @@ model ServiceEnvironment {
   replicas        Int?
   healthcheckPath String?
   buildPack       BuildPack?
+
+  // Auto-deploy: when true, a git push on `autoBranch` automatically triggers
+  // a deployment for this service in this environment. The branch supports
+  // exact match only (e.g. "main", "release/v2"). Set autoBranch to null to
+  // match any branch.
+  autoDeploy      Boolean    @default(false)
+  autoBranch      String?    @default("main")
 
   // Ephemeral preview environments (one per merge/pull request). When isPreview
   // is true this ServiceEnvironment is disposable and tied to previewMrId.
@@ -1178,17 +1188,21 @@ enum PipelineRunStatus {
 // NEW enums for unified Service model (Phase 1 — refactoring architecturale)
 // ============================================================================
 
-// Modele Railway : le TYPE dit seulement la nature du service (3 valeurs).
+// Modele Railway : le TYPE dit seulement la nature du service (5 valeurs).
 // Le "comment on construit/deploie" est porte par sourceType (GIT/DOCKER_IMAGE/
 // NONE) + buildPack/buildType, axes orthogonaux. On NE duplique donc pas un
 // enum "ArtifactSource" : sourceType joue deja ce role.
-//   APPLICATION : code applicatif (ex WEB_SERVICE/WORKER/CRON_JOB/COMPOSE)
-//   DATABASE    : service de donnees auto-heberge (ex DATABASE/CACHE/QUEUE)
+//   APPLICATION : service applicatif web expose (HTTP)
+//   WORKER      : process long-running sans port (consumer de queue, etc.)
+//   CRON        : tache planifiee (job recurrent)
+//   DATABASE    : base de donnees auto-hebergee (Postgres/MySQL/Redis/Mongo/RabbitMQ)
 //   MANAGED     : service externe/manage (image pre-construite, pas de build)
 enum ServiceType {
   APPLICATION
   DATABASE
   MANAGED
+  WORKER
+  CRON
 }
 
 enum SourceType {
@@ -1249,6 +1263,12 @@ model Service {
   secretsEnv      String? @db.Text // JSON — secrets du service (chiffré au repos, jamais affiché en clair)
   healthcheckPath String?
   replicas        Int     @default(1)
+  // Pre-deploy command executed inside the new image before traffic cutover
+  // (e.g. "npx prisma migrate deploy"). Exit code ≠ 0 → deployment FAILED.
+  preDeployCommand    String?
+  preDeployTimeout    Int     @default(120)
+  // Seconds Docker waits after SIGTERM before sending SIGKILL.
+  shutdownTimeout     Int     @default(30)
 
   envLinks         ServiceEnvironment[]
   deployments      Deployment[]

@@ -15,6 +15,7 @@ import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { CryptoService } from '../../../../core/crypto/crypto.service';
 import { ALLOWED_PUSH_FILES } from '../../../../core/utils/file-constants';
+import { normalizeRepoPath } from '../../../../core/utils/repo-path.util';
 import type { RepoWriteResult, GitCredentials } from '../../contracts/git-provider.contract';
 
 type GitlabFilePayload = {
@@ -119,7 +120,7 @@ export class GitlabFileService {
     const host = context.baseUrl.replace(/^https?:\/\//, '');
     // Provider-agnostic clone identity: the PATH only. Never fall back to the
     // numeric project ID — GitLab cannot clone "https://host/<id>.git".
-    const repoPath = context.repositoryPath?.replace(/^\/+|\/+$/g, '');
+    const repoPath = context.repositoryPath ? normalizeRepoPath(context.repositoryPath) : undefined;
     if (!repoPath) {
       throw new BadRequestException(
         'Chemin du dépôt GitLab introuvable (path_with_namespace). ' +

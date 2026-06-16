@@ -209,6 +209,24 @@ export class DockerApiService {
     this.logger.log(`Volume removed: ${name}`);
   }
 
+  /**
+   * Create a Docker bridge network if it does not already exist.
+   * Throws if creation fails for any reason other than "already exists".
+   */
+  async createNetwork(serverId: string, name: string): Promise<void> {
+    const client = await this.getClient(serverId);
+    try {
+      await client.createNetwork({ Name: name, Driver: 'bridge', CheckDuplicate: true });
+      this.logger.log(`Network created: ${name}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('already exists') || msg.includes('409')) {
+        return;
+      }
+      throw err;
+    }
+  }
+
   invalidateCache(serverId: string): void {
     for (const key of this.clientCache.keys()) {
       if (key.startsWith(`${serverId}:`)) {

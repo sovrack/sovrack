@@ -1,14 +1,16 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 import { Job } from 'bullmq';
 import { createDeploymentsWorker } from '../../../core/queue/queue.provider';
 import type { DeployJobData, RollbackJobData } from '../../../core/queue/queue.service';
+import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 
 @Injectable()
 export class DeploymentsProcessor implements OnModuleInit {
   private readonly logger = new Logger(DeploymentsProcessor.name);
 
-  constructor(private readonly moduleRef: ModuleRef) {}
+  constructor(
+    private readonly executor: DockerDeployExecutorService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     const worker = createDeploymentsWorker(this.processJob.bind(this));
@@ -33,20 +35,13 @@ export class DeploymentsProcessor implements OnModuleInit {
   }
 
   private async handleDeploy(data: DeployJobData): Promise<void> {
-    const executor = this.moduleRef.get('DockerDeployExecutorService', { strict: false }) as any;
-    if (!executor) {
-      this.logger.error('DockerDeployExecutorService not available');
-      return;
-    }
-    await executor.executeDeploy(data.deploymentId, data.overrideImage);
+    await this.executor.executeDeploy(data.deploymentId, data.overrideImage);
   }
 
   private async handleRollback(data: RollbackJobData): Promise<void> {
-    const rollbackService = this.moduleRef.get('DeploymentsRollbackService', { strict: false }) as any;
-    if (!rollbackService) {
-      this.logger.error('DeploymentsRollbackService not available');
-      return;
-    }
-    await rollbackService.rollback(data.deploymentId, data.targetDeploymentId);
+    // A rollback deployment record is pre-created by DeploymentsRollbackService
+    // before the job is enqueued. The job just needs to execute the deploy with
+    // the pinned image override that was resolved at creation time.
+    await this.executor.executeDeploy(data.deploymentId, data.targetDeploymentId);
   }
 }

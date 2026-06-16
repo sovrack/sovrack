@@ -197,6 +197,7 @@ export class SourceProvidersService {
     userId: string,
     userRole: Role,
     branch?: string,
+    providerId?: string,
   ): Promise<void> {
     switch (provider) {
       case GitProviderType.GITLAB:
@@ -204,6 +205,7 @@ export class SourceProvidersService {
           gitlabToken: token,
           repoPath,
           defaultBranch: branch ?? 'main',
+          providerId,
         }, userId, userRole);
         break;
       case GitProviderType.GITHUB:
@@ -211,6 +213,7 @@ export class SourceProvidersService {
           gitlabToken: token,
           repoPath,
           defaultBranch: branch ?? 'main',
+          providerId,
         });
         break;
     }

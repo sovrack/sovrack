@@ -1,11 +1,14 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { ACTIVE_FILTER } from '../../../core/database/prisma-active.helper';
+import { normalizeRepoPath } from '../../../core/utils/repo-path.util';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -34,6 +37,8 @@ export class ServicesService {
     private readonly serviceEnvsService: ServiceEnvironmentsService,
     private readonly sourceProviders: SourceProvidersService,
   ) {}
+
+  private readonly logger = new Logger(ServicesService.name);
 
   async findAll(
     projectId: string,
@@ -95,14 +100,16 @@ export class ServicesService {
   ) {
     await this.assertCanManageProject(projectId, userId, userRole);
 
-    const service = await this.prisma.service.create({
+    let service: Awaited<ReturnType<typeof this.prisma.service.create>>;
+    try {
+    service = await this.prisma.service.create({
       data: {
         projectId,
         name: dto.name.trim(),
         type: dto.type,
         description: dto.description?.trim(),
         sourceType: dto.sourceType,
-        repoPath: dto.repoPath?.trim(),
+        repoPath: dto.repoPath ? normalizeRepoPath(dto.repoPath) : undefined,
         branch: dto.branch?.trim() || 'main',
         providerId: dto.providerId?.trim(),
         rootDir: dto.rootDir?.trim() || '/',
@@ -124,6 +131,14 @@ export class ServicesService {
         replicas: dto.replicas ?? 1,
       },
     });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException(
+          `Un service nommé "${dto.name.trim()}" existe déjà dans ce projet. Choisissez un autre nom.`,
+        );
+      }
+      throw err;
+    }
 
     // Auto-créer les ServiceEnvironment pour tous les environnements du projet
     await this.serviceEnvsService.linkServiceToAllEnvs(
@@ -133,17 +148,25 @@ export class ServicesService {
       userRole,
     );
 
-    // Connecter la source si fournie
+    // Connecter la source si fournie (non-bloquant : le service est créé même si
+    // l'enregistrement du webhook GitLab échoue)
     if (dto.source) {
-      await this.sourceProviders.connectRepo(
-        projectId,
-        dto.source.repoPath,
-        dto.source.provider,
-        dto.source.token,
-        userId,
-        userRole,
-        dto.source.branch,
-      );
+      try {
+        await this.sourceProviders.connectRepo(
+          projectId,
+          dto.source.repoPath,
+          dto.source.provider,
+          dto.source.token,
+          userId,
+          userRole,
+          dto.source.branch,
+          dto.providerId,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `connectRepo failed for service ${service.id} (non-fatal): ${String(err)}`,
+        );
+      }
     }
 
     return this.findOne(projectId, service.id, userId, userRole);
@@ -166,7 +189,7 @@ export class ServicesService {
         ...(dto.type !== undefined ? { type: dto.type } : {}),
         ...(dto.description !== undefined ? { description: dto.description?.trim() } : {}),
         ...(dto.sourceType !== undefined ? { sourceType: dto.sourceType } : {}),
-        ...(dto.repoPath !== undefined ? { repoPath: dto.repoPath?.trim() } : {}),
+        ...(dto.repoPath !== undefined ? { repoPath: dto.repoPath ? normalizeRepoPath(dto.repoPath) : undefined } : {}),
         ...(dto.branch !== undefined ? { branch: dto.branch?.trim() || 'main' } : {}),
         ...(dto.providerId !== undefined ? { providerId: dto.providerId?.trim() } : {}),
         ...(dto.rootDir !== undefined ? { rootDir: dto.rootDir?.trim() || '/' } : {}),

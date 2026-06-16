@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ContainerStatus, Deployment, DeploymentStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
 import { AuditService } from '../../audit/audit.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
@@ -12,6 +13,7 @@ export class DeploymentsLifecycleService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly docker: DockerApiService,
     private readonly gateway: DeploymentsGateway,
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly queryService: DeploymentsQueryService,
@@ -62,6 +64,19 @@ export class DeploymentsLifecycleService {
       );
     }
 
+    // Stop real Docker containers before updating DB status so the actual
+    // container state matches what is recorded. Errors are logged but do not
+    // prevent the DB update from completing.
+    const runningContainers = await this.prisma.container.findMany({
+      where: { deploymentId: id, status: { in: [ContainerStatus.RUNNING, ContainerStatus.CREATED] } },
+      select: { id: true, dockerId: true, serverId: true },
+    });
+    for (const c of runningContainers) {
+      await this.docker.stopContainer(c.serverId, c.dockerId).catch((err: unknown) => {
+        this.logger.warn(`Cancel: could not stop container ${c.dockerId}: ${err instanceof Error ? err.message : 'unknown'}`);
+      });
+    }
+
     const canceled = await this.prisma.deployment.update({
       where: { id },
       data: {
@@ -96,6 +111,17 @@ export class DeploymentsLifecycleService {
       userId,
       userRole,
     );
+
+    // Stop real Docker containers before deleting the DB record.
+    const runningContainersForDelete = await this.prisma.container.findMany({
+      where: { deploymentId: id, status: { in: [ContainerStatus.RUNNING, ContainerStatus.CREATED] } },
+      select: { id: true, dockerId: true, serverId: true },
+    });
+    for (const c of runningContainersForDelete) {
+      await this.docker.stopContainer(c.serverId, c.dockerId).catch((err: unknown) => {
+        this.logger.warn(`Remove: could not stop container ${c.dockerId}: ${err instanceof Error ? err.message : 'unknown'}`);
+      });
+    }
 
     await this.prisma.container.updateMany({
       where: { deploymentId: id },

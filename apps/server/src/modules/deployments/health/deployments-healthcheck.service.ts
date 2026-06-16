@@ -1,6 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import { SshExecutorService, type SshConnection } from '../../../core/ssh/ssh-executor.service';
+import { ServerHostKeyService } from '../../infrastructure/servers/services/server-host-key.service';
+import { ServersCryptoService } from '../../infrastructure/servers/services/servers-crypto.service';
+import { PrismaService } from '../../../core/database/prisma.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 
 type DeploymentLogLevel = 'info' | 'error' | 'success';
@@ -10,6 +13,10 @@ export class DeploymentsHealthcheckService {
   constructor(
     private readonly configService: ConfigService,
     private readonly gateway: DeploymentsGateway,
+    private readonly prisma: PrismaService,
+    private readonly ssh: SshExecutorService,
+    private readonly serversCrypto: ServersCryptoService,
+    private readonly serverHostKeys: ServerHostKeyService,
   ) {}
 
   /**
@@ -30,6 +37,7 @@ export class DeploymentsHealthcheckService {
     environmentDomain: string | null;
     serviceDomain?: string | null;
     serverHost: string;
+    serverId: string;
     appPort: number;
     healthcheckPath?: string | null;
   }): Promise<string> {
@@ -70,6 +78,24 @@ export class DeploymentsHealthcheckService {
     await this.sleep(startupGraceMs);
 
     // ── Phase 2 + 3 — liveness then readiness ───────────────────────────────
+    // Open a single SSH connection for all probe attempts.
+    const server = await this.prisma.server.findUnique({ where: { id: params.serverId } });
+    let sshConn: SshConnection | null = null;
+    if (server) {
+      try {
+        const pinnedHost = await this.serverHostKeys.resolveForConnection(server, { allowTrustOnFirstUse: false });
+        sshConn = await this.ssh.connect({
+          host: server.host,
+          port: server.port,
+          username: server.username,
+          privateKey: this.serversCrypto.decrypt(server.sshKey),
+          expectedHostKey: pinnedHost.keyBase64,
+        });
+      } catch (connErr) {
+        this.emitGatewayLog(params.deploymentId, `[HEALTH] SSH connection failed, falling back to direct HTTP: ${connErr instanceof Error ? connErr.message : 'unknown'}`, 'error');
+      }
+    }
+
     const recentResponses: string[] = [];
     let consecutive = 0;
 
@@ -79,14 +105,34 @@ export class DeploymentsHealthcheckService {
       let alive = false;
 
       try {
-        const response = await axios.get(target, {
-          timeout: timeoutMs,
-          validateStatus: () => true,
-          maxRedirects: 0,
-        });
-        const latency = Date.now() - startedAt;
-        alive = response.status >= 200 && response.status < 500;
-        outcome = `HTTP ${String(response.status)} (${String(latency)}ms)`;
+        if (sshConn) {
+          // Probe from inside the server — works behind NAT/private networks.
+          const curlTimeout = Math.ceil(timeoutMs / 1000);
+          const result = await this.ssh.exec(
+            sshConn,
+            `curl -sf --max-time ${String(curlTimeout)} -o /dev/null -w '%{http_code}' '${target}' 2>/dev/null || echo 'CONN_ERR'`,
+          );
+          const latency = Date.now() - startedAt;
+          const code = result.stdout.trim();
+          if (code === 'CONN_ERR' || code === '') {
+            outcome = `Connection error (${String(latency)}ms)`;
+          } else {
+            const httpCode = parseInt(code, 10);
+            alive = httpCode >= 200 && httpCode < 500;
+            outcome = `HTTP ${code} (${String(latency)}ms)`;
+          }
+        } else {
+          // Fallback: direct HTTP from the backend process.
+          const { default: axios } = await import('axios');
+          const response = await axios.get(target, {
+            timeout: timeoutMs,
+            validateStatus: () => true,
+            maxRedirects: 0,
+          });
+          const latency = Date.now() - startedAt;
+          alive = response.status >= 200 && response.status < 500;
+          outcome = `HTTP ${String(response.status)} (${String(latency)}ms) [direct]`;
+        }
       } catch (error) {
         outcome = error instanceof Error ? error.message : 'erreur inconnue';
       }
@@ -102,6 +148,7 @@ export class DeploymentsHealthcheckService {
           'info',
         );
         if (consecutive >= consecutiveRequired) {
+          if (sshConn) await sshConn.dispose().catch(() => undefined);
           return `Health-check OK sur ${target} (${String(consecutiveRequired)} succès consécutifs).`;
         }
       } else {
@@ -116,6 +163,10 @@ export class DeploymentsHealthcheckService {
       if (attempt < retries) {
         await this.sleep(intervalMs);
       }
+    }
+
+    if (sshConn) {
+      await sshConn.dispose().catch(() => undefined);
     }
 
     throw new BadRequestException(

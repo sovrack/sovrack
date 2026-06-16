@@ -40,6 +40,10 @@ export class DeploymentsRollbackService {
       where: {
         projectId: deployment.projectId,
         environmentId: deployment.environmentId,
+        // Scope to the exact same service so a rollback of service A never
+        // accidentally picks up the latest SUCCESS of service B in the same env.
+        ...(deployment.serviceId ? { serviceId: deployment.serviceId } : {}),
+        ...(deployment.serviceEnvId ? { serviceEnvId: deployment.serviceEnvId } : {}),
         status: DeploymentStatus.SUCCESS,
         id: {
           not: deployment.id,

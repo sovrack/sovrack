@@ -5,8 +5,12 @@ import {
 } from '@nestjs/common';
 import { ContainerStatus, Deployment, DeploymentStatus, DeploymentStrategy, ManagedServiceType, Prisma, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { normalizeRepoPath } from '../../../core/utils/repo-path.util';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
+import { SshExecutorService } from '../../../core/ssh/ssh-executor.service';
 import { CryptoService } from '../../../core/crypto/crypto.service';
+import { ServersCryptoService } from '../../infrastructure/servers/services/servers-crypto.service';
+import { ServerHostKeyService } from '../../infrastructure/servers/services/server-host-key.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DeploymentsHealthcheckService } from '../health/deployments-healthcheck.service';
 import { EnvLevel, resolveEnvDetailed } from '../utils/env-resolver.util';
@@ -30,6 +34,9 @@ export class DockerDeployExecutorService {
     private readonly gateway: DeploymentsGateway,
     private readonly healthcheckService: DeploymentsHealthcheckService,
     private readonly crypto: CryptoService,
+    private readonly ssh: SshExecutorService,
+    private readonly serversCrypto: ServersCryptoService,
+    private readonly serverHostKeys: ServerHostKeyService,
   ) {}
 
   private buildConditions(
@@ -68,7 +75,7 @@ export class DockerDeployExecutorService {
       where: { id: deploymentId },
       include: {
         project: { select: { id: true, name: true } },
-        service: { select: { id: true, name: true, port: true, env: true, secretsEnv: true, dockerComposeContent: true, repoPath: true, branch: true, startCommand: true, type: true, databaseType: true, databaseVersion: true, databaseCredentials: true, healthcheckPath: true } },
+        service: { select: { id: true, name: true, port: true, env: true, secretsEnv: true, dockerComposeContent: true, repoPath: true, branch: true, startCommand: true, type: true, databaseType: true, databaseVersion: true, databaseCredentials: true, healthcheckPath: true, preDeployCommand: true, preDeployTimeout: true, shutdownTimeout: true, buildPack: true, dockerfile: true, nixpacksConfig: true, staticConfig: true, rootDir: true, volumes: { select: { name: true, mountPath: true } }, provider: { select: { providerUrl: true, adminToken: true } } } },
         serviceEnv: {
           include: {
             environment: {
@@ -164,12 +171,18 @@ export class DockerDeployExecutorService {
     });
 
     try {
+      const isLocalBuild = !!(deployment.build?.isLocalBuild);
       const imageRef = await this.resolveImageRef(deployment, overrideImage, serverId);
       commandLogs += `Image résolue : ${imageRef}\n`;
 
-      this.emitGatewayLog(deployment.id, `Pull de l'image ${imageRef}...`, 'info');
-      await this.docker.pullImage(serverId, imageRef);
-      commandLogs += `Image pullée : ${imageRef}\n`;
+      if (isLocalBuild) {
+        // Build the image directly on the server via SSH.
+        commandLogs += await this.buildLocalImage(deployment, imageRef, serverId, server);
+      } else {
+        this.emitGatewayLog(deployment.id, `Pull de l'image ${imageRef}...`, 'info');
+        await this.docker.pullImage(serverId, imageRef);
+        commandLogs += `Image pullée : ${imageRef}\n`;
+      }
 
       const existing = await this.docker.listContainers(serverId, true);
       const oldContainer = existing.find((c) => c.Names?.includes(`/${containerName}`));
@@ -179,17 +192,64 @@ export class DockerDeployExecutorService {
         commandLogs += `Ancien conteneur supprimé : ${oldContainer.Id.slice(0, 12)}\n`;
       }
 
+      // ── Pre-deploy command ──────────────────────────────────────────────
+      if (deployment.service?.preDeployCommand) {
+        const preCmd = deployment.service.preDeployCommand;
+        const preTimeout = deployment.service.preDeployTimeout ?? 120;
+        this.emitGatewayLog(deployment.id, `[PRE-DEPLOY] Running: ${preCmd}`, 'info');
+        const preContainer = await this.docker.createContainer(serverId, {
+          Image: imageRef,
+          name: `pre-${containerName}`,
+          Env: envVars,
+          HostConfig: { AutoRemove: true },
+          Cmd: ['sh', '-c', preCmd],
+        });
+        await this.docker.startContainer(serverId, preContainer.id);
+        // Poll until the pre-deploy container exits.
+        const exitCode = await this.waitForContainerExit(serverId, preContainer.id, preTimeout);
+        if (exitCode !== 0) {
+          throw new BadRequestException(`Pre-deploy command failed with exit code ${String(exitCode)}: ${preCmd}`);
+        }
+        commandLogs += `[PRE-DEPLOY] Completed successfully.\n`;
+        this.emitGatewayLog(deployment.id, `[PRE-DEPLOY] Completed successfully.`, 'info');
+      }
+
+      // ── Ensure per-project Docker network exists ────────────────────────
+      const projectNetwork = `project-${deployment.project.id}`;
+      try {
+        await this.docker.createNetwork(serverId, projectNetwork);
+        commandLogs += `Network ${projectNetwork} ready.\n`;
+      } catch {
+        // Network may already exist — not an error.
+      }
+
+      // ── Resolve app volumes ─────────────────────────────────────────────
+      const appVolumes = deployment.service?.volumes ?? [];
+      const appBinds: string[] = appVolumes
+        .filter((v): v is { name: string; mountPath: string } => !!v.mountPath)
+        .map((v) => `${v.name}:${v.mountPath}`);
+
       this.emitGatewayLog(deployment.id, 'Création du conteneur...', 'info');
+      const stopTimeout = deployment.service?.shutdownTimeout ?? 30;
       const container = await this.docker.createContainer(serverId, {
         Image: imageRef,
         name: containerName,
         Env: envVars,
-        ExposedPorts: { [`${servicePort}/tcp`]: {} },
+        ExposedPorts: deployment.service?.type !== 'WORKER' && deployment.service?.type !== 'CRON'
+          ? { [`${servicePort}/tcp`]: {} }
+          : undefined,
+        StopTimeout: stopTimeout,
         HostConfig: {
-          PortBindings: { [`${servicePort}/tcp`]: [{ HostPort: String(publishPort) }] },
-          RestartPolicy: { Name: 'unless-stopped' },
+          PortBindings: deployment.service?.type !== 'WORKER' && deployment.service?.type !== 'CRON'
+            ? { [`${servicePort}/tcp`]: [{ HostPort: String(publishPort) }] }
+            : {},
+          RestartPolicy: { Name: deployment.service?.type === 'CRON' ? 'no' : 'unless-stopped' },
           AutoRemove: false,
-          ...(dbVolumeName && dbVolumePath ? { Binds: [`${dbVolumeName}:${dbVolumePath}`] } : {}),
+          Binds: [
+            ...(dbVolumeName && dbVolumePath ? [`${dbVolumeName}:${dbVolumePath}`] : []),
+            ...appBinds,
+          ],
+          NetworkMode: projectNetwork,
         },
         Cmd: deployment.service?.startCommand ? ['sh', '-c', deployment.service.startCommand] : undefined,
       });
@@ -220,6 +280,7 @@ export class DockerDeployExecutorService {
           environmentDomain: null,
           serviceDomain: null,
           serverHost: server.host,
+          serverId,
           appPort: publishPort,
           healthcheckPath: deployment.service?.healthcheckPath ?? null,
         });
@@ -313,6 +374,136 @@ export class DockerDeployExecutorService {
     return '';
   }
 
+  /**
+   * Build a Docker image locally on the target server via SSH.
+   * Supports: DOCKERFILE (docker build), NIXPACKS (nixpacks build),
+   * STATIC (nginx container from plain files).
+   * Returns a log string to append to commandLogs.
+   */
+  private async buildLocalImage(
+    deployment: {
+      id: string;
+      branch: string;
+      project: { id: string; name: string };
+      service?: {
+        repoPath?: string | null;
+        rootDir?: string | null;
+        dockerfile?: string | null;
+        buildPack?: string | null;
+        nixpacksConfig?: unknown;
+        provider?: { providerUrl: string; adminToken?: string | null } | null;
+      } | null;
+      build?: { buildPack?: string | null } | null;
+    },
+    imageTag: string,
+    serverId: string,
+    server: { host: string; port: number; username: string; sshKey: string },
+  ): Promise<string> {
+    const svc = deployment.service;
+    if (!svc?.repoPath) {
+      throw new BadRequestException('Local build requires service.repoPath to be set');
+    }
+
+    const buildPack = (svc.buildPack ?? deployment.build?.buildPack ?? 'DOCKERFILE').toString().toUpperCase();
+    const providerUrl = svc.provider?.providerUrl ?? '';
+    const token = svc.provider?.adminToken
+      ? this.crypto.decrypt(svc.provider.adminToken)
+      : '';
+    const repoPath = normalizeRepoPath(svc.repoPath);
+    // Build a HTTPS clone URL with embedded token for authenticated access.
+    const cloneUrl = token && providerUrl
+      ? `${providerUrl.replace(/\/$/, '')}/${repoPath}.git`.replace('https://', `https://oauth2:${token}@`)
+      : `${providerUrl.replace(/\/$/, '')}/${repoPath}.git`;
+    const branch = deployment.branch || 'main';
+    const rootDir = svc.rootDir?.replace(/^\//, '') ?? '.';
+    const workDir = `/tmp/build-${deployment.id.slice(0, 8)}`;
+
+    let logs = '';
+    this.emitGatewayLog(deployment.id, `[LOCAL BUILD] Cloning ${repoPath} branch ${branch}...`, 'info');
+
+    const pinnedHost = await this.serverHostKeys.resolveForConnection(server, { allowTrustOnFirstUse: false });
+    const conn = await this.ssh.connect({
+      host: server.host,
+      port: server.port,
+      username: server.username,
+      privateKey: this.serversCrypto.decrypt(server.sshKey),
+      expectedHostKey: pinnedHost.keyBase64,
+    });
+
+    try {
+      const q = (s: string) => `'${s.replace(/'/g, "'\\''")}'`;
+
+      // Clone
+      await this.ssh.execOrThrow(conn,
+        `rm -rf ${q(workDir)} && git clone --depth 1 -b ${q(branch)} ${q(cloneUrl)} ${q(workDir)}`,
+        'Git clone failed',
+      );
+      logs += `[LOCAL BUILD] Cloned ${repoPath}@${branch}\n`;
+      this.emitGatewayLog(deployment.id, `[LOCAL BUILD] Clone OK`, 'info');
+
+      const buildCtx = rootDir === '.' ? workDir : `${workDir}/${rootDir}`;
+
+      if (buildPack === 'NIXPACKS') {
+        // nixpacks must be installed on the server
+        await this.ssh.execOrThrow(conn,
+          `cd ${q(buildCtx)} && nixpacks build . --name ${q(imageTag)}`,
+          'Nixpacks build failed',
+        );
+        logs += `[LOCAL BUILD] Nixpacks build OK → ${imageTag}\n`;
+      } else if (buildPack === 'STATIC') {
+        // Wrap static files in an nginx container
+        const nginxConf = `server { listen 80; root /usr/share/nginx/html; index index.html; try_files $uri $uri/ /index.html; }`;
+        await this.ssh.execOrThrow(conn,
+          `cd ${q(buildCtx)} && printf 'FROM nginx:alpine\\nCOPY . /usr/share/nginx/html\\n' > Dockerfile.static && ` +
+          `printf '%s' ${q(nginxConf)} > nginx.conf.tmp && ` +
+          `docker build -f Dockerfile.static -t ${q(imageTag)} .`,
+          'Static build failed',
+        );
+        logs += `[LOCAL BUILD] Static site packaged → ${imageTag}\n`;
+      } else {
+        // Default: DOCKERFILE
+        const dockerfilePath = svc.dockerfile ? 'Dockerfile.custom' : 'Dockerfile';
+        if (svc.dockerfile) {
+          await this.ssh.execOrThrow(conn,
+            `printf '%s' ${q(svc.dockerfile)} > ${q(`${buildCtx}/Dockerfile.custom`)}`,
+            'Failed to write custom Dockerfile',
+          );
+        }
+        await this.ssh.execOrThrow(conn,
+          `cd ${q(buildCtx)} && docker build -f ${q(dockerfilePath)} -t ${q(imageTag)} .`,
+          'Docker build failed',
+        );
+        logs += `[LOCAL BUILD] Docker build OK → ${imageTag}\n`;
+      }
+      this.emitGatewayLog(deployment.id, `[LOCAL BUILD] Image built: ${imageTag}`, 'info');
+    } finally {
+      // Cleanup workspace (best-effort)
+      await this.ssh.exec(conn, `rm -rf ${`'${workDir.replace(/'/g, "'\\''")}'`}`);
+      await conn.dispose();
+    }
+    return logs;
+  }
+
+  /**
+   * Poll Docker inspect until the given container has exited, then return the
+   * exit code. Times out after `timeoutSec` seconds and returns -1.
+   */
+  private async waitForContainerExit(serverId: string, containerId: string, timeoutSec: number): Promise<number> {
+    const deadline = Date.now() + timeoutSec * 1000;
+    while (Date.now() < deadline) {
+      try {
+        const info = await this.docker.inspectContainer(serverId, containerId);
+        if (info.State.Status === 'exited' || info.State.Status === 'dead') {
+          return info.State.ExitCode ?? -1;
+        }
+      } catch {
+        return -1;
+      }
+      await new Promise<void>((r) => setTimeout(r, 2000));
+    }
+    return -1;
+  }
+
   emitGatewayLog(deploymentId: string, rawMessage: string, fallbackLevel: 'info' | 'error'): void {
     const lines = rawMessage.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
     for (const line of lines) {
@@ -396,12 +587,21 @@ export class DockerDeployExecutorService {
   }
 
   private async resolveImageRef(
-    deployment: { build?: { isLocalBuild?: boolean | null; imageSha?: string | null } | null; dockerImage?: string | null; service?: { id?: string | null } | null; project: { id: string }; branch: string },
+    deployment: { build?: { isLocalBuild?: boolean | null; imageSha?: string | null; buildPack?: string | null } | null; dockerImage?: string | null; service?: { id?: string | null; name?: string | null } | null; project: { id: string; name: string }; branch: string },
     overrideImage?: string,
     _serverId?: string,
   ): Promise<string> {
     if (overrideImage) return overrideImage;
     if (deployment.dockerImage) return deployment.dockerImage;
+
+    // Local builds produce an image tagged only on the server — no registry.
+    if (deployment.build?.isLocalBuild) {
+      const safeName = (deployment.service?.name ?? deployment.project.name)
+        .toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+      const safeProject = deployment.project.name.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+      return `local/${safeProject}-${safeName}:${deployment.branch || 'latest'}`;
+    }
+
     if (deployment.build?.imageSha) {
       return `platform/${deployment.project.id}:${deployment.build.imageSha}`;
     }

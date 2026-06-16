@@ -42,10 +42,12 @@ import {
   ServerPublic,
 } from '../shared/servers.types';
 
+// BLOCKED is intentionally excluded: it is a terminal state (finishedAt is set
+// when a job loses the lock race in assertJobLock). Treating it as "active"
+// would let a dead ghost job lock the server forever.
 const ACTIVE_JOB_STATUSES: ServerJobStatus[] = [
   ServerJobStatus.RUNNING,
   ServerJobStatus.PENDING,
-  ServerJobStatus.BLOCKED,
 ];
 
 @Injectable()
@@ -164,7 +166,7 @@ export class ServersCoreService {
   }
 
   /**
-   * Batch-loads the latest active (RUNNING/PENDING/BLOCKED) job per server so
+   * Batch-loads the latest active (RUNNING/PENDING) job per server so
    * the servers list response carries lock state without the client polling
    * `GET /servers/:id/jobs` separately for each server.
    */
@@ -341,8 +343,7 @@ export class ServersCoreService {
       );
     }
 
-    await this.jobs.assertNoActiveJob(server.id);
-    const job = await this.jobs.createJob(server.id, ServerJobType.VERIFY);
+    const job = await this.jobs.createJobAtomic(server.id, ServerJobType.VERIFY);
     await this.audit.record(server.id, 'SERVER_VALIDATE_SSH', actorUserId, {
       jobId: job.id,
     });
@@ -440,8 +441,7 @@ export class ServersCoreService {
     token: string,
   ): Promise<ServerPublic> {
     const server = await this.getServerById(id);
-    await this.jobs.assertNoActiveJob(server.id);
-    const job = await this.jobs.createJob(
+    const job = await this.jobs.createJobAtomic(
       server.id,
       ServerJobType.REGISTER_RUNNER,
       { gitlabUrl } satisfies RegisterRunnerPayload,

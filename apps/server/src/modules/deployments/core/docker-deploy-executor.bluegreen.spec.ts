@@ -29,6 +29,9 @@ describe('DockerDeployExecutorService — blue-green cut-over', () => {
       {} as DeploymentsGateway,
       {} as DeploymentsHealthcheckService,
       { decryptSafe: (v: string | null) => v } as unknown as CryptoService,
+      {} as unknown as import('../../../core/ssh/ssh-executor.service').SshExecutorService,
+      { decrypt: (v: string) => v } as unknown as import('../../infrastructure/servers/services/servers-crypto.service').ServersCryptoService,
+      { resolveForConnection: jest.fn() } as unknown as import('../../infrastructure/servers/services/server-host-key.service').ServerHostKeyService,
     );
     // Skip the real 3s drain.
     jest.spyOn(service as unknown as { sleep: () => Promise<void> }, 'sleep').mockResolvedValue(undefined);

@@ -74,6 +74,13 @@ export class DeploymentsCreateService {
       actor.role,
     );
 
+    await this.authorizationService.assertCanDeployToEnvironment(
+      project.id,
+      environment.id,
+      actor.id,
+      actor.role,
+    );
+
     if (service.type === ServiceType.DATABASE) {
       return this.createDatabaseDeployment(dto, actor, service, serviceEnv, environment);
     }
@@ -129,11 +136,21 @@ export class DeploymentsCreateService {
         staticConfig: resolvedStaticConfig as Prisma.InputJsonValue | null,
       }, tx);
 
+      // Immutable Release : on gèle TOUTE la config de build au moment du deploy
+      // (reproductibilité + audit). Lu par le reconciler ; sera la source unique
+      // de l'executor en P2 (bascule runtime). Étape additive, sans migration.
       const specSnapshot = {
         capturedAt: new Date().toISOString(),
         repoPath: service.repoPath ?? null,
+        branch,
         buildSource,
         isLocalBuild,
+        buildPack: this.configResolver.buildSourceToBuildPack(buildSource),
+        dockerfile: service.dockerfile ?? null,
+        rootDir: service.rootDir ?? null,
+        port: service.port ?? null,
+        startCommand: service.startCommand ?? null,
+        healthcheckPath: service.healthcheckPath ?? null,
         strategy: dto.strategy === 'blue-green' ? 'BLUE_GREEN' : 'STANDARD',
         nixpacksConfig: resolvedNixpacksConfig ?? null,
         staticConfig: resolvedStaticConfig ?? null,

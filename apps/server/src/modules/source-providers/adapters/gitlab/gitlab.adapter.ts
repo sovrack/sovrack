@@ -77,12 +77,13 @@ export class GitlabAdapter implements IGitProvider {
     let groupPath: string | null = null;
 
     if (dto.repoPath) {
+      const normalizedRepoPath = this.connection.normalizeRepositoryPath(dto.repoPath);
       const repository = await this.apiService.getProjectByConnection(
         baseUrl,
-        dto.repoPath,
+        normalizedRepoPath,
         connection.gitlabToken,
       );
-      repoPath = repository.path_with_namespace ?? dto.repoPath;
+      repoPath = repository.path_with_namespace ?? normalizedRepoPath;
     } else if (dto.groupPath) {
       await this.apiService.getGroupByConnection(
         baseUrl,
@@ -107,11 +108,11 @@ export class GitlabAdapter implements IGitProvider {
       gitProviderConfigId = newConfig.id;
     }
 
-    // Find or create environment and service
+    // Find or create environment
     let env = await this.prisma.environment.findFirst({ where: { projectId } });
     if (!env) {
       env = await this.prisma.environment.create({
-        data: { name: 'production', projectId },
+        data: { name: 'PRODUCTION', projectId },
       });
     }
 
@@ -130,35 +131,45 @@ export class GitlabAdapter implements IGitProvider {
       projectId,
     } as any;
 
-    // For single repo: create Service + GitProviderRepo
+    // For single repo: update service metadata + register GitProviderRepo for webhooks
     if (repoPath) {
+      // Find the service that was already created (by ServicesService.create) or find any
+      // existing service for this provider in this project.
       const existingSvc = await this.prisma.service.findFirst({
         where: { projectId, providerId: gitProviderConfigId },
       });
 
-      const svc = await this.prisma.service.upsert({
-        where: { id: existingSvc?.id ?? '00000000-0000-0000-0000-000000000000' },
-        create: {
-          projectId,
-          name: repoPath.split('/').pop() ?? `project-${projectId.slice(0, 8)}`,
-          type: 'APPLICATION' as any,
-          sourceType: SourceType.GIT,
-          repoPath: repoPath,
-          branch: defaultBranch,
-          providerId: gitProviderConfigId,
-        },
-        update: {
-          branch: defaultBranch,
-          providerId: gitProviderConfigId,
-        },
-      });
+      let svcId: string;
+      if (existingSvc) {
+        // Update the existing service with resolved metadata
+        await this.prisma.service.update({
+          where: { id: existingSvc.id },
+          data: { branch: defaultBranch, providerId: gitProviderConfigId },
+        });
+        svcId = existingSvc.id;
+      } else {
+        // Only create a service when there's no pre-existing one
+        // (direct connectProject call, not via ServicesService.create)
+        const created = await this.prisma.service.create({
+          data: {
+            projectId,
+            name: repoPath.split('/').pop() ?? `project-${projectId.slice(0, 8)}`,
+            type: 'APPLICATION' as any,
+            sourceType: SourceType.GIT,
+            repoPath,
+            branch: defaultBranch,
+            providerId: gitProviderConfigId,
+          },
+        });
+        svcId = created.id;
+      }
 
       const existingLink = await this.prisma.serviceEnvironment.findFirst({
-        where: { serviceId: svc.id, environmentId: env.id },
+        where: { serviceId: svcId, environmentId: env.id },
       });
       if (!existingLink) {
         await this.prisma.serviceEnvironment.create({
-          data: { serviceId: svc.id, environmentId: env.id },
+          data: { serviceId: svcId, environmentId: env.id },
         });
       }
 

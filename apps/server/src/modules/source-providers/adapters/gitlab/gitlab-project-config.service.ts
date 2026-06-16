@@ -48,6 +48,10 @@ export class GitlabProjectConfigService {
       providerUrl: gitProviderConfig.providerUrl,
       providerToken: gitProviderConfig.adminToken || gitProviderConfig.oauthAccessToken || '',
       sourceType: svc.sourceType,
+      // Inclure le repoPath du service : sans lui, assertRepoSource croyait que
+      // tout service git était un « GROUP » (faux). Dans ce modèle TOUT est un
+      // Service git à repoPath précis — le groupe ne sert qu'à la découverte.
+      repoPath: svc.repoPath,
       defaultBranch: svc.branch,
       externalId: null,
       repoPathNamespace: null,

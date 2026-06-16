@@ -69,11 +69,16 @@ export class GitlabConnectionService {
   }
 
   normalizeRepositoryPath(value: string): string {
-    return value
-      .trim()
-      .replace(/^\/+/, '')
-      .replace(/\/+$/, '')
-      .replace(/\.git$/i, '');
+    let s = value.trim().replace(/\.git$/i, '').replace(/\/+$/, '');
+    try {
+      const url = new URL(s);
+      s = url.pathname;
+    } catch {
+      if (s.includes('@') && s.includes(':')) {
+        s = s.split(':').slice(1).join(':');
+      }
+    }
+    return s.replace(/^\/+/, '').replace(/\/+$/, '');
   }
 
   toPublicConfig(config: any): PublicGitlabConfig {

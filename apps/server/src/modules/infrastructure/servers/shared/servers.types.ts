@@ -2,7 +2,7 @@ import type { Server, ServerJob, ServerJobStatus, ServerJobType } from '@prisma/
 import type { PaginatedResult } from '../../../../core/http/pagination.dto';
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
 
-/** Minimal view of the currently active (RUNNING/PENDING/BLOCKED) job for a server. */
+/** Minimal view of the currently active (RUNNING/PENDING) job for a server. */
 export type ServerActiveJob = {
   id: string;
   type: ServerJobType;

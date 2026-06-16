@@ -111,7 +111,7 @@ export class ServerResponseDto {
   @ApiPropertyOptional({
     type: () => ServerActiveJobDto,
     nullable: true,
-    description: 'Job actuellement actif (RUNNING/PENDING/BLOCKED) verrouillant ce serveur, sinon null.',
+    description: 'Job actuellement actif (RUNNING/PENDING) verrouillant ce serveur, sinon null.',
   })
   activeJob?: ServerActiveJobDto | null;
 }

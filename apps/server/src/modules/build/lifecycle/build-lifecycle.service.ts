@@ -38,7 +38,7 @@ export class BuildLifecycleService {
       projectId: string;
       serviceId?: string | null;
       serviceEnvId?: string | null;
-      userId: string;
+      userId: string | null;
       branch: string;
       buildPack: BuildPack;
       isLocalBuild?: boolean;

@@ -53,6 +53,45 @@ export class DeploymentsAuthorizationService {
     );
   }
 
+  /**
+   * Enforces environment-level protection. When an environment has
+   * `isProtected = true`, only platform ADMINs and project OWNERs may deploy.
+   * A project DEVELOPER is blocked regardless of project membership.
+   */
+  async assertCanDeployToEnvironment(
+    projectId: string,
+    environmentId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    const environment = await this.prisma.environment.findUnique({
+      where: { id: environmentId },
+      select: { isProtected: true },
+    });
+
+    if (!environment?.isProtected) {
+      return;
+    }
+
+    // Environment is protected — ADMIN role always passes.
+    if (userRole === Role.ADMIN) {
+      return;
+    }
+
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+      select: { role: true },
+    });
+
+    if (member?.role === ProjectRole.OWNER) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'Cet environnement est protégé. Seuls les OWNER du projet ou les ADMIN peuvent y déployer.',
+    );
+  }
+
   async assertCanRollbackProject(
     projectId: string,
     userId: string,

@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   Prisma,
   Server,
+  ServerJob,
   ServerJobStatus,
   ServerJobType,
   ServerLogLevel,
@@ -224,15 +225,13 @@ export class ServerPreparationService implements OnModuleInit {
         // Lock-before-create: also block when any other job (VERIFY,
         // REGISTER_RUNNER, a previous PREPARE_SERVER) is still active, so we
         // never queue a preparation that would immediately be BLOCKED.
+        // BLOCKED is excluded: it is a terminal ghost state (carries finishedAt)
+        // and must NOT keep the server locked forever — matches ACTIVE_JOB_STATUSES.
         const activeJobs = await tx.serverJob.count({
           where: {
             serverId: server.id,
             status: {
-              in: [
-                ServerJobStatus.RUNNING,
-                ServerJobStatus.PENDING,
-                ServerJobStatus.BLOCKED,
-              ],
+              in: [ServerJobStatus.RUNNING, ServerJobStatus.PENDING],
             },
           },
         });
@@ -290,16 +289,43 @@ export class ServerPreparationService implements OnModuleInit {
       throw error;
     }
 
-    const job = await this.jobs.createJob(
-      server.id,
-      ServerJobType.PREPARE_SERVER,
-      {
-        preparationId: preparation.id,
-        selectedOptions: resolved.selectedOptions,
-        resolvedRoles,
-        retryOfPreparationId: options?.retryOfPreparationId ?? null,
-      },
-    );
+    let job: ServerJob;
+    try {
+      job = await this.jobs.createJob(
+        server.id,
+        ServerJobType.PREPARE_SERVER,
+        {
+          preparationId: preparation.id,
+          selectedOptions: resolved.selectedOptions,
+          resolvedRoles,
+          retryOfPreparationId: options?.retryOfPreparationId ?? null,
+        },
+      );
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        // Residual race: another job (VERIFY / REGISTER_RUNNER) was created for
+        // this server between the preparation transaction commit and here. The
+        // partial unique index `unique_active_server_job` rejected our
+        // PREPARE_SERVER job — roll the now-orphaned preparation back to FAILED
+        // and surface a clean 409 instead of a 500.
+        await this.state.transitionPreparation(
+          preparation.id,
+          ServerPreparationStatus.FAILED,
+          {
+            finishedAt: new Date(),
+            summary: 'Another job is already running on this server.',
+            errorMessage: 'Un job est déjà en cours sur ce serveur.',
+          },
+        );
+        throw new ConflictException(
+          'Un job est déjà en cours sur ce serveur. Attendez sa fin ou annulez-le avant de préparer.',
+        );
+      }
+      throw error;
+    }
 
     await this.audit.record(server.id, 'SERVER_PREPARATION_START', actorId, {
       preparationId: preparation.id,

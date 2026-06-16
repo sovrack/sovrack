@@ -1,9 +1,18 @@
-import { BadRequestException } from '@nestjs/common';
-import { ServerJobStatus, ServerJobType } from '@prisma/client';
+import { BadRequestException, ConflictException } from '@nestjs/common';
+import { Prisma, ServerJobStatus, ServerJobType } from '@prisma/client';
 import { ServersJobsService } from './servers-jobs.service';
 
 describe('ServersJobsService', () => {
   function createService() {
+    // Transaction client handed to createJobAtomic's $transaction callback.
+    const tx = {
+      $executeRaw: jest.fn(),
+      serverJob: {
+        findFirst: jest.fn(),
+        create: jest.fn(),
+      },
+    };
+
     const prisma = {
       server: {
         findUnique: jest.fn(),
@@ -14,6 +23,7 @@ describe('ServersJobsService', () => {
         findFirst: jest.fn(),
         update: jest.fn(),
       },
+      $transaction: jest.fn((cb: (t: typeof tx) => unknown) => cb(tx)),
     };
 
     const ssh = {
@@ -26,7 +36,7 @@ describe('ServersJobsService', () => {
       { get: jest.fn() } as never,
     );
 
-    return { service, prisma, ssh };
+    return { service, prisma, ssh, tx };
   }
 
   it('paginates server jobs at database level', async () => {
@@ -128,5 +138,51 @@ describe('ServersJobsService', () => {
           entry.data?.status === ServerJobStatus.TIMEOUT,
       ),
     ).toBe(true);
+  });
+
+  describe('createJobAtomic', () => {
+    it('acquires the advisory lock and creates a job when none is active', async () => {
+      const { service, tx } = createService();
+      tx.serverJob.findFirst.mockResolvedValue(null);
+      tx.serverJob.create.mockResolvedValue({ id: 'job-new', serverId: 'srv-1' });
+
+      const job = await service.createJobAtomic('srv-1', ServerJobType.VERIFY);
+
+      expect(tx.$executeRaw).toHaveBeenCalled(); // pg_advisory_xact_lock
+      expect(tx.serverJob.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            serverId: 'srv-1',
+            type: ServerJobType.VERIFY,
+          }),
+        }),
+      );
+      expect(job).toEqual(expect.objectContaining({ id: 'job-new' }));
+    });
+
+    it('rejects with ConflictException when an active job already exists', async () => {
+      const { service, tx } = createService();
+      tx.serverJob.findFirst.mockResolvedValue({ type: ServerJobType.PREPARE_SERVER });
+
+      await expect(
+        service.createJobAtomic('srv-1', ServerJobType.VERIFY),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(tx.serverJob.create).not.toHaveBeenCalled();
+    });
+
+    it('maps a P2002 unique-index violation to ConflictException (DB backstop)', async () => {
+      const { service, tx } = createService();
+      tx.serverJob.findFirst.mockResolvedValue(null);
+      tx.serverJob.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+        }),
+      );
+
+      await expect(
+        service.createJobAtomic('srv-1', ServerJobType.VERIFY),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
   });
 });

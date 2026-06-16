@@ -63,16 +63,25 @@ export class ServersJobsService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   async cleanupStaleJobs(): Promise<void> {
-    const cutoff = new Date(Date.now() - 2 * 60 * 60_000); // 2 hours
+    const runningCutoff = new Date(Date.now() - 2 * 60 * 60_000); // 2 hours
+    const pendingCutoff = new Date(Date.now() - 10 * 60_000); // 10 minutes
     const stale = await this.prisma.serverJob.findMany({
-      where: { status: ServerJobStatus.RUNNING, startedAt: { lt: cutoff } },
+      where: {
+        OR: [
+          { status: ServerJobStatus.RUNNING, startedAt: { lt: runningCutoff } },
+          // PENDING jobs that never transitioned to RUNNING = zombies left by a
+          // crash between createJob() and executeJobWithRetry(). With the partial
+          // unique index they keep blocking new jobs until cleaned up here.
+          { status: ServerJobStatus.PENDING, createdAt: { lt: pendingCutoff } },
+        ],
+      },
       select: { id: true },
     });
 
     if (stale.length === 0) return;
 
     this.logger.warn(
-      `[cron] Found ${stale.length} stale RUNNING job(s) older than 2h — marking FAILED`,
+      `[cron] Found ${stale.length} stale job(s) (RUNNING>2h or PENDING>10min) — marking FAILED`,
     );
 
     await this.prisma.serverJob.updateMany({
@@ -87,20 +96,20 @@ export class ServersJobsService implements OnModuleInit {
 
   /**
    * Lock-before-create: fail fast (HTTP 409) when the server already has an
-   * active job, instead of creating a second job that would later be marked
+   * in-progress job, instead of creating a second job that would later be marked
    * BLOCKED by {@link assertJobLock}. This prevents the "ghost/blocked job"
    * accumulation when a user triggers two operations in quick succession.
+   *
+   * Only RUNNING/PENDING count as in-progress. BLOCKED is terminal (it carries a
+   * finishedAt) — a job that lost the lock race must NOT keep the server locked
+   * forever, since nothing ever transitions a BLOCKED job out of that state.
    */
   async assertNoActiveJob(serverId: string): Promise<void> {
     const active = await this.prisma.serverJob.findFirst({
       where: {
         serverId,
         status: {
-          in: [
-            ServerJobStatus.RUNNING,
-            ServerJobStatus.PENDING,
-            ServerJobStatus.BLOCKED,
-          ],
+          in: [ServerJobStatus.RUNNING, ServerJobStatus.PENDING],
         },
       },
       select: { type: true },
@@ -334,6 +343,68 @@ export class ServersJobsService implements OnModuleInit {
         ...(payload && { payload: payload as Prisma.InputJsonValue }),
       },
     });
+  }
+
+  /**
+   * Atomic "lock-before-create": the active-job check and the INSERT happen in a
+   * single transaction guarded by a per-server advisory lock (same lock key as
+   * {@link InfraPreparationService} preparation guard, so verify/register/prepare
+   * starts mutually exclude). The partial unique index `unique_active_server_job`
+   * (status IN RUNNING/PENDING) is the hard DB backstop: even if two paths race
+   * past the in-memory check, the second INSERT raises P2002 and is surfaced as a
+   * 409 ConflictException instead of silently creating a second job that would be
+   * marked BLOCKED forever.
+   *
+   * Replaces the old non-atomic `assertNoActiveJob()` + `createJob()` sequence.
+   */
+  async createJobAtomic(
+    serverId: string,
+    type: ServerJobType,
+    payload?: object,
+  ): Promise<ServerJob> {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${serverId}))`;
+
+        const active = await tx.serverJob.findFirst({
+          where: {
+            serverId,
+            status: {
+              in: [ServerJobStatus.RUNNING, ServerJobStatus.PENDING],
+            },
+          },
+          select: { type: true },
+        });
+
+        if (active) {
+          throw new ConflictException(
+            `Une opération (${active.type}) est déjà en cours sur ce serveur. ` +
+              "Attendez sa fin ou annulez-la avant d'en lancer une nouvelle.",
+          );
+        }
+
+        return await tx.serverJob.create({
+          data: {
+            serverId,
+            type,
+            maxAttempts: this.defaultJobMaxAttempts,
+            timeoutMs: this.defaultJobTimeoutMs,
+            ...(payload && { payload: payload as Prisma.InputJsonValue }),
+          },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Une opération est déjà en cours sur ce serveur. ' +
+            "Attendez sa fin ou annulez-la avant d'en lancer une nouvelle.",
+        );
+      }
+      throw error;
+    }
   }
 
   toPublicJob(job: ServerJob): ServerJobPublic {

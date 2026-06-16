@@ -11,6 +11,7 @@ import { GitProviderType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { ALLOWED_PUSH_FILES } from '../../../../core/utils/file-constants';
+import { normalizeRepoPath } from '../../../../core/utils/repo-path.util';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
 import { GithubClient } from './github.client';
 import type { RepoWriteResult, GitCredentials } from '../../contracts/git-provider.contract';
@@ -105,7 +106,7 @@ export class GithubFileService {
   async resolveGitCredentials(projectId: string): Promise<GitCredentials> {
     const { token, fullRepoName, apiBase } = await this.resolveCredentials(projectId);
     const host = apiBase.replace('https://api.', '').replace(/^https?:\/\//, '');
-    const repoUrl = `https://${host}/${fullRepoName}.git`;
+    const repoUrl = `https://${host}/${normalizeRepoPath(fullRepoName)}.git`;
     return { repoUrl, token };
   }
 

@@ -2,12 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { DeploymentStatus, BuildPack, Prisma, BuildTrigger, BuildStatus } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { QueueService } from '../../../core/queue/queue.service';
 import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
 import {
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
   type AutoDeployTriggerEvent,
 } from '../events/deployment.events';
-import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 
 /**
@@ -27,7 +27,7 @@ export class DeploymentsAutoTriggerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly deployExecutor: DockerDeployExecutorService,
+    private readonly queueService: QueueService,
     private readonly gateway: DeploymentsGateway,
     private readonly buildsService: BuildLifecycleService,
   ) {}
@@ -50,58 +50,45 @@ export class DeploymentsAutoTriggerService {
     pipelineId?: number,
     serviceId?: string,
   ): Promise<void> {
-    const environments = await this.prisma.environment.findMany({
+    // Collect only the ServiceEnvironments that have autoDeploy=true and whose
+    // autoBranch matches the incoming branch (null autoBranch = any branch).
+    const matchingServiceEnvs = await this.prisma.serviceEnvironment.findMany({
       where: {
-        projectId,
+        autoDeploy: true,
+        archivedAt: null,
+        ...(serviceId ? { serviceId } : {}),
+        OR: [
+          { autoBranch: branch },
+          { autoBranch: null },
+        ],
+        environment: { projectId },
+      },
+      select: {
+        id: true,
+        serviceId: true,
+        environmentId: true,
+        buildPack: true,
+        service: { select: { buildPack: true, nixpacksConfig: true, staticConfig: true } },
+        environment: { select: { id: true } },
       },
     });
 
-    if (environments.length === 0) return;
-
-    const adminUser = await this.prisma.user.findFirst({
-      where: { role: 'ADMIN', isActive: true },
-    });
-    if (!adminUser) {
-      this.logger.warn('Auto-deploy: aucun administrateur actif trouvé');
+    if (matchingServiceEnvs.length === 0) {
+      this.logger.debug(`Auto-deploy: no matching autoDeploy=true ServiceEnvironments for project ${projectId} branch ${branch}`);
       return;
     }
 
     const pipelineIdValue = pipelineId ? BigInt(pipelineId) : null;
     const autoDeployMarker = pipelineId ? `[AUTO_DEPLOY_PIPELINE_ID:${String(pipelineId)}]` : null;
 
-    let buildPack: BuildPack = BuildPack.DOCKERFILE;
-    let rawBuildStrategy = 'DOCKERFILE';
-    let nixpacksConfig: Prisma.InputJsonValue | null = null;
-    let staticConfig: Prisma.InputJsonValue | null = null;
-
-    if (serviceId) {
-      const service = await this.prisma.service.findUnique({
-        where: { id: serviceId },
-        select: { buildPack: true, nixpacksConfig: true, staticConfig: true },
-      });
-      if (service) {
-        rawBuildStrategy = (service.buildPack ?? BuildPack.DOCKERFILE) as string;
-        buildPack = service.buildPack ?? BuildPack.DOCKERFILE;
-        nixpacksConfig = service.nixpacksConfig as Prisma.InputJsonValue | null;
-        staticConfig = service.staticConfig as Prisma.InputJsonValue | null;
-      }
-    }
-
-    const isLocalBuild =
-      buildPack === BuildPack.STATIC ||
-      buildPack === BuildPack.DOCKER_COMPOSE ||
-      buildPack === BuildPack.NIXPACKS ||
-      buildPack === BuildPack.BUILDPACK ||
-      rawBuildStrategy === 'LOCAL';
-
-    for (const environment of environments) {
+    for (const svcEnv of matchingServiceEnvs) {
       try {
+        // Deduplicate: skip if a deployment for this pipeline is already recorded.
         if (pipelineIdValue || autoDeployMarker) {
           const existing = await this.prisma.deployment.findFirst({
             where: {
               projectId,
-              ...(serviceId ? { serviceId } : {}),
-              environmentId: environment.id,
+              serviceEnvId: svcEnv.id,
               OR: [
                 ...(pipelineIdValue ? [{ externalPipelineId: pipelineIdValue }] : []),
                 ...(autoDeployMarker ? [{ logs: { contains: autoDeployMarker } }] : []),
@@ -112,24 +99,27 @@ export class DeploymentsAutoTriggerService {
           if (existing) continue;
         }
 
-        const deployment = await this.prisma.$transaction(async (tx) => {
-          let serviceEnvId: string | null = null;
-          if (serviceId) {
-            const serviceEnv = await tx.serviceEnvironment.findUnique({
-              where: { serviceId_environmentId: { serviceId, environmentId: environment.id } },
-              select: { id: true },
-            });
-            serviceEnvId = serviceEnv?.id ?? null;
-          }
+        // Resolve build config from ServiceEnvironment override or Service default.
+        const resolvedBuildPack = svcEnv.buildPack ?? svcEnv.service.buildPack ?? BuildPack.DOCKERFILE;
+        const nixpacksConfig = svcEnv.service.nixpacksConfig as Prisma.InputJsonValue | null;
+        const staticConfig = svcEnv.service.staticConfig as Prisma.InputJsonValue | null;
+        const isLocalBuild =
+          resolvedBuildPack === BuildPack.STATIC ||
+          resolvedBuildPack === BuildPack.DOCKER_COMPOSE ||
+          resolvedBuildPack === BuildPack.NIXPACKS ||
+          resolvedBuildPack === BuildPack.BUILDPACK;
 
+        // userId is null for system/webhook-triggered deployments.
+        // The triggerSource is encoded in the log prefix for auditability.
+        const deployment = await this.prisma.$transaction(async (tx) => {
           const build = await this.buildsService.create(
             {
               projectId,
-              serviceId: serviceId ?? null,
-              serviceEnvId,
-              userId: adminUser.id,
+              serviceId: svcEnv.serviceId,
+              serviceEnvId: svcEnv.id,
+              userId: null,
               branch,
-              buildPack,
+              buildPack: resolvedBuildPack,
               isLocalBuild,
               initialStatus: BuildStatus.BUILDING,
               triggeredBy: BuildTrigger.WEBHOOK,
@@ -143,10 +133,10 @@ export class DeploymentsAutoTriggerService {
           return tx.deployment.create({
             data: {
               projectId,
-              serviceId: serviceId ?? null,
-              serviceEnvId,
-              environmentId: environment.id,
-              userId: adminUser.id,
+              serviceId: svcEnv.serviceId,
+              serviceEnvId: svcEnv.id,
+              environmentId: svcEnv.environmentId,
+              userId: null,
               branch,
               status: DeploymentStatus.PENDING,
               startedAt: new Date(),
@@ -156,7 +146,7 @@ export class DeploymentsAutoTriggerService {
               ...(pipelineIdValue ? { externalPipelineId: pipelineIdValue } : {}),
               ...(dockerImage ? { dockerImage } : {}),
               logs: [
-                `Auto-deploy déclenché par push sur ${branch}`,
+                `[WEBHOOK] Auto-deploy triggered by push on branch ${branch}`,
                 autoDeployMarker,
               ]
                 .filter((e): e is string => Boolean(e))
@@ -173,11 +163,13 @@ export class DeploymentsAutoTriggerService {
           startedAt: deployment.startedAt,
         });
 
-        await this.deployExecutor.executeDeploy(deployment.id, dockerImage);
+        // Route through BullMQ queue for retry, backoff, and observability
+        // — same path as manual deployments.
+        await this.queueService.enqueueDeploy(deployment.id, dockerImage);
       } catch (error) {
         this.logger.error(
-          `Auto-deploy échoué pour environnement ${environment.id}: ${
-            error instanceof Error ? error.message : 'erreur inconnue'
+          `Auto-deploy failed for serviceEnv ${svcEnv.id}: ${
+            error instanceof Error ? error.message : 'unknown error'
           }`,
         );
       }
