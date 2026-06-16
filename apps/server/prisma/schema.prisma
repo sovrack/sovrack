@@ -1337,9 +1337,29 @@ model DatabaseBackup {
 enum ServerOperationStatus {
   QUEUED
   RUNNING
-  SUCCESS
+  SUCCEEDED
+  PARTIAL
   FAILED
   CANCELED
+  TIMEOUT
+}
+
+enum ServerOperationTargetStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+  TIMEOUT
+  CANCELED
+}
+
+enum ServerOperationStepStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
 }
 
 model ServerOperation {
@@ -1382,7 +1402,7 @@ model ServerOperationTarget {
   operation    ServerOperation       @relation(fields: [operationId], references: [id], onDelete: Cascade)
   serverId     String
   server       Server                @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  status       ServerOperationStatus @default(QUEUED)
+  status       ServerOperationTargetStatus @default(PENDING)
   startedAt    DateTime?
   finishedAt   DateTime?
   errorMessage String?               @db.Text
@@ -1400,7 +1420,7 @@ model ServerOperationStep {
   roleKey     String?
   name        String
   orderIndex  Int
-  status      ServerOperationStatus @default(QUEUED)
+  status      ServerOperationStepStatus @default(PENDING)
   startedAt   DateTime?
   finishedAt  DateTime?
   message     String?               @db.Text
