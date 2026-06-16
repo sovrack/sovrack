@@ -4,8 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  AutomationRunStatus,
-  AutomationTargetStatus,
+  ServerOperationStatus,
+  ServerOperationTargetStatus,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
@@ -16,9 +16,9 @@ import {
 } from '../shared/automation-options';
 import { AutomationRunnerService } from './automation-runner.service';
 
-const ACTIVE_RUN_STATUSES: AutomationRunStatus[] = [
-  AutomationRunStatus.QUEUED,
-  AutomationRunStatus.RUNNING,
+const ACTIVE_RUN_STATUSES: ServerOperationStatus[] = [
+  ServerOperationStatus.QUEUED,
+  ServerOperationStatus.RUNNING,
 ];
 
 @Injectable()
@@ -35,7 +35,7 @@ export class AutomationService {
   async getRuns(page = 1, pageSize = 20) {
     const skip = (page - 1) * pageSize;
     const [items, total] = await Promise.all([
-      this.prisma.automationRun.findMany({
+      this.prisma.serverOperation.findMany({
         skip,
         take: pageSize,
         orderBy: { createdAt: 'desc' },
@@ -48,13 +48,13 @@ export class AutomationService {
           },
         },
       }),
-      this.prisma.automationRun.count(),
+      this.prisma.serverOperation.count(),
     ]);
     return { items, total, page, pageSize };
   }
 
   async getRun(id: string) {
-    const run = await this.prisma.automationRun.findUnique({
+    const run = await this.prisma.serverOperation.findUnique({
       where: { id },
       include: {
         requestedBy: { select: { id: true, fullName: true, email: true } },
@@ -72,15 +72,15 @@ export class AutomationService {
   }
 
   async getRunLogs(id: string, afterLine?: number) {
-    const run = await this.prisma.automationRun.findUnique({
+    const run = await this.prisma.serverOperation.findUnique({
       where: { id },
       select: { id: true },
     });
     if (!run) throw new NotFoundException('Automation run not found');
 
-    return await this.prisma.automationRunLog.findMany({
+    return await this.prisma.serverOperationLog.findMany({
       where: {
-        runId: id,
+        operationId: id,
         ...(afterLine ? { lineNumber: { gt: afterLine } } : {}),
       },
       orderBy: { lineNumber: 'asc' },
@@ -116,20 +116,20 @@ export class AutomationService {
       );
     }
 
-    const run = await this.prisma.automationRun.create({
+    const run = await this.prisma.serverOperation.create({
       data: {
         actionKey: action.key,
         actionLabel: action.label,
-        status: AutomationRunStatus.QUEUED,
+        status: ServerOperationStatus.QUEUED,
         requestedById: actorId,
-        extraVarsJson: {
+        paramsJson: {
           selected_roles: action.roles ?? [],
           gitlabRunnerExecutor: dto.gitlabRunnerExecutor?.trim() || 'docker',
         } as Prisma.InputJsonValue,
         targets: {
           create: serverIds.map((serverId) => ({
             serverId,
-            status: AutomationTargetStatus.PENDING,
+            status: ServerOperationTargetStatus.PENDING,
           })),
         },
       },
@@ -162,7 +162,7 @@ export class AutomationService {
   }
 
   async cancelRun(id: string, actorId?: string) {
-    const run = await this.prisma.automationRun.findUnique({
+    const run = await this.prisma.serverOperation.findUnique({
       where: { id },
       include: {
         targets: { select: { serverId: true } },
@@ -175,10 +175,10 @@ export class AutomationService {
       );
     }
 
-    await this.prisma.automationRun.update({
+    await this.prisma.serverOperation.update({
       where: { id },
       data: {
-        status: AutomationRunStatus.CANCELED,
+        status: ServerOperationStatus.CANCELED,
         summary: 'Automation canceled by administrator.',
         finishedAt: new Date(),
       },
@@ -201,13 +201,13 @@ export class AutomationService {
   }
 
   async deleteRun(id: string) {
-    const run = await this.prisma.automationRun.findUnique({ where: { id } });
+    const run = await this.prisma.serverOperation.findUnique({ where: { id } });
     if (!run) throw new NotFoundException('Automation run not found');
     if (ACTIVE_RUN_STATUSES.includes(run.status)) {
       throw new BadRequestException('Cannot delete an active run. Cancel it first.');
     }
-    await this.prisma.automationRunLog.deleteMany({ where: { runId: id } });
-    await this.prisma.automationRun.delete({ where: { id } });
+    await this.prisma.serverOperationLog.deleteMany({ where: { operationId: id } });
+    await this.prisma.serverOperation.delete({ where: { id } });
     return { deleted: true };
   }
 }

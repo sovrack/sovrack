@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-  AutomationRunStatus,
-  AutomationTargetStatus,
+  ServerOperationStatus,
+  ServerOperationTargetStatus,
   Prisma,
   Server,
   ServerLogLevel,
@@ -19,11 +19,11 @@ type RunConfig = {
 
 type AutomationRunWithTargets = {
   id: string;
-  status: AutomationRunStatus;
+  status: ServerOperationStatus;
   actionKey: string;
   actionLabel: string;
   requestedById: string | null;
-  extraVarsJson: Prisma.JsonValue;
+  paramsJson: Prisma.JsonValue;
   targets: Array<{
     id: string;
     server: Server;
@@ -57,7 +57,7 @@ export class AutomationRunnerService {
   }
 
   private async executeRun(runId: string): Promise<void> {
-    const run = (await this.prisma.automationRun.findUnique({
+    const run = (await this.prisma.serverOperation.findUnique({
       where: { id: runId },
       include: {
         targets: {
@@ -73,11 +73,11 @@ export class AutomationRunnerService {
     if (!run) {
       return;
     }
-    if (run.status === AutomationRunStatus.CANCELED) {
+    if (run.status === ServerOperationStatus.CANCELED) {
       return;
     }
 
-    const cfg = this.resolveRunConfig(run.extraVarsJson);
+    const cfg = this.resolveRunConfig(run.paramsJson);
     const targetTimeoutMs = this.resolveTargetTimeoutMs();
     const controller = new AbortController();
     this.controllers.set(runId, controller);
@@ -87,16 +87,16 @@ export class AutomationRunnerService {
     let timedOut = 0;
     let skipped = 0;
 
-    await this.prisma.automationRun.update({
+    await this.prisma.serverOperation.update({
       where: { id: runId },
       data: {
-        status: AutomationRunStatus.RUNNING,
+        status: ServerOperationStatus.RUNNING,
         startedAt: new Date(),
         finishedAt: null,
         errorMessage: null,
       },
     });
-    this.gateway.emitRunStatus({ runId, status: AutomationRunStatus.RUNNING });
+    this.gateway.emitRunStatus({ runId, status: ServerOperationStatus.RUNNING });
 
     await this.appendRunLog(runId, {
       level: ServerLogLevel.INFO,
@@ -141,10 +141,10 @@ export class AutomationRunnerService {
           continue;
         }
 
-        await this.prisma.automationRunTarget.update({
+        await this.prisma.serverOperationTarget.update({
           where: { id: target.id },
           data: {
-            status: AutomationTargetStatus.RUNNING,
+            status: ServerOperationTargetStatus.RUNNING,
             startedAt: new Date(),
             finishedAt: null,
             errorMessage: null,
@@ -192,10 +192,10 @@ export class AutomationRunnerService {
           );
 
           succeeded += 1;
-          await this.prisma.automationRunTarget.update({
+          await this.prisma.serverOperationTarget.update({
             where: { id: target.id },
             data: {
-              status: AutomationTargetStatus.SUCCEEDED,
+              status: ServerOperationTargetStatus.SUCCEEDED,
               finishedAt: new Date(),
               errorMessage: null,
             },
@@ -217,10 +217,10 @@ export class AutomationRunnerService {
             error instanceof Error ? error.message : String(error);
           if (controller.signal.aborted) {
             skipped += 1;
-            await this.prisma.automationRunTarget.update({
+            await this.prisma.serverOperationTarget.update({
               where: { id: target.id },
               data: {
-                status: AutomationTargetStatus.SKIPPED,
+                status: ServerOperationTargetStatus.SKIPPED,
                 finishedAt: new Date(),
                 errorMessage: 'Run canceled by administrator',
               },
@@ -240,12 +240,12 @@ export class AutomationRunnerService {
           } else {
             failed += 1;
           }
-          await this.prisma.automationRunTarget.update({
+          await this.prisma.serverOperationTarget.update({
             where: { id: target.id },
             data: {
               status: isTimeout
-                ? AutomationTargetStatus.TIMEOUT
-                : AutomationTargetStatus.FAILED,
+                ? ServerOperationTargetStatus.TIMEOUT
+                : ServerOperationTargetStatus.FAILED,
               finishedAt: new Date(),
               errorMessage: this.redactSecrets(message),
             },
@@ -276,29 +276,29 @@ export class AutomationRunnerService {
 
       const canceled = controller.signal.aborted;
       const finalStatus = canceled
-        ? AutomationRunStatus.CANCELED
+        ? ServerOperationStatus.CANCELED
         : timedOut > 0
           ? succeeded > 0
-            ? AutomationRunStatus.PARTIAL
-            : AutomationRunStatus.TIMEOUT
+            ? ServerOperationStatus.PARTIAL
+            : ServerOperationStatus.TIMEOUT
           : failed > 0
             ? succeeded > 0
-              ? AutomationRunStatus.PARTIAL
-              : AutomationRunStatus.FAILED
-            : AutomationRunStatus.SUCCEEDED;
+              ? ServerOperationStatus.PARTIAL
+              : ServerOperationStatus.FAILED
+            : ServerOperationStatus.SUCCEEDED;
       const summary = canceled
         ? 'Automation canceled by administrator.'
         : `Targets: ${String(run.targets.length)} total, ${String(succeeded)} succeeded, ${String(failed)} failed, ${String(timedOut)} timed out, ${String(skipped)} skipped.`;
 
-      await this.prisma.automationRun.update({
+      await this.prisma.serverOperation.update({
         where: { id: runId },
         data: {
           status: finalStatus,
           summary,
           finishedAt: new Date(),
-          ...(finalStatus === AutomationRunStatus.FAILED
+          ...(finalStatus === ServerOperationStatus.FAILED
             ? { errorMessage: 'One or more targets failed.' }
-            : finalStatus === AutomationRunStatus.TIMEOUT
+            : finalStatus === ServerOperationStatus.TIMEOUT
               ? { errorMessage: 'One or more targets timed out.' }
               : { errorMessage: null }),
         },
@@ -319,10 +319,10 @@ export class AutomationRunnerService {
     targetId: string,
     message: string,
   ): Promise<void> {
-    await this.prisma.automationRunTarget.update({
+    await this.prisma.serverOperationTarget.update({
       where: { id: targetId },
       data: {
-        status: AutomationTargetStatus.SKIPPED,
+        status: ServerOperationTargetStatus.SKIPPED,
         finishedAt: new Date(),
         errorMessage: message,
       },
@@ -340,14 +340,14 @@ export class AutomationRunnerService {
   ): Promise<void> {
     const created = await this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`automation-log:${runId}`}))`;
-      const lastLine = await tx.automationRunLog.findFirst({
-        where: { runId },
+      const lastLine = await tx.serverOperationLog.findFirst({
+        where: { operationId: runId },
         orderBy: { lineNumber: 'desc' },
         select: { lineNumber: true },
       });
-      return await tx.automationRunLog.create({
+      return await tx.serverOperationLog.create({
         data: {
-          runId,
+          operationId: runId,
           serverId: payload.serverId ?? null,
           level: payload.level,
           source: payload.source,
@@ -358,7 +358,7 @@ export class AutomationRunnerService {
     });
 
     this.gateway.emitRunLog({
-      runId: created.runId,
+      runId: created.operationId,
       serverId: created.serverId,
       level: created.level,
       source: created.source,
@@ -368,10 +368,10 @@ export class AutomationRunnerService {
     });
   }
 
-  private resolveRunConfig(extraVarsJson: Prisma.JsonValue): RunConfig {
+  private resolveRunConfig(paramsJson: Prisma.JsonValue): RunConfig {
     const raw =
-      extraVarsJson && typeof extraVarsJson === 'object'
-        ? (extraVarsJson as Record<string, unknown>)
+      paramsJson && typeof paramsJson === 'object'
+        ? (paramsJson as Record<string, unknown>)
         : {};
 
     const rawRoles = Array.isArray(raw.selected_roles)
