@@ -36,6 +36,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { ServiceConfigForm } from '@/components/projects/tabs/service/service-config-form';
 import { ServiceWebhook } from '@/components/projects/tabs/service/service-webhook';
+import { ServiceTerminalDialog } from '@/components/projects/tabs/service/service-terminal-dialog';
 import { LogTerminal } from '@/components/log-terminal';
 import { useDeploymentSocket } from '@/hooks/deployments/use-deployment-socket';
 import type { Service } from '@/types/service';
@@ -65,6 +66,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
   const [deployOpen, setDeployOpen] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [redeploying, setRedeploying] = useState(false);
+  const [terminalOpen, setTerminalOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [environments, setEnvironments] = useState<{ id: string; name: string }[]>([]);
   const [selectedEnvId, setSelectedEnvId] = useState<string>('');
@@ -235,10 +237,10 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                 className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50">
                 {stopping ? <Loader2 size={15} className="animate-spin" /> : <StopCircle size={15} />} Stop
               </button>
-              <Link href="/terminal"
+              <button type="button" onClick={() => setTerminalOpen(true)}
                 className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
                 <TerminalSquare size={15} /> Open terminal
-              </Link>
+              </button>
             </div>
             {lastDeployment && (
               <div className="mt-4 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
@@ -317,6 +319,14 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         services={services}
         initialServiceId={serviceId}
         initialEnvironmentId={selectedEnvId || undefined}
+      />
+
+      <ServiceTerminalDialog
+        projectId={projectId}
+        envId={selectedEnvId || environments[0]?.id || null}
+        envName={environments.find((e) => e.id === (selectedEnvId || environments[0]?.id))?.name}
+        open={terminalOpen}
+        onClose={() => setTerminalOpen(false)}
       />
     </div>
   );
