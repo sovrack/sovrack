@@ -45,6 +45,18 @@ export const deploymentRelationsInclude = {
       name: true,
     },
   },
+  // Pour résoudre l'URL publique : domaine rattaché (Traefik HTTPS) ou, à défaut,
+  // le serveur de l'environnement (http://host:port).
+  serviceEnv: {
+    select: {
+      domains: { select: { name: true }, take: 1 },
+      environment: {
+        select: {
+          servers: { where: { isActive: true }, select: { host: true }, take: 1 },
+        },
+      },
+    },
+  },
   user: { select: { id: true, email: true, fullName: true } },
 } satisfies Prisma.DeploymentInclude;
 
@@ -113,11 +125,19 @@ export class DeploymentsQueryService {
     };
   }
 
+  /**
+   * URL publique pour ouvrir l'app :
+   *  1. Domaine rattaché au service-env → https://<domaine> (route Traefik).
+   *  2. Sinon, le serveur de l'environnement → http://<host>:<port> (port hôte).
+   * (Plus de repoPath comme host — c'était le namespace du repo, non joignable.)
+   */
   computePublicUrl(deployment: DeploymentWithRelations): string | null {
-    const service = deployment.service;
-    if (service?.repoPath) {
-      const host = service.repoPath.replace(/^https?:\/\//, '').split('/')[0];
-      if (host) return `http://${host}:${String(service.port ?? 3000)}`;
+    const domain = deployment.serviceEnv?.domains?.[0]?.name;
+    if (domain) return `https://${domain}`;
+
+    const host = deployment.serviceEnv?.environment?.servers?.[0]?.host;
+    if (host) {
+      return `http://${host}:${String(deployment.service?.port ?? 3000)}`;
     }
     return null;
   }
