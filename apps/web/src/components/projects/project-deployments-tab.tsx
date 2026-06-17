@@ -28,7 +28,9 @@ type Props = {
   deployments: Deployment[];
   loading: boolean;
   error: string | null;
-  projectId: string;
+  // Absent = mode GLOBAL (multi-projets) : on affiche le nom du projet par ligne
+  // et on masque le lien « view all » + le redeploy ciblé sur un seul projet.
+  projectId?: string;
   onCreateClick?: () => void;
   onRefresh?: () => void;
 };
@@ -59,7 +61,7 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [logsTarget, setLogsTarget] = useState<{ id: string; status: DeploymentStatus } | null>(null);
-  const [redeployTarget, setRedeployTarget] = useState<{ branch: string; environmentId: string } | null>(null);
+  const [redeployTarget, setRedeployTarget] = useState<{ branch: string; environmentId: string; projectId: string } | null>(null);
 
   const handleRollback = async (depId: string) => {
     setRollingBackId(depId); setRollbackError(null);
@@ -90,7 +92,8 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
   };
 
   const filtered = statusFilter === 'ALL' ? deployments : deployments.filter((d) => d.status === statusFilter);
-  const visible = filtered.slice(0, 20);
+  // En mode global on en montre davantage (pas de pagination dédiée ici).
+  const visible = filtered.slice(0, projectId ? 20 : 100);
 
   return (
     <div className="space-y-4">
@@ -174,6 +177,12 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
                     <span className={`text-xs font-semibold ${STATUS_COLOR[dep.status] ?? 'text-zinc-400'}`}>
                       {STATUS_LABEL[dep.status]}
                     </span>
+                    {!projectId && dep.project && (
+                      <Link href={`/projects/${dep.project.id}`}
+                        className="text-xs font-semibold text-[var(--text-primary)] hover:underline">
+                        {dep.project.name}
+                      </Link>
+                    )}
                     {dep.environment?.name && (
                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${ENV_BADGE[dep.environment.name] ?? 'border-zinc-500/20 bg-zinc-500/10 text-zinc-400'}`}>
                         {dep.environment.name}
@@ -241,7 +250,7 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
 
                   {canRollback && (
                     <button type="button"
-                      onClick={() => setRedeployTarget({ branch: dep.branch, environmentId: envId })}
+                      onClick={() => setRedeployTarget({ branch: dep.branch, environmentId: envId, projectId: dep.project.id })}
                       className="flex items-center gap-1 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
                       title="Redeploy">
                       <Rocket size={11} />
@@ -276,7 +285,7 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
         </div>
       )}
 
-      {filtered.length > 20 && (
+      {projectId && filtered.length > 20 && (
         <Link href={`/deployments?project=${projectId}`}
           className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--border)] py-3 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
           <ExternalLink size={11} /> View all {filtered.length} deployments →
@@ -294,7 +303,7 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
       {/* Redeploy dialog — branch + env pre-filled from original run */}
       <DeploymentCreateDialog
         open={redeployTarget !== null}
-        initialProjectId={projectId}
+        initialProjectId={redeployTarget?.projectId ?? projectId ?? ''}
         initialEnvironmentId={redeployTarget?.environmentId}
         initialBranch={redeployTarget?.branch}
         onClose={() => setRedeployTarget(null)}
