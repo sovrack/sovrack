@@ -399,9 +399,27 @@ export class DockerDeployExecutorService {
 
       this.emitGatewayLog(deployment.id, 'Création du conteneur...', 'info');
       const stopTimeout = deployment.service?.shutdownTimeout ?? 30;
+      // Labels Docker → exposés par cAdvisor (container_label_platform_*) pour
+      // filtrer le monitoring par projet / service / environnement / déploiement.
+      const envName =
+        deployment.serviceEnv?.environment?.name ??
+        deployment.environment?.name ??
+        '';
+      const platformLabels: Record<string, string> = {
+        'platform.managed': 'true',
+        'platform.project': deployment.project.id,
+        'platform.project_name': deployment.project.name,
+        'platform.service': deployment.service?.id ?? '',
+        'platform.service_name': serviceName,
+        'platform.environment': envName,
+        'platform.service_env': deployment.serviceEnv?.id ?? '',
+        'platform.deployment': deployment.id,
+      };
+
       const container = await this.docker.createContainer(serverId, {
         Image: imageRef,
         name: containerName,
+        Labels: platformLabels,
         Env: envVars,
         ExposedPorts:
           deployment.service?.type !== 'WORKER' &&
