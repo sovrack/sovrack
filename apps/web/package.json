@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
+    "test": "vitest run",
     "type-check": "next typegen && tsc --noEmit",
     "scaffold:page": "node scripts/scaffold-page.mjs",
     "scaffold:feature": "node scripts/scaffold-feature.mjs",
@@ -30,22 +31,23 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "socket.io-client": "^4.8.3",
-    "zustand": "^5.0.13",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "@tanstack/react-query-devtools": "^5.99.2",
     "@types/node": "^22.13.4",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "autoprefixer": "^10.4.20",
-    "@tanstack/react-query-devtools": "^5.99.2",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.14",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.0",
     "openapi-typescript": "^7.13.0",
-    "typescript": "^5.7.3"
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.9"
   },
   "overrides": {
     "dompurify": "^3.4.1"
