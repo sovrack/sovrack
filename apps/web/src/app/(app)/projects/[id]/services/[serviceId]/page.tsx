@@ -40,6 +40,7 @@ import { ServiceWebhook } from '@/components/projects/tabs/service/service-webho
 import { ServiceTerminalDialog } from '@/components/projects/tabs/service/service-terminal-dialog';
 import { ServiceDomains } from '@/components/projects/tabs/service/service-domains';
 import { LogTerminal } from '@/components/log-terminal';
+import { resolveDeploymentUrl } from '@/lib/deployment-utils';
 import { useDeploymentSocket } from '@/hooks/deployments/use-deployment-socket';
 import type { Service } from '@/types/service';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
@@ -97,6 +98,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
   useEffect(() => { void load(); }, [load]);
 
   const lastDeployment = deployments[0] ?? null;
+  const appUrl = lastDeployment ? resolveDeploymentUrl(lastDeployment) : null;
   const isDatabase = service?.type === 'DATABASE';
 
   // Redeploy 1-clic : relance le service sur l'environnement sélectionné sans
@@ -246,10 +248,16 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
               </button>
             </div>
             {lastDeployment && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <span>Last deployment:</span>
                 <DeploymentStatusBadge status={lastDeployment.status} />
                 <Link href={`/deployments/${lastDeployment.id}`} className="text-xs underline hover:text-[var(--text-primary)]">view</Link>
+                {appUrl && (
+                  <a href={appUrl} target="_blank" rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
+                    <Globe size={12} /> Open app
+                  </a>
+                )}
               </div>
             )}
           </SectionCard>
