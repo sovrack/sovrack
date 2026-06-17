@@ -8,6 +8,8 @@ import { deploymentsService } from '@/services/deployments.service';
 import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
+import { DeploymentLogsDialog } from '@/components/projects/tabs/runs/deployment-logs-dialog';
+import { DeploymentContainerDialog } from '@/components/deployments/deployment-container-dialog';
 import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
 import { PageHeader } from '@/components/layout/page-header';
 import { useAuth } from '@/hooks/auth/use-auth';
@@ -54,6 +56,17 @@ export default function DeploymentsPage() {
   useEffect(() => {
     if (searchParams.get('dialog') === 'create-deployment') setCreateDialogOpen(true);
   }, [searchParams]);
+
+  // Deep-links from other pages (dashboard, top-nav, service page) open dialogs
+  // here instead of navigating to a dedicated deployment page.
+  const logsId = searchParams.get('logs');
+  const containerId = searchParams.get('container');
+  const closeDeepLink = (key: 'logs' | 'container') => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete(key);
+    const q = next.toString();
+    router.replace(q ? `/deployments?${q}` : '/deployments');
+  };
 
   const clearDialog = () => {
     const next = new URLSearchParams(searchParams.toString());
@@ -110,6 +123,18 @@ export default function DeploymentsPage() {
         open={createDialogOpen}
         onClose={handleClose}
         onCreated={handleCreated}
+      />
+
+      {/* Deep-linked dialogs (?logs=<id> / ?container=<id>) */}
+      <DeploymentLogsDialog
+        open={!!logsId}
+        deploymentId={logsId}
+        onClose={() => closeDeepLink('logs')}
+      />
+      <DeploymentContainerDialog
+        open={!!containerId}
+        deploymentId={containerId}
+        onClose={() => closeDeepLink('container')}
       />
     </div>
   );

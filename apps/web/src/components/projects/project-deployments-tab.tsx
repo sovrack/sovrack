@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
+  Box,
   CheckCircle2,
   Clock,
   ExternalLink,
@@ -22,6 +23,7 @@ import { deploymentsService } from '@/services/deployments.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
 import { DeploymentLogsDialog } from '@/components/projects/tabs/runs/deployment-logs-dialog';
+import { DeploymentContainerDialog } from '@/components/deployments/deployment-container-dialog';
 import { timeAgo, dur, resolveDeploymentUrl, ENV_BADGE, STATUS_DOT, STATUS_BORDER } from '@/lib/deployment-utils';
 
 type Props = {
@@ -61,6 +63,7 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [logsTarget, setLogsTarget] = useState<{ id: string; status: DeploymentStatus } | null>(null);
+  const [containerTarget, setContainerTarget] = useState<string | null>(null);
   const [redeployTarget, setRedeployTarget] = useState<{ branch: string; environmentId: string; projectId: string } | null>(null);
 
   const handleRollback = async (depId: string) => {
@@ -222,13 +225,23 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
                     </span>
                   )}
 
-                  {/* Logs in dialog — no redirect */}
+                  {/* Build/deploy logs in dialog — no redirect */}
                   <button type="button"
                     onClick={() => setLogsTarget({ id: dep.id, status: dep.status })}
                     className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
-                    title="View logs">
+                    title="Build & deploy logs">
                     <Terminal size={11} /> Logs
                   </button>
+
+                  {/* Docker container info + runtime logs in dialog */}
+                  {dep.status === 'SUCCESS' && (
+                    <button type="button"
+                      onClick={() => setContainerTarget(dep.id)}
+                      className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                      title="Docker container (stats & runtime logs)">
+                      <Box size={11} /> <span className="hidden sm:inline">Container</span>
+                    </button>
+                  )}
 
                   {isLive && (
                     <button type="button" onClick={() => void handleCancel(dep.id)} disabled={cancellingId === dep.id}
@@ -298,6 +311,13 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
         deploymentId={logsTarget?.id ?? null}
         initialStatus={logsTarget?.status ?? null}
         onClose={() => setLogsTarget(null)}
+      />
+
+      {/* Docker container dialog — info + runtime logs, no redirect */}
+      <DeploymentContainerDialog
+        open={containerTarget !== null}
+        deploymentId={containerTarget}
+        onClose={() => setContainerTarget(null)}
       />
 
       {/* Redeploy dialog — branch + env pre-filled from original run */}

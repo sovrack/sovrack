@@ -251,7 +251,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
               <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <span>Last deployment:</span>
                 <DeploymentStatusBadge status={lastDeployment.status} />
-                <Link href={`/deployments/${lastDeployment.id}`} className="text-xs underline hover:text-[var(--text-primary)]">view</Link>
+                <Link href={`/deployments?logs=${lastDeployment.id}`} className="text-xs underline hover:text-[var(--text-primary)]">view</Link>
                 {appUrl && (
                   <a href={appUrl} target="_blank" rel="noreferrer"
                     className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
@@ -320,7 +320,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
                     <code className="text-xs text-[var(--text-secondary)]">{d.branch}</code>
                     <span className="text-xs text-[var(--text-muted)]">{d.environment?.name}</span>
                   </span>
-                  <Link href={`/deployments/${d.id}`} className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view →</Link>
+                  <Link href={`/deployments?logs=${d.id}`} className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view →</Link>
                 </li>
               ))}
             </ul>

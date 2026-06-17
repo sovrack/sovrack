@@ -152,7 +152,7 @@ export default function DashboardPage() {
             — {data.recentFailures[0].projectName} · {data.recentFailures[0].environmentName} ·{' '}
             {formatRelative(data.recentFailures[0].createdAt)}{' '}
             <Link
-              href={`/deployments/${data.recentFailures[0].id}`}
+              href={`/deployments?logs=${data.recentFailures[0].id}`}
               className="underline hover:text-[var(--text-primary)]"
             >
               view
@@ -291,7 +291,7 @@ export default function DashboardPage() {
                     {url && d.status === 'SUCCESS' && (
                       <a href={url} target="_blank" rel="noreferrer" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">open ↗</a>
                     )}
-                    <Link href={`/deployments/${d.id}`} className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view →</Link>
+                    <Link href={`/deployments?logs=${d.id}`} className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view →</Link>
                   </span>
                 </li>
               );
@@ -327,7 +327,7 @@ export default function DashboardPage() {
                     {formatRelative(f.createdAt)}
                   </span>
                   <Link
-                    href={`/deployments/${f.id}`}
+                    href={`/deployments?logs=${f.id}`}
                     className="text-xs font-semibold text-red-400 hover:underline"
                   >
                     view →

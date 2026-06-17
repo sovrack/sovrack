@@ -123,7 +123,7 @@ function NotificationBell() {
                 return (
                   <Link
                     key={dep.id}
-                    href={`/deployments/${dep.id}`}
+                    href={`/deployments?logs=${dep.id}`}
                     onClick={() => setOpen(false)}
                     className={clsx(
                       'flex items-start gap-3 px-4 py-3 text-left transition hover:bg-[var(--hover)]',
