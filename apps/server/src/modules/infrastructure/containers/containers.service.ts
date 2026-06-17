@@ -12,11 +12,16 @@ export class ContainersService {
     private readonly docker: DockerApiService,
   ) {}
 
-  async findAll(filters: { serverId?: string; serviceId?: string }) {
+  async findAll(filters: {
+    serverId?: string;
+    serviceId?: string;
+    deploymentId?: string;
+  }) {
     return this.prisma.container.findMany({
       where: {
         ...(filters.serverId && { serverId: filters.serverId }),
         ...(filters.serviceId && { serviceId: filters.serviceId }),
+        ...(filters.deploymentId && { deploymentId: filters.deploymentId }),
       },
       orderBy: { createdAt: 'desc' },
     });

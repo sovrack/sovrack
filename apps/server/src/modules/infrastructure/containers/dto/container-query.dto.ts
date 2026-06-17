@@ -25,4 +25,9 @@ export class ContainerListQueryDto {
   @IsOptional()
   @IsString()
   serviceId?: string;
+
+  @ApiPropertyOptional({ example: 'dep_xxx' })
+  @IsOptional()
+  @IsString()
+  deploymentId?: string;
 }
