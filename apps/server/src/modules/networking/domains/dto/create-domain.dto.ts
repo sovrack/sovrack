@@ -18,4 +18,11 @@ export class CreateDomainDto {
   @IsOptional()
   @IsString()
   projectId?: string;
+
+  // Rattache le domaine à un service×environnement → l'executor pose la route
+  // Traefik (HTTPS) vers ce conteneur au déploiement.
+  @ApiPropertyOptional({ example: 'service-env-uuid' })
+  @IsOptional()
+  @IsString()
+  serviceEnvId?: string;
 }

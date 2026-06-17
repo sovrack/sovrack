@@ -64,8 +64,11 @@ export class DomainsController {
   @Get('domains')
   @ApiOperation({ summary: 'List DNS domains' })
   @ApiResponse({ status: 200, description: 'Domaines DNS' })
-  async listDomains(@Query('projectId') projectId?: string) {
-    return await this.domainsService.listDomains(projectId);
+  async listDomains(
+    @Query('projectId') projectId?: string,
+    @Query('serviceEnvId') serviceEnvId?: string,
+  ) {
+    return await this.domainsService.listDomains(projectId, serviceEnvId);
   }
 
   @Post('domains')
@@ -75,6 +78,15 @@ export class DomainsController {
   @ApiResponse({ status: 201, description: 'DNS domain created' })
   async createDomain(@Body() dto: CreateDomainDto) {
     return await this.domainsService.createDomain(dto);
+  }
+
+  @Delete('domains/:id')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ summary: 'Delete a DNS domain' })
+  async removeDomain(@Param('id') id: string) {
+    await this.domainsService.removeDomain(id);
+    return { deleted: true };
   }
 
   @Post('domains/:id/verify')

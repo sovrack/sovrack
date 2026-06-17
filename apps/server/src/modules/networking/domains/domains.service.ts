@@ -102,9 +102,12 @@ export class DomainsService {
 
   // ── Domains ────────────────────────────────────────────────────────────
 
-  async listDomains(projectId?: string) {
+  async listDomains(projectId?: string, serviceEnvId?: string) {
     return await this.prisma.domain.findMany({
-      where: projectId ? { projectId } : undefined,
+      where: {
+        ...(projectId ? { projectId } : {}),
+        ...(serviceEnvId ? { serviceEnvId } : {}),
+      },
       orderBy: { name: 'asc' },
       include: domainInclude,
     });
@@ -119,9 +122,16 @@ export class DomainsService {
         name: dto.name.trim().toLowerCase(),
         providerId: dto.providerId?.trim() || undefined,
         projectId: dto.projectId?.trim() || undefined,
+        serviceEnvId: dto.serviceEnvId?.trim() || undefined,
       },
       include: domainInclude,
     });
+  }
+
+  async removeDomain(domainId: string): Promise<void> {
+    const domain = await this.prisma.domain.findUnique({ where: { id: domainId } });
+    if (!domain) throw new NotFoundException('Domaine introuvable');
+    await this.prisma.domain.delete({ where: { id: domainId } });
   }
 
   async verifyDomain(domainId: string) {
