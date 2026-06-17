@@ -451,9 +451,52 @@ function ServiceEnvironments({
 }
 
 /** Éditeur des variables d'UNE instance (ServiceEnvironment = service × env). */
+type KV = { key: string; value: string };
+function kvFromRaw(raw: unknown): KV[] {
+  let obj: Record<string, unknown> = {};
+  if (typeof raw === 'string' && raw.trim()) {
+    try { obj = JSON.parse(raw) as Record<string, unknown>; } catch { /* ignore */ }
+  } else if (raw && typeof raw === 'object') {
+    obj = raw as Record<string, unknown>;
+  }
+  return Object.entries(obj).map(([key, value]) => ({ key, value: String(value ?? '') }));
+}
+function kvToJson(rows: KV[]): string {
+  const o: Record<string, string> = {};
+  for (const r of rows) { const k = r.key.trim(); if (k) o[k] = r.value; }
+  return JSON.stringify(o);
+}
+
+/** Lignes KEY=value (ajouter/supprimer). `secret` masque les valeurs. */
+function KvRows({ rows, setRows, secret }: { rows: KV[]; setRows: (r: KV[]) => void; secret?: boolean }) {
+  const inputCls = 'rounded-md border border-[var(--border)] bg-[var(--bg-app)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]';
+  return (
+    <div className="space-y-1.5">
+      {rows.map((r, i) => (
+        <div key={i} className="flex items-center gap-1.5">
+          <input value={r.key} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))}
+            placeholder="KEY" className={`${inputCls} w-1/3`} />
+          <span className="text-[var(--text-muted)]">=</span>
+          <input value={r.value} type={secret ? 'password' : 'text'}
+            onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)))}
+            placeholder="value" className={`${inputCls} flex-1`} />
+          <button type="button" onClick={() => setRows(rows.filter((_, j) => j !== i))}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-muted)] hover:text-red-400">
+            <X size={12} />
+          </button>
+        </div>
+      ))}
+      <button type="button" onClick={() => setRows([...rows, { key: '', value: '' }])}
+        className="inline-flex items-center gap-1 rounded-md border border-dashed border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
+        <Plus size={11} /> Ajouter une variable
+      </button>
+    </div>
+  );
+}
+
 function EnvVarsEditor({ projectId, serviceEnvId }: { projectId: string; serviceEnvId: string }) {
-  const [env, setEnv] = useState('');
-  const [secrets, setSecrets] = useState('');
+  const [vars, setVars] = useState<KV[]>([]);
+  const [secrets, setSecrets] = useState<KV[]>([]);
   const [autoDeploy, setAutoDeploy] = useState(false);
   const [autoBranch, setAutoBranch] = useState('main');
   const [loading, setLoading] = useState(true);
@@ -465,8 +508,7 @@ function EnvVarsEditor({ projectId, serviceEnvId }: { projectId: string; service
     environmentsService.getServiceLink(projectId, serviceEnvId)
       .then((se) => {
         if (!alive) return;
-        const raw = se.env as unknown;
-        setEnv(typeof raw === 'string' ? raw : raw ? JSON.stringify(raw, null, 2) : '');
+        setVars(kvFromRaw(se.env as unknown));
         setAutoDeploy(!!se.autoDeploy);
         setAutoBranch(se.autoBranch ?? 'main');
       })
@@ -481,20 +523,20 @@ function EnvVarsEditor({ projectId, serviceEnvId }: { projectId: string; service
       const payload: { env?: string; secretsEnv?: string; autoDeploy?: boolean; autoBranch?: string } = {
         autoDeploy,
         autoBranch: autoBranch.trim() || 'main',
+        env: kvToJson(vars),
       };
-      if (env.trim()) { JSON.parse(env); payload.env = env; } else { payload.env = '{}'; }
-      if (secrets.trim()) { JSON.parse(secrets); payload.secretsEnv = secrets; }
+      const secretRows = secrets.filter((s) => s.key.trim());
+      if (secretRows.length) payload.secretsEnv = kvToJson(secretRows);
       await environmentsService.updateServiceLink(projectId, serviceEnvId, payload);
-      setMsg('Enregistré ✓'); setSecrets('');
+      setMsg('Enregistré ✓'); setSecrets([]);
     } catch (e) {
-      setMsg(e instanceof SyntaxError ? 'JSON invalide.' : getApiErrorMessage(e));
+      setMsg(getApiErrorMessage(e));
     } finally {
       setSaving(false);
     }
   };
 
-  const ta = 'w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]';
-  const lbl = 'mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]';
+  const lbl = 'mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]';
 
   return (
     <div className="space-y-3 border-t border-[var(--border)] bg-[var(--bg-app)]/40 px-3 py-3">
@@ -514,14 +556,13 @@ function EnvVarsEditor({ projectId, serviceEnvId }: { projectId: string; service
             </span>
           </div>
           <div>
-            <label className={lbl}>Variables (JSON)</label>
-            <textarea rows={5} value={env} onChange={(e) => setEnv(e.target.value)}
-              placeholder={'{\n  "NODE_ENV": "production"\n}'} className={ta} />
+            <label className={lbl}>Variables</label>
+            <KvRows rows={vars} setRows={setVars} />
           </div>
           <div>
-            <label className={lbl}>Secrets (JSON · chiffrés au repos · écriture seule)</label>
-            <textarea rows={3} value={secrets} onChange={(e) => setSecrets(e.target.value)}
-              placeholder={'{ "DB_PASSWORD": "..." }  — laisser vide pour ne pas changer'} className={ta} />
+            <label className={lbl}>Secrets (chiffrés au repos · écriture seule)</label>
+            <KvRows rows={secrets} setRows={setSecrets} secret />
+            <p className="mt-1 text-[10px] text-[var(--text-muted)]">Laisser vide pour ne pas changer les secrets existants.</p>
           </div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => void save()} disabled={saving}
