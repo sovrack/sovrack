@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ServerOperationStatus,
   ServerOperationTargetStatus,
@@ -11,6 +12,10 @@ import { PrismaService } from '../../../core/database/prisma.service';
 import { ServerPreparationAnsibleService } from '../../infrastructure/preparation/services/server-preparation-ansible.service';
 import type { PreparationRoleKey } from '../../infrastructure/servers/shared/server-preparation-options';
 import { AutomationGateway } from '../automation.gateway';
+import {
+  AUTOMATION_RUN_COMPLETED,
+  type AutomationRunCompletedEvent,
+} from '../shared/automation-events';
 
 type RunConfig = {
   roles: PreparationRoleKey[];
@@ -40,6 +45,7 @@ export class AutomationRunnerService {
     private readonly ansible: ServerPreparationAnsibleService,
     private readonly gateway: AutomationGateway,
     private readonly configService: ConfigService,
+    private readonly events: EventEmitter2,
   ) {}
 
   executeInBackground(runId: string): void {
@@ -86,6 +92,7 @@ export class AutomationRunnerService {
     let failed = 0;
     let timedOut = 0;
     let skipped = 0;
+    const succeededHosts: string[] = [];
 
     await this.prisma.serverOperation.update({
       where: { id: runId },
@@ -195,6 +202,7 @@ export class AutomationRunnerService {
           );
 
           succeeded += 1;
+          succeededHosts.push(server.host);
           await this.prisma.serverOperationTarget.update({
             where: { id: target.id },
             data: {
@@ -306,6 +314,13 @@ export class AutomationRunnerService {
               : { errorMessage: null }),
         },
       });
+
+      this.events.emit(AUTOMATION_RUN_COMPLETED, {
+        runId,
+        actionKey: run.actionKey,
+        status: finalStatus,
+        succeededHosts,
+      } satisfies AutomationRunCompletedEvent);
 
       this.gateway.emitRunStatus({ runId, status: finalStatus });
       this.gateway.emitRunFinished({

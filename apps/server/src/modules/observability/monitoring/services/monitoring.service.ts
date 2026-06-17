@@ -1,11 +1,17 @@
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
+import { ServerOperationStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { PlatformService } from '../../../platform/platform.service';
 import { CreateAutomationRunDto } from '../../../automation/dto/create-automation-run.dto';
 import { AUTOMATION_ACTIONS } from '../../../automation/shared/automation-options';
+import {
+  AUTOMATION_RUN_COMPLETED,
+  type AutomationRunCompletedEvent,
+} from '../../../automation/shared/automation-events';
 import { AutomationService } from '../../../automation/services/automation.service';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringStatsService } from './monitoring-stats.service';
@@ -239,6 +245,44 @@ export class MonitoringService {
     };
 
     return await this.automation.startRun(payload, actorId);
+  }
+
+  /**
+   * Une fois la stack monitoring installée avec succès sur un serveur, on câble
+   * automatiquement les URLs Prometheus/Grafana en config plateforme → la page
+   * monitoring passe en « mode complet » sans étape manuelle. (Ne surcharge pas
+   * une URL déjà configurée par l'admin, ex. Grafana externe.)
+   */
+  @OnEvent(AUTOMATION_RUN_COMPLETED)
+  async onAutomationRunCompleted(
+    event: AutomationRunCompletedEvent,
+  ): Promise<void> {
+    const action = AUTOMATION_ACTIONS.find((a) => a.key === event.actionKey);
+    if (!action || action.category !== 'monitoring') return;
+    const installsStack = (action.roles ?? []).some((r) =>
+      ['prometheus', 'grafana'].includes(r),
+    );
+    if (!installsStack) return;
+    if (
+      event.status !== ServerOperationStatus.SUCCEEDED &&
+      event.status !== ServerOperationStatus.PARTIAL
+    ) {
+      return;
+    }
+    const host = event.succeededHosts[0];
+    if (!host) return;
+
+    const setIfAbsent = async (key: string, value: string) => {
+      const current = await this.platformConfig.get(key);
+      if (!current || current.trim().length === 0) {
+        await this.platformConfig.set(key, value);
+      }
+    };
+    await setIfAbsent('MONITORING_PROMETHEUS_URL', `http://${host}:9090`);
+    await setIfAbsent('MONITORING_GRAFANA_URL', `http://${host}:3000`);
+    this.logger.log(
+      `Monitoring stack installed on ${host} → URLs Prometheus/Grafana câblées.`,
+    );
   }
 
   private async fetchPrometheusMetricsByHost(): Promise<
