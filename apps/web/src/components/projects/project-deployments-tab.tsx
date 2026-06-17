@@ -205,7 +205,8 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
                   <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
                     <span className="flex items-center gap-1"><Clock size={10} /> {timeAgo(dep.createdAt)}</span>
                     {d && <span>{d}{isLive && <span className="ml-0.5 animate-pulse text-blue-400">…</span>}</span>}
-                    <span>{dep.user.fullName}</span>
+                    {/* Les déploiements auto (webhook/pipeline, auto-heal) n'ont pas d'utilisateur. */}
+                    <span>{dep.user?.fullName ?? 'Auto-deploy'}</span>
                     {dep.environment?.server && <span className="hidden sm:inline">{dep.environment.server.name}</span>}
                   </div>
                   {url && dep.status === 'SUCCESS' && (
@@ -263,7 +264,7 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
 
                   {canRollback && (
                     <button type="button"
-                      onClick={() => setRedeployTarget({ branch: dep.branch, environmentId: envId, projectId: dep.project.id })}
+                      onClick={() => setRedeployTarget({ branch: dep.branch, environmentId: envId, projectId: dep.project?.id ?? projectId ?? '' })}
                       className="flex items-center gap-1 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
                       title="Redeploy">
                       <Rocket size={11} />

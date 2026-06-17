@@ -207,7 +207,7 @@ export function ProjectOverview({
                 </div>
 
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
-                  <span>{lastDeployment.user.fullName} · {timeAgo(lastDeployment.createdAt)}</span>
+                  <span>{lastDeployment.user?.fullName ?? 'Auto-deploy'} · {timeAgo(lastDeployment.createdAt)}</span>
                   {dur(lastDeployment.startedAt, lastDeployment.finishedAt) && (
                     <span className="flex items-center gap-1"><Clock size={10} /> {dur(lastDeployment.startedAt, lastDeployment.finishedAt)}</span>
                   )}
