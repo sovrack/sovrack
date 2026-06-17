@@ -64,11 +64,17 @@ export class ContainerStatsService {
     const server = container.server;
     const decryptedKey = this.serversCryptoService.decrypt(server.sshKey);
 
-    const containerName = this.slugify(
-      deployment.service
-        ? `${deployment.project.name}-${deployment.service.name}`
-        : deployment.project.name,
-    );
+    // Use the REAL container name persisted at deploy time
+    // (`deploy-<project>-<service>-<depId8>`). Reconstructing it from
+    // project/service names misses the `deploy-` prefix and the deployment-id
+    // suffix → "No such container". Fall back to the slug only for legacy rows.
+    const containerName =
+      container.name ||
+      this.slugify(
+        deployment.service
+          ? `${deployment.project.name}-${deployment.service.name}`
+          : deployment.project.name,
+      );
 
     let conn: SshConnection | null = null;
     try {
