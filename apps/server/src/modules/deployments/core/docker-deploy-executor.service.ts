@@ -758,27 +758,10 @@ export class DockerDeployExecutorService {
 
       const buildCtx = rootDir === '.' ? workDir : `${workDir}/${rootDir}`;
 
-      // Auto-fallback: Nixpacks refuses apps it doesn't recognize (e.g. a
-      // static nginx site) with "unable to generate a build plan". If the repo
-      // already ships a Dockerfile, prefer it — this mirrors how Coolify/Dokploy
-      // auto-detect the build pack and avoids a confusing build failure.
-      let effectiveBuildPack = buildPack;
-      if (effectiveBuildPack === 'NIXPACKS' && !svc.dockerfile) {
-        const probe = await this.ssh.exec(
-          conn,
-          `test -f ${q(`${buildCtx}/Dockerfile`)} && echo yes || echo no`,
-        );
-        if (probe.stdout.trim() === 'yes') {
-          effectiveBuildPack = 'DOCKERFILE';
-          const msg =
-            '[LOCAL BUILD] Build pack NIXPACKS demandé mais un Dockerfile est ' +
-            'présent dans le dépôt → bascule automatique sur le build Dockerfile.';
-          logs += msg + '\n';
-          this.emitGatewayLog(deployment.id, msg, 'info');
-        }
-      }
-
-      if (effectiveBuildPack === 'NIXPACKS') {
+      // On respecte STRICTEMENT le build pack choisi pour le service — pas de
+      // bascule automatique. (La détection auto se fait à la création du service
+      // via build-detector ; au déploiement on obéit au choix.)
+      if (buildPack === 'NIXPACKS') {
         // nixpacks must be installed on the server
         await this.ssh.execOrThrow(
           conn,
@@ -786,7 +769,7 @@ export class DockerDeployExecutorService {
           'Nixpacks build failed',
         );
         logs += `[LOCAL BUILD] Nixpacks build OK → ${imageTag}\n`;
-      } else if (effectiveBuildPack === 'STATIC') {
+      } else if (buildPack === 'STATIC') {
         // Wrap static files in an nginx container
         const nginxConf = `server { listen 80; root /usr/share/nginx/html; index index.html; try_files $uri $uri/ /index.html; }`;
         await this.ssh.execOrThrow(
