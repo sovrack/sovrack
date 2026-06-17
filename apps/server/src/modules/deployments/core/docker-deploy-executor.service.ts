@@ -18,6 +18,7 @@ import { SshExecutorService } from '../../../core/ssh/ssh-executor.service';
 import { CryptoService } from '../../../core/crypto/crypto.service';
 import { ServersCryptoService } from '../../infrastructure/servers/services/servers-crypto.service';
 import { ServerHostKeyService } from '../../infrastructure/servers/services/server-host-key.service';
+import { TraefikRouteService } from './traefik-route.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DeploymentsHealthcheckService } from '../health/deployments-healthcheck.service';
 import { EnvLevel, resolveEnvDetailed } from '../utils/env-resolver.util';
@@ -48,6 +49,7 @@ export class DockerDeployExecutorService {
     private readonly ssh: SshExecutorService,
     private readonly serversCrypto: ServersCryptoService,
     private readonly serverHostKeys: ServerHostKeyService,
+    private readonly traefik: TraefikRouteService,
   ) {}
 
   private buildConditions(
@@ -250,7 +252,7 @@ export class DockerDeployExecutorService {
       traefikServiceEnvId &&
       deployment.service?.type === ServiceType.APPLICATION
     ) {
-      const auto = await this.resolveAutoSubdomain(
+      const auto = await this.traefik.resolveAutoSubdomain(
         deployment.project.id,
         traefikServiceEnvId,
         serviceName,
@@ -546,15 +548,16 @@ export class DockerDeployExecutorService {
       // conteneur (réseau 'web' + config dynamique fichier).
       if (useTraefik && traefikDomain && traefikServiceEnvId) {
         try {
-          commandLogs += await this.applyTraefikRoute(
+          const routeLog = await this.traefik.applyRoute(
             serverId,
             server,
             traefikServiceEnvId,
             traefikDomain,
             containerName,
             servicePort,
-            deployment.id,
           );
+          this.emitGatewayLog(deployment.id, routeLog, 'info');
+          commandLogs += routeLog + '\n';
         } catch (proxyError) {
           const msg = proxyError instanceof Error ? proxyError.message : 'unknown';
           this.emitGatewayLog(
@@ -829,129 +832,6 @@ export class DockerDeployExecutorService {
     return logs;
   }
 
-  private async getPlatformConfig(key: string): Promise<string | null> {
-    const row = await this.prisma.platformConfig.findUnique({ where: { key } });
-    const v = row?.value?.trim();
-    return v ? v : null;
-  }
-
-  /**
-   * Calcule (et persiste) un sous-domaine automatique pour un service web sans
-   * domaine explicite. Retourne le domaine ou null si la fonctionnalité n'est pas
-   * activée (ni PLATFORM_BASE_DOMAIN ni PLATFORM_AUTO_SUBDOMAIN).
-   */
-  private async resolveAutoSubdomain(
-    projectId: string,
-    serviceEnvId: string,
-    serviceName: string,
-    envName: string,
-    serverHost: string | undefined,
-  ): Promise<string | null> {
-    const base = await this.getPlatformConfig('PLATFORM_BASE_DOMAIN');
-    const autoFlag = await this.getPlatformConfig('PLATFORM_AUTO_SUBDOMAIN');
-    const slug = (s: string) =>
-      s
-        .toLowerCase()
-        .replace(/[^a-z0-9-]+/g, '-')
-        .replace(/^-+|-+$/g, '') || 'app';
-    const sub = `${slug(serviceName)}-${slug(envName)}`;
-
-    let domain: string | null = null;
-    if (base) {
-      domain = `${sub}.${base.replace(/^\.+|\.+$/g, '')}`;
-    } else if (
-      serverHost &&
-      /^\d+\.\d+\.\d+\.\d+$/.test(serverHost) &&
-      ['true', '1', 'nip.io', 'yes'].includes((autoFlag ?? '').toLowerCase())
-    ) {
-      domain = `${sub}.${serverHost}.nip.io`;
-    }
-    if (!domain) return null;
-
-    // Persiste le domaine (source unique de vérité pour l'URL publique + l'UI).
-    await this.prisma.domain
-      .upsert({
-        where: { projectId_name: { projectId, name: domain } },
-        update: { serviceEnvId, verified: true },
-        create: { projectId, serviceEnvId, name: domain, verified: true },
-      })
-      .catch(() => undefined);
-    return domain;
-  }
-
-  /**
-   * Branche le conteneur sur le réseau partagé 'web' et écrit la config dynamique
-   * Traefik (provider fichier) routant Host(domain) → http://<conteneur>:<port>
-   * en HTTPS (résolveur Let's Encrypt 'le'). Traefik recharge à chaud.
-   * Indépendant de la version du daemon Docker (cf. mémoire traefik-phase2).
-   */
-  private async applyTraefikRoute(
-    serverId: string,
-    server: { host: string; port: number; username: string; sshKey: string },
-    serviceEnvId: string,
-    domain: string,
-    containerName: string,
-    servicePort: number,
-    deploymentId: string,
-  ): Promise<string> {
-    // 1. Rendre le conteneur joignable par Traefik (réseau partagé 'web').
-    await this.docker.createNetwork(serverId, 'web').catch(() => undefined);
-    await this.docker.connectNetwork(serverId, 'web', containerName);
-
-    // 2. Config dynamique Traefik (encodée base64 pour éviter tout souci de
-    //    quoting — la règle Host contient des backticks).
-    const safeId = serviceEnvId.replace(/[^a-zA-Z0-9_-]/g, '-');
-    const yaml = [
-      'http:',
-      '  routers:',
-      // Routeur HTTPS (Let's Encrypt). Reste valable pour un vrai domaine public.
-      `    ${safeId}:`,
-      `      rule: "Host(\`${domain}\`)"`,
-      '      entryPoints: ["websecure"]',
-      `      service: ${safeId}`,
-      '      tls:',
-      '        certResolver: le',
-      // Routeur HTTP (port 80) : garantit l'accès même sans certificat valide
-      // (ex. sous-domaine nip.io sur IP privée où l'ACME ne peut pas émettre).
-      `    ${safeId}-web:`,
-      `      rule: "Host(\`${domain}\`)"`,
-      '      entryPoints: ["web"]',
-      `      service: ${safeId}`,
-      '  services:',
-      `    ${safeId}:`,
-      '      loadBalancer:',
-      '        servers:',
-      `          - url: "http://${containerName}:${String(servicePort)}"`,
-      '',
-    ].join('\n');
-    const b64 = Buffer.from(yaml, 'utf8').toString('base64');
-
-    const pinnedHost = await this.serverHostKeys.resolveForConnection(server, {
-      allowTrustOnFirstUse: false,
-    });
-    const conn = await this.ssh.connect({
-      host: server.host,
-      port: server.port,
-      username: server.username,
-      privateKey: this.serversCrypto.decrypt(server.sshKey),
-      expectedHostKey: pinnedHost.keyBase64,
-    });
-    try {
-      await this.ssh.execOrThrow(
-        conn,
-        `sudo mkdir -p /opt/traefik/dynamic && echo ${b64} | base64 -d | sudo tee /opt/traefik/dynamic/${safeId}.yml >/dev/null`,
-        'Écriture de la route Traefik échouée',
-      );
-    } finally {
-      await conn.dispose();
-    }
-    this.emitGatewayLog(
-      deploymentId,
-      `[TRAEFIK] Route ${domain} → ${containerName}:${String(servicePort)}`,
-      'info',
-    );
-    return `[TRAEFIK] Route HTTPS configurée : https://${domain}\n`;
-  }
 
   /**
    * Poll Docker inspect until the given container has exited, then return the

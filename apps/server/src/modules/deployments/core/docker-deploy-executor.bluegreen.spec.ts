@@ -40,6 +40,7 @@ describe('DockerDeployExecutorService — blue-green cut-over', () => {
       {
         resolveForConnection: jest.fn(),
       } as unknown as import('../../infrastructure/servers/services/server-host-key.service').ServerHostKeyService,
+      {} as unknown as import('./traefik-route.service').TraefikRouteService,
     );
     // Skip the real 3s drain.
     jest
