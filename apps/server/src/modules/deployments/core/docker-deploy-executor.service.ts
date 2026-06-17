@@ -224,9 +224,24 @@ export class DockerDeployExecutorService {
     // databases keep the standard in-place path. When enabled, the new (green)
     // container publishes on a standby port so the live (blue) one keeps serving
     // until green passes its health-check.
+    // Domaine rattaché à ce service-env ? → routage Traefik : le conteneur ne
+    // publie PAS de port hôte (Traefik le joint via le réseau 'web') → évite les
+    // conflits de port entre services et permet plusieurs apps sur 80/443.
+    const traefikServiceEnvId = deployment.serviceEnv?.id;
+    const traefikDomain =
+      traefikServiceEnvId && deployment.service?.type !== ServiceType.DATABASE
+        ? (await this.prisma.domain.findFirst({
+            where: { serviceEnvId: traefikServiceEnvId },
+            orderBy: { createdAt: 'desc' },
+            select: { name: true },
+          }))?.name ?? null
+        : null;
+    const useTraefik = !!traefikDomain;
+
     const blueGreen =
       deployment.strategy === DeploymentStrategy.BLUE_GREEN &&
-      deployment.service?.type !== ServiceType.DATABASE;
+      deployment.service?.type !== ServiceType.DATABASE &&
+      !useTraefik;
     const publishPort = blueGreen
       ? servicePort + DockerDeployExecutorService.BLUE_GREEN_PORT_OFFSET
       : servicePort;
@@ -362,11 +377,13 @@ export class DockerDeployExecutorService {
             : undefined,
         StopTimeout: stopTimeout,
         HostConfig: {
+          // En mode Traefik : aucun port hôte publié (Traefik route via 'web').
           PortBindings:
-            deployment.service?.type !== 'WORKER' &&
-            deployment.service?.type !== 'CRON'
-              ? { [`${servicePort}/tcp`]: [{ HostPort: String(publishPort) }] }
-              : {},
+            useTraefik ||
+            deployment.service?.type === 'WORKER' ||
+            deployment.service?.type === 'CRON'
+              ? {}
+              : { [`${servicePort}/tcp`]: [{ HostPort: String(publishPort) }] },
           RestartPolicy: {
             Name: deployment.service?.type === 'CRON' ? 'no' : 'unless-stopped',
           },
@@ -405,17 +422,31 @@ export class DockerDeployExecutorService {
       commandLogs += 'Enregistrement du conteneur en base de données\n';
 
       try {
-        const healthLogs =
-          await this.healthcheckService.runPostDeployHealthChecks({
-            deploymentId: deployment.id,
-            environmentDomain: null,
-            serviceDomain: null,
-            serverHost: server.host,
-            serverId,
-            appPort: publishPort,
-            healthcheckPath: deployment.service?.healthcheckPath ?? null,
-          });
-        commandLogs += `${healthLogs}\n`;
+        if (useTraefik) {
+          // Mode Traefik : pas de port hôte → on vérifie que le conteneur tourne
+          // (Traefik effectue le vrai routage/santé via 'web'). Petite attente
+          // anti-flap avant l'inspection.
+          await this.sleep(3000);
+          const info = await this.docker.inspectContainer(serverId, container.id);
+          if (info.State.Status !== 'running') {
+            throw new BadRequestException(
+              `Conteneur non démarré (état: ${info.State.Status})`,
+            );
+          }
+          commandLogs += `Conteneur en cours d'exécution (mode Traefik, sans port hôte).\n`;
+        } else {
+          const healthLogs =
+            await this.healthcheckService.runPostDeployHealthChecks({
+              deploymentId: deployment.id,
+              environmentDomain: null,
+              serviceDomain: null,
+              serverHost: server.host,
+              serverId,
+              appPort: publishPort,
+              healthcheckPath: deployment.service?.healthcheckPath ?? null,
+            });
+          commandLogs += `${healthLogs}\n`;
+        }
       } catch (healthError) {
         // Health-check failed → stop the broken container so it does not linger
         // in RUNNING, then rethrow so the outer catch marks the deploy FAILED.
@@ -440,43 +471,27 @@ export class DockerDeployExecutorService {
         throw healthError;
       }
 
-      // ── Reverse-proxy Traefik : si un domaine est rattaché au service-env,
-      // brancher le conteneur sur le réseau 'web' + écrire la route dynamique
-      // (provider fichier). Opt-in par la présence d'un Domain → aucun impact
-      // sur les déploiements sans domaine.
-      const traefikServiceEnvId = deployment.serviceEnv?.id;
-      if (
-        traefikServiceEnvId &&
-        deployment.service?.type !== ServiceType.DATABASE
-      ) {
-        const domainRow = await this.prisma.domain.findFirst({
-          where: { serviceEnvId: traefikServiceEnvId },
-          orderBy: { createdAt: 'desc' },
-          select: { name: true },
-        });
-        if (domainRow?.name) {
-          try {
-            commandLogs += await this.applyTraefikRoute(
-              serverId,
-              server,
-              traefikServiceEnvId,
-              domainRow.name,
-              containerName,
-              servicePort,
-              deployment.id,
-            );
-          } catch (proxyError) {
-            // Non bloquant : l'app tourne déjà (port hôte), seul le routage
-            // domaine a échoué → on le signale sans faire échouer le déploiement.
-            const msg =
-              proxyError instanceof Error ? proxyError.message : 'unknown';
-            this.emitGatewayLog(
-              deployment.id,
-              `[TRAEFIK] Route non configurée: ${msg}`,
-              'error',
-            );
-            commandLogs += `[TRAEFIK] Route non configurée: ${msg}\n`;
-          }
+      // ── Reverse-proxy Traefik : route le domaine (résolu en amont) vers le
+      // conteneur (réseau 'web' + config dynamique fichier).
+      if (useTraefik && traefikDomain && traefikServiceEnvId) {
+        try {
+          commandLogs += await this.applyTraefikRoute(
+            serverId,
+            server,
+            traefikServiceEnvId,
+            traefikDomain,
+            containerName,
+            servicePort,
+            deployment.id,
+          );
+        } catch (proxyError) {
+          const msg = proxyError instanceof Error ? proxyError.message : 'unknown';
+          this.emitGatewayLog(
+            deployment.id,
+            `[TRAEFIK] Route non configurée: ${msg}`,
+            'error',
+          );
+          commandLogs += `[TRAEFIK] Route non configurée: ${msg}\n`;
         }
       }
 
