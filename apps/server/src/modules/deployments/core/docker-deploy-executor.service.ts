@@ -9,7 +9,10 @@ import {
   ServiceType,
 } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { normalizeRepoPath } from '../../../core/utils/repo-path.util';
+import {
+  isNamespacedRepoPath,
+  normalizeRepoPath,
+} from '../../../core/utils/repo-path.util';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
 import { SshExecutorService } from '../../../core/ssh/ssh-executor.service';
 import { CryptoService } from '../../../core/crypto/crypto.service';
@@ -297,6 +300,36 @@ export class DockerDeployExecutorService {
       // Remove ALL previous containers of THIS service (name = prefix + a past
       // deploy id) so a redeploy never collides on the published port.
       const existing = await this.docker.listContainers(serverId, true);
+
+      // ── Host-port conflict guard ────────────────────────────────────────
+      // En mode port hôte (sans Traefik), deux services ne peuvent pas partager
+      // le même port. On détecte le conflit AVANT de toucher aux conteneurs pour
+      // lever une erreur claire (au lieu du « Bind for 0.0.0.0:<port> failed:
+      // port is already allocated » brut de Docker) ET sans couper le service
+      // déjà en place. Les conteneurs de CE service (même préfixe) sont exclus :
+      // un redeploy réutilise son propre port.
+      const publishesHostPort =
+        !useTraefik &&
+        deployment.service?.type !== 'WORKER' &&
+        deployment.service?.type !== 'CRON';
+      if (publishesHostPort) {
+        const conflict = existing.find(
+          (c) =>
+            (c.Ports ?? []).some((p) => p.PublicPort === publishPort) &&
+            !(c.Names ?? []).some((n) =>
+              n.replace(/^\//, '').startsWith(containerPrefix),
+            ),
+        );
+        if (conflict) {
+          const who = (conflict.Names?.[0] ?? conflict.Id).replace(/^\//, '');
+          throw new BadRequestException(
+            `Le port hôte ${publishPort} est déjà utilisé sur ce serveur par le ` +
+              `conteneur "${who}". Choisis un autre port pour ce service, ou ` +
+              `attribue-lui un domaine (routage Traefik, sans port hôte).`,
+          );
+        }
+      }
+
       const stale = existing.filter((c) =>
         (c.Names ?? []).some((n) =>
           n.replace(/^\//, '').startsWith(containerPrefix),
@@ -633,6 +666,13 @@ export class DockerDeployExecutorService {
       ? this.crypto.decrypt(svc.provider.adminToken)
       : '';
     const repoPath = normalizeRepoPath(svc.repoPath);
+    if (!isNamespacedRepoPath(repoPath)) {
+      throw new BadRequestException(
+        `Invalid repository path "${repoPath}": expected "namespace/project" ` +
+          `(e.g. "my-group/my-repo"). The group/owner segment is missing, so ` +
+          `the clone URL would point to a non-existent namespace.`,
+      );
+    }
     // Build a HTTPS clone URL with embedded token for authenticated access.
     const cloneUrl =
       token && providerUrl
@@ -677,7 +717,27 @@ export class DockerDeployExecutorService {
 
       const buildCtx = rootDir === '.' ? workDir : `${workDir}/${rootDir}`;
 
-      if (buildPack === 'NIXPACKS') {
+      // Auto-fallback: Nixpacks refuses apps it doesn't recognize (e.g. a
+      // static nginx site) with "unable to generate a build plan". If the repo
+      // already ships a Dockerfile, prefer it — this mirrors how Coolify/Dokploy
+      // auto-detect the build pack and avoids a confusing build failure.
+      let effectiveBuildPack = buildPack;
+      if (effectiveBuildPack === 'NIXPACKS' && !svc.dockerfile) {
+        const probe = await this.ssh.exec(
+          conn,
+          `test -f ${q(`${buildCtx}/Dockerfile`)} && echo yes || echo no`,
+        );
+        if (probe.stdout.trim() === 'yes') {
+          effectiveBuildPack = 'DOCKERFILE';
+          const msg =
+            '[LOCAL BUILD] Build pack NIXPACKS demandé mais un Dockerfile est ' +
+            'présent dans le dépôt → bascule automatique sur le build Dockerfile.';
+          logs += msg + '\n';
+          this.emitGatewayLog(deployment.id, msg, 'info');
+        }
+      }
+
+      if (effectiveBuildPack === 'NIXPACKS') {
         // nixpacks must be installed on the server
         await this.ssh.execOrThrow(
           conn,
@@ -685,7 +745,7 @@ export class DockerDeployExecutorService {
           'Nixpacks build failed',
         );
         logs += `[LOCAL BUILD] Nixpacks build OK → ${imageTag}\n`;
-      } else if (buildPack === 'STATIC') {
+      } else if (effectiveBuildPack === 'STATIC') {
         // Wrap static files in an nginx container
         const nginxConf = `server { listen 80; root /usr/share/nginx/html; index index.html; try_files $uri $uri/ /index.html; }`;
         await this.ssh.execOrThrow(

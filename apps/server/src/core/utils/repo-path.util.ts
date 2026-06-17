@@ -19,3 +19,17 @@ export function normalizeRepoPath(input: string): string {
     .replace(/^\/+|\/+$/g, '') // surrounding slashes
     .replace(/\.git$/, ''); // trailing .git
 }
+
+/**
+ * True when a normalized repoPath looks like a real "namespace/project"
+ * (contains at least one `/`).
+ *
+ * GitHub and GitLab repositories always live under a user/group namespace, so a
+ * bare path with no slash (e.g. "test-frontend") is a configuration mistake: the
+ * clone URL `${providerUrl}/test-frontend.git` resolves to a non-existent
+ * namespace and fails with a confusing "namespace could not be found" 404.
+ */
+export function isNamespacedRepoPath(input: string): boolean {
+  const path = normalizeRepoPath(input);
+  return path.length > 0 && path.includes('/');
+}
