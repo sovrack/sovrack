@@ -16,6 +16,9 @@ import {
 import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import { dashboardService } from '@/services/dashboard.service';
+import { deploymentsService } from '@/services/deployments.service';
+import { resolveDeploymentUrl } from '@/lib/deployment-utils';
+import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
 import { ActivityChart } from '@/components/dashboard/activity-chart';
 import { ServerHealthCard } from '@/components/dashboard/server-health-card';
 import { TopProjectsCard } from '@/components/dashboard/top-projects-card';
@@ -78,6 +81,14 @@ export default function DashboardPage() {
     queryFn: () => dashboardService.getStats(),
     staleTime: 30_000,
     refetchInterval: 60_000,
+  });
+
+  // Déploiements récents (tous statuts) — vue actionnable sur l'accueil.
+  const { data: recentDeployments } = useQuery({
+    queryKey: ['dashboard-recent-deployments'],
+    queryFn: () => deploymentsService.getAll(),
+    staleTime: 20_000,
+    refetchInterval: 30_000,
   });
 
   const queryError = error ? getApiErrorMessage(error) : null;
@@ -255,6 +266,39 @@ export default function DashboardPage() {
           <ServerHealthCard servers={data.servers} isAdmin={isAdmin} />
         )}
       </div>
+
+      {/* Recent deployments (all statuses) */}
+      {recentDeployments && recentDeployments.length > 0 && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+              <Rocket size={14} /> Recent deployments
+            </p>
+            <Link href="/deployments" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view all →</Link>
+          </div>
+          <ul className="space-y-2">
+            {recentDeployments.slice(0, 6).map((d) => {
+              const url = resolveDeploymentUrl(d);
+              return (
+                <li key={d.id} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 py-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <DeploymentStatusBadge status={d.status} />
+                    <span className="truncate font-semibold text-[var(--text-primary)]">{d.service?.name ?? d.project?.name ?? 'service'}</span>
+                    <span className="hidden text-[var(--text-secondary)] sm:inline">· {d.environment?.name}</span>
+                    <code className="hidden text-xs text-[var(--text-muted)] md:inline">{d.branch}</code>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    {url && d.status === 'SUCCESS' && (
+                      <a href={url} target="_blank" rel="noreferrer" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">open ↗</a>
+                    )}
+                    <Link href={`/deployments/${d.id}`} className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view →</Link>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Recent failures detail */}
       {data && data.recentFailures.length > 1 && (
