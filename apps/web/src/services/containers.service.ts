@@ -17,11 +17,24 @@ export const containersService = {
     return res.data;
   },
 
+  async listByDeployment(deploymentId: string): Promise<ContainerRecord[]> {
+    const res = await api.get<ContainerRecord[]>('/containers', { params: { deploymentId } });
+    return res.data;
+  },
+
+  async start(id: string): Promise<void> {
+    await api.post(`/containers/${id}/start`);
+  },
+
   async stop(id: string): Promise<void> {
     await api.post(`/containers/${id}/stop`);
   },
 
   async restart(id: string): Promise<void> {
     await api.post(`/containers/${id}/restart`);
+  },
+
+  async remove(id: string): Promise<void> {
+    await api.delete(`/containers/${id}`);
   },
 };

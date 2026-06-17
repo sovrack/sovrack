@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, Box, Loader2, RefreshCw, X, XCircle } from 'lucide-react';
+import { Activity, Box, Loader2, Play, RefreshCw, RotateCcw, Square, Trash2, X, XCircle } from 'lucide-react';
 import { monitoringService, type ContainerInfo } from '@/services/monitoring.service';
+import { containersService, type ContainerRecord } from '@/services/containers.service';
 import { getApiErrorMessage } from '@/lib/api';
 
 type Props = {
@@ -25,8 +26,11 @@ const STATUS_COLOR: Record<string, string> = {
  */
 export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props) {
   const [info, setInfo] = useState<ContainerInfo | null>(null);
+  const [container, setContainer] = useState<ContainerRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acting, setActing] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [live, setLive] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -43,16 +47,47 @@ export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props
     }
   }, [deploymentId]);
 
+  const fetchContainer = useCallback(async () => {
+    if (!deploymentId) return;
+    try {
+      const list = await containersService.listByDeployment(deploymentId);
+      setContainer(list[0] ?? null);
+    } catch {
+      setContainer(null);
+    }
+  }, [deploymentId]);
+
+  const runAction = async (action: 'start' | 'stop' | 'restart' | 'remove') => {
+    if (!container) return;
+    setActing(action);
+    setError(null);
+    try {
+      await containersService[action](container.id);
+      if (action === 'remove') {
+        setContainer(null);
+        setConfirmRemove(false);
+      }
+      await Promise.all([fetchInfo(), fetchContainer()]);
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setActing(null);
+    }
+  };
+
   // Load on open, reset on close.
   useEffect(() => {
     if (open && deploymentId) {
       void fetchInfo();
+      void fetchContainer();
     } else {
       setInfo(null);
+      setContainer(null);
       setError(null);
+      setConfirmRemove(false);
       setLive(false);
     }
-  }, [open, deploymentId, fetchInfo]);
+  }, [open, deploymentId, fetchInfo, fetchContainer]);
 
   // Live auto-refresh (5s) while enabled.
   useEffect(() => {
@@ -125,6 +160,30 @@ export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props
           )}
         </div>
 
+        {/* Ops toolbar */}
+        {container && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-5 py-2.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Actions</span>
+            <OpBtn label="Start" icon={<Play size={11} />} busy={acting === 'start'} disabled={info?.status === 'running'}
+              onClick={() => void runAction('start')} className="text-green-400 border-green-500/30 hover:bg-green-500/10" />
+            <OpBtn label="Stop" icon={<Square size={11} />} busy={acting === 'stop'} disabled={info?.status !== 'running'}
+              onClick={() => void runAction('stop')} className="text-amber-400 border-amber-500/30 hover:bg-amber-500/10" />
+            <OpBtn label="Restart" icon={<RotateCcw size={11} />} busy={acting === 'restart'}
+              onClick={() => void runAction('restart')} className="text-blue-400 border-blue-500/30 hover:bg-blue-500/10" />
+            {confirmRemove ? (
+              <span className="flex items-center gap-1.5">
+                <OpBtn label="Confirmer" icon={<Trash2 size={11} />} busy={acting === 'remove'}
+                  onClick={() => void runAction('remove')} className="text-red-400 border-red-500/50 bg-red-500/10 hover:bg-red-500/20" />
+                <button type="button" onClick={() => setConfirmRemove(false)}
+                  className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]">Annuler</button>
+              </span>
+            ) : (
+              <OpBtn label="Remove" icon={<Trash2 size={11} />}
+                onClick={() => setConfirmRemove(true)} className="ml-auto text-red-400 border-red-500/30 hover:bg-red-500/10" />
+            )}
+          </div>
+        )}
+
         {/* Logs */}
         <div className="flex-1 overflow-y-auto bg-zinc-950 p-4 font-mono text-xs leading-relaxed">
           {loading && !info && (
@@ -150,6 +209,15 @@ export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props
         </div>
       </div>
     </div>
+  );
+}
+
+function OpBtn({ label, icon, onClick, busy, disabled, className }: { label: string; icon: React.ReactNode; onClick: () => void; busy?: boolean; disabled?: boolean; className?: string }) {
+  return (
+    <button type="button" onClick={onClick} disabled={busy || disabled}
+      className={`flex items-center gap-1 rounded-lg border bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${className ?? ''}`}>
+      {busy ? <Loader2 size={11} className="animate-spin" /> : icon} {label}
+    </button>
   );
 }
 
