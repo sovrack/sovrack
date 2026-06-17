@@ -10,6 +10,7 @@ import {
   Container as ContainerIcon,
   Database,
   FolderGit2,
+  Globe,
   Layers,
   Loader2,
   Plus,
@@ -37,15 +38,17 @@ import { SectionCard } from '@/components/layout/section-card';
 import { ServiceConfigForm } from '@/components/projects/tabs/service/service-config-form';
 import { ServiceWebhook } from '@/components/projects/tabs/service/service-webhook';
 import { ServiceTerminalDialog } from '@/components/projects/tabs/service/service-terminal-dialog';
+import { ServiceDomains } from '@/components/projects/tabs/service/service-domains';
 import { LogTerminal } from '@/components/log-terminal';
 import { useDeploymentSocket } from '@/hooks/deployments/use-deployment-socket';
 import type { Service } from '@/types/service';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
 
-type Tab = 'general' | 'environment' | 'logs' | 'deployments' | 'monitoring';
+type Tab = 'general' | 'environment' | 'domains' | 'logs' | 'deployments' | 'monitoring';
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'General', icon: Settings2 },
   { id: 'environment', label: 'Environment', icon: ScrollText },
+  { id: 'domains', label: 'Domains', icon: Globe },
   { id: 'logs', label: 'Logs', icon: ScrollText },
   { id: 'deployments', label: 'Deployments', icon: Activity },
   { id: 'monitoring', label: 'Monitoring', icon: ContainerIcon },
@@ -280,6 +283,15 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
           environments={environments}
           envLinks={service.envLinks ?? []}
           onChanged={() => void load()}
+        />
+      )}
+
+      {/* Domains */}
+      {tab === 'domains' && (
+        <ServiceDomains
+          projectId={projectId}
+          serviceEnvId={service.envLinks?.find((l) => l.environmentId === (selectedEnvId || environments[0]?.id))?.id ?? null}
+          envName={environments.find((e) => e.id === (selectedEnvId || environments[0]?.id))?.name}
         />
       )}
 
