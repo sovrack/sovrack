@@ -4,6 +4,7 @@ import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  Activity,
   ArrowLeft,
   Boxes,
   Layers,
@@ -21,6 +22,7 @@ import { useConfirm } from '@/contexts/confirm-context';
 import { PageHeader } from '@/components/layout/page-header';
 import { ProjectEnvironmentsTab } from '@/components/projects/project-environments-tab';
 import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
+import { ProjectMonitoringTab } from '@/components/projects/project-monitoring-tab';
 import { useProjectDeployments } from '@/hooks/projects/use-project-deployments';
 import { ServicesList } from '@/components/projects/tabs/service/services-list';
 import { AddServiceWizard } from '@/components/projects/add-service-wizard';
@@ -29,9 +31,9 @@ import { ProjectMembersTab } from '@/components/projects/project-members-tab';
 import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
 
-type Tab = 'services' | 'deployments' | 'environments' | 'settings';
+type Tab = 'services' | 'deployments' | 'environments' | 'monitoring' | 'settings';
 
-const TAB_VALUES: Tab[] = ['services', 'deployments', 'environments', 'settings'];
+const TAB_VALUES: Tab[] = ['services', 'deployments', 'environments', 'monitoring', 'settings'];
 
 function parseTab(value: string | null): Tab | null {
   if (!value) return null;
@@ -134,6 +136,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     { id: 'services',     label: 'Services',        icon: Boxes },
     { id: 'deployments',  label: 'Deployments',     icon: Rocket },
     { id: 'environments', label: 'Environments',    icon: Layers },
+    { id: 'monitoring',   label: 'Monitoring',      icon: Activity },
     { id: 'settings',     label: 'Members & Access', icon: Settings },
   ];
 
@@ -223,6 +226,8 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           onChanged={() => void refresh()}
         />
       )}
+
+      {tab === 'monitoring' && <ProjectMonitoringTab projectId={id} />}
 
       {tab === 'settings' && (
         <ProjectMembersTab
