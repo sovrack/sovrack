@@ -33,6 +33,7 @@ import { environmentsService } from '@/services/environments.service';
 import { monitoringService, type ContainerInfo } from '@/services/monitoring.service';
 import { DeployDialog } from '@/components/deployments/deploy-dialog';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
+import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { ServiceConfigForm } from '@/components/projects/tabs/service/service-config-form';
@@ -251,7 +252,6 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
               <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <span>Last deployment:</span>
                 <DeploymentStatusBadge status={lastDeployment.status} />
-                <Link href={`/deployments?logs=${lastDeployment.id}`} className="text-xs underline hover:text-[var(--text-primary)]">view</Link>
                 {appUrl && (
                   <a href={appUrl} target="_blank" rel="noreferrer"
                     className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
@@ -306,26 +306,15 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
       {/* Logs */}
       {tab === 'logs' && <ServiceLogs deploymentId={lastDeployment?.id ?? null} initialStatus={lastDeployment?.status ?? null} />}
 
-      {/* Deployments */}
+      {/* Deployments — même UI que l'onglet projet (logs/container/rollback en dialog) */}
       {tab === 'deployments' && (
-        <SectionCard title="Deployments" description="History for this service.">
-          {deployments.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">No deployments yet.</p>
-          ) : (
-            <ul className="space-y-2">
-              {deployments.map((d) => (
-                <li key={d.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2 text-sm">
-                  <span className="flex items-center gap-2">
-                    <DeploymentStatusBadge status={d.status} />
-                    <code className="text-xs text-[var(--text-secondary)]">{d.branch}</code>
-                    <span className="text-xs text-[var(--text-muted)]">{d.environment?.name}</span>
-                  </span>
-                  <Link href={`/deployments?logs=${d.id}`} className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view →</Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </SectionCard>
+        <ProjectDeploymentsTab
+          deployments={deployments}
+          loading={loading}
+          error={error}
+          projectId={projectId}
+          onRefresh={() => void load()}
+        />
       )}
 
       {/* Monitoring */}
