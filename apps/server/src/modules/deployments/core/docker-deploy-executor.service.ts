@@ -231,7 +231,7 @@ export class DockerDeployExecutorService {
     // publie PAS de port hôte (Traefik le joint via le réseau 'web') → évite les
     // conflits de port entre services et permet plusieurs apps sur 80/443.
     const traefikServiceEnvId = deployment.serviceEnv?.id;
-    const traefikDomain =
+    let traefikDomain =
       traefikServiceEnvId && deployment.service?.type !== ServiceType.DATABASE
         ? (await this.prisma.domain.findFirst({
             where: { serviceEnvId: traefikServiceEnvId },
@@ -239,6 +239,26 @@ export class DockerDeployExecutorService {
             select: { name: true },
           }))?.name ?? null
         : null;
+
+    // Phase « domaines par défaut » : si aucun domaine explicite n'est rattaché et
+    // que c'est un service web (APPLICATION), on génère un sous-domaine automatique
+    // routé par Traefik (zéro port hôte → zéro conflit, HTTPS). Activé via la
+    // PlatformConfig PLATFORM_BASE_DOMAIN (ex. apps.exemple.com) ou, à défaut,
+    // PLATFORM_AUTO_SUBDOMAIN=true qui utilise nip.io sur l'IP du serveur.
+    if (
+      !traefikDomain &&
+      traefikServiceEnvId &&
+      deployment.service?.type === ServiceType.APPLICATION
+    ) {
+      const auto = await this.resolveAutoSubdomain(
+        deployment.project.id,
+        traefikServiceEnvId,
+        serviceName,
+        deployment.serviceEnv?.environment?.name ?? 'env',
+        servers[0]?.host,
+      );
+      if (auto) traefikDomain = auto;
+    }
     const useTraefik = !!traefikDomain;
 
     const blueGreen =
@@ -809,6 +829,56 @@ export class DockerDeployExecutorService {
     return logs;
   }
 
+  private async getPlatformConfig(key: string): Promise<string | null> {
+    const row = await this.prisma.platformConfig.findUnique({ where: { key } });
+    const v = row?.value?.trim();
+    return v ? v : null;
+  }
+
+  /**
+   * Calcule (et persiste) un sous-domaine automatique pour un service web sans
+   * domaine explicite. Retourne le domaine ou null si la fonctionnalité n'est pas
+   * activée (ni PLATFORM_BASE_DOMAIN ni PLATFORM_AUTO_SUBDOMAIN).
+   */
+  private async resolveAutoSubdomain(
+    projectId: string,
+    serviceEnvId: string,
+    serviceName: string,
+    envName: string,
+    serverHost: string | undefined,
+  ): Promise<string | null> {
+    const base = await this.getPlatformConfig('PLATFORM_BASE_DOMAIN');
+    const autoFlag = await this.getPlatformConfig('PLATFORM_AUTO_SUBDOMAIN');
+    const slug = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'app';
+    const sub = `${slug(serviceName)}-${slug(envName)}`;
+
+    let domain: string | null = null;
+    if (base) {
+      domain = `${sub}.${base.replace(/^\.+|\.+$/g, '')}`;
+    } else if (
+      serverHost &&
+      /^\d+\.\d+\.\d+\.\d+$/.test(serverHost) &&
+      ['true', '1', 'nip.io', 'yes'].includes((autoFlag ?? '').toLowerCase())
+    ) {
+      domain = `${sub}.${serverHost}.nip.io`;
+    }
+    if (!domain) return null;
+
+    // Persiste le domaine (source unique de vérité pour l'URL publique + l'UI).
+    await this.prisma.domain
+      .upsert({
+        where: { projectId_name: { projectId, name: domain } },
+        update: { serviceEnvId, verified: true },
+        create: { projectId, serviceEnvId, name: domain, verified: true },
+      })
+      .catch(() => undefined);
+    return domain;
+  }
+
   /**
    * Branche le conteneur sur le réseau partagé 'web' et écrit la config dynamique
    * Traefik (provider fichier) routant Host(domain) → http://<conteneur>:<port>
@@ -834,12 +904,19 @@ export class DockerDeployExecutorService {
     const yaml = [
       'http:',
       '  routers:',
+      // Routeur HTTPS (Let's Encrypt). Reste valable pour un vrai domaine public.
       `    ${safeId}:`,
       `      rule: "Host(\`${domain}\`)"`,
       '      entryPoints: ["websecure"]',
       `      service: ${safeId}`,
       '      tls:',
       '        certResolver: le',
+      // Routeur HTTP (port 80) : garantit l'accès même sans certificat valide
+      // (ex. sous-domaine nip.io sur IP privée où l'ACME ne peut pas émettre).
+      `    ${safeId}-web:`,
+      `      rule: "Host(\`${domain}\`)"`,
+      '      entryPoints: ["web"]',
+      `      service: ${safeId}`,
       '  services:',
       `    ${safeId}:`,
       '      loadBalancer:',
