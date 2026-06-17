@@ -40,14 +40,20 @@ export class DockerSshService {
     return r.stdout.trim();
   }
 
-  /** `docker stats` for all containers whose name matches a project slug. */
+  /**
+   * `docker stats` for all containers of a project. The deploy executor names
+   * containers `deploy-<projectSlug>-<service>-<depId>`, so we match the name
+   * field (2nd column) starting with `deploy-<projectSlug>-`. `.` in the slug is
+   * matched as `[.-]` to bridge the two slugify rules (executor turns `.`→`-`).
+   */
   async projectStats(
     conn: SshConnection,
     projectSlug: string,
   ): Promise<string> {
+    const slugPattern = projectSlug.replace(/\./g, '[.-]');
     const r = await this.ssh.exec(
       conn,
-      `docker stats --no-stream --format ${DockerSshService.sq(DockerSshService.STATS_FORMAT)} 2>/dev/null | grep ${DockerSshService.sq(`^[^|]*|${projectSlug}`)} || true`,
+      `docker stats --no-stream --format ${DockerSshService.sq(DockerSshService.STATS_FORMAT)} 2>/dev/null | grep ${DockerSshService.sq(`^[^|]*|deploy-${slugPattern}-`)} || true`,
     );
     return r.stdout.trim();
   }
