@@ -9,6 +9,7 @@ import {
 import { Type } from 'class-transformer';
 import {
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsObject,
@@ -84,6 +85,11 @@ export class CreateServiceDto {
   @IsOptional()
   @IsEnum(BuildPack)
   buildPack?: BuildPack;
+
+  @ApiPropertyOptional({ enum: ['LOCAL', 'REGISTRY'], example: 'LOCAL' })
+  @IsOptional()
+  @IsIn(['LOCAL', 'REGISTRY'])
+  buildMode?: string;
 
   @ApiPropertyOptional({ example: 'railpack' })
   @IsOptional()

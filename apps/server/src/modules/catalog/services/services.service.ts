@@ -115,6 +115,7 @@ export class ServicesService {
           providerId: dto.providerId?.trim(),
           rootDir: dto.rootDir?.trim() || '/',
           buildPack: dto.buildPack,
+          buildMode: dto.buildMode ?? 'LOCAL',
           buildType: dto.buildType?.trim(),
           dockerfile: dto.dockerfile,
           port: dto.port ?? 3000,
@@ -215,6 +216,7 @@ export class ServicesService {
           ? { rootDir: dto.rootDir?.trim() || '/' }
           : {}),
         ...(dto.buildPack !== undefined ? { buildPack: dto.buildPack } : {}),
+        ...(dto.buildMode !== undefined ? { buildMode: dto.buildMode } : {}),
         ...(dto.buildType !== undefined
           ? { buildType: dto.buildType?.trim() }
           : {}),

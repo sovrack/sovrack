@@ -102,7 +102,11 @@ export class DeploymentsConfigResolver {
 
   resolveBuildSource(
     dto: CreateDeploymentDto,
-    service: { buildPack: BuildPack | null; sourceType?: string | null },
+    service: {
+      buildPack: BuildPack | null;
+      sourceType?: string | null;
+      buildMode?: string | null;
+    },
   ): BuildSource {
     if (dto.buildSource) return dto.buildSource;
     if (dto.overrideImage) return 'EXTERNAL_IMAGE';
@@ -113,11 +117,13 @@ export class DeploymentsConfigResolver {
     const pack = service?.buildPack;
     if (pack === BuildPack.STATIC) return 'STATIC';
     if (pack === BuildPack.DOCKER_COMPOSE) return 'DOCKER_COMPOSE';
-    if (pack === BuildPack.NIXPACKS) return 'NIXPACKS_LOCAL';
-    // Default = LOCAL build (on the VPS): works without a CI/registry and stays
-    // coherent with the frontend deploy-dialog. The registry/pipeline path is
-    // opt-in via an explicit dto.buildSource = 'DOCKERFILE_REGISTRY' (P3).
-    return 'DOCKERFILE_LOCAL';
+    // Mode REGISTRY (choisi sur le service) : l'image est construite par la CI et
+    // poussée dans un registre → on PULL au lieu de builder sur le VPS.
+    const registry = (service?.buildMode ?? 'LOCAL').toUpperCase() === 'REGISTRY';
+    if (pack === BuildPack.NIXPACKS) {
+      return registry ? 'NIXPACKS_REGISTRY' : 'NIXPACKS_LOCAL';
+    }
+    return registry ? 'DOCKERFILE_REGISTRY' : 'DOCKERFILE_LOCAL';
   }
 
   isLocalBuildSource(src: BuildSource): boolean {

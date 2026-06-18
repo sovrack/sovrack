@@ -1187,6 +1187,10 @@ model Service {
 
   // Build (APPLICATION)
   buildPack            BuildPack? @default(DOCKERFILE)
+  // Mode de build choisi : LOCAL (build sur le VPS) ou REGISTRY (image construite
+  // par la CI puis pull). Combiné à buildPack → buildSource (DOCKERFILE_LOCAL,
+  // DOCKERFILE_REGISTRY, NIXPACKS_LOCAL…). Image externe = sourceType DOCKER_IMAGE.
+  buildMode            String?    @default("LOCAL")
   buildType            String?
   dockerfile           String?    @db.Text
   port                 Int?       @default(3000)
