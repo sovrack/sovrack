@@ -49,8 +49,10 @@ export function ServiceConfigForm({
   const [replicas, setReplicas] = useState(service.replicas != null ? String(service.replicas) : '1');
   const [dockerfile, setDockerfile] = useState(service.dockerfile ?? '');
   const [providerId, setProviderId] = useState(service.providerId ?? '');
-  const [repoPath, setRepoPath] = useState(service.repoPath ?? service.repoUrl ?? '');
+  // Dépôt figé (lecture seule) — pas de setter.
+  const repoPath = service.repoPath ?? service.repoUrl ?? '';
   const [providers, setProviders] = useState<SourceProviderOption[]>([]);
+  const [branches, setBranches] = useState<string[]>([]);
 
   useEffect(() => {
     projectsService.getSourceProviders()
@@ -60,6 +62,13 @@ export function ServiceConfigForm({
       })
       .catch(() => setProviders([]));
   }, []);
+
+  // Branches disponibles du dépôt → autocomplétion du champ Branch (S2).
+  useEffect(() => {
+    projectsService.getBranches(projectId)
+      .then((list) => setBranches(list.map((b) => b.name)))
+      .catch(() => setBranches([]));
+  }, [projectId]);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,13 +127,18 @@ export function ServiceConfigForm({
         <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className={labelClass} htmlFor="svc-repopath">Repository path</label>
-            <input id="svc-repopath" className={`${inputClass} font-mono`} value={repoPath} placeholder="group/project or owner/repo"
-              onChange={(e) => setRepoPath(e.target.value)} />
+            {/* Source figée : le dépôt s'établit à la création (changer de dépôt = autre service). */}
+            <input id="svc-repopath" className={`${inputClass} font-mono opacity-70`} value={repoPath}
+              readOnly title="Le dépôt est figé. Pour en changer, créez un nouveau service." />
           </div>
           <div>
             <label className={labelClass} htmlFor="svc-branch">Branch</label>
-            <input id="svc-branch" className={inputClass} value={branch} placeholder="main"
+            {/* Combobox : autocomplétion depuis les branches dispo + saisie libre (S2). */}
+            <input id="svc-branch" className={inputClass} value={branch} placeholder="main" list="svc-branches"
               onChange={(e) => setBranch(e.target.value)} />
+            <datalist id="svc-branches">
+              {branches.map((b) => <option key={b} value={b} />)}
+            </datalist>
           </div>
           <div>
             <label className={labelClass} htmlFor="svc-rootdir">Root directory</label>
