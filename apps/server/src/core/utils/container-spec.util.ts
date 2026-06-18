@@ -14,6 +14,21 @@ export function buildContainerPrefix(
     .replace(/[^a-z0-9_-]/g, '-');
 }
 
+/**
+ * Alias réseau STABLE d'un service (= nom du service normalisé), pour que les
+ * autres conteneurs du projet le joignent par un DNS fixe entre redéploiements
+ * (ex. `DATABASE_URL=postgresql://user:pass@postgres:5432/db`). Convention
+ * docker-compose / Coolify / Dokploy.
+ */
+export function buildServiceAlias(serviceName: string): string {
+  return (
+    serviceName
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '-')
+      .replace(/^-+|-+$/g, '') || 'service'
+  );
+}
+
 /** Nom complet de conteneur = préfixe + 8 premiers caractères de l'ID de déploiement. */
 export function buildContainerName(
   projectName: string,

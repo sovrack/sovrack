@@ -1,9 +1,25 @@
 import {
   buildContainerName,
   buildContainerPrefix,
+  buildServiceAlias,
   buildplatformLabels,
   toDockerEnvArray,
 } from './container-spec.util';
+
+describe('buildServiceAlias', () => {
+  it('= nom du service normalisé (DNS stable)', () => {
+    expect(buildServiceAlias('Postgres DB')).toBe('postgres-db');
+  });
+  it('conserve un nom déjà valide', () => {
+    expect(buildServiceAlias('api')).toBe('api');
+  });
+  it('retire les tirets en bord', () => {
+    expect(buildServiceAlias('--api--')).toBe('api');
+  });
+  it('repli "service" si vide', () => {
+    expect(buildServiceAlias('!!!')).toBe('service');
+  });
+});
 
 describe('container-spec.util', () => {
   describe('buildContainerPrefix', () => {

@@ -16,6 +16,7 @@ import {
 import { buildAuthenticatedCloneUrl } from '../../../core/utils/clone-url.util';
 import {
   buildContainerPrefix,
+  buildServiceAlias,
   buildplatformLabels,
   toDockerEnvArray,
 } from '../../../core/utils/container-spec.util';
@@ -192,6 +193,9 @@ export class DockerDeployExecutorService {
       serviceName,
     );
     const containerName = `${containerPrefix}${deployment.id.slice(0, 8)}`;
+    // Alias DNS stable (= nom du service) : joignable par les autres conteneurs
+    // du projet via un nom fixe, indépendant de l'ID de déploiement.
+    const serviceAlias = buildServiceAlias(serviceName);
     let servicePort = deployment.service?.port ?? 3000;
     const envResolution = resolveEnvDetailed(this.buildEnvLevels(deployment));
     const envVars = toDockerEnvArray(envResolution.entries);
@@ -488,6 +492,13 @@ export class DockerDeployExecutorService {
             ...appBinds,
           ],
           NetworkMode: projectNetwork,
+        },
+        // Alias DNS stable sur le réseau projet (= nom du service) → les autres
+        // conteneurs le joignent par un nom fixe entre redéploiements.
+        NetworkingConfig: {
+          EndpointsConfig: {
+            [projectNetwork]: { Aliases: [serviceAlias] },
+          },
         },
         Cmd: deployment.service?.startCommand
           ? ['sh', '-c', deployment.service.startCommand]
