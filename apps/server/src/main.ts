@@ -191,7 +191,14 @@ async function bootstrap() {
   logger.log(`Backend running on http://localhost:${port}`, 'Bootstrap');
   logger.log(`Swagger UI      -> http://localhost:${port}/api`, 'Bootstrap');
 }
-bootstrap().catch(console.error);
+// Sur toute erreur de boot (ex. EADDRINUSE si un 2ᵉ backend démarre alors qu'un
+// 1ᵉr tient déjà le port), on QUITTE le process. Sinon le worker BullMQ — démarré
+// pendant l'init des modules, avant app.listen() — resterait vivant en « zombie »
+// et consommerait des jobs de déploiement en parallèle de l'instance saine.
+bootstrap().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
 
 function reportWebhookConfiguration(logger: LoggerService): void {
   const autoConfigureWebhook = !['0', 'false', 'no', 'off'].includes(

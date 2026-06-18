@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Server, ServerConnectionMode, ServerStatus } from '@prisma/client';
-import { chmod, rm, writeFile } from 'fs/promises';
+import { rm, writeFile } from 'fs/promises';
 import { NodeSSH } from 'node-ssh';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { SshExecutorService } from '../../../../core/ssh/ssh-executor.service';
@@ -65,8 +65,15 @@ export class ServersConnectionService {
     await this.verification.startVerification(id);
 
     try {
+      // La validation SSH EST le moment d'établissement de la confiance : on
+      // épingle la clé hôte au premier validate-ssh (Trust-On-First-Use), comme
+      // le fait `ssh` la première fois. Sinon un nouveau serveur ne pourrait
+      // jamais être validé (deadlock : « aucune clé pinée → lancez une
+      // validation » alors que c'EST la validation). Les autres connexions
+      // (deploy, terminal, monitoring) restent strictes (allowTrustOnFirstUse:
+      // false) et exigent une clé déjà pinée — protection MITM conservée.
       const pinnedHost = await this.hostKeys.resolveForConnection(server, {
-        allowTrustOnFirstUse: this.isTrustOnFirstUseEnabled(),
+        allowTrustOnFirstUse: true,
       });
 
       // 2. Ouvrir la connexion SSH
@@ -516,22 +523,5 @@ export class ServersConnectionService {
       allowTrustOnFirstUse: false,
     });
     return pinned.keyBase64;
-  }
-
-  private isTrustOnFirstUseEnabled(): boolean {
-    const raw = this.configService
-      .get<string>('ANSIBLE_HOST_KEY_TRUST_ON_FIRST_USE', 'false')
-      .trim();
-    if (raw) {
-      const normalized = raw.toLowerCase();
-      return (
-        normalized === '1' || normalized === 'true' || normalized === 'yes'
-      );
-    }
-
-    const nodeEnv = this.configService
-      .get<string>('NODE_ENV', 'development')
-      .toLowerCase();
-    return nodeEnv !== 'production';
   }
 }
