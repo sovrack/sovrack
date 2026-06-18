@@ -22,7 +22,11 @@ describe('GitlabProjectConfigService.assertRepoSource', () => {
 
   it('retombe sur repoPath quand externalId est absent (régression 404 /projects/0)', () => {
     const repoId = svc.assertRepoSource(
-      cfg({ sourceType: SourceType.GIT, repoPath: 'grp/app', externalId: null }),
+      cfg({
+        sourceType: SourceType.GIT,
+        repoPath: 'grp/app',
+        externalId: null,
+      }),
       'récupération des pipelines',
     );
     expect(repoId).toBe('grp/app');
