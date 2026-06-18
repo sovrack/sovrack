@@ -3,9 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { GitProviderType, SourceType, Role } from '@prisma/client';
+import { GitProviderType, ServiceType, SourceType, Role } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../../../core/database/prisma.service';
+import type { GitlabResolvedConfig } from './gitlab.types';
 import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
 import {
@@ -118,8 +119,13 @@ export class GitlabAdapter implements IGitProvider {
       });
     }
 
-    const config = {
+    const config: GitlabResolvedConfig = {
       id: gitProviderConfigId,
+      // Le consommateur (fetchGroupRepositories) lit providerUrl + providerToken
+      // (chiffré, qu'il déchiffre) → on les fournit explicitement. gitlabUrl/
+      // adminToken restent pour compat (tolérés par l'index signature).
+      providerUrl: baseUrl,
+      providerToken: this.cryptoService.encrypt(connection.gitlabToken),
       gitlabUrl: baseUrl,
       adminToken: connection.gitlabToken,
       repoPath,
@@ -131,7 +137,7 @@ export class GitlabAdapter implements IGitProvider {
       createdAt: new Date(),
       updatedAt: new Date(),
       projectId,
-    } as any;
+    };
 
     // For single repo: update service metadata + register GitProviderRepo for webhooks
     if (repoPath) {
@@ -157,7 +163,7 @@ export class GitlabAdapter implements IGitProvider {
             projectId,
             name:
               repoPath.split('/').pop() ?? `project-${projectId.slice(0, 8)}`,
-            type: 'APPLICATION' as any,
+            type: ServiceType.APPLICATION,
             sourceType: SourceType.GIT,
             repoPath,
             branch: defaultBranch,
@@ -395,12 +401,14 @@ export class GitlabAdapter implements IGitProvider {
     return this.connection.toPublicConfig(config);
   }
 
-  resolveRegistryCredentialsFromConfig(config: any): RegistryCredentials {
+  resolveRegistryCredentialsFromConfig(
+    config: GitlabResolvedConfig,
+  ): RegistryCredentials {
     return this.credential.resolveRegistryCredentialsFromConfig(config);
   }
 
   async resolveRepositoryPathFromConfig(
-    config: any,
+    config: GitlabResolvedConfig,
     fallbackProjectSlug: string,
     preferredRepoId?: number,
   ): Promise<string> {
@@ -535,7 +543,7 @@ export class GitlabAdapter implements IGitProvider {
         `Aucune config GitLab pour le projet ${projectId}`,
       );
     }
-    const config: any = {
+    const config: GitlabResolvedConfig = {
       ...gitProviderConfig,
       projectId,
       providerUrl: gitProviderConfig.providerUrl,
@@ -577,7 +585,7 @@ export class GitlabAdapter implements IGitProvider {
         `Aucune config GitLab pour le projet ${projectId}`,
       );
     }
-    const config: any = {
+    const config: GitlabResolvedConfig = {
       ...gitProviderConfig,
       projectId,
       providerUrl: gitProviderConfig.providerUrl,
@@ -598,7 +606,7 @@ export class GitlabAdapter implements IGitProvider {
     };
     return this.resolveRepositoryPathFromConfig(
       config,
-      config.defaultBranch,
+      config.defaultBranch ?? '',
       typeof preferredRepoId === 'string'
         ? Number(preferredRepoId)
         : preferredRepoId,
@@ -666,7 +674,7 @@ export class GitlabAdapter implements IGitProvider {
     });
     if (!gitProviderConfig) return `${slug}:${tag}`;
 
-    const config: any = {
+    const config: GitlabResolvedConfig = {
       ...gitProviderConfig,
       projectId,
       providerUrl: gitProviderConfig.providerUrl,

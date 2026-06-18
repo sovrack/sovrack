@@ -3,6 +3,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { SourceType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { CryptoService } from '../../../../core/crypto/crypto.service';
+import type { GitlabResolvedConfig } from './gitlab.types';
 
 export type GitlabPipelineItem = {
   id: number;
@@ -80,7 +81,7 @@ export class GitlabClient {
   ) {}
 
   async getBranches(
-    config: any,
+    config: GitlabResolvedConfig,
     repoId: number | string,
     normalizeUrl: (url: string) => string,
   ): Promise<GitlabBranchItem[]> {
@@ -105,7 +106,7 @@ export class GitlabClient {
   }
 
   async getPipelines(
-    config: any,
+    config: GitlabResolvedConfig,
     repoId: number | string,
     normalizeUrl: (url: string) => string,
   ): Promise<GitlabPipelineItem[]> {
@@ -130,7 +131,7 @@ export class GitlabClient {
   }
 
   async triggerPipeline(
-    config: any,
+    config: GitlabResolvedConfig,
     repoId: number | string,
     branch: string,
     normalizeUrl: (url: string) => string,
@@ -160,7 +161,7 @@ export class GitlabClient {
   }
 
   async getRepos(
-    config: any,
+    config: GitlabResolvedConfig,
     repoId: number | string,
     normalizeUrl: (url: string) => string,
   ): Promise<GitlabRepoItem[]> {
@@ -183,7 +184,7 @@ export class GitlabClient {
   }
 
   async fetchGroupRepositories(
-    config: any,
+    config: GitlabResolvedConfig,
     normalizeUrl: (url: string) => string,
   ): Promise<GitlabRepoItem[]> {
     if (!config.externalGroupId) {
@@ -213,13 +214,13 @@ export class GitlabClient {
   }
 
   async resolveRepositoryPath(params: {
-    config: any;
+    config: GitlabResolvedConfig;
     fallbackProjectSlug: string;
     preferredRepoId?: number;
     normalizeRepositoryPath: (value: string) => string;
     normalizeUrl: (value: string) => string;
     resolveRepoIdForAction: (
-      config: any,
+      config: GitlabResolvedConfig,
       action: string,
       preferredRepoId?: number,
     ) => Promise<number | string>;

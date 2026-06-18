@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { SourceType } from '@prisma/client';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
-import { PublicGitlabConfig } from './gitlab.types';
+import { PublicGitlabConfig, GitlabResolvedConfig } from './gitlab.types';
 
 export type GitlabConnectionInput = {
   gitlabUrl: string;
@@ -82,24 +83,24 @@ export class GitlabConnectionService {
     return s.replace(/^\/+/, '').replace(/\/+$/, '');
   }
 
-  toPublicConfig(config: any): PublicGitlabConfig {
+  toPublicConfig(config: GitlabResolvedConfig): PublicGitlabConfig {
     return {
-      id: config.id,
+      id: config.id ?? '',
       gitlabUrl: config.providerUrl,
       gitlabId: config.externalId != null ? Number(config.externalId) : null,
       gitlabGroupId:
         config.externalGroupId != null ? Number(config.externalGroupId) : null,
-      defaultBranch: config.defaultBranch,
-      sourceType: config.sourceType,
-      providerId: config.providerId,
-      deployTokenUsername: config.deployTokenUsername,
-      registryUrl: config.registryUrl,
+      defaultBranch: config.defaultBranch ?? 'main',
+      sourceType: config.sourceType ?? SourceType.GIT,
+      providerId: config.providerId ?? null,
+      deployTokenUsername: config.deployTokenUsername ?? null,
+      registryUrl: config.registryUrl ?? null,
       gitlabToken: '***',
       deployTokenValue: config.deployTokenValue ? '***' : '',
       webhookSecretConfigured: Boolean(config.webhookSecret),
-      projectId: config.projectId,
-      createdAt: config.createdAt,
-      updatedAt: config.updatedAt,
+      projectId: config.projectId ?? '',
+      createdAt: config.createdAt ?? new Date(),
+      updatedAt: config.updatedAt ?? new Date(),
     };
   }
 

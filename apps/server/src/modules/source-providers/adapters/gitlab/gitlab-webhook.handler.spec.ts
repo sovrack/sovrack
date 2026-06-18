@@ -26,9 +26,11 @@ describe('GitlabWebhookHandler — pipeline → auto-deploy', () => {
   ) {
     const prisma = {
       pipelineRun: {
-        findUnique: jest.fn().mockResolvedValue(
-          previousStatus ? { status: previousStatus } : null,
-        ),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue(
+            previousStatus ? { status: previousStatus } : null,
+          ),
         upsert: jest.fn().mockResolvedValue({}),
       },
       service: {
@@ -45,7 +47,12 @@ describe('GitlabWebhookHandler — pipeline → auto-deploy', () => {
 
   const successPayload = {
     object_kind: 'pipeline',
-    object_attributes: { id: 42, status: 'success', ref: 'main', sha: 'deadbeef' },
+    object_attributes: {
+      id: 42,
+      status: 'success',
+      ref: 'main',
+      sha: 'deadbeef',
+    },
   };
 
   it('triggers auto-deploy when a pipeline transitions to success', async () => {
@@ -56,7 +63,11 @@ describe('GitlabWebhookHandler — pipeline → auto-deploy', () => {
       (c) => c[0] === DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
     );
     expect(autoDeploy).toBeDefined();
-    expect(autoDeploy?.[1]).toMatchObject({ projectId: 'p1', branch: 'main', serviceId: 'svc1' });
+    expect(autoDeploy?.[1]).toMatchObject({
+      projectId: 'p1',
+      branch: 'main',
+      serviceId: 'svc1',
+    });
   });
 
   it('does NOT trigger auto-deploy when already success (no transition)', async () => {
@@ -91,7 +102,10 @@ describe('GitlabWebhookHandler — pipeline → auto-deploy', () => {
     const autoDeploy = emit.mock.calls.find(
       (c) => c[0] === DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
     );
-    expect(autoDeploy?.[1]).toMatchObject({ branch: 'develop', serviceId: 'svc1' });
+    expect(autoDeploy?.[1]).toMatchObject({
+      branch: 'develop',
+      serviceId: 'svc1',
+    });
   });
 
   it('does NOT deploy on pipeline success when the service is in PUSH mode', async () => {

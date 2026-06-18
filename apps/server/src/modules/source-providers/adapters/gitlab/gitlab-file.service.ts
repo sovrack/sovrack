@@ -20,14 +20,13 @@ import type {
   RepoWriteResult,
   GitCredentials,
 } from '../../contracts/git-provider.contract';
+import type { GitlabResolvedConfig } from './gitlab.types';
 
 type GitlabFilePayload = {
   branch: string;
   commit_message: string;
   content: string;
 };
-
-type GitlabFileWriteStatus = 'CREATED' | 'UPDATED';
 
 export type GitlabRepositoryContext = {
   sourceType: SourceType;
@@ -165,7 +164,7 @@ export class GitlabFileService {
     if (!gitProviderConfig)
       throw new BadRequestException('Configuration GitLab manquante');
 
-    const config: any = {
+    const config: GitlabResolvedConfig = {
       ...gitProviderConfig,
       projectId,
       providerUrl: gitProviderConfig.providerUrl,
@@ -208,7 +207,7 @@ export class GitlabFileService {
 
     if (!repositoryPath) {
       const repoLink = await this.prisma.gitProviderRepo.findFirst({
-        where: { providerId: config.providerId },
+        where: { providerId: config.providerId ?? undefined },
         select: { repoPath: true },
       });
       repositoryPath = repoLink?.repoPath ?? null;
@@ -232,7 +231,7 @@ export class GitlabFileService {
     // clone URL never falls back to the (unclonable) numeric ID again.
     if (!repositoryPath && gitlabProjectId) {
       repositoryPath = await this.backfillPathNamespace(
-        config.id,
+        config.id ?? '',
         baseUrl,
         token,
         gitlabProjectId,
@@ -241,7 +240,7 @@ export class GitlabFileService {
     }
 
     return {
-      sourceType: config.sourceType,
+      sourceType: config.sourceType ?? SourceType.GIT,
       baseUrl,
       token,
       gitlabProjectId,

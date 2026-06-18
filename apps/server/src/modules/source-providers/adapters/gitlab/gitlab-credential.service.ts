@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { SourceType } from '@prisma/client';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { CryptoService } from '../../../../core/crypto/crypto.service';
 import type { RegistryCredentials } from '../../contracts/git-provider.contract';
+import type { GitlabResolvedConfig } from './gitlab.types';
 
 @Injectable()
 export class GitlabCredentialService {
@@ -10,7 +12,9 @@ export class GitlabCredentialService {
     private readonly cryptoService: CryptoService,
   ) {}
 
-  resolveRegistryCredentialsFromConfig(config: any): RegistryCredentials {
+  resolveRegistryCredentialsFromConfig(
+    config: GitlabResolvedConfig,
+  ): RegistryCredentials {
     const deployTokenValue = config.deployTokenValue
       ? this.cryptoService.decrypt(config.deployTokenValue)
       : '';
@@ -92,9 +96,9 @@ export class GitlabCredentialService {
 
   isPlaceholderPath(
     config: {
-      externalId?: bigint | null;
-      externalGroupId?: bigint | null;
-      sourceType?: any;
+      externalId?: bigint | number | string | null;
+      externalGroupId?: bigint | number | string | null;
+      sourceType?: SourceType | null;
     },
     path: string,
   ): boolean {
