@@ -5,7 +5,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { GitProviderType, type GitProviderConfig } from '@prisma/client';
+import {
+  GitProviderType,
+  RegistryProviderType,
+  type GitProviderConfig,
+} from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { CryptoService } from '../../../../core/crypto/crypto.service';
@@ -231,7 +235,12 @@ export class GitProviderConfigService {
       await this.syncLegacyDefaultGitlabConfig();
     }
 
-    await this.syncGitlabRegistry(provider.name, gitlabUrl);
+    await this.syncGitlabRegistry({
+      id: provider.id,
+      name: provider.name,
+      providerUrl: gitlabUrl,
+      adminToken: provider.adminToken,
+    });
     return this.toGitlabProviderPublic(provider);
   }
 
@@ -283,7 +292,12 @@ export class GitProviderConfigService {
 
     const effectiveUrl = updated.providerUrl ?? current.providerUrl;
     const effectiveName = updated.name ?? current.name;
-    await this.syncGitlabRegistry(effectiveName, effectiveUrl);
+    await this.syncGitlabRegistry({
+      id: updated.id,
+      name: effectiveName,
+      providerUrl: effectiveUrl,
+      adminToken: updated.adminToken ?? current.adminToken,
+    });
     return this.toGitlabProviderPublic(updated);
   }
 
@@ -946,37 +960,91 @@ export class GitProviderConfigService {
     ]);
   }
 
-  private async syncGitlabRegistry(
-    providerName: string,
-    gitlabUrl: string,
-  ): Promise<void> {
+  /**
+   * Auto-provisionne (et resync) le registre GitLab lié à un provider Git. La
+   * logique « pro » : on RÉUTILISE le token du provider comme mot de passe du
+   * registre et on récupère le username via l'API GitLab (`/user`) — auth
+   * registre par PAT = username du compte. Ainsi le registre est utilisable
+   * immédiatement (si le token a le scope read_registry/api), sans ressaisie.
+   * Lien `providerId` → dédoublonnage + resync à chaque update du provider.
+   */
+  private async syncGitlabRegistry(provider: {
+    id: string;
+    name: string;
+    providerUrl: string;
+    adminToken: string | null;
+  }): Promise<void> {
     try {
-      const registryName = `GitLab Registry — ${providerName}`;
-      const registryUrl = this.inferGitlabRegistryUrl(gitlabUrl);
+      const registryName = `GitLab Registry — ${provider.name}`;
+      const registryUrl = this.inferGitlabRegistryUrl(provider.providerUrl);
 
-      const { RegistryProviderType } = await import('@prisma/client');
+      // Réutilise le token (déjà chiffré, même CryptoService) + username via API.
+      let username: string | null = null;
+      const encryptedPassword: string | null = provider.adminToken ?? null;
+      if (provider.adminToken) {
+        const token = this.crypto.decrypt(provider.adminToken);
+        username = await this.fetchGitlabUsername(provider.providerUrl, token);
+      }
 
-      await this.prisma.registryConfig.upsert({
-        where: {
-          type_name: { type: RegistryProviderType.GITLAB, name: registryName },
-        },
-        update: { registryUrl },
-        create: {
-          name: registryName,
-          type: RegistryProviderType.GITLAB,
-          registryUrl,
-          isDefault: false,
-          isConnected: false,
-        },
-      });
+      const data = {
+        name: registryName,
+        type: RegistryProviderType.GITLAB,
+        registryUrl,
+        providerId: provider.id,
+        ...(username ? { username } : {}),
+        ...(encryptedPassword ? { password: encryptedPassword } : {}),
+      };
+
+      // Dédoublonnage par provider (robuste au renommage), repli sur type+name.
+      const existing =
+        (await this.prisma.registryConfig.findFirst({
+          where: { providerId: provider.id },
+        })) ??
+        (await this.prisma.registryConfig.findFirst({
+          where: { type: RegistryProviderType.GITLAB, name: registryName },
+        }));
+
+      if (existing) {
+        await this.prisma.registryConfig.update({
+          where: { id: existing.id },
+          data,
+        });
+      } else {
+        await this.prisma.registryConfig.create({
+          data: { ...data, isDefault: false, isConnected: false },
+        });
+      }
 
       this.logger.log(
-        `GitLab registry auto-configured: "${registryName}" → ${registryUrl}`,
+        `GitLab registry auto-configured: "${registryName}" → ${registryUrl}` +
+          (username ? ` (user ${username})` : ' (token à compléter)'),
       );
     } catch (err) {
       this.logger.warn(
-        `Failed to auto-configure GitLab registry for "${providerName}": ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to auto-configure GitLab registry for "${provider.name}": ${err instanceof Error ? err.message : String(err)}`,
       );
+    }
+  }
+
+  /** Récupère le username GitLab via l'API (`GET /api/v4/user`). Best-effort. */
+  private async fetchGitlabUsername(
+    providerUrl: string,
+    token: string,
+  ): Promise<string | null> {
+    try {
+      const url = `${providerUrl.replace(/\/$/, '')}/api/v4/user`;
+      const res = await firstValueFrom(
+        this.http.get<{ username?: string }>(url, {
+          headers: { 'PRIVATE-TOKEN': token },
+          timeout: 8000,
+          validateStatus: () => true,
+        }),
+      );
+      return res.status === 200 && res.data?.username
+        ? res.data.username
+        : null;
+    } catch {
+      return null;
     }
   }
 

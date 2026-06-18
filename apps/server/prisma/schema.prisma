@@ -839,11 +839,15 @@ model RegistryConfig {
   isDefault       Boolean              @default(false)
   isConnected     Boolean              @default(false)
   connectionError String?
+  // Registre auto-provisionné depuis un provider Git (GitLab) : lien vers la
+  // config provider d'origine → resync (URL/creds) + dédoublonnage par provider.
+  providerId      String?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
   @@unique([type, name])
   @@index([type, isDefault])
+  @@index([providerId])
 }
 
 
