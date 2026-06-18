@@ -16,6 +16,23 @@ import { GitlabConnectionService } from './gitlab-connection.service';
  * deux de CE service (sens unique) ; aucun ne dépend plus de l'autre pour la
  * config → plus de cycle. Logique déplacée VERBATIM (comportement identique).
  */
+/**
+ * Config GitLab résolue pour un projet/service (fusion gitProviderConfig + repo
+ * du service). L'index signature tolère les champs hérités de gitProviderConfig
+ * sans les énumérer ; les champs explicites portent leur vrai type.
+ */
+export type GitlabResolvedConfig = {
+  providerUrl: string;
+  providerToken: string;
+  sourceType?: SourceType | null;
+  repoPath?: string | null;
+  externalId?: number | string | null;
+  externalGroupId?: number | string | null;
+  providerId?: string;
+  defaultBranch?: string | null;
+  [key: string]: unknown;
+};
+
 @Injectable()
 export class GitlabProjectConfigService {
   constructor(
@@ -24,7 +41,7 @@ export class GitlabProjectConfigService {
     private readonly connection: GitlabConnectionService,
   ) {}
 
-  async getProjectConfig(projectId: string): Promise<any> {
+  async getProjectConfig(projectId: string): Promise<GitlabResolvedConfig> {
     const svc = await this.prisma.service.findFirst({
       where: { projectId, providerId: { not: null } },
     });
@@ -64,7 +81,7 @@ export class GitlabProjectConfigService {
       webhookSecret: null,
       registryUrl: null,
       providerId: gitProviderConfig.id,
-    } as any;
+    };
   }
 
   normalizeUrl(url: string): string {
@@ -72,11 +89,7 @@ export class GitlabProjectConfigService {
   }
 
   assertRepoSource(
-    config: {
-      sourceType?: SourceType | null;
-      repoPath?: string | null;
-      externalId?: number | string | null;
-    },
+    config: GitlabResolvedConfig,
     action: string,
   ): number | string {
     if (config.sourceType !== SourceType.GIT || !config.repoPath) {
@@ -96,7 +109,7 @@ export class GitlabProjectConfigService {
   }
 
   async resolveRepoIdForAction(
-    config: any,
+    config: GitlabResolvedConfig,
     action: string,
     preferredRepoId?: number,
   ): Promise<number | string> {
