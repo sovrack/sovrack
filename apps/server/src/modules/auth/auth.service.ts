@@ -8,8 +8,9 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
-import { Prisma, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 /**
  * Réponse d'authentification
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -56,7 +58,7 @@ export class AuthService {
     // Générer le token JWT
     const access_token = this.generateToken(user);
 
-    await this.recordAuditLog(user.id, 'AUTH_LOGIN', user.id, {
+    await this.auditService.record(user.id, 'AUTH_LOGIN', 'User', user.id, {
       email: user.email,
     });
 
@@ -70,7 +72,7 @@ export class AuthService {
   }
 
   async logout(userId: string): Promise<{ message: string }> {
-    await this.recordAuditLog(userId, 'AUTH_LOGOUT', userId);
+    await this.auditService.record(userId, 'AUTH_LOGOUT', 'User', userId);
 
     return {
       message: 'Déconnexion enregistrée',
@@ -114,28 +116,4 @@ export class AuthService {
     return this.jwtService.sign(payload);
   }
 
-  private async recordAuditLog(
-    userId: string,
-    action: string,
-    resourceId: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<void> {
-    try {
-      await this.prisma.auditLog.create({
-        data: {
-          userId,
-          action,
-          resourceType: 'User',
-          resourceId,
-          ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
-        },
-      });
-    } catch (err) {
-      // Non-blocking: audit log failure must not affect authentication
-      this.logger.warn(
-        `Audit log failed for action "${action}": ${err instanceof Error ? err.message : String(err)}`,
-        'AuthService',
-      );
-    }
-  }
 }

@@ -6,6 +6,7 @@ export type PreparationOptionKey =
   | 'docker'
   | 'dockerComposePlugin'
   | 'nginx'
+  | 'nixpacks'
   | 'nodejs'
   | 'postgres'
   | 'redis'
@@ -21,9 +22,10 @@ export type PreparationOptionKey =
   | 'autoUpdates';
 
 export type PreparationRoleKey =
-  | 'common'
+  | 'system_base'
   | 'docker'
   | 'nginx'
+  | 'nixpacks'
   | 'nodejs'
   | 'postgres'
   | 'redis'
@@ -60,14 +62,18 @@ export type PreparationOptionDefinition = {
   recommended: boolean;
 };
 
-const ROLE_ORDER: PreparationRoleKey[] = [
-  'common',
+// Single source of truth for the full set of preparation roles. Exported so
+// consumers (e.g. the preparation orchestrator's role-tracking + retry filter)
+// never hardcode a partial list that silently drops a role like `nixpacks`.
+export const ROLE_ORDER: PreparationRoleKey[] = [
+  'system_base',
   'swap',
   'security_hardening',
   'firewall',
   'fail2ban',
   'docker',
   'nginx',
+  'nixpacks',
   'ssl',
   'nodejs',
   'postgres',
@@ -86,9 +92,10 @@ const ROLE_ORDER: PreparationRoleKey[] = [
 export const PREPARATION_OPTIONS: PreparationOptionDefinition[] = [
   {
     key: 'systemUpdate',
-    label: 'System update',
-    description: 'Refresh package cache and install common base packages.',
-    role: 'common',
+    label: 'System base (apt cache + essential packages)',
+    description:
+      'Refresh the apt cache and install essential base packages (ca-certificates, curl, gnupg, git…).',
+    role: 'system_base',
     dependencies: [],
     recommended: true,
   },
@@ -115,6 +122,15 @@ export const PREPARATION_OPTIONS: PreparationOptionDefinition[] = [
     description: 'Install and enable Nginx as reverse proxy.',
     role: 'nginx',
     dependencies: ['systemUpdate'],
+    recommended: false,
+  },
+  {
+    key: 'nixpacks',
+    label: 'Nixpacks (image builder)',
+    description:
+      'Install the Nixpacks builder for zero-config container images. Self-sufficient: refreshes its own apt cache and installs curl/gzip — no separate base step required.',
+    role: 'nixpacks',
+    dependencies: [],
     recommended: false,
   },
   {
@@ -279,6 +295,7 @@ export const PREPARATION_PROFILE_DEFAULTS: Record<
     docker: true,
     dockerComposePlugin: true,
     nginx: true,
+    nixpacks: true,
     nodejs: true,
     postgres: true,
     redis: true,
@@ -353,11 +370,18 @@ export function resolvePreparationOptions(
 
   const reinstallOptions = new Set<string>(dto?.reinstallOptions ?? []);
 
+  const warnings: string[] = [];
+  if (selected.nixpacks && !selected.docker) {
+    warnings.push(
+      'Nixpacks construit des images Docker — assurez-vous que Docker est déjà installé sur le VPS, ou sélectionnez aussi "Docker Engine".',
+    );
+  }
+
   return {
     profile,
     selectedOptions: selected,
     roles,
-    warnings: [],
+    warnings,
     gitlabRunnerExecutor,
     reinstallOptions,
   };

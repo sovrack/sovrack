@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { GitlabSourceType, Prisma, ProjectRole, Role } from '@prisma/client';
+import { AppSourceType, Prisma, ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { ConnectGitlabDto } from '../../git-providers/gitlab/dto/connect-gitlab.dto';
 import { GitlabService } from '../../git-providers/gitlab/gitlab.service';
@@ -13,6 +13,7 @@ import {
   ImportGitlabGroupDto,
 } from '../dto/import-gitlab-group.dto';
 import { ProjectsService } from '../projects.service';
+import { AuditService } from '../../audit/audit.service';
 
 const projectWithMembersInclude = {
   services: {
@@ -46,6 +47,7 @@ export class ProjectImportService {
     private readonly prisma: PrismaService,
     private readonly gitlabService: GitlabService,
     private readonly projectsService: ProjectsService,
+    private readonly auditService: AuditService,
   ) {}
 
   async importGitlabGroup(
@@ -65,7 +67,7 @@ export class ProjectImportService {
           data: {
             name: dto.name.trim(),
             description: dto.description?.trim() || undefined,
-            gitlabUrl: dto.gitlabUrl?.trim() || '',
+            repoUrl: dto.gitlabUrl?.trim() || '',
             branch: this.resolvePrimaryBranch(dto.repositories),
             members: {
               create: {
@@ -89,7 +91,7 @@ export class ProjectImportService {
             providerId: dto.providerId?.trim() || undefined,
             gitlabUrl: dto.gitlabUrl?.trim() || undefined,
             gitlabToken: dto.gitlabToken?.trim() || undefined,
-            sourceType: GitlabSourceType.GROUP,
+            sourceType: AppSourceType.GROUP,
             gitlabGroupId: dto.groupId.trim(),
             defaultBranch: this.resolvePrimaryBranch(dto.repositories),
           } as ConnectGitlabDto,
@@ -97,7 +99,7 @@ export class ProjectImportService {
           userRole,
         );
 
-        await this.projectsService.recordAuditLog(
+        await this.auditService.record(
           userId,
           'PROJECT_IMPORT_GITLAB_GROUP',
           'Project',
@@ -126,9 +128,9 @@ export class ProjectImportService {
           data: {
             name: repository.serviceName?.trim() || repository.name.trim(),
             description: dto.description?.trim() || undefined,
-            gitlabUrl: dto.gitlabUrl?.trim() || '',
+            repoUrl: dto.gitlabUrl?.trim() || '',
             branch: repository.defaultBranch.trim() || 'main',
-            gitlabId: repository.id,
+            externalRepoId: repository.id,
             members: {
               create: {
                 userId: ownerId,
@@ -152,7 +154,7 @@ export class ProjectImportService {
             providerId: dto.providerId?.trim() || undefined,
             gitlabUrl: dto.gitlabUrl?.trim() || undefined,
             gitlabToken: dto.gitlabToken?.trim() || undefined,
-            sourceType: GitlabSourceType.REPO,
+            sourceType: AppSourceType.REPO,
             gitlabId: repository.id,
             defaultBranch: repository.defaultBranch.trim() || 'main',
           } as ConnectGitlabDto,
@@ -168,7 +170,7 @@ export class ProjectImportService {
         );
       }
 
-      await this.projectsService.recordAuditLog(
+      await this.auditService.record(
         userId,
         'PROJECT_IMPORT_GITLAB_GROUP',
         'Project',
@@ -287,7 +289,7 @@ export class ProjectImportService {
       sourceProvider: providerId?.trim()
         ? { connect: { id: providerId.trim() } }
         : undefined,
-      gitlabProjectId: repository.id,
+      externalRepoId: repository.id,
       repositoryPath: repository.pathWithNamespace.trim(),
       defaultBranch: repository.defaultBranch.trim() || 'main',
       composeServiceName: this.slugifyServiceName(serviceName),

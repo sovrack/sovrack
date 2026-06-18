@@ -8,7 +8,7 @@ import {
   ServerLogLevel,
 } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
-import { ServersCoreService } from '../../servers/services/servers-core.service';
+import { ServerPreparationAnsibleService } from '../../infrastructure/services/server-preparation-ansible.service';
 import type { PreparationRoleKey } from '../../servers/shared/server-preparation-options';
 import { AutomationGateway } from '../automation.gateway';
 
@@ -37,7 +37,7 @@ export class AutomationRunnerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly servers: ServersCoreService,
+    private readonly ansible: ServerPreparationAnsibleService,
     private readonly gateway: AutomationGateway,
     private readonly configService: ConfigService,
   ) {}
@@ -170,7 +170,7 @@ export class AutomationRunnerService {
         });
 
         try {
-          await this.servers.runPreparationWithAnsible(
+          await this.ansible.runPreparation(
             server,
             {
               roles: cfg.roles,

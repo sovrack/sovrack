@@ -1,8 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import {
   Prisma,
@@ -12,7 +16,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { PaginationDto, paginate } from '../../../core/http/pagination.dto';
-import { ServersSshService } from './servers-ssh.service';
+import { ServersConnectionService } from './servers-connection.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';
 import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
 import {
@@ -22,16 +26,117 @@ import {
 } from '../shared/servers.types';
 
 @Injectable()
-export class ServersJobsService {
+export class ServersJobsService implements OnModuleInit {
+  private readonly logger = new Logger(ServersJobsService.name);
   private readonly defaultJobTimeoutMs: number;
   private readonly defaultJobMaxAttempts = 3;
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly ssh: ServersSshService,
+    private readonly ssh: ServersConnectionService,
     private readonly configService: ConfigService,
   ) {
     this.defaultJobTimeoutMs = this.resolveDefaultJobTimeoutMs();
+  }
+
+  async onModuleInit(): Promise<void> {
+    const ghostJobs = await this.prisma.serverJob.findMany({
+      where: { status: { in: [ServerJobStatus.RUNNING, ServerJobStatus.PENDING] } },
+      select: { id: true, serverId: true },
+    });
+
+    if (ghostJobs.length === 0) return;
+
+    this.logger.warn(
+      `[startup] Found ${ghostJobs.length} ghost job(s) in RUNNING/PENDING — marking FAILED`,
+    );
+
+    await this.prisma.serverJob.updateMany({
+      where: { id: { in: ghostJobs.map((j) => j.id) } },
+      data: {
+        status: ServerJobStatus.FAILED,
+        error: "Job interrompu lors du redémarrage du backend. Relancez l'opération.",
+        finishedAt: new Date(),
+      },
+    });
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async cleanupStaleJobs(): Promise<void> {
+    const cutoff = new Date(Date.now() - 2 * 60 * 60_000); // 2 hours
+    const stale = await this.prisma.serverJob.findMany({
+      where: { status: ServerJobStatus.RUNNING, startedAt: { lt: cutoff } },
+      select: { id: true },
+    });
+
+    if (stale.length === 0) return;
+
+    this.logger.warn(
+      `[cron] Found ${stale.length} stale RUNNING job(s) older than 2h — marking FAILED`,
+    );
+
+    await this.prisma.serverJob.updateMany({
+      where: { id: { in: stale.map((j) => j.id) } },
+      data: {
+        status: ServerJobStatus.FAILED,
+        error: 'Job bloqué trop longtemps — nettoyage automatique toutes les 5 minutes.',
+        finishedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Lock-before-create: fail fast (HTTP 409) when the server already has an
+   * active job, instead of creating a second job that would later be marked
+   * BLOCKED by {@link assertJobLock}. This prevents the "ghost/blocked job"
+   * accumulation when a user triggers two operations in quick succession.
+   */
+  async assertNoActiveJob(serverId: string): Promise<void> {
+    const active = await this.prisma.serverJob.findFirst({
+      where: {
+        serverId,
+        status: {
+          in: [
+            ServerJobStatus.RUNNING,
+            ServerJobStatus.PENDING,
+            ServerJobStatus.BLOCKED,
+          ],
+        },
+      },
+      select: { type: true },
+    });
+
+    if (active) {
+      throw new ConflictException(
+        `Une opération (${active.type}) est déjà en cours sur ce serveur. ` +
+          "Attendez sa fin ou annulez-la avant d'en lancer une nouvelle.",
+      );
+    }
+  }
+
+  async forceFailJob(serverId: string, jobId: string): Promise<ServerJobPublic> {
+    const job = await this.prisma.serverJob.findFirst({
+      where: { id: jobId, serverId },
+    });
+
+    if (!job) {
+      throw new NotFoundException('Job serveur non trouvé');
+    }
+
+    if (job.status === ServerJobStatus.SUCCESS || job.status === ServerJobStatus.FAILED) {
+      throw new BadRequestException('Ce job est déjà terminé et ne peut pas être annulé.');
+    }
+
+    const updated = await this.prisma.serverJob.update({
+      where: { id: jobId },
+      data: {
+        status: ServerJobStatus.FAILED,
+        error: 'Job annulé manuellement par un administrateur.',
+        finishedAt: new Date(),
+      },
+    });
+
+    return this.toPublicJob(updated);
   }
 
   async listJobs(

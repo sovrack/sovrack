@@ -5,13 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  GitlabSourceType,
+  AppSourceType,
   Project,
   ProjectRole,
   Prisma,
   Role,
 } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import {
   PaginationDto,
   PaginatedResult,
@@ -21,6 +22,7 @@ import { ConnectGitlabDto } from '../git-providers/gitlab/dto/connect-gitlab.dto
 import { GitlabService } from '../git-providers/gitlab/gitlab.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+
 
 const projectWithMembersInclude = {
   services: {
@@ -53,7 +55,7 @@ type ProjectListItem = Project & {
   environmentCount: number;
   serviceCount: number;
   hasGitlabConfig: boolean;
-  gitlabSourceType: GitlabSourceType | null;
+  gitlabSourceType: AppSourceType | null;
   gitlabGroupId: number | null;
   currentUserProjectRole: ProjectRole | null;
 };
@@ -66,6 +68,7 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gitlabService: GitlabService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -111,7 +114,7 @@ export class ProjectsService {
       data: {
         name: dto.name,
         description: dto.description,
-        gitlabUrl: dto.gitlabUrl?.trim() ?? '',
+        repoUrl: dto.gitlabUrl?.trim() ?? '',
         branch: dto.branch ?? 'main',
         members: {
           create: {
@@ -150,7 +153,7 @@ export class ProjectsService {
         })
       : project;
 
-    await this.recordAuditLog(userId, 'PROJECT_CREATE', 'Project', project.id, {
+    await this.auditService.record(userId, 'PROJECT_CREATE', 'Project', project.id, {
       name: project.name,
       ownerId,
       sourceConnected: shouldConnectGitlab,
@@ -172,7 +175,7 @@ export class ProjectsService {
       userRole === Role.ADMIN ? undefined : { members: { some: { userId } } };
 
     const queryInclude = {
-      gitlabConfig: { select: { sourceType: true, gitlabGroupId: true } },
+      appProviderLink: { select: { sourceType: true, externalGroupId: true } },
       members: { where: { userId }, select: { role: true }, take: 1 },
       _count: { select: { members: true, environments: true, services: true } },
     };
@@ -199,27 +202,29 @@ export class ProjectsService {
       id: project.id,
       name: project.name,
       description: project.description,
-      gitlabUrl: project.gitlabUrl,
-      gitlabId: project.gitlabId,
+      repoUrl: project.repoUrl,
+      externalRepoId: project.externalRepoId,
       branch: project.branch,
       dockerfile: project.dockerfile,
       port: project.port,
       projectType: project.projectType,
       buildPort: project.buildPort,
       buildStartCmd: project.buildStartCmd,
-      autoDeploy: project.autoDeploy,
-      autoDeployBranch: project.autoDeployBranch,
+      defaultBuildSource: project.defaultBuildSource,
       dockerfileContent: project.dockerfileContent,
-      gitlabCiContent: project.gitlabCiContent,
+      ciConfigContent: project.ciConfigContent,
+      dockerComposeContent: project.dockerComposeContent,
+      nixpacksConfig: project.nixpacksConfig,
+      staticConfig: project.staticConfig,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       memberCount: project._count.members,
       environmentCount: project._count.environments,
       serviceCount: project._count.services,
-      hasGitlabConfig: Boolean(project.gitlabConfig),
-      gitlabSourceType: project.gitlabConfig?.sourceType ?? null,
-      gitlabGroupId: project.gitlabConfig?.gitlabGroupId
-        ? Number(project.gitlabConfig.gitlabGroupId)
+      hasGitlabConfig: Boolean(project.appProviderLink),
+      gitlabSourceType: project.appProviderLink?.sourceType ?? null,
+      gitlabGroupId: project.appProviderLink?.externalGroupId
+        ? Number(project.appProviderLink.externalGroupId)
         : null,
       currentUserProjectRole: project.members[0]?.role ?? null,
     }));
@@ -265,9 +270,10 @@ export class ProjectsService {
   ): Promise<ProjectWithMembers> {
     await this.assertCanManageProject(projectId, userId, userRole);
 
+    const { gitlabUrl: _url, ...rest } = dto;
     const project = await this.prisma.project.update({
       where: { id: projectId },
-      data: dto,
+      data: { ...rest, ...(dto.gitlabUrl !== undefined && { repoUrl: dto.gitlabUrl }) },
       include: projectWithMembersInclude,
     });
 
@@ -305,13 +311,12 @@ export class ProjectsService {
       });
       await tx.config.deleteMany({ where: { projectId } });
       await tx.environment.deleteMany({ where: { projectId } });
-      await tx.pipeline.deleteMany({ where: { projectId } });
-      await tx.gitlabConfig.deleteMany({ where: { projectId } });
+      await tx.appProviderLink.deleteMany({ where: { projectId } });
       await tx.projectService.deleteMany({ where: { projectId } });
       await tx.projectMember.deleteMany({ where: { projectId } });
       await tx.project.deleteMany({ where: { id: projectId } });
     });
-    await this.recordAuditLog(userId, 'PROJECT_DELETE', 'Project', projectId);
+    await this.auditService.record(userId, 'PROJECT_DELETE', 'Project', projectId);
   }
 
   /**
@@ -410,27 +415,6 @@ export class ProjectsService {
     }
   }
 
-  async recordAuditLog(
-    userId: string,
-    action: string,
-    resourceType: string,
-    resourceId: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<void> {
-    try {
-      await this.prisma.auditLog.create({
-        data: {
-          userId,
-          action,
-          resourceType,
-          resourceId,
-          ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
-        },
-      });
-    } catch {
-      // Le log d'audit ne doit jamais bloquer l'action métier.
-    }
-  }
 
   /**
    * Vérifie l'existence du projet.

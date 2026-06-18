@@ -1,6 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { GitlabConfig, GitlabSourceType } from '@prisma/client';
+import { AppProviderLink, AppSourceType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { GitlabCryptoService } from './gitlab-crypto.service';
 
@@ -80,16 +80,16 @@ export class GitlabApiService {
   ) {}
 
   async getBranches(
-    config: GitlabConfig,
+    config: AppProviderLink,
     repoId: number,
     normalizeUrl: (url: string) => string,
   ): Promise<GitlabBranchItem[]> {
-    const gitlabToken = this.crypto.decryptConfigToken(config.gitlabToken);
+    const gitlabToken = this.crypto.decryptConfigToken(config.providerToken);
 
     try {
       const response = await firstValueFrom(
         this.httpService.get<GitlabBranchItem[]>(
-          `${normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}/repository/branches`,
+          `${normalizeUrl(config.providerUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}/repository/branches`,
           {
             headers: {
               'PRIVATE-TOKEN': gitlabToken,
@@ -105,16 +105,16 @@ export class GitlabApiService {
   }
 
   async getPipelines(
-    config: GitlabConfig,
+    config: AppProviderLink,
     repoId: number,
     normalizeUrl: (url: string) => string,
   ): Promise<GitlabPipelineItem[]> {
-    const gitlabToken = this.crypto.decryptConfigToken(config.gitlabToken);
+    const gitlabToken = this.crypto.decryptConfigToken(config.providerToken);
 
     try {
       const response = await firstValueFrom(
         this.httpService.get<GitlabPipelineItem[]>(
-          `${normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}/pipelines`,
+          `${normalizeUrl(config.providerUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}/pipelines`,
           {
             headers: {
               'PRIVATE-TOKEN': gitlabToken,
@@ -130,17 +130,17 @@ export class GitlabApiService {
   }
 
   async triggerPipeline(
-    config: GitlabConfig,
+    config: AppProviderLink,
     repoId: number,
     branch: string,
     normalizeUrl: (url: string) => string,
   ): Promise<GitlabPipelineItem> {
-    const gitlabToken = this.crypto.decryptConfigToken(config.gitlabToken);
+    const gitlabToken = this.crypto.decryptConfigToken(config.providerToken);
 
     try {
       const response = await firstValueFrom(
         this.httpService.post<GitlabPipelineItem>(
-          `${normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}/pipeline`,
+          `${normalizeUrl(config.providerUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}/pipeline`,
           { ref: branch },
           {
             headers: {
@@ -160,15 +160,15 @@ export class GitlabApiService {
   }
 
   async getRepos(
-    config: GitlabConfig,
+    config: AppProviderLink,
     repoId: number,
     normalizeUrl: (url: string) => string,
   ): Promise<GitlabRepoItem[]> {
-    const gitlabToken = this.crypto.decryptConfigToken(config.gitlabToken);
+    const gitlabToken = this.crypto.decryptConfigToken(config.providerToken);
     try {
       const response = await firstValueFrom(
         this.httpService.get<GitlabRepoItem>(
-          `${normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}`,
+          `${normalizeUrl(config.providerUrl)}/api/v4/projects/${encodeURIComponent(String(repoId))}`,
           {
             headers: {
               'PRIVATE-TOKEN': gitlabToken,
@@ -183,19 +183,19 @@ export class GitlabApiService {
   }
 
   async fetchGroupRepositories(
-    config: GitlabConfig,
+    config: AppProviderLink,
     normalizeUrl: (url: string) => string,
   ): Promise<GitlabRepoItem[]> {
-    if (!config.gitlabGroupId) {
+    if (!config.externalGroupId) {
       throw new BadRequestException('Aucun gitlabGroupId configuré');
     }
 
-    const gitlabToken = this.crypto.decryptConfigToken(config.gitlabToken);
+    const gitlabToken = this.crypto.decryptConfigToken(config.providerToken);
 
     try {
       const response = await firstValueFrom(
         this.httpService.get<GitlabRepoItem[]>(
-          `${normalizeUrl(config.gitlabUrl)}/api/v4/groups/${encodeURIComponent(String(config.gitlabGroupId))}/projects`,
+          `${normalizeUrl(config.providerUrl)}/api/v4/groups/${encodeURIComponent(String(config.externalGroupId))}/projects`,
           {
             headers: {
               'PRIVATE-TOKEN': gitlabToken,
@@ -213,13 +213,13 @@ export class GitlabApiService {
   }
 
   async resolveRepositoryPath(params: {
-    config: GitlabConfig;
+    config: AppProviderLink;
     fallbackProjectSlug: string;
     preferredRepoId?: number;
     normalizeRepositoryPath: (value: string) => string;
     normalizeUrl: (value: string) => string;
     resolveRepoIdForAction: (
-      config: GitlabConfig,
+      config: AppProviderLink,
       action: string,
       preferredRepoId?: number,
     ) => Promise<number>;
@@ -235,13 +235,13 @@ export class GitlabApiService {
 
     const normalizedFallback = normalizeRepositoryPath(fallbackProjectSlug);
 
-    if (config.sourceType === GitlabSourceType.REPO && config.gitlabId) {
-      const gitlabToken = this.crypto.decryptConfigToken(config.gitlabToken);
+    if (config.sourceType === AppSourceType.REPO && config.externalId) {
+      const gitlabToken = this.crypto.decryptConfigToken(config.providerToken);
 
       try {
         const response = await firstValueFrom(
           this.httpService.get<GitlabProjectSummary>(
-            `${normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(config.gitlabId))}`,
+            `${normalizeUrl(config.providerUrl)}/api/v4/projects/${encodeURIComponent(String(config.externalId))}`,
             {
               headers: {
                 'PRIVATE-TOKEN': gitlabToken,
@@ -269,11 +269,11 @@ export class GitlabApiService {
         // Fallback silencieux.
       }
 
-      return `project-${String(config.gitlabId)}/${normalizedFallback}`;
+      return `project-${String(config.externalId)}/${normalizedFallback}`;
     }
 
-    if (config.sourceType === GitlabSourceType.GROUP && config.gitlabGroupId) {
-      const gitlabToken = this.crypto.decryptConfigToken(config.gitlabToken);
+    if (config.sourceType === AppSourceType.GROUP && config.externalGroupId) {
+      const gitlabToken = this.crypto.decryptConfigToken(config.providerToken);
       const targetRepoId = await resolveRepoIdForAction(
         config,
         "résolution du repository pour l'image Docker",
@@ -283,7 +283,7 @@ export class GitlabApiService {
       try {
         const response = await firstValueFrom(
           this.httpService.get<GitlabProjectSummary>(
-            `${normalizeUrl(config.gitlabUrl)}/api/v4/projects/${encodeURIComponent(String(targetRepoId))}`,
+            `${normalizeUrl(config.providerUrl)}/api/v4/projects/${encodeURIComponent(String(targetRepoId))}`,
             {
               headers: {
                 'PRIVATE-TOKEN': gitlabToken,
@@ -314,7 +314,7 @@ export class GitlabApiService {
       try {
         const response = await firstValueFrom(
           this.httpService.get<GitlabGroupSummary>(
-            `${normalizeUrl(config.gitlabUrl)}/api/v4/groups/${encodeURIComponent(String(config.gitlabGroupId))}`,
+            `${normalizeUrl(config.providerUrl)}/api/v4/groups/${encodeURIComponent(String(config.externalGroupId))}`,
             {
               headers: {
                 'PRIVATE-TOKEN': gitlabToken,
@@ -336,7 +336,7 @@ export class GitlabApiService {
         // Fallback silencieux.
       }
 
-      return `group-${String(config.gitlabGroupId)}/${normalizedFallback}`;
+      return `group-${String(config.externalGroupId)}/${normalizedFallback}`;
     }
 
     return normalizedFallback;

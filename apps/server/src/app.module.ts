@@ -13,7 +13,8 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { GitlabModule } from './modules/git-providers/gitlab/gitlab.module';
 import { GitProvidersModule } from './modules/git-providers/git-providers.module';
 import { ServersModule } from './modules/servers/servers.module';
-import { ConfigsModule } from './modules/projects/app-configs/configs.module';
+import { InfrastructureModule } from './modules/infrastructure/infrastructure.module';
+import { ConfigsModule } from './modules/configs/configs.module';
 import { BuildModule } from './modules/build/build.module';
 import { DeploymentsModule } from './modules/deployments/deployments.module';
 import { PlatformModule } from './modules/platform/platform.module';
@@ -21,14 +22,24 @@ import { TeamsModule } from './modules/teams/teams.module';
 import { LoggerModule } from './core/logger/logger.module';
 import { validateEnv } from './core/config/env.validation';
 import { SshKeysModule } from './modules/ssh-keys/ssh-keys.module';
-import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { TerminalModule } from './modules/terminal/terminal.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
-import { DnsModule } from './modules/dns/dns.module';
+import { DomainsModule } from './modules/domains/domains.module';
 import { CryptoModule } from './core/crypto/crypto.module';
-import { RegistriesModule } from './modules/registries/registries.module';
+import { AnsibleModule } from './core/ansible/ansible.module';
+import { DockerModule } from './core/docker/docker.module';
+import { SshModule } from './core/ssh/ssh.module';
+import { EventsModule } from './core/events/events.module';
+import { ContainerRegistriesModule } from './modules/container-registries/container-registries.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ContainersModule } from './modules/containers/containers.module';
+import { ProxyModule } from './modules/proxy/proxy.module';
+import { ManagedServicesModule } from './modules/managed-services/managed-services.module';
+import { VolumesModule } from './modules/volumes/volumes.module';
+import { SslModule } from './modules/ssl/ssl.module';
+import { ManagedDatabasesModule } from './modules/managed-databases/managed-databases.module';
 
 @Module({
   imports: [
@@ -52,6 +63,10 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     }),
     LoggerModule,
     CryptoModule,
+    AnsibleModule,
+    DockerModule,
+    SshModule,
+    EventsModule,
     PrismaModule,
     UsersModule,
     AuthModule,
@@ -60,18 +75,25 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     GitlabModule,
     GitProvidersModule,
     ServersModule,
+    InfrastructureModule,
     ConfigsModule,
     DeploymentsModule,
     PlatformModule,
     TeamsModule,
     SshKeysModule,
-    AuditLogsModule,
+    AuditModule,
     TerminalModule,
     AutomationModule,
     MonitoringModule,
-    DnsModule,
-    RegistriesModule,
+    DomainsModule,
+    ContainerRegistriesModule,
     DashboardModule,
+    ContainersModule,
+    ProxyModule,
+    ManagedServicesModule,
+    VolumesModule,
+    SslModule,
+    ManagedDatabasesModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

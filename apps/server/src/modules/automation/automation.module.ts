@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/database/prisma.module';
-import { ServersSharedModule } from '../servers/servers-shared.module';
+import { InfrastructureModule } from '../infrastructure/infrastructure.module';
 import { AutomationGateway } from './automation.gateway';
 import { AutomationController } from './controllers/automation.controller';
 import { AutomationRunnerService } from './services/automation-runner.service';
@@ -10,7 +10,7 @@ import { AppJwtModule } from '../../core/jwt/jwt.module';
 @Module({
   imports: [
     PrismaModule,
-    ServersSharedModule,
+    InfrastructureModule,
     AppJwtModule,
   ],
   controllers: [AutomationController],

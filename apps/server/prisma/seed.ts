@@ -6,16 +6,15 @@ const prisma = new PrismaClient();
 async function main(): Promise<void> {
   const adminEmail = 'admin@devops.com';
   const developerEmail = 'dev@devops.com';
-  const platformKeys = ['GITLAB_URL', 'GITLAB_TOKEN', 'PLATFORM_NAME'];
+  const platformKeys = ['GITLAB_URL', 'GITLAB_TOKEN', 'PLATFORM_NAME', 'WEBHOOK_BASE_URL'];
 
   // Nettoyage global: on supprime les données de test/projet/serveur
   // pour repartir d'une base minimale et stable.
   await prisma.$transaction([
     prisma.deployment.deleteMany(),
-    prisma.pipeline.deleteMany(),
     prisma.config.deleteMany(),
     prisma.environment.deleteMany(),
-    prisma.gitlabConfig.deleteMany(),
+    prisma.appProviderLink.deleteMany(),
     prisma.projectMember.deleteMany(),
     prisma.project.deleteMany(),
     prisma.server.deleteMany(),
@@ -101,6 +100,22 @@ async function main(): Promise<void> {
     create: {
       key: 'PLATFORM_NAME',
       value: 'Deploy Automation',
+      isSecret: false,
+    },
+  });
+
+  // WEBHOOK_BASE_URL: URL publique du backend, utilisée par les providers Git
+  // pour enregistrer les webhooks. À configurer dans l'UI Réglages → Plateforme
+  // ou via la variable d'environnement WEBHOOK_URL (transient fallback).
+  await prisma.platformConfig.upsert({
+    where: { key: 'WEBHOOK_BASE_URL' },
+    update: {
+      value: '',
+      isSecret: false,
+    },
+    create: {
+      key: 'WEBHOOK_BASE_URL',
+      value: '',
       isSecret: false,
     },
   });

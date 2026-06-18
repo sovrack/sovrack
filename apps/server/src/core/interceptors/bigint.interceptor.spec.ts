@@ -1,4 +1,4 @@
-import { serializeBigInts } from './bigint-serialization.interceptor';
+import { serializeBigInts } from './bigint.interceptor';
 
 describe('serializeBigInts', () => {
   it('convertit les bigint imbriqués en string', () => {

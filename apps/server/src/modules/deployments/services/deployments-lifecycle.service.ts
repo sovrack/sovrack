@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { Deployment, DeploymentStatus, Prisma, Role } from '@prisma/client';
+import { Deployment, DeploymentStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
+import { AuditService } from '../../audit/audit.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { DeploymentsQueryService } from './deployments-query.service';
@@ -14,6 +15,7 @@ export class DeploymentsLifecycleService {
     private readonly gateway: DeploymentsGateway,
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly queryService: DeploymentsQueryService,
+    private readonly auditService: AuditService,
   ) {}
 
   async recoverInFlightDeploymentsAfterRestart(): Promise<number> {
@@ -106,7 +108,7 @@ export class DeploymentsLifecycleService {
       status: canceled.status,
     });
 
-    await this.recordAuditLog(userId, 'DEPLOYMENT_CANCEL', canceled.id, {
+    await this.auditService.record(userId, 'DEPLOYMENT_CANCEL', 'Deployment', canceled.id, {
       projectId: canceled.projectId,
       environmentId: canceled.environmentId,
     });
@@ -114,28 +116,26 @@ export class DeploymentsLifecycleService {
     return canceled;
   }
 
-  private async recordAuditLog(
-    userId: string,
-    action: string,
-    resourceId: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<void> {
-    try {
-      await this.prisma.auditLog.create({
-        data: {
-          userId,
-          action,
-          resourceType: 'Deployment',
-          resourceId,
-          ...(metadata ? { metadata: metadata as Prisma.InputJsonValue } : {}),
-        },
-      });
-    } catch (error) {
-      this.logger.warn(
-        `Audit log ignoré (${action}) : ${
-          error instanceof Error ? error.message : 'erreur inconnue'
-        }`,
-      );
-    }
+  async remove(id: string, userId: string, userRole: Role): Promise<void> {
+    const deployment = await this.queryService.findOne(id, userId, userRole);
+    await this.authorizationService.assertCanDeployProject(
+      deployment.projectId,
+      userId,
+      userRole,
+    );
+
+    await this.prisma.deployment.delete({ where: { id } });
+
+    this.gateway.emitStatus({
+      deploymentId: id,
+      status: DeploymentStatus.CANCELED,
+    });
+
+    await this.auditService.record(userId, 'DEPLOYMENT_DELETE', 'Deployment', id, {
+      projectId: deployment.projectId,
+      environmentId: deployment.environmentId,
+    });
+
+    this.logger.log(`Deployment ${id} deleted by user ${userId}`);
   }
 }

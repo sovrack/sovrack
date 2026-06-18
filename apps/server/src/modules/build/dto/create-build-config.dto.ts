@@ -3,6 +3,10 @@ import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
 export class CreateBuildConfigDto {
   @IsOptional()
   @IsString()
+  defaultBuildSource?: string;
+
+  @IsOptional()
+  @IsString()
   projectType?: string;
 
   @IsOptional()
@@ -31,10 +35,20 @@ export class CreateBuildConfigDto {
   gitlabCiContent?: string;
 
   @IsOptional()
+  @IsString()
+  dockerComposeContent?: string;
+
+  @IsOptional()
   @IsBoolean()
   overwriteDockerfile?: boolean;
 
   @IsOptional()
   @IsBoolean()
   overwriteGitlabCi?: boolean;
+
+  @IsOptional()
+  nixpacksConfig?: any;
+
+  @IsOptional()
+  staticConfig?: any;
 }

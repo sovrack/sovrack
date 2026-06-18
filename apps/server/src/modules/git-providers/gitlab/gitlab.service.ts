@@ -1,6 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { Role, type GitlabConfig } from '@prisma/client';
-import type { IGitProvider, RepoItem, BranchItem, PipelineItem, WebhookResult } from '../interfaces/git-provider.interface';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Role, type AppProviderLink } from '@prisma/client';
+import type {
+  IGitProvider,
+  RepoItem,
+  BranchItem,
+  PipelineItem,
+  WebhookResult,
+  RegistryCredentials,
+  GitCredentials,
+  RepoWriteResult,
+  WebhookConfigResult,
+} from '../interfaces/git-provider.interface';
+import { PrismaService } from '../../../core/database/prisma.service';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
 import {
   GitlabBranchItem,
@@ -14,12 +25,19 @@ import { GitlabCiService } from './gitlab-ci.service';
 import { GitlabCoreService } from './gitlab-core.service';
 import { GitlabWebhookPayload } from './gitlab-webhook.service';
 import { type GitlabProviderProjectOption } from '../config/git-provider-config.service';
+import { GitlabFileService } from './gitlab-file.service';
+import { GitlabWebhookConfiguratorService } from './gitlab-webhook-configurator.service';
 
 @Injectable()
 export class GitlabService implements IGitProvider {
+  readonly type = 'GITLAB' as const;
+
   constructor(
     private readonly core: GitlabCoreService,
     private readonly ci: GitlabCiService,
+    private readonly prisma: PrismaService,
+    private readonly fileService: GitlabFileService,
+    private readonly webhookConfigurator: GitlabWebhookConfiguratorService,
   ) {}
 
   async connectProject(
@@ -175,12 +193,18 @@ export class GitlabService implements IGitProvider {
     }));
   }
 
-  resolveRegistryCredentials(config: GitlabConfig) {
+  // ─── Internal: config-based primitives (P3-#2 kept for back-compat) ─────
+  // These take a `GitlabConfig` row directly. Used by callers that
+  // already have the config in scope (legacy paths, tests). New code
+  // should prefer the IGitProvider-shaped `resolveRegistryCredentials(projectId)`
+  // and `resolveRepositoryPath(projectId, repoId?)` below.
+
+  resolveRegistryCredentialsFromConfig(config: AppProviderLink) {
     return this.core.resolveRegistryCredentials(config);
   }
 
-  async resolveRepositoryPath(
-    config: GitlabConfig,
+  async resolveRepositoryPathFromConfig(
+    config: AppProviderLink,
     fallbackProjectSlug: string,
     preferredRepoId?: number,
   ) {
@@ -189,5 +213,166 @@ export class GitlabService implements IGitProvider {
       fallbackProjectSlug,
       preferredRepoId,
     );
+  }
+
+  // ─── IGitProvider (projectId-based, P3-#2) ──────────────────────────────
+  // Cross-cutting services (docker-image, deployments-ansible) should
+  // use these to stay provider-agnostic. The IGitProvider contract is
+  // `projectId`-based: each provider resolves its own config internally.
+
+  async resolveRegistryCredentials(
+    projectId: string,
+  ): Promise<RegistryCredentials> {
+    const config = await this.prisma.appProviderLink.findUnique({
+      where: { projectId },
+    });
+    if (!config) {
+      throw new NotFoundException(
+        `Aucune config GitLab pour le projet ${projectId}`,
+      );
+    }
+    return this.core.resolveRegistryCredentials(config);
+  }
+
+  async resolveRepositoryPath(
+    projectId: string,
+    preferredRepoId?: number | string,
+  ): Promise<string> {
+    const config = await this.prisma.appProviderLink.findUnique({
+      where: { projectId },
+    });
+    if (!config) {
+      throw new NotFoundException(
+        `Aucune config GitLab pour le projet ${projectId}`,
+      );
+    }
+    return this.core.resolveRepositoryPath(
+      config,
+      config.defaultBranch,
+      typeof preferredRepoId === 'string'
+        ? Number(preferredRepoId)
+        : preferredRepoId,
+    );
+  }
+
+  // ─── IGitProvider — File operations ───────────────────────────────────────
+
+  async readFile(projectId: string, filePath: string, ref?: string): Promise<string | null> {
+    return this.fileService.readFile(projectId, filePath, ref);
+  }
+
+  async writeFiles(
+    projectId: string,
+    files: Record<string, string>,
+    serviceId?: string,
+  ): Promise<RepoWriteResult> {
+    return this.fileService.writeFiles(projectId, files, serviceId);
+  }
+
+  // ─── IGitProvider — Webhook configuration (owned by projects module) ──────
+
+  async configureWebhook(
+    projectId: string,
+    webhookUrl: string,
+    secret: string,
+    serviceId?: string,
+  ): Promise<WebhookConfigResult> {
+    return this.webhookConfigurator.configureWebhook(projectId, webhookUrl, secret, serviceId);
+  }
+
+  // ─── IGitProvider — Git credentials for local VPS builds ─────────────────
+
+  async resolveGitCredentials(projectId: string, serviceId?: string): Promise<GitCredentials> {
+    return this.fileService.resolveGitCredentials(projectId, serviceId);
+  }
+
+  // ─── IGitProvider — Docker image reference ────────────────────────────────
+
+  async resolveDockerImageRef(
+    projectId: string,
+    branch: string,
+    serviceId?: string,
+  ): Promise<string> {
+    const config = await this.prisma.appProviderLink.findUnique({ where: { projectId } });
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { name: true, repoUrl: true },
+    });
+
+    const slug = this.sanitizeDockerTag(project?.name ?? projectId);
+    const tag = this.sanitizeDockerTag(branch);
+
+    if (!config) return `${slug}:${tag}`;
+
+    let preferredRepoId: number | undefined;
+    let projectSlug = slug;
+    if (serviceId) {
+      const svc = await this.prisma.projectService.findUnique({
+        where: { id: serviceId },
+        select: { externalRepoId: true, name: true },
+      });
+      if (svc?.externalRepoId) preferredRepoId = Number(svc.externalRepoId);
+      if (svc?.name) projectSlug = `${slug}-${this.sanitizeDockerTag(svc.name)}`;
+    }
+
+    const registryHost = this.resolveRegistryHost(config.registryUrl, config.providerUrl);
+    const repoPath = await this.core.resolveRepositoryPath(config, projectSlug, preferredRepoId);
+    const finalPath =
+      this.isPlaceholderPath(config, repoPath) && project?.repoUrl
+        ? (this.extractPathFromUrl(project.repoUrl) ?? repoPath)
+        : repoPath;
+
+    return `${registryHost}/${finalPath}:${tag}`;
+  }
+
+  // ─── Private helpers ──────────────────────────────────────────────────────
+
+  private sanitizeDockerTag(value: string): string {
+    return (
+      value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'latest'
+    );
+  }
+
+  private resolveRegistryHost(
+    registryUrl: string | null | undefined,
+    gitlabUrl: string,
+  ): string {
+    if (registryUrl?.trim()) return this.cleanHost(registryUrl);
+    try {
+      const { hostname, port, host } = new URL(gitlabUrl);
+      if (hostname.toLowerCase() === 'gitlab.com') return 'registry.gitlab.com';
+      return port ? host : `${hostname}:5050`;
+    } catch {
+      return this.cleanHost(gitlabUrl);
+    }
+  }
+
+  private cleanHost(v: string): string {
+    return v.trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  }
+
+  private extractPathFromUrl(url: string): string | null {
+    try {
+      const path = new URL(url).pathname
+        .replace(/^\/+/, '')
+        .replace(/\/+$/, '')
+        .replace(/\.git$/i, '');
+      return path || null;
+    } catch {
+      return null;
+    }
+  }
+
+  private isPlaceholderPath(
+    config: { externalId?: bigint | null; externalGroupId?: bigint | null; sourceType?: import('@prisma/client').AppSourceType | null },
+    path: string,
+  ): boolean {
+    if (config.externalId && path.startsWith(`project-${String(config.externalId)}/`)) return true;
+    if (config.externalGroupId && path.startsWith(`group-${String(config.externalGroupId)}/`)) return true;
+    return false;
   }
 }

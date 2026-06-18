@@ -49,6 +49,12 @@ export class StartServerPreparationDto {
   @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()
+  nixpacks?: boolean;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
   nodejs?: boolean;
 
   @ApiPropertyOptional({ example: false })

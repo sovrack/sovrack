@@ -5,10 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  GitlabSourceType,
+  AppSourceType,
   ProjectRole,
   Role,
-  type GitlabConfig,
+  type AppProviderLink,
 } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../../core/database/prisma.service';
@@ -61,15 +61,17 @@ export class GitlabCoreService {
     const connection = await this.resolveGitlabConnectionInput(dto);
     const baseUrl = this.normalizeUrl(connection.gitlabUrl);
     const defaultBranch = dto.defaultBranch ?? 'main';
-    const sourceType = dto.sourceType ?? GitlabSourceType.REPO;
+    const sourceType = dto.sourceType ?? AppSourceType.REPO;
     const webhookSecret = randomBytes(32).toString('hex');
     const deployTokenUsername = dto.deployTokenUsername?.trim() || null;
     const deployTokenValue = dto.deployTokenValue?.trim() || null;
     const registryUrl = dto.registryUrl?.trim() || null;
     let gitlabId: number | null = null;
     let gitlabGroupId: number | null = null;
+    // Provider-agnostic clone identity (Dokploy model): the repository PATH.
+    let repoPathNamespace: string | null = null;
 
-    if (sourceType === GitlabSourceType.REPO) {
+    if (sourceType === AppSourceType.REPO) {
       const repoIdentifier = this.normalizeGitlabIdentifier(
         dto.gitlabId,
         'gitlabId',
@@ -84,6 +86,7 @@ export class GitlabCoreService {
         repoIdentifier,
         'repository',
       );
+      repoPathNamespace = repository.path_with_namespace ?? null;
     } else {
       const groupIdentifier = this.normalizeGitlabIdentifier(
         dto.gitlabGroupId,
@@ -101,15 +104,16 @@ export class GitlabCoreService {
       );
     }
 
-    const config = await this.prisma.gitlabConfig.upsert({
+    const config = await this.prisma.appProviderLink.upsert({
       where: { projectId },
       update: {
-        gitlabUrl: baseUrl,
-        gitlabToken: this.cryptoService.encrypt(connection.gitlabToken),
-        gitlabId,
+        providerUrl: baseUrl,
+        providerToken: this.cryptoService.encrypt(connection.gitlabToken),
+        externalId: gitlabId,
+        repoPathNamespace,
         defaultBranch,
         sourceType,
-        gitlabGroupId,
+        externalGroupId: gitlabGroupId,
         providerId: connection.providerId,
         deployTokenUsername,
         deployTokenValue: deployTokenValue
@@ -120,12 +124,13 @@ export class GitlabCoreService {
       },
       create: {
         projectId,
-        gitlabUrl: baseUrl,
-        gitlabToken: this.cryptoService.encrypt(connection.gitlabToken),
-        gitlabId,
+        providerUrl: baseUrl,
+        providerToken: this.cryptoService.encrypt(connection.gitlabToken),
+        externalId: gitlabId,
+        repoPathNamespace,
         defaultBranch,
         sourceType,
-        gitlabGroupId,
+        externalGroupId: gitlabGroupId,
         providerId: connection.providerId,
         deployTokenUsername,
         deployTokenValue: deployTokenValue
@@ -139,16 +144,16 @@ export class GitlabCoreService {
     await this.prisma.project.update({
       where: { id: projectId },
       data: {
-        gitlabUrl: baseUrl,
-        gitlabId,
+        repoUrl: baseUrl,
+        externalRepoId: gitlabId,
         branch: defaultBranch,
       },
     });
 
     // Auto-create a default service for REPO connections so deployments work immediately
-    if (sourceType === GitlabSourceType.REPO && gitlabId) {
+    if (sourceType === AppSourceType.REPO && gitlabId) {
       const existing = await this.prisma.projectService.findFirst({
-        where: { projectId, gitlabProjectId: gitlabId },
+        where: { projectId, externalRepoId: gitlabId },
       });
       if (!existing) {
         const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { name: true } });
@@ -157,16 +162,50 @@ export class GitlabCoreService {
             projectId,
             name: project?.name ?? 'app',
             type: 'OTHER',
-            gitlabProjectId: gitlabId,
+            externalRepoId: gitlabId,
+            repositoryPath: repoPathNamespace,
             defaultBranch,
             dockerfilePath: 'Dockerfile',
           },
         });
       }
+
+      // Create a GitProviderRepo link so the webhook can find the project by repo ID
+      // (used by GitLabWebhookService to identify which project a webhook belongs to).
+      if (connection.providerId) {
+        const repoFullName = await this.apiService
+          .getProjectByConnection(baseUrl, String(gitlabId), connection.gitlabToken)
+          .then((repo) => repo.path_with_namespace ?? '')
+          .catch(() => '');
+        if (repoFullName) {
+          await this.prisma.gitProviderRepo.upsert({
+            where: {
+              providerId_repoFullName: {
+                providerId: connection.providerId,
+                repoFullName,
+              },
+            },
+            create: {
+              providerId: connection.providerId,
+              projectId,
+              externalRepoIdBig: BigInt(gitlabId),
+              repoFullName,
+              defaultBranch,
+              webhookSecret: this.cryptoService.encrypt(webhookSecret),
+            },
+            update: {
+              projectId,
+              externalRepoIdBig: BigInt(gitlabId),
+              defaultBranch,
+              webhookSecret: this.cryptoService.encrypt(webhookSecret),
+            },
+          });
+        }
+      }
     }
 
     // Auto-sync repos from GitLab group as ProjectServices so the Build tab works immediately
-    if (sourceType === GitlabSourceType.GROUP && gitlabGroupId) {
+    if (sourceType === AppSourceType.GROUP && gitlabGroupId) {
       try {
         const repos = await this.apiService.fetchGroupRepositories(
           config,
@@ -178,7 +217,7 @@ export class GitlabCoreService {
           const repoName = repo.name ?? repo.path ?? String(repoId);
           const repoBranch = repo.default_branch ?? repo.defaultBranch ?? 'main';
           const existing = await this.prisma.projectService.findFirst({
-            where: { projectId, gitlabProjectId: repoId },
+            where: { projectId, externalRepoId: repoId },
           });
           if (!existing) {
             await this.prisma.projectService.create({
@@ -186,7 +225,7 @@ export class GitlabCoreService {
                 projectId,
                 name: repoName,
                 type: 'OTHER',
-                gitlabProjectId: repoId,
+                externalRepoId: repoId,
                 defaultBranch: repoBranch,
                 dockerfilePath: 'Dockerfile',
                 repositoryPath: repo.path_with_namespace ?? repo.pathWithNamespace ?? repo.path,
@@ -205,10 +244,10 @@ export class GitlabCoreService {
   async verifyConnectionInput(dto: ConnectGitlabDto): Promise<void> {
     const connection = await this.resolveGitlabConnectionInput(dto);
     const baseUrl = this.normalizeUrl(connection.gitlabUrl);
-    const sourceType = dto.sourceType ?? GitlabSourceType.REPO;
+    const sourceType = dto.sourceType ?? AppSourceType.REPO;
     const defaultBranch = dto.defaultBranch?.trim() || 'main';
 
-    if (sourceType === GitlabSourceType.REPO) {
+    if (sourceType === AppSourceType.REPO) {
       const repoIdentifier = this.normalizeGitlabIdentifier(
         dto.gitlabId,
         'gitlabId',
@@ -290,7 +329,7 @@ export class GitlabCoreService {
     await this.assertCanAccessProject(projectId, userId, userRole);
     const config = await this.getProjectConfig(projectId);
 
-    if (config.sourceType === GitlabSourceType.GROUP) {
+    if (config.sourceType === AppSourceType.GROUP) {
       return await this.apiService.fetchGroupRepositories(config, (url) =>
         this.normalizeUrl(url),
       );
@@ -380,13 +419,13 @@ export class GitlabCoreService {
     await this.webhookService.verifyWebhookToken(token, payload);
   }
 
-  resolveRegistryCredentials(config: GitlabConfig): RegistryCredentials {
+  resolveRegistryCredentials(config: AppProviderLink): RegistryCredentials {
     // Déchiffrer les tokens
     const deployTokenValue = config.deployTokenValue
       ? this.cryptoService.decryptConfigToken(config.deployTokenValue)
       : '';
     const gitlabToken = this.cryptoService.decryptConfigToken(
-      config.gitlabToken,
+      config.providerToken,
     );
 
     // Valider que deployToken a un format valide (commence par gldt- ou gr-)
@@ -398,7 +437,7 @@ export class GitlabCoreService {
 
     // Récupérer le registryUrl
     const registryUrl =
-      config.registryUrl?.trim() || this.extractRegistryUrl(config.gitlabUrl);
+      config.registryUrl?.trim() || this.extractRegistryUrl(config.providerUrl);
 
     // Logique: Si deployToken fourni, exiger deployTokenUsername
     if (isValidDeployToken && config.deployTokenUsername?.trim()) {
@@ -428,7 +467,7 @@ export class GitlabCoreService {
   }
 
   async resolveRepositoryPath(
-    config: GitlabConfig,
+    config: AppProviderLink,
     fallbackProjectSlug: string,
     preferredRepoId?: number,
   ): Promise<string> {
@@ -447,8 +486,8 @@ export class GitlabCoreService {
     });
   }
 
-  async getProjectConfig(projectId: string): Promise<GitlabConfig> {
-    const config = await this.prisma.gitlabConfig.findUnique({
+  async getProjectConfig(projectId: string): Promise<AppProviderLink> {
+    const config = await this.prisma.appProviderLink.findUnique({
       where: { projectId },
     });
 
@@ -592,22 +631,22 @@ export class GitlabCoreService {
     }
   }
 
-  assertRepoSource(config: GitlabConfig, action: string): number {
-    if (config.sourceType !== GitlabSourceType.REPO || !config.gitlabId) {
+  assertRepoSource(config: AppProviderLink, action: string): number {
+    if (config.sourceType !== AppSourceType.REPO || !config.externalId) {
       throw new BadRequestException(
         `Action indisponible pour une source GROUP (${action})`,
       );
     }
 
-    return Number(config.gitlabId);
+    return Number(config.externalId);
   }
 
   async resolveRepoIdForAction(
-    config: GitlabConfig,
+    config: AppProviderLink,
     action: string,
     preferredRepoId?: number,
   ): Promise<number> {
-    if (config.sourceType === GitlabSourceType.REPO) {
+    if (config.sourceType === AppSourceType.REPO) {
       return this.assertRepoSource(config, action);
     }
 
@@ -641,8 +680,8 @@ export class GitlabCoreService {
       );
     }
 
-    if (config.gitlabId && repoIds.includes(Number(config.gitlabId))) {
-      return Number(config.gitlabId);
+    if (config.externalId && repoIds.includes(Number(config.externalId))) {
+      return Number(config.externalId);
     }
 
     return repoIds[0];

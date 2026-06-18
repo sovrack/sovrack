@@ -8,7 +8,7 @@ import { RolesGuard } from '../../../core/guards/roles.guard';
 import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringService } from '../services/monitoring.service';
-import { ContainerMonitoringService } from '../services/container-monitoring.service';
+import { ContainerStatsService } from '../../containers/services/container-stats.service';
 
 @ApiTags('Monitoring')
 @ApiBearerAuth()
@@ -18,7 +18,7 @@ import { ContainerMonitoringService } from '../services/container-monitoring.ser
 export class MonitoringController {
   constructor(
     private readonly monitoringService: MonitoringService,
-    private readonly containerMonitoring: ContainerMonitoringService,
+    private readonly containerMonitoring: ContainerStatsService,
   ) {}
 
   @Get('overview')

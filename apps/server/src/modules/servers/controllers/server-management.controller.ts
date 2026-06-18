@@ -16,6 +16,7 @@ import {
   ApiExtraModels,
   ApiOkResponse,
   ApiOperation,
+  ApiProperty,
   ApiResponse,
   ApiTags,
   getSchemaPath,
@@ -35,6 +36,7 @@ import {
   InstallKeyResponseDto,
   PaginatedServerJobsResponseDto,
   PaginatedServersResponseDto,
+  ServerActiveJobDto,
   ServerJobResponseDto,
   ServerResponseDto,
 } from '../dto/server-response.dto';
@@ -58,6 +60,7 @@ class RegisterRunnerDto {
 }
 
 class InstallKeyDto {
+  @ApiProperty({ example: 'temporary-ssh-password' })
   @IsString({ message: 'Le mot de passe doit être une chaîne de caractères' })
   @IsNotEmpty({ message: 'password est obligatoire' })
   password!: string;
@@ -67,6 +70,7 @@ class InstallKeyDto {
 @ApiBearerAuth()
 @ApiExtraModels(
   ServerResponseDto,
+  ServerActiveJobDto,
   CreateServerResponseDto,
   PaginatedServersResponseDto,
   PaginatedServerJobsResponseDto,
@@ -231,5 +235,12 @@ export class ServerManagementController {
   @ApiOkResponse({ description: 'Résultat du test de connexion' })
   async pingServer(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.core.pingServer(id, user.id);
+  }
+
+  @Post(':id/jobs/:jobId/cancel')
+  @ApiOperation({ summary: 'Forcer la fin d\'un job bloqué ou fantôme' })
+  @ApiOkResponse({ description: 'Job marqué comme échoué', type: ServerJobResponseDto })
+  async cancelJob(@Param('id') id: string, @Param('jobId') jobId: string) {
+    return await this.core.cancelJob(id, jobId);
   }
 }

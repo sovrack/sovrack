@@ -1,6 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from './core/database/prisma.service';
+import { PlatformService } from './modules/platform/platform.service';
 
 type HealthResponse = {
   status: string;
@@ -19,14 +21,18 @@ type HealthResponse = {
 @ApiTags('Health')
 @Controller()
 export class AppController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly platformService: PlatformService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get('health')
   @ApiOperation({ summary: 'Vérification de santé de la plateforme' })
   @ApiResponse({ status: 200, description: 'Service opérationnel' })
   async getHealth(): Promise<HealthResponse> {
     let databaseStatus = 'disconnected';
-    const webhook = this.resolveWebhookConfigStatus();
+    const webhook = await this.resolveWebhookConfigStatus();
 
     try {
       await this.prisma.$queryRaw`SELECT 1`;
@@ -45,9 +51,12 @@ export class AppController {
     };
   }
 
-  private resolveWebhookConfigStatus(): HealthResponse['webhook'] {
+  private async resolveWebhookConfigStatus(): Promise<HealthResponse['webhook']> {
     const autoConfigure = !['0', 'false', 'no', 'off'].includes(
-      process.env.GITLAB_WEBHOOK_AUTO_CONFIGURE?.trim().toLowerCase() ?? '',
+      this.configService
+        .get<string>('GITLAB_WEBHOOK_AUTO_CONFIGURE', 'true')
+        .trim()
+        .toLowerCase(),
     );
 
     if (!autoConfigure) {
@@ -59,8 +68,8 @@ export class AppController {
       };
     }
 
-    const raw = process.env.WEBHOOK_URL?.trim();
-    if (!raw) {
+    const base = await this.platformService.resolveWebhookBaseUrl();
+    if (!base) {
       return {
         autoConfigure: true,
         configured: false,
@@ -70,7 +79,7 @@ export class AppController {
     }
 
     try {
-      const parsed = new URL(raw);
+      const parsed = new URL(base);
       const valid = parsed.protocol === 'http:' || parsed.protocol === 'https:';
       if (!valid) {
         return {
@@ -81,19 +90,16 @@ export class AppController {
         };
       }
 
-      parsed.search = '';
-      parsed.hash = '';
-      const path = parsed.pathname.replace(/\/+$/, '');
-      const normalizedBase = `${parsed.origin}${path}`;
-      const callbackUrl = path.toLowerCase().endsWith('/gitlab/webhook')
-        ? normalizedBase
-        : `${normalizedBase}/gitlab/webhook`;
+      const callbackUrl = await this.platformService.buildWebhookUrl(
+        'gitlab/webhook',
+        { throwIfMissing: false },
+      );
 
       return {
         autoConfigure: true,
         configured: true,
         valid: true,
-        callbackUrl,
+        callbackUrl: callbackUrl || null,
       };
     } catch {
       return {

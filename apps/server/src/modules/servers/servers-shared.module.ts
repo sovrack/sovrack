@@ -1,48 +1,47 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/database/prisma.module';
-import { ServerPreparationGateway } from './server-preparation.gateway';
+import { AppJwtModule } from '../../core/jwt/jwt.module';
+import { InfrastructureModule } from '../infrastructure/infrastructure.module';
+import { AuditModule } from '../audit/audit.module';
 import {
-  AnsibleExecutionService,
-  ServerAuditService,
-  ServerDetectionService,
+  ServersAuditService,
+  ServersDetectionService,
   ServerHostKeyService,
-  ServerLegacyApiService,
-  ServerPreparationService,
   ServerVerificationService,
   ServersCoreService,
   ServersCryptoService,
   ServersJobsService,
-  ServersSshService,
+  ServersConnectionService,
 } from './services';
-import { ServerPreparationStateService } from './services/preparation/server-preparation-state.service';
-import { AppJwtModule } from '../../core/jwt/jwt.module';
 
+/**
+ * Shared server primitives (SSH, crypto, host-key, detection, verification,
+ * jobs, audit) + the ServersCoreService lifecycle facade. Preparation/Ansible
+ * now live in InfrastructureModule; we import it (forwardRef) so ServersCoreService
+ * can trigger Docker-install preparation during onboarding, and we re-export the
+ * primitives InfrastructureModule consumes.
+ */
 @Module({
-  imports: [
-    PrismaModule,
-    AppJwtModule,
-  ],
+  imports: [PrismaModule, AppJwtModule, forwardRef(() => InfrastructureModule), AuditModule],
   providers: [
     ServersCoreService,
     ServersCryptoService,
     ServerHostKeyService,
-    ServersSshService,
-    AnsibleExecutionService,
+    ServersConnectionService,
     ServersJobsService,
     ServerVerificationService,
-    ServerDetectionService,
-    ServerPreparationService,
-    ServerPreparationStateService,
-    ServerAuditService,
-    ServerLegacyApiService,
-    ServerPreparationGateway,
+    ServersDetectionService,
+    ServersAuditService,
   ],
   exports: [
     ServersCoreService,
     ServersCryptoService,
     ServerHostKeyService,
-    ServersSshService,
-    ServerPreparationGateway,
+    ServersConnectionService,
+    ServersJobsService,
+    ServerVerificationService,
+    ServersDetectionService,
+    ServersAuditService,
   ],
 })
 export class ServersSharedModule {}

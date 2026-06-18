@@ -4,59 +4,20 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { GitlabSourceType, ProjectRole, Role } from '@prisma/client';
+import { AppSourceType, ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
-import { BuildDetectorService } from './build-detector.service';
-import { DockerfileGenerator } from './generators/dockerfile/dockerfile.generator';
-import { GitlabCiGenerator } from './generators/gitlab-ci.generator';
-import { DockerignoreGenerator } from './generators/dockerignore.generator';
-import {
-  GitlabFilePusherService,
-  type BuildRepoPushResult,
-} from './pusher/gitlab-file-pusher.service';
-import { GitlabWebhookConfiguratorService } from './pusher/gitlab-webhook-configurator.service';
-
-type BuildArtifactStatus = 'CREATED' | 'UPDATED' | 'SKIPPED' | 'FAILED';
-type BuildPrepareStatus = 'SUCCESS' | 'PARTIAL_SUCCESS' | 'FAILED';
-type BuildWebhookStatus =
-  | 'CONFIGURED'
-  | 'PENDING_CONFIGURATION'
-  | 'FAILED'
-  | 'DISABLED';
-
-type BuildPrepareServiceResult = {
-  serviceId: string;
-  serviceName: string;
-  status: BuildPrepareStatus;
-  message: string;
-  dockerfileStatus: BuildArtifactStatus;
-  dockerignoreStatus: BuildArtifactStatus;
-  ciStatus: BuildArtifactStatus;
-  webhookStatus: BuildWebhookStatus;
-  webhookMessage: string | null;
-  pipelineUrl: string | null;
-};
-
-type BuildPrepareResponse = {
-  type: string;
-  confidence: string;
-  language: string;
-  framework: string;
-  packageManager: string;
-  recommendedStrategy: string;
-  recommendedBuildType: string;
-  recommendedStartCommand: string;
-  recommendedPort: number;
-  reasons: string[];
-  hasDockerfile: boolean;
-  hasDockerCompose: boolean;
-  hasCiConfig: boolean;
-  dockerfileContent: string;
-  dockerignoreContent: string;
-  gitlabCiContent: string;
-  serviceResult: BuildPrepareServiceResult;
-};
+import { BuildDetectorService } from './detection/build-detector.service';
+import { DockerfileGenerator } from './generators/config-files/dockerfile.generator';
+import { DockerignoreGenerator } from './generators/config-files/dockerignore.generator';
+import { CiGeneratorFactory } from './generators/ci/ci-generator.factory';
+import { GitProvidersService } from '../git-providers/git-providers.service';
+import type { RepoWriteResult } from '../git-providers/interfaces/git-provider.interface';
+import type {
+  BuildArtifactStatus,
+  BuildPrepareStatus,
+  BuildPrepareServiceResult,
+  BuildPrepareResponse,
+} from './types/build-prepare.types';
 
 @Injectable()
 export class BuildService {
@@ -64,11 +25,9 @@ export class BuildService {
     private readonly prisma: PrismaService,
     private readonly detector: BuildDetectorService,
     private readonly dockerfileGenerator: DockerfileGenerator,
-    private readonly gitlabCiGenerator: GitlabCiGenerator,
     private readonly dockerignoreGenerator: DockerignoreGenerator,
-    private readonly gitlabFilePusher: GitlabFilePusherService,
-    private readonly webhookConfigurator: GitlabWebhookConfiguratorService,
-    private readonly configService: ConfigService,
+    private readonly ciGeneratorFactory: CiGeneratorFactory,
+    private readonly gitProvidersService: GitProvidersService,
   ) {}
 
   async prepare(
@@ -93,24 +52,24 @@ export class BuildService {
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      include: { gitlabConfig: true },
+      include: { appProviderLink: true },
     });
     if (!project) {
       throw new NotFoundException('Projet non trouvé');
     }
 
-    if (!project.dockerfileContent || !project.gitlabCiContent) {
+    if (!project.dockerfileContent || !project.ciConfigContent) {
       throw new BadRequestException(
         "Les fichiers doivent être générés avant d'être poussés.",
       );
     }
 
-    await this.gitlabFilePusher.pushFilesToRepo(
+    const provider = await this.gitProvidersService.forProject(projectId);
+    await provider.writeFiles(
       projectId,
       {
         Dockerfile: project.dockerfileContent,
         '.dockerignore': this.dockerignoreGenerator.generate(),
-        '.gitlab-ci.yml': project.gitlabCiContent,
       },
       serviceId,
     );
@@ -158,7 +117,7 @@ export class BuildService {
   ): Promise<BuildPrepareResponse> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      include: { gitlabConfig: true },
+      include: { appProviderLink: true },
     });
 
     if (!project) {
@@ -166,7 +125,7 @@ export class BuildService {
     }
 
     if (
-      project.gitlabConfig?.sourceType === GitlabSourceType.GROUP &&
+      project.appProviderLink?.sourceType === AppSourceType.GROUP &&
       !serviceId
     ) {
       throw new BadRequestException(
@@ -180,6 +139,7 @@ export class BuildService {
           select: {
             id: true,
             name: true,
+            defaultBranch: true,
           },
         })
       : null;
@@ -192,57 +152,60 @@ export class BuildService {
       projectId,
       serviceId,
     );
-    const type =
-      project.projectType || detected.recommendedBuildType || detected.type;
+    // Resolve the project type used to drive both Dockerfile template selection
+    // and GitLab-CI test stage generation. The DB column is free-form (any
+    // string the user typed) — if it doesn't match a known language alias we
+    // fall through to the detector so the test stage isn't silently dropped.
+    const knownLanguageAliases = new Set([
+      'nodejs', 'nestjs', 'nextjs', 'react', 'python', 'django',
+      'go', 'golang', 'java', 'spring-boot', 'ruby', 'php', 'laravel', 'rust',
+    ]);
+    const userType = (project.projectType ?? '').toLowerCase();
+    const type = userType && knownLanguageAliases.has(userType)
+      ? userType
+      : (detected.recommendedBuildType || detected.type);
     const port =
       project.buildPort ?? detected.recommendedPort ?? project.port ?? 3000;
     const startCmd =
       project.buildStartCmd ??
       detected.recommendedStartCommand ??
       'node index.js';
-    const registryUrl = project.gitlabConfig?.registryUrl ?? undefined;
+    const registryUrl = project.appProviderLink?.registryUrl ?? undefined;
 
     const shouldGenerateDockerfile = !project.dockerfileContent || overwriteDockerfile === true;
-    const shouldGenerateGitlabCi = !project.gitlabCiContent || overwriteGitlabCi === true;
+    const shouldGenerateGitlabCi = !project.ciConfigContent || overwriteGitlabCi === true;
 
     const dockerfileContent = shouldGenerateDockerfile
       ? this.dockerfileGenerator.generate(type, { port, startCmd })
       : project.dockerfileContent!;
     const dockerignoreContent = this.dockerignoreGenerator.generate();
-    const gitlabCiContent = shouldGenerateGitlabCi
-      ? this.gitlabCiGenerator.generate({ registryUrl })
-      : project.gitlabCiContent!;
+    const branches = [
+      project.branch,
+      service?.defaultBranch,
+    ].filter((b): b is string => Boolean(b));
+    const uniqueBranches = Array.from(new Set(branches));
+
+    const ciGenerator = await this.ciGeneratorFactory.forProject(projectId);
+    const ciConfigContent = shouldGenerateGitlabCi
+      ? ciGenerator.generate({
+          registryUrl,
+          projectType: type,
+          branches: uniqueBranches.length > 0 ? uniqueBranches : undefined,
+        })
+      : project.ciConfigContent!;
 
     const filesToPush: Record<string, string> = {};
     if (shouldGenerateDockerfile) {
       filesToPush['Dockerfile'] = dockerfileContent;
       filesToPush['.dockerignore'] = dockerignoreContent;
     }
-    if (shouldGenerateGitlabCi) {
-      filesToPush['.gitlab-ci.yml'] = gitlabCiContent;
-    }
+    // SECURITY: .gitlab-ci.yml is generated + saved to project for the user
+    // to copy manually — never auto-pushed (would overwrite client CI).
 
-    const pushResult = Object.keys(filesToPush).length > 0
-      ? await this.gitlabFilePusher.pushFilesToRepo(projectId, filesToPush, serviceId)
-      : {
-          branch: project.gitlabConfig?.defaultBranch ?? 'main',
-          gitlabProjectId: project.gitlabConfig?.gitlabId?.toString() ?? '',
-          repositoryPath: null,
-          fileStatuses: {} as Record<string, never>,
-        };
-
-    let webhookWarning: string | null = null;
-    const webhookAutoConfigureEnabled = this.isWebhookAutoConfigureEnabled();
-    if (webhookAutoConfigureEnabled) {
-      try {
-        await this.webhookConfigurator.configureWebhook(projectId, serviceId);
-      } catch (error: unknown) {
-        if (this.shouldTreatWebhookErrorAsWarning(error)) {
-          webhookWarning = this.extractErrorMessage(error);
-        } else {
-          throw error;
-        }
-      }
+    let pushResult: RepoWriteResult | null = null;
+    if (Object.keys(filesToPush).length > 0) {
+      const provider = await this.gitProvidersService.forProject(projectId);
+      pushResult = await provider.writeFiles(projectId, filesToPush, serviceId);
     }
 
     await this.prisma.project.update({
@@ -250,22 +213,12 @@ export class BuildService {
       data: {
         projectType: type,
         ...(shouldGenerateDockerfile && { dockerfileContent }),
-        ...(shouldGenerateGitlabCi && { gitlabCiContent }),
+        ...(shouldGenerateGitlabCi && { ciConfigContent }),
       },
     });
 
-    const pipelineUrl = await this.resolveLatestPipelineUrl(
-      projectId,
-      serviceId,
-    );
-    const serviceResult = this.buildSuccessServiceResult(
-      project,
-      service,
-      pushResult,
-      pipelineUrl,
-      webhookWarning,
-      webhookAutoConfigureEnabled,
-    );
+    const pipelineUrl = await this.resolveLatestPipelineUrl(projectId, serviceId);
+    const serviceResult = this.buildSuccessServiceResult(project, service, pushResult, pipelineUrl);
 
     return {
       type,
@@ -283,7 +236,8 @@ export class BuildService {
       hasCiConfig: detected.hasCiConfig,
       dockerfileContent,
       dockerignoreContent,
-      gitlabCiContent,
+      ciConfigContent,
+      ciConfigFilePath: ciGenerator.getFilePath(),
       serviceResult,
     };
   }
@@ -291,89 +245,30 @@ export class BuildService {
   private buildSuccessServiceResult(
     project: { id: string; name: string },
     service: { id: string; name: string } | null,
-    pushResult: BuildRepoPushResult,
+    pushResult: RepoWriteResult | null,
     pipelineUrl: string | null,
-    webhookWarning: string | null,
-    webhookAutoConfigureEnabled: boolean,
   ): BuildPrepareServiceResult {
-    if (!webhookAutoConfigureEnabled) {
-      return {
-        serviceId: service?.id ?? project.id,
-        serviceName: service?.name ?? project.name,
-        status: 'SUCCESS',
-        message:
-          'Préparation terminée avec succès. Configuration webhook désactivée par la plateforme.',
-        dockerfileStatus: pushResult.fileStatuses.Dockerfile ?? 'SKIPPED',
-        dockerignoreStatus:
-          pushResult.fileStatuses['.dockerignore'] ?? 'SKIPPED',
-        ciStatus: pushResult.fileStatuses['.gitlab-ci.yml'] ?? 'SKIPPED',
-        webhookStatus: 'DISABLED',
-        webhookMessage: null,
-        pipelineUrl,
-      };
-    }
-
-    const isPartial = Boolean(webhookWarning);
-    const message = isPartial
-      ? 'Fichiers préparés avec succès, mais webhook GitLab non configuré.'
-      : 'Préparation terminée avec succès.';
-
     return {
       serviceId: service?.id ?? project.id,
       serviceName: service?.name ?? project.name,
-      status: isPartial ? 'PARTIAL_SUCCESS' : 'SUCCESS',
-      message,
-      dockerfileStatus: pushResult.fileStatuses.Dockerfile ?? 'SKIPPED',
-      dockerignoreStatus: pushResult.fileStatuses['.dockerignore'] ?? 'SKIPPED',
-      ciStatus: pushResult.fileStatuses['.gitlab-ci.yml'] ?? 'SKIPPED',
-      webhookStatus: isPartial ? 'PENDING_CONFIGURATION' : 'CONFIGURED',
-      webhookMessage: webhookWarning,
+      status: 'SUCCESS',
+      message: 'Préparation terminée avec succès.',
+      dockerfileStatus: pushResult?.fileStatuses?.['Dockerfile'] ?? 'SKIPPED',
+      dockerignoreStatus: pushResult?.fileStatuses?.['.dockerignore'] ?? 'SKIPPED',
+      ciStatus: 'SKIPPED',
       pipelineUrl,
     };
-  }
-
-  shouldTreatWebhookErrorAsWarning(error: unknown): boolean {
-    const message = this.extractErrorMessage(error).toLowerCase();
-    return (
-      message.includes('webhook_url') ||
-      message.includes('url du webhook') ||
-      message.includes('webhook non configuré')
-    );
-  }
-
-  isWebhookAutoConfigureEnabled(): boolean {
-    const raw = this.configService.get<string>('GITLAB_WEBHOOK_AUTO_CONFIGURE', 'false').trim().toLowerCase();
-    return !['0', 'false', 'no', 'off'].includes(raw ?? '');
   }
 
   private async resolveLatestPipelineUrl(
     projectId: string,
     serviceId?: string,
   ): Promise<string | null> {
-    const pipeline = await this.prisma.pipeline.findFirst({
-      where: {
-        projectId,
-        ...(serviceId ? { serviceId } : {}),
-      },
+    const run = await this.prisma.pipelineRun.findFirst({
+      where: { projectId, ...(serviceId ? { serviceId } : {}) },
       orderBy: { createdAt: 'desc' },
       select: { webUrl: true },
     });
-
-    return pipeline?.webUrl ?? null;
-  }
-
-  extractErrorMessage(error: unknown): string {
-    if (error && typeof error === 'object') {
-      const payload = error as { message?: unknown };
-      if (typeof payload.message === 'string' && payload.message.trim()) {
-        return payload.message;
-      }
-    }
-
-    if (error instanceof Error && error.message.trim()) {
-      return error.message;
-    }
-
-    return 'Erreur inconnue pendant la préparation du build.';
+    return run?.webUrl ?? null;
   }
 }
