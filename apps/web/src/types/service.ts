@@ -40,6 +40,7 @@ export type Service = {
   rootDir: string | null;
   buildPack: BuildPack | null;
   buildMode: string | null;
+  deployTrigger: string | null;
   buildType: string | null;
   dockerfile: string | null;
   port: number | null;
@@ -67,6 +68,7 @@ export type CreateServicePayload = {
   rootDir?: string;
   buildPack?: BuildPack;
   buildMode?: string;
+  deployTrigger?: string;
   buildType?: string;
   dockerfile?: string;
   port?: number;

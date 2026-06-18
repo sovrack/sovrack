@@ -42,6 +42,7 @@ export function ServiceConfigForm({
   const [rootDir, setRootDir] = useState(service.rootDir ?? '/');
   const [buildPack, setBuildPack] = useState<BuildPack>(service.buildPack ?? 'DOCKERFILE');
   const [buildMode, setBuildMode] = useState<string>(service.buildMode ?? 'LOCAL');
+  const [deployTrigger, setDeployTrigger] = useState<string>(service.deployTrigger ?? 'PUSH');
   const [port, setPort] = useState(service.port != null ? String(service.port) : '');
   const [startCommand, setStartCommand] = useState(service.startCommand ?? '');
   const [healthcheckPath, setHealthcheckPath] = useState(service.healthcheckPath ?? '');
@@ -74,6 +75,7 @@ export function ServiceConfigForm({
         rootDir: rootDir.trim() || undefined,
         buildPack,
         buildMode,
+        deployTrigger,
         port: port ? Number(port) : undefined,
         startCommand: startCommand.trim() || undefined,
         healthcheckPath: healthcheckPath.trim() || undefined,
@@ -149,6 +151,15 @@ export function ServiceConfigForm({
               onChange={(e) => setBuildMode(e.target.value)}>
               <option value="LOCAL">Build on server (sur le VPS)</option>
               <option value="REGISTRY">Registry (image construite par la CI → pull)</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="svc-trigger">Déclencheur de déploiement</label>
+            <select id="svc-trigger" className={inputClass} value={deployTrigger}
+              onChange={(e) => setDeployTrigger(e.target.value)}>
+              <option value="PUSH">Push — déploie à chaque git push</option>
+              <option value="PIPELINE_SUCCESS">Pipeline réussi — déploie si la CI passe au vert</option>
+              <option value="MANUAL">Manuel — déploiement à la demande uniquement</option>
             </select>
           </div>
           <div>
