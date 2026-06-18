@@ -10,6 +10,7 @@ import {
   Container as ContainerIcon,
   Database,
   FolderGit2,
+  GitPullRequestArrow,
   Globe,
   Layers,
   Loader2,
@@ -40,19 +41,21 @@ import { ServiceConfigForm } from '@/components/projects/tabs/service/service-co
 import { ServiceWebhook } from '@/components/projects/tabs/service/service-webhook';
 import { ServiceTerminalDialog } from '@/components/projects/tabs/service/service-terminal-dialog';
 import { ServiceDomains } from '@/components/projects/tabs/service/service-domains';
+import { ServicePipelines } from '@/components/projects/tabs/service/service-pipelines';
 import { LogTerminal } from '@/components/log-terminal';
 import { resolveDeploymentUrl } from '@/lib/deployment-utils';
 import { useDeploymentSocket } from '@/hooks/deployments/use-deployment-socket';
 import type { Service } from '@/types/service';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
 
-type Tab = 'general' | 'environment' | 'domains' | 'logs' | 'deployments' | 'monitoring';
+type Tab = 'general' | 'environment' | 'domains' | 'logs' | 'deployments' | 'pipelines' | 'monitoring';
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'General', icon: Settings2 },
   { id: 'environment', label: 'Environment', icon: ScrollText },
   { id: 'domains', label: 'Domains', icon: Globe },
   { id: 'logs', label: 'Logs', icon: ScrollText },
   { id: 'deployments', label: 'Deployments', icon: Activity },
+  { id: 'pipelines', label: 'Pipelines', icon: GitPullRequestArrow },
   { id: 'monitoring', label: 'Monitoring', icon: ContainerIcon },
 ];
 
@@ -315,6 +318,11 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
           projectId={projectId}
           onRefresh={() => void load()}
         />
+      )}
+
+      {/* Pipelines (CI/CD) */}
+      {tab === 'pipelines' && (
+        <ServicePipelines projectId={projectId} branch={service?.branch ?? null} />
       )}
 
       {/* Monitoring */}
