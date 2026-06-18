@@ -1,10 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  BuildPack,
-  ManagedServiceType,
-  Prisma,
-  ServiceType,
-} from '@prisma/client';
+import { BuildPack, ManagedServiceType, Prisma } from '@prisma/client';
 import type { BuildSource } from '../../build/strategies/build-strategy.interface';
 import { CreateDeploymentDto } from '../dto/create-deployment.dto';
 import { BuildImageService } from '../../build/lifecycle/build-image.service';
@@ -25,6 +20,23 @@ export type DatabaseImageConfig = {
   volumes: { containerPath: string }[];
 };
 
+/** Champs du service réellement lus pour résoudre la config de déploiement. */
+export type ResolverService = {
+  id: string;
+  name: string;
+  branch?: string | null;
+  repoPath?: string | null;
+  sourceType?: string | null;
+  buildPack?: BuildPack | null;
+  buildMode?: string | null;
+  nixpacksConfig?: Prisma.JsonValue | null;
+  staticConfig?: Prisma.JsonValue | null;
+  databaseType?: ManagedServiceType | null;
+  databaseVersion?: string | null;
+};
+
+export type ResolverProject = { id: string; name: string };
+
 @Injectable()
 export class DeploymentsConfigResolver {
   private readonly logger = new Logger(DeploymentsConfigResolver.name);
@@ -33,8 +45,8 @@ export class DeploymentsConfigResolver {
 
   async resolve(
     dto: CreateDeploymentDto,
-    service: any,
-    project: any,
+    service: ResolverService,
+    project: ResolverProject,
   ): Promise<DeploymentConfig> {
     const buildSource = this.resolveBuildSource(dto, service);
     const isLocalBuild = this.isLocalBuildSource(buildSource);
@@ -72,8 +84,8 @@ export class DeploymentsConfigResolver {
   private async resolveDockerImage(
     dto: CreateDeploymentDto,
     buildSource: BuildSource,
-    service: any,
-    project: any,
+    service: ResolverService,
+    project: ResolverProject,
     branch: string,
   ): Promise<string> {
     if (buildSource === 'EXTERNAL_IMAGE') {
@@ -84,7 +96,7 @@ export class DeploymentsConfigResolver {
         throw new Error(
           'Image externe introuvable (overrideImage ou repoPath requis)',
         );
-      return image as string;
+      return image;
     }
     if (buildSource === 'DOCKER_COMPOSE') {
       return `compose://${project.name}`;
@@ -103,7 +115,7 @@ export class DeploymentsConfigResolver {
   resolveBuildSource(
     dto: CreateDeploymentDto,
     service: {
-      buildPack: BuildPack | null;
+      buildPack?: BuildPack | null;
       sourceType?: string | null;
       buildMode?: string | null;
     },
@@ -119,7 +131,8 @@ export class DeploymentsConfigResolver {
     if (pack === BuildPack.DOCKER_COMPOSE) return 'DOCKER_COMPOSE';
     // Mode REGISTRY (choisi sur le service) : l'image est construite par la CI et
     // poussée dans un registre → on PULL au lieu de builder sur le VPS.
-    const registry = (service?.buildMode ?? 'LOCAL').toUpperCase() === 'REGISTRY';
+    const registry =
+      (service?.buildMode ?? 'LOCAL').toUpperCase() === 'REGISTRY';
     if (pack === BuildPack.NIXPACKS) {
       return registry ? 'NIXPACKS_REGISTRY' : 'NIXPACKS_LOCAL';
     }
