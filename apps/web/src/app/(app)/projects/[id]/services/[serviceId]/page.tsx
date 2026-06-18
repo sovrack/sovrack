@@ -187,7 +187,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            {lastDeployment && <DeploymentStatusBadge status={lastDeployment.status} />}
+            {lastDeployment && <DeploymentStatusBadge status={lastDeployment.status} variant="plain" />}
             {environments.length > 0 && (
               <label className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)]">
                 <Layers size={14} />
@@ -236,7 +236,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
           </button>
           {lastDeployment && (
             <div className="ml-auto flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-              <DeploymentStatusBadge status={lastDeployment.status} />
+              <DeploymentStatusBadge status={lastDeployment.status} variant="plain" />
               {appUrl && (
                 <a href={appUrl} target="_blank" rel="noreferrer"
                   className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
