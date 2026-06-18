@@ -265,9 +265,16 @@ export class ContainerRegistriesService {
 
       // Auth par token (Bearer) : on demande un token au realm avec les creds.
       if (challenge?.realm) {
+        // GitLab Container Registry : realm en /jwt/auth + service container_registry.
+        const isGitlab =
+          /\/jwt\/auth/i.test(challenge.realm) ||
+          challenge.service === 'container_registry';
+        const gitlabHint = isGitlab
+          ? ' GitLab : username = ton login, token = un Personal/Project Access Token avec le scope read_registry (write_registry pour push).'
+          : '';
         if (!auth) {
           throw new BadRequestException(
-            'Ce registre exige une authentification (username + token/mot de passe).',
+            `Ce registre exige une authentification (username + token/mot de passe).${gitlabHint}`,
           );
         }
         const tokenRes = await firstValueFrom(
@@ -294,7 +301,7 @@ export class ContainerRegistriesService {
           );
         }
         throw new BadRequestException(
-          `Identifiants refusés par le registre (HTTP ${tokenRes.status}). Vérifiez username + token.`,
+          `Identifiants refusés par le registre (HTTP ${tokenRes.status}). Vérifiez username + token.${gitlabHint}`,
         );
       }
 

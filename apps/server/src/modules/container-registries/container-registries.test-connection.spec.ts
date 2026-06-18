@@ -72,6 +72,8 @@ describe('ContainerRegistriesService.testRegistryConnection (Docker v2 Bearer)',
     const res = await svc.testRegistryConnection('r1');
     expect(res.ok).toBe(false);
     expect(res.message).toMatch(/refusés|401/i);
+    // GitLab (service=container_registry) → indice de scope actionnable.
+    expect(res.message).toMatch(/read_registry/);
   });
 
   it('réussit directement si /v2/ renvoie 200', async () => {
