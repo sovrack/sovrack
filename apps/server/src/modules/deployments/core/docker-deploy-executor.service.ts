@@ -13,6 +13,7 @@ import {
   isNamespacedRepoPath,
   normalizeRepoPath,
 } from '../../../core/utils/repo-path.util';
+import { buildAuthenticatedCloneUrl } from '../../../core/utils/clone-url.util';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
 import { SshExecutorService } from '../../../core/ssh/ssh-executor.service';
 import { CryptoService } from '../../../core/crypto/crypto.service';
@@ -733,13 +734,7 @@ export class DockerDeployExecutorService {
       );
     }
     // Build a HTTPS clone URL with embedded token for authenticated access.
-    const cloneUrl =
-      token && providerUrl
-        ? `${providerUrl.replace(/\/$/, '')}/${repoPath}.git`.replace(
-            'https://',
-            `https://oauth2:${token}@`,
-          )
-        : `${providerUrl.replace(/\/$/, '')}/${repoPath}.git`;
+    const cloneUrl = buildAuthenticatedCloneUrl(providerUrl, repoPath, token);
     const branch = deployment.branch || 'main';
     const rootDir = svc.rootDir?.replace(/^\//, '') ?? '.';
     const workDir = `/tmp/build-${deployment.id.slice(0, 8)}`;
