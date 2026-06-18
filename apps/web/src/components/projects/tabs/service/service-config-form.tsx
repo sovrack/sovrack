@@ -59,6 +59,10 @@ export function ServiceConfigForm({
   const initialRef = splitImageRef(repoPath);
   const [image, setImage] = useState(initialRef.image);
   const [tag, setTag] = useState(initialRef.tag);
+  // Mode REGISTRY : image:tag à tirer (persistée dans Service.registryImage).
+  const initialRegistryRef = splitImageRef(service.registryImage ?? '');
+  const [registryImageName, setRegistryImageName] = useState(initialRegistryRef.image);
+  const [registryTag, setRegistryTag] = useState(initialRegistryRef.tag);
   const [providers, setProviders] = useState<SourceProviderOption[]>([]);
   const [branches, setBranches] = useState<string[]>([]);
 
@@ -103,6 +107,10 @@ export function ServiceConfigForm({
         ...(isExternalImage
           ? (image.trim() ? { repoPath: `${image.trim()}${tag.trim() ? `:${tag.trim()}` : ''}` } : {})
           : (repoPath.trim() ? { repoPath: repoPath.trim() } : {})),
+        // Mode REGISTRY : image:tag à tirer (vide = dérivation auto par la CI).
+        ...(isRegistryMode && !isExternalImage
+          ? { registryImage: registryImageName.trim() ? `${registryImageName.trim()}${registryTag.trim() ? `:${registryTag.trim()}` : ''}` : '' }
+          : {}),
       };
       await servicesService.update(projectId, service.id, payload);
       setSaved(true);
@@ -232,9 +240,22 @@ export function ServiceConfigForm({
             </div>
           )}
           {isRegistryMode && !isExternalImage && (
-            <div className="sm:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-xs text-[var(--text-muted)]">
-              En mode <span className="font-semibold text-[var(--text-secondary)]">Registry</span>, l’image est construite par la CI puis tirée (pull) depuis le registre au déploiement. Configure les identifiants du registre dans <span className="font-semibold">Settings → Registry</span> ; l’image/tag est résolue automatiquement.
-            </div>
+            <>
+              <div>
+                <label className={labelClass} htmlFor="svc-regimage">Image registre</label>
+                <input id="svc-regimage" className={`${inputClass} font-mono`} value={registryImageName}
+                  placeholder="registry.gitlab.com/grp/app"
+                  onChange={(e) => setRegistryImageName(e.target.value)} />
+              </div>
+              <div>
+                <label className={labelClass} htmlFor="svc-regtag">Tag</label>
+                <input id="svc-regtag" className={`${inputClass} font-mono`} value={registryTag} placeholder="latest"
+                  onChange={(e) => setRegistryTag(e.target.value)} />
+              </div>
+              <div className="sm:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-xs text-[var(--text-muted)]">
+                En mode <span className="font-semibold text-[var(--text-secondary)]">Registry</span>, l’image est tirée (pull) depuis le registre au déploiement. Laisse vide pour la <span className="font-semibold">dériver automatiquement</span> de la CI ; renseigne-la pour fixer une image précise. Identifiants du registre dans <span className="font-semibold">Settings → Registry</span>.
+              </div>
+            </>
           )}
         </div>
       </SectionCard>
