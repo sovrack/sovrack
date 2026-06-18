@@ -1,0 +1,321 @@
+---
+# Blue-green zero-downtime deployment
+#
+# Flow:
+#   1. Pull the new image
+#   2. Start a "green" candidate container on a temporary port (app_port + 10000)
+#   3. Health-check the green container (10 attempts × 5 s)
+#   4. SUCCESS → update Nginx upstream, stop the old "blue" container,
+#              re-launch green on the canonical port, reload Nginx
+#   5. FAILURE → rescue block stops green and leaves blue untouched
+#               → automatic rollback, no downtime
+
+- name: Blue-green zero-downtime deployment
+  hosts: targets
+  become: true
+
+  vars:
+    container_name: "{{ container_name | default('deploy-app') }}"
+    app_port: "{{ app_port | default(3000) }}"
+    docker_image: "{{ docker_image }}"
+    registry_url: "{{ registry_url | default('') }}"
+    registry_username: "{{ registry_username | default('') }}"
+    registry_password: "{{ registry_password | default('') }}"
+    domain: "{{ domain | default('') }}"
+    env_vars: "{{ env_vars | default({}) }}"
+    health_check_path: "{{ health_check_path | default('/health') }}"
+    max_retries: 5
+    retry_delay: 5
+    logs_dir: "/var/log/deployments"
+
+    # Derived names / ports
+    green_name: "{{ container_name }}-candidate"
+    green_port: "{{ (app_port | int) + 10000 }}"
+    network_name: "{{ container_name }}-network"
+
+  pre_tasks:
+    - name: "[PRE] Create deployment log directory"
+      ansible.builtin.file:
+        path: "{{ logs_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: "[PRE] Record current blue image for rollback reference"
+      ansible.builtin.shell: |
+        docker inspect --format='{{"{{"}}{{".Config.Image"}}{{"}}"}}' "{{ container_name }}" 2>/dev/null || echo "none"
+      register: blue_image_result
+      changed_when: false
+
+    - name: "[PRE] Set blue_image fact"
+      ansible.builtin.set_fact:
+        blue_image: "{{ blue_image_result.stdout | trim }}"
+
+    - name: "[PRE] Log deployment start"
+      ansible.builtin.copy:
+        content: |
+          ==========================================
+          BLUE-GREEN DEPLOY STARTED: {{ ansible_date_time.iso8601 }}
+          New image:  {{ docker_image }}
+          Blue image: {{ blue_image }}
+          ==========================================
+        dest: "{{ logs_dir }}/deploy-bg-{{ ansible_date_time.date }}-{{ ansible_date_time.time }}.log"
+        mode: '0644'
+
+    - name: "[PRE] Verify Docker is running"
+      ansible.builtin.command: docker ps
+      register: docker_status
+      retries: "{{ max_retries }}"
+      delay: "{{ retry_delay }}"
+      until: docker_status is successful
+      changed_when: false
+
+  tasks:
+    - name: "Pull → Blue-Green Deploy"
+      block:
+        # ── Step 1 : pull new image ──────────────────────────────────────
+        - name: "[1/5] Login to Docker registry"
+          ansible.builtin.shell: >-
+            echo "{{ registry_password }}" | docker login {{ registry_url }}
+            -u {{ registry_username }} --password-stdin
+          args:
+            executable: /bin/bash
+          when: registry_username | length > 0 and registry_password | length > 0
+          no_log: true
+          changed_when: false
+
+        - name: "[1/5] Pull new Docker image"
+          ansible.builtin.command:
+            argv:
+              - docker
+              - pull
+              - "{{ docker_image }}"
+          register: docker_pull
+          retries: 3
+          delay: "{{ retry_delay }}"
+          until: docker_pull is successful
+          timeout: 600
+
+        # ── Step 2 : ensure network ────────────────────────────────────────
+        - name: "[2/5] Ensure Docker network exists"
+          community.docker.docker_network:
+            name: "{{ network_name }}"
+            state: present
+            driver: bridge
+
+        # ── Step 3 : start GREEN candidate ────────────────────────────────
+        - name: "[3/5] Remove any stale candidate container"
+          community.docker.docker_container:
+            name: "{{ green_name }}"
+            state: absent
+          failed_when: false
+
+        - name: "[3/5] Start GREEN candidate on temporary port {{ green_port }}"
+          community.docker.docker_container:
+            name: "{{ green_name }}"
+            image: "{{ docker_image }}"
+            state: started
+            restart_policy: "no"
+            pull: never
+            published_ports:
+              - "{{ green_port }}:{{ app_port }}"
+            env: "{{ env_vars }}"
+            networks:
+              - name: "{{ network_name }}"
+            log_driver: json-file
+            log_options:
+              max-size: "10m"
+              max-file: "3"
+          register: green_started
+
+        # ── Step 4 : health-check GREEN ────────────────────────────────────
+        - name: "[4/5] Health-check GREEN candidate"
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:{{ green_port }}{{ health_check_path }}"
+            method: GET
+            status_code: [200, 301, 302, 401, 403, 404]
+            timeout: 5
+          register: green_health
+          retries: 10
+          delay: 5
+          until: green_health is successful
+
+        # ── Step 5 : promote GREEN → swap ─────────────────────────────────
+        - name: "[5/5] Update Nginx upstream to GREEN port {{ green_port }}"
+          ansible.builtin.copy:
+            dest: /etc/nginx/sites-available/{{ container_name }}
+            content: |
+              upstream {{ container_name }}_backend {
+                server 127.0.0.1:{{ green_port }};
+                keepalive 32;
+              }
+
+              server {
+                listen 80;
+                server_name {{ domain if domain | length > 0 else '_' }};
+                client_max_body_size 100M;
+
+                location / {
+                  proxy_pass http://{{ container_name }}_backend;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_cache_bypass $http_upgrade;
+                  proxy_read_timeout 3600s;
+                  proxy_send_timeout 3600s;
+                  proxy_connect_timeout 7200s;
+                }
+
+                location {{ health_check_path }} {
+                  access_log off;
+                  proxy_pass http://{{ container_name }}_backend;
+                }
+              }
+            owner: root
+            group: root
+            mode: '0644'
+
+        - name: "[5/5] Enable Nginx site"
+          ansible.builtin.file:
+            src: /etc/nginx/sites-available/{{ container_name }}
+            dest: /etc/nginx/sites-enabled/{{ container_name }}
+            state: link
+
+        - name: "[5/5] Reload Nginx to serve GREEN"
+          ansible.builtin.service:
+            name: nginx
+            state: reloaded
+
+        - name: "[5/5] Stop BLUE container (now traffic goes to GREEN via Nginx)"
+          community.docker.docker_container:
+            name: "{{ container_name }}"
+            state: absent
+          failed_when: false
+
+        - name: "[5/5] Rename GREEN candidate → canonical name"
+          ansible.builtin.command:
+            argv:
+              - docker
+              - rename
+              - "{{ green_name }}"
+              - "{{ container_name }}"
+          register: rename_result
+          changed_when: rename_result.rc == 0
+
+        - name: "[5/5] Stop renamed container to rebind on canonical port"
+          community.docker.docker_container:
+            name: "{{ container_name }}"
+            state: stopped
+          failed_when: false
+
+        - name: "[5/5] Re-start container on canonical port {{ app_port }}"
+          community.docker.docker_container:
+            name: "{{ container_name }}"
+            image: "{{ docker_image }}"
+            state: started
+            restart_policy: always
+            pull: never
+            published_ports:
+              - "{{ app_port }}:{{ app_port }}"
+            env: "{{ env_vars }}"
+            networks:
+              - name: "{{ network_name }}"
+            log_driver: json-file
+            log_options:
+              max-size: "10m"
+              max-file: "3"
+
+        - name: "[5/5] Update Nginx upstream to canonical port {{ app_port }}"
+          ansible.builtin.copy:
+            dest: /etc/nginx/sites-available/{{ container_name }}
+            content: |
+              upstream {{ container_name }}_backend {
+                server 127.0.0.1:{{ app_port }};
+                keepalive 32;
+              }
+
+              server {
+                listen 80;
+                server_name {{ domain if domain | length > 0 else '_' }};
+                client_max_body_size 100M;
+
+                location / {
+                  proxy_pass http://{{ container_name }}_backend;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_cache_bypass $http_upgrade;
+                  proxy_read_timeout 3600s;
+                  proxy_send_timeout 3600s;
+                  proxy_connect_timeout 7200s;
+                }
+
+                location {{ health_check_path }} {
+                  access_log off;
+                  proxy_pass http://{{ container_name }}_backend;
+                }
+              }
+            owner: root
+            group: root
+            mode: '0644'
+
+        - name: "[5/5] Final Nginx reload"
+          ansible.builtin.service:
+            name: nginx
+            state: reloaded
+
+      rescue:
+        # ── AUTO-ROLLBACK ──────────────────────────────────────────────────
+        - name: "[ROLLBACK] GREEN health check failed — stopping candidate"
+          community.docker.docker_container:
+            name: "{{ green_name }}"
+            state: absent
+          failed_when: false
+
+        - name: "[ROLLBACK] Verify BLUE container is still running"
+          ansible.builtin.command: "docker ps -f name={{ container_name }} --format='{{'{{'}} .Names {{'}}'}}'"
+          register: blue_still_running
+          changed_when: false
+
+        - name: "[ROLLBACK] Log auto-rollback"
+          ansible.builtin.shell: |
+            echo "AUTO-ROLLBACK at $(date): GREEN candidate failed health-check. BLUE kept running." \
+              >> {{ logs_dir }}/deploy-bg-{{ ansible_date_time.date }}-{{ ansible_date_time.time }}.log
+          changed_when: true
+
+        - name: "[ROLLBACK] Fail play with rollback notice"
+          ansible.builtin.fail:
+            msg: >
+              GREEN candidate failed health-check. BLUE container ({{ blue_image }}) kept running.
+              Zero downtime preserved. Fix the image and redeploy.
+
+  post_tasks:
+    - name: "[POST] Cleanup old images (keep latest 3)"
+      ansible.builtin.shell: |
+        CURRENT_IMAGE="{{ docker_image | quote }}"
+        docker images --format "table {{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.CreatedAt}}" | \
+        grep "${CURRENT_IMAGE%:*}" | awk '{print $2}' | \
+        tail -n +4 | xargs -r docker rmi -f 2>/dev/null || true
+      register: cleanup
+      changed_when: cleanup.stdout != ''
+      failed_when: false
+
+    - name: "[POST] Display deployment summary"
+      ansible.builtin.debug:
+        msg: |
+          ✅ BLUE-GREEN DEPLOYMENT SUCCESSFUL
+
+          Image deployed: {{ docker_image }}
+          Container: {{ container_name }}
+          Port: {{ green_port }} (candidate) → serving traffic
+          Nginx: RELOADED
+          Previous (blue) image: {{ blue_image }}
+
+          Rollback: ansible-playbook rollback.yml -e "docker_image={{ blue_image }}"

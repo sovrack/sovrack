@@ -1,0 +1,52 @@
+---
+# =============================================================================
+# SSL certificate revocation / removal — Certbot.
+# =============================================================================
+# Invoque par le backend (SslCertificateService.revoke) pour supprimer le
+# certificat TLS d'un domaine et son vhost nginx associe.
+#
+# Idempotent : ne echoue pas si le certificat/vhost n'existe pas.
+#
+# Extra-vars requis :
+#   domain_name    FQDN du domaine dont le certificat doit etre supprime
+# =============================================================================
+
+- name: "SSL | Revoquer et supprimer le certificat de {{ domain_name }}"
+  hosts: "{{ target_hosts | default('targets') }}"
+  become: true
+  gather_facts: false
+
+  pre_tasks:
+    - name: "SSL | Valider domain_name"
+      ansible.builtin.assert:
+        that:
+          - domain_name | default('') | length > 0
+        fail_msg: "domain_name est requis."
+      tags: always
+
+  tasks:
+    - name: "SSL | Supprimer le certificat {{ domain_name }} (idempotent)"
+      ansible.builtin.command: >-
+        certbot delete --non-interactive --cert-name {{ domain_name }}
+      register: certbot_delete
+      changed_when: >-
+        'Deleted' in certbot_delete.stdout or 'removed' in certbot_delete.stdout
+      failed_when:
+        - certbot_delete.rc != 0
+        - "'No certificate found' not in (certbot_delete.stderr | default(''))"
+        - "'could not be found' not in (certbot_delete.stderr | default(''))"
+
+    - name: "SSL | Retirer le vhost nginx de {{ domain_name }}"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/etc/nginx/sites-enabled/{{ domain_name }}.conf"
+        - "/etc/nginx/sites-available/{{ domain_name }}.conf"
+      notify: reload nginx
+
+  handlers:
+    - name: reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

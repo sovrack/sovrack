@@ -1,0 +1,47 @@
+---
+- name: "nixpacks | Check if already installed"
+  ansible.builtin.stat:
+    path: "{{ nixpacks_install_dir }}/nixpacks"
+  register: nixpacks_binary
+
+# Self-sufficient: refresh the apt cache here (idempotent, cache_valid_time)
+# so this role can run standalone without depending on the system_base role.
+- name: "nixpacks | Refresh apt cache"
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when:
+    - ansible_os_family == 'Debian'
+    - not nixpacks_binary.stat.exists
+
+- name: "nixpacks | Install prerequisites (curl, gzip)"
+  ansible.builtin.package:
+    name:
+      - curl
+      - gzip
+    state: present
+  when: not nixpacks_binary.stat.exists
+
+- name: "nixpacks | Download and install"
+  ansible.builtin.get_url:
+    url: "{{ nixpacks_install_script }}"
+    dest: /tmp/install-nixpacks.sh
+    mode: '0755'
+  when: not nixpacks_binary.stat.exists
+
+- name: "nixpacks | Run install script with pinned version"
+  ansible.builtin.shell: /tmp/install-nixpacks.sh --yes
+  args:
+    creates: "{{ nixpacks_install_dir }}/nixpacks"
+  when: not nixpacks_binary.stat.exists
+  environment:
+    NIXPACKS_VERSION: "{{ nixpacks_version }}"
+
+- name: "nixpacks | Verify installation"
+  ansible.builtin.command: "{{ nixpacks_install_dir }}/nixpacks --version"
+  register: nixpacks_version_result
+  changed_when: false
+
+- name: "nixpacks | Log version"
+  ansible.builtin.debug:
+    msg: "Nixpacks installed: {{ nixpacks_version_result.stdout }}"

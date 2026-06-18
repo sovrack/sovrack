@@ -1,0 +1,5 @@
+---
+dependencies: []
+galaxy_info:
+  role_name: gitlab_runner
+  description: GitLab Runner package installation. Registration remains a separate secret-aware action.

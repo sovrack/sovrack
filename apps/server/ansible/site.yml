@@ -1,0 +1,149 @@
+---
+# Deploy Automation - Main Playbook
+# Orchestrates all Ansible roles for complete server setup
+#
+# Usage:
+#   ansible-playbook -i inventories/production.yml site.yml
+#   ansible-playbook -i inventories/production.yml site.yml --tags postgres
+#   ansible-playbook -i inventories/staging.yml site.yml --skip-tags backup
+
+- name: "Deploy Automation | Main Infrastructure Playbook"
+  hosts: "{{ target_hosts | default('all') }}"
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  
+  pre_tasks:
+    - name: "Main | Display deployment information"
+      debug:
+        msg:
+          - "================================"
+          - "Deploy Automation - Main Playbook"
+          - "Environment: {{ app_environment }}"
+          - "Target Hosts: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Time: {{ ansible_date_time.iso8601 }}"
+          - "================================"
+      run_once: yes
+      tags: always
+
+    - name: "Main | Validate required variables"
+      assert:
+        that:
+          - app_db_password is defined
+          - app_environment is defined
+        fail_msg: "Missing required variables. Check group_vars."
+      tags: always
+
+    - name: "Main | Update system packages"
+      apt:
+        update_cache: yes
+        upgrade: dist
+        cache_valid_time: 3600
+      retries: 3
+      delay: 10
+      register: apt_upgrade
+      until: apt_upgrade is succeeded
+      tags:
+        - always
+        - system
+
+  roles:
+    # Docker and containerization
+    - role: docker
+      tags:
+        - docker
+        - containers
+      when: enable_docker | default(true)
+
+    # Web server
+    - role: nginx
+      tags:
+        - web
+        - nginx
+        - reverse-proxy
+      when: enable_nginx | default(true)
+
+    # Database - CRITICAL
+    - role: postgres
+      tags:
+        - database
+        - postgresql
+        - postgres
+        - data
+      when: enable_postgresql | default(true)
+
+    # SSL/TLS Certificates - CRITICAL
+    - role: ssl
+      tags:
+        - ssl
+        - tls
+        - security
+        - certificates
+      when: enable_ssl | default(true)
+
+    # Firewall - CRITICAL
+    - role: firewall
+      tags:
+        - firewall
+        - security
+        - iptables
+        - ufw
+      when: enable_firewall | default(true)
+
+    # GitLab Runner (if needed)
+    - role: gitlab_runner
+      tags:
+        - ci-cd
+        - gitlab
+        - runner
+        - gitlab-runner
+      when: enable_gitlab_runner | default(false)
+
+  post_tasks:
+    - name: "Main | Collect system information"
+      setup:
+      tags: always
+
+    - name: "Main | Display system status"
+      debug:
+        msg:
+          - "System Information:"
+          - "  - Hostname: {{ inventory_hostname }}"
+          - "  - IP Address: {{ ansible_default_ipv4.address }}"
+          - "  - OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "  - Kernel: {{ ansible_kernel }}"
+          - "  - CPUs: {{ ansible_processor_vcpus }}"
+          - "  - Memory: {{ (ansible_memtotal_mb / 1024) | int }}GB"
+          - "  - Disk: {{ (ansible_devices[ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='device') | first | regex_replace('^/dev/', '') | regex_replace('[0-9]+$', '')].size | default(0) | int / 1000000000000) | round(1) }}TB"
+          - ""
+          - "Service Status:"
+          - "  - Docker: {{ 'installed' if 'docker' in ansible_facts.packages else 'not installed' }}"
+          - "  - PostgreSQL: {{ 'installed' if 'postgresql-16' in ansible_facts.packages else 'not installed' }}"
+          - "  - Nginx: {{ 'installed' if 'nginx' in ansible_facts.packages else 'not installed' }}"
+          - "  - Certbot: {{ 'installed' if 'certbot' in ansible_facts.packages else 'not installed' }}"
+          - "  - UFW: {{ 'installed' if 'ufw' in ansible_facts.packages else 'not installed' }}"
+          - ""
+          - "Deployment completed at {{ ansible_date_time.iso8601 }}"
+      tags: always
+
+  handlers:
+    - name: restart nginx
+      systemd:
+        name: nginx
+        state: restarted
+      listen: "restart nginx"
+
+    - name: restart postgresql
+      systemd:
+        name: postgresql
+        state: restarted
+      listen: "restart postgresql"
+
+    - name: restart docker
+      systemd:
+        name: docker
+        state: restarted
+      listen: "restart docker"

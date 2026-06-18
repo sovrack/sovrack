@@ -1,0 +1,38 @@
+---
+- name: "grafana | Ensure Docker is available"
+  ansible.builtin.command: docker --version
+  changed_when: false
+
+- name: "grafana | Create data directory"
+  ansible.builtin.file:
+    path: "{{ grafana_data_dir }}"
+    state: directory
+    owner: "472"
+    group: "472"
+    mode: '0755'
+
+- name: "grafana | Remove previous container if present"
+  ansible.builtin.shell: docker rm -f grafana >/dev/null 2>&1 || true
+  changed_when: false
+
+- name: "grafana | Run Grafana container"
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - -d
+      - --name
+      - grafana
+      - --restart
+      - unless-stopped
+      - --publish
+      - "{{ grafana_port }}:3000"
+      - --volume
+      - "{{ grafana_data_dir }}:/var/lib/grafana"
+      - --env
+      - "GF_SECURITY_ADMIN_USER={{ grafana_admin_user }}"
+      - --env
+      - "GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}"
+      - "{{ grafana_image }}"
+  register: grafana_run
+  changed_when: grafana_run.rc == 0

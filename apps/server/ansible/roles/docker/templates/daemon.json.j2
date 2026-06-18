@@ -1,0 +1,14 @@
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }{% if docker_tls_enabled %},
+  "hosts": ["unix:///var/run/docker.sock",
+             "tcp://0.0.0.0:{{ docker_tls_port }}"],
+  "tls": true,
+  "tlsverify": true,
+  "tlscacert": "{{ docker_tls_dir }}/ca.pem",
+  "tlscert": "{{ docker_tls_dir }}/server-cert.pem",
+  "tlskey": "{{ docker_tls_dir }}/server-key.pem"{% endif %}
+}

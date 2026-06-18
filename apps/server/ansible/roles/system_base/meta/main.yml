@@ -1,0 +1,4 @@
+---
+galaxy_info:
+  role_name: system_base
+  description: System base — apt cache refresh and essential base packages for agentless VPS preparation.

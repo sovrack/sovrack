@@ -1,0 +1,54 @@
+---
+- name: "prometheus | Ensure Docker is available"
+  ansible.builtin.command: docker --version
+  changed_when: false
+
+- name: "prometheus | Create configuration directory"
+  ansible.builtin.file:
+    path: "{{ prometheus_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: "prometheus | Create storage directory"
+  ansible.builtin.file:
+    path: "{{ prometheus_storage_dir }}"
+    state: directory
+    owner: nobody
+    group: nogroup
+    mode: '0755'
+
+- name: "prometheus | Render configuration"
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ prometheus_config_dir }}/prometheus.yml"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: "prometheus | Remove previous container if present"
+  ansible.builtin.shell: docker rm -f prometheus >/dev/null 2>&1 || true
+  changed_when: false
+
+- name: "prometheus | Run Prometheus container"
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - -d
+      - --name
+      - prometheus
+      - --restart
+      - unless-stopped
+      - --publish
+      - "{{ prometheus_port }}:9090"
+      - --volume
+      - "{{ prometheus_config_dir }}/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+      - --volume
+      - "{{ prometheus_storage_dir }}:/prometheus"
+      - "{{ prometheus_image }}"
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+  register: prometheus_run
+  changed_when: prometheus_run.rc == 0

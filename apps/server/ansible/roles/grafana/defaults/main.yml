@@ -1,0 +1,6 @@
+---
+grafana_image: grafana/grafana:11.2.0
+grafana_port: 3000
+grafana_data_dir: /opt/monitoring/grafana/data
+grafana_admin_user: admin
+grafana_admin_password: admin

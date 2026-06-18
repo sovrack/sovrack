@@ -1,0 +1,47 @@
+---
+# =============================================================================
+# SSL certificate renewal — Let's Encrypt (Certbot) + Nginx reload.
+# =============================================================================
+# Invoked by the backend (SslRenewalService) from the daily renewal cron to
+# renew certificates that are close to expiry, then reload nginx so the new
+# certificate is served without downtime.
+#
+# Required extra-vars (passed by the backend):
+#   domain_name   FQDN being renewed (informational; certbot renews all due)
+#
+# Optional:
+#   target_hosts  Inventory group to target (default: 'targets')
+# =============================================================================
+
+- name: "SSL | Renew Let's Encrypt certificates ({{ domain_name | default('all due') }})"
+  hosts: "{{ target_hosts | default('targets') }}"
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: "SSL | Check certbot is installed"
+      ansible.builtin.command: which certbot
+      register: certbot_check
+      failed_when: false
+      changed_when: false
+
+    - name: "SSL | Renew certificates with certbot"
+      ansible.builtin.command: certbot renew --non-interactive --agree-tos
+      register: certbot_result
+      when: certbot_check.rc == 0
+      changed_when: >-
+        ('Congratulations' in certbot_result.stdout) or
+        ('renewed' in certbot_result.stdout)
+
+    - name: "SSL | Reload nginx after renewal"
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded
+      when:
+        - certbot_check.rc == 0
+        - certbot_result.changed | default(false)
+
+    - name: "SSL | Report when certbot is absent"
+      ansible.builtin.debug:
+        msg: "certbot is not installed on this server, skipping renewal"
+      when: certbot_check.rc != 0

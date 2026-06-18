@@ -1,0 +1,35 @@
+---
+# Common variables for all hosts
+
+# SSH Configuration
+ansible_ssh_common_args: '-o StrictHostKeyChecking=accept-new'
+ansible_timeout: 30
+
+# Package management
+apt_cache_valid_time: 3600
+
+# User
+deploy_user: ubuntu
+
+# Paths
+app_home: /opt/deploy-automation
+
+# Docker
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-compose-plugin
+
+# Python
+python_packages:
+  - python3
+  - python3-pip
+  - python3-venv
+
+# Ansible
+ansible_core_version: "latest"
+
+# GitLab Runner
+gitlab_runner_url: "https://gitlab.com/"
+gitlab_runner_token: "{{ lookup('env', 'GITLAB_RUNNER_TOKEN') }}"

@@ -36,10 +36,10 @@ COPY --from=builder /app/dist ./dist
 # Prisma schema for migrations
 COPY prisma ./prisma
 
-# Ansible playbooks — mount at runtime via volume (ex: -v /host/devops/ansible:/app/devops/ansible)
-# Build from repo root with: docker build -f backend/Dockerfile --build-context ansible=devops/ansible .
-# Or copy backend/devops/ansible/ before building.
-RUN mkdir -p /app/devops/ansible && chown appuser:appgroup /app/devops/ansible
+# Ansible playbooks — embarqués dans le repo backend (self-contained).
+# Résolus via ANSIBLE_PLAYBOOKS_PATH (cf. ENV plus bas).
+COPY ansible ./ansible
+ENV ANSIBLE_PLAYBOOKS_PATH=/app/ansible/playbooks
 
 # ── Install Nixpacks (used by NixpacksService for local builds + plan generation) ──
 # Nixpacks is a single static binary (~50MB) — no runtime deps, no Nix daemon required.

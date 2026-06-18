@@ -1,0 +1,312 @@
+---
+# Internal build engine — no GitLab Runner required, no registry required.
+#
+# This playbook:
+#   1. Clones the git repository directly on the VPS
+#   2. Builds the Docker image locally (docker build)
+#   3. Deploys the container with blue-green zero-downtime
+#
+# Required extra-vars:
+#   repo_url        Git clone URL (HTTPS with token or SSH)
+#   repo_branch     Branch to build
+#   container_name  Canonical container name
+#   app_port        Port exposed by the app
+#   image_tag       Docker image tag (e.g. myapp:main)
+#
+# Optional:
+#   git_token       PAT or deploy token (for HTTPS clone)
+#   dockerfile_path Path to Dockerfile inside the repo (default: Dockerfile)
+#   build_args      Dict of Docker build-arg values
+#   env_vars        Dict of runtime environment variables
+#   domain          Domain for Nginx vhost
+
+- name: Internal build — clone, build, deploy (zero-downtime)
+  hosts: targets
+  become: true
+
+  vars:
+    # Static defaults — extra-vars passed by the backend take precedence.
+    container_name: "deploy-app"
+    app_port: 3000
+    repo_url: ""
+    repo_branch: "main"
+    image_tag: "deploy-app:main"
+    git_token: ""
+    dockerfile_path: "Dockerfile"
+    build_args: {}
+    env_vars: {}
+    domain: ""
+    health_check_path: "/health"
+    max_retries: 5
+    retry_delay: 5
+    logs_dir: "/var/log/deployments"
+
+    # Internal
+    workspace: "/opt/platform-builds/{{ container_name }}"
+    green_name: "{{ container_name }}-candidate"
+    green_port: "{{ (app_port | int) + 10000 }}"
+    network_name: "{{ container_name }}-network"
+
+  pre_tasks:
+    - name: "[PRE] Create build workspace"
+      ansible.builtin.file:
+        path: "{{ workspace }}"
+        state: directory
+        mode: '0755'
+
+    - name: "[PRE] Create log directory"
+      ansible.builtin.file:
+        path: "{{ logs_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: "[PRE] Record existing image for rollback reference"
+      ansible.builtin.shell: |
+        docker inspect --format='{{"{{"}}{{".Config.Image"}}{{"}}"}}' {{ container_name }} 2>/dev/null || echo "none"
+      register: blue_image_result
+      changed_when: false
+
+    - name: "[PRE] Set blue_image fact"
+      ansible.builtin.set_fact:
+        blue_image: "{{ blue_image_result.stdout | trim }}"
+
+    - name: "[PRE] Check Docker is available"
+      ansible.builtin.command: docker --version
+      register: docker_version_check
+      changed_when: false
+      failed_when: docker_version_check.rc != 0
+
+    - name: "[PRE] Check Docker Compose plugin is available"
+      ansible.builtin.command: docker compose version
+      register: docker_compose_version_check
+      changed_when: false
+      failed_when: docker_compose_version_check.rc != 0
+
+  tasks:
+    - name: "Clone → Build → Deploy (blue-green)"
+      block:
+        # ── Clone ────────────────────────────────────────────────────────
+        - name: "[1/4] Display clone source (token masked)"
+          ansible.builtin.debug:
+            msg: >-
+              Cloning from {% if '@' in repo_url %}https://***@{{
+                repo_url | regex_replace('^https?://[^@]+@', '')
+              }}{% else %}{{ repo_url }}{% endif %}
+              Branch: {{ repo_branch }}
+          when: git_token | length > 0
+
+        - name: "[1/4] Display clone source (no token)"
+          ansible.builtin.debug:
+            msg: "Cloning from {{ repo_url }} / branch {{ repo_branch }}"
+          when: git_token | length == 0
+
+        - name: "[1/4] Inject token into clone URL"
+          ansible.builtin.set_fact:
+            authenticated_url: >-
+              {% if '://' in repo_url %}
+              {{ repo_url.split('://', 1)[0] }}://oauth2:{{ git_token }}@{{ repo_url.split('://', 1)[1] }}
+              {% else %}
+              https://oauth2:{{ git_token }}@{{ repo_url }}
+              {% endif %}
+          no_log: true
+
+        - name: "[1/4] Remove stale workspace"
+          ansible.builtin.file:
+            path: "{{ workspace }}"
+            state: absent
+
+        - name: "[1/4] Clone repository"
+          ansible.builtin.git:
+            repo: "{{ authenticated_url }}"
+            dest: "{{ workspace }}"
+            version: "{{ repo_branch }}"
+            depth: 1
+            force: true
+          no_log: true
+
+        # ── Build ────────────────────────────────────────────────────────
+        - name: "[2/4] Build Docker image"
+          ansible.builtin.shell: |
+            {% set build_arg_str = '' %}
+            {% for key, val in build_args.items() %}
+            {% set build_arg_str = build_arg_str + ' --build-arg ' + key + '=' + val %}
+            {% endfor %}
+            docker build \
+              -t {{ image_tag }} \
+              -f {{ workspace }}/{{ dockerfile_path }} \
+              {{ build_arg_str }} \
+              {{ workspace }}
+          args:
+            executable: /bin/bash
+          register: docker_build_result
+          timeout: 1800
+
+        # ── Blue-green deploy ─────────────────────────────────────────────
+        - name: "[3/4] Ensure Docker network exists"
+          community.docker.docker_network:
+            name: "{{ network_name }}"
+            state: present
+            driver: bridge
+
+        - name: "[3/4] Remove stale candidate container"
+          community.docker.docker_container:
+            name: "{{ green_name }}"
+            state: absent
+          failed_when: false
+
+        - name: "[3/4] Start GREEN candidate on port {{ green_port }}"
+          community.docker.docker_container:
+            name: "{{ green_name }}"
+            image: "{{ image_tag }}"
+            state: started
+            restart_policy: "no"
+            pull: never
+            published_ports:
+              - "{{ green_port }}:{{ app_port }}"
+            env: "{{ env_vars }}"
+            networks:
+              - name: "{{ network_name }}"
+            log_driver: json-file
+            log_options:
+              max-size: "10m"
+              max-file: "3"
+
+        - name: "[3/4] Health-check GREEN candidate"
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:{{ green_port }}{{ health_check_path }}"
+            method: GET
+            status_code: [200, 301, 302, 401, 403, 404]
+            timeout: 5
+          register: green_health
+          retries: 10
+          delay: 5
+          until: green_health is successful
+
+        # ── Promote ───────────────────────────────────────────────────────
+        - name: "[4/4] Configure Nginx for GREEN port"
+          ansible.builtin.copy:
+            dest: /etc/nginx/sites-available/{{ container_name }}
+            content: |
+              upstream {{ container_name }}_backend {
+                server 127.0.0.1:{{ green_port }};
+                keepalive 32;
+              }
+              server {
+                listen 80;
+                server_name {{ domain if domain | length > 0 else '_' }};
+                client_max_body_size 100M;
+                location / {
+                  proxy_pass http://{{ container_name }}_backend;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_cache_bypass $http_upgrade;
+                  proxy_read_timeout 3600s;
+                }
+                location {{ health_check_path }} {
+                  access_log off;
+                  proxy_pass http://{{ container_name }}_backend;
+                }
+              }
+            mode: '0644'
+
+        - name: "[4/4] Enable Nginx site"
+          ansible.builtin.file:
+            src: /etc/nginx/sites-available/{{ container_name }}
+            dest: /etc/nginx/sites-enabled/{{ container_name }}
+            state: link
+
+        - name: "[4/4] Reload Nginx to GREEN"
+          ansible.builtin.service:
+            name: nginx
+            state: reloaded
+
+        - name: "[4/4] Stop BLUE container"
+          community.docker.docker_container:
+            name: "{{ container_name }}"
+            state: absent
+          failed_when: false
+
+        - name: "[4/4] Promote GREEN → canonical name"
+          ansible.builtin.command: "docker rename {{ green_name }} {{ container_name }}"
+          changed_when: true
+
+        - name: "[4/4] Set restart policy to always"
+          ansible.builtin.command: "docker update --restart=always {{ container_name }}"
+          changed_when: true
+
+      rescue:
+        - name: "[ROLLBACK] Capture real failure info"
+          ansible.builtin.set_fact:
+            _failed_task: "{{ ansible_failed_task.name | default('unknown task') }}"
+            _failed_result: >-
+              {{
+                (ansible_failed_result.msg | default('no message'))
+                | regex_replace('oauth2:[^@]+@', 'oauth2:***@')
+                | regex_replace('://[^:]+:[^@]+@', '://***:***@')
+              }}
+          failed_when: false
+
+        - name: "[ROLLBACK] Write build logs to file"
+          ansible.builtin.copy:
+            dest: "{{ logs_dir }}/{{ container_name }}-fail.log"
+            content: |
+              Timestamp: {{ ansible_date_time.iso8601 }}
+              Image tag: {{ image_tag }}
+              Branch: {{ repo_branch }}
+              Dockerfile: {{ dockerfile_path }}
+              Failed task: {{ _failed_task }}
+
+              === docker_build_result.stdout ===
+              {{ docker_build_result.stdout | default('(task not reached)') }}
+              === docker_build_result.stderr ===
+              {{ docker_build_result.stderr | default('(task not reached)') }}
+              === docker_version_check.stdout ===
+              {{ docker_version_check.stdout | default('(task not reached)') }}
+              === green_health.msg ===
+              {{ green_health.msg | default('(task not reached)') }}
+              === Failed result ===
+              {{ _failed_result }}
+            mode: '0644'
+          failed_when: false
+
+        - name: "[ROLLBACK] Stop failed candidate"
+          community.docker.docker_container:
+            name: "{{ green_name }}"
+            state: absent
+          failed_when: false
+
+        - name: "[ROLLBACK] Fail with informative message"
+          ansible.builtin.fail:
+            msg: |
+              🔴 LOCAL BUILD FAILED
+              Failed task : {{ _failed_task }}
+              Details     : {{ _failed_result | truncate(500) }}
+              Log file    : {{ logs_dir }}/{{ container_name }}-fail.log
+              Rollback    : Previous {{ blue_image | default('none') }} kept running.
+
+  post_tasks:
+    - name: "[POST] Cleanup workspace"
+      ansible.builtin.file:
+        path: "{{ workspace }}"
+        state: absent
+
+    - name: "[POST] Remove old build images (keep latest 2)"
+      ansible.builtin.shell: |
+        docker images --format '{{.Repository}}:{{.Tag}}\t{{.ID}}' | \
+        grep "^{{ image_tag | regex_replace(':.*', '') }}:" | \
+        awk '{print $2}' | tail -n +3 | xargs -r docker rmi -f 2>/dev/null || true
+      changed_when: false
+      failed_when: false
+
+    - name: "[POST] Summary"
+      ansible.builtin.debug:
+        msg: |
+          ✅ LOCAL BUILD + BLUE-GREEN DEPLOY SUCCESSFUL
+          Image: {{ image_tag }}
+          Container: {{ container_name }}
+          Branch: {{ repo_branch }}
+          Previous: {{ blue_image }}

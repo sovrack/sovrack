@@ -1,0 +1,12 @@
+---
+- name: "node_exporter | Install package"
+  ansible.builtin.package:
+    name: prometheus-node-exporter
+    state: present
+
+- name: "node_exporter | Ensure service is enabled"
+  ansible.builtin.systemd:
+    name: prometheus-node-exporter
+    state: started
+    enabled: true
+  failed_when: false

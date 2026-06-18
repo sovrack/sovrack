@@ -1,0 +1,5 @@
+---
+dependencies: []
+galaxy_info:
+  role_name: fail2ban
+  description: SSH brute-force protection.

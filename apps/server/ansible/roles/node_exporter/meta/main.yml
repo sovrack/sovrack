@@ -1,0 +1,4 @@
+---
+galaxy_info:
+  role_name: node_exporter
+  description: Install Node Exporter for VPS monitoring.

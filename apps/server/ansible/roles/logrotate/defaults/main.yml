@@ -1,0 +1,3 @@
+---
+logrotate_package: logrotate
+logrotate_platform_path: /etc/logrotate.d/platform-defaults

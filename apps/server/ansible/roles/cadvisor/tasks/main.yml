@@ -1,0 +1,28 @@
+---
+- name: "cadvisor | Ensure Docker is available"
+  ansible.builtin.command: docker --version
+  changed_when: false
+
+- name: "cadvisor | Remove previous container if present"
+  ansible.builtin.shell: docker rm -f cadvisor >/dev/null 2>&1 || true
+  changed_when: false
+
+- name: "cadvisor | Run cAdvisor container"
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - -d
+      - --name
+      - cadvisor
+      - --restart
+      - unless-stopped
+      - --volume=/:/rootfs:ro
+      - --volume=/var/run:/var/run:ro
+      - --volume=/sys:/sys:ro
+      - --volume=/var/lib/docker/:/var/lib/docker:ro
+      - --publish
+      - "{{ cadvisor_port }}:8080"
+      - "{{ cadvisor_image }}"
+  register: cadvisor_run
+  changed_when: cadvisor_run.rc == 0

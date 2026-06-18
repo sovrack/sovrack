@@ -1,0 +1,4 @@
+---
+gitlab_runner_package: gitlab-runner
+gitlab_runner_executor: "docker"
+gitlab_runner_add_to_docker_group: true

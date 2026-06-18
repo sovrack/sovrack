@@ -1,0 +1,3 @@
+---
+cadvisor_image: gcr.io/cadvisor/cadvisor:v0.47.2
+cadvisor_port: 8080

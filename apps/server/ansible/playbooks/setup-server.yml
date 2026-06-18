@@ -1,0 +1,268 @@
+---
+- name: Configuration initiale serveur (Production-Ready)
+  hosts: all
+  gather_facts: yes
+  become: true
+  vars:
+    max_retries: 5
+    retry_delay: 10
+    logs_dir: "/var/log/server-setup"
+
+  pre_tasks:
+    - name: "[PRE] Create setup log directory"
+      ansible.builtin.file:
+        path: "{{ logs_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: "[PRE] Initialize setup log"
+      ansible.builtin.copy:
+        content: |
+          ==========================================
+          Server Setup Started: {{ ansible_date_time.iso8601 }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          ==========================================
+        dest: "{{ logs_dir }}/setup-{{ ansible_date_time.date }}-{{ ansible_date_time.time }}.log"
+        mode: '0644'
+
+  tasks:
+    - name: "[1/6] Update package cache"
+      ansible.builtin.apt:
+        update_cache: yes
+      register: apt_update
+      retries: "{{ max_retries }}"
+      delay: "{{ retry_delay }}"
+      until: apt_update is successful
+      failed_when:
+        - apt_update is failed
+        - "'Failed to fetch' in apt_update.msg"
+
+    - name: "[1/6] Upgrade packages"
+      ansible.builtin.apt:
+        upgrade: full
+      register: apt_upgrade
+      retries: "{{ max_retries }}"
+      delay: "{{ retry_delay }}"
+      until: apt_upgrade is successful
+      timeout: 600
+
+    - name: "[2/6] Install Docker dependencies"
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - python3-pip
+          - python3-docker
+          - git
+          - openssh-server
+          - openssh-client
+          - vim
+          - htop
+          - net-tools
+        state: present
+      register: deps_install
+      retries: "{{ max_retries }}"
+      delay: "{{ retry_delay }}"
+      until: deps_install is successful
+
+    - name: "[2/6] Verify critical tools are installed"
+      ansible.builtin.shell: |
+        which curl git python3-pip
+      register: tools_check
+      changed_when: false
+      failed_when: tools_check is failed
+
+    - name: "[3/6] Detect architecture"
+      ansible.builtin.set_fact:
+        docker_arch: "{{ ansible_architecture | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}"
+
+    - name: "[3/6] Determine Docker OS type"
+      ansible.builtin.set_fact:
+        docker_os: "{{ ansible_distribution | lower }}"
+
+    - name: "[3/6] Add Docker GPG key"
+      ansible.builtin.apt_key:
+        url: "https://download.docker.com/linux/{{ docker_os }}/gpg"
+        state: present
+        keyring: /usr/share/keyrings/docker-archive-keyring.gpg
+      register: docker_gpg
+      retries: "{{ max_retries }}"
+      delay: "{{ retry_delay }}"
+      until: docker_gpg is successful
+
+    - name: "[3/6] Add Docker repository"
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch={{ docker_arch }} signed-by=/usr/share/keyrings/docker-archive-keyring.gpg]
+          https://download.docker.com/linux/{{ docker_os }}
+          {{ ansible_distribution_release }} stable
+        state: present
+        filename: docker
+      register: docker_repo
+      retries: "{{ max_retries }}"
+      delay: "{{ retry_delay }}"
+      until: docker_repo is successful
+
+    - name: "[3/6] Verify Docker repository is accessible"
+      ansible.builtin.shell: |
+        apt-cache policy docker-ce | head -n 10
+      register: docker_policy
+      changed_when: false
+      failed_when: 
+        - docker_policy is failed
+        - "'docker-ce' not in docker_policy.stdout"
+
+    - name: "[4/6] Install Docker Engine"
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+      register: docker_install
+      retries: "{{ max_retries }}"
+      delay: "{{ retry_delay }}"
+      until: docker_install is successful
+      timeout: 300
+
+    - name: "[4/6] Verify Docker installation"
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+      failed_when: 
+        - docker_version is failed
+        - "'Docker version' not in docker_version.stdout"
+
+    - name: "[4/6] Verify Docker Compose plugin installation"
+      ansible.builtin.command: docker compose version
+      register: docker_compose_version
+      changed_when: false
+      failed_when:
+        - docker_compose_version is failed
+        - "'Docker Compose' not in docker_compose_version.stdout"
+
+    - name: "[4/6] Start Docker daemon"
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: yes
+        daemon_reload: yes
+      register: docker_start
+      retries: "{{ max_retries }}"
+      delay: "{{ retry_delay }}"
+      until: docker_start is successful
+
+    - name: "[4/6] Verify Docker daemon is running"
+      ansible.builtin.command: docker ps
+      register: docker_ps
+      retries: 5
+      delay: 5
+      until: docker_ps is successful
+      changed_when: false
+
+    - name: "[4/6] Add ubuntu user to docker group"
+      ansible.builtin.user:
+        name: "{{ ansible_user | default('ubuntu') }}"
+        groups: docker
+        append: yes
+      register: user_docker_group
+
+    - name: "[5/6] Installer et configurer Nginx via rôle"
+      ansible.builtin.include_role:
+        name: nginx
+
+    - name: "[6/6] Configure system limits for Docker"
+      ansible.builtin.lineinfile:
+        path: /etc/security/limits.conf
+        line: "{{ item }}"
+        state: present
+      loop:
+        - "* soft nofile 65536"
+        - "* hard nofile 65536"
+        - "* soft nproc 32768"
+        - "* hard nproc 32768"
+      register: limits_config
+
+    - name: "[6/6] Configure Docker daemon.json"
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "10m",
+              "max-file": "3"
+            },
+            "storage-driver": "overlay2",
+            "live-restore": true,
+            "max-concurrent-downloads": 5,
+            "max-concurrent-uploads": 5
+          }
+        owner: root
+        group: root
+        mode: '0644'
+      register: docker_config
+      notify: Restart Docker
+
+    - name: "[6/6] Create deployment directories"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user | default('ubuntu') }}"
+        group: "{{ ansible_user | default('ubuntu') }}"
+      loop:
+        - "/home/{{ ansible_user | default('ubuntu') }}/deploy"
+        - "/home/{{ ansible_user | default('ubuntu') }}/deploy/repo"
+        - "/home/{{ ansible_user | default('ubuntu') }}/deploy/cache"
+        - "/home/{{ ansible_user | default('ubuntu') }}/deploy/logs"
+
+  handlers:
+    - name: Restart Docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+        daemon_reload: yes
+
+  post_tasks:
+    - name: "[POST] Run final system checks"
+      ansible.builtin.shell: |
+        echo "Docker: $(docker --version)" && \
+        echo "Docker Compose: $(docker compose version)" && \
+        echo "Nginx: $(nginx -v 2>&1)" && \
+        echo "Git: $(git --version)"
+      register: final_check
+      changed_when: false
+
+    - name: "[POST] Display setup summary"
+      ansible.builtin.debug:
+        msg: |
+          ✅ SERVER SETUP COMPLETED SUCCESSFULLY
+          
+          {{ final_check.stdout }}
+          
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          IP: {{ ansible_default_ipv4.address }}
+          
+          Deployment directories created:
+            - /home/{{ ansible_user | default('ubuntu') }}/deploy
+            - /home/{{ ansible_user | default('ubuntu') }}/deploy/repo
+            - /home/{{ ansible_user | default('ubuntu') }}/deploy/logs
+          
+          Next steps:
+            1. Configure SSH key authentication
+            2. Setup firewall rules
+            3. Configure automatic updates
+            4. Run deploy.yml playbook
+          
+          Setup logs: {{ logs_dir }}/setup-*.log
+
+    - name: "[POST] Log setup completion"
+      ansible.builtin.shell: |
+        echo "Setup completed successfully at $(date)" >> {{ logs_dir }}/setup-{{ ansible_date_time.date }}-{{ ansible_date_time.time }}.log
+      changed_when: true

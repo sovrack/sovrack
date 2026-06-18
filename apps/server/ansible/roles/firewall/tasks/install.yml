@@ -1,0 +1,44 @@
+---
+- name: "Firewall | Update APT cache"
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  retries: 5
+  delay: 10
+  register: apt_result
+  until: apt_result is succeeded
+  tags: firewall-install
+
+- name: "Firewall | Install UFW"
+  apt:
+    name:
+      - ufw
+      - fail2ban
+      - fail2ban-systemd
+    state: present
+  retries: 5
+  delay: 10
+  register: install_ufw
+  until: install_ufw is succeeded
+  tags: firewall-install
+
+- name: "Firewall | Reset UFW to defaults"
+  ufw:
+    state: reset
+  when: ufw_reset
+  tags: firewall-install
+
+- name: "Firewall | Configure UFW logging"
+  ufw:
+    logging: "{{ ufw_logging }}"
+  tags: firewall-install
+
+- name: "Firewall | Set default policies"
+  ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: 'incoming', policy: "{{ ufw_default_input }}" }
+    - { direction: 'outgoing', policy: "{{ ufw_default_output }}" }
+    - { direction: 'routed', policy: "{{ ufw_default_forward }}" }
+  tags: firewall-install

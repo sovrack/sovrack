@@ -1,0 +1,4 @@
+---
+galaxy_info:
+  role_name: cadvisor
+  description: Run cAdvisor as a container for container-level metrics.

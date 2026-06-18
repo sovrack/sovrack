@@ -1,0 +1,29 @@
+---
+# =============================================================================
+# Traefik — installe/maj le reverse proxy dynamique sur les serveurs cibles.
+# =============================================================================
+# Idempotent : relançable sans risque (ne réécrit pas acme.json).
+#
+# Extra-vars optionnels :
+#   traefik_letsencrypt_email   Email Let's Encrypt (défaut: rôle)
+#   target_hosts                Groupe d'inventaire ciblé (défaut: 'targets')
+#
+# Usage manuel :
+#   ansible-playbook playbooks/setup-traefik.yml \
+#     -e traefik_letsencrypt_email=ops@exemple.com
+#
+# Une fois Traefik en place, le moteur de déploiement route une app en posant
+# sur son conteneur les labels (réseau 'web' + ces labels) :
+#   traefik.enable=true
+#   traefik.http.routers.<svc>.rule=Host(`mon-app.com`)
+#   traefik.http.routers.<svc>.entrypoints=websecure
+#   traefik.http.routers.<svc>.tls.certresolver=le
+#   traefik.http.services.<svc>.loadbalancer.server.port=<port>
+# =============================================================================
+
+- name: "Traefik | Reverse proxy dynamique"
+  hosts: "{{ target_hosts | default('targets') }}"
+  become: true
+  gather_facts: true
+  roles:
+    - traefik

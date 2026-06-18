@@ -1,0 +1,249 @@
+---
+# Static site deployment — no Docker, no build, just Nginx.
+#
+# This playbook:
+#   1. Clones the git repository on the VPS
+#   2. Optionally runs a build command (e.g. `npm run build`, `hugo`, etc.)
+#   3. Copies the output directory to /var/www/<site>
+#   4. Configures Nginx to serve the static files
+#   5. Enables the site
+#
+# Use this for: Astro, Hugo, Jekyll, Gatsby, Eleventy, MkDocs, Docusaurus, etc.
+# Anything that produces static HTML/CSS/JS files at the end.
+#
+# Required extra-vars:
+#   repo_url        Git clone URL
+#   repo_branch     Branch to build
+#   site_name       Canonical site name (used for nginx site + /var/www path)
+#   source_dir      Path to the built files inside the repo (e.g. "dist", "public", "_site")
+#
+# Optional:
+#   git_token         PAT for HTTPS clone
+#   build_command     Command to run before copying (e.g. "npm run build")
+#   build_dir         Working directory for build (default: repo root)
+#   domain            Domain for Nginx vhost
+#   spa_fallback      true to rewrite 404 → /index.html (SPA mode, e.g. for React Router)
+#   page_404          Custom 404 page (e.g. "/404.html")
+
+- name: Static site — clone, build (optional), deploy via Nginx
+  hosts: targets
+  become: true
+
+  vars:
+    # Static defaults — extra-vars passed by the backend take precedence.
+    site_name: "static-site"
+    repo_url: ""
+    repo_branch: "main"
+    source_dir: "dist"
+    git_token: ""
+    build_command: ""
+    build_dir: ""
+    domain: ""
+    spa_fallback: false
+    page_404: ""
+    logs_dir: "/var/log/deployments"
+
+    # Internal
+    workspace: "/opt/platform-builds/static-{{ site_name }}"
+    web_root: "/var/www/{{ site_name }}"
+    releases_dir: "{{ web_root }}-releases"
+    current_link: "{{ web_root }}"
+
+  pre_tasks:
+    - name: "[PRE] Ensure Nginx is installed"
+      ansible.builtin.package:
+        name: nginx
+        state: present
+      register: nginx_install
+      retries: 3
+      delay: 5
+      until: nginx_install is success
+
+    - name: "[PRE] Create log directory"
+      ansible.builtin.file:
+        path: "{{ logs_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: "[PRE] Create release directories"
+      ansible.builtin.file:
+        path: "{{ releases_dir }}"
+        state: directory
+        mode: '0755'
+        owner: www-data
+        group: www-data
+
+    - name: "[PRE] Create web root directory"
+      ansible.builtin.file:
+        path: "{{ web_root }}"
+        state: directory
+        mode: '0755'
+        owner: www-data
+        group: www-data
+
+  tasks:
+    - name: "Clone → Build → Deploy static site"
+      block:
+        # ── Clone ──────────────────────────────────────────────────────────
+        - name: "[1/4] Inject token into clone URL (if provided)"
+          # Single-line expression: a folded scalar (>-) injects a leading space.
+          ansible.builtin.set_fact:
+            authenticated_url: "{{ repo_url.split('://', 1)[0] }}://oauth2:{{ git_token }}@{{ repo_url.split('://', 1)[1] }}"
+          no_log: true
+
+        - name: "[1/4] Remove stale workspace"
+          ansible.builtin.file:
+            path: "{{ workspace }}"
+            state: absent
+
+        - name: "[1/4] Clone repository (shallow)"
+          ansible.builtin.git:
+            repo: "{{ authenticated_url }}"
+            dest: "{{ workspace }}"
+            version: "{{ repo_branch }}"
+            depth: 1
+            force: true
+          no_log: "{{ git_token | length > 0 }}"
+
+        # ── Build (optional) ───────────────────────────────────────────────
+        - name: "[2/4] Run build command (if specified)"
+          ansible.builtin.shell: |
+            cd {{ build_dir | default(workspace) }}
+            {{ build_command }}
+          args:
+            executable: /bin/bash
+          when: build_command | length > 0
+          register: build_result
+          changed_when: build_result.rc == 0
+          timeout: 1800
+
+        # ── Publish to a timestamped release directory (atomic) ────────────
+        - name: "[3/4] Compute release path (timestamped)"
+          ansible.builtin.set_fact:
+            release_name: "{{ ansible_date_time.iso8601_basic_short | regex_replace('[^0-9]', '') }}"
+            release_path: "{{ releases_dir }}/{{ ansible_date_time.iso8601_basic_short | regex_replace('[^0-9]', '') }}"
+
+        - name: "[3/4] Copy build output to release directory"
+          ansible.builtin.copy:
+            src: "{{ workspace }}/{{ source_dir }}/"
+            dest: "{{ release_path }}/"
+            owner: www-data
+            group: www-data
+            mode: '0755'
+            directory_mode: '0755'
+          when: build_command | length == 0
+
+        - name: "[3/4] Copy build output to release directory (after build)"
+          ansible.builtin.copy:
+            src: "{{ build_dir | default(workspace) }}/{{ source_dir }}/"
+            dest: "{{ release_path }}/"
+            owner: www-data
+            group: www-data
+            mode: '0755'
+            directory_mode: '0755'
+          when: build_command | length > 0
+
+        - name: "[3/4] Atomic symlink swap (current → release)"
+          ansible.builtin.file:
+            src: "{{ release_path }}"
+            dest: "{{ current_link }}"
+            state: link
+            force: yes
+          notify: reload nginx
+
+        # ── Configure Nginx ────────────────────────────────────────────────
+        - name: "[4/4] Configure Nginx site for {{ site_name }}"
+          ansible.builtin.copy:
+            dest: /etc/nginx/sites-available/{{ site_name }}
+            content: |
+              server {
+                listen 80;
+                listen [::]:80;
+                server_name {{ domain if domain | length > 0 else '_' }};
+                root {{ current_link }};
+                index index.html index.htm;
+                client_max_body_size 100M;
+
+                location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+                  expires 1y;
+                  add_header Cache-Control "public, immutable";
+                  try_files $uri =404;
+                }
+
+                location = /health {
+                  access_log off;
+                  return 200 "ok\n";
+                }
+
+                {% if spa_fallback %}
+                location / {
+                  try_files $uri $uri/ /index.html;
+                }
+                {% else %}
+                location / {
+                  try_files $uri $uri/ {{ ('/' + page_404) if page_404 | length > 0 else '=404' }};
+                }
+                {% endif %}
+
+                error_page 404 {{ ('/' + page_404) if page_404 | length > 0 else '/404.html' }};
+                error_page 500 502 503 504 /50x.html;
+              }
+            mode: '0644'
+          notify: reload nginx
+
+        - name: "[4/4] Enable Nginx site"
+          ansible.builtin.file:
+            src: /etc/nginx/sites-available/{{ site_name }}
+            dest: /etc/nginx/sites-enabled/{{ site_name }}
+            state: link
+
+        - name: "[4/4] Remove default Nginx site (if present)"
+          ansible.builtin.file:
+            path: /etc/nginx/sites-enabled/default
+            state: absent
+          failed_when: false
+
+        - name: "[4/4] Test Nginx config"
+          ansible.builtin.command: nginx -t
+          changed_when: false
+
+        - name: "[4/4] Reload Nginx"
+          ansible.builtin.service:
+            name: nginx
+            state: reloaded
+
+      rescue:
+        - name: "[ROLLBACK] Fail with error message"
+          ansible.builtin.fail:
+            msg: >
+              Static site deployment failed.
+              Build output (if any): {{ (build_result.stdout | default('') + build_result.stderr | default('')) | truncate(1000) }}
+
+  post_tasks:
+    - name: "[POST] Cleanup workspace"
+      ansible.builtin.file:
+        path: "{{ workspace }}"
+        state: absent
+
+    - name: "[POST] Keep only last 3 releases"
+      ansible.builtin.shell: |
+        cd {{ releases_dir }}
+        ls -1tr | head -n -3 | xargs -r -I{} rm -rf {}
+      changed_when: false
+      failed_when: false
+
+    - name: "[POST] Summary"
+      ansible.builtin.debug:
+        msg: |
+          ✅ STATIC SITE DEPLOYED
+          Site: {{ site_name }}
+          Source: {{ source_dir }}
+          {% if build_command | length > 0 %}Build: {{ build_command }}{% endif %}
+          {% if spa_fallback %}Mode: SPA (index.html fallback){% endif %}
+          {% if domain | length > 0 %}Domain: {{ domain }}{% endif %}
+
+  handlers:
+    - name: reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

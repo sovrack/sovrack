@@ -1,0 +1,6 @@
+---
+# Deprecated compatibility playbook.
+# This playbook no longer installs Ansible on target VPS hosts.
+# Use prepare-server.yml with selected_roles instead.
+
+- import_playbook: prepare-server.yml

@@ -1,0 +1,45 @@
+---
+- name: "Firewall | Install Fail2Ban"
+  apt:
+    name:
+      - fail2ban
+      - fail2ban-systemd
+    state: present
+  retries: 5
+  delay: 10
+  register: install_fail2ban
+  until: install_fail2ban is succeeded
+  when: fail2ban_enabled
+  tags: firewall-fail2ban
+
+- name: "Firewall | Create Fail2Ban SSH jail configuration"
+  template:
+    src: fail2ban-sshd.conf.j2
+    dest: /etc/fail2ban/jail.d/sshd.conf
+    owner: root
+    group: root
+    mode: '0644'
+  when: fail2ban_ssh_enabled
+  notify: restart fail2ban
+  tags: firewall-fail2ban
+
+- name: "Firewall | Enable Fail2Ban service"
+  systemd:
+    name: fail2ban
+    enabled: yes
+    state: started
+  when: fail2ban_enabled
+  tags: firewall-fail2ban
+
+- name: "Firewall | Display Fail2Ban status"
+  shell: fail2ban-client status sshd
+  register: fail2ban_status
+  changed_when: false
+  when: fail2ban_ssh_enabled
+  tags: firewall-fail2ban
+
+- name: "Firewall | Show Fail2Ban details"
+  debug:
+    msg: "{{ fail2ban_status.stdout_lines }}"
+  when: fail2ban_ssh_enabled
+  tags: firewall-fail2ban

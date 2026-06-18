@@ -1,0 +1,4 @@
+---
+alertmanager_image: prom/alertmanager:v0.27.0
+alertmanager_port: 9093
+alertmanager_config_dir: /opt/monitoring/alertmanager

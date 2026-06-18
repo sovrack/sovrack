@@ -1,0 +1,66 @@
+---
+- name: "Firewall | Allow SSH with rate limiting"
+  ufw:
+    rule: limit
+    port: "22"
+    proto: tcp
+    comment: "SSH with rate limit"
+  tags: firewall-config
+
+- name: "Firewall | Allow HTTP"
+  ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+    comment: "HTTP"
+  tags: firewall-config
+
+- name: "Firewall | Allow HTTPS"
+  ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+    comment: "HTTPS"
+  tags: firewall-config
+
+- name: "Firewall | Allow additional ports"
+  ufw:
+    rule: "{{ item.state | default('allow') }}"
+    port: "{{ item.port }}"
+    proto: "{{ item.protocol }}"
+    comment: "{{ item.name }}"
+  loop: "{{ firewall_allowed_ports }}"
+  when: item.state | default('enabled') == 'enabled'
+  tags: firewall-config
+
+- name: "Firewall | Deny all PostgreSQL from outside"
+  ufw:
+    rule: deny
+    port: "5432"
+    proto: tcp
+    comment: "PostgreSQL - Deny public access"
+  tags: firewall-config
+
+- name: "Firewall | Deny all Redis from outside"
+  ufw:
+    rule: deny
+    port: "6379"
+    proto: tcp
+    comment: "Redis - Deny public access"
+  tags: firewall-config
+
+- name: "Firewall | Enable UFW"
+  ufw:
+    state: enabled
+  tags: firewall-config
+
+- name: "Firewall | Display UFW status"
+  shell: ufw status
+  register: ufw_status
+  changed_when: false
+  tags: firewall-config
+
+- name: "Firewall | Show UFW rules"
+  debug:
+    msg: "{{ ufw_status.stdout_lines }}"
+  tags: firewall-config

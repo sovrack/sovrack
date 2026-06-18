@@ -1,0 +1,132 @@
+---
+- name: Deploy Docker Compose application
+  hosts: targets
+  become: true
+  vars:
+    app_dir: "/opt/apps/{{ container_name }}"
+    compose_file: "{{ compose_file_path | default('docker-compose.yml') }}"
+    compose_content: "{{ compose_content | default('') }}"
+    env_content: "{{ env_content | default('') }}"
+    registry_url: "{{ registry_url | default('') }}"
+    registry_user: "{{ registry_username | default('') }}"
+    registry_password: "{{ registry_password | default('') }}"
+    commit_sha: "{{ commit_sha | default('') }}"
+
+  tasks:
+    - name: "Deploy Docker Compose application"
+      block:
+        - name: Create application directory
+          ansible.builtin.file:
+            path: "{{ app_dir }}"
+            state: directory
+            mode: '0755'
+
+        - name: Copy docker-compose.yml to server
+          ansible.builtin.copy:
+            content: "{{ compose_content }}"
+            dest: "{{ app_dir }}/docker-compose.yml"
+            mode: '0644'
+
+        - name: Create .env file
+          ansible.builtin.copy:
+            content: "{{ env_content }}"
+            dest: "{{ app_dir }}/.env"
+            mode: '0600'
+          when: env_content | length > 0
+
+        - name: Login to Docker registry
+          community.docker.docker_login:
+            registry_url: "{{ registry_url }}"
+            username: "{{ registry_user }}"
+            password: "{{ registry_password }}"
+          when: registry_url | length > 0 and registry_user | length > 0
+          no_log: true
+
+        - name: Pull latest images
+          ansible.builtin.command: docker compose pull
+          args:
+            chdir: "{{ app_dir }}"
+          register: compose_pull
+          changed_when: compose_pull.rc == 0
+          failed_when: false
+
+        - name: Check git repository presence
+          ansible.builtin.stat:
+            path: "{{ app_dir }}/.git"
+          register: app_git_dir
+          when: commit_sha is defined and commit_sha != ''
+
+        - name: Checkout exact commit
+          ansible.builtin.command: git checkout {{ commit_sha }}
+          args:
+            chdir: "{{ app_dir }}"
+          when: commit_sha is defined and commit_sha != '' and app_git_dir.stat.exists
+
+        - name: Verify checked out commit
+          ansible.builtin.command: git rev-parse HEAD
+          args:
+            chdir: "{{ app_dir }}"
+          register: current_commit
+          changed_when: false
+          when: commit_sha is defined and commit_sha != '' and app_git_dir.stat.exists
+
+        - name: Log commit SHA
+          ansible.builtin.debug:
+            msg: "Deploying commit: {{ current_commit.stdout }}"
+          when: current_commit is defined and current_commit.stdout is defined
+
+        - name: Deploy with Docker Compose
+          ansible.builtin.command: >
+            docker compose -f {{ compose_file }} up -d
+            --remove-orphans
+            --wait
+            --wait-timeout 120
+          args:
+            chdir: "{{ app_dir }}"
+          register: compose_result
+          changed_when: compose_result.rc == 0
+
+        - name: Wait for services to be healthy
+          ansible.builtin.command: docker compose ps
+          args:
+            chdir: "{{ app_dir }}"
+          register: compose_status
+          retries: 10
+          delay: 5
+          until: compose_status.rc == 0
+          changed_when: false
+
+        - name: Show running services
+          ansible.builtin.command: docker compose ps
+          args:
+            chdir: "{{ app_dir }}"
+          register: compose_ps_final
+          changed_when: false
+
+        - name: Display compose ps output
+          ansible.builtin.debug:
+            msg: "{{ compose_ps_final.stdout_lines }}"
+
+      rescue:
+        - name: Show compose logs on failure
+          ansible.builtin.command: docker compose logs --tail=50
+          args:
+            chdir: "{{ app_dir }}"
+          register: compose_failure_logs
+          changed_when: false
+          failed_when: false
+
+        - name: Display failure logs
+          ansible.builtin.debug:
+            msg: "{{ compose_failure_logs.stdout_lines | default([]) }}"
+
+        - name: Rollback to previous state
+          ansible.builtin.command: docker compose down
+          args:
+            chdir: "{{ app_dir }}"
+          changed_when: false
+          failed_when: false
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Docker Compose deployment failed. Check logs above."

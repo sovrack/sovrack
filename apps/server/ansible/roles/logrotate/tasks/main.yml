@@ -1,0 +1,21 @@
+---
+- name: "logrotate | Install package"
+  ansible.builtin.package:
+    name: "{{ logrotate_package }}"
+    state: present
+
+- name: "logrotate | Install platform defaults"
+  ansible.builtin.copy:
+    dest: "{{ logrotate_platform_path }}"
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      /var/log/platform/*.log {
+          daily
+          rotate 14
+          compress
+          missingok
+          notifempty
+          copytruncate
+      }

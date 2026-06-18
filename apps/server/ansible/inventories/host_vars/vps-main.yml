@@ -1,0 +1,42 @@
+# Main VPS — Full Stack
+# Tune these values per your VPS hardware (RAM, CPU, disk).
+# Deployment policy and target selection logic lives in the Vaytek backend.
+
+# ── Services to enable ──────────────────────────────────────────────────────
+enable_docker: true
+enable_nginx: true
+enable_postgresql: true
+enable_ssl: true
+enable_firewall: true
+enable_gitlab_runner: false
+
+# ── PostgreSQL ───────────────────────────────────────────────────────────────
+postgres_version: 16
+postgres_max_connections: 100        # increase for high-load VPS
+postgres_shared_buffers: "256MB"     # ~25% of VPS RAM
+postgres_effective_cache_size: "1GB" # ~50-75% of VPS RAM
+postgres_work_mem: "4MB"
+postgres_backup_retention_days: 30
+
+# ── Nginx ─────────────────────────────────────────────────────────────────────
+nginx_worker_connections: 1024
+nginx_keepalive_timeout: 30
+
+# ── Security ──────────────────────────────────────────────────────────────────
+fail2ban_ssh_max_retries: 5
+fail2ban_ssh_ban_time: 3600
+
+# ── Extra packages ────────────────────────────────────────────────────────────
+custom_packages:
+  - git
+  - curl
+  - wget
+  - htop
+  - tmux
+
+# ── Extra firewall ports (disabled by default) ────────────────────────────────
+# extra_firewall_ports:
+#   - port: 3000
+#     protocol: tcp
+#     name: App Port
+#     state: enabled

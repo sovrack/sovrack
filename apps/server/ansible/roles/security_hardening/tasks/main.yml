@@ -1,0 +1,33 @@
+---
+- name: "security_hardening | Install unattended upgrades"
+  ansible.builtin.package:
+    name: unattended-upgrades
+    state: present
+  when: security_enable_unattended_upgrades | bool and ansible_os_family == 'Debian'
+
+- name: "security_hardening | Configure automatic security upgrades"
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  when: security_enable_unattended_upgrades | bool and ansible_os_family == 'Debian'
+
+- name: "security_hardening | Configure SSH password authentication"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: "PasswordAuthentication {{ security_sshd_password_authentication }}"
+    validate: 'sshd -t -f %s'
+  notify: restart ssh
+
+- name: "security_hardening | Apply sysctl values"
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop: "{{ security_sysctl_values | dict2items }}"

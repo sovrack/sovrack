@@ -1,0 +1,16 @@
+---
+- name: "system_base | Update apt cache"
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == 'Debian' and system_base_update_cache | bool
+
+- name: "system_base | Install base packages"
+  ansible.builtin.package:
+    name: "{{ system_base_packages }}"
+    state: present
+
+- name: "system_base | Upgrade Debian packages when requested"
+  ansible.builtin.apt:
+    upgrade: dist
+  when: ansible_os_family == 'Debian' and system_base_upgrade_packages | bool

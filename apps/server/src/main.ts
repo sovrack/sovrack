@@ -32,7 +32,7 @@ const REQUIRED_ENV: RequiredEnv[] = [
     validate: (v) => (v.length < 32 ? 'too short (min 32 chars)' : null),
   },
   { name: 'REDIS_URL', hint: 'Redis connection URL (required by BullMQ)' },
-  { name: 'ANSIBLE_PLAYBOOKS_PATH', hint: 'Path to devops/ansible/playbooks' },
+  { name: 'ANSIBLE_PLAYBOOKS_PATH', hint: 'Path to ansible/playbooks (bundled)' },
   { name: 'ANSIBLE_VENV_PATH', hint: 'Path to the Ansible virtualenv' },
 ];
 

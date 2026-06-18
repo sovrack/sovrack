@@ -1,0 +1,17 @@
+---
+- name: "Internal Platform | Validate SSH target"
+  hosts: "{{ target_hosts | default('targets') }}"
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: "Validate | SSH session is active"
+      ansible.builtin.ping:
+
+    - name: "Validate | sudo is available"
+      ansible.builtin.command: sudo -n true
+      changed_when: false
+
+    - name: "Validate | Python 3 is available"
+      ansible.builtin.command: command -v python3
+      changed_when: false

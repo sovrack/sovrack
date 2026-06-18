@@ -1,0 +1,4 @@
+---
+galaxy_info:
+  role_name: security_hardening
+  description: Conservative security hardening for SSH, updates and sysctl.

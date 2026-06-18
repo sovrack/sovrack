@@ -1,0 +1,4 @@
+---
+galaxy_info:
+  role_name: firewall
+  description: UFW firewall with safe inbound defaults.

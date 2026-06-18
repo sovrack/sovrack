@@ -1,0 +1,159 @@
+---
+# Setup Server Quick Playbook
+# Run this first on a fresh VPS to set it up quickly
+#
+# Usage:
+#   ansible-playbook -i inventories/vps.yml playbooks/setup-server-quick.yml
+
+- name: "Setup Server | Quick Initial Setup"
+  hosts: "{{ target_hosts | default('all') }}"
+  become: yes
+  gather_facts: yes
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+    - name: "Setup | Update system packages"
+      apt:
+        update_cache: yes
+        upgrade: dist
+        cache_valid_time: 3600
+      retries: 3
+      delay: 10
+      register: apt_upgrade
+      until: apt_upgrade is succeeded
+      tags: system
+
+    - name: "Setup | Install essential packages"
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - vim
+          - htop
+          - tmux
+          - python3
+          - python3-pip
+          - python3-dev
+          - build-essential
+          - libssl-dev
+          - libffi-dev
+        state: present
+      retries: 3
+      delay: 10
+      register: install_essentials
+      until: install_essentials is succeeded
+      tags: system
+
+    - name: "Setup | SSH hardening - disable root password auth"
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin prohibit-password'
+        backup: yes
+      notify: restart ssh
+      tags: security
+
+    - name: "Setup | SSH hardening - disable password authentication"
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+      notify: restart ssh
+      tags: security
+
+    - name: "Setup | SSH hardening - disable empty passwords"
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitEmptyPasswords'
+        line: 'PermitEmptyPasswords no'
+      notify: restart ssh
+      tags: security
+
+    - name: "Setup | SSH hardening - set max auth tries"
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?MaxAuthTries'
+        line: 'MaxAuthTries 3'
+      notify: restart ssh
+      tags: security
+
+    - name: "Setup | Install UFW and enable firewall quickly"
+      block:
+        - apt:
+            name: ufw
+            state: present
+          retries: 3
+          delay: 10
+          register: install_ufw
+          until: install_ufw is succeeded
+
+        - ufw:
+            rule: limit
+            port: "22"
+            proto: tcp
+            comment: "SSH"
+
+        - ufw:
+            rule: allow
+            port: "80"
+            proto: tcp
+            comment: "HTTP"
+
+        - ufw:
+            rule: allow
+            port: "443"
+            proto: tcp
+            comment: "HTTPS"
+
+        - ufw:
+            state: enabled
+      tags:
+        - security
+        - firewall
+
+    - name: "Setup | Create swap if not exists"
+      block:
+        - stat:
+            path: /swapfile
+          register: swap_file
+
+        - shell: |
+            fallocate -l 2G /swapfile
+            chmod 600 /swapfile
+            mkswap /swapfile
+            swapon /swapfile
+          when: not swap_file.stat.exists
+          tags: system
+
+        - lineinfile:
+            path: /etc/fstab
+            line: "/swapfile none swap sw 0 0"
+            insertafter: EOF
+          when: not swap_file.stat.exists
+      tags: system
+
+    - name: "Setup | Display next steps"
+      debug:
+        msg:
+          - ""
+          - "✅ Quick setup completed!"
+          - ""
+          - "Next steps:"
+          - "  1. Run full setup:"
+          - "     ansible-playbook -i inventories/vps.yml site.yml"
+          - ""
+          - "  2. Or run specific roles:"
+          - "     ansible-playbook -i inventories/vps.yml site.yml --tags postgres"
+          - "     ansible-playbook -i inventories/vps.yml site.yml --tags ssl"
+          - "     ansible-playbook -i inventories/vps.yml site.yml --tags firewall"
+          - ""
+      tags: always
+
+  handlers:
+    - name: restart ssh
+      systemd:
+        name: ssh
+        state: restarted

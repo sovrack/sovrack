@@ -154,7 +154,9 @@ export class AnsibleRunnerService {
       .get<string>('ANSIBLE_PLAYBOOKS_PATH', '')
       .trim();
     if (configured) return resolve(configured);
-    return resolve(process.cwd(), '../devops/ansible/playbooks');
+    // Playbooks embarqués dans le backend (self-contained) : backend/ansible/
+    // en dev, /app/ansible en conteneur. Override via ANSIBLE_PLAYBOOKS_PATH.
+    return resolve(process.cwd(), 'ansible/playbooks');
   }
 
   resolveAnsibleConfigPath(

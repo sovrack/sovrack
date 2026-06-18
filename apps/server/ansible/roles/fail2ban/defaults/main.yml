@@ -1,0 +1,10 @@
+---
+fail2ban_sshd_enabled: true
+fail2ban_bantime: 1h
+fail2ban_findtime: 10m
+fail2ban_maxretry: 5
+# IPs/réseaux jamais bannis. La plateforme (control node) se connecte en SSH pour
+# chaque déploiement ; sans whitelist, ses connexions répétées la font bannir et
+# tous les déploiements échouent. L'IP du client SSH (= le control node) est
+# ajoutée automatiquement à l'exécution (cf. tasks/main.yml).
+fail2ban_ignoreip: "127.0.0.1/8 ::1"

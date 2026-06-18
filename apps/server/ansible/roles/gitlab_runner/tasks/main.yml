@@ -1,0 +1,35 @@
+---
+- name: "gitlab_runner | Install prerequisites"
+  ansible.builtin.package:
+    name:
+      - curl
+      - ca-certificates
+    state: present
+
+- name: "gitlab_runner | Add GitLab Runner repository on Debian"
+  ansible.builtin.shell: |
+    set -o pipefail
+    curl -fsSL https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | bash
+  args:
+    executable: /bin/bash
+    creates: /etc/apt/sources.list.d/runner_gitlab-runner.list
+  when: ansible_os_family == 'Debian'
+
+- name: "gitlab_runner | Install package"
+  ansible.builtin.package:
+    name: "{{ gitlab_runner_package }}"
+    state: present
+
+- name: "gitlab_runner | Enable and start service"
+  ansible.builtin.systemd:
+    name: gitlab-runner
+    state: started
+    enabled: true
+
+- name: "gitlab_runner | Add runner user to docker group when requested"
+  ansible.builtin.user:
+    name: gitlab-runner
+    groups: docker
+    append: true
+  when: gitlab_runner_add_to_docker_group | bool and gitlab_runner_executor == 'docker'
+  failed_when: false

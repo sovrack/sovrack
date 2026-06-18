@@ -1,0 +1,7 @@
+---
+- name: restart sysstat
+  ansible.builtin.systemd:
+    name: sysstat
+    state: restarted
+    enabled: true
+  failed_when: false

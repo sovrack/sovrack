@@ -1,0 +1,6 @@
+---
+monitoring_packages:
+  - htop
+  - iotop
+  - sysstat
+monitoring_enable_sysstat: true

@@ -1,0 +1,4 @@
+---
+galaxy_info:
+  role_name: alertmanager
+  description: Deploy Alertmanager container with baseline routing config.

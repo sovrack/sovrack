@@ -1,0 +1,53 @@
+---
+# Pré-requis : Docker installé (rôle docker). Piloté via la CLI docker (pas de
+# dépendance au SDK Python docker côté cible). Exécuté en become (root).
+
+- name: "traefik | Réseau Docker partagé '{{ traefik_network }}'"
+  ansible.builtin.command: "docker network create {{ traefik_network }}"
+  register: _traefik_net
+  changed_when: _traefik_net.rc == 0
+  failed_when: >-
+    _traefik_net.rc != 0 and 'already exists' not in (_traefik_net.stderr | default(''))
+
+- name: "traefik | Répertoires de données + config dynamique"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ traefik_data_dir }}"
+    - "{{ traefik_dynamic_dir }}"
+
+- name: "traefik | Fichier acme.json (stockage des certificats TLS)"
+  ansible.builtin.copy:
+    content: "{}"
+    dest: "{{ traefik_data_dir }}/acme.json"
+    force: false # ne JAMAIS écraser des certificats déjà émis
+    owner: root
+    group: root
+    mode: '0600' # Traefik refuse acme.json si trop permissif
+
+- name: "traefik | (Re)créer le conteneur Traefik (provider fichier + Let's Encrypt)"
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      docker rm -f traefik >/dev/null 2>&1 || true
+      docker run -d --name traefik --restart unless-stopped \
+        --network {{ traefik_network }} \
+        -p {{ traefik_http_port }}:80 -p {{ traefik_https_port }}:443 \
+        -v {{ traefik_dynamic_dir }}:/dynamic:ro \
+        -v {{ traefik_data_dir }}/acme.json:/acme.json \
+        {{ traefik_image }} \
+        --providers.file.directory=/dynamic \
+        --providers.file.watch=true \
+        --entrypoints.web.address=:80 \
+        --entrypoints.websecure.address=:443 \
+        --entrypoints.web.http.redirections.entrypoint.to=websecure \
+        --entrypoints.web.http.redirections.entrypoint.scheme=https \
+        --certificatesresolvers.le.acme.email={{ traefik_letsencrypt_email }} \
+        --certificatesresolvers.le.acme.storage=/acme.json \
+        --certificatesresolvers.le.acme.httpchallenge=true \
+        --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+  changed_when: true

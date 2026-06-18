@@ -1,0 +1,43 @@
+---
+- name: "alertmanager | Ensure Docker is available"
+  ansible.builtin.command: docker --version
+  changed_when: false
+
+- name: "alertmanager | Create configuration directory"
+  ansible.builtin.file:
+    path: "{{ alertmanager_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: "alertmanager | Render configuration"
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ alertmanager_config_dir }}/alertmanager.yml"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: "alertmanager | Remove previous container if present"
+  ansible.builtin.shell: docker rm -f alertmanager >/dev/null 2>&1 || true
+  changed_when: false
+
+- name: "alertmanager | Run Alertmanager container"
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - -d
+      - --name
+      - alertmanager
+      - --restart
+      - unless-stopped
+      - --publish
+      - "{{ alertmanager_port }}:9093"
+      - --volume
+      - "{{ alertmanager_config_dir }}/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro"
+      - "{{ alertmanager_image }}"
+      - --config.file=/etc/alertmanager/alertmanager.yml
+  register: alertmanager_run
+  changed_when: alertmanager_run.rc == 0

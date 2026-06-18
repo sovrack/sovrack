@@ -1,0 +1,6 @@
+---
+- name: "ansible-core | Deprecated role guard"
+  ansible.builtin.fail:
+    msg: >-
+      This role is disabled by design. Ansible must stay on the control node
+      and must not be installed on target VPS hosts.

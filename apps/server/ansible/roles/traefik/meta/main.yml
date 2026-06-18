@@ -1,0 +1,5 @@
+---
+galaxy_info:
+  role_name: traefik
+  description: Traefik v3 reverse proxy (dynamic Docker-label routing + Let's Encrypt).
+dependencies: []

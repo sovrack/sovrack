@@ -1,0 +1,210 @@
+---
+# =============================================================================
+# enable-docker-tls.yml — Expose the Docker daemon on tcp://<host>:2376 (mTLS)
+# =============================================================================
+# Débloque le chemin "run" de la plateforme : DockerDeployExecutorService parle
+# au démon Docker via l'API TLS (port 2376), pas en SSH. Sans ça, le build
+# (SSH) réussit mais le run (createContainer) échoue.
+#
+# Ce que fait le playbook (idempotent) :
+#   1. Génère un CA + un cert SERVEUR (SAN = IP/host de la VM) + un cert CLIENT.
+#   2. Configure dockerd pour écouter unix + tcp://0.0.0.0:2376 en mTLS
+#      (drop-in systemd qui neutralise le `-H fd://` par défaut + daemon.json).
+#   3. Redémarre Docker, ouvre le port 2376 (ufw si présent).
+#   4. Rapatrie les 3 certs CLIENT en local dans ./out/<host>/ (ca/cert/key).
+#
+# --- Utilisation -------------------------------------------------------------
+#   cd devops/ansible
+#   ansible-playbook playbooks/enable-docker-tls.yml \
+#     -i '192.168.122.30,' \
+#     -e "ansible_user=ubuntu ansible_ssh_private_key_file=/chemin/cle docker_tls_san_ip=192.168.122.30"
+#
+# Puis enregistrer la connexion dans la plateforme (serverId = id du Server) :
+#   D=out/192.168.122.30
+#   curl -s -X POST http://localhost:3001/servers/<SERVER_ID>/docker-connection \
+#     -H "Authorization: Bearer <JWT_ADMIN>" -H 'Content-Type: application/json' \
+#     -d "$(jq -n --arg e "tcp://192.168.122.30:2376" \
+#            --arg ca "$(cat $D/ca.pem)" --arg c "$(cat $D/cert.pem)" --arg k "$(cat $D/key.pem)" \
+#            '{endpoint:$e, tlsCaCert:$ca, tlsClientCert:$c, tlsClientKey:$k}')"
+#   # Vérifier :
+#   curl -s -X POST http://localhost:3001/servers/<SERVER_ID>/docker-connection/probe \
+#     -H "Authorization: Bearer <JWT_ADMIN>"
+# =============================================================================
+
+- name: Enable Docker daemon mTLS on 2376
+  hosts: all
+  become: true
+  vars:
+    docker_tls_dir: /etc/docker/tls
+    docker_tls_san_ip: "{{ ansible_default_ipv4.address | default(inventory_hostname) }}"
+    docker_tls_days: 3650
+    docker_tls_fetch_dir: "{{ playbook_dir }}/../out/{{ inventory_hostname }}"
+
+  tasks:
+    - name: Ensure openssl is installed
+      ansible.builtin.package:
+        name: openssl
+        state: present
+
+    - name: Create TLS directory
+      ansible.builtin.file:
+        path: "{{ docker_tls_dir }}"
+        state: directory
+        mode: "0700"
+
+    # ── CA ────────────────────────────────────────────────────────────────
+    - name: Generate CA key
+      ansible.builtin.command: "openssl genrsa -out {{ docker_tls_dir }}/ca-key.pem 4096"
+      args: { creates: "{{ docker_tls_dir }}/ca-key.pem" }
+
+    - name: Generate CA cert
+      ansible.builtin.command: >
+        openssl req -new -x509 -days {{ docker_tls_days }} -key {{ docker_tls_dir }}/ca-key.pem
+        -sha256 -out {{ docker_tls_dir }}/ca.pem -subj "/CN=platform-docker-ca"
+      args: { creates: "{{ docker_tls_dir }}/ca.pem" }
+
+    # ── Server cert (SAN = IP + hostname) ──────────────────────────────────
+    - name: Generate server key
+      ansible.builtin.command: "openssl genrsa -out {{ docker_tls_dir }}/server-key.pem 4096"
+      args: { creates: "{{ docker_tls_dir }}/server-key.pem" }
+
+    - name: Generate server CSR
+      ansible.builtin.command: >
+        openssl req -new -key {{ docker_tls_dir }}/server-key.pem
+        -out {{ docker_tls_dir }}/server.csr -subj "/CN={{ docker_tls_san_ip }}"
+      args: { creates: "{{ docker_tls_dir }}/server.csr" }
+
+    - name: Write server extfile (SAN)
+      ansible.builtin.copy:
+        dest: "{{ docker_tls_dir }}/server-ext.cnf"
+        mode: "0600"
+        content: |
+          subjectAltName = IP:{{ docker_tls_san_ip }},IP:127.0.0.1,DNS:{{ inventory_hostname }}
+          extendedKeyUsage = serverAuth
+
+    - name: Sign server cert
+      ansible.builtin.command: >
+        openssl x509 -req -days {{ docker_tls_days }} -sha256 -in {{ docker_tls_dir }}/server.csr
+        -CA {{ docker_tls_dir }}/ca.pem -CAkey {{ docker_tls_dir }}/ca-key.pem -CAcreateserial
+        -out {{ docker_tls_dir }}/server-cert.pem -extfile {{ docker_tls_dir }}/server-ext.cnf
+      args: { creates: "{{ docker_tls_dir }}/server-cert.pem" }
+
+    # ── Client cert ────────────────────────────────────────────────────────
+    - name: Generate client key
+      ansible.builtin.command: "openssl genrsa -out {{ docker_tls_dir }}/client-key.pem 4096"
+      args: { creates: "{{ docker_tls_dir }}/client-key.pem" }
+
+    - name: Generate client CSR
+      ansible.builtin.command: >
+        openssl req -new -key {{ docker_tls_dir }}/client-key.pem
+        -out {{ docker_tls_dir }}/client.csr -subj "/CN=platform-platform"
+      args: { creates: "{{ docker_tls_dir }}/client.csr" }
+
+    - name: Write client extfile
+      ansible.builtin.copy:
+        dest: "{{ docker_tls_dir }}/client-ext.cnf"
+        mode: "0600"
+        content: |
+          extendedKeyUsage = clientAuth
+
+    - name: Sign client cert
+      ansible.builtin.command: >
+        openssl x509 -req -days {{ docker_tls_days }} -sha256 -in {{ docker_tls_dir }}/client.csr
+        -CA {{ docker_tls_dir }}/ca.pem -CAkey {{ docker_tls_dir }}/ca-key.pem -CAcreateserial
+        -out {{ docker_tls_dir }}/client-cert.pem -extfile {{ docker_tls_dir }}/client-ext.cnf
+      args: { creates: "{{ docker_tls_dir }}/client-cert.pem" }
+
+    # ── dockerd config ─────────────────────────────────────────────────────
+    - name: Read existing daemon.json (if any)
+      ansible.builtin.slurp:
+        src: /etc/docker/daemon.json
+      register: existing_daemon
+      failed_when: false
+
+    - name: Merge TLS/hosts into existing daemon.json (preserve other keys)
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+        content: >-
+          {{ ((existing_daemon.content | b64decode | from_json)
+                if (existing_daemon.content is defined) else {})
+             | combine({
+                 'hosts': ['unix:///var/run/docker.sock', 'tcp://0.0.0.0:2376'],
+                 'tls': true,
+                 'tlsverify': true,
+                 'tlscacert': docker_tls_dir ~ '/ca.pem',
+                 'tlscert': docker_tls_dir ~ '/server-cert.pem',
+                 'tlskey': docker_tls_dir ~ '/server-key.pem'
+               }) | to_nice_json }}
+      notify: restart docker
+
+    # The default systemd unit passes `-H fd://`, which conflicts with the
+    # `hosts` key in daemon.json. Clear ExecStart so daemon.json wins.
+    - name: Create systemd drop-in dir
+      ansible.builtin.file:
+        path: /etc/systemd/system/docker.service.d
+        state: directory
+        mode: "0755"
+
+    - name: Drop-in to clear default -H (let daemon.json define hosts)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/docker.service.d/override.conf
+        mode: "0644"
+        content: |
+          [Service]
+          ExecStart=
+          ExecStart=/usr/bin/dockerd --containerd=/run/containerd/containerd.sock
+      notify: restart docker
+
+    - name: systemd daemon-reload
+      ansible.builtin.systemd: { daemon_reload: true }
+
+    - name: Open firewall port 2376 (ufw, if active)
+      ansible.builtin.command: ufw allow 2376/tcp
+      register: ufw_res
+      changed_when: "'Rule added' in ufw_res.stdout"
+      failed_when: false
+
+    - name: Flush handlers (restart docker now)
+      ansible.builtin.meta: flush_handlers
+
+    # ── Fetch client certs to the controller ───────────────────────────────
+    - name: Ensure local fetch dir exists
+      ansible.builtin.file:
+        path: "{{ docker_tls_fetch_dir }}"
+        state: directory
+        mode: "0700"
+      delegate_to: localhost
+      become: false
+
+    - name: Fetch ca.pem
+      ansible.builtin.fetch:
+        src: "{{ docker_tls_dir }}/ca.pem"
+        dest: "{{ docker_tls_fetch_dir }}/ca.pem"
+        flat: true
+
+    - name: Fetch client cert.pem
+      ansible.builtin.fetch:
+        src: "{{ docker_tls_dir }}/client-cert.pem"
+        dest: "{{ docker_tls_fetch_dir }}/cert.pem"
+        flat: true
+
+    - name: Fetch client key.pem
+      ansible.builtin.fetch:
+        src: "{{ docker_tls_dir }}/client-key.pem"
+        dest: "{{ docker_tls_fetch_dir }}/key.pem"
+        flat: true
+
+    - name: Show next step
+      ansible.builtin.debug:
+        msg: >
+          Docker mTLS prêt sur tcp://{{ docker_tls_san_ip }}:2376.
+          Certs client dans {{ docker_tls_fetch_dir }} (ca.pem, cert.pem, key.pem).
+          Enregistre-les via POST /servers/<SERVER_ID>/docker-connection (voir en-tête).
+
+  handlers:
+    - name: restart docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+        daemon_reload: true

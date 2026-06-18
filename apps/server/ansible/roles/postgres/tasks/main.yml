@@ -1,0 +1,11 @@
+---
+- name: "postgres | Install packages"
+  ansible.builtin.package:
+    name: "{{ postgres_packages }}"
+    state: present
+
+- name: "postgres | Enable and start service"
+  ansible.builtin.systemd:
+    name: "{{ postgres_service_name }}"
+    state: started
+    enabled: true

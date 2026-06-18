@@ -1,0 +1,5 @@
+---
+- name: "nodejs | Install packages"
+  ansible.builtin.package:
+    name: "{{ nodejs_packages }}"
+    state: present

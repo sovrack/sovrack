@@ -1,0 +1,7 @@
+---
+dependencies:
+  - role: system_base
+    when: false
+galaxy_info:
+  role_name: docker
+  description: Docker Engine and Compose plugin without installing Ansible on targets.

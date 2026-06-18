@@ -1,0 +1,21 @@
+# ─── NOTE IMPORTANT ───────────────────────────────────────────────────────────
+# Ce fichier est un EXEMPLE pour les opérations manuelles CLI uniquement.
+#
+# En production, l'inventaire est généré DYNAMIQUEMENT par le backend platform
+# à partir de la base de données des serveurs (table Server en PostgreSQL).
+# Voir: backend/src/modules/servers/services/ansible-execution.service.ts
+#       backend/src/modules/deployments/deployments-ansible.service.ts
+#
+# Vous n'avez PAS besoin de modifier ce fichier si vous utilisez l'interface web.
+# Les VPS se gèrent depuis: Interface → Remote Servers → Add Server
+# ─────────────────────────────────────────────────────────────────────────────
+
+all:
+  children:
+    targets:
+      hosts:
+        vps-main:
+          ansible_host: YOUR_VPS_IP
+          ansible_user: root
+          ansible_port: 22
+          ansible_python_interpreter: /usr/bin/python3

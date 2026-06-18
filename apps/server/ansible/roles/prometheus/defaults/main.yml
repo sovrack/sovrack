@@ -1,0 +1,9 @@
+---
+prometheus_image: prom/prometheus:v2.54.1
+prometheus_port: 9090
+prometheus_config_dir: /opt/monitoring/prometheus
+prometheus_storage_dir: /opt/monitoring/prometheus/data
+prometheus_scrape_interval: 15s
+prometheus_target_node_exporter: "127.0.0.1:9100"
+prometheus_target_cadvisor: "127.0.0.1:8080"
+prometheus_target_alertmanager: "127.0.0.1:9093"

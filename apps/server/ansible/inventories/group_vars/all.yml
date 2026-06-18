@@ -1,0 +1,150 @@
+# Global variables for ALL servers
+
+# ============================================================
+# APPLICATION CONFIGURATION
+# ============================================================
+
+app_name: "deploy-automation"
+app_environment: "{{ server_role | default('production') }}"
+app_db_name: "deploy_automation"
+app_db_user: "deploy_user"
+app_db_password: "{{ vault_app_db_password }}"  # Use Ansible vault for this
+app_domain: "example.com"
+app_email: "admin@{{ app_domain }}"
+app_domains:
+  - "{{ app_domain }}"
+
+# ============================================================
+# SERVER CONFIGURATION
+# ============================================================
+
+server_timezone: "UTC"
+server_locale: "en_US.UTF-8"
+
+# ============================================================
+# SERVICES TO INSTALL - CUSTOMIZE PER SERVER
+# ============================================================
+
+# Each service can be enabled/disabled per host or group
+# Default: all enabled, but can override in host_vars or inventory
+
+# Docker - Container runtime
+enable_docker: true
+
+# Nginx - Web server / reverse proxy
+enable_nginx: true
+
+# PostgreSQL - Database
+enable_postgresql: true
+
+# SSL/TLS Certificates - HTTPS automation
+enable_ssl: true
+
+# UFW Firewall - Network security
+enable_firewall: true
+
+# Fail2Ban - Intrusion prevention
+enable_fail2ban: true
+
+# GitLab Runner - CI/CD (disabled by default)
+enable_gitlab_runner: false
+
+# ============================================================
+# OS & SYSTEM UPDATES
+# ============================================================
+
+auto_updates_enabled: true
+auto_updates_schedule: "0 2 * * *"  # 2 AM daily
+
+# ============================================================
+# MONITORING & LOGGING
+# ============================================================
+
+enable_monitoring: true
+enable_logging: true
+log_retention_days: 30
+
+# ============================================================
+# SECURITY SETTINGS
+# ============================================================
+
+enable_swap: true
+swap_size_mb: 2048
+
+# ============================================================
+# BACKUP SETTINGS
+# ============================================================
+
+enable_backups: true
+backup_retention_days: 30
+
+# ============================================================
+# DOCKER SETTINGS
+# ============================================================
+
+docker_enabled: true
+docker_compose_version: "2.20"
+
+# ============================================================
+# NGINX SETTINGS
+# ============================================================
+
+nginx_enabled: "{{ enable_nginx }}"
+nginx_worker_processes: "auto"
+nginx_worker_connections: 1024
+nginx_keepalive_timeout: 30
+
+# ============================================================
+# POSTGRESQL SETTINGS
+# ============================================================
+
+postgres_enabled: "{{ enable_postgresql }}"
+postgres_version: 16
+postgres_max_connections: 100
+postgres_shared_buffers: "256MB"
+postgres_effective_cache_size: "1GB"
+postgres_work_mem: "4MB"
+postgres_backup_enabled: true
+postgres_backup_retention_days: 30
+postgres_backup_schedule: "0 2 * * *"
+
+# ============================================================
+# SSL/TLS SETTINGS
+# ============================================================
+
+ssl_enabled: "{{ enable_ssl }}"
+certbot_email: "admin@{{ app_domain }}"
+certbot_auto_renew: true
+certbot_renew_schedule: "0 3 * * *"
+
+# ============================================================
+# FIREWALL SETTINGS
+# ============================================================
+
+firewall_enabled: "{{ enable_firewall }}"
+fail2ban_enabled: "{{ enable_fail2ban }}"
+
+# Default firewall policy: deny input, allow output
+ufw_default_input: "deny"
+ufw_default_output: "allow"
+ufw_default_forward: "deny"
+
+# Allowed ports (whitelist approach)
+firewall_allowed_ports:
+  - port: 22
+    protocol: tcp
+    name: SSH
+    state: enabled
+  - port: 80
+    protocol: tcp
+    name: HTTP
+    state: enabled
+  - port: 443
+    protocol: tcp
+    name: HTTPS
+    state: enabled
+
+# Fail2Ban settings
+fail2ban_ssh_max_retries: 5
+fail2ban_ssh_find_time: 600
+fail2ban_ssh_ban_time: 3600

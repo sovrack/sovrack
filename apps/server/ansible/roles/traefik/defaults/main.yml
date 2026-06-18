@@ -1,0 +1,19 @@
+---
+# Traefik — reverse proxy dynamique piloté par le PROVIDER FICHIER.
+# Le moteur de déploiement écrit un fichier de config dynamique par service
+# (routers/services) dans {{ traefik_dynamic_dir }} ; Traefik le recharge à chaud
+# (watch). Les apps joignent le réseau partagé {{ traefik_network }} et N'EXPOSENT
+# PLUS de port hôte — seul Traefik tient 80/443.
+#
+# Pourquoi le provider FICHIER et pas le provider docker : sur les daemons Docker
+# très récents (>= 29, API min 1.40), le client docker embarqué de Traefik épingle
+# l'API 1.24 et est rejeté. Le provider fichier est indépendant de la version du
+# daemon (cf. mémoire traefik-phase2).
+traefik_image: "traefik:v3.5"
+traefik_network: "web"
+traefik_data_dir: "/opt/traefik"
+traefik_dynamic_dir: "/opt/traefik/dynamic"
+# Email Let's Encrypt (enregistrement + alertes d'expiration) — override en extra-vars.
+traefik_letsencrypt_email: "admin@platform.local"
+traefik_http_port: 80
+traefik_https_port: 443

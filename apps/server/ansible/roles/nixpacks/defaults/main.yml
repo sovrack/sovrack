@@ -1,0 +1,4 @@
+---
+nixpacks_install_dir: /usr/local/bin
+nixpacks_version: "1.30.0"
+nixpacks_install_script: "https://nixpacks.com/install.sh"

@@ -1,0 +1,19 @@
+---
+- name: "ssl | Install Certbot packages"
+  ansible.builtin.package:
+    name: "{{ ['certbot'] + (['python3-certbot-nginx'] if ssl_install_nginx_plugin | bool else []) }}"
+    state: present
+
+- name: "ssl | Explain certificate issuance"
+  ansible.builtin.debug:
+    msg: "Certbot installed. Certificate issuance is skipped until ssl_domains and ssl_email are configured."
+  when: ssl_domains | length == 0 or ssl_email | length == 0
+
+- name: "ssl | Issue certificates when configured"
+  ansible.builtin.command: >-
+    certbot --nginx --non-interactive --agree-tos
+    --email {{ ssl_email }}
+    {% for domain in ssl_domains %}-d {{ domain }} {% endfor %}
+  register: certbot_issue
+  changed_when: "'Congratulations' in certbot_issue.stdout"
+  when: ssl_domains | length > 0 and ssl_email | length > 0
