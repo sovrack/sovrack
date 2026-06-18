@@ -5,6 +5,7 @@ import { CheckCircle2, Loader2, Save } from 'lucide-react';
 import { servicesService } from '@/services/services.service';
 import { projectsService } from '@/services/projects.service';
 import { getApiErrorMessage } from '@/lib/api';
+import { splitImageRef } from '@/lib/deployment-utils';
 import { SectionCard } from '@/components/layout/section-card';
 import type { BuildPack, Service, UpdateServicePayload } from '@/types/service';
 import type { SourceProviderOption } from '@/types/project';
@@ -17,17 +18,6 @@ const BUILD_PACKS: { value: BuildPack; label: string }[] = [
   { value: 'STATIC', label: 'Static site' },
   { value: 'NONE', label: 'None' },
 ];
-
-/** Sépare une référence d'image (`host[:port]/path:tag`) en image + tag : le tag
- * n'existe que si le dernier `:` suit le dernier `/` (sinon c'est un port). */
-function splitImageRef(ref: string): { image: string; tag: string } {
-  const lastColon = ref.lastIndexOf(':');
-  const lastSlash = ref.lastIndexOf('/');
-  if (lastColon > lastSlash && lastColon !== -1) {
-    return { image: ref.slice(0, lastColon), tag: ref.slice(lastColon + 1) };
-  }
-  return { image: ref, tag: '' };
-}
 
 const inputClass =
   'w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]';

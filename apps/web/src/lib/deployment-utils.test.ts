@@ -1,6 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { dur, resolveDeploymentUrl, timeAgo } from './deployment-utils';
+import { dur, resolveDeploymentUrl, splitImageRef, timeAgo } from './deployment-utils';
 import type { Deployment } from '@/types/deployment';
+
+describe('splitImageRef', () => {
+  it('sépare image:tag simple', () => {
+    expect(splitImageRef('nginx:alpine')).toEqual({ image: 'nginx', tag: 'alpine' });
+  });
+  it('image sans tag', () => {
+    expect(splitImageRef('nginx')).toEqual({ image: 'nginx', tag: '' });
+  });
+  it('ne confond pas le port du registre avec un tag', () => {
+    expect(splitImageRef('registry.local:5000/app')).toEqual({ image: 'registry.local:5000/app', tag: '' });
+  });
+  it('gère registre avec port ET tag', () => {
+    expect(splitImageRef('registry.local:5000/app:1.2.3')).toEqual({ image: 'registry.local:5000/app', tag: '1.2.3' });
+  });
+  it('gère un chemin de groupe + tag', () => {
+    expect(splitImageRef('registry.gitlab.com/grp/proj:latest')).toEqual({ image: 'registry.gitlab.com/grp/proj', tag: 'latest' });
+  });
+  it('chaîne vide', () => {
+    expect(splitImageRef('')).toEqual({ image: '', tag: '' });
+  });
+});
 
 describe('timeAgo', () => {
   it('returns "just now" for < 1 min', () => {

@@ -1,5 +1,16 @@
 import type { Deployment } from '@/types/deployment';
 
+/** Sépare une référence d'image (`host[:port]/path:tag`) en image + tag : le tag
+ * n'existe que si le dernier `:` suit le dernier `/` (sinon c'est un port). */
+export function splitImageRef(ref: string): { image: string; tag: string } {
+  const lastColon = ref.lastIndexOf(':');
+  const lastSlash = ref.lastIndexOf('/');
+  if (lastColon > lastSlash && lastColon !== -1) {
+    return { image: ref.slice(0, lastColon), tag: ref.slice(lastColon + 1) };
+  }
+  return { image: ref, tag: '' };
+}
+
 export function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
