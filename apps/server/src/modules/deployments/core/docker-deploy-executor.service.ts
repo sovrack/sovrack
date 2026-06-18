@@ -14,6 +14,11 @@ import {
   normalizeRepoPath,
 } from '../../../core/utils/repo-path.util';
 import { buildAuthenticatedCloneUrl } from '../../../core/utils/clone-url.util';
+import {
+  buildContainerPrefix,
+  buildplatformLabels,
+  toDockerEnvArray,
+} from '../../../core/utils/container-spec.util';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
 import { SshExecutorService } from '../../../core/ssh/ssh-executor.service';
 import { CryptoService } from '../../../core/crypto/crypto.service';
@@ -181,15 +186,14 @@ export class DockerDeployExecutorService {
       throw new BadRequestException('Serveur non vérifié');
 
     const serviceName = deployment.service?.name ?? deployment.project.name;
-    const containerPrefix = `deploy-${deployment.project.name}-${serviceName}-`
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]/g, '-');
+    const containerPrefix = buildContainerPrefix(
+      deployment.project.name,
+      serviceName,
+    );
     const containerName = `${containerPrefix}${deployment.id.slice(0, 8)}`;
     let servicePort = deployment.service?.port ?? 3000;
     const envResolution = resolveEnvDetailed(this.buildEnvLevels(deployment));
-    const envVars = envResolution.entries.map(
-      (entry) => `${entry.key}=${entry.value}`,
-    );
+    const envVars = toDockerEnvArray(envResolution.entries);
 
     let commandLogs = '';
     // Surface (do NOT swallow) any unresolved env/secret level so the operator
@@ -438,20 +442,18 @@ export class DockerDeployExecutorService {
       const stopTimeout = deployment.service?.shutdownTimeout ?? 30;
       // Labels Docker → exposés par cAdvisor (container_label_platform_*) pour
       // filtrer le monitoring par projet / service / environnement / déploiement.
-      const envName =
-        deployment.serviceEnv?.environment?.name ??
-        deployment.environment?.name ??
-        '';
-      const platformLabels: Record<string, string> = {
-        'platform.managed': 'true',
-        'platform.project': deployment.project.id,
-        'platform.project_name': deployment.project.name,
-        'platform.service': deployment.service?.id ?? '',
-        'platform.service_name': serviceName,
-        'platform.environment': envName,
-        'platform.service_env': deployment.serviceEnv?.id ?? '',
-        'platform.deployment': deployment.id,
-      };
+      const platformLabels = buildplatformLabels({
+        projectId: deployment.project.id,
+        projectName: deployment.project.name,
+        serviceId: deployment.service?.id,
+        serviceName,
+        environmentName:
+          deployment.serviceEnv?.environment?.name ??
+          deployment.environment?.name ??
+          '',
+        serviceEnvId: deployment.serviceEnv?.id,
+        deploymentId: deployment.id,
+      });
 
       const container = await this.docker.createContainer(serverId, {
         Image: imageRef,
