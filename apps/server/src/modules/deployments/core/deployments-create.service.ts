@@ -8,6 +8,7 @@ import {
   Deployment,
   DeploymentStatus,
   DeploymentStrategy,
+  ManagedServiceType,
   Prisma,
   ServiceType,
 } from '@prisma/client';
@@ -346,12 +347,16 @@ export class DeploymentsCreateService {
     service: {
       id: string;
       name: string;
-      databaseType: any;
+      databaseType: ManagedServiceType | null;
       databaseVersion: string | null;
       databaseCredentials: Prisma.JsonValue | null;
     },
-    serviceEnv: any,
-    environment: any,
+    serviceEnv: { id: string },
+    environment: {
+      id: string;
+      project: { id: string; name: string };
+      servers: { id: string }[];
+    },
   ): Promise<Deployment> {
     if (!service.databaseType) {
       throw new BadRequestException(
