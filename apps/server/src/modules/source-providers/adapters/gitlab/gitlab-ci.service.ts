@@ -16,29 +16,85 @@ export class GitlabCiService {
     private readonly auth: GitlabAuthorizationService,
   ) {}
 
+  /** Historique CI persisté (pipelineRun) — repli sans appel réseau. */
+  private async persistedPipelines(
+    projectId: string,
+  ): Promise<GitlabPipelineItem[]> {
+    const rows = await this.prisma.pipelineRun.findMany({
+      where: { projectId, provider: GitProviderType.GITLAB },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+    return rows.map((p) => ({
+      id: Number(p.externalId),
+      status: p.status.toLowerCase(),
+      ref: p.branch ?? '',
+      sha: p.commitSha ?? '',
+      web_url: p.webUrl ?? '',
+    }));
+  }
+
+  /**
+   * Pipelines au niveau PROJET : dans ce modèle 1 service = 1 repo, un projet
+   * n'a pas de « dépôt unique » → on AGRÈGE les pipelines de tous les services
+   * (best-effort : un dépôt qui échoue est ignoré, pas de 404 global). Repli sur
+   * l'historique persisté si aucun appel live n'aboutit.
+   */
   async getPipelines(
     projectId: string,
     userId: string,
     userRole: Role,
   ): Promise<GitlabPipelineItem[]> {
     await this.auth.assertCanAccessProject(projectId, userId, userRole);
-    const config = await this.projectConfig.getProjectConfig(projectId);
-    const repoId = this.projectConfig.assertRepoSource(
-      config,
-      'récupération des pipelines',
-    );
 
-    const pipelines = await this.apiService.getPipelines(
-      config,
-      repoId,
-      (url) => this.projectConfig.normalizeUrl(url),
-    );
+    const services = await this.prisma.service.findMany({
+      where: {
+        projectId,
+        providerId: { not: null },
+        repoPath: { not: null },
+      },
+      select: { repoPath: true },
+    });
 
-    for (const pipeline of pipelines) {
-      await this.webhookService.upsertPipeline(projectId, pipeline);
+    if (services.length === 0) {
+      return this.persistedPipelines(projectId);
     }
 
-    return pipelines;
+    const config = await this.projectConfig.getProjectConfig(projectId);
+    const seen = new Set<number>();
+    const merged: GitlabPipelineItem[] = [];
+    const repoPaths = Array.from(
+      new Set(
+        services
+          .map((s) => s.repoPath)
+          .filter((r): r is string => typeof r === 'string' && r.length > 0),
+      ),
+    );
+
+    for (const repoPath of repoPaths) {
+      try {
+        const list = await this.apiService.getPipelines(
+          config,
+          repoPath,
+          (url) => this.projectConfig.normalizeUrl(url),
+        );
+        for (const pipeline of list) {
+          if (seen.has(pipeline.id)) continue;
+          seen.add(pipeline.id);
+          merged.push(pipeline);
+          await this.webhookService.upsertPipeline(projectId, pipeline);
+        }
+      } catch {
+        // Dépôt indisponible (droits/inexistant) → on l'ignore et on continue.
+      }
+    }
+
+    if (merged.length === 0) {
+      return this.persistedPipelines(projectId);
+    }
+
+    merged.sort((a, b) => b.id - a.id);
+    return merged;
   }
 
   async getPipelinesForService(
@@ -74,29 +130,21 @@ export class GitlabCiService {
 
     if (!repoIdentifier) {
       // Pas de dépôt résolu → on retombe sur l'historique persisté (pipelineRun).
-      return this.prisma.pipelineRun
-        .findMany({
-          where: { projectId, provider: GitProviderType.GITLAB },
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-        })
-        .then((rows) =>
-          rows.map((p) => ({
-            id: Number(p.externalId),
-            status: p.status.toLowerCase(),
-            ref: p.branch ?? '',
-            sha: p.commitSha ?? '',
-            web_url: p.webUrl ?? '',
-          })),
-        );
+      return this.persistedPipelines(projectId);
     }
 
     const config = await this.projectConfig.getProjectConfig(projectId);
-    const pipelines = await this.apiService.getPipelines(
-      config,
-      repoIdentifier,
-      (url) => this.projectConfig.normalizeUrl(url),
-    );
+    let pipelines: GitlabPipelineItem[];
+    try {
+      pipelines = await this.apiService.getPipelines(
+        config,
+        repoIdentifier,
+        (url) => this.projectConfig.normalizeUrl(url),
+      );
+    } catch {
+      // Dépôt live indisponible → on n'échoue pas l'onglet, on montre l'historique.
+      return this.persistedPipelines(projectId);
+    }
 
     for (const pipeline of pipelines) {
       await this.webhookService.upsertPipeline(projectId, pipeline);
