@@ -24,14 +24,14 @@ type Props = {
 
 export function DeploymentStatusBadge({ status, size = 'md', variant = 'fill' }: Props) {
   const { label, icon: Icon, fill, text } = config[status];
-  const bg =
+  // 'plain' = même forme/fond que les boutons voisins (rounded-xl, bordure, fond
+  // carte) → s'intègre dans la barre/header sans pastille colorée.
+  const shape =
     variant === 'plain'
-      ? 'border border-[var(--border)] bg-[var(--bg-card)]'
-      : fill;
+      ? 'rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm'
+      : clsx('rounded-full', fill, size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs');
   return (
-    <span className={clsx('inline-flex items-center gap-1.5 rounded-full font-semibold', bg, text,
-      size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs',
-    )}>
+    <span className={clsx('inline-flex items-center gap-1.5 font-semibold', text, shape)}>
       <Icon size={size === 'sm' ? 11 : 13} className={status === 'RUNNING' ? 'animate-spin' : ''} />
       {label}
     </span>
