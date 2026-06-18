@@ -41,6 +41,7 @@ export function ServiceConfigForm({
   const [branch, setBranch] = useState(service.branch ?? '');
   const [rootDir, setRootDir] = useState(service.rootDir ?? '/');
   const [buildPack, setBuildPack] = useState<BuildPack>(service.buildPack ?? 'DOCKERFILE');
+  const [buildMode, setBuildMode] = useState<string>(service.buildMode ?? 'LOCAL');
   const [port, setPort] = useState(service.port != null ? String(service.port) : '');
   const [startCommand, setStartCommand] = useState(service.startCommand ?? '');
   const [healthcheckPath, setHealthcheckPath] = useState(service.healthcheckPath ?? '');
@@ -72,6 +73,7 @@ export function ServiceConfigForm({
         branch: branch.trim() || undefined,
         rootDir: rootDir.trim() || undefined,
         buildPack,
+        buildMode,
         port: port ? Number(port) : undefined,
         startCommand: startCommand.trim() || undefined,
         healthcheckPath: healthcheckPath.trim() || undefined,
@@ -139,6 +141,14 @@ export function ServiceConfigForm({
               {BUILD_PACKS.map((b) => (
                 <option key={b.value} value={b.value}>{b.label}</option>
               ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="svc-buildmode">Build mode</label>
+            <select id="svc-buildmode" className={inputClass} value={buildMode}
+              onChange={(e) => setBuildMode(e.target.value)}>
+              <option value="LOCAL">Build on server (sur le VPS)</option>
+              <option value="REGISTRY">Registry (image construite par la CI → pull)</option>
             </select>
           </div>
           <div>
