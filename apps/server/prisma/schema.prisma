@@ -1196,6 +1196,9 @@ model Service {
   // appelle un deploy-hook), MANUAL. Défaut DB = PIPELINE_SUCCESS (rétro-compat) ;
   // les nouveaux services sont créés en PUSH.
   deployTrigger        String?    @default("PIPELINE_SUCCESS")
+  // Mode REGISTRY : référence d'image (registry/chemin:tag) à tirer telle quelle
+  // au déploiement, au lieu de la dériver de la CI. Null = dérivation auto.
+  registryImage        String?
   buildType            String?
   dockerfile           String?    @db.Text
   port                 Int?       @default(3000)

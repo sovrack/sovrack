@@ -99,6 +99,14 @@ export class CreateServiceDto {
   @IsIn(['PUSH', 'PIPELINE_SUCCESS', 'CI_HOOK', 'MANUAL'])
   deployTrigger?: string;
 
+  @ApiPropertyOptional({
+    example: 'registry.gitlab.com/grp/app:latest',
+    description: 'Mode REGISTRY : image à tirer telle quelle (sinon dérivée).',
+  })
+  @IsOptional()
+  @IsString()
+  registryImage?: string;
+
   @ApiPropertyOptional({ example: 'railpack' })
   @IsOptional()
   @IsString()

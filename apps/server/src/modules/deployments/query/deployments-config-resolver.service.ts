@@ -31,6 +31,7 @@ export type ResolverService = {
   buildMode?: string | null;
   nixpacksConfig?: Prisma.JsonValue | null;
   staticConfig?: Prisma.JsonValue | null;
+  registryImage?: string | null;
   databaseType?: ManagedServiceType | null;
   databaseVersion?: string | null;
 };
@@ -103,6 +104,11 @@ export class DeploymentsConfigResolver {
     }
     if (this.isLocalBuildSource(buildSource)) {
       return `${sanitizeDockerTag(project.name)}:${sanitizeDockerTag(branch || 'latest')}`;
+    }
+    // Mode REGISTRY : si l'utilisateur a fixé une image (registryImage), on la
+    // tire telle quelle au lieu de la dériver de la CI.
+    if (service.registryImage?.trim()) {
+      return service.registryImage.trim();
     }
     return this.dockerService.buildDockerImage({
       projectId: project.id,
