@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
+  AlertTriangle,
   CheckCircle2,
   Globe,
   Loader2,
@@ -258,10 +259,21 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
         return (
           <div key={env.id} className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className={clsx('rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase', ENV_BADGE[env.name] ?? 'border-zinc-500/20 bg-zinc-500/10 text-zinc-400')}>
                   {env.name}
                 </span>
+                {/* Serveur lié — sinon avertissement (les déploiements échoueraient). */}
+                {(env.servers?.length ?? 0) > 0 ? (
+                  <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                    <Server size={11} /> {env.servers!.map((s) => s.name).join(', ')}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-400"
+                    title="Liez un serveur (actif et vérifié) pour pouvoir déployer.">
+                    <AlertTriangle size={11} /> Aucun serveur lié
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
