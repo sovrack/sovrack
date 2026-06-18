@@ -12,9 +12,11 @@ const envSchema = z.object({
   AUTH_COOKIE_SAME_SITE: z.string().optional(),
   AUTH_COOKIE_MAX_AGE_MS: z.string().optional(),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
-  ANSIBLE_PLAYBOOKS_PATH: z.string(),
+  // Optionnels : défaut sûr (ansible/playbooks embarqués dans le backend) ;
+  // venv = dev only → en prod repli auto sur l'ansible système de l'image.
+  ANSIBLE_PLAYBOOKS_PATH: z.string().optional(),
   ANSIBLE_SSH_KEY_PATH: z.string().optional(),
-  ANSIBLE_VENV_PATH: z.string(),
+  ANSIBLE_VENV_PATH: z.string().optional(),
   ANSIBLE_STRICT_HOST_KEY_CHECKING: z.string().optional(),
   ANSIBLE_KNOWN_HOSTS_PATH: z.string().optional(),
   ANSIBLE_HOST_KEY_TRUST_ON_FIRST_USE: z.string().optional(),

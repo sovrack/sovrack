@@ -32,8 +32,9 @@ const REQUIRED_ENV: RequiredEnv[] = [
     validate: (v) => (v.length < 32 ? 'too short (min 32 chars)' : null),
   },
   { name: 'REDIS_URL', hint: 'Redis connection URL (required by BullMQ)' },
-  { name: 'ANSIBLE_PLAYBOOKS_PATH', hint: 'Path to ansible/playbooks (bundled)' },
-  { name: 'ANSIBLE_VENV_PATH', hint: 'Path to the Ansible virtualenv' },
+  // ANSIBLE_PLAYBOOKS_PATH / ANSIBLE_VENV_PATH ne sont PLUS requis : défaut sûr
+  // (playbooks embarqués `ansible/playbooks`) + repli auto sur l'ansible système
+  // de l'image en prod. Override possible via variables d'env si besoin.
 ];
 
 /**
