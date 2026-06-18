@@ -39,6 +39,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { ServiceConfigForm } from '@/components/projects/tabs/service/service-config-form';
 import { ServiceWebhook } from '@/components/projects/tabs/service/service-webhook';
+import { ServiceCiGenerator } from '@/components/projects/tabs/service/service-ci-generator';
 import { ServiceTerminalDialog } from '@/components/projects/tabs/service/service-terminal-dialog';
 import { ServiceDomains } from '@/components/projects/tabs/service/service-domains';
 import { ServicePipelines } from '@/components/projects/tabs/service/service-pipelines';
@@ -283,9 +284,12 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      {/* Webhooks (déplacé du General) */}
+      {/* Webhooks + génération CI (intégration CI/CD) */}
       {tab === 'webhooks' && (
-        <ServiceWebhook projectId={projectId} serviceId={serviceId} />
+        <div className="space-y-4">
+          <ServiceWebhook projectId={projectId} serviceId={serviceId} />
+          <ServiceCiGenerator projectId={projectId} serviceId={serviceId} />
+        </div>
       )}
 
       {/* Variables & environnements (ex-onglet Environment) */}
