@@ -14,7 +14,7 @@ export type BuildDetectResult = {
   recommendedStrategy:
     | 'docker'
     | 'docker-multi-stage'
-    | 'buildpack'
+    | 'nixpacks'
     | 'static-build'
     | 'service-container';
   recommendedBuildType: string;
@@ -44,6 +44,7 @@ export type BuildPrepareResult = {
 };
 
 export type BuildConfig = {
+  defaultBuildSource?: string;
   projectType?: string;
   buildPort?: number;
   buildStartCmd?: string;

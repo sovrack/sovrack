@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Users, GitBranch, CheckCircle, XCircle, Rocket } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Users, GitBranch, CheckCircle, XCircle, Rocket, AlertCircle, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
+import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
 import type { ProjectListItem } from '@/types/project';
 
 type ProjectCardProps = {
@@ -10,71 +13,102 @@ type ProjectCardProps = {
 };
 
 export function ProjectCard({ project }: ProjectCardProps) {
+  const router = useRouter();
+  const [deployOpen, setDeployOpen] = useState(false);
+
   const hasGitlabConfig = project.hasGitlabConfig ?? false;
   const hasGitlabSourceId =
     typeof project.gitlabId === 'number' ||
     typeof project.gitlabGroupId === 'number';
   const isGitlabConnected = hasGitlabConfig && hasGitlabSourceId;
+  const hasEnv = (project.environmentCount ?? 0) > 0;
+  const isReadyToDeploy = isGitlabConnected && hasEnv;
   const memberCount = project.memberCount;
-
-  // First letter of project name for the avatar
   const initial = project.name.charAt(0).toUpperCase();
 
   return (
-    <Link href={`/projects/${project.id}`}>
-      <div className="group relative flex flex-col rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-5 transition hover:-translate-y-0.5 hover:border-[var(--border)] border-[var(--border)] bg-[var(--bg-card)]">
+    <>
+      <div className="group relative flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition hover:border-[var(--text-primary)]/20 hover:shadow-md">
         {/* Header */}
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-card)] text-sm font-bold text-[var(--bg-app)] shadow-sm bg-[var(--bg-card)]">
+        <Link href={`/projects/${project.id}`} className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--hover)] text-sm font-bold text-[var(--text-primary)]">
             {initial}
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--text-primary)] text-[var(--text-primary)]">
+            <h3 className="truncate text-sm font-semibold text-[var(--text-primary)]">
               {project.name}
             </h3>
             <p className="mt-0.5 truncate text-xs text-[var(--text-secondary)]">
               {project.description ?? 'No description'}
             </p>
           </div>
-
-          {/* GitLab badge */}
-          <span
-            className={clsx(
-              'shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
-              isGitlabConnected
-                ? 'bg-[var(--hover)] text-[var(--text-secondary)] text-[var(--text-primary)]'
-                : 'bg-[var(--hover)] text-[var(--text-secondary)] text-[var(--text-secondary)]',
-            )}
-          >
-            {isGitlabConnected ? (
-              <CheckCircle size={10} />
-            ) : (
-              <XCircle size={10} />
-            )}
-            {isGitlabConnected ? 'GitLab' : 'No GitLab'}
+          {/* Source badge */}
+          <span className={clsx(
+            'shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
+            isGitlabConnected
+              ? 'bg-green-500/10 text-green-300 border border-green-500/20'
+              : 'bg-[var(--hover)] text-[var(--text-muted)] border border-[var(--border)]',
+          )}>
+            {isGitlabConnected ? <CheckCircle size={10} /> : <XCircle size={10} />}
+            {isGitlabConnected ? 'Source OK' : 'No Source'}
           </span>
-        </div>
+        </Link>
 
-        {/* Branch info */}
-        {project.branch && (
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-            <GitBranch size={12} />
-            <span className="font-mono">{project.branch}</span>
-          </div>
-        )}
+        {/* Branch + env status */}
+        <Link href={`/projects/${project.id}`} className="mt-3 flex items-center gap-3">
+          {project.branch && (
+            <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+              <GitBranch size={11} />
+              <span className="font-mono">{project.branch}</span>
+            </span>
+          )}
+          <span className={clsx(
+            'flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border',
+            isReadyToDeploy
+              ? 'bg-green-500/10 text-green-300 border-green-500/20'
+              : 'bg-amber-500/10 text-amber-300 border-amber-500/20',
+          )}>
+            {isReadyToDeploy
+              ? <><CheckCircle2 size={10} /> Prêt à déployer</>
+              : <><AlertCircle size={10} /> {!isGitlabConnected ? 'Source manquante' : 'Env manquant'}</>}
+          </span>
+        </Link>
 
-        {/* Stats row */}
-        <div className="mt-4 flex items-center gap-4 border-t border-[var(--border)] pt-3 border-[var(--border)]">
-          <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-            <Users size={12} className="text-[var(--text-secondary)]" />
-            <span>{memberCount} member{memberCount !== 1 ? 's' : ''}</span>
-          </div>
-          <div className="ml-auto flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-            <Rocket size={12} className="text-[var(--text-secondary)]" />
-            <span className="font-mono">:{project.port}</span>
+        {/* Footer */}
+        <div className="mt-4 flex items-center gap-2 border-t border-[var(--border)] pt-3">
+          <Link href={`/projects/${project.id}`}
+            className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition">
+            <Users size={11} />
+            {memberCount} membre{memberCount !== 1 ? 's' : ''}
+          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            <Link href={`/projects/${project.id}?tab=configuration`}
+              className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:bg-[var(--hover)]">
+              Configure
+            </Link>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); setDeployOpen(true); }}
+              disabled={!isReadyToDeploy}
+              className={clsx(
+                'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition',
+                isReadyToDeploy
+                  ? 'bg-[var(--text-primary)] text-[var(--bg-app)] hover:opacity-90'
+                  : 'border border-[var(--border)] text-[var(--text-muted)] opacity-50 cursor-not-allowed',
+              )}
+            >
+              <Rocket size={11} /> Déployer
+            </button>
           </div>
         </div>
       </div>
-    </Link>
+
+      <DeploymentCreateDialog
+        open={deployOpen}
+        initialProjectId={project.id}
+        onClose={() => setDeployOpen(false)}
+        onCreated={async () => { setDeployOpen(false); router.push('/deployments'); }}
+      />
+    </>
   );
 }

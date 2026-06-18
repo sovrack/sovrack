@@ -4,6 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { serversService, type PrepareServerPayload } from '@/services/servers.service';
 import type { CreateServerPayload, UpdateServerPayload } from '@/types/server';
 
+const FINISHED_PREPARATION_STATUSES = new Set([
+  'SUCCEEDED', 'FAILED', 'TIMEOUT', 'CANCELED', 'PARTIAL',
+]);
+
+const ACTIVE_PREPARATION_STATUSES = new Set([
+  'QUEUED', 'RESOLVING_OPTIONS', 'WAITING_FOR_LOCK', 'RUNNING',
+]);
+
 export const serverKeys = {
   all: ['servers'] as const,
   list: () => [...serverKeys.all, 'list'] as const,
@@ -98,7 +106,8 @@ export function useServerAuditEvents(id: string) {
     queryKey: serverKeys.auditEvents(id),
     queryFn: () => serversService.getAuditEvents(id),
     enabled: Boolean(id),
-    refetchInterval: 5000,
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -107,7 +116,15 @@ export function useServerPreparations(id: string) {
     queryKey: serverKeys.preparations(id),
     queryFn: () => serversService.getPreparations(id),
     enabled: Boolean(id),
-    refetchInterval: 3000,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data || !Array.isArray(data)) return 3_000;
+      const hasActive = (data as Array<{ status: string }>).some((p) =>
+        ACTIVE_PREPARATION_STATUSES.has(p.status),
+      );
+      return hasActive ? 3_000 : false;
+    },
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -135,7 +152,14 @@ export function usePreparation(id: string | null) {
     queryKey: id ? serverKeys.preparation(id) : [...serverKeys.all, 'preparation', 'none'],
     queryFn: () => serversService.getPreparation(id ?? ''),
     enabled: Boolean(id),
-    refetchInterval: 3_000,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return 3_000;
+      return FINISHED_PREPARATION_STATUSES.has((data as { status: string }).status)
+        ? false
+        : 3_000;
+    },
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -144,7 +168,8 @@ export function usePreparationReadiness(id: string) {
     queryKey: serverKeys.preparationReadiness(id),
     queryFn: () => serversService.getPreparationReadiness(id),
     enabled: Boolean(id),
-    refetchInterval: 5000,
+    refetchInterval: 8_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -155,7 +180,8 @@ export function usePreparationLogs(preparationId: string | null) {
       : [...serverKeys.all, 'preparation-logs', 'none'],
     queryFn: () => serversService.getPreparationLogs(preparationId ?? ''),
     enabled: Boolean(preparationId),
-    refetchInterval: 2000,
+    refetchInterval: 2_000,
+    refetchIntervalInBackground: false,
   });
 }
 

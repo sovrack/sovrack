@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { resolveWsBaseUrl } from '@/lib/socket';
 import type { AutomationRunLog } from '@/types/automation';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL;
 
 type UseAutomationLogStreamOptions = {
   runId: string | null;
@@ -20,11 +20,12 @@ export function useAutomationLogStream({
   onFinished,
 }: UseAutomationLogStreamOptions) {
   useEffect(() => {
-    if (!runId || !SOCKET_URL) {
+    const wsBase = resolveWsBaseUrl();
+    if (!runId || !wsBase) {
       return;
     }
 
-    const socket: Socket = io(`${SOCKET_URL}/automation`, {
+    const socket: Socket = io(`${wsBase}/automation`, {
       autoConnect: true,
       transports: ['websocket'],
       withCredentials: true,

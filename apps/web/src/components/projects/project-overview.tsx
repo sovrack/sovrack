@@ -1,27 +1,36 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import {
+  Activity,
+  ArrowRight,
   CheckCircle2,
   Circle,
-  ExternalLink,
+  Clock,
   GitBranch,
+  Globe,
   Loader2,
   Rocket,
   RotateCcw,
   Server,
+  Settings2,
+  Terminal,
   Users,
   Wrench,
+  Zap,
 } from 'lucide-react';
 import type { ProjectDetail, GitlabConfig } from '@/types/project';
-import type { Deployment } from '@/types/deployment';
+import type { Deployment, DeploymentStatus } from '@/types/deployment';
 import type { Environment } from '@/types/environment';
 import { deploymentsService } from '@/services/deployments.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
+import { DeploymentLogsDialog } from '@/components/projects/tabs/runs/deployment-logs-dialog';
+import { timeAgo, dur, resolveDeploymentUrl, ENV_BADGE } from '@/lib/deployment-utils';
 
-type ProjectOverviewProps = {
+/* ─── Types ──────────────────────────────────────────────────────────────── */
+
+type Props = {
   project: ProjectDetail;
   lastDeployment?: Deployment | null;
   gitlabConfig?: GitlabConfig | null;
@@ -29,26 +38,10 @@ type ProjectOverviewProps = {
   onRollbackDone?: () => void;
   onTabChange?: (tab: string) => void;
   onOpenBuild?: () => void;
+  onDeploy?: () => void;
 };
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'à l\'instant';
-  if (m < 60) return `il y a ${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h}h`;
-  return `il y a ${Math.floor(h / 24)}j`;
-}
-
-type Step = {
-  id: string;
-  label: string;
-  description: string;
-  done: boolean;
-  tab?: string;
-  icon: React.ReactNode;
-};
+/* ─── Component ──────────────────────────────────────────────────────────── */
 
 export function ProjectOverview({
   project,
@@ -58,64 +51,65 @@ export function ProjectOverview({
   onRollbackDone,
   onTabChange,
   onOpenBuild,
-}: ProjectOverviewProps) {
+  onDeploy,
+}: Props) {
   const [rollingBack, setRollingBack] = useState(false);
   const [rollbackError, setRollbackError] = useState<string | null>(null);
+  const [logsTarget, setLogsTarget] = useState<{ id: string; status: DeploymentStatus } | null>(null);
 
+  const services = project.services ?? [];
   const canRollback = lastDeployment && (lastDeployment.status === 'SUCCESS' || lastDeployment.status === 'FAILED');
 
   const handleRollback = async () => {
-    if (!lastDeployment || !confirm('Rollback vers la dernière version stable ?')) return;
-    setRollingBack(true);
-    setRollbackError(null);
-    try {
-      await deploymentsService.rollback(lastDeployment.id);
-      onRollbackDone?.();
-    } catch (err) {
-      setRollbackError(getApiErrorMessage(err));
-    } finally {
-      setRollingBack(false);
-    }
+    if (!lastDeployment || !confirm('Rollback to the previous stable version?')) return;
+    setRollingBack(true); setRollbackError(null);
+    try { await deploymentsService.rollback(lastDeployment.id); onRollbackDone?.(); }
+    catch (err) { setRollbackError(getApiErrorMessage(err)); }
+    finally { setRollingBack(false); }
   };
 
+  /* ── Setup checklist ──────────────────────────────────────── */
+  type Step = { id: string; label: string; description: string; done: boolean; tab?: string; icon: React.ReactNode; action?: () => void };
   const steps: Step[] = [
     {
-      id: 'gitlab',
-      label: 'Connecter GitLab',
+      id: 'source',
+      label: 'Connect Git source',
       description: gitlabConfig
-        ? `${gitlabConfig.sourceType === 'GROUP' ? 'Groupe' : 'Repo'} connecté`
-        : 'Associez un dépôt ou groupe GitLab',
+        ? `${gitlabConfig.sourceType === 'GROUP' ? 'Group' : 'Repo'} connected · ${project.branch ?? 'main'}`
+        : 'Link a GitLab repo or group',
       done: !!gitlabConfig,
-      tab: 'gitlab',
-      icon: <GitBranch size={14} />,
+      tab: 'configuration',
+      icon: <GitBranch size={13} />,
     },
     {
       id: 'environment',
-      label: 'Configurer un environnement',
+      label: 'Add an environment',
       description: environments.length > 0
-        ? `${environments.length} environnement${environments.length > 1 ? 's' : ''} configuré${environments.length > 1 ? 's' : ''}`
-        : 'Associez un VPS (STAGING ou PRODUCTION)',
+        ? `${environments.length} environment${environments.length > 1 ? 's' : ''} configured`
+        : 'Assign a target VPS (staging, production…)',
       done: environments.length > 0,
       tab: 'environments',
-      icon: <Server size={14} />,
+      icon: <Server size={13} />,
     },
     {
       id: 'build',
-      label: 'Builder l\'application',
-      description: 'Générer Dockerfile + pipeline GitLab CI',
+      label: 'Configure build',
+      description: 'Choose engine · generate Dockerfile & CI pipeline',
       done: !!lastDeployment,
-      tab: 'build',
-      icon: <Wrench size={14} />,
+      tab: 'configuration',
+      icon: <Wrench size={13} />,
+      action: onOpenBuild,
     },
     {
       id: 'deploy',
-      label: 'Premier déploiement',
+      label: 'First deployment',
       description: lastDeployment
-        ? `Dernier : ${lastDeployment.status} · ${timeAgo(lastDeployment.createdAt)}`
-        : 'Lancez votre premier déploiement',
+        ? `Last run: ${lastDeployment.status} · ${timeAgo(lastDeployment.createdAt)}`
+        : 'Launch your first deployment',
       done: !!lastDeployment && lastDeployment.status === 'SUCCESS',
       tab: 'deployments',
-      icon: <Rocket size={14} />,
+      icon: <Rocket size={13} />,
+      action: onDeploy,
     },
   ];
 
@@ -123,61 +117,54 @@ export function ProjectOverview({
   const nextStep = steps.find((s) => !s.done);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
 
-      {/* Getting Started checklist — shown until everything is done */}
+      {/* ── Setup checklist — hidden once all done ─────────────── */}
       {!allDone && (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <div className="mb-4">
-            <p className="text-sm font-semibold text-[var(--text-primary)]">Pour commencer</p>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">Suivez ces étapes pour déployer votre première application.</p>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3.5">
+            <div>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">Getting started</p>
+              <p className="text-xs text-[var(--text-muted)]">
+                {steps.filter((s) => s.done).length} / {steps.length} steps completed
+              </p>
+            </div>
+            {/* Progress bar */}
+            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--hover)]">
+              <div
+                className="h-full rounded-full bg-[var(--text-primary)] transition-all duration-500"
+                style={{ width: `${(steps.filter((s) => s.done).length / steps.length) * 100}%` }}
+              />
+            </div>
           </div>
-
-          <div className="space-y-2">
-            {steps.map((step, i) => {
+          <div className="divide-y divide-[var(--border)]">
+            {steps.map((step) => {
               const isNext = step.id === nextStep?.id;
-              const isLocked = !step.done && !isNext;
+              const handleAction = step.action ?? (step.tab ? () => onTabChange?.(step.tab!) : undefined);
               return (
-                <div
-                  key={step.id}
-                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition ${
-                    step.done
-                      ? 'border-green-500/20 bg-green-500/5'
-                      : isNext
-                        ? 'border-[var(--text-primary)]/30 bg-[var(--hover)]'
-                        : 'border-[var(--border)] opacity-50'
-                  }`}
-                >
-                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
+                <div key={step.id} className={`flex items-center gap-4 px-5 py-3.5 transition ${step.done ? 'opacity-60' : isNext ? '' : 'opacity-35'}`}>
+                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
                     step.done
                       ? 'border-green-500/40 bg-green-500/10 text-green-400'
                       : isNext
-                        ? 'border-[var(--text-primary)]/50 bg-[var(--text-primary)]/10 text-[var(--text-primary)]'
+                        ? 'border-[var(--text-primary)]/40 bg-[var(--text-primary)]/10 text-[var(--text-primary)]'
                         : 'border-[var(--border)] text-[var(--text-muted)]'
                   }`}>
-                    {step.done ? <CheckCircle2 size={14} /> : isLocked ? <Circle size={14} /> : step.icon}
+                    {step.done ? <CheckCircle2 size={13} /> : <Circle size={13} />}
                   </div>
-
                   <div className="min-w-0 flex-1">
-                    <p className={`text-sm font-semibold ${step.done ? 'text-green-400' : 'text-[var(--text-primary)]'}`}>
-                      {i + 1}. {step.label}
+                    <p className={`text-sm font-medium ${step.done ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-primary)]'}`}>
+                      {step.label}
                     </p>
-                    <p className="text-xs text-[var(--text-muted)]">{step.description}</p>
+                    <p className="truncate text-xs text-[var(--text-muted)]">{step.description}</p>
                   </div>
-
-                  {isNext && step.tab && (
+                  {isNext && handleAction && (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (step.id === 'build' && onOpenBuild) {
-                          onOpenBuild();
-                        } else if (onTabChange) {
-                          onTabChange(step.tab!);
-                        }
-                      }}
-                      className="shrink-0 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+                      onClick={handleAction}
+                      className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
                     >
-                      Configurer →
+                      Configure <ArrowRight size={11} />
                     </button>
                   )}
                 </div>
@@ -187,72 +174,189 @@ export function ProjectOverview({
         </div>
       )}
 
-      {/* KPI row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-            <Users size={12} /> Members
-          </p>
-          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{project.members.length}</p>
-        </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-            <GitBranch size={12} /> Branche par défaut
-          </p>
-          <p className="mt-2 text-2xl font-bold font-mono text-[var(--text-primary)]">{project.branch ?? '—'}</p>
-        </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Environnements</p>
-          <p className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{environments.length}</p>
-        </div>
+      {/* ── Stats row ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: 'Environments', value: environments.length, icon: <Server size={13} />, tab: 'environments' },
+          { label: 'Services', value: services.length, icon: <Settings2 size={13} />, tab: 'configuration' },
+          { label: 'Members', value: project.members.length, icon: <Users size={13} />, tab: 'settings' },
+          { label: 'Branch', value: project.branch ?? '—', icon: <GitBranch size={13} />, tab: 'configuration', mono: true },
+        ].map(({ label, value, icon, tab, mono }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => onTabChange?.(tab)}
+            className="group rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-left transition hover:border-[var(--text-primary)]/20 hover:bg-[var(--hover)]"
+          >
+            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+              {icon} {label}
+            </p>
+            <p className={`mt-2 truncate font-bold text-[var(--text-primary)] ${mono ? 'font-mono text-sm' : 'text-2xl'}`}>
+              {value}
+            </p>
+          </button>
+        ))}
       </div>
 
-      {/* Last deployment */}
+      {/* ── Environments status grid ────────────────────────────── */}
+      {environments.length > 0 && (
+        <div>
+          <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Environments</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {environments.map((env) => {
+              const configuredCount = env.serviceTargets?.length ?? 0;
+              const readyCount = services.length > 0
+                ? (env.serviceTargets?.filter((t) => t.port).length ?? 0)
+                : configuredCount;
+              const isReady = services.length === 0 || readyCount === services.length;
+
+              return (
+                <div key={env.id} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${ENV_BADGE[env.name] ?? 'border-zinc-500/20 bg-zinc-500/10 text-zinc-400'}`}>
+                        {env.name}
+                      </span>
+                      {env.autoDeploy && (
+                        <span className="flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-blue-400">
+                          <Zap size={8} /> Auto
+                        </span>
+                      )}
+                    </div>
+                    <span className={`flex items-center gap-1 text-[10px] font-semibold ${isReady ? 'text-green-400' : 'text-amber-400'}`}>
+                      {isReady ? <CheckCircle2 size={10} /> : <Activity size={10} />}
+                      {isReady ? 'Ready' : `${readyCount}/${services.length} configured`}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 space-y-1.5">
+                    {env.server && (
+                      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                        <Server size={11} className="shrink-0" />
+                        <span className="font-medium text-[var(--text-secondary)]">{env.server.name}</span>
+                        <span className="font-mono text-[10px]">{env.server.host}</span>
+                      </div>
+                    )}
+                    {env.domain && (
+                      <div className="flex items-center gap-2 font-mono text-[10px] text-[var(--text-muted)]">
+                        <Globe size={11} className="shrink-0" />
+                        {env.domain}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 flex items-center gap-2 border-t border-[var(--border)] pt-3">
+                    <button
+                      type="button"
+                      onClick={() => onTabChange?.('environments')}
+                      className="flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                    >
+                      <Settings2 size={9} /> Configure
+                    </button>
+                    {isReady && onDeploy && (
+                      <button
+                        type="button"
+                        onClick={onDeploy}
+                        className="flex items-center gap-1 rounded-lg bg-[var(--text-primary)] px-2.5 py-1 text-[10px] font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+                      >
+                        <Rocket size={9} /> Deploy
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Last deployment ─────────────────────────────────────── */}
       {lastDeployment ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Dernier déploiement</p>
-              <div className="mt-2 flex items-center gap-2">
-                <DeploymentStatusBadge status={lastDeployment.status} size="sm" />
-                <span className="text-sm font-semibold text-[var(--text-primary)]">{lastDeployment.environment.name}</span>
-                <span className="font-mono text-xs text-[var(--text-muted)]">@ {lastDeployment.branch}</span>
+        <div>
+          <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Latest run</p>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <DeploymentStatusBadge status={lastDeployment.status} size="sm" />
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${ENV_BADGE[lastDeployment.environment.name] ?? ''}`}>
+                    {lastDeployment.environment.name}
+                  </span>
+                  <span className="font-mono text-xs text-[var(--text-muted)]">{lastDeployment.branch}</span>
+                  {lastDeployment.service && (
+                    <span className="rounded border border-[var(--border)] bg-[var(--hover)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
+                      {lastDeployment.service.name}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
+                  <span>{lastDeployment.user.fullName} · {timeAgo(lastDeployment.createdAt)}</span>
+                  {dur(lastDeployment.startedAt, lastDeployment.finishedAt) && (
+                    <span className="flex items-center gap-1"><Clock size={10} /> {dur(lastDeployment.startedAt, lastDeployment.finishedAt)}</span>
+                  )}
+                </div>
+
+                {(() => {
+                  const url = resolveDeploymentUrl(lastDeployment);
+                  if (!url || lastDeployment.status !== 'SUCCESS') return null;
+                  return (
+                    <div className="mt-3 flex items-center gap-2">
+                      <Globe size={13} className="text-green-400" />
+                      <a href={url} target="_blank" rel="noreferrer" className="font-mono text-xs text-green-400 underline hover:text-green-300 truncate max-w-xs">{url}</a>
+                      <a href={url} target="_blank" rel="noreferrer" className="shrink-0 rounded-lg border border-green-500/30 bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-400 hover:bg-green-500/20 transition">Open ↗</a>
+                    </div>
+                  );
+                })()}
+                {rollbackError && <p className="mt-2 text-xs text-red-400">{rollbackError}</p>}
               </div>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                {lastDeployment.user.fullName} · {timeAgo(lastDeployment.createdAt)}
-              </p>
-              {rollbackError && <p className="mt-2 text-xs text-red-400">{rollbackError}</p>}
-            </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/deployments/${lastDeployment.id}`}
-                className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
-              >
-                <ExternalLink size={12} /> Logs
-              </Link>
-              {canRollback && (
+
+              <div className="flex shrink-0 flex-col items-end gap-2">
                 <button
                   type="button"
-                  onClick={() => void handleRollback()}
-                  disabled={rollingBack}
-                  className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
+                  onClick={() => setLogsTarget({ id: lastDeployment.id, status: lastDeployment.status })}
+                  className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
                 >
-                  {rollingBack ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
-                  Rollback
+                  <Terminal size={11} /> View logs
                 </button>
-              )}
+                {canRollback && (
+                  <button
+                    type="button"
+                    onClick={() => void handleRollback()}
+                    disabled={rollingBack}
+                    className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
+                  >
+                    {rollingBack ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
+                    Rollback
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-10 text-center">
-          <Rocket size={24} className="mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm font-semibold text-[var(--text-primary)]">Aucun déploiement</p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            Complétez les étapes ci-dessus pour lancer votre premier déploiement.
-          </p>
+      ) : allDone ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-12 text-center">
+          <Rocket size={28} className="mb-3 text-[var(--text-muted)]" />
+          <p className="text-sm font-semibold text-[var(--text-primary)]">Ready to deploy</p>
+          <p className="mt-1 max-w-xs text-xs text-[var(--text-secondary)]">All steps completed. Launch your first deployment.</p>
+          {onDeploy && (
+            <button
+              type="button"
+              onClick={onDeploy}
+              className="mt-4 flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+            >
+              <Rocket size={14} /> Deploy now
+            </button>
+          )}
         </div>
-      )}
+      ) : null}
+
+      <DeploymentLogsDialog
+        open={logsTarget !== null}
+        deploymentId={logsTarget?.id ?? null}
+        initialStatus={logsTarget?.status ?? null}
+        onClose={() => setLogsTarget(null)}
+      />
     </div>
   );
 }

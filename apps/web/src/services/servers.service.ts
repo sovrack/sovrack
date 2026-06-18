@@ -154,6 +154,11 @@ export const serversService = {
     return res.data;
   },
 
+  async cancelJob(id: string, jobId: string): Promise<ServerJob> {
+    const res = await api.post<ServerJob>(`/servers/${id}/jobs/${jobId}/cancel`);
+    return res.data;
+  },
+
   async getPreparationOptions(): Promise<ServerPreparationOptionsResponse> {
     const res = await api.get<ServerPreparationOptionsResponse>(
       '/server-preparation-options',

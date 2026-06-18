@@ -416,12 +416,15 @@ export default function AdminServersPage() {
         jobsLoading={activeDetailsJobsLoading}
         isBusy={getServerBusy(activeDetailsServer)}
         retryingJobId={servers.retryingJobId}
+        cancelingJobId={servers.cancelingJobId}
         formatJobType={servers.formatJobType}
         canRetryJob={servers.canRetryJob}
+        canCancelJob={servers.canCancelJob}
         getJobStatusClassName={servers.getJobStatusClassName}
         onClose={() => setDetailsServer(null)}
         onRefreshJobs={servers.refreshJobs}
         onRetryJob={servers.handleRetryJob}
+        onCancelJob={servers.handleCancelJob}
       />
 
       <ServerUpsertDialog

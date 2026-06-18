@@ -31,11 +31,20 @@ export type Deployment = DeploymentApi & {
 export type DeploymentMutation = DeploymentMutationApi;
 export type DeploymentStatus = Deployment['status'];
 export type DeploymentStrategy = 'standard' | 'blue-green';
-export type DeploymentBuildMode = 'registry' | 'local' | 'compose';
+
+export type BuildSource =
+  | 'DOCKERFILE_REGISTRY'
+  | 'DOCKERFILE_LOCAL'
+  | 'NIXPACKS_REGISTRY'
+  | 'NIXPACKS_LOCAL'
+  | 'DOCKER_COMPOSE'
+  | 'STATIC'
+  | 'EXTERNAL_IMAGE';
+
 export type CreateDeploymentPayload = CreateDeploymentApiPayload & {
   serviceId?: string;
   strategy?: DeploymentStrategy;
-  buildMode?: DeploymentBuildMode;
+  buildSource?: BuildSource;
   overrideImage?: string;
 };
 
@@ -83,6 +92,14 @@ export type DeploymentJoinedEvent = {
 export type DeploymentErrorEvent = {
   deploymentId?: string;
   message: string;
+};
+
+export type DeployValidationResult = {
+  ready: boolean;
+  missing: { binary: string; label: string; role: string }[];
+  required: { binary: string; label: string; role: string }[];
+  serverName: string;
+  buildSource: string;
 };
 
 export type SocketDeploymentEvent =

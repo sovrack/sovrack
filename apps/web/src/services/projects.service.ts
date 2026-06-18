@@ -6,11 +6,13 @@ import type {
   UpdateProjectPayload,
   AddMemberPayload,
   ConnectGitlabPayload,
+  ConnectSourcePayload,
   GitlabBranch,
   GitlabConfig,
   GitlabPipeline,
   GitlabRepo,
   GitlabProviderOption,
+  SourceProviderOption,
   GitlabGroupRepositoriesResponse,
   ImportGitlabGroupPayload,
   CreateProjectServicePayload,
@@ -79,6 +81,18 @@ export const projectsService = {
   ): Promise<GitlabConfig> {
     const res = await api.post<GitlabConfig>(
       `/projects/${projectId}/gitlab/connect`,
+      payload,
+    );
+    return res.data;
+  },
+
+  /** Connect any Git source (GitLab or GitHub) to the project — unified endpoint */
+  async connectSource(
+    projectId: string,
+    payload: ConnectSourcePayload,
+  ): Promise<unknown> {
+    const res = await api.post(
+      `/projects/${projectId}/source/connect`,
       payload,
     );
     return res.data;
@@ -191,6 +205,22 @@ export const projectsService = {
     return res.data;
   },
 
+  async updateService(
+    projectId: string,
+    serviceId: string,
+    payload: Partial<CreateProjectServicePayload>,
+  ): Promise<ProjectService> {
+    const res = await api.put<ProjectService>(
+      `/projects/${projectId}/services/${serviceId}`,
+      payload,
+    );
+    return res.data;
+  },
+
+  async deleteService(projectId: string, serviceId: string): Promise<void> {
+    await api.delete(`/projects/${projectId}/services/${serviceId}`);
+  },
+
   async getServicePipelines(projectId: string, serviceId: string): Promise<GitlabPipeline[]> {
     const res = await api.get<GitlabPipeline[]>(`/projects/${projectId}/services/${serviceId}/pipelines`);
     return res.data;
@@ -199,6 +229,12 @@ export const projectsService = {
   /** List global GitLab providers available for project-level connection */
   async getGitlabProviders(): Promise<GitlabProviderOption[]> {
     const res = await api.get<GitlabProviderOption[]>('/gitlab/providers');
+    return res.data;
+  },
+
+  // Unified, provider-agnostic provider list (GitHub + GitLab) for the source picker.
+  async getSourceProviders(): Promise<SourceProviderOption[]> {
+    const res = await api.get<SourceProviderOption[]>('/source/providers');
     return res.data;
   },
 };
