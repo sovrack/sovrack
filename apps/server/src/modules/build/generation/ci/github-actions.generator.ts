@@ -188,10 +188,23 @@ export class GithubActionsGenerator implements ICiGenerator {
       '          cache-from: type=gha',
       '          cache-to: type=gha,mode=max',
       '',
-      '      - name: Notify deployment platform',
+      // Déclenche le déploiement platform (deployTrigger = PIPELINE_SUCCESS / CI_HOOK).
+      // Renseigne les secrets repo PLATFORM_DEPLOY_HOOK (URL webhook du service) +
+      // platform_DEPLOY_TOKEN (secret du webhook) pour activer le déclenchement.
+      '      - name: Trigger platform deployment',
+      '        env:',
+      '          PLATFORM_DEPLOY_HOOK: ${{ secrets.PLATFORM_DEPLOY_HOOK }}',
+      '          platform_DEPLOY_TOKEN: ${{ secrets.platform_DEPLOY_TOKEN }}',
       '        run: |',
       '          echo "Image pushed: ${{ steps.meta.outputs.tags }}"',
-      '          echo "Commit SHA: ${{ github.sha }}"',
+      '          if [ -n "$PLATFORM_DEPLOY_HOOK" ]; then',
+      '            curl -fsSL -X POST "$PLATFORM_DEPLOY_HOOK" \\',
+      '              -H "Content-Type: application/json" \\',
+      '              -H "X-Hub-Signature-256: $platform_DEPLOY_TOKEN" \\',
+      '              -d "{\\"ref\\":\\"${{ github.ref_name }}\\",\\"sha\\":\\"${{ github.sha }}\\"}"',
+      '          else',
+      '            echo "PLATFORM_DEPLOY_HOOK non défini — déploiement non déclenché.";',
+      '          fi',
     );
 
     return lines.filter((l) => l !== undefined).join('\n');
