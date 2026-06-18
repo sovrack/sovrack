@@ -590,6 +590,10 @@ export class DockerDeployExecutorService {
 
       const imageDigest = await this.resolveImageDigest(serverId, imageRef);
 
+      // Nettoyage best-effort des images orphelines (anciens builds) → évite que
+      // le disque du VPS se remplisse au fil des déploiements. Non bloquant.
+      void this.docker.pruneDanglingImages(serverId);
+
       const finished = await this.prisma.deployment.update({
         where: { id: deployment.id },
         data: {

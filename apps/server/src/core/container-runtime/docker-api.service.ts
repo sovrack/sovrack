@@ -269,6 +269,23 @@ export class DockerApiService {
     this.logger.log(`Image pulled: ${imageRef}`);
   }
 
+  /**
+   * Supprime les images « dangling » (couches orphelines des anciens builds) sur
+   * le serveur → évite que le disque du VPS se remplisse au fil des déploiements.
+   * Best-effort : ne bloque jamais un déploiement.
+   */
+  async pruneDanglingImages(serverId: string): Promise<void> {
+    try {
+      const client = await this.getClient(serverId);
+      await client.pruneImages({ filters: { dangling: { true: true } } });
+      this.logger.log(`Pruned dangling images on server ${serverId}`);
+    } catch (err) {
+      this.logger.warn(
+        `Image prune skipped on ${serverId}: ${err instanceof Error ? err.message : 'unknown'}`,
+      );
+    }
+  }
+
   async createVolume(serverId: string, name: string): Promise<void> {
     const client = await this.getClient(serverId);
     await client.createVolume({ Name: name });
