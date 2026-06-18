@@ -216,6 +216,17 @@ export class ContainerRegistriesService {
     throw new BadRequestException('Authentification Docker Hub échouée');
   }
 
+  /**
+   * Teste un registre Docker v2 (GitLab/GHCR/registre privé) en suivant le
+   * VRAI handshake d'authentification :
+   *  1. GET /v2/  →  200 = OK direct (anonyme ou Basic accepté).
+   *  2. 401 + `WWW-Authenticate: Bearer realm=…,service=…` = NORMAL → on suit le
+   *     realm avec les identifiants Basic pour obtenir un token : 200+token =
+   *     identifiants valides ; 401/403 = identifiants refusés.
+   *  3. 401 + `Basic` sans creds = le registre exige une authentification.
+   * (Un simple GET /v2/ renvoyait 401 sur GitLab et était pris à tort pour un
+   *  échec — bug corrigé.)
+   */
   private async testDockerRegistry(
     registry: RegistryConfig,
   ): Promise<{ ok: boolean; message: string }> {
@@ -227,28 +238,105 @@ export class ContainerRegistriesService {
 
     if (!rawUrl) throw new BadRequestException('Registry URL requise');
 
-    const registryUrl = rawUrl.startsWith('http')
-      ? rawUrl
-      : `https://${rawUrl}`;
+    const registryUrl = (
+      rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
+    ).replace(/\/+$/, '');
+    const auth = username && password ? { username, password } : undefined;
 
-    const response = await firstValueFrom(
+    const ping = await firstValueFrom(
       this.http.get(`${registryUrl}/v2/`, {
-        auth: username && password ? { username, password } : undefined,
+        auth,
         timeout: 10000,
+        validateStatus: () => true,
       }),
     );
 
-    if (response.status === 200) {
-      await this.prisma.registryConfig.update({
-        where: { id: registry.id },
-        data: { isConnected: true, connectionError: null },
-      });
-      return { ok: true, message: 'Connexion au registre Docker réussie' };
+    if (ping.status === 200) {
+      return this.markRegistryConnected(
+        registry.id,
+        'Connexion au registre réussie.',
+      );
+    }
+
+    if (ping.status === 401) {
+      const challenge = this.parseBearerChallenge(
+        String(ping.headers['www-authenticate'] ?? ''),
+      );
+
+      // Auth par token (Bearer) : on demande un token au realm avec les creds.
+      if (challenge?.realm) {
+        if (!auth) {
+          throw new BadRequestException(
+            'Ce registre exige une authentification (username + token/mot de passe).',
+          );
+        }
+        const tokenRes = await firstValueFrom(
+          this.http.get<{ token?: string; access_token?: string }>(
+            challenge.realm,
+            {
+              params: {
+                service: challenge.service,
+                scope: challenge.scope,
+              },
+              auth,
+              timeout: 10000,
+              validateStatus: () => true,
+            },
+          ),
+        );
+        if (
+          tokenRes.status === 200 &&
+          (tokenRes.data?.token || tokenRes.data?.access_token)
+        ) {
+          return this.markRegistryConnected(
+            registry.id,
+            'Authentification au registre réussie (token Bearer).',
+          );
+        }
+        throw new BadRequestException(
+          `Identifiants refusés par le registre (HTTP ${tokenRes.status}). Vérifiez username + token.`,
+        );
+      }
+
+      // Auth Basic exigée.
+      if (!auth) {
+        throw new BadRequestException(
+          'Ce registre exige une authentification (username + token/mot de passe).',
+        );
+      }
+      throw new BadRequestException(
+        'Identifiants invalides pour ce registre (401).',
+      );
     }
 
     throw new BadRequestException(
-      'Authentification au registre Docker échouée',
+      `Réponse inattendue du registre (HTTP ${ping.status}).`,
     );
+  }
+
+  /** Parse un en-tête `WWW-Authenticate: Bearer realm="…",service="…",scope="…"`. */
+  private parseBearerChallenge(
+    header: string,
+  ): { realm: string; service?: string; scope?: string } | null {
+    if (!/^bearer/i.test(header.trim())) return null;
+    const pick = (key: string): string | undefined => {
+      const m = new RegExp(`${key}="([^"]*)"`, 'i').exec(header);
+      return m?.[1];
+    };
+    const realm = pick('realm');
+    if (!realm) return null;
+    return { realm, service: pick('service'), scope: pick('scope') };
+  }
+
+  private async markRegistryConnected(
+    id: string,
+    message: string,
+  ): Promise<{ ok: boolean; message: string }> {
+    await this.prisma.registryConfig.update({
+      where: { id },
+      data: { isConnected: true, connectionError: null },
+    });
+    return { ok: true, message };
   }
 
   private async testECR(
