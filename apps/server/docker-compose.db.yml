@@ -6,11 +6,11 @@
 # - frontend lance en local (npm run dev)
 #
 # Commandes principales (depuis la racine du projet):
-# - Lancer DB: docker-compose -f devops/docker/docker-compose.db.yml up -d
-# - Arreter DB (sans supprimer): docker-compose -f devops/docker/docker-compose.db.yml stop
-# - Arreter et supprimer (conteneur + reseau): docker-compose -f devops/docker/docker-compose.db.yml down
-# - Nettoyer aussi les donnees PostgreSQL: docker-compose -f devops/docker/docker-compose.db.yml down -v
-# - Voir l'etat: docker-compose -f devops/docker/docker-compose.db.yml ps
+# - Lancer DB: docker-compose -f docker-compose.db.yml up -d
+# - Arreter DB (sans supprimer): docker-compose -f docker-compose.db.yml stop
+# - Arreter et supprimer (conteneur + reseau): docker-compose -f docker-compose.db.yml down
+# - Nettoyer aussi les donnees PostgreSQL: docker-compose -f docker-compose.db.yml down -v
+# - Voir l'etat: docker-compose -f docker-compose.db.yml ps
 #
 # Variables d'environnement lues depuis backend/.env (DB_USER, DB_PASSWORD, DB_NAME, DB_PORT)
 # Le backend et le frontend lisent toujours DATABASE_URL=postgresql://...@localhost:5432/...
