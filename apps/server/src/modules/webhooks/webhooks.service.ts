@@ -7,6 +7,7 @@ import {
   WebhookEventStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
+import { CryptoService } from '../../core/crypto/crypto.service';
 import { WebhookEndpointContext } from './interfaces/webhook-handler.interface';
 
 /** After this many attempts a failed webhook is dead-lettered (no more retries). */
@@ -50,7 +51,10 @@ export type RetryableWebhookEvent = {
 export class WebhooksService {
   private readonly logger = new Logger(WebhooksService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly crypto: CryptoService,
+  ) {}
 
   // ─── WebhookEndpoint lifecycle ───────────────────────────────────────────
 
@@ -75,6 +79,17 @@ export class WebhooksService {
       },
     });
     if (existing) {
+      // Endpoint legacy sans secret → on en génère un et on le renvoie pour
+      // qu'il soit (re)posé chez le provider → sécurise les anciens webhooks
+      // au prochain « Connect ». Sinon on ne ré-expose jamais le secret existant.
+      if (!existing.secret) {
+        const secret = randomBytes(32).toString('hex');
+        await this.prisma.webhookEndpoint.update({
+          where: { id: existing.id },
+          data: { secret: this.crypto.encrypt(secret) },
+        });
+        return { id: existing.id, webhookToken: existing.webhookToken, secret };
+      }
       return {
         id: existing.id,
         webhookToken: existing.webhookToken,
@@ -89,6 +104,8 @@ export class WebhooksService {
         serviceEnvId: params.serviceEnvId ?? null,
         provider: params.provider,
         events: params.events,
+        // Chiffré au repos ; déchiffré uniquement pour vérifier les signatures.
+        secret: this.crypto.encrypt(secret),
       },
       select: { id: true, webhookToken: true },
     });
@@ -125,7 +142,7 @@ export class WebhooksService {
   async findByToken(
     webhookToken: string,
   ): Promise<WebhookEndpointContext | null> {
-    return this.prisma.webhookEndpoint.findUnique({
+    const row = await this.prisma.webhookEndpoint.findUnique({
       where: { webhookToken },
       select: {
         id: true,
@@ -134,8 +151,15 @@ export class WebhooksService {
         serviceId: true,
         provider: true,
         isActive: true,
+        secret: true,
       },
     });
+    if (!row) return null;
+    return {
+      ...row,
+      // Déchiffré pour la vérification de signature ; null = endpoint legacy.
+      secret: row.secret ? this.crypto.decryptSafe(row.secret) : null,
+    };
   }
 
   /**

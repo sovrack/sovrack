@@ -10,8 +10,13 @@ import {
   NotFoundException,
   Param,
   Post,
+  Req,
+  UnauthorizedException,
+  type RawBodyRequest,
 } from '@nestjs/common';
 import { GitProviderType, Prisma } from '@prisma/client';
+import { createHmac, timingSafeEqual } from 'crypto';
+import type { Request } from 'express';
 import { WebhooksService } from './webhooks.service';
 import {
   IWebhookHandler,
@@ -54,6 +59,7 @@ export class IncomingWebhookController {
     @Param('webhookToken') webhookToken: string,
     @Body() payload: Record<string, unknown>,
     @Headers() rawHeaders: Record<string, string | string[] | undefined>,
+    @Req() req: RawBodyRequest<Request>,
   ): Promise<{ status: 'ignored' | 'ok' }> {
     const endpoint = await this.webhooksService.findByToken(webhookToken);
     if (!endpoint) {
@@ -66,6 +72,18 @@ export class IncomingWebhookController {
         `Rejected webhook for paused endpoint ${endpoint.id} (token ${webhookToken})`,
       );
       return { status: 'ignored' };
+    }
+
+    // Authenticité : on vérifie la signature du provider quand un secret est
+    // stocké (GitLab = X-Gitlab-Token ; GitHub = HMAC X-Hub-Signature-256).
+    // Pas de secret stocké = endpoint legacy → on saute (rétro-compat) avec un
+    // avertissement. Signature invalide = 401 (on ne traite pas l'événement).
+    const sig = this.verifySignature(endpoint, req.rawBody, rawHeaders);
+    if (!sig.verified) {
+      this.logger.warn(
+        `Webhook signature invalide pour endpoint ${endpoint.id}: ${sig.error ?? 'inconnue'}`,
+      );
+      throw new UnauthorizedException('Invalid webhook signature');
     }
 
     const eventType = this.extractEventType(endpoint.provider, payload);
@@ -131,6 +149,55 @@ export class IncomingWebhookController {
    * data) and returns a status forwarded to the audit log. Adding a
    * provider = registering one more {@link IWebhookHandler}.
    */
+  /**
+   * Vérifie l'authenticité du webhook selon le provider. Sans secret stocké
+   * (endpoint legacy) → considéré vérifié (rétro-compat) pour ne pas casser les
+   * webhooks créés avant le stockage du secret ; ils seront sécurisés au
+   * prochain « Connect » (re-configuration).
+   */
+  private verifySignature(
+    endpoint: WebhookEndpointContext,
+    rawBody: Buffer | undefined,
+    headers: Record<string, string | string[] | undefined>,
+  ): { verified: boolean; error?: string } {
+    if (!endpoint.secret) {
+      return { verified: true }; // legacy endpoint, pas de secret stocké
+    }
+    if (endpoint.provider === GitProviderType.GITLAB) {
+      const token = this.extractHeaderValue(headers, 'x-gitlab-token');
+      return this.safeEqual(token, endpoint.secret)
+        ? { verified: true }
+        : { verified: false, error: 'X-Gitlab-Token invalide' };
+    }
+    if (endpoint.provider === GitProviderType.GITHUB) {
+      if (!rawBody) {
+        return { verified: false, error: 'corps brut indisponible (HMAC)' };
+      }
+      const sent = this.extractHeaderValue(headers, 'x-hub-signature-256');
+      const expected =
+        'sha256=' +
+        createHmac('sha256', endpoint.secret).update(rawBody).digest('hex');
+      return this.safeEqual(sent, expected)
+        ? { verified: true }
+        : { verified: false, error: 'X-Hub-Signature-256 invalide' };
+    }
+    return { verified: true };
+  }
+
+  private safeEqual(a: string, b: string): boolean {
+    const ba = Buffer.from(a);
+    const bb = Buffer.from(b);
+    return ba.length === bb.length && timingSafeEqual(ba, bb);
+  }
+
+  private extractHeaderValue(
+    headers: Record<string, string | string[] | undefined>,
+    name: string,
+  ): string {
+    const v = headers[name.toLowerCase()];
+    return Array.isArray(v) ? (v[0] ?? '') : (v ?? '');
+  }
+
   private async dispatch(
     endpoint: WebhookEndpointContext,
     payload: Record<string, unknown>,

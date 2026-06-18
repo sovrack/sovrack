@@ -20,7 +20,11 @@ describe('WebhooksService.markFailed — exponential backoff', () => {
         update,
       },
     } as unknown as PrismaService;
-    return { service: new WebhooksService(prisma), update };
+    const crypto = {
+      encrypt: (v: string) => v,
+      decryptSafe: (v: string) => v,
+    } as unknown as import('../../../core/crypto/crypto.service').CryptoService;
+    return { service: new WebhooksService(prisma, crypto), update };
   }
 
   it('1st failure → FAILED, nextRetryAt ≈ now + 1 min', async () => {

@@ -965,6 +965,11 @@ model WebhookEndpoint {
   serviceId    String?
   service      Service?            @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   webhookToken String              @unique @default(uuid())
+  // Secret partagé avec le provider, CHIFFRÉ (CONFIG_SECRET). Sert à vérifier
+  // l'authenticité des webhooks entrants : GitLab compare X-Gitlab-Token ;
+  // GitHub vérifie le HMAC X-Hub-Signature-256. Nullable = endpoints legacy
+  // (créés avant le stockage du secret) → vérification ignorée (rétro-compat).
+  secret       String?
   // Provider type (GitLab / GitHub / future). Stored so we know which
   // signature scheme to use for `verifyWebhookToken` at routing time.
   provider     GitProviderType

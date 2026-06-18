@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { GitProviderType, WebhookEventStatus } from '@prisma/client';
 import { WebhooksService } from './webhooks.service';
 import { PrismaService } from '../../core/database/prisma.service';
+import { CryptoService } from '../../core/crypto/crypto.service';
 
 /**
  * P4 — Webhook observability. The service is the audit log: it records
@@ -50,6 +51,13 @@ describe('WebhooksService', () => {
       providers: [
         WebhooksService,
         { provide: PrismaService, useValue: prisma },
+        {
+          provide: CryptoService,
+          useValue: {
+            encrypt: (v: string) => v,
+            decryptSafe: (v: string) => v,
+          },
+        },
       ],
     }).compile();
 
@@ -61,6 +69,7 @@ describe('WebhooksService', () => {
       prisma.webhookEndpoint.findFirst.mockResolvedValue({
         id: 'ep_1',
         webhookToken: 'tok-123',
+        secret: 'enc-secret', // déjà sécurisé → on ne ré-expose pas
       });
       const result = await service.getOrCreateEndpoint({
         projectId: 'proj_1',
@@ -73,6 +82,22 @@ describe('WebhooksService', () => {
         secret: '',
       });
       expect(prisma.webhookEndpoint.create).not.toHaveBeenCalled();
+    });
+
+    it('backfills a secret for a legacy endpoint without one', async () => {
+      prisma.webhookEndpoint.findFirst.mockResolvedValue({
+        id: 'ep_legacy',
+        webhookToken: 'tok-legacy',
+        secret: null,
+      });
+      prisma.webhookEndpoint.update.mockResolvedValue({});
+      const result = await service.getOrCreateEndpoint({
+        projectId: 'proj_1',
+        provider: GitProviderType.GITLAB,
+        events: ['push'],
+      });
+      expect(result.secret).toMatch(/^[0-9a-f]{64}$/);
+      expect(prisma.webhookEndpoint.update).toHaveBeenCalled();
     });
 
     it('creates a new endpoint with a 32-byte secret when none exists', async () => {
@@ -230,6 +255,7 @@ describe('WebhooksService', () => {
         serviceId: null,
         provider: GitProviderType.GITLAB,
         isActive: true,
+        secret: null,
       });
       const result = await service.findByToken('tok-123');
       expect(result).toEqual({
@@ -239,6 +265,7 @@ describe('WebhooksService', () => {
         serviceId: null,
         provider: GitProviderType.GITLAB,
         isActive: true,
+        secret: null,
       });
       // O(1) via the unique index on webhookToken.
       expect(prisma.webhookEndpoint.findUnique).toHaveBeenCalledWith({
@@ -250,6 +277,7 @@ describe('WebhooksService', () => {
           serviceId: true,
           provider: true,
           isActive: true,
+          secret: true,
         },
       });
     });

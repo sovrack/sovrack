@@ -21,6 +21,8 @@ export interface WebhookEndpointContext {
   serviceId: string | null;
   provider: GitProviderType;
   isActive: boolean;
+  /** Secret partagé (déchiffré) pour vérifier la signature ; null = legacy. */
+  secret?: string | null;
 }
 
 export type WebhookHandleResult = { status: 'ok' | 'ignored' };
