@@ -62,6 +62,12 @@ export function ServiceCiGenerator({ projectId, serviceId }: { projectId: string
         </div>
       )}
 
+      {files.length > 0 && (
+        <p className="text-xs text-[var(--text-muted)]">
+          Pour déclencher le déploiement depuis la CI, définis la variable <code className="font-mono">PLATFORM_DEPLOY_HOOK</code> = l’URL du webhook (ci-dessus) et <code className="font-mono">platform_DEPLOY_TOKEN</code> = son secret.
+        </p>
+      )}
+
       {files.map((f) => (
         <div key={f.name} className="overflow-hidden rounded-xl border border-[var(--border)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--hover)]/40 px-3 py-1.5">
