@@ -129,7 +129,9 @@ export class DomainsService {
   }
 
   async removeDomain(domainId: string): Promise<void> {
-    const domain = await this.prisma.domain.findUnique({ where: { id: domainId } });
+    const domain = await this.prisma.domain.findUnique({
+      where: { id: domainId },
+    });
     if (!domain) throw new NotFoundException('Domaine introuvable');
     await this.prisma.domain.delete({ where: { id: domainId } });
   }

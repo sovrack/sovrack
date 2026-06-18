@@ -52,7 +52,11 @@ export const deploymentRelationsInclude = {
       domains: { select: { name: true }, take: 1 },
       environment: {
         select: {
-          servers: { where: { isActive: true }, select: { host: true }, take: 1 },
+          servers: {
+            where: { isActive: true },
+            select: { host: true },
+            take: 1,
+          },
         },
       },
     },

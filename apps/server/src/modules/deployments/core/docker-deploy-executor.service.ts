@@ -171,7 +171,8 @@ export class DockerDeployExecutorService {
     } | null;
     const serverId = servers[0]?.id ?? resolvedRefs?.serverId;
     if (!serverId) {
-      const envName = deployment.serviceEnv?.environment?.name ?? 'cet environnement';
+      const envName =
+        deployment.serviceEnv?.environment?.name ?? 'cet environnement';
       throw new BadRequestException(
         `Aucun serveur actif et vérifié n'est rattaché à l'environnement « ${envName} ». ` +
           `Allez dans Projet → Environments et liez un serveur (le serveur doit être actif et vérifié).`,
@@ -248,11 +249,13 @@ export class DockerDeployExecutorService {
     const traefikServiceEnvId = deployment.serviceEnv?.id;
     let traefikDomain =
       traefikServiceEnvId && deployment.service?.type !== ServiceType.DATABASE
-        ? (await this.prisma.domain.findFirst({
-            where: { serviceEnvId: traefikServiceEnvId },
-            orderBy: { createdAt: 'desc' },
-            select: { name: true },
-          }))?.name ?? null
+        ? ((
+            await this.prisma.domain.findFirst({
+              where: { serviceEnvId: traefikServiceEnvId },
+              orderBy: { createdAt: 'desc' },
+              select: { name: true },
+            })
+          )?.name ?? null)
         : null;
 
     // Phase « domaines par défaut » : si aucun domaine explicite n'est rattaché et
@@ -517,7 +520,10 @@ export class DockerDeployExecutorService {
           // (Traefik effectue le vrai routage/santé via 'web'). Petite attente
           // anti-flap avant l'inspection.
           await this.sleep(3000);
-          const info = await this.docker.inspectContainer(serverId, container.id);
+          const info = await this.docker.inspectContainer(
+            serverId,
+            container.id,
+          );
           if (info.State.Status !== 'running') {
             throw new BadRequestException(
               `Conteneur non démarré (état: ${info.State.Status})`,
@@ -576,7 +582,8 @@ export class DockerDeployExecutorService {
           this.emitGatewayLog(deployment.id, routeLog, 'info');
           commandLogs += routeLog + '\n';
         } catch (proxyError) {
-          const msg = proxyError instanceof Error ? proxyError.message : 'unknown';
+          const msg =
+            proxyError instanceof Error ? proxyError.message : 'unknown';
           this.emitGatewayLog(
             deployment.id,
             `[TRAEFIK] Route non configurée: ${msg}`,
@@ -829,7 +836,6 @@ export class DockerDeployExecutorService {
     }
     return logs;
   }
-
 
   /**
    * Poll Docker inspect until the given container has exited, then return the

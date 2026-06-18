@@ -24,19 +24,22 @@ export class RegistryAuthService {
     private readonly crypto: CryptoService,
   ) {}
 
-  async resolveAuthForImage(imageRef: string): Promise<DockerPullAuth | undefined> {
+  async resolveAuthForImage(
+    imageRef: string,
+  ): Promise<DockerPullAuth | undefined> {
     const host = this.extractHost(imageRef); // null = Docker Hub
     const registries = await this.prisma.registryConfig.findMany();
     if (registries.length === 0) return undefined;
 
-    let match = registries.find((r) => this.matches(r.type, r.registryUrl, host));
+    let match = registries.find((r) =>
+      this.matches(r.type, r.registryUrl, host),
+    );
     // Repli : image sans host → Docker Hub par défaut.
     if (!match && !host) {
       match =
         registries.find(
           (r) => r.type === RegistryProviderType.DOCKER_HUB && r.isDefault,
-        ) ??
-        registries.find((r) => r.type === RegistryProviderType.DOCKER_HUB);
+        ) ?? registries.find((r) => r.type === RegistryProviderType.DOCKER_HUB);
     }
     if (!match || !match.password || !match.username) return undefined;
 
@@ -63,10 +66,12 @@ export class RegistryAuthService {
 
   private hostOf(url: string | null | undefined): string | null {
     if (!url) return null;
-    return url
-      .replace(/^https?:\/\//, '')
-      .replace(/\/.*$/, '')
-      .trim() || null;
+    return (
+      url
+        .replace(/^https?:\/\//, '')
+        .replace(/\/.*$/, '')
+        .trim() || null
+    );
   }
 
   private matches(
@@ -77,9 +82,12 @@ export class RegistryAuthService {
     if (!host) return type === RegistryProviderType.DOCKER_HUB;
     const regHost = this.hostOf(registryUrl);
     if (regHost && host === regHost) return true;
-    if (type === RegistryProviderType.GITLAB && host.includes('gitlab')) return true;
-    if (type === RegistryProviderType.GCR && host.includes('gcr.io')) return true;
-    if (type === RegistryProviderType.ECR && host.includes('amazonaws.com')) return true;
+    if (type === RegistryProviderType.GITLAB && host.includes('gitlab'))
+      return true;
+    if (type === RegistryProviderType.GCR && host.includes('gcr.io'))
+      return true;
+    if (type === RegistryProviderType.ECR && host.includes('amazonaws.com'))
+      return true;
     return false;
   }
 }
