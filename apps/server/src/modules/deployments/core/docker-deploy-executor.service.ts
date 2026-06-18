@@ -19,6 +19,7 @@ import { CryptoService } from '../../../core/crypto/crypto.service';
 import { ServersCryptoService } from '../../infrastructure/servers/services/servers-crypto.service';
 import { ServerHostKeyService } from '../../infrastructure/servers/services/server-host-key.service';
 import { TraefikRouteService } from './traefik-route.service';
+import { RegistryAuthService } from './registry-auth.service';
 import { DeploymentsGateway } from '../gateways/deployments.gateway';
 import { DeploymentsHealthcheckService } from '../health/deployments-healthcheck.service';
 import { EnvLevel, resolveEnvDetailed } from '../utils/env-resolver.util';
@@ -50,6 +51,7 @@ export class DockerDeployExecutorService {
     private readonly serversCrypto: ServersCryptoService,
     private readonly serverHostKeys: ServerHostKeyService,
     private readonly traefik: TraefikRouteService,
+    private readonly registryAuth: RegistryAuthService,
   ) {}
 
   private buildConditions(
@@ -315,8 +317,14 @@ export class DockerDeployExecutorService {
           `Pull de l'image ${imageRef}...`,
           'info',
         );
-        await this.docker.pullImage(serverId, imageRef);
-        commandLogs += `Image pullée : ${imageRef}\n`;
+        // Images privées : on résout les identifiants du registre dont le host
+        // correspond à l'image (Docker Hub / GitLab / GHCR…) et on les passe au
+        // pull. Sans registre correspondant → pull anonyme (images publiques).
+        const pullAuth = await this.registryAuth
+          .resolveAuthForImage(imageRef)
+          .catch(() => undefined);
+        await this.docker.pullImage(serverId, imageRef, pullAuth);
+        commandLogs += `Image pullée : ${imageRef}${pullAuth ? ' (authentifié)' : ''}\n`;
       }
 
       // Remove ALL previous containers of THIS service (name = prefix + a past
