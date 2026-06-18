@@ -202,6 +202,11 @@ function RegistryForm({
             className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
             placeholder="Registry user"
           />
+          {form.type === 'GITLAB' && (
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              GitLab : Deploy token → le <strong>nom du token</strong> · PAT → ton <strong>login GitLab</strong> · token de projet → le <strong>nom du token</strong>.
+            </p>
+          )}
         </div>
       )}
 
@@ -221,6 +226,11 @@ function RegistryForm({
             className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
             placeholder={mode === 'edit' ? 'Leave empty to keep' : 'Secret token'}
           />
+          {form.type === 'GITLAB' && (
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Token avec le scope <strong>read_registry</strong> (write_registry pour push). Deploy token recommandé (Settings → Repository → Deploy tokens).
+            </p>
+          )}
         </div>
       )}
 
