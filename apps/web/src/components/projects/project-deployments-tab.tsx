@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
-  Box,
   CheckCircle2,
+  ChevronRight,
   Clock,
   ExternalLink,
   GitCommitHorizontal,
@@ -14,7 +15,6 @@ import {
   Rocket,
   RotateCcw,
   Square,
-  Terminal,
   Trash2,
   XCircle,
 } from 'lucide-react';
@@ -22,8 +22,6 @@ import type { Deployment, DeploymentStatus } from '@/types/deployment';
 import { deploymentsService } from '@/services/deployments.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
-import { DeploymentLogsDialog } from '@/components/projects/tabs/runs/deployment-logs-dialog';
-import { DeploymentContainerDialog } from '@/components/deployments/deployment-container-dialog';
 import { timeAgo, dur, resolveDeploymentUrl, ENV_BADGE, STATUS_DOT, STATUS_BORDER } from '@/lib/deployment-utils';
 
 type Props = {
@@ -56,14 +54,13 @@ const STATUS_COLOR: Record<DeploymentStatus, string> = {
 };
 
 export function ProjectDeploymentsTab({ deployments, loading, error, projectId, onRefresh }: Props) {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<DeploymentStatus | 'ALL'>('ALL');
   const [rollingBackId, setRollingBackId] = useState<string | null>(null);
   const [rollbackError, setRollbackError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [logsTarget, setLogsTarget] = useState<{ id: string; status: DeploymentStatus } | null>(null);
-  const [containerTarget, setContainerTarget] = useState<string | null>(null);
   const [redeployTarget, setRedeployTarget] = useState<{ branch: string; environmentId: string; projectId: string } | null>(null);
 
   const handleRollback = async (depId: string) => {
@@ -175,7 +172,9 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
 
                 <div className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[dep.status] ?? 'bg-zinc-400'} ${isLive ? 'animate-pulse' : ''}`} />
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0}
+                  onClick={() => router.push(`/deployments/${dep.id}`)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/deployments/${dep.id}`); }}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`text-xs font-semibold ${STATUS_COLOR[dep.status] ?? 'text-zinc-400'}`}>
                       {STATUS_LABEL[dep.status]}
@@ -226,23 +225,13 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
                     </span>
                   )}
 
-                  {/* Build/deploy logs in dialog — no redirect */}
+                  {/* Détails : page dédiée (logs, conteneur, URL, spec, actions) */}
                   <button type="button"
-                    onClick={() => setLogsTarget({ id: dep.id, status: dep.status })}
+                    onClick={() => router.push(`/deployments/${dep.id}`)}
                     className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
-                    title="Build & deploy logs">
-                    <Terminal size={11} /> Logs
+                    title="Voir le détail du déploiement">
+                    Détails <ChevronRight size={11} />
                   </button>
-
-                  {/* Docker container info + runtime logs in dialog */}
-                  {dep.status === 'SUCCESS' && (
-                    <button type="button"
-                      onClick={() => setContainerTarget(dep.id)}
-                      className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
-                      title="Docker container (stats & runtime logs)">
-                      <Box size={11} /> <span className="hidden sm:inline">Container</span>
-                    </button>
-                  )}
 
                   {isLive && (
                     <button type="button" onClick={() => void handleCancel(dep.id)} disabled={cancellingId === dep.id}
@@ -305,21 +294,6 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
           <ExternalLink size={11} /> View all {filtered.length} deployments →
         </Link>
       )}
-
-      {/* Logs dialog — inline, stays in Runs tab */}
-      <DeploymentLogsDialog
-        open={logsTarget !== null}
-        deploymentId={logsTarget?.id ?? null}
-        initialStatus={logsTarget?.status ?? null}
-        onClose={() => setLogsTarget(null)}
-      />
-
-      {/* Docker container dialog — info + runtime logs, no redirect */}
-      <DeploymentContainerDialog
-        open={containerTarget !== null}
-        deploymentId={containerTarget}
-        onClose={() => setContainerTarget(null)}
-      />
 
       {/* Redeploy dialog — branch + env pre-filled from original run */}
       <DeploymentCreateDialog

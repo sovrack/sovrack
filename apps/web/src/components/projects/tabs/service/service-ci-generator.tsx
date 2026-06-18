@@ -64,7 +64,7 @@ export function ServiceCiGenerator({ projectId, serviceId }: { projectId: string
 
       {files.length > 0 && (
         <p className="text-xs text-[var(--text-muted)]">
-          Pour déclencher le déploiement depuis la CI, définis la variable <code className="font-mono">PLATFORM_DEPLOY_HOOK</code> = l’URL du webhook (ci-dessus) et <code className="font-mono">platform_DEPLOY_TOKEN</code> = son secret.
+          Pour déclencher le déploiement depuis la CI, définis la variable <code className="font-mono">PLATFORM_DEPLOY_HOOK</code> = l’URL du webhook (onglet <span className="font-semibold">Webhooks</span>) et <code className="font-mono">platform_DEPLOY_TOKEN</code> = son secret.
         </p>
       )}
 

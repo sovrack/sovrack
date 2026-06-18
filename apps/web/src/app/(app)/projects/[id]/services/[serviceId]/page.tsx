@@ -279,17 +279,17 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
               </dl>
             </SectionCard>
           ) : (
-            <ServiceConfigForm projectId={projectId} service={service} onSaved={() => void load()} />
+            <>
+              <ServiceConfigForm projectId={projectId} service={service} onSaved={() => void load()} />
+              <ServiceCiGenerator projectId={projectId} serviceId={serviceId} />
+            </>
           )}
         </div>
       )}
 
-      {/* Webhooks + génération CI (intégration CI/CD) */}
+      {/* Webhooks (intégration CI/CD) */}
       {tab === 'webhooks' && (
-        <div className="space-y-4">
-          <ServiceWebhook projectId={projectId} serviceId={serviceId} />
-          <ServiceCiGenerator projectId={projectId} serviceId={serviceId} />
-        </div>
+        <ServiceWebhook projectId={projectId} serviceId={serviceId} />
       )}
 
       {/* Variables & environnements (ex-onglet Environment) */}

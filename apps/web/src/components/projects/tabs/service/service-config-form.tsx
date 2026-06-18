@@ -18,6 +18,17 @@ const BUILD_PACKS: { value: BuildPack; label: string }[] = [
   { value: 'NONE', label: 'None' },
 ];
 
+/** Sépare une référence d'image (`host[:port]/path:tag`) en image + tag : le tag
+ * n'existe que si le dernier `:` suit le dernier `/` (sinon c'est un port). */
+function splitImageRef(ref: string): { image: string; tag: string } {
+  const lastColon = ref.lastIndexOf(':');
+  const lastSlash = ref.lastIndexOf('/');
+  if (lastColon > lastSlash && lastColon !== -1) {
+    return { image: ref.slice(0, lastColon), tag: ref.slice(lastColon + 1) };
+  }
+  return { image: ref, tag: '' };
+}
+
 const inputClass =
   'w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]';
 const labelClass =
@@ -51,6 +62,13 @@ export function ServiceConfigForm({
   const [providerId, setProviderId] = useState(service.providerId ?? '');
   // Dépôt figé (lecture seule) — pas de setter.
   const repoPath = service.repoPath ?? service.repoUrl ?? '';
+  // Image externe (sourceType DOCKER_IMAGE) : la référence d'image:tag EST stockée
+  // dans repoPath → on l'édite via 2 champs Image + Tag (cf. C3 / Docker Registry).
+  const isExternalImage = service.sourceType === 'DOCKER_IMAGE';
+  const isRegistryMode = buildMode.toUpperCase() === 'REGISTRY';
+  const initialRef = splitImageRef(repoPath);
+  const [image, setImage] = useState(initialRef.image);
+  const [tag, setTag] = useState(initialRef.tag);
   const [providers, setProviders] = useState<SourceProviderOption[]>([]);
   const [branches, setBranches] = useState<string[]>([]);
 
@@ -91,7 +109,10 @@ export function ServiceConfigForm({
         replicas: replicas ? Number(replicas) : undefined,
         ...(buildPack === 'DOCKERFILE' && dockerfile.trim() ? { dockerfile } : {}),
         ...(providerId ? { providerId } : {}),
-        ...(repoPath.trim() ? { repoPath: repoPath.trim() } : {}),
+        // Image externe : repoPath = image[:tag] saisi ; sinon dépôt git figé.
+        ...(isExternalImage
+          ? (image.trim() ? { repoPath: `${image.trim()}${tag.trim() ? `:${tag.trim()}` : ''}` } : {})
+          : (repoPath.trim() ? { repoPath: repoPath.trim() } : {})),
       };
       await servicesService.update(projectId, service.id, payload);
       setSaved(true);
@@ -125,12 +146,28 @@ export function ServiceConfigForm({
           </div>
         )}
         <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className={labelClass} htmlFor="svc-repopath">Repository path</label>
-            {/* Source figée : le dépôt s'établit à la création (changer de dépôt = autre service). */}
-            <input id="svc-repopath" className={`${inputClass} font-mono opacity-70`} value={repoPath}
-              readOnly title="Le dépôt est figé. Pour en changer, créez un nouveau service." />
-          </div>
+          {isExternalImage ? (
+            <>
+              <div>
+                <label className={labelClass} htmlFor="svc-image">Image Docker</label>
+                <input id="svc-image" className={`${inputClass} font-mono`} value={image}
+                  placeholder="nginx ou registry.gitlab.com/grp/app"
+                  onChange={(e) => setImage(e.target.value)} />
+              </div>
+              <div>
+                <label className={labelClass} htmlFor="svc-tag">Tag</label>
+                <input id="svc-tag" className={`${inputClass} font-mono`} value={tag} placeholder="latest"
+                  onChange={(e) => setTag(e.target.value)} />
+              </div>
+            </>
+          ) : (
+            <div className="sm:col-span-2">
+              <label className={labelClass} htmlFor="svc-repopath">Repository path</label>
+              {/* Source figée : le dépôt s'établit à la création (changer de dépôt = autre service). */}
+              <input id="svc-repopath" className={`${inputClass} font-mono opacity-70`} value={repoPath}
+                readOnly title="Le dépôt est figé. Pour en changer, créez un nouveau service." />
+            </div>
+          )}
           <div>
             <label className={labelClass} htmlFor="svc-branch">Branch</label>
             {/* Combobox : autocomplétion depuis les branches dispo + saisie libre (S2). */}
@@ -202,6 +239,11 @@ export function ServiceConfigForm({
               <textarea id="svc-dockerfile" rows={6} className={`${inputClass} font-mono`} value={dockerfile}
                 placeholder={'FROM node:20\nWORKDIR /app\n...'}
                 onChange={(e) => setDockerfile(e.target.value)} />
+            </div>
+          )}
+          {isRegistryMode && !isExternalImage && (
+            <div className="sm:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-xs text-[var(--text-muted)]">
+              En mode <span className="font-semibold text-[var(--text-secondary)]">Registry</span>, l’image est construite par la CI puis tirée (pull) depuis le registre au déploiement. Configure les identifiants du registre dans <span className="font-semibold">Settings → Registry</span> ; l’image/tag est résolue automatiquement.
             </div>
           )}
         </div>
