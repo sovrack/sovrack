@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../core/database/prisma.service';
 import { BuildOrchestratorService } from '../build-orchestrator.service';
 import { CreateBuildConfigDto } from '../dto/create-build-config.dto';
@@ -102,10 +102,10 @@ export class BuildSetupService {
         dockerComposeContent: dto.dockerComposeContent,
       }),
       ...(dto.nixpacksConfig !== undefined && {
-        nixpacksConfig: dto.nixpacksConfig || null,
+        nixpacksConfig: dto.nixpacksConfig || Prisma.JsonNull,
       }),
       ...(dto.staticConfig !== undefined && {
-        staticConfig: dto.staticConfig || null,
+        staticConfig: dto.staticConfig || Prisma.JsonNull,
       }),
     };
 

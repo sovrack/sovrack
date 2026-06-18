@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { Role, GitProviderType, SourceType } from '@prisma/client';
+import { Role, GitProviderType, ServiceType, SourceType } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../../../core/database/prisma.service';
 import { CryptoService } from '../../../../core/crypto/crypto.service';
@@ -382,7 +382,7 @@ export class GithubAdapter implements IGitProvider {
       },
       create: {
         name: repoName.split('/').pop() ?? repoName,
-        type: 'APPLICATION' as any,
+        type: ServiceType.APPLICATION,
         projectId,
         repoPath: repoUrl,
         branch: defaultBranch,

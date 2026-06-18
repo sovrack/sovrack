@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateBuildConfigDto {
@@ -47,8 +48,8 @@ export class CreateBuildConfigDto {
   overwriteGitlabCi?: boolean;
 
   @IsOptional()
-  nixpacksConfig?: any;
+  nixpacksConfig?: Prisma.InputJsonValue;
 
   @IsOptional()
-  staticConfig?: any;
+  staticConfig?: Prisma.InputJsonValue;
 }

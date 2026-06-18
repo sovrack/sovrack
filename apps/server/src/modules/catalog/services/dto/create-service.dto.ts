@@ -3,6 +3,7 @@ import {
   BuildPack,
   GitProviderType,
   ManagedServiceType,
+  Prisma,
   ServiceType,
   SourceType,
 } from '@prisma/client';
@@ -137,12 +138,12 @@ export class CreateServiceDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
-  nixpacksConfig?: any;
+  nixpacksConfig?: Prisma.InputJsonValue;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
-  staticConfig?: any;
+  staticConfig?: Prisma.InputJsonValue;
 
   @ApiPropertyOptional({ example: 'version: "3.8"\nservices:\n  api:\n...' })
   @IsOptional()

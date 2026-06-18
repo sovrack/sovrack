@@ -235,13 +235,13 @@ export class ServicesService {
           ? { startCommand: dto.startCommand?.trim() }
           : {}),
         ...(dto.buildArgs !== undefined
-          ? { buildArgs: dto.buildArgs || null }
+          ? { buildArgs: dto.buildArgs || Prisma.JsonNull }
           : {}),
         ...(dto.nixpacksConfig !== undefined
-          ? { nixpacksConfig: dto.nixpacksConfig || null }
+          ? { nixpacksConfig: dto.nixpacksConfig || Prisma.JsonNull }
           : {}),
         ...(dto.staticConfig !== undefined
-          ? { staticConfig: dto.staticConfig || null }
+          ? { staticConfig: dto.staticConfig || Prisma.JsonNull }
           : {}),
         ...(dto.dockerComposeContent !== undefined
           ? { dockerComposeContent: dto.dockerComposeContent }
