@@ -9,6 +9,7 @@ import {
   Boxes,
   GitPullRequestArrow,
   Layers,
+  LayoutDashboard,
   Loader2,
   Rocket,
   Settings,
@@ -21,6 +22,7 @@ import { useProjectEnvironments } from '@/hooks/projects/use-project-environment
 import { useProjectMembers } from '@/hooks/projects/use-project-members';
 import { useConfirm } from '@/contexts/confirm-context';
 import { PageHeader } from '@/components/layout/page-header';
+import { ProjectOverviewTab } from '@/components/projects/project-overview-tab';
 import { ProjectEnvironmentsTab } from '@/components/projects/project-environments-tab';
 import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
 import { ProjectMonitoringTab } from '@/components/projects/project-monitoring-tab';
@@ -33,9 +35,9 @@ import { ProjectMembersTab } from '@/components/projects/project-members-tab';
 import { getApiErrorMessage } from '@/lib/api';
 import { projectsService } from '@/services/projects.service';
 
-type Tab = 'services' | 'deployments' | 'pipelines' | 'environments' | 'monitoring' | 'settings';
+type Tab = 'overview' | 'services' | 'deployments' | 'pipelines' | 'environments' | 'monitoring' | 'settings';
 
-const TAB_VALUES: Tab[] = ['services', 'deployments', 'pipelines', 'environments', 'monitoring', 'settings'];
+const TAB_VALUES: Tab[] = ['overview', 'services', 'deployments', 'pipelines', 'environments', 'monitoring', 'settings'];
 
 function parseTab(value: string | null): Tab | null {
   if (!value) return null;
@@ -53,7 +55,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const searchParams = useSearchParams();
   const { user, isAdmin } = useAuth();
   const { project, loading, error, refresh } = useProject(id);
-  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'services');
+  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'overview');
 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -135,6 +137,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const isOwner = isAdmin || currentMember?.role === 'OWNER';
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+    { id: 'overview',     label: 'Overview',        icon: LayoutDashboard },
     { id: 'services',     label: 'Services',        icon: Boxes },
     { id: 'deployments',  label: 'Deployments',     icon: Rocket },
     { id: 'pipelines',    label: 'Pipelines',       icon: GitPullRequestArrow },
@@ -205,6 +208,16 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       </div>
 
       {/* Tab panels */}
+      {tab === 'overview' && (
+        <ProjectOverviewTab
+          projectId={id}
+          services={servicesQuery.data ?? []}
+          environments={environments}
+          deployments={deploymentsQuery.deployments ?? []}
+          onNavigate={handleTabChange}
+        />
+      )}
+
       {tab === 'services' && (
         <ServicesList
           projectId={id}
