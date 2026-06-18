@@ -48,11 +48,12 @@ import { useDeploymentSocket } from '@/hooks/deployments/use-deployment-socket';
 import type { Service } from '@/types/service';
 import type { Deployment, DeploymentStatus } from '@/types/deployment';
 
-type Tab = 'general' | 'environment' | 'domains' | 'logs' | 'deployments' | 'pipelines' | 'monitoring';
+type Tab = 'general' | 'variables' | 'domains' | 'webhooks' | 'logs' | 'deployments' | 'pipelines' | 'monitoring';
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'General', icon: Settings2 },
-  { id: 'environment', label: 'Environment', icon: ScrollText },
+  { id: 'variables', label: 'Variables', icon: ScrollText },
   { id: 'domains', label: 'Domains', icon: Globe },
+  { id: 'webhooks', label: 'Webhooks', icon: GitPullRequestArrow },
   { id: 'logs', label: 'Logs', icon: ScrollText },
   { id: 'deployments', label: 'Deployments', icon: Activity },
   { id: 'pipelines', label: 'Pipelines', icon: GitPullRequestArrow },
@@ -214,6 +215,39 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         }
       />
 
+      {/* Deploy bar — actions principales, persistantes au-dessus des onglets (S1) */}
+      {!isDatabase && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+          <button type="button" onClick={() => setDeployOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
+            <Rocket size={15} /> Deploy
+          </button>
+          <button type="button" onClick={() => void handleRedeploy()} disabled={redeploying}
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)] disabled:opacity-50">
+            {redeploying ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Redeploy
+          </button>
+          <button type="button" onClick={() => void handleStop()} disabled={stopping}
+            className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50">
+            {stopping ? <Loader2 size={15} className="animate-spin" /> : <StopCircle size={15} />} Stop
+          </button>
+          <button type="button" onClick={() => setTerminalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
+            <TerminalSquare size={15} /> Open terminal
+          </button>
+          {lastDeployment && (
+            <div className="ml-auto flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+              <DeploymentStatusBadge status={lastDeployment.status} />
+              {appUrl && (
+                <a href={appUrl} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
+                  <Globe size={12} /> Open app
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="border-b border-[var(--border)]">
         <nav className="-mb-px flex gap-1 overflow-x-auto">
@@ -231,40 +265,6 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
       {/* General */}
       {tab === 'general' && (
         <div className="space-y-4">
-          <SectionCard title="Deploy settings" description="Deploy, redeploy, stop or open a shell on the target server.">
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => setDeployOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
-                <Rocket size={15} /> Deploy
-              </button>
-              <button type="button" onClick={() => void handleRedeploy()} disabled={redeploying}
-                title={lastDeployment ? 'Relancer le dernier déploiement' : 'Aucun déploiement précédent — ouvre le dialog'}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)] disabled:opacity-50">
-                {redeploying ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />} Redeploy
-              </button>
-              <button type="button" onClick={() => void handleStop()} disabled={stopping}
-                className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50">
-                {stopping ? <Loader2 size={15} className="animate-spin" /> : <StopCircle size={15} />} Stop
-              </button>
-              <button type="button" onClick={() => setTerminalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
-                <TerminalSquare size={15} /> Open terminal
-              </button>
-            </div>
-            {lastDeployment && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[var(--text-secondary)]">
-                <span>Last deployment:</span>
-                <DeploymentStatusBadge status={lastDeployment.status} />
-                {appUrl && (
-                  <a href={appUrl} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
-                    <Globe size={12} /> Open app
-                  </a>
-                )}
-              </div>
-            )}
-          </SectionCard>
-
           {isDatabase ? (
             <SectionCard title="Database" description="Engine and connection details for this managed database.">
               <div className="flex items-center gap-2">
@@ -278,16 +278,18 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
               </dl>
             </SectionCard>
           ) : (
-            <>
-              <ServiceConfigForm projectId={projectId} service={service} onSaved={() => void load()} />
-              <ServiceWebhook projectId={projectId} serviceId={serviceId} />
-            </>
+            <ServiceConfigForm projectId={projectId} service={service} onSaved={() => void load()} />
           )}
         </div>
       )}
 
-      {/* Environment */}
-      {tab === 'environment' && (
+      {/* Webhooks (déplacé du General) */}
+      {tab === 'webhooks' && (
+        <ServiceWebhook projectId={projectId} serviceId={serviceId} />
+      )}
+
+      {/* Variables & environnements (ex-onglet Environment) */}
+      {tab === 'variables' && (
         <ServiceEnvironments
           projectId={projectId}
           serviceId={serviceId}
