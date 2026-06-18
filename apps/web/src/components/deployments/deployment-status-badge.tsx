@@ -5,7 +5,7 @@ import type { DeploymentStatus } from '@/types/deployment';
 const config: Record<DeploymentStatus, { label: string; icon: React.ElementType; cls: string }> = {
   SUCCESS:  { label: 'Success',  icon: CheckCircle, cls: 'bg-green-500/15 text-green-300' },
   FAILED:   { label: 'Failed',   icon: XCircle,     cls: 'bg-red-500/15 text-red-300' },
-  RUNNING:  { label: 'Running',  icon: Loader2,     cls: 'bg-[var(--text-primary)]/15 text-[var(--text-secondary)]' },
+  RUNNING:  { label: 'Running',  icon: Loader2,     cls: 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)]' },
   PENDING:  { label: 'Pending',  icon: Clock,       cls: 'bg-yellow-500/15 text-yellow-300' },
   CANCELED: { label: 'Canceled', icon: Ban,         cls: 'bg-[var(--bg-card)]/10 text-[var(--text-primary)]' },
 };
