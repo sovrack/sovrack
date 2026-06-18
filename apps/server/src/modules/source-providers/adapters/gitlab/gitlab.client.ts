@@ -222,7 +222,7 @@ export class GitlabClient {
       config: any,
       action: string,
       preferredRepoId?: number,
-    ) => Promise<number>;
+    ) => Promise<number | string>;
   }): Promise<string> {
     const {
       config,

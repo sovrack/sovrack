@@ -204,6 +204,30 @@ export class GitlabController {
     return await this.gitlabCore.getPipelines(projectId, user.id, user.role);
   }
 
+  @Get('projects/:id/services/:serviceId/gitlab/pipelines')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List GitLab pipelines for a service repo' })
+  @ApiResponse({ status: 200, description: 'GitLab pipelines fetched' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
+  @ApiResponse({
+    status: 404,
+    description: 'Service or GitLab config not found',
+  })
+  async getPipelinesForService(
+    @Param('id') projectId: string,
+    @Param('serviceId') serviceId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.gitlabCore.getPipelinesForService(
+      projectId,
+      serviceId,
+      user.id,
+      user.role,
+    );
+  }
+
   @Get('projects/:id/gitlab/repos')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

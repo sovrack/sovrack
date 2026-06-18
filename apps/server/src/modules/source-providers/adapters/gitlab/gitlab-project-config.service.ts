@@ -71,21 +71,35 @@ export class GitlabProjectConfigService {
     return this.connection.normalizeUrl(url);
   }
 
-  assertRepoSource(config: any, action: string): number {
+  assertRepoSource(
+    config: {
+      sourceType?: SourceType | null;
+      repoPath?: string | null;
+      externalId?: number | string | null;
+    },
+    action: string,
+  ): number | string {
     if (config.sourceType !== SourceType.GIT || !config.repoPath) {
       throw new BadRequestException(
         `Action indisponible pour une source GROUP (${action})`,
       );
     }
 
-    return Number(config.externalId);
+    // GitLab accepte l'ID numérique OU le chemin URL-encodé (group%2Fproject).
+    // externalId est souvent absent dans ce modèle (le repo est identifié par
+    // repoPath) → on retombe sur repoPath, que le client encode. Sans ce
+    // fallback : Number(null) = 0 → GET /api/v4/projects/0/... → 404 Not Found.
+    const numericId = Number(config.externalId);
+    return Number.isInteger(numericId) && numericId > 0
+      ? numericId
+      : config.repoPath;
   }
 
   async resolveRepoIdForAction(
     config: any,
     action: string,
     preferredRepoId?: number,
-  ): Promise<number> {
+  ): Promise<number | string> {
     if (config.sourceType === SourceType.GIT) {
       return this.assertRepoSource(config, action);
     }

@@ -51,22 +51,29 @@ export class GitlabCiService {
 
     const service = await this.prisma.service.findUnique({
       where: { id: serviceId },
-      select: { id: true, providerId: true, branch: true },
+      select: { id: true, providerId: true, branch: true, repoPath: true },
     });
 
     if (!service) {
       throw new NotFoundException('Service introuvable');
     }
 
-    // Try to find a GitProviderRepo linked to this service's provider config
-    const repoLink = service.providerId
-      ? await this.prisma.gitProviderRepo.findFirst({
-          where: { providerId: service.providerId },
-          select: { repoPath: true },
-        })
-      : null;
+    // Modèle 1 service = 1 repo : on identifie le dépôt par LE repoPath du
+    // service (et non un GitProviderRepo « au hasard » du provider, qui pouvait
+    // viser un autre service). GitLab accepte le chemin URL-encodé.
+    const repoIdentifier =
+      service.repoPath ??
+      (service.providerId
+        ? (
+            await this.prisma.gitProviderRepo.findFirst({
+              where: { providerId: service.providerId },
+              select: { repoPath: true },
+            })
+          )?.repoPath
+        : null);
 
-    if (!repoLink?.repoPath) {
+    if (!repoIdentifier) {
+      // Pas de dépôt résolu → on retombe sur l'historique persisté (pipelineRun).
       return this.prisma.pipelineRun
         .findMany({
           where: { projectId, provider: GitProviderType.GITLAB },
@@ -87,7 +94,7 @@ export class GitlabCiService {
     const config = await this.projectConfig.getProjectConfig(projectId);
     const pipelines = await this.apiService.getPipelines(
       config,
-      repoLink.repoPath,
+      repoIdentifier,
       (url) => this.projectConfig.normalizeUrl(url),
     );
 
