@@ -116,6 +116,8 @@ export class ServicesService {
           rootDir: dto.rootDir?.trim() || '/',
           buildPack: dto.buildPack,
           buildMode: dto.buildMode ?? 'LOCAL',
+          // Nouveau service → déploiement sur push par défaut (façon Coolify).
+          deployTrigger: dto.deployTrigger ?? 'PUSH',
           buildType: dto.buildType?.trim(),
           dockerfile: dto.dockerfile,
           port: dto.port ?? 3000,
@@ -217,6 +219,9 @@ export class ServicesService {
           : {}),
         ...(dto.buildPack !== undefined ? { buildPack: dto.buildPack } : {}),
         ...(dto.buildMode !== undefined ? { buildMode: dto.buildMode } : {}),
+        ...(dto.deployTrigger !== undefined
+          ? { deployTrigger: dto.deployTrigger }
+          : {}),
         ...(dto.buildType !== undefined
           ? { buildType: dto.buildType?.trim() }
           : {}),

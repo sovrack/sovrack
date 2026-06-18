@@ -91,6 +91,14 @@ export class CreateServiceDto {
   @IsIn(['LOCAL', 'REGISTRY'])
   buildMode?: string;
 
+  @ApiPropertyOptional({
+    enum: ['PUSH', 'PIPELINE_SUCCESS', 'CI_HOOK', 'MANUAL'],
+    example: 'PUSH',
+  })
+  @IsOptional()
+  @IsIn(['PUSH', 'PIPELINE_SUCCESS', 'CI_HOOK', 'MANUAL'])
+  deployTrigger?: string;
+
   @ApiPropertyOptional({ example: 'railpack' })
   @IsOptional()
   @IsString()

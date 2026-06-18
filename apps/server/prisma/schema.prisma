@@ -1191,6 +1191,11 @@ model Service {
   // par la CI puis pull). Combiné à buildPack → buildSource (DOCKERFILE_LOCAL,
   // DOCKERFILE_REGISTRY, NIXPACKS_LOCAL…). Image externe = sourceType DOCKER_IMAGE.
   buildMode            String?    @default("LOCAL")
+  // Déclencheur du déploiement : PUSH (deploy à chaque push, façon Coolify),
+  // PIPELINE_SUCCESS (deploy si le pipeline CI passe au vert), CI_HOOK (la CI
+  // appelle un deploy-hook), MANUAL. Défaut DB = PIPELINE_SUCCESS (rétro-compat) ;
+  // les nouveaux services sont créés en PUSH.
+  deployTrigger        String?    @default("PIPELINE_SUCCESS")
   buildType            String?
   dockerfile           String?    @db.Text
   port                 Int?       @default(3000)

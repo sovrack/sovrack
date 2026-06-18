@@ -18,6 +18,7 @@ import {
 export type GitlabWebhookPayload = {
   object_kind?: string;
   event_name?: string;
+  ref?: string; // push event: "refs/heads/<branch>"
   group_id?: number;
   project_id?: number;
   project?: {
@@ -92,6 +93,31 @@ export class GitlabWebhookHandler implements IWebhookHandler {
     endpoint: WebhookEndpointContext,
     payload: GitlabWebhookPayload,
   ): Promise<WebhookHandleResult> {
+    // Deploy-on-push : si le service est en mode PUSH, un push sur sa branche
+    // déclenche directement un déploiement (façon Coolify/Vercel).
+    const isPushEvent =
+      payload.object_kind === 'push' || payload.event_name === 'push';
+    if (isPushEvent) {
+      const target = await this.resolveTarget(endpoint);
+      if (target.deployTrigger !== 'PUSH') {
+        return { status: 'ignored' };
+      }
+      const branch =
+        (payload.ref ?? '').replace('refs/heads/', '') ||
+        target.branch ||
+        'main';
+      const pushEvent: AutoDeployTriggerEvent = {
+        projectId: endpoint.projectId,
+        branch,
+        serviceId: target.serviceId ?? undefined,
+      };
+      await this.eventEmitter.emitAsync(
+        DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
+        pushEvent,
+      );
+      return { status: 'ok' };
+    }
+
     const isPipelineEvent =
       payload.object_kind === 'pipeline' || payload.event_name === 'pipeline';
     if (!isPipelineEvent) {
@@ -139,7 +165,10 @@ export class GitlabWebhookHandler implements IWebhookHandler {
       pipelineEvent,
     );
 
-    if (transitionedToSuccess) {
+    // On ne déploie sur succès de pipeline QUE si le service est en mode
+    // PIPELINE_SUCCESS (sinon, ex. mode PUSH, le déclencheur est le push → on
+    // éviterait un double déploiement).
+    if (transitionedToSuccess && target.deployTrigger === 'PIPELINE_SUCCESS') {
       const autoDeployEvent: AutoDeployTriggerEvent = {
         projectId: endpoint.projectId,
         branch: ref,
@@ -173,18 +202,24 @@ export class GitlabWebhookHandler implements IWebhookHandler {
    * falls back to the project's primary service. Returns the target
    * serviceId + the effective default branch (env override > service).
    */
-  private async resolveTarget(
-    endpoint: WebhookEndpointContext,
-  ): Promise<{ serviceId: string | null; branch: string | null }> {
+  private async resolveTarget(endpoint: WebhookEndpointContext): Promise<{
+    serviceId: string | null;
+    branch: string | null;
+    deployTrigger: string;
+  }> {
     // Webhook PAR SERVICE : identité directe (la branche du push route ensuite
     // vers le bon environnement via ServiceEnvironment.autoBranch côté trigger).
     if (endpoint.serviceId) {
       const svc = await this.prisma.service.findUnique({
         where: { id: endpoint.serviceId },
-        select: { id: true, branch: true },
+        select: { id: true, branch: true, deployTrigger: true },
       });
       if (svc) {
-        return { serviceId: svc.id, branch: svc.branch };
+        return {
+          serviceId: svc.id,
+          branch: svc.branch,
+          deployTrigger: svc.deployTrigger ?? 'PIPELINE_SUCCESS',
+        };
       }
     }
     if (endpoint.serviceEnvId) {
@@ -193,22 +228,27 @@ export class GitlabWebhookHandler implements IWebhookHandler {
         select: {
           serviceId: true,
           branch: true,
-          service: { select: { branch: true } },
+          service: { select: { branch: true, deployTrigger: true } },
         },
       });
       if (se) {
         return {
           serviceId: se.serviceId,
           branch: se.branch ?? se.service.branch,
+          deployTrigger: se.service.deployTrigger ?? 'PIPELINE_SUCCESS',
         };
       }
     }
     const svc = await this.prisma.service.findFirst({
       where: { projectId: endpoint.projectId },
       orderBy: { createdAt: 'asc' },
-      select: { id: true, branch: true },
+      select: { id: true, branch: true, deployTrigger: true },
     });
-    return { serviceId: svc?.id ?? null, branch: svc?.branch ?? null };
+    return {
+      serviceId: svc?.id ?? null,
+      branch: svc?.branch ?? null,
+      deployTrigger: svc?.deployTrigger ?? 'PIPELINE_SUCCESS',
+    };
   }
 
   /**

@@ -20,7 +20,10 @@ describe('GitlabWebhookHandler — pipeline → auto-deploy', () => {
     isActive: true,
   } as WebhookEndpointContext;
 
-  function makeHandler(previousStatus: PipelineRunStatus | null) {
+  function makeHandler(
+    previousStatus: PipelineRunStatus | null,
+    deployTrigger = 'PIPELINE_SUCCESS',
+  ) {
     const prisma = {
       pipelineRun: {
         findUnique: jest.fn().mockResolvedValue(
@@ -29,7 +32,9 @@ describe('GitlabWebhookHandler — pipeline → auto-deploy', () => {
         upsert: jest.fn().mockResolvedValue({}),
       },
       service: {
-        findUnique: jest.fn().mockResolvedValue({ id: 'svc1', branch: 'main' }),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ id: 'svc1', branch: 'main', deployTrigger }),
       },
       build: { findFirst: jest.fn().mockResolvedValue(null) },
     } as unknown as PrismaService;
@@ -63,13 +68,38 @@ describe('GitlabWebhookHandler — pipeline → auto-deploy', () => {
     expect(autoDeploy).toBeUndefined();
   });
 
-  it('ignores non-pipeline events', async () => {
-    const { handler, emit } = makeHandler(null);
+  it('ignores a push event when the service is not in PUSH mode', async () => {
+    const { handler, emit } = makeHandler(null, 'PIPELINE_SUCCESS');
     const res = await handler.handleIncoming(endpoint, {
       object_kind: 'push',
       ref: 'refs/heads/main',
     });
     expect(res.status).toBe('ignored');
-    expect(emit).not.toHaveBeenCalled();
+    const autoDeploy = emit.mock.calls.find(
+      (c) => c[0] === DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
+    );
+    expect(autoDeploy).toBeUndefined();
+  });
+
+  it('deploys on push when the service is in PUSH mode', async () => {
+    const { handler, emit } = makeHandler(null, 'PUSH');
+    const res = await handler.handleIncoming(endpoint, {
+      object_kind: 'push',
+      ref: 'refs/heads/develop',
+    });
+    expect(res.status).toBe('ok');
+    const autoDeploy = emit.mock.calls.find(
+      (c) => c[0] === DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
+    );
+    expect(autoDeploy?.[1]).toMatchObject({ branch: 'develop', serviceId: 'svc1' });
+  });
+
+  it('does NOT deploy on pipeline success when the service is in PUSH mode', async () => {
+    const { handler, emit } = makeHandler(null, 'PUSH');
+    await handler.handleIncoming(endpoint, successPayload);
+    const autoDeploy = emit.mock.calls.find(
+      (c) => c[0] === DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
+    );
+    expect(autoDeploy).toBeUndefined();
   });
 });
