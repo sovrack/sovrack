@@ -14,7 +14,7 @@ const editUserSchema = z.object({
   firstName: z
     .string()
     .trim()
-    .min(1, 'Le prénom est obligatoire'),
+    .min(1, 'First name is required'),
   lastName: z
     .string()
     .trim()
@@ -28,7 +28,7 @@ const editUserSchema = z.object({
     .string()
     .refine(
       (value) => value.length === 0 || value.length >= 8,
-      'Le mot de passe doit contenir au moins 8 caractères',
+      'Password must be at least 8 characters',
     ),
   role: z.enum(['ADMIN', 'DEVELOPER']),
   isActive: z.boolean(),
@@ -140,8 +140,8 @@ export default function EditUserPage({ params }: Props) {
       setToast({
         message:
           parsed.data.password.trim().length > 0
-            ? 'Profil mis à jour. Le mot de passe se change depuis la page Profil utilisateur.'
-            : 'Utilisateur modifié avec succès',
+            ? 'Profile updated. The password can be changed from the user Profile page.'
+            : 'User updated successfully',
         tone: 'success',
       });
 
@@ -175,15 +175,15 @@ export default function EditUserPage({ params }: Props) {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Administration"
-        title="Modifier l’utilisateur"
-        description="Mettez à jour le profil, le rôle et l’état d’activation."
+        title="Edit l’utilisateur"
+        description="Update the profile, role and activation status."
         actions={
           <Link
             href="/admin/users"
             className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-secondary)]"
           >
             <ArrowLeft size={15} />
-            Retour à la liste
+            Back to list
           </Link>
         }
       />
@@ -205,7 +205,7 @@ export default function EditUserPage({ params }: Props) {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-              Prénom
+              First name
             </label>
             <input
               value={form.firstName}
@@ -243,7 +243,7 @@ export default function EditUserPage({ params }: Props) {
               disabled
             />
             <p className="mt-1 text-xs text-[var(--text-secondary)]">
-              L’email est affiché en lecture seule.
+              L’email is shown read-only.
             </p>
             {errors.email && (
               <p className="mt-1 text-xs text-red-600">{errors.email}</p>
@@ -252,7 +252,7 @@ export default function EditUserPage({ params }: Props) {
 
           <div className="md:col-span-2">
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-              Mot de passe (optionnel)
+              Mot de passe (optional)
             </label>
             <input
               type="password"
@@ -262,7 +262,7 @@ export default function EditUserPage({ params }: Props) {
               placeholder="Laisser vide pour ne pas changer"
             />
             <p className="mt-1 text-xs text-[var(--text-secondary)]">
-              Le backend actuel ne fournit pas encore de route de mise à jour du mot
+              The current backend does not yet expose a password update route
               de passe.
             </p>
             {errors.password && (
@@ -272,7 +272,7 @@ export default function EditUserPage({ params }: Props) {
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-              Rôle
+              Role
             </label>
             <select
               value={form.role}
@@ -304,7 +304,7 @@ export default function EditUserPage({ params }: Props) {
             href="/admin/users"
             className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)]"
           >
-            Annuler
+            Cancel
           </Link>
           <button
             type="submit"
@@ -316,7 +316,7 @@ export default function EditUserPage({ params }: Props) {
             ) : (
               <Save size={15} />
             )}
-            Enregistrer
+            Save
           </button>
           </div>
         </form>

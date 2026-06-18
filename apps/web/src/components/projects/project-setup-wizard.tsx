@@ -20,7 +20,7 @@ import type { ProjectDetail } from '@/types/project';
 
 const STEPS = [
   { id: 1, label: 'Projet', icon: <FolderGit2 size={14} /> },
-  { id: 2, label: 'Créé', icon: <Rocket size={14} /> },
+  { id: 2, label: 'Created', icon: <Rocket size={14} /> },
 ];
 
 function StepIndicator({ current }: { current: number }) {
@@ -91,7 +91,7 @@ function Step1({ state, setState }: { state: WizardState; setState: (s: Partial<
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-base font-semibold text-[var(--text-primary)]">Nouveau projet</h3>
+        <h3 className="text-base font-semibold text-[var(--text-primary)]">New project</h3>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Un projet est un <strong>conteneur logique</strong>. Donnez-lui un nom — vous ajouterez vos applications et leurs sources Git ensuite.
         </p>
@@ -99,7 +99,7 @@ function Step1({ state, setState }: { state: WizardState; setState: (s: Partial<
       <Field label="Nom du projet" required>
         <Input value={state.name} onChange={(v) => setState({ name: v })} placeholder="mon-projet-api" />
       </Field>
-      <Field label="Description" hint="Optionnel — aide votre équipe à comprendre l'objectif du projet.">
+      <Field label="Description" hint="Optional — helps your team understand the project's purpose.">
         <textarea
           value={state.description}
           onChange={(e) => setState({ description: e.target.value })}
@@ -110,11 +110,11 @@ function Step1({ state, setState }: { state: WizardState; setState: (s: Partial<
       </Field>
 
       <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
-        <p className="text-xs font-semibold text-blue-400">Prochaines étapes (dans le projet) :</p>
+        <p className="text-xs font-semibold text-blue-400">Next steps (in the project):</p>
         <ul className="mt-1.5 space-y-1 text-xs text-[var(--text-secondary)]">
-          <li className="flex items-start gap-1.5"><Check size={11} className="mt-0.5 shrink-0 text-green-400" /> Ajouter une application et connecter sa source (GitHub / GitLab)</li>
-          <li className="flex items-start gap-1.5"><Check size={11} className="mt-0.5 shrink-0 text-green-400" /> Créer des environnements (staging / production)</li>
-          <li className="flex items-start gap-1.5"><Check size={11} className="mt-0.5 shrink-0 text-green-400" /> Déployer l&apos;application sur l&apos;environnement choisi</li>
+          <li className="flex items-start gap-1.5"><Check size={11} className="mt-0.5 shrink-0 text-green-400" /> Add an application and connect its source (GitHub / GitLab)</li>
+          <li className="flex items-start gap-1.5"><Check size={11} className="mt-0.5 shrink-0 text-green-400" /> Create environments (staging / production)</li>
+          <li className="flex items-start gap-1.5"><Check size={11} className="mt-0.5 shrink-0 text-green-400" /> Deploy l&apos;application sur l&apos;environnement choisi</li>
         </ul>
       </div>
     </div>
@@ -128,7 +128,7 @@ function StepResult({ result }: { result: { project: ProjectDetail | null; error
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
         <Loader2 size={32} className="animate-spin text-[var(--text-secondary)]" />
-        <p className="text-base font-semibold text-[var(--text-primary)]">Création du projet…</p>
+        <p className="text-base font-semibold text-[var(--text-primary)]">Creating the project…</p>
       </div>
     );
   }
@@ -140,9 +140,9 @@ function StepResult({ result }: { result: { project: ProjectDetail | null; error
           <CheckCircle2 size={32} className="text-green-400" />
         </div>
         <div>
-          <p className="text-base font-semibold text-[var(--text-primary)]">Projet créé avec succès !</p>
+          <p className="text-base font-semibold text-[var(--text-primary)]">Project created successfully!</p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            <strong>{result.project.name}</strong> est prêt. Ouvrez-le pour ajouter une application et connecter sa source Git.
+            <strong>{result.project.name}</strong> is ready. Open it to add an application and connect its Git source.
           </p>
         </div>
       </div>
@@ -215,7 +215,7 @@ export function ProjectSetupWizard({ open, onClose, onCreated }: ProjectSetupWiz
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
           <div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">Nouveau projet</h2>
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">New project</h2>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">Un conteneur pour vos applications</p>
           </div>
           <button type="button" onClick={onClose} disabled={creating} className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--hover)] disabled:opacity-40">
@@ -245,7 +245,7 @@ export function ProjectSetupWizard({ open, onClose, onCreated }: ProjectSetupWiz
             disabled={creating}
             className="flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-40"
           >
-            {step === 2 && createdProject ? 'Fermer' : 'Annuler'}
+            {step === 2 && createdProject ? 'Close' : 'Cancel'}
           </button>
 
           {step === 1 && (
@@ -255,7 +255,7 @@ export function ProjectSetupWizard({ open, onClose, onCreated }: ProjectSetupWiz
               disabled={!canCreate || creating}
               className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-5 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-40"
             >
-              {creating ? <><Loader2 size={14} className="animate-spin" /> Création…</> : <><Rocket size={14} /> Créer le projet</>}
+              {creating ? <><Loader2 size={14} className="animate-spin" /> Creating…</> : <><Rocket size={14} /> Create project</>}
             </button>
           )}
 

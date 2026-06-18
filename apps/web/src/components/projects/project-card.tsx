@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Users, GitBranch, CheckCircle, XCircle, Rocket, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Users, CheckCircle, XCircle, Rocket, AlertCircle, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
 import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
 import type { ProjectListItem } from '@/types/project';
@@ -17,10 +17,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const [deployOpen, setDeployOpen] = useState(false);
 
   const hasGitlabConfig = project.hasGitlabConfig ?? false;
-  const hasGitlabSourceId =
-    typeof project.gitlabId === 'number' ||
-    typeof project.gitlabGroupId === 'number';
-  const isGitlabConnected = hasGitlabConfig && hasGitlabSourceId;
+  const isGitlabConnected = hasGitlabConfig;
   const hasEnv = (project.environmentCount ?? 0) > 0;
   const isReadyToDeploy = isGitlabConnected && hasEnv;
   const memberCount = project.memberCount;
@@ -54,14 +51,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
           </span>
         </Link>
 
-        {/* Branch + env status */}
+        {/* Env status */}
         <Link href={`/projects/${project.id}`} className="mt-3 flex items-center gap-3">
-          {project.branch && (
-            <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-              <GitBranch size={11} />
-              <span className="font-mono">{project.branch}</span>
-            </span>
-          )}
+          <span className="text-xs text-[var(--text-muted)]">{project.environmentCount} env{project.environmentCount !== 1 ? 's' : ''}</span>
           <span className={clsx(
             'flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border',
             isReadyToDeploy
@@ -69,7 +61,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               : 'bg-amber-500/10 text-amber-300 border-amber-500/20',
           )}>
             {isReadyToDeploy
-              ? <><CheckCircle2 size={10} /> Prêt à déployer</>
+              ? <><CheckCircle2 size={10} /> Ready to deploy</>
               : <><AlertCircle size={10} /> {!isGitlabConnected ? 'Source manquante' : 'Env manquant'}</>}
           </span>
         </Link>
@@ -82,7 +74,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             {memberCount} membre{memberCount !== 1 ? 's' : ''}
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            <Link href={`/projects/${project.id}?tab=configuration`}
+            <Link href={`/projects/${project.id}?tab=services`}
               className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:bg-[var(--hover)]">
               Configure
             </Link>
@@ -97,7 +89,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                   : 'border border-[var(--border)] text-[var(--text-muted)] opacity-50 cursor-not-allowed',
               )}
             >
-              <Rocket size={11} /> Déployer
+              <Rocket size={11} /> Deploy
             </button>
           </div>
         </div>

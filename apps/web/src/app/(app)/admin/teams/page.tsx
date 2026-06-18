@@ -8,16 +8,12 @@ import { SectionCard } from '@/components/layout/section-card';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TeamCreateDialog } from '@/components/users/team-create-dialog';
-import { getApiErrorMessage } from '@/lib/api';
-import { teamsService } from '@/services/teams.service';
-import type { Team } from '@/types/team';
+import { useTeams } from '@/hooks/teams/use-teams';
 
 export default function AdminTeamsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { teams, loading, error, refresh } = useTeams();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -36,32 +32,15 @@ export default function AdminTeamsPage() {
     }
   }, [router, searchParams]);
 
-  const fetchTeams = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await teamsService.getAll();
-      setTeams(data);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchTeams();
-  }, [fetchTeams]);
-
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Admin"
-        title="Équipes"
-        description="Organisez les utilisateurs en équipes pour gérer les accès aux projets."
+        title="Teams"
+        description="Organize users into teams to manage project access."
         actions={
           <Button onClick={() => setDialogOpen(true)} icon={<Plus size={14} />}>
-            Créer une équipe
+            Create team
           </Button>
         }
       />
@@ -77,17 +56,17 @@ export default function AdminTeamsPage() {
       ) : teams.length === 0 ? (
         <EmptyState
           icon={Users2}
-          title="Aucune équipe"
-          description="Créez votre première équipe pour regrouper des utilisateurs et gérer les accès en masse."
+          title="No teams"
+          description="Create your first team to group users and manage access in bulk."
           action={
             <Button onClick={() => setDialogOpen(true)} icon={<Plus size={14} />}>
-              Créer une équipe
+              Create team
             </Button>
           }
         />
       ) : (
         <SectionCard
-          title={`${teams.length} équipe${teams.length > 1 ? 's' : ''}`}
+          title={`${teams.length} team${teams.length > 1 ? 's' : ''}`}
           contentClassName="space-y-2"
         >
           {teams.map((team) => (
@@ -120,7 +99,7 @@ export default function AdminTeamsPage() {
         onClose={closeDialog}
         onCreated={async () => {
           closeDialog();
-          await fetchTeams();
+          await refresh();
         }}
       />
     </div>

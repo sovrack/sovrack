@@ -1,570 +1,222 @@
 'use client';
 
-import { use, useCallback, useEffect, useMemo, useState } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Globe, Rocket, XCircle, RotateCcw, Loader2, Clock, ExternalLink, Terminal, RefreshCw, Activity, FolderGit2 } from 'lucide-react';
-import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
+import { useRouter } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  ArrowLeft, Box, CheckCircle2, Clock, ExternalLink, GitCommitHorizontal,
+  Globe, Loader2, RotateCcw, Rocket, Server, Square, Terminal, Trash2, User, XCircle,
+} from 'lucide-react';
 import { deploymentsService } from '@/services/deployments.service';
-import { projectsService } from '@/services/projects.service';
-import { monitoringService, type ContainerInfo } from '@/services/monitoring.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
-import { LogTerminal } from '@/components/log-terminal';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { useAuth } from '@/hooks/auth/use-auth';
-import { useDeploymentSocket } from '@/hooks/deployments/use-deployment-socket';
-import type { Deployment, DeploymentStatus, LogLine } from '@/types/deployment';
-import type { ProjectRole } from '@/types/project';
+import { DeploymentLogsDialog } from '@/components/projects/tabs/runs/deployment-logs-dialog';
+import { DeploymentContainerDialog } from '@/components/deployments/deployment-container-dialog';
+import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
+import { resolveDeploymentUrl, timeAgo, dur } from '@/lib/deployment-utils';
 
-type Props = { params: Promise<{ id: string }> };
-
-function ContainerStatsSection({ deploymentId }: { deploymentId: string }) {
-  const [info, setInfo] = useState<ContainerInfo | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetch = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await monitoringService.getContainerInfo(deploymentId, 50);
-      setInfo(data);
-      setLoaded(true);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const statusColor =
-    info?.status === 'running'
-      ? 'text-green-400'
-      : info?.status === 'stopped'
-        ? 'text-amber-400'
-        : 'text-zinc-400';
-
-  return (
-    <SectionCard title="Container Docker" description="Statistiques temps réel et logs récents du conteneur sur le VPS.">
-      <div className="space-y-4">
-        {!loaded && !loading && (
-          <button
-            type="button"
-            onClick={() => void fetch()}
-            className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
-          >
-            <Activity size={14} /> Charger les stats du container
-          </button>
-        )}
-
-        {loading && (
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <Loader2 size={14} className="animate-spin" /> Connexion SSH…
-          </div>
-        )}
-
-        {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</div>
-        )}
-
-        {loaded && info && (
-          <>
-            {/* Status + Stats grid */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Statut</p>
-                <p className={`mt-1 text-sm font-bold capitalize ${statusColor}`}>{info.status}</p>
-              </div>
-              {info.stats && (
-                <>
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">CPU</p>
-                    <p className="mt-1 font-mono text-sm font-bold text-[var(--text-primary)]">{info.stats.cpuPercent}</p>
-                  </div>
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Mémoire</p>
-                    <p className="mt-1 font-mono text-sm font-bold text-[var(--text-primary)]">{info.stats.memPercent}</p>
-                    <p className="font-mono text-[10px] text-[var(--text-muted)]">{info.stats.memUsage}</p>
-                  </div>
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Net I/O</p>
-                    <p className="mt-1 font-mono text-sm font-bold text-[var(--text-primary)]">{info.stats.netIO}</p>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Recent container logs */}
-            {info.logs && (
-              <>
-                <p className="text-xs font-semibold text-[var(--text-muted)]">Dernières 50 lignes de logs</p>
-                <pre className="max-h-64 overflow-auto rounded-xl border border-[var(--border)] bg-black/60 p-4 font-mono text-xs leading-relaxed text-green-300 whitespace-pre-wrap">
-                  {info.logs}
-                </pre>
-              </>
-            )}
-
-            <button
-              type="button"
-              onClick={() => void fetch()}
-              disabled={loading}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
-            >
-              <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> Rafraîchir
-            </button>
-          </>
-        )}
-      </div>
-    </SectionCard>
-  );
-}
-
-function ContainerLogsSection({ deploymentId }: { deploymentId: string }) {
-  const [logs, setLogs] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  const fetchLogs = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await deploymentsService.getContainerLogs(deploymentId);
-      setLogs(result);
-      setLoaded(true);
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <SectionCard
-      title="Logs Conteneur Docker"
-      description="Logs en direct du conteneur Docker sur le serveur cible (docker logs)."
-    >
-      <div className="space-y-3">
-        {!loaded && !loading && (
-          <button
-            type="button"
-            onClick={() => void fetchLogs()}
-            className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
-          >
-            <Terminal size={14} />
-            Charger les logs du conteneur
-          </button>
-        )}
-
-        {loading && (
-          <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <Loader2 size={14} className="animate-spin" />
-            Connexion SSH et récupération des logs…
-          </div>
-        )}
-
-        {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
-        )}
-
-        {loaded && (
-          <>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--text-muted)]">Dernières 300 lignes</span>
-              <button
-                type="button"
-                onClick={() => void fetchLogs()}
-                disabled={loading}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
-              >
-                <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
-                Rafraîchir
-              </button>
-            </div>
-            <pre className="max-h-96 overflow-auto rounded-xl border border-[var(--border)] bg-black/60 p-4 font-mono text-xs leading-relaxed text-green-300 whitespace-pre-wrap">
-              {logs ?? '# Aucun log disponible'}
-            </pre>
-          </>
-        )}
-      </div>
-    </SectionCard>
-  );
-}
-
-function isActiveStatus(status: DeploymentStatus | null): boolean {
-  return status === 'PENDING' || status === 'RUNNING';
-}
-
-function inferLogLevel(message: string): LogLine['level'] {
-  if (/error|fail|fatal|exception/i.test(message)) {
-    return 'error';
-  }
-
-  if (/success|ok|done|completed|ready/i.test(message)) {
-    return 'success';
-  }
-
-  return 'info';
-}
-
-function parseStaticLogs(logs: string | null): LogLine[] {
-  if (!logs) {
-    return [];
-  }
-
-  return logs
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((message) => ({
-      timestamp: new Date().toISOString(),
-      message,
-      level: inferLogLevel(message),
-    }));
-}
-
-function formatDate(str: string | null | undefined): string {
-  if (!str) return '—';
-  return new Date(str).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-}
-
-function duration(
-  start: string | null | undefined,
-  end: string | null | undefined,
-): string {
-  if (!start) return '—';
-  const ms = new Date(end ?? Date.now()).getTime() - new Date(start).getTime();
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  return `${Math.floor(s / 60)}m ${s % 60}s`;
-}
-
-export default function DeploymentDetailPage({ params }: Props) {
+/**
+ * Page de détail d'un déploiement : TOUT ce qui le concerne sur une seule page —
+ * métadonnées, URL publique, image Docker, spec figée (Immutable Release), logs
+ * build/deploy, conteneur live, et actions (rollback / redeploy / cancel / delete).
+ * Accessible en cliquant une ligne dans la liste des déploiements.
+ */
+export default function DeploymentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { user, isAdmin } = useAuth();
+  const router = useRouter();
+  const qc = useQueryClient();
 
-  const [deployment, setDeployment] = useState<Deployment | null>(null);
-  const [projectRole, setProjectRole] = useState<ProjectRole | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [canceling, setCanceling] = useState(false);
-  const [rollingBack, setRollingBack] = useState(false);
-  const [redeployOpen, setRedeployOpen] = useState(false);
-
-  const fetchDeployment = useCallback(async () => {
-    try {
-      const dep = await deploymentsService.getById(id);
-      setDeployment(dep);
-      return dep;
-    } catch (err) {
-      setError(getApiErrorMessage(err));
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  // Charge les détails une première fois.
-  useEffect(() => {
-    void fetchDeployment();
-  }, [fetchDeployment]);
-
-  useEffect(() => {
-    setProjectRole(null);
-  }, [id]);
-
-  const liveEnabled = Boolean(deployment && isActiveStatus(deployment.status));
-  const { logs: liveLogs, status: liveStatus, isConnected } = useDeploymentSocket({
-    deploymentId: id,
-    enabled: liveEnabled,
-    initialLogs: deployment?.logs ?? null,
-    initialStatus: deployment?.status ?? null,
+  const { data: dep, isLoading, error: qErr, refetch } = useQuery({
+    queryKey: ['deployment', id],
+    queryFn: () => deploymentsService.getById(id),
+    refetchInterval: (q) => {
+      const s = q.state.data?.status;
+      return s === 'RUNNING' || s === 'PENDING' ? 4000 : false;
+    },
   });
 
-  // Synchronise le statut live dans l'état local de la page.
-  useEffect(() => {
-    if (!liveStatus) {
-      return;
-    }
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [containerOpen, setContainerOpen] = useState(false);
+  const [redeployOpen, setRedeployOpen] = useState(false);
+  const [acting, setActing] = useState<string | null>(null);
+  const [actError, setActError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-    setDeployment((current) => {
-      if (!current || current.status === liveStatus) {
-        return current;
-      }
+  const refresh = async () => { await qc.invalidateQueries({ queryKey: ['deployment', id] }); await refetch(); };
 
-      return {
-        ...current,
-        status: liveStatus,
-      };
-    });
-
-    // Quand le déploiement se termine, on recharge la fiche complète.
-    if (!isActiveStatus(liveStatus)) {
-      void fetchDeployment();
-    }
-  }, [fetchDeployment, liveStatus]);
-
-  useEffect(() => {
-    if (!deployment || !user?.id || isAdmin) {
-      return;
-    }
-
-    let cancelled = false;
-
-    void projectsService
-      .getById(deployment.project.id)
-      .then((project) => {
-        if (cancelled) {
-          return;
-        }
-
-        const membership = project.members.find(
-          (member) => member.user.id === user.id,
-        );
-        setProjectRole(membership?.role ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setProjectRole(null);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [deployment, isAdmin, user?.id]);
-
-  const handleCancel = async () => {
-    if (!confirm('Cancel this deployment?')) return;
-    setCanceling(true);
-    setActionError(null);
-    try {
-      await deploymentsService.cancel(id);
-      await fetchDeployment();
-    } catch (err) {
-      setActionError(getApiErrorMessage(err));
-    } finally {
-      setCanceling(false);
-    }
+  const run = async (label: string, fn: () => Promise<unknown>, after?: () => void) => {
+    setActing(label); setActError(null);
+    try { await fn(); after?.(); } catch (e) { setActError(getApiErrorMessage(e)); }
+    finally { setActing(null); }
   };
 
-  const handleRollback = async () => {
-    if (!confirm('Roll back to the previous deployment?')) return;
-    setRollingBack(true);
-    setActionError(null);
-    try {
-      const newDep = await deploymentsService.rollback(id);
-      // Navigate to the new rollback deployment
-      window.location.href = `/deployments/${newDep.id}`;
-    } catch (err) {
-      setActionError(getApiErrorMessage(err));
-      setRollingBack(false);
-    }
-  };
+  if (isLoading) return (
+    <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" /></div>
+  );
+  if (qErr || !dep) return (
+    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center text-sm text-red-300">
+      {qErr ? getApiErrorMessage(qErr) : 'Déploiement introuvable.'}
+      <div className="mt-3"><Link href="/deployments" className="text-xs underline">← Deployments</Link></div>
+    </div>
+  );
 
-  const resolvedStatus = deployment ? (liveStatus ?? deployment.status) : null;
-  const isActive = isActiveStatus(resolvedStatus);
-  const canManageDeployment =
-    isAdmin || projectRole === 'OWNER' || projectRole === 'DEVELOPER';
-  const canRollbackDeployment = isAdmin || projectRole === 'OWNER';
-  const staticLogs = useMemo(() => parseStaticLogs(deployment?.logs ?? null), [deployment?.logs]);
-  const displayedLogs = isActive ? liveLogs : staticLogs;
+  const url = resolveDeploymentUrl(dep);
+  const isLive = dep.status === 'RUNNING' || dep.status === 'PENDING';
+  const canRollback = dep.status === 'SUCCESS' || dep.status === 'FAILED';
+  const duration = dur(dep.startedAt, dep.finishedAt ?? (dep.status === 'RUNNING' ? undefined : dep.startedAt));
+  const spec = (dep.specSnapshot ?? {}) as Record<string, unknown>;
+
+  const meta: { label: string; value: React.ReactNode }[] = [
+    { label: 'Projet', value: dep.project ? <Link href={`/projects/${dep.project.id}`} className="text-[var(--text-primary)] hover:underline">{dep.project.name}</Link> : '—' },
+    { label: 'Environnement', value: dep.environment?.name ?? '—' },
+    { label: 'Service', value: dep.service?.name ?? '—' },
+    { label: 'Branche', value: <span className="font-mono">{dep.branch}</span> },
+    { label: 'Serveur', value: dep.environment?.server ? <span className="inline-flex items-center gap-1"><Server size={12} /> {dep.environment.server.name} <span className="text-[var(--text-muted)]">({dep.environment.server.host})</span></span> : '—' },
+    { label: 'Déclencheur', value: <span className="inline-flex items-center gap-1"><User size={12} /> {dep.user?.fullName ?? 'Auto-deploy'}</span> },
+    { label: 'Créé', value: `${timeAgo(dep.createdAt)} · ${new Date(dep.createdAt).toLocaleString()}` },
+    { label: 'Durée', value: duration || '—' },
+    { label: 'Stratégie', value: (spec.strategy as string) ?? 'STANDARD' },
+    { label: 'Pipeline CI', value: dep.externalPipelineId ? <span className="inline-flex items-center gap-1 font-mono text-blue-400"><GitCommitHorizontal size={12} /> #{dep.externalPipelineId}</span> : '—' },
+    { label: 'Image Docker', value: dep.dockerImage ? <span className="break-all font-mono text-xs">{dep.dockerImage}</span> : '—' },
+    { label: 'Image SHA', value: dep.imageSha ? <span className="break-all font-mono text-xs">{dep.imageSha}</span> : '—' },
+  ];
+
+  const specRows = Object.entries(spec).filter(([, v]) => v !== null && v !== undefined && typeof v !== 'object');
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Deployments"
-        title={loading ? 'Loading…' : `${deployment?.project.name} → ${deployment?.environment.name}`}
-        description={deployment ? `Deployment ${id}` : 'Loading deployment details and live logs.'}
-        actions={
-          <>
-            <Link
-              href="/deployments"
-              className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
-            >
-              <ArrowLeft size={15} />
-              Déploiements
-            </Link>
-            {deployment && (
-              <Link
-                href={`/projects/${deployment.project.id}`}
-                className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
-              >
-                <FolderGit2 size={15} />
-                {deployment.project.name}
-              </Link>
-            )}
-            {resolvedStatus && <DeploymentStatusBadge status={resolvedStatus} />}
-          </>
-        }
-      />
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-2">
+          <Link href="/deployments" className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+            <ArrowLeft size={15} /> Deployments
+          </Link>
+          <div className="flex items-center gap-3">
+            <DeploymentStatusBadge status={dep.status} />
+            <h1 className="text-xl font-semibold text-[var(--text-primary)]">{dep.service?.name ?? 'Déploiement'}</h1>
+          </div>
+          <p className="font-mono text-xs text-[var(--text-muted)]">{dep.id}</p>
+        </div>
 
-      {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
-      )}
-      {actionError && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{actionError}</div>
-      )}
+        {/* Actions */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={() => setLogsOpen(true)}
+            className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
+            <Terminal size={12} /> Logs
+          </button>
+          {dep.status === 'SUCCESS' && (
+            <button type="button" onClick={() => setContainerOpen(true)}
+              className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
+              <Box size={12} /> Conteneur
+            </button>
+          )}
+          {isLive && (
+            <button type="button" onClick={() => void run('cancel', () => deploymentsService.cancel(dep.id), () => void refresh())} disabled={acting === 'cancel'}
+              className="flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/20 disabled:opacity-50">
+              {acting === 'cancel' ? <Loader2 size={12} className="animate-spin" /> : <Square size={12} />} Cancel
+            </button>
+          )}
+          {canRollback && (
+            <button type="button" onClick={() => void run('rollback', () => deploymentsService.rollback(dep.id), () => void refresh())} disabled={acting === 'rollback'}
+              className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50">
+              {acting === 'rollback' ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />} Rollback
+            </button>
+          )}
+          {canRollback && (
+            <button type="button" onClick={() => setRedeployOpen(true)}
+              className="flex items-center gap-1 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90">
+              <Rocket size={12} /> Redeploy
+            </button>
+          )}
+          {confirmDelete ? (
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => void run('delete', () => deploymentsService.delete(dep.id), () => router.push('/deployments'))} disabled={acting === 'delete'}
+                className="flex items-center gap-1 rounded-lg border border-red-500/50 bg-red-500/20 px-2 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/30 disabled:opacity-50">
+                {acting === 'delete' ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Confirm
+              </button>
+              <button type="button" onClick={() => setConfirmDelete(false)}
+                className="rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">Annuler</button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-red-400">
+              <Trash2 size={12} /> Delete
+            </button>
+          )}
+        </div>
+      </div>
 
-      {loading && (
-        <div className="space-y-4">
-          <div className="h-28 animate-pulse rounded-2xl bg-[var(--bg-card)]/10" />
-          <div className="h-64 animate-pulse rounded-2xl bg-[var(--bg-card)]/10" />
+      {actError && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <XCircle size={14} /> {actError}
         </div>
       )}
 
-      {!loading && deployment && (
-        <>
-          <SectionCard title="Deployment details" contentClassName="p-5">
-            <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Project</p>
-                <Link href={`/projects/${deployment.project.id}`}
-                  className="mt-1 flex items-center gap-1 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition">
-                  {deployment.project.name} <ExternalLink size={12} />
-                </Link>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Environment</p>
-                <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                  deployment.environment.name === 'PRODUCTION'
-                    ? 'bg-red-500/15 text-red-300'
-                    : 'bg-[var(--text-primary)]/15 text-[var(--text-secondary)]'
-                }`}>
-                  {deployment.environment.name}
-                </span>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Branch</p>
-                <p className="mt-1 font-mono text-sm text-[var(--text-primary)]">{deployment.branch}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Triggered by</p>
-                <p className="mt-1 text-sm text-[var(--text-primary)]">{deployment.user.fullName}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Started</p>
-                <p className="mt-1 text-sm text-[var(--text-primary)]">{formatDate(deployment.startedAt)}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Finished</p>
-                <p className="mt-1 text-sm text-[var(--text-primary)]">{formatDate(deployment.finishedAt)}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Duration</p>
-                <p className="mt-1 flex items-center gap-1 text-sm text-[var(--text-primary)]">
-                  <Clock size={12} className="text-[var(--text-secondary)]" />
-                  {duration(deployment.startedAt, deployment.finishedAt)}
-                  {isActive && <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-[var(--text-primary)] animate-pulse" />}
-                </p>
-              </div>
-              {deployment.dockerImage && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Image</p>
-                  <p className="mt-1 font-mono text-xs text-[var(--text-secondary)] truncate">{deployment.dockerImage}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Public URL */}
-            {(() => {
-              const targets = deployment.environment?.serviceTargets ?? [];
-              const firstTarget = targets[0];
-              const fallback = firstTarget?.domain
-                ? `http://${firstTarget.domain}`
-                : firstTarget?.server?.host && firstTarget.port
-                  ? `http://${firstTarget.server.host}:${String(firstTarget.port)}`
-                  : null;
-              const url = deployment.publicUrl ?? fallback;
-              if (!url || deployment.status !== 'SUCCESS') return null;
-              return (
-                <div className="mt-4 flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3">
-                  <Globe size={16} className="shrink-0 text-green-400" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-green-400">Application URL</p>
-                    <a href={url} target="_blank" rel="noreferrer" className="font-mono text-sm text-green-300 underline break-all hover:text-green-200">
-                      {url}
-                    </a>
-                  </div>
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 rounded-lg border border-green-500/40 bg-green-500/20 px-3 py-1.5 text-xs font-semibold text-green-300 transition hover:bg-green-500/30"
-                  >
-                    Open App
-                  </a>
-                </div>
-              );
-            })()}
-
-            <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
-              {isActive && canManageDeployment && (
-                <button onClick={() => void handleCancel()} disabled={canceling}
-                  className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50">
-                  {canceling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
-                  Cancel Deployment
-                </button>
-              )}
-              {(resolvedStatus === 'SUCCESS' || resolvedStatus === 'FAILED') &&
-                canRollbackDeployment && (
-                <button onClick={() => void handleRollback()} disabled={rollingBack}
-                  className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10 disabled:opacity-50">
-                  {rollingBack ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
-                  Rollback
-                </button>
-                )}
-              {!isActive && canManageDeployment && (
-                <button
-                  type="button"
-                  onClick={() => setRedeployOpen(true)}
-                  className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
-                >
-                  <Rocket size={14} /> Re-déployer
-                </button>
-              )}
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            title="Deployment Logs"
-            description={isActive ? 'Live logs are streamed from the deployment socket.' : 'Static logs from the finished deployment.'}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              {isActive && (
-                <span className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-[var(--text-primary)] animate-pulse" />
-                  Live — {isConnected ? 'WebSocket connecté' : 'reconnexion…'}
-                </span>
-              )}
-            </div>
-            <LogTerminal logs={displayedLogs} isLive={isActive} />
-          </SectionCard>
-
-          {resolvedStatus === 'SUCCESS' && (
-            <ContainerStatsSection deploymentId={id} />
-          )}
-
-          {resolvedStatus === 'SUCCESS' && (
-            <ContainerLogsSection deploymentId={id} />
-          )}
-        </>
+      {/* URL publique */}
+      {url && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+          {dep.status === 'SUCCESS' ? <CheckCircle2 size={16} className="text-green-400" /> : <Globe size={16} className="text-[var(--text-muted)]" />}
+          <span className="text-sm text-[var(--text-secondary)]">URL de l’application</span>
+          <a href={url} target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-1 break-all font-mono text-sm text-green-400 underline hover:text-green-300">
+            {url} <ExternalLink size={12} />
+          </a>
+        </div>
       )}
 
-      {deployment && (
-        <DeploymentCreateDialog
-          open={redeployOpen}
-          initialProjectId={deployment.project.id}
-          onClose={() => setRedeployOpen(false)}
-          onCreated={async () => { setRedeployOpen(false); }}
-        />
+      {/* Métadonnées */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+        <p className="mb-3 text-sm font-semibold text-[var(--text-primary)]">Détails</p>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+          {meta.map((m) => (
+            <div key={m.label}>
+              <dt className="text-xs text-[var(--text-muted)]">{m.label}</dt>
+              <dd className="mt-0.5 text-sm text-[var(--text-primary)]">{m.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      {/* Spec figée (Immutable Release) */}
+      {specRows.length > 0 && (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+          <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+            <Clock size={13} /> Configuration figée (Immutable Release)
+          </p>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+            {specRows.map(([k, v]) => (
+              <div key={k}>
+                <dt className="text-xs text-[var(--text-muted)]">{k}</dt>
+                <dd className="mt-0.5 break-all font-mono text-xs text-[var(--text-primary)]">{String(v)}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       )}
+
+      {/* Logs stockés (aperçu) */}
+      {dep.logs && (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]"><Terminal size={13} /> Journal</p>
+            <button type="button" onClick={() => setLogsOpen(true)} className="text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">Logs live →</button>
+          </div>
+          <pre className="max-h-72 overflow-auto rounded-xl bg-zinc-950 p-3 font-mono text-[11px] leading-relaxed text-zinc-300 whitespace-pre-wrap">{dep.logs}</pre>
+        </div>
+      )}
+
+      {/* Dialogs */}
+      <DeploymentLogsDialog open={logsOpen} deploymentId={logsOpen ? dep.id : null} initialStatus={dep.status} onClose={() => setLogsOpen(false)} />
+      <DeploymentContainerDialog open={containerOpen} deploymentId={containerOpen ? dep.id : null} onClose={() => setContainerOpen(false)} />
+      <DeploymentCreateDialog
+        open={redeployOpen}
+        initialProjectId={dep.project?.id ?? ''}
+        initialEnvironmentId={dep.environment?.id}
+        initialBranch={dep.branch}
+        onClose={() => setRedeployOpen(false)}
+        onCreated={async () => { setRedeployOpen(false); await refresh(); }}
+      />
     </div>
   );
 }

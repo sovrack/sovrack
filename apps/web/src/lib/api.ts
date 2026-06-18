@@ -60,7 +60,7 @@ export function getApiErrorMessage(error: unknown): string {
     axiosError.message.toLowerCase().includes('timeout');
 
   if (isTimeout) {
-    return 'La requête prend plus de temps que prévu. Vérifiez GitLab puis réessayez dans quelques secondes.';
+    return 'The request is taking longer than expected. Check GitLab then retry in a few seconds.';
   }
 
   if (Array.isArray(message)) {
@@ -80,7 +80,7 @@ export function getApiErrorMessage(error: unknown): string {
   }
 
   if (status === 403) {
-    return 'Accès refusé. Vérifiez vos permissions.';
+    return 'Access denied. Check your permissions.';
   }
 
   if (status === 404) {
@@ -88,11 +88,11 @@ export function getApiErrorMessage(error: unknown): string {
   }
 
   if (status === 409) {
-    return 'Conflit détecté. Réessayez après actualisation.';
+    return 'Conflict detected. Retry after refreshing.';
   }
 
   if (status === 422) {
-    return 'GitLab a rejeté la requête (branche protégée, payload invalide ou conflit de fichier).';
+    return 'GitLab rejected the request (protected branch, invalid payload, or file conflict).';
   }
 
   if (axiosError.message) {

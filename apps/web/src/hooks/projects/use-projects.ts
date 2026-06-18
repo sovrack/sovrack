@@ -17,6 +17,7 @@ export function useProjects(): UseProjectsReturn {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsService.getAll(),
+    refetchInterval: 30_000,
   });
 
   return {

@@ -16,7 +16,7 @@ export function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       aria-label={
-        isDark ? 'Activer le mode clair' : 'Activer le mode sombre'
+        isDark ? 'Switch to light mode' : 'Switch to dark mode'
       }
       title={isDark ? 'Mode clair' : 'Mode sombre'}
       className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"

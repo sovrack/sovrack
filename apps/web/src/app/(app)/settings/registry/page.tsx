@@ -87,7 +87,7 @@ function ConnectionStatusBadge({
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-400">
         <CheckCircle2 size={12} />
-        Connecte
+        Connectedd
       </span>
     );
   }
@@ -96,7 +96,7 @@ function ConnectionStatusBadge({
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400">
         <XCircle size={12} />
-        Non connecte
+        Not connected
       </span>
     );
   }
@@ -104,7 +104,7 @@ function ConnectionStatusBadge({
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-1 text-xs font-semibold text-[var(--text-secondary)]">
       <AlertCircle size={12} />
-      Non teste
+      Not tested
     </span>
   );
 }
@@ -151,7 +151,7 @@ function RegistryForm({
       className={`space-y-4 ${withTopDivider ? 'border-t border-[var(--border)] pt-4' : ''}`}
     >
       <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)]">Nom</label>
+        <label className="block text-sm font-medium text-[var(--text-primary)]">Name</label>
         <input
           type="text"
           value={form.name}
@@ -159,14 +159,14 @@ function RegistryForm({
             setForm((previous) => ({ ...previous, name: event.target.value }))
           }
           className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
-          placeholder="Ex: Docker Hub Equipe"
+          placeholder="e.g. Team Docker Hub"
           required
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-[var(--text-primary)]">
-          Type de registre
+          Registry type
         </label>
         <select
           value={form.type}
@@ -191,7 +191,7 @@ function RegistryForm({
         form.type === 'GITLAB') && (
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)]">
-            Nom d&apos;utilisateur
+            Username
           </label>
           <input
             type="text"
@@ -200,8 +200,13 @@ function RegistryForm({
               setForm((previous) => ({ ...previous, username: event.target.value }))
             }
             className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
-            placeholder="Utilisateur du registre"
+            placeholder="Registry user"
           />
+          {form.type === 'GITLAB' && (
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              GitLab : Deploy token → le <strong>nom du token</strong> · PAT → ton <strong>login GitLab</strong> · token de projet → le <strong>nom du token</strong>.
+            </p>
+          )}
         </div>
       )}
 
@@ -210,7 +215,7 @@ function RegistryForm({
         form.type === 'GITLAB') && (
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)]">
-            Mot de passe / token
+            Password / token
           </label>
           <input
             type="password"
@@ -219,15 +224,20 @@ function RegistryForm({
               setForm((previous) => ({ ...previous, password: event.target.value }))
             }
             className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
-            placeholder={mode === 'edit' ? 'Laisser vide pour conserver' : 'Token secret'}
+            placeholder={mode === 'edit' ? 'Leave empty to keep' : 'Secret token'}
           />
+          {form.type === 'GITLAB' && (
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Token avec le scope <strong>read_registry</strong> (write_registry pour push). Deploy token recommandé (Settings → Repository → Deploy tokens).
+            </p>
+          )}
         </div>
       )}
 
       {(form.type === 'DOCKER_REGISTRY' || form.type === 'GITLAB') && (
         <div>
           <label className="block text-sm font-medium text-[var(--text-primary)]">
-            URL du registre
+            Registry URL
           </label>
           <input
             type="url"
@@ -254,7 +264,7 @@ function RegistryForm({
           className="rounded border border-[var(--border)]"
         />
         <span className="text-sm text-[var(--text-secondary)]">
-          Definir comme registre par defaut
+          Set as default registry
         </span>
       </label>
 
@@ -264,10 +274,10 @@ function RegistryForm({
           disabled={submitDisabled}
           icon={isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
         >
-          {mode === 'create' ? 'Ajouter' : 'Mettre a jour'}
+          {mode === 'create' ? 'Add' : 'Update'}
         </Button>
         <Button variant="secondary" type="button" onClick={onCancel} disabled={isSubmitting}>
-          Annuler
+          Cancel
         </Button>
       </div>
     </form>
@@ -336,7 +346,7 @@ export default function RegistrySettingsPage() {
           };
 
           await platformConfigService.createRegistryConfig(payload);
-          addToast('Registre cree avec succes.', 'success');
+          addToast('Registry created avec succes.', 'success');
         }
 
         if (dialogMode === 'edit' && data.id) {
@@ -350,7 +360,7 @@ export default function RegistrySettingsPage() {
           };
 
           await platformConfigService.updateRegistryConfig(data.id, payload);
-          addToast('Registre mis a jour avec succes.', 'success');
+          addToast('Registry updated avec succes.', 'success');
         }
 
         setDialogMode(null);
@@ -372,7 +382,7 @@ export default function RegistrySettingsPage() {
 
     try {
       await platformConfigService.deleteRegistryConfig(deleteId);
-      addToast('Registre supprime avec succes.', 'success');
+      addToast('Registry deleted avec succes.', 'success');
       setDeleteId(null);
       await invalidate();
     } catch (deleteError) {
@@ -403,7 +413,7 @@ export default function RegistrySettingsPage() {
 
       try {
         await platformConfigService.setDefaultRegistryConfig(id);
-        addToast('Registre par defaut defini.', 'success');
+        addToast('Default registry defini.', 'success');
         await invalidate();
       } catch (setDefaultError) {
         addToast(getApiErrorMessage(setDefaultError), 'error');
@@ -418,12 +428,12 @@ export default function RegistrySettingsPage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          eyebrow="Parametres"
-          title="Registres"
-          description="Cette section est reservee aux administrateurs."
+          eyebrow="Settings"
+          title="Registries"
+          description="This section is restricted to administrators."
         />
-        <Alert tone="warning" title="Acces limite">
-          Vous n&apos;avez pas la permission d&apos;acceder a la configuration des registres.
+        <Alert tone="warning" title="Restricted access">
+          You do not have permission to access the registry configuration.
         </Alert>
       </div>
     );
@@ -433,19 +443,19 @@ export default function RegistrySettingsPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Configuration"
-        title="Registres"
-        description="Gerez vos registres de conteneurs (Docker Hub, ECR, GCR, etc.)."
+        title="Registries"
+        description="Manage your container registries (Docker Hub, ECR, GCR, etc.)."
         actions={
           dialogMode === null ? (
             <Button icon={<Plus size={14} />} onClick={() => setDialogMode('create')}>
-              Ajouter un registre
+              Add registry
             </Button>
           ) : null
         }
       />
 
       {error && (
-        <Alert tone="error" title="Erreur">
+        <Alert tone="error" title="Error">
           {error}
         </Alert>
       )}
@@ -455,7 +465,7 @@ export default function RegistrySettingsPage() {
           <Alert
             key={toast.id}
             tone={toast.tone === 'success' ? 'success' : 'error'}
-            title={toast.tone === 'success' ? 'Succes' : 'Erreur'}
+            title={toast.tone === 'success' ? 'Success' : 'Error'}
           >
             {toast.message}
           </Alert>
@@ -470,9 +480,9 @@ export default function RegistrySettingsPage() {
 
       {!loading && registries.length === 0 && dialogMode === null && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
-          <p className="mb-4 text-[var(--text-secondary)]">Aucun registre configure</p>
+          <p className="mb-4 text-[var(--text-secondary)]">No registry configured</p>
           <Button icon={<Plus size={14} />} onClick={() => setDialogMode('create')}>
-            Ajouter un registre
+            Add registry
           </Button>
         </div>
       )}
@@ -495,7 +505,7 @@ export default function RegistrySettingsPage() {
                   Settings
                 </p>
                 <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-                  {dialogMode === 'create' ? 'Ajouter un registre' : 'Modifier le registre'}
+                  {dialogMode === 'create' ? 'Add registry' : 'Edit registry'}
                 </h3>
               </div>
               <button
@@ -575,7 +585,7 @@ export default function RegistrySettingsPage() {
                     setDialogMode('edit');
                   }}
                 >
-                  Modifier
+                  Edit
                 </Button>
 
                 <Button
@@ -584,7 +594,7 @@ export default function RegistrySettingsPage() {
                   loading={testingId === registry.id}
                   onClick={() => void handleTest(registry.id)}
                 >
-                  Tester
+                  Test
                 </Button>
 
                 {!registry.isDefault && (
@@ -594,7 +604,7 @@ export default function RegistrySettingsPage() {
                     loading={settingDefaultId === registry.id}
                     onClick={() => void handleSetDefault(registry.id)}
                   >
-                    Definir par defaut
+                    Set default
                   </Button>
                 )}
 
@@ -604,13 +614,13 @@ export default function RegistrySettingsPage() {
                   icon={<Trash2 size={12} />}
                   onClick={() => setDeleteId(registry.id)}
                 >
-                  Supprimer
+                  Delete
                 </Button>
               </div>
 
               {registry.connectionError && (
                 <div className="mt-3 rounded-md bg-red-500/10 p-3 text-sm text-red-400">
-                  <strong>Erreur de connexion:</strong> {registry.connectionError}
+                  <strong>Connection error:</strong> {registry.connectionError}
                 </div>
               )}
             </div>
@@ -620,10 +630,10 @@ export default function RegistrySettingsPage() {
 
       <ConfirmDialog
         open={deleteId !== null}
-        title="Supprimer le registre"
-        description="Cette action est irreversible et supprime la configuration du registre."
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
+        title="Delete le registre"
+        description="This action cannot be undone et supprime la configuration du registre."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
         variant="danger"
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleteId(null)}

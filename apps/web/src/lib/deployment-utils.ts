@@ -1,13 +1,24 @@
 import type { Deployment } from '@/types/deployment';
 
+/** Sépare une référence d'image (`host[:port]/path:tag`) en image + tag : le tag
+ * n'existe que si le dernier `:` suit le dernier `/` (sinon c'est un port). */
+export function splitImageRef(ref: string): { image: string; tag: string } {
+  const lastColon = ref.lastIndexOf(':');
+  const lastSlash = ref.lastIndexOf('/');
+  if (lastColon > lastSlash && lastColon !== -1) {
+    return { image: ref.slice(0, lastColon), tag: ref.slice(lastColon + 1) };
+  }
+  return { image: ref, tag: '' };
+}
+
 export function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "à l'instant";
-  if (m < 60) return `il y a ${m}m`;
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `il y a ${h}h`;
-  return `il y a ${Math.floor(h / 24)}j`;
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 export function dur(start?: string | null, end?: string | null): string | null {
@@ -38,7 +49,7 @@ export const ENV_BADGE: Record<string, string> = {
   PRODUCTION: 'border-red-500/30 bg-red-500/10 text-red-400',
   STAGING:    'border-blue-500/30 bg-blue-500/10 text-blue-400',
   TESTING:    'border-amber-500/30 bg-amber-500/10 text-amber-400',
-  PREVIEW:    'border-purple-500/30 bg-purple-500/10 text-purple-400',
+  PREVIEW:    'border-indigo-500/30 bg-indigo-500/10 text-indigo-400',
 };
 
 export const STATUS_DOT: Record<string, string> = {

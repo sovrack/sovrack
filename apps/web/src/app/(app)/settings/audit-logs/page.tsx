@@ -1,12 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ClipboardList, Loader2, RefreshCw } from 'lucide-react';
+import { ClipboardList, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { Alert } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/ui/pagination';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { auditLogsService } from '@/services/audit-logs.service';
@@ -32,11 +31,12 @@ export default function AuditLogsSettingsPage() {
   const { isAdmin } = useAuth();
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isFetching, error, refetch } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['audit-logs', page],
     queryFn: () => auditLogsService.getAll({ page, limit: PAGE_SIZE }),
     enabled: isAdmin,
     staleTime: 30_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: false,
   });
 
@@ -57,16 +57,6 @@ export default function AuditLogsSettingsPage() {
         eyebrow="Settings"
         title="Audit Logs"
         description="Track security and platform operations across users."
-        actions={
-          <Button
-            variant="secondary"
-            icon={<RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />}
-            onClick={() => void refetch()}
-            disabled={isFetching}
-          >
-            Refresh
-          </Button>
-        }
       />
 
       {error && <Alert tone="error">{getApiErrorMessage(error)}</Alert>}

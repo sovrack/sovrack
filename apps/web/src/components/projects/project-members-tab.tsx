@@ -105,9 +105,9 @@ export function ProjectMembersTab({
 
       {isAdmin && teams.length > 0 && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Ajouter une équipe</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Add a team</h3>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            Ajoute tous les membres d&apos;une équipe au projet.
+            Ajoute tous les membres d&apos;une team au projet.
           </p>
 
           {addTeamSuccess && (
@@ -127,7 +127,7 @@ export function ProjectMembersTab({
               onChange={(event) => setSelectedTeamId(event.target.value)}
               className="h-11 flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)]/10 focus:ring-2 focus:ring-zinc-500/20"
             >
-              <option value="">Sélectionner une équipe...</option>
+              <option value="">Select a team...</option>
               {teams.map((team) => (
                 <option key={team.id} value={team.id}>
                   {team.name} ({team.members.length} membre{team.members.length !== 1 ? 's' : ''})
@@ -146,7 +146,7 @@ export function ProjectMembersTab({
               ) : (
                 <Plus size={15} />
               )}
-              Ajouter
+              Add
             </button>
           </div>
         </div>

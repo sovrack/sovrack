@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Play, RefreshCw, StopCircle, Trash2 } from 'lucide-react';
+import { ExternalLink, Play, StopCircle, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { SectionCard } from '@/components/layout/section-card';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ import {
 } from '@/hooks/automation/use-automation';
 import { useAutomationLogStream } from '@/hooks/automation/use-automation-log-stream';
 import { useServers } from '@/hooks/servers/use-servers';
+import { useConfirm } from '@/contexts/confirm-context';
 import type { AutomationRun, AutomationRunLog, AutomationRunStatus } from '@/types/automation';
 
 const ACTIVE_RUN_STATUSES: AutomationRunStatus[] = ['QUEUED', 'RUNNING'];
@@ -47,6 +48,7 @@ export default function AutomationPage() {
   const startRun = useStartAutomationRun();
   const cancelRun = useCancelAutomationRun();
   const deleteRun = useDeleteAutomationRun();
+  const confirm = useConfirm();
   const [showHistory, setShowHistory] = useState(false);
 
   const [selectedActionKey, setSelectedActionKey] = useState('');
@@ -187,19 +189,6 @@ export default function AutomationPage() {
         eyebrow="Operations"
         title="Automation"
         description="Run controlled multi-VPS Ansible operations from the control node. Target VPS hosts stay SSH agentless and do not install Ansible."
-        actions={
-          <Button
-            variant="secondary"
-            icon={<RefreshCw size={14} className={runsQuery.isFetching ? 'animate-spin' : ''} />}
-            onClick={() => {
-              void runsQuery.refetch();
-              void actionsQuery.refetch();
-              void serversQuery.refetch();
-            }}
-          >
-            Refresh
-          </Button>
-        }
       />
 
       {error && (
@@ -323,7 +312,7 @@ export default function AutomationPage() {
           onClick={() => setShowHistory((v) => !v)}
           className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
         >
-          {showHistory ? 'Masquer l\'historique' : 'Voir l\'historique'}
+          {showHistory ? 'Hide history' : 'View history'}
         </button>
       </div>
 
@@ -396,16 +385,16 @@ export default function AutomationPage() {
                       </Link>
                       <button
                         type="button"
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          if (confirm('Supprimer ce run ?')) {
+                          if (await confirm({ title: 'Delete this run?', confirmLabel: 'Delete', variant: 'danger' })) {
                             void deleteRun.mutateAsync(run.id).then(() => {
                               if (selectedRunId === run.id) setSelectedRunId(null);
                             });
                           }
                         }}
                         className="rounded p-0.5 text-[var(--text-muted)] hover:text-red-400 transition"
-                        title="Supprimer"
+                        title="Delete"
                       >
                         <Trash2 size={12} />
                       </button>

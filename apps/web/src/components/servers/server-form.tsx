@@ -23,10 +23,6 @@ const inputNormal = `${inputBase} border-[var(--border)] focus:border-[var(--bor
 const inputError = `${inputBase} border-red-500/40 focus:border-red-500/60 focus:ring-red-500/20`;
 const inputMono = 'font-mono';
 
-const radioBase = 'flex cursor-pointer items-start gap-2 rounded-xl border px-3 py-3 transition';
-const radioActive = `${radioBase} border-[var(--border)] bg-[var(--text-primary)]/10`;
-const radioInactive = `${radioBase} border-[var(--border)] bg-[var(--bg-card)]/3 hover:border-[var(--border)]`;
-
 export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps) {
   const [values, setValues] = useState<ServerFormValues>(createDefaultValues);
   const [formErrors, setFormErrors] = useState<ServerFormErrors>({});
@@ -54,50 +50,10 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
       )}
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        {/* Connection mode */}
-        <div className="sm:col-span-2">
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-            Connection Mode
-          </label>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <label className={radioActive}>
-              <input
-                type="radio"
-                name="connectionMode"
-                checked={true}
-                onChange={() => {}}
-                className="mt-0.5 accent-zinc-500"
-              />
-              <span>
-                <span className="block text-sm font-semibold text-[var(--text-primary)]">SSH</span>
-                <span className="block text-xs text-[var(--text-secondary)]">Direct access to the VPS.</span>
-              </span>
-            </label>
-            {(['bastion', 'agent'] as const).map((mode) => (
-              <label key={mode} className={`${radioInactive} cursor-not-allowed opacity-50`}>
-                <input type="radio" disabled className="mt-0.5" />
-                <span>
-                  <span className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-                    {mode === 'bastion' ? 'Bastion' : 'Agent'}
-                    <span className="rounded-full bg-zinc-700 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
-                      Coming soon
-                    </span>
-                  </span>
-                  <span className="block text-xs text-[var(--text-secondary)]">
-                    {mode === 'bastion'
-                      ? 'Reach private VPS through jump host.'
-                      : 'Queue jobs for pull-based execution.'}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-
         {/* Name */}
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-            Nom du serveur <span className="text-red-400">*</span>
+            Server name <span className="text-red-400">*</span>
           </label>
           <input
             type="text"
@@ -163,7 +119,7 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-3 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading && <Loader2 size={16} className="animate-spin" />}
-        Créer le serveur
+        Create server
       </button>
     </form>
   );

@@ -9,7 +9,6 @@ import {
   Clock,
   GitBranch,
   Plus,
-  RefreshCw,
   Rocket,
   Server,
   Zap,
@@ -17,9 +16,12 @@ import {
 import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import { dashboardService } from '@/services/dashboard.service';
-import { ActivityChart } from '@/components/dashboard/ActivityChart';
-import { ServerHealthCard } from '@/components/dashboard/ServerHealthCard';
-import { TopProjectsCard } from '@/components/dashboard/TopProjectsCard';
+import { deploymentsService } from '@/services/deployments.service';
+import { resolveDeploymentUrl } from '@/lib/deployment-utils';
+import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
+import { ActivityChart } from '@/components/dashboard/activity-chart';
+import { ServerHealthCard } from '@/components/dashboard/server-health-card';
+import { TopProjectsCard } from '@/components/dashboard/top-projects-card';
 import { PageHeader } from '@/components/layout/page-header';
 import { Alert } from '@/components/ui/alert';
 
@@ -74,11 +76,19 @@ function KpiCard({ title, value, subtitle, icon, tone = 'default' }: KpiCardProp
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
 
-  const { data, isLoading, isFetching, error, refetch } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats-v2'],
     queryFn: () => dashboardService.getStats(),
     staleTime: 30_000,
     refetchInterval: 60_000,
+  });
+
+  // Déploiements récents (tous statuts) — vue actionnable sur l'accueil.
+  const { data: recentDeployments } = useQuery({
+    queryKey: ['dashboard-recent-deployments'],
+    queryFn: () => deploymentsService.getAll(),
+    staleTime: 20_000,
+    refetchInterval: 30_000,
   });
 
   const queryError = error ? getApiErrorMessage(error) : null;
@@ -97,31 +107,22 @@ export default function DashboardPage() {
     <div className="space-y-5">
       <PageHeader
         eyebrow="Home"
-        title={`Bonjour, ${user?.fullName ?? 'Admin'}`}
-        description="Vue d'ensemble des projets et de l'activité de déploiement."
+        title={`Welcome, ${user?.fullName ?? 'Admin'}`}
+        description="Overview of your projects and deployment activity."
         actions={
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void refetch()}
-              disabled={isFetching}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
-              aria-label="Rafraîchir"
-            >
-              <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} />
-            </button>
             <Link
               href="/projects"
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
             >
-              Projets <ArrowRight size={14} />
+              Projects <ArrowRight size={14} />
             </Link>
           </div>
         }
       />
 
       {queryError && (
-        <Alert tone="error" title="Impossible de charger les données">
+        <Alert tone="error" title="Unable to load dashboard data">
           {queryError}
         </Alert>
       )}
@@ -132,11 +133,11 @@ export default function DashboardPage() {
           <Zap size={15} className="shrink-0 text-blue-400 animate-pulse" />
           <p className="text-sm text-[var(--text-secondary)]">
             <span className="font-semibold text-blue-400">
-              {kpis.runningCount} déploiement{kpis.runningCount > 1 ? 's' : ''} en cours
+              {kpis.runningCount} deployment{kpis.runningCount > 1 ? 's' : ''} running
             </span>{' '}
             —{' '}
             <Link href="/deployments" className="underline hover:text-[var(--text-primary)]">
-              Surveiller
+              Monitor
             </Link>
           </p>
         </div>
@@ -146,15 +147,15 @@ export default function DashboardPage() {
           <AlertTriangle size={15} className="mt-0.5 shrink-0 text-red-400" />
           <div className="text-sm text-[var(--text-secondary)]">
             <span className="font-semibold text-red-400">
-              {data.recentFailures.length} échec{data.recentFailures.length > 1 ? 's' : ''} récent{data.recentFailures.length > 1 ? 's' : ''}
+              {data.recentFailures.length} recent failure{data.recentFailures.length > 1 ? 's' : ''}
             </span>{' '}
             — {data.recentFailures[0].projectName} · {data.recentFailures[0].environmentName} ·{' '}
             {formatRelative(data.recentFailures[0].createdAt)}{' '}
             <Link
-              href={`/deployments/${data.recentFailures[0].id}`}
+              href={`/deployments?logs=${data.recentFailures[0].id}`}
               className="underline hover:text-[var(--text-primary)]"
             >
-              voir
+              view
             </Link>
           </div>
         </div>
@@ -164,10 +165,10 @@ export default function DashboardPage() {
       {isAdmin && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
-            { label: 'Nouveau projet', icon: <Plus size={15} />, href: '/projects?dialog=create-project', primary: true },
-            { label: 'Déployer', icon: <Rocket size={15} />, href: '/deployments?dialog=create-deployment', primary: false },
-            { label: 'Projets', icon: <GitBranch size={15} />, href: '/projects', primary: false },
-            { label: 'Serveurs', icon: <Server size={15} />, href: '/admin/servers', primary: false },
+            { label: 'New project', icon: <Plus size={15} />, href: '/projects?dialog=create-project', primary: true },
+            { label: 'Deploy', icon: <Rocket size={15} />, href: '/deployments?dialog=create-deployment', primary: false },
+            { label: 'Projects', icon: <GitBranch size={15} />, href: '/projects', primary: false },
+            { label: 'Servers', icon: <Server size={15} />, href: '/admin/servers', primary: false },
           ].map((action) => (
             <Link
               key={action.label}
@@ -195,26 +196,26 @@ export default function DashboardPage() {
       ) : kpis ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard
-            title="Projets"
+            title="Projects"
             value={kpis.totalProjects}
-            subtitle={`${kpis.totalEnvironments} environnements`}
+            subtitle={`${kpis.totalEnvironments} environments`}
           />
           <KpiCard
-            title="Deploys / 7j"
+            title="Deploys / 7d"
             value={kpis.deploymentsLast7d}
-            subtitle={`${kpis.deploymentsLast30d} ce mois-ci`}
+            subtitle={`${kpis.deploymentsLast30d} this month`}
           />
           <KpiCard
-            title="Taux de succès"
+            title="Success rate"
             value={kpis.deploymentsLast7d > 0 ? `${kpis.successRate7d}%` : '—'}
-            subtitle="7 derniers jours"
+            subtitle="last 7 days"
             icon={<CheckCircle2 size={11} />}
             tone={successRateTone}
           />
           <KpiCard
-            title="Durée moyenne"
+            title="Avg duration"
             value={formatDuration(kpis.avgDurationSeconds)}
-            subtitle="par déploiement (30j)"
+            subtitle="per deployment (30d)"
             icon={<Clock size={11} />}
           />
         </div>
@@ -226,13 +227,13 @@ export default function DashboardPage() {
         {kpis && (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
             <p className="mb-3 text-sm font-semibold text-[var(--text-primary)]">
-              État actuel
+              Current status
             </p>
             <ul className="space-y-2.5">
               {[
-                { label: 'En cours', value: kpis.runningCount, color: 'bg-blue-400' },
-                { label: 'Échecs (7j)', value: kpis.failedCount, color: 'bg-red-400' },
-                { label: 'Projets inactifs', value: kpis.idleProjectsCount, color: 'bg-zinc-500' },
+                { label: 'Running', value: kpis.runningCount, color: 'bg-blue-400' },
+                { label: 'Failures (7d)', value: kpis.failedCount, color: 'bg-red-400' },
+                { label: 'Idle projects', value: kpis.idleProjectsCount, color: 'bg-zinc-500' },
               ].map((item) => (
                 <li key={item.label} className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2 text-[var(--text-secondary)]">
@@ -266,12 +267,45 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Recent deployments (all statuses) */}
+      {recentDeployments && recentDeployments.length > 0 && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+              <Rocket size={14} /> Recent deployments
+            </p>
+            <Link href="/deployments" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view all →</Link>
+          </div>
+          <ul className="space-y-2">
+            {recentDeployments.slice(0, 6).map((d) => {
+              const url = resolveDeploymentUrl(d);
+              return (
+                <li key={d.id} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 py-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <DeploymentStatusBadge status={d.status} />
+                    <span className="truncate font-semibold text-[var(--text-primary)]">{d.service?.name ?? d.project?.name ?? 'service'}</span>
+                    <span className="hidden text-[var(--text-secondary)] sm:inline">· {d.environment?.name}</span>
+                    <code className="hidden text-xs text-[var(--text-muted)] md:inline">{d.branch}</code>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    {url && d.status === 'SUCCESS' && (
+                      <a href={url} target="_blank" rel="noreferrer" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">open ↗</a>
+                    )}
+                    <Link href={`/deployments?logs=${d.id}`} className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view →</Link>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {/* Recent failures detail */}
       {data && data.recentFailures.length > 1 && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
             <AlertTriangle size={14} className="text-red-400" />
-            Déploiements en échec — 7 jours
+            Failed deployments — last 7 days
           </p>
           <ul className="space-y-2">
             {data.recentFailures.map((f) => (
@@ -293,10 +327,10 @@ export default function DashboardPage() {
                     {formatRelative(f.createdAt)}
                   </span>
                   <Link
-                    href={`/deployments/${f.id}`}
+                    href={`/deployments?logs=${f.id}`}
                     className="text-xs font-semibold text-red-400 hover:underline"
                   >
-                    voir →
+                    view →
                   </Link>
                 </div>
               </li>

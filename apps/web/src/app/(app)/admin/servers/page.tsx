@@ -9,7 +9,6 @@ import {
   HelpCircle,
   Loader2,
   Plus,
-  RefreshCw,
   Server,
   ShieldCheck,
   Wifi,
@@ -25,9 +24,9 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
 import { ServerCard } from '@/components/servers/server-card';
 import { ServerDetailsDialog } from '@/components/servers/server-details-dialog';
+import { ServerLogsDialog } from '@/components/servers/server-logs-dialog';
 import { ServerKeyInstallDialog } from '@/components/servers/server-key-install-dialog';
 import { ServerPrepareDialog } from '@/components/servers/server-prepare-dialog';
 import {
@@ -55,7 +54,7 @@ function deriveRole(s: ServerType): ServerRole {
 
 const ROLE_META: Record<ServerRole, { label: string; color: string; icon: React.ReactNode }> = {
   APP: { label: 'App Server', color: 'border-blue-500/20 bg-blue-500/10 text-blue-400', icon: <Container size={10} /> },
-  CI_RUNNER: { label: 'CI Runner', color: 'border-purple-500/20 bg-purple-500/10 text-purple-400', icon: <GitMerge size={10} /> },
+  CI_RUNNER: { label: 'CI Runner', color: 'border-indigo-500/20 bg-indigo-500/10 text-indigo-400', icon: <GitMerge size={10} /> },
   APP_CI: { label: 'App + CI', color: 'border-green-500/20 bg-green-500/10 text-green-400', icon: <Activity size={10} /> },
   GENERAL: { label: 'General', color: 'border-[var(--border)] bg-[var(--hover)] text-[var(--text-muted)]', icon: <HelpCircle size={10} /> },
 };
@@ -114,6 +113,7 @@ export default function AdminServersPage() {
   const [prepareServer, setPrepareServer] = useState<ServerType | null>(null);
   const prepareToolsQuery = useInstalledTools(prepareServer?.id ?? '');
   const [detailsServer, setDetailsServer] = useState<ServerType | null>(null);
+  const [logsServer, setLogsServer] = useState<ServerType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServerType | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -136,7 +136,7 @@ export default function AdminServersPage() {
           const result = await serversService.ping(s.id);
           setPingMap((prev) => ({ ...prev, [s.id]: { ok: result.ok, message: result.message } }));
         } catch {
-          setPingMap((prev) => ({ ...prev, [s.id]: { ok: false, message: 'Erreur de connexion' } }));
+          setPingMap((prev) => ({ ...prev, [s.id]: { ok: false, message: 'Connection error' } }));
         }
       }),
     );
@@ -147,6 +147,12 @@ export default function AdminServersPage() {
       void runAutoTests(servers.servers);
     }
   }, [servers.servers.length, servers.loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-refresh the server list (replaces the manual Refresh button).
+  useEffect(() => {
+    const id = setInterval(() => { void servers.fetchServers(); }, 30_000);
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePing = async (server: ServerType) => {
     setPingingId(server.id);
@@ -163,6 +169,7 @@ export default function AdminServersPage() {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSetRole = async (id: string, role: ServerInfraRole) => {
     await serversService.setRole(id, role);
     await servers.fetchServers();
@@ -247,46 +254,13 @@ export default function AdminServersPage() {
       <PageHeader
         eyebrow="Infrastructure"
         title="Remote Servers"
-        description="Gérez vos VPS — validation SSH, détection des capacités, préparation Ansible et assignation d'environnements. Tous les serveurs sont des cibles agentless identiques."
+        description="Manage your VPS servers — SSH validation, capability detection, Ansible provisioning and environment assignment. All servers are identical agentless targets."
         actions={
-          <>
-            <Button
-              variant="secondary"
-              icon={<RefreshCw size={15} className={servers.loading ? 'animate-spin' : ''} />}
-              onClick={async () => {
-                await servers.fetchServers();
-                void runAutoTests(servers.servers);
-              }}
-              disabled={servers.loading}
-            >
-              Refresh
-            </Button>
-            <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>
-              Add Server
-            </Button>
-          </>
+          <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>
+            Add Server
+          </Button>
         }
       />
-
-      {/* Stats */}
-      <SectionCard contentClassName="p-0">
-        <div className="grid grid-cols-2 gap-3 border-b border-[var(--border)] p-5 sm:grid-cols-4">
-          {[
-            { label: 'Total', value: servers.servers.length },
-            { label: 'SSH validé', value: servers.verifiedCount },
-            {
-              label: 'En ligne',
-              value: Object.values(pingMap).filter((r) => r !== 'loading' && r.ok).length,
-            },
-            { label: 'Préparés', value: servers.readyCount },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-              <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
-              <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{value}</p>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
 
       {servers.error && <Alert tone="error">{servers.error}</Alert>}
 
@@ -295,8 +269,8 @@ export default function AdminServersPage() {
         <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--hover)]">
           <EmptyState
             icon={Server}
-            title="Aucun serveur"
-            description="Ajoutez votre premier VPS pour démarrer la validation SSH et la préparation."
+            title="No servers"
+            description="Add your first VPS to start SSH validation and provisioning."
             action={
               <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>
                 Add Server
@@ -331,7 +305,7 @@ export default function AdminServersPage() {
                           type="button"
                           disabled={pingingId === server.id || ping === 'loading'}
                           onClick={() => void handlePing(server)}
-                          title="Tester la connexion"
+                          title="Test connection"
                           className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-400 disabled:opacity-40"
                         >
                           {pingingId === server.id || ping === 'loading' ? (
@@ -363,6 +337,7 @@ export default function AdminServersPage() {
                         onInstallKey={(s) => { setInstallKeyError(null); setInstallKeyServer(s); }}
                         onOpenPrepare={setPrepareServer}
                         onOpenDetails={setDetailsServer}
+                        onOpenLogs={setLogsServer}
                         onEdit={(s) => { setEditError(null); setEditServer(s); }}
                         onDelete={(s) => { setDeleteError(null); setDeleteTarget(s); }}
                       />
@@ -427,6 +402,13 @@ export default function AdminServersPage() {
         onCancelJob={servers.handleCancelJob}
       />
 
+      <ServerLogsDialog
+        open={Boolean(logsServer)}
+        serverId={logsServer?.id ?? null}
+        serverName={logsServer?.name}
+        onClose={() => setLogsServer(null)}
+      />
+
       <ServerUpsertDialog
         open={createOpen}
         mode="create"
@@ -451,7 +433,7 @@ export default function AdminServersPage() {
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         title={deleteTarget ? `Delete ${deleteTarget.name}?` : 'Delete server?'}
-        description="Action irréversible — supprime le serveur et ses métadonnées."
+        description="This action cannot be undone — deletes the server and its metadata."
         confirmLabel="Delete"
         cancelLabel="Cancel"
         variant="danger"

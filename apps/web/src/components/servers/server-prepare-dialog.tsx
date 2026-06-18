@@ -57,7 +57,7 @@ export function ServerPrepareDialog({
   const readiness = readinessQuery.data;
   const readinessLoading = readinessQuery.isLoading || readinessQuery.isFetching;
   const readinessError = readinessQuery.error
-    ? 'Impossible de vérifier les prérequis de préparation pour le moment.'
+    ? 'Unable to check provisioning prerequisites right now.'
     : null;
   const blockingReasons = readinessLoading
     ? ['Checking preparation prerequisites...']

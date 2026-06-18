@@ -14,6 +14,7 @@ import { usersService } from '@/services/users.service';
 import type { PlatformConfigItem } from '@/types/platform-config';
 
 const PLATFORM_NAME_KEY = 'PLATFORM_NAME';
+const WEBHOOK_BASE_URL_KEY = 'WEBHOOK_BASE_URL';
 
 type NotifSettings = {
   slackWebhookUrl: string;
@@ -40,6 +41,7 @@ export default function SettingsPage() {
   const [loadingPlatform, setLoadingPlatform] = useState(false);
   const [savingPlatform, setSavingPlatform] = useState(false);
   const [platformName, setPlatformName] = useState('Deploy Automation');
+  const [webhookBaseUrl, setWebhookBaseUrl] = useState('');
 
   const [notifSettings, setNotifSettings] = useState<NotifSettings>({
     slackWebhookUrl: '', notifyOnSuccess: true, notifyOnFailure: true,
@@ -73,6 +75,7 @@ export default function SettingsPage() {
         rows.map((item) => [item.key, item]),
       );
       setPlatformName(map.get(PLATFORM_NAME_KEY)?.value || 'Deploy Automation');
+      setWebhookBaseUrl(map.get(WEBHOOK_BASE_URL_KEY)?.value || '');
     } catch (error) {
       setNotice({ tone: 'error', message: getApiErrorMessage(error) });
     } finally {
@@ -93,7 +96,7 @@ export default function SettingsPage() {
     setSavingNotif(true);
     try {
       await api.put('/notifications/settings', notifSettings);
-      setNotice({ tone: 'success', message: 'Paramètres de notification sauvegardés.' });
+      setNotice({ tone: 'success', message: 'Notification settings saved.' });
     } catch (err) {
       setNotice({ tone: 'error', message: getApiErrorMessage(err) });
     } finally {
@@ -134,6 +137,11 @@ export default function SettingsPage() {
     try {
       await platformConfigService.update(PLATFORM_NAME_KEY, {
         value: platformName.trim(),
+        isSecret: false,
+      });
+      // URL publique du backend — utilisée pour construire les URLs de webhook.
+      await platformConfigService.update(WEBHOOK_BASE_URL_KEY, {
+        value: webhookBaseUrl.trim(),
         isSecret: false,
       });
       setNotice({ tone: 'success', message: 'Platform identity updated.' });
@@ -261,6 +269,26 @@ export default function SettingsPage() {
               />
             </div>
 
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                URL publique du backend (WEBHOOK_BASE_URL)
+              </label>
+              <input
+                type="url"
+                value={webhookBaseUrl}
+                onChange={(event) => setWebhookBaseUrl(event.target.value)}
+                disabled={loadingPlatform || savingPlatform}
+                placeholder="https://api.mondomaine.com  (local : http://localhost:3001)"
+                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 font-mono text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-60"
+              />
+              <p className="mt-1.5 text-xs text-[var(--text-muted)]">
+                URL où ce backend est joignable. Sert à construire les URLs de webhook
+                (<code>&lt;url&gt;/webhooks/incoming/&lt;token&gt;</code>). Pour un déclenchement
+                par GitLab/GitHub, elle doit être <strong>publique</strong> ; en local, on peut
+                mettre <code>http://localhost:3001</code> pour tester.
+              </p>
+            </div>
+
             <Button
               onClick={() => void handleSavePlatform()}
               disabled={!canSavePlatform}
@@ -385,7 +413,7 @@ export default function SettingsPage() {
       {isAdmin && (
         <SectionCard
           title="Notifications"
-          description="Alertes de déploiement via Slack et email SMTP."
+          description="Deployment alerts via Slack and SMTP email."
         >
           <div className="space-y-6">
             {/* Slack */}
@@ -393,7 +421,7 @@ export default function SettingsPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Slack</p>
               <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
                 <Bell size={15} className="shrink-0" />
-                <span>Webhook Slack entrant pour recevoir des alertes en temps réel.</span>
+                <span>Incoming Slack webhook to receive real-time alerts.</span>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
@@ -406,7 +434,7 @@ export default function SettingsPage() {
                   placeholder="https://hooks.slack.com/services/..."
                   className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 font-mono text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
                 />
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Laissez vide pour désactiver Slack.</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Leave empty to disable Slack.</p>
               </div>
             </div>
 
@@ -415,7 +443,7 @@ export default function SettingsPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Email SMTP</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Hôte SMTP</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">SMTP host</label>
                   <input type="text" value={notifSettings.smtpHost} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpHost: e.target.value }))} placeholder="smtp.gmail.com" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
                 </div>
                 <div>
@@ -431,7 +459,7 @@ export default function SettingsPage() {
                   <input type="password" value={notifSettings.smtpPass} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpPass: e.target.value }))} placeholder="••••••••" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Expéditeur (From)</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Sender (From)</label>
                   <input type="text" value={notifSettings.smtpFrom} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpFrom: e.target.value }))} placeholder="Vaytek Deploy <noreply@vaytek.com>" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
                 </div>
                 <div>
@@ -439,15 +467,15 @@ export default function SettingsPage() {
                   <input type="text" value={notifSettings.smtpTo} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpTo: e.target.value }))} placeholder="team@vaytek.com" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
                 </div>
               </div>
-              <p className="text-xs text-[var(--text-muted)]">Laissez tous les champs SMTP vides pour désactiver les emails.</p>
+              <p className="text-xs text-[var(--text-muted)]">Leave all SMTP fields empty to disable emails.</p>
             </div>
 
             {/* Triggers */}
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Déclencheurs</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Triggers</p>
               {[
-                { key: 'notifyOnSuccess' as const, label: 'Notifier sur succès', color: 'text-green-400' },
-                { key: 'notifyOnFailure' as const, label: 'Notifier sur échec / annulation', color: 'text-red-400' },
+                { key: 'notifyOnSuccess' as const, label: 'Notify on success', color: 'text-green-400' },
+                { key: 'notifyOnFailure' as const, label: 'Notify on failure / cancellation', color: 'text-red-400' },
               ].map(({ key, label, color }) => (
                 <label key={key} className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
                   <input type="checkbox" checked={notifSettings[key]} onChange={(e) => setNotifSettings((p) => ({ ...p, [key]: e.target.checked }))} className="h-4 w-4 rounded accent-current" />
@@ -457,7 +485,7 @@ export default function SettingsPage() {
             </div>
 
             <Button onClick={() => void handleSaveNotif()} disabled={savingNotif} loading={savingNotif} icon={savingNotif ? undefined : <Save size={14} />}>
-              Sauvegarder les notifications
+              Save notifications
             </Button>
           </div>
         </SectionCard>

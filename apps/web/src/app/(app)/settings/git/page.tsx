@@ -5,9 +5,9 @@ import { GitBranch, Globe, Info, Plus, Puzzle } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { ProviderCard } from '@/components/git-providers/provider-card';
-import { AddProviderDialog } from '@/components/git-providers/add-provider-dialog';
-import { GitLabLogo, GitHubLogo } from '@/components/git-providers/provider-meta';
+import { ProviderCard } from '@/components/source-providers/provider-card';
+import { AddProviderDialog } from '@/components/source-providers/add-provider-dialog';
+import { GitLabLogo } from '@/components/source-providers/provider-meta';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { getApiErrorMessage } from '@/lib/api';
 import { platformConfigService } from '@/services/platform-config.service';
@@ -69,6 +69,7 @@ function EmptyProviders({ isAdmin, onAdd }: { isAdmin: boolean; onAdd: () => voi
 
 /* ─── Info banner ────────────────────────────────────────────────────────── */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function InfoBanner() {
   return (
     <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-[var(--text-secondary)]">
@@ -84,6 +85,7 @@ function InfoBanner() {
 
 /* ─── Upcoming providers teaser ─────────────────────────────────────────── */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function UpcomingProviders() {
   const upcoming = [
     { name: 'Gitea', icon: '🟢', desc: 'Self-hosted Gitea instances' },
@@ -117,7 +119,7 @@ function UpcomingProviders() {
 
 /* ─── Loading skeleton ───────────────────────────────────────────────────── */
 
-function Skeleton() {
+function SkeletonLoading() {
   return (
     <div className="space-y-4">
       {[1, 2].map((i) => (
@@ -129,6 +131,7 @@ function Skeleton() {
 
 /* ─── Stats bar ──────────────────────────────────────────────────────────── */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function StatsBar({ providers }: { providers: GitlabProvider[] }) {
   if (providers.length === 0) return null;
   const configured = providers.filter((p) => p.status === 'CONFIGURED').length;
@@ -170,7 +173,7 @@ export default function GitSettingsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
   const [editingProvider, setEditingProvider] = useState<GitlabProvider | null>(null);
-  const [dialogProviderType, setDialogProviderType] = useState<'GITLAB' | 'GITHUB'>('GITLAB');
+  const [dialogProviderType, setDialogProviderType] = useState<'GITLAB' | 'GITHUB' | 'GITEA'>('GITLAB');
 
   const [runningTestId, setRunningTestId] = useState<string | null>(null);
   const [runningOAuthId, setRunningOAuthId] = useState<string | null>(null);
@@ -196,13 +199,15 @@ export default function GitSettingsPage() {
   const loadProviders = useCallback(async () => {
     setLoading(true);
     try {
-      const [gitlabList, githubList] = await Promise.allSettled([
+      const [gitlabList, githubList, giteaList] = await Promise.allSettled([
         platformConfigService.listGitlabProviders(),
         platformConfigService.listGithubProviders(),
+        platformConfigService.listGiteaProviders(),
       ]);
       const gitlab = gitlabList.status === 'fulfilled' ? gitlabList.value.map((p) => ({ ...p, providerType: 'GITLAB' as const })) : [];
       const github = githubList.status === 'fulfilled' ? githubList.value.map((p) => ({ ...p, providerType: 'GITHUB' as const })) : [];
-      setProviders([...gitlab, ...github]);
+      const gitea = giteaList.status === 'fulfilled' ? giteaList.value.map((p) => ({ ...p, providerType: 'GITEA' as const })) : [];
+      setProviders([...gitlab, ...github, ...gitea]);
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
     } finally {
@@ -233,7 +238,7 @@ export default function GitSettingsPage() {
     void loadProviders();
   }, [loadProviders, showToast]);
 
-  const openCreate = (type: 'GITLAB' | 'GITHUB' = 'GITLAB') => {
+  const openCreate = (type: 'GITLAB' | 'GITHUB' | 'GITEA' = 'GITLAB') => {
     setDialogProviderType(type);
     setDialogMode('create');
     setEditingProvider(null);
@@ -256,10 +261,11 @@ export default function GitSettingsPage() {
   };
 
   const isGithubProvider = (p: GitlabProvider) => p.providerType === 'GITHUB';
+  const isGiteaProvider = (p: GitlabProvider) => p.providerType === 'GITEA';
 
   const handleSave = async (
     payload: CreateGitlabProviderPayload | UpdateGitlabProviderPayload,
-    providerType?: 'GITLAB' | 'GITHUB',
+    providerType?: 'GITLAB' | 'GITHUB' | 'GITEA',
   ) => {
     setSaving(true);
     setDialogError(null);
@@ -268,6 +274,8 @@ export default function GitSettingsPage() {
       if (dialogMode === 'create') {
         if (type === 'GITHUB') {
           await platformConfigService.createGithubProvider(payload as CreateGitlabProviderPayload);
+        } else if (type === 'GITEA') {
+          await platformConfigService.createGiteaProvider(payload as CreateGitlabProviderPayload);
         } else {
           await platformConfigService.createGitlabProvider(payload as CreateGitlabProviderPayload);
         }
@@ -275,6 +283,8 @@ export default function GitSettingsPage() {
       } else if (editingProvider) {
         if (isGithubProvider(editingProvider)) {
           await platformConfigService.updateGithubProvider(editingProvider.id, payload as UpdateGitlabProviderPayload);
+        } else if (isGiteaProvider(editingProvider)) {
+          await platformConfigService.updateGiteaProvider(editingProvider.id, payload as UpdateGitlabProviderPayload);
         } else {
           await platformConfigService.updateGitlabProvider(editingProvider.id, payload as UpdateGitlabProviderPayload);
         }
@@ -293,6 +303,10 @@ export default function GitSettingsPage() {
     setRunningTestId(id);
     try {
       const provider = providers.find((p) => p.id === id);
+      if (provider && isGiteaProvider(provider)) {
+        showToast('Connection is tested at deploy time for Gitea', 'success');
+        return;
+      }
       const result = provider && isGithubProvider(provider)
         ? await platformConfigService.testGithubProvider(id)
         : await platformConfigService.testGitlabProvider(id);
@@ -327,6 +341,8 @@ export default function GitSettingsPage() {
       const provider = providers.find((p) => p.id === id);
       if (provider && isGithubProvider(provider)) {
         await platformConfigService.setDefaultGithubProvider(id);
+      } else if (provider && isGiteaProvider(provider)) {
+        await platformConfigService.setDefaultGiteaProvider(id);
       } else {
         await platformConfigService.setDefaultGitlabProvider(id);
       }
@@ -345,6 +361,8 @@ export default function GitSettingsPage() {
     try {
       if (isGithubProvider(deleteTarget)) {
         await platformConfigService.deleteGithubProvider(deleteTarget.id);
+      } else if (isGiteaProvider(deleteTarget)) {
+        await platformConfigService.deleteGiteaProvider(deleteTarget.id);
       } else {
         await platformConfigService.deleteGitlabProvider(deleteTarget.id);
       }
@@ -374,20 +392,15 @@ export default function GitSettingsPage() {
           description="Global reusable Git integrations. Projects reference these providers to import repositories, trigger builds, and deploy automatically."
           actions={
             isAdmin && (
-              <div className="flex items-center gap-2">
-                <Button onClick={() => openCreate('GITLAB')} icon={<GitLabLogo className="h-3.5 w-3.5" />}>
-                  GitLab
-                </Button>
-                <Button onClick={() => openCreate('GITHUB')} icon={<GitHubLogo className="h-3.5 w-3.5" />}>
-                  GitHub
-                </Button>
-              </div>
+              <Button onClick={() => openCreate('GITLAB')} icon={<Plus size={14} />}>
+                Add provider
+              </Button>
             )
           }
         />
 
         {loading ? (
-          <Skeleton />
+          <SkeletonLoading />
         ) : (
           <>
             {providers.length === 0 ? (
@@ -431,7 +444,7 @@ export default function GitSettingsPage() {
         open={dialogOpen}
         mode={dialogMode}
         existingProvider={editingProvider}
-        initialProviderType={editingProvider?.providerType === 'GITHUB' ? 'GITHUB' : dialogProviderType}
+        initialProviderType={editingProvider?.providerType ?? dialogProviderType}
         fallbackRedirectUri={fallbackRedirectUri}
         saving={saving}
         error={dialogError}

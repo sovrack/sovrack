@@ -4,9 +4,17 @@ import type {
   Deployment,
   DeploymentMutation,
   DeployValidationResult,
+  EnvPreview,
 } from '@/types/deployment';
 
 export const deploymentsService = {
+  async previewEnv(serviceEnvId: string): Promise<EnvPreview> {
+    const res = await api.get<EnvPreview>('/deployments/preview-env', {
+      params: { serviceEnvId },
+    });
+    return res.data;
+  },
+
   async getAll(): Promise<Deployment[]> {
     const res = await api.get<Deployment[]>('/deployments');
     return res.data;
@@ -23,24 +31,18 @@ export const deploymentsService = {
   },
 
   async create({
-    projectId,
-    environmentId,
+    serviceEnvId,
     branch,
     strategy,
     buildSource,
     overrideImage,
-    serviceId,
-    repoId,
   }: CreateDeploymentPayload): Promise<DeploymentMutation> {
     const res = await api.post<DeploymentMutation>('/deployments', {
-      projectId,
-      environmentId,
+      serviceEnvId,
       branch,
       strategy,
       buildSource,
       overrideImage,
-      serviceId,
-      repoId,
     });
     return res.data;
   },
@@ -66,6 +68,21 @@ export const deploymentsService = {
 
   async delete(id: string): Promise<void> {
     await api.delete(`/deployments/${id}`);
+  },
+
+  async searchLogs(
+    id: string,
+    q: string,
+    level: 'ALL' | 'INFO' | 'WARN' | 'ERROR' = 'ALL',
+  ): Promise<{
+    total: number;
+    hits: { lineNumber: number; level: 'INFO' | 'WARN' | 'ERROR'; message: string }[];
+  }> {
+    const res = await api.get<{
+      total: number;
+      hits: { lineNumber: number; level: 'INFO' | 'WARN' | 'ERROR'; message: string }[];
+    }>(`/deployments/${id}/logs/search`, { params: { q, level } });
+    return res.data;
   },
 
   async getContainerLogs(id: string, tail = 300): Promise<string> {

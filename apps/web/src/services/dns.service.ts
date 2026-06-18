@@ -25,9 +25,9 @@ export const dnsService = {
     return res.data;
   },
 
-  async listDomains(projectId?: string): Promise<Domain[]> {
+  async listDomains(filters?: { projectId?: string; serviceEnvId?: string }): Promise<Domain[]> {
     const res = await api.get<Domain[]>('/dns/domains', {
-      params: projectId ? { projectId } : undefined,
+      params: filters,
     });
     return res.data;
   },
@@ -36,8 +36,13 @@ export const dnsService = {
     name: string;
     providerId?: string;
     projectId?: string;
+    serviceEnvId?: string;
   }): Promise<Domain> {
     const res = await api.post<Domain>('/dns/domains', payload);
     return res.data;
+  },
+
+  async deleteDomain(id: string): Promise<void> {
+    await api.delete(`/dns/domains/${id}`);
   },
 };

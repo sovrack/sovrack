@@ -2,19 +2,19 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   CheckCircle2,
+  ChevronRight,
   Clock,
   ExternalLink,
   GitCommitHorizontal,
   Globe,
   Loader2,
-  Plus,
   RefreshCw,
   Rocket,
   RotateCcw,
   Square,
-  Terminal,
   Trash2,
   XCircle,
 } from 'lucide-react';
@@ -22,14 +22,15 @@ import type { Deployment, DeploymentStatus } from '@/types/deployment';
 import { deploymentsService } from '@/services/deployments.service';
 import { getApiErrorMessage } from '@/lib/api';
 import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
-import { DeploymentLogsDialog } from '@/components/projects/tabs/runs/deployment-logs-dialog';
 import { timeAgo, dur, resolveDeploymentUrl, ENV_BADGE, STATUS_DOT, STATUS_BORDER } from '@/lib/deployment-utils';
 
 type Props = {
   deployments: Deployment[];
   loading: boolean;
   error: string | null;
-  projectId: string;
+  // Absent = mode GLOBAL (multi-projets) : on affiche le nom du projet par ligne
+  // et on masque le lien « view all » + le redeploy ciblé sur un seul projet.
+  projectId?: string;
   onCreateClick?: () => void;
   onRefresh?: () => void;
 };
@@ -52,15 +53,15 @@ const STATUS_COLOR: Record<DeploymentStatus, string> = {
   PENDING: 'text-amber-400', CANCELED: 'text-zinc-400',
 };
 
-export function ProjectDeploymentsTab({ deployments, loading, error, projectId, onCreateClick, onRefresh }: Props) {
+export function ProjectDeploymentsTab({ deployments, loading, error, projectId, onRefresh }: Props) {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<DeploymentStatus | 'ALL'>('ALL');
   const [rollingBackId, setRollingBackId] = useState<string | null>(null);
   const [rollbackError, setRollbackError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [logsTarget, setLogsTarget] = useState<{ id: string; status: DeploymentStatus } | null>(null);
-  const [redeployTarget, setRedeployTarget] = useState<{ branch: string; environmentId: string } | null>(null);
+  const [redeployTarget, setRedeployTarget] = useState<{ branch: string; environmentId: string; projectId: string } | null>(null);
 
   const handleRollback = async (depId: string) => {
     setRollingBackId(depId); setRollbackError(null);
@@ -91,7 +92,8 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
   };
 
   const filtered = statusFilter === 'ALL' ? deployments : deployments.filter((d) => d.status === statusFilter);
-  const visible = filtered.slice(0, 20);
+  // En mode global on en montre davantage (pas de pagination dédiée ici).
+  const visible = filtered.slice(0, projectId ? 20 : 100);
 
   return (
     <div className="space-y-4">
@@ -170,11 +172,19 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
 
                 <div className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[dep.status] ?? 'bg-zinc-400'} ${isLive ? 'animate-pulse' : ''}`} />
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0}
+                  onClick={() => router.push(`/deployments/${dep.id}`)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/deployments/${dep.id}`); }}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`text-xs font-semibold ${STATUS_COLOR[dep.status] ?? 'text-zinc-400'}`}>
                       {STATUS_LABEL[dep.status]}
                     </span>
+                    {!projectId && dep.project && (
+                      <Link href={`/projects/${dep.project.id}`}
+                        className="text-xs font-semibold text-[var(--text-primary)] hover:underline">
+                        {dep.project.name}
+                      </Link>
+                    )}
                     {dep.environment?.name && (
                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${ENV_BADGE[dep.environment.name] ?? 'border-zinc-500/20 bg-zinc-500/10 text-zinc-400'}`}>
                         {dep.environment.name}
@@ -185,19 +195,17 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
                       <span className="rounded border border-[var(--border)] bg-[var(--hover)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">{dep.service.name}</span>
                     )}
                     {dep.externalPipelineId && (
-                      <a
-                        href={dep.project.repoUrl ? `${dep.project.repoUrl}/-/pipelines/${dep.externalPipelineId}` : '#'}
-                        target="_blank" rel="noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1 rounded border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-400 hover:bg-blue-500/20 transition">
+                      <span
+                        className="flex items-center gap-1 rounded border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-400">
                         <GitCommitHorizontal size={9} /> CI #{dep.externalPipelineId}
-                      </a>
+                      </span>
                     )}
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
                     <span className="flex items-center gap-1"><Clock size={10} /> {timeAgo(dep.createdAt)}</span>
                     {d && <span>{d}{isLive && <span className="ml-0.5 animate-pulse text-blue-400">…</span>}</span>}
-                    <span>{dep.user.fullName}</span>
+                    {/* Les déploiements auto (webhook/pipeline, auto-heal) n'ont pas d'utilisateur. */}
+                    <span>{dep.user?.fullName ?? 'Auto-deploy'}</span>
                     {dep.environment?.server && <span className="hidden sm:inline">{dep.environment.server.name}</span>}
                   </div>
                   {url && dep.status === 'SUCCESS' && (
@@ -217,12 +225,12 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
                     </span>
                   )}
 
-                  {/* Logs in dialog — no redirect */}
+                  {/* Détails : page dédiée (logs, conteneur, URL, spec, actions) */}
                   <button type="button"
-                    onClick={() => setLogsTarget({ id: dep.id, status: dep.status })}
+                    onClick={() => router.push(`/deployments/${dep.id}`)}
                     className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
-                    title="View logs">
-                    <Terminal size={11} /> Logs
+                    title="Voir le détail du déploiement">
+                    Détails <ChevronRight size={11} />
                   </button>
 
                   {isLive && (
@@ -245,7 +253,7 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
 
                   {canRollback && (
                     <button type="button"
-                      onClick={() => setRedeployTarget({ branch: dep.branch, environmentId: envId })}
+                      onClick={() => setRedeployTarget({ branch: dep.branch, environmentId: envId, projectId: dep.project?.id ?? projectId ?? '' })}
                       className="flex items-center gap-1 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
                       title="Redeploy">
                       <Rocket size={11} />
@@ -280,25 +288,17 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
         </div>
       )}
 
-      {filtered.length > 20 && (
+      {projectId && filtered.length > 20 && (
         <Link href={`/deployments?project=${projectId}`}
           className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--border)] py-3 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
           <ExternalLink size={11} /> View all {filtered.length} deployments →
         </Link>
       )}
 
-      {/* Logs dialog — inline, stays in Runs tab */}
-      <DeploymentLogsDialog
-        open={logsTarget !== null}
-        deploymentId={logsTarget?.id ?? null}
-        initialStatus={logsTarget?.status ?? null}
-        onClose={() => setLogsTarget(null)}
-      />
-
       {/* Redeploy dialog — branch + env pre-filled from original run */}
       <DeploymentCreateDialog
         open={redeployTarget !== null}
-        initialProjectId={projectId}
+        initialProjectId={redeployTarget?.projectId ?? projectId ?? ''}
         initialEnvironmentId={redeployTarget?.environmentId}
         initialBranch={redeployTarget?.branch}
         onClose={() => setRedeployTarget(null)}

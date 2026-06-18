@@ -27,10 +27,6 @@ const config: Config = {
         'theme-xs': '0 1px 2px 0 rgba(0,0,0,0.3)',
         'theme-lg': '0 20px 24px -4px rgba(0,0,0,0.4), 0 8px 8px -4px rgba(0,0,0,0.2)',
       },
-      borderOpacity: {
-        6: '0.06',
-        8: '0.08',
-      },
     },
   },
   plugins: [],

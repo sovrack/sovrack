@@ -92,10 +92,10 @@ export const serversService = {
       const server = await this.verify(id);
       return {
         ok: Boolean(server.isVerified),
-        message: server.verificationError ?? 'Connexion validée',
+        message: server.verificationError ?? 'Connection validated',
       };
     } catch (err) {
-      return { ok: false, message: err instanceof Error ? err.message : 'Erreur de connexion' };
+      return { ok: false, message: err instanceof Error ? err.message : 'Connection error' };
     }
   },
 

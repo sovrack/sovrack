@@ -1,39 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { EnvVariablesPreview } from './env-variables-preview';
 import {
   AlertTriangle,
   CheckCircle2,
   Layers,
   Loader2,
   Rocket,
-  Wrench,
   X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { deploymentsService } from '@/services/deployments.service';
 import { environmentsService } from '@/services/environments.service';
 import { projectsService } from '@/services/projects.service';
-import { serversService } from '@/services/servers.service';
-import { buildService } from '@/services/build.service';
-import { useServerPreparationOptions } from '@/hooks/servers/use-servers';
 import { getApiErrorMessage } from '@/lib/api';
-import { ServerPreparationPanel } from './server-preparation-panel';
 import type { Environment } from '@/types/environment';
-import type { GitlabBranch, ProjectService } from '@/types/project';
+import type { GitlabBranch } from '@/types/project';
+import type { Service } from '@/types/service';
 import type { BuildSource, DeployValidationResult } from '@/types/deployment';
 
 type ValidationIssue = {
   type: 'no-source' | 'no-build-config' | 'no-environment' | 'no-branch';
   message: string;
-  redirectTab: string;
-};
-
-type ToolCheckItem = {
-  binary: string;
-  label: string;
-  role: string;
-  found: boolean;
+  /** Lien direct vers l'endroit où corriger le problème (page service ou onglet env). */
+  href: string;
 };
 
 type Props = {
@@ -41,36 +32,34 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
-  services?: ProjectService[];
+  services?: Service[];
   initialServiceId?: string;
   initialEnvironmentId?: string;
-  defaultBuildSource?: string | null;
-  buildPort?: number | null;
-  buildStartCmd?: string | null;
+  initialBranch?: string;
 };
 
-const LOCAL_BUILD_SOURCES = ['DOCKERFILE_LOCAL', 'NIXPACKS_LOCAL', 'DOCKER_COMPOSE', 'STATIC'] as const;
+/** Map a service's buildPack to the BuildSource the backend expects. */
+function resolveBuildSource(svc: Service | undefined): BuildSource {
+  if (!svc) return 'DOCKERFILE_LOCAL';
+  if (svc.sourceType === 'DOCKER_IMAGE') return 'EXTERNAL_IMAGE';
+  if (svc.type === 'DATABASE') return 'EXTERNAL_IMAGE';
+  switch (svc.buildPack) {
+    case 'NIXPACKS':       return 'NIXPACKS_LOCAL';
+    case 'STATIC':         return 'STATIC';
+    case 'DOCKER_COMPOSE': return 'DOCKER_COMPOSE';
+    default:               return 'DOCKERFILE_LOCAL';
+  }
+}
 
-const BUILD_SOURCE_META: Record<string, { label: string; detail: string; color: string; bg: string; border: string }> = {
-  DOCKERFILE_LOCAL:    { label: 'Dockerfile',   detail: 'build local sur le VPS',       color: 'text-blue-400',   bg: 'bg-blue-500/8',   border: 'border-blue-500/20' },
-  DOCKERFILE_REGISTRY: { label: 'Dockerfile',   detail: 'build CI → push registry',     color: 'text-indigo-400', bg: 'bg-indigo-500/8', border: 'border-indigo-500/20' },
-  NIXPACKS_LOCAL:      { label: 'Nixpacks',     detail: 'build local sur le VPS',       color: 'text-teal-400',   bg: 'bg-teal-500/8',   border: 'border-teal-500/20' },
-  NIXPACKS_REGISTRY:   { label: 'Nixpacks',     detail: 'build CI → push registry',     color: 'text-cyan-400',   bg: 'bg-cyan-500/8',   border: 'border-cyan-500/20' },
-  DOCKER_COMPOSE:      { label: 'Compose',      detail: 'docker compose sur le VPS',    color: 'text-purple-400', bg: 'bg-purple-500/8', border: 'border-purple-500/20' },
-  STATIC:              { label: 'Static',       detail: 'fichiers statiques',            color: 'text-green-400',  bg: 'bg-green-500/8',  border: 'border-green-500/20' },
-  EXTERNAL_IMAGE:      { label: 'Image externe','detail': 'image Docker pré-construite', color: 'text-orange-400', bg: 'bg-orange-500/8', border: 'border-orange-500/20' },
-};
-
-export function DeployDialog({ projectId, open, onClose, onCreated, services = [], initialServiceId, initialEnvironmentId, defaultBuildSource, buildPort, buildStartCmd }: Props) {
-  const effectiveBuildSource = (defaultBuildSource ?? 'DOCKERFILE_LOCAL') as BuildSource;
-  const isLocalBuild = (LOCAL_BUILD_SOURCES as readonly string[]).includes(effectiveBuildSource);
+export function DeployDialog({ projectId, open, onClose, onCreated, services = [], initialServiceId, initialEnvironmentId, initialBranch }: Props) {
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [branches, setBranches] = useState<GitlabBranch[]>([]);
-  const [hasBuildConfig, setHasBuildConfig] = useState(false);
-  const [hasSource, setHasSource] = useState(false);
   const [envIds, setEnvIds] = useState<string[]>([]);
   const [branch, setBranch] = useState('');
   const [selectedServiceId, setSelectedServiceId] = useState(initialServiceId ?? '');
+
+  const selectedService = services.find((s) => s.id === selectedServiceId);
+  const effectiveBuildSource: BuildSource = resolveBuildSource(selectedService);
 
   const toggleEnvId = (id: string) =>
     setEnvIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -84,62 +73,82 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
   const [validating, setValidating] = useState(false);
   const [validateError, setValidateError] = useState<string | null>(null);
 
-  const [showPrepare, setShowPrepare] = useState(false);
-  const [prepareDone, setPrepareDone] = useState(false);
-  const optionsQuery = useServerPreparationOptions();
-
   const primaryEnvId = envIds[0] ?? '';
   const currentEnv = environments.find((e) => e.id === primaryEnvId);
-  const server = currentEnv?.server;
+
+  // Resolve the ServiceEnvironment to preview: the selected service's link in
+  // the primary environment (or the first link when no specific service chosen).
+  const previewServiceEnvId = useMemo<string | null>(() => {
+    const links = currentEnv?.serviceLinks ?? [];
+    if (links.length === 0) return null;
+    if (selectedServiceId) {
+      return links.find((l) => l.serviceId === selectedServiceId)?.id ?? null;
+    }
+    return links[0]?.id ?? null;
+  }, [currentEnv, selectedServiceId]);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setLoading(true); setError(null); setSuccess(false); setIssues([]);
-    setValidation(null); setValidateError(null); setShowPrepare(false);
+    setValidation(null); setValidateError(null);
     if (initialServiceId) setSelectedServiceId(initialServiceId);
 
-    // Pre-fill branch from service default
-    if (initialServiceId && services.length > 0) {
+    // Pre-fill branch : initialBranch explicite (ex: redeploy) > defaut du service
+    if (initialBranch) {
+      setBranch(initialBranch);
+    } else if (initialServiceId && services.length > 0) {
       const svc = services.find((s) => s.id === initialServiceId);
-      if (svc?.defaultBranch) setBranch(svc.defaultBranch);
+      if (svc?.branch) setBranch(svc.branch);
     }
+
+    // Resolve build readiness from the selected service directly — no longer
+    // gated on a project-level gitlabConfig. A service is "ready" when:
+    //   - GIT: has repoPath (or repoUrl) + buildPack
+    //   - DOCKER_IMAGE / DATABASE: always ready (image is pulled, no build)
+    const checkBuildReady = (svc: Service | undefined): { hasSource: boolean; hasBuildConfig: boolean } => {
+      if (!svc) return { hasSource: false, hasBuildConfig: false };
+      if (svc.type === 'DATABASE' || svc.sourceType === 'DOCKER_IMAGE') {
+        return { hasSource: true, hasBuildConfig: true };
+      }
+      const src = !!(svc.repoPath || svc.repoUrl);
+      const build = !!(svc.buildPack);
+      return { hasSource: src, hasBuildConfig: src && build };
+    };
 
     Promise.all([
       environmentsService.getAll(projectId),
       projectsService.getBranches(projectId).catch(() => [] as GitlabBranch[]),
-      projectsService.getGitlabConfig(projectId).catch(() => null),
-      buildService.getBuildStatus(projectId).catch(() => null),
     ])
-      .then(([envs, brs, gitlabConfig, buildStatus]) => {
+      .then(([envs, brs]) => {
         if (cancelled) return;
         setEnvironments(envs);
         setBranches(brs);
-        setHasSource(!!gitlabConfig);
-        const buildConfigReady = isLocalBuild
-          ? !!gitlabConfig
-          : !!(buildStatus?.projectDockerfileReady && buildStatus?.projectCiReady);
-        setHasBuildConfig(buildConfigReady);
 
-        // Pre-select: use initialEnvironmentId if provided, else first env
+        const svc = services.find((s) => s.id === initialServiceId) ?? services[0];
+        const { hasSource: src, hasBuildConfig: buildReady } = checkBuildReady(svc);
+
         if (initialEnvironmentId && envs.some((e) => e.id === initialEnvironmentId)) {
           setEnvIds([initialEnvironmentId]);
         } else {
           setEnvIds(envs.length > 0 ? [envs[0].id] : []);
         }
         const def = brs.find((b) => b.default);
-        setBranch(def?.name ?? brs[0]?.name ?? 'main');
+        setBranch(initialBranch ?? def?.name ?? brs[0]?.name ?? 'main');
 
+        // Le source ET le build pack se configurent dans la page du service
+        // (onglet General → ServiceConfigForm), PAS dans la liste des services.
+        const svcConfigHref = svc ? `/projects/${projectId}/services/${svc.id}` : `/projects/${projectId}`;
         const detected: ValidationIssue[] = [];
-        if (!gitlabConfig) detected.push({ type: 'no-source', message: 'Git source not connected.', redirectTab: 'configuration' });
-        if (!buildConfigReady) detected.push({ type: 'no-build-config', message: 'Build configuration not complete.', redirectTab: 'configuration' });
-        if (envs.length === 0) detected.push({ type: 'no-environment', message: 'No environment configured.', redirectTab: 'environments' });
+        if (services.length > 0 && !src) detected.push({ type: 'no-source', message: `${svc?.name ?? 'Service'} : aucune source Git configurée.`, href: svcConfigHref });
+        if (services.length > 0 && !buildReady) detected.push({ type: 'no-build-config', message: `${svc?.name ?? 'Service'} : build pack non configuré.`, href: svcConfigHref });
+        if (envs.length === 0) detected.push({ type: 'no-environment', message: 'Aucun environnement configuré.', href: `/projects/${projectId}?tab=environments` });
         setIssues(detected);
       })
       .catch((err) => setError(getApiErrorMessage(err)))
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [open, projectId]);
+  }, [open, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!open || loading || issues.some((i) => i.type === 'no-environment') || !primaryEnvId) {
@@ -157,26 +166,34 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
       .finally(() => { if (!cancelled) setValidating(false); });
 
     return () => { cancelled = true; };
-  }, [open, loading, primaryEnvId, projectId]);
+  }, [open, loading, primaryEnvId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async () => {
     if (envIds.length === 0) { setError('Select at least one environment.'); return; }
     setSubmitting(true); setError(null);
     try {
+      const targets: { serviceEnvId: string; branch: string }[] = [];
+      for (const eid of envIds) {
+        const env = environments.find((e) => e.id === eid);
+        if (!env) continue;
+        const links = env.serviceLinks ?? [];
+        if (selectedServiceId) {
+          const link = links.find((l) => l.serviceId === selectedServiceId);
+          if (link) targets.push({ serviceEnvId: link.id, branch: branch || link.service.branch || 'main' });
+        } else {
+          for (const link of links) {
+            targets.push({ serviceEnvId: link.id, branch: branch || link.service.branch || 'main' });
+          }
+        }
+      }
+      if (targets.length === 0) { setError('No deployable services found for selected environments.'); return; }
       const results = await Promise.allSettled(
-        envIds.map((eid) =>
-          deploymentsService.create({
-            projectId,
-            environmentId: eid,
-            branch: branch || undefined,
-            serviceId: selectedServiceId || undefined,
-          })
-        )
+        targets.map((t) => deploymentsService.create({ serviceEnvId: t.serviceEnvId, branch: t.branch }))
       );
       const failed = results.filter((r) => r.status === 'rejected');
       if (failed.length > 0) {
         const reasons = failed.map((r) => getApiErrorMessage((r as PromiseRejectedResult).reason)).join('; ');
-        setError(failed.length === envIds.length ? reasons : `Some deployments failed: ${reasons}`);
+        setError(failed.length === targets.length ? reasons : `Some deployments failed: ${reasons}`);
       } else {
         setSuccess(true);
         setTimeout(() => { onClose(); onCreated(); }, 800);
@@ -187,10 +204,6 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
       setSubmitting(false);
     }
   };
-
-  const profiles = optionsQuery.data?.profiles ?? [];
-  const allOptions = optionsQuery.data?.options ?? [];
-  const profileDefaults = optionsQuery.data?.profileDefaults ?? {};
 
   if (!open) return null;
 
@@ -205,14 +218,8 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-              {showPrepare ? 'Prepare Server' : 'Deploy'}
-            </h2>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-              {showPrepare
-                ? `Install missing tools on ${server?.host ?? '...'}`
-                : 'Launch a new deployment'}
-            </p>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Deploy</h2>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">Launch a new deployment</p>
           </div>
           <button type="button" onClick={onClose}
             className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]">
@@ -233,36 +240,8 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>
           )}
 
-          {showPrepare ? (
-            /* ════════ PREPARE SUB-VIEW — delegated to ServerPreparationPanel ════════ */
-            server ? (
-              <ServerPreparationPanel
-                serverId={server.id}
-                serverLabel={server.host ?? server.name ?? ''}
-                missing={missing.map((m) => ({ binary: m.binary ?? '', label: m.label ?? '', role: m.role ?? '', found: false }))}
-                allOptions={allOptions}
-                profiles={profiles}
-                profileDefaults={profileDefaults as Record<string, Partial<Record<string, boolean>>>}
-                onBack={() => setShowPrepare(false)}
-                onDone={() => {
-                  setShowPrepare(false);
-                  setPrepareDone(true);
-                  // Re-validate after successful prep
-                  if (primaryEnvId) {
-                    setValidating(true);
-                    deploymentsService.validate(projectId, primaryEnvId, effectiveBuildSource)
-                      .then(setValidation)
-                      .catch(() => {})
-                      .finally(() => setValidating(false));
-                  }
-                }}
-              />
-            ) : (
-              <p className="text-sm text-[var(--text-muted)]">No server available.</p>
-            )
-          ) : (
-            /* ════════ DEPLOY FORM ════════ */
-            <>
+          {/* ════════ DEPLOY FORM ════════ */}
+          <>
               {/* Validation issues (source, build config, env) */}
               {issues.length > 0 && !loading && (
                 <div className="space-y-2">
@@ -273,7 +252,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
                         <span className="text-xs text-amber-300">{issue.message}</span>
                       </div>
                       <Link
-                        href={`/projects/${projectId}?tab=${issue.redirectTab}`}
+                        href={issue.href}
                         onClick={onClose}
                         className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/20 px-2.5 py-1 text-[10px] font-semibold text-amber-300 hover:bg-amber-500/30"
                       >
@@ -319,13 +298,6 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
                           );
                         })}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowPrepare(true)}
-                        className="mt-3 flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/20 px-3 py-1.5 text-[11px] font-semibold text-amber-300 hover:bg-amber-500/30"
-                      >
-                        <Wrench size={12} /> Prepare server
-                      </button>
                     </div>
                   )}
                   {validation && !validating && missing.length === 0 && (
@@ -337,58 +309,10 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
                 </div>
               )}
 
-              {!loading && defaultBuildSource && (
-                /* ── Build configuration summary ── */
-                (() => {
-                  const meta = BUILD_SOURCE_META[effectiveBuildSource] ?? BUILD_SOURCE_META['DOCKERFILE_LOCAL'];
-                  const selectedEnvs = environments.filter((e) => envIds.includes(e.id));
-                  return (
-                    <div className={`rounded-xl border ${meta.border} ${meta.bg} px-4 py-3 space-y-2`}>
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                        Configuration qui sera utilisée
-                      </p>
-                      <div className="flex flex-wrap gap-3">
-                        {/* Build source */}
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-bold uppercase ${meta.color}`}>Build</span>
-                          <span className={`rounded border ${meta.border} px-2 py-0.5 text-[10px] font-semibold ${meta.color}`}>
-                            {meta.label}
-                          </span>
-                          <span className="text-[10px] text-[var(--text-muted)]">— {meta.detail}</span>
-                        </div>
-                        {/* Port */}
-                        {(buildPort ?? null) !== null && (
-                          <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
-                            <span className="font-semibold text-[var(--text-secondary)]">Port</span>
-                            <span className="font-mono">{buildPort}</span>
-                          </div>
-                        )}
-                        {/* Start command */}
-                        {buildStartCmd && (
-                          <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
-                            <span className="font-semibold text-[var(--text-secondary)]">Cmd</span>
-                            <code className="font-mono">{buildStartCmd}</code>
-                          </div>
-                        )}
-                      </div>
-                      {/* Per-env server display */}
-                      {selectedEnvs.length > 0 && (
-                        <div className="flex flex-wrap gap-2 border-t border-[var(--border)] pt-2">
-                          {selectedEnvs.map((env) => (
-                            <div key={env.id} className="flex items-center gap-1.5 text-[10px]">
-                              <span className="rounded-full border border-[var(--border)] px-1.5 py-0.5 font-bold uppercase text-[var(--text-muted)]">{env.name}</span>
-                              <span className="font-mono text-[var(--text-secondary)]">{env.server?.host ?? env.serverId ?? '—'}</span>
-                              {env.server?.port && <span className="text-[var(--text-muted)]">:{env.server.port}</span>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <p className="text-[10px] text-[var(--text-muted)]">
-                        ← Modifiable dans <strong>Configuration → Build / Environments</strong>
-                      </p>
-                    </div>
-                  );
-                })()
+              {!loading && (
+                <p className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-2.5 text-[11px] text-[var(--text-muted)]">
+                  Chaque service se construit avec son propre build — modifiez-le dans l&apos;onglet <strong>General</strong> du service.
+                </p>
               )}
 
               {loading ? (
@@ -455,7 +379,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
                           <button key={svc.id} type="button"
                             onClick={() => {
                               setSelectedServiceId(svc.id);
-                              if (svc.defaultBranch) setBranch(svc.defaultBranch);
+                              setBranch(svc.branch ?? 'main');
                             }}
                             className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
                               selectedServiceId === svc.id
@@ -495,19 +419,16 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
                   </div>
                 </>
               )}
-            </>
-          )}
+          </>
+
+          {previewServiceEnvId ? (
+            <EnvVariablesPreview serviceEnvId={previewServiceEnvId} />
+          ) : null}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] px-5 py-4">
-          {showPrepare ? (
-            <button type="button" onClick={() => setShowPrepare(false)}
-              className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)]">
-              Close
-            </button>
-          ) : (
-            <>
+          <>
               <button type="button" onClick={onClose}
                 className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)]">
                 Cancel
@@ -516,7 +437,7 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
                 <button
                   type="button"
                   onClick={() => void handleSubmit()}
-                  disabled={submitting || loading || envIds.length === 0 || issues.length > 0}
+                  disabled={!canDeploy}
                   className="flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-40"
                 >
                   Deploy anyway
@@ -525,14 +446,13 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
               <button
                 type="button"
                 onClick={() => void handleSubmit()}
-                disabled={submitting || loading || envIds.length === 0 || issues.length > 0}
+                disabled={!canDeploy}
                 className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-40"
               >
                 {submitting ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
                 {submitting ? 'Deploying…' : envIds.length > 1 ? `Deploy to ${envIds.length} envs` : 'Deploy'}
               </button>
-            </>
-          )}
+          </>
         </div>
       </div>
     </div>

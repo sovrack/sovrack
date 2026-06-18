@@ -7,8 +7,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/auth/use-auth';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { LanguageSwitcher } from '@/components/language-switcher';
-import { useI18n } from '@/contexts/i18n-context';
 import { deploymentsService } from '@/services/deployments.service';
 import {
   Bell,
@@ -30,7 +28,7 @@ import type { Deployment } from '@/types/deployment';
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return 'à l\'instant';
+  if (m < 1) return 'just now';
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
@@ -102,13 +100,13 @@ function NotificationBell() {
         <div className="absolute right-0 mt-2 w-80 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl z-50">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-            <span className="text-sm font-semibold text-[var(--text-primary)]">Activité récente</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Recent activity</span>
             <Link
               href="/settings"
               onClick={() => setOpen(false)}
               className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] transition hover:text-[var(--text-secondary)]"
             >
-              <Settings size={10} /> Configurer
+              <Settings size={10} /> Configure
             </Link>
           </div>
 
@@ -117,7 +115,7 @@ function NotificationBell() {
             {deployments.length === 0 ? (
               <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
                 <Rocket size={20} className="mb-2 text-[var(--text-muted)]" />
-                <p className="text-xs text-[var(--text-secondary)]">Aucune activité récente</p>
+                <p className="text-xs text-[var(--text-secondary)]">No recent activity</p>
               </div>
             ) : (
               deployments.map((dep) => {
@@ -125,7 +123,7 @@ function NotificationBell() {
                 return (
                   <Link
                     key={dep.id}
-                    href={`/deployments/${dep.id}`}
+                    href={`/deployments?logs=${dep.id}`}
                     onClick={() => setOpen(false)}
                     className={clsx(
                       'flex items-start gap-3 px-4 py-3 text-left transition hover:bg-[var(--hover)]',
@@ -137,7 +135,7 @@ function NotificationBell() {
                       <p className="truncate text-xs font-semibold text-[var(--text-primary)]">
                         {dep.project.name}
                         {isNew && (
-                          <span className="ml-2 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-400">Nouveau</span>
+                          <span className="ml-2 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-400">New</span>
                         )}
                       </p>
                       <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
@@ -158,7 +156,7 @@ function NotificationBell() {
               onClick={() => setOpen(false)}
               className="text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
             >
-              Voir tous les déploiements →
+              View all deployments →
             </Link>
           </div>
         </div>
@@ -173,7 +171,6 @@ export function TopNav() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { toggleSidebar } = useSidebar();
-  const { t } = useI18n();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -210,7 +207,6 @@ export function TopNav() {
         </button>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <LanguageSwitcher />
           <ThemeToggle />
           <NotificationBell />
 
@@ -250,14 +246,14 @@ export function TopNav() {
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                   >
                     <User size={14} className="text-[var(--text-muted)]" />
-                    {t.userMenu.settings}
+                    Settings
                   </button>
                   <button
                     onClick={handleLogout}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-400"
                   >
                     <LogOut size={14} className="text-red-400" />
-                    {t.userMenu.logout}
+                    Log out
                   </button>
                 </div>
               </div>

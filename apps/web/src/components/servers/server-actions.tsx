@@ -1,4 +1,4 @@
-import { Eye, KeyRound, Loader2, Pencil, Radar, Trash2, Wrench, Zap } from 'lucide-react';
+import { Eye, KeyRound, Loader2, Pencil, Radar, ScrollText, Trash2, Wrench, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Server } from '@/types/server';
 
@@ -16,6 +16,7 @@ type ServerActionsProps = {
   onInstallKey: (server: Server) => void;
   onOpenPrepare: (server: Server) => void;
   onOpenDetails: (server: Server) => void;
+  onOpenLogs: (server: Server) => void;
   onEdit: (server: Server) => void;
   onDelete: (server: Server) => void;
 };
@@ -52,6 +53,7 @@ export function ServerActions({
   onInstallKey,
   onOpenPrepare,
   onOpenDetails,
+  onOpenLogs,
   onEdit,
   onDelete,
 }: ServerActionsProps) {
@@ -124,6 +126,16 @@ export function ServerActions({
         icon={<Eye size={13} />}
       >
         Details
+      </Button>
+
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => onOpenLogs(server)}
+        disabled={isBusy}
+        icon={<ScrollText size={13} />}
+      >
+        Logs
       </Button>
 
       <Button

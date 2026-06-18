@@ -9,7 +9,6 @@ import {
   GitBranch,
   Loader2,
   Play,
-  RefreshCw,
   XCircle,
   Clock,
 } from 'lucide-react';
@@ -68,7 +67,7 @@ export default function PipelinesPage() {
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [commitFilter, setCommitFilter] = useState('');
 
-  const { data, isLoading, isFetching, error, refetch } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['pipelines-all'],
     queryFn: async () => {
       const allProjects = await projectsService.getAll();
@@ -86,6 +85,7 @@ export default function PipelinesPage() {
       return { projects: allProjects, pipelines: merged };
     },
     staleTime: 30_000,
+    refetchInterval: 15_000,
     refetchOnWindowFocus: false,
   });
 
@@ -140,16 +140,6 @@ export default function PipelinesPage() {
         eyebrow="CI/CD"
         title="Pipelines"
         description="Monitor GitLab CI pipelines across all your projects."
-        actions={
-          <Button
-            variant="secondary"
-            icon={<RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />}
-            onClick={() => void refetch()}
-            disabled={isFetching}
-          >
-            Refresh
-          </Button>
-        }
       />
 
       {/* Stats */}

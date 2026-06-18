@@ -160,16 +160,16 @@ export function formatPreparationBlockingReason(reason: string): string {
   if (normalized.includes('validation ssh')) {
     return 'SSH validation required';
   }
-  if (normalized.includes('absente ou échouée') || normalized.includes('absente ou echouee')) {
+  if (normalized.includes('missing or failed') || normalized.includes('absente ou echouee')) {
     return 'Server unreachable';
   }
   if (normalized.includes('sudo')) {
     return 'Sudo access required';
   }
-  if (normalized.includes('désactivé') || normalized.includes('desactive')) {
+  if (normalized.includes('disabled') || normalized.includes('desactive')) {
     return 'Server disabled';
   }
-  if (normalized.includes('déjà en cours') || normalized.includes('deja en cours')) {
+  if (normalized.includes('already running') || normalized.includes('deja en cours')) {
     return 'Preparation already running';
   }
   return reason;

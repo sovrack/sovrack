@@ -31,7 +31,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Scroll automatique vers le bas à chaque nouvelle ligne.
+  // Auto-scroll to the bottom on each new line.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
@@ -116,7 +116,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border)] hover:bg-[var(--bg-card)]"
           >
             {copied ? <Check size={12} /> : <Copy size={12} />}
-            {copied ? 'Copié' : 'Copier'}
+            {copied ? 'Copied' : 'Copy'}
           </button>
           <button
             type="button"
@@ -124,7 +124,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border)] hover:bg-[var(--bg-card)]"
           >
             {isFullscreen ? <Minimize2 size={12} /> : <Expand size={12} />}
-            {isFullscreen ? 'Réduire' : 'Plein écran'}
+            {isFullscreen ? 'Collapse' : 'Fullscreen'}
           </button>
         </div>
       </div>
@@ -137,7 +137,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
         )}
       >
         {logs.length === 0 ? (
-          <p className="text-[var(--text-secondary)]">Aucun log disponible pour le moment.</p>
+          <p className="text-[var(--text-secondary)]">No logs available yet.</p>
         ) : (
           logs.map((line, index) => (
             <p

@@ -7,32 +7,27 @@ import type {
   AddMemberPayload,
   ConnectGitlabPayload,
   ConnectSourcePayload,
-  GitlabBranch,
   GitlabConfig,
+  GitlabBranch,
   GitlabPipeline,
   GitlabRepo,
   GitlabProviderOption,
   SourceProviderOption,
   GitlabGroupRepositoriesResponse,
   ImportGitlabGroupPayload,
-  CreateProjectServicePayload,
-  ProjectService,
 } from '@/types/project';
 
 export const projectsService = {
-  /** List all accessible projects */
   async getAll(): Promise<ProjectListItem[]> {
     const res = await api.get<ProjectListItem[]>('/projects');
     return res.data;
   },
 
-  /** Get a single project by ID */
   async getById(id: string): Promise<ProjectDetail> {
     const res = await api.get<ProjectDetail>(`/projects/${id}`);
     return res.data;
   },
 
-  /** Create a new project */
   async create(payload: CreateProjectPayload): Promise<ProjectDetail> {
     const res = await api.post<ProjectDetail>('/projects', payload);
     return res.data;
@@ -49,18 +44,15 @@ export const projectsService = {
     return res.data;
   },
 
-  /** Update an existing project */
   async update(id: string, payload: UpdateProjectPayload): Promise<ProjectDetail> {
     const res = await api.put<ProjectDetail>(`/projects/${id}`, payload);
     return res.data;
   },
 
-  /** Delete a project */
   async remove(id: string): Promise<void> {
     await api.delete(`/projects/${id}`);
   },
 
-  /** Add a member to a project */
   async addMember(projectId: string, payload: AddMemberPayload): Promise<ProjectDetail> {
     const res = await api.post<ProjectDetail>(
       `/projects/${projectId}/members`,
@@ -69,16 +61,12 @@ export const projectsService = {
     return res.data;
   },
 
-  /** Remove a member from a project */
   async removeMember(projectId: string, memberId: string): Promise<void> {
     await api.delete(`/projects/${projectId}/members/${memberId}`);
   },
 
-  /** Connect a GitLab repository to the project */
-  async connectGitlab(
-    projectId: string,
-    payload: ConnectGitlabPayload,
-  ): Promise<GitlabConfig> {
+  /** API path still uses /gitlab/connect – will be updated when backend routes are generic */
+  async connectSourceConfig(projectId: string, payload: ConnectGitlabPayload): Promise<GitlabConfig> {
     const res = await api.post<GitlabConfig>(
       `/projects/${projectId}/gitlab/connect`,
       payload,
@@ -86,25 +74,43 @@ export const projectsService = {
     return res.data;
   },
 
-  /** Connect any Git source (GitLab or GitHub) to the project — unified endpoint */
   async connectSource(
     projectId: string,
     payload: ConnectSourcePayload,
   ): Promise<unknown> {
-    const res = await api.post(
-      `/projects/${projectId}/source/connect`,
-      payload,
-    );
+    // The backend ConnectSourceDto whitelists exactly these fields and rejects
+    // any other (provider/repoPath/groupPath/defaultBranch/providerId/token).
+    // Map the UI payload (which still carries legacy gitlab* fields) onto it.
+    const repoPath =
+      payload.repoPath ??
+      (payload.sourceType !== 'GROUP' && payload.gitlabId != null
+        ? String(payload.gitlabId)
+        : undefined);
+    const groupPath =
+      payload.gitlabGroupId != null
+        ? String(payload.gitlabGroupId)
+        : payload.sourceType === 'GROUP' && payload.gitlabId != null
+          ? String(payload.gitlabId)
+          : undefined;
+    const token = payload.token ?? payload.gitlabToken ?? payload.githubToken;
+    const body = {
+      provider: payload.provider,
+      ...(payload.providerId ? { providerId: payload.providerId } : {}),
+      ...(repoPath ? { repoPath } : {}),
+      ...(groupPath ? { groupPath } : {}),
+      ...(payload.defaultBranch ? { defaultBranch: payload.defaultBranch } : {}),
+      ...(token ? { token } : {}),
+    };
+    const res = await api.post(`/projects/${projectId}/source/connect`, body);
     return res.data;
   },
 
-  /** Get masked GitLab configuration for a project */
-  async getGitlabConfig(projectId: string): Promise<GitlabConfig> {
+  /** API path still uses /gitlab/config – will be updated when backend routes are generic */
+  async getSourceConfig(projectId: string): Promise<GitlabConfig> {
     const res = await api.get<GitlabConfig>(`/projects/${projectId}/gitlab/config`);
     return res.data;
   },
 
-  /** Get GitLab branches for a project */
   async getBranches(projectId: string, repoId?: number): Promise<GitlabBranch[]> {
     const res = await api.get<GitlabBranch[]>(
       `/projects/${projectId}/gitlab/branches`,
@@ -115,7 +121,6 @@ export const projectsService = {
     return res.data;
   },
 
-  /** Get GitLab pipelines for a project */
   async getPipelines(projectId: string): Promise<GitlabPipeline[]> {
     const res = await api.get<GitlabPipeline[]>(
       `/projects/${projectId}/gitlab/pipelines`,
@@ -123,7 +128,15 @@ export const projectsService = {
     return res.data;
   },
 
-  /** Trigger a GitLab pipeline on a specific branch */
+  // Pipelines du dépôt PROPRE au service (1 service = 1 repo) — évite de viser
+  // un autre dépôt du projet.
+  async getServicePipelines(projectId: string, serviceId: string): Promise<GitlabPipeline[]> {
+    const res = await api.get<GitlabPipeline[]>(
+      `/projects/${projectId}/services/${serviceId}/gitlab/pipelines`,
+    );
+    return res.data;
+  },
+
   async triggerPipeline(projectId: string, branch: string): Promise<GitlabPipeline> {
     const res = await api.post<GitlabPipeline>(
       `/projects/${projectId}/gitlab/pipelines/trigger`,
@@ -132,7 +145,6 @@ export const projectsService = {
     return res.data;
   },
 
-  /** Get repositories from REPO/GROUP source */
   async getRepos(projectId: string): Promise<GitlabRepo[]> {
     const res = await api.get<GitlabRepo[]>(`/projects/${projectId}/gitlab/repos`);
     return res.data;
@@ -189,50 +201,11 @@ export const projectsService = {
     return res.data;
   },
 
-  async getServices(projectId: string): Promise<ProjectService[]> {
-    const res = await api.get<ProjectService[]>(`/projects/${projectId}/services`);
-    return res.data;
-  },
-
-  async createService(
-    projectId: string,
-    payload: CreateProjectServicePayload,
-  ): Promise<ProjectService> {
-    const res = await api.post<ProjectService>(
-      `/projects/${projectId}/services`,
-      payload,
-    );
-    return res.data;
-  },
-
-  async updateService(
-    projectId: string,
-    serviceId: string,
-    payload: Partial<CreateProjectServicePayload>,
-  ): Promise<ProjectService> {
-    const res = await api.put<ProjectService>(
-      `/projects/${projectId}/services/${serviceId}`,
-      payload,
-    );
-    return res.data;
-  },
-
-  async deleteService(projectId: string, serviceId: string): Promise<void> {
-    await api.delete(`/projects/${projectId}/services/${serviceId}`);
-  },
-
-  async getServicePipelines(projectId: string, serviceId: string): Promise<GitlabPipeline[]> {
-    const res = await api.get<GitlabPipeline[]>(`/projects/${projectId}/services/${serviceId}/pipelines`);
-    return res.data;
-  },
-
-  /** List global GitLab providers available for project-level connection */
   async getGitlabProviders(): Promise<GitlabProviderOption[]> {
     const res = await api.get<GitlabProviderOption[]>('/gitlab/providers');
     return res.data;
   },
 
-  // Unified, provider-agnostic provider list (GitHub + GitLab) for the source picker.
   async getSourceProviders(): Promise<SourceProviderOption[]> {
     const res = await api.get<SourceProviderOption[]>('/source/providers');
     return res.data;

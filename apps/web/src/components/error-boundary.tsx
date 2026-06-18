@@ -32,8 +32,8 @@ export class ErrorBoundary extends React.Component<
   }
 
   public componentDidCatch(error: Error): void {
-    // Log minimal côté client pour faciliter le diagnostic.
-    // Le backend garde la source de vérité des erreurs API.
+    // Minimal client-side log to ease diagnostics.
+    // The backend keeps the source of truth for API errors.
     console.error('ErrorBoundary:', error);
   }
 
@@ -73,7 +73,7 @@ export class ErrorBoundary extends React.Component<
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)]"
             >
               <RotateCcw size={14} />
-              Réessayer
+              Retry
             </button>
             <button
               type="button"
