@@ -164,7 +164,13 @@ export class DockerDeployExecutorService {
       serverId?: string;
     } | null;
     const serverId = servers[0]?.id ?? resolvedRefs?.serverId;
-    if (!serverId) throw new BadRequestException('Aucun serveur cible trouvé');
+    if (!serverId) {
+      const envName = deployment.serviceEnv?.environment?.name ?? 'cet environnement';
+      throw new BadRequestException(
+        `Aucun serveur actif et vérifié n'est rattaché à l'environnement « ${envName} ». ` +
+          `Allez dans Projet → Environments et liez un serveur (le serveur doit être actif et vérifié).`,
+      );
+    }
 
     const server = await this.prisma.server.findUnique({
       where: { id: serverId },
