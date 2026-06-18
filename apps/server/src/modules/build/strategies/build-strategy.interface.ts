@@ -35,8 +35,6 @@ export type BuildSource =
  * / `docker compose up` on the target VPS — a strategy only decides the route.
  */
 export type DeployRoute = {
-  /** Playbook filename, relative to ANSIBLE_PLAYBOOKS_PATH. */
-  playbook: string;
   /**
    * If true the backend must trigger the playbook directly (no external CI
    * pipeline will fire to call back). Single source of truth for the

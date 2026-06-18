@@ -24,7 +24,9 @@ export class PlatformService {
   ) {}
 
   async get(key: string): Promise<string | null> {
-    const config = await this.prisma.platformConfig.findUnique({ where: { key } });
+    const config = await this.prisma.platformConfig.findUnique({
+      where: { key },
+    });
     if (!config) return null;
     return config.isSecret ? this.crypto.decrypt(config.value) : config.value;
   }
@@ -82,13 +84,17 @@ export class PlatformService {
     value: string,
     isSecret?: boolean,
   ): Promise<PlatformConfigPublic> {
-    const existing = await this.prisma.platformConfig.findUnique({ where: { key } });
+    const existing = await this.prisma.platformConfig.findUnique({
+      where: { key },
+    });
     const nextIsSecret = isSecret ?? existing?.isSecret ?? false;
     const isMaskedValue = value === '***';
 
     let valueToPersist = value;
     if (existing?.isSecret && isMaskedValue) {
-      valueToPersist = nextIsSecret ? existing.value : this.crypto.decrypt(existing.value);
+      valueToPersist = nextIsSecret
+        ? existing.value
+        : this.crypto.decrypt(existing.value);
     } else if (nextIsSecret) {
       valueToPersist = this.crypto.encrypt(value);
     }

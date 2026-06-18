@@ -31,6 +31,6 @@ export class JwtService {
    * Decode without verification (for debugging).
    */
   decodeToken(token: string): JwtPayloadDto {
-    return this.jwtService.decode(token) as JwtPayloadDto;
+    return this.jwtService.decode(token);
   }
 }

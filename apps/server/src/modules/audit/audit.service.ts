@@ -59,8 +59,14 @@ export class AuditService {
     const page = pagination?.page ?? 1;
     const limit = pagination?.limit ?? 20;
 
+    // Only user-attributed events appear in the general audit list. SERVER
+    // events merged from the former ServerAuditEvent may be actorless (null
+    // userId) and are read separately via ServersAuditService.list().
+    const where: Prisma.AuditLogWhereInput = { userId: { not: null } };
+
     const [rows, total] = await Promise.all([
       this.prisma.auditLog.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
         include: {
           user: {
@@ -74,18 +80,25 @@ export class AuditService {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.auditLog.count(),
+      this.prisma.auditLog.count({ where }),
     ]);
 
-    const items: AuditLogListItem[] = rows.map((row) => ({
-      id: row.id,
-      action: row.action,
-      resourceType: row.resourceType,
-      resourceId: row.resourceId,
-      metadata: (row.metadata as Record<string, unknown> | null) ?? null,
-      createdAt: row.createdAt,
-      user: row.user,
-    }));
+    const items: AuditLogListItem[] = rows.flatMap((row) =>
+      row.user
+        ? [
+            {
+              id: row.id,
+              action: row.action,
+              resourceType: row.resourceType,
+              resourceId: row.resourceId,
+              metadata:
+                (row.metadata as Record<string, unknown> | null) ?? null,
+              createdAt: row.createdAt,
+              user: row.user,
+            },
+          ]
+        : [],
+    );
 
     return paginate(items, total, page, limit);
   }

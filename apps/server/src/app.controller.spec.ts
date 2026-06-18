@@ -9,7 +9,7 @@ describe('AppController', () => {
     resolveWebhookBaseUrl: jest.fn().mockResolvedValue('https://example.com'),
     buildWebhookUrl: jest
       .fn()
-      .mockResolvedValue('https://example.com/gitlab/webhook'),
+      .mockResolvedValue('https://example.com/webhooks/incoming'),
   };
 
   const mockConfigService = {
@@ -66,7 +66,7 @@ describe('AppController', () => {
       expect(result.webhook.configured).toBe(true);
       expect(result.webhook.valid).toBe(true);
       expect(result.webhook.callbackUrl).toBe(
-        'https://example.com/gitlab/webhook',
+        'https://example.com/webhooks/incoming',
       );
     });
 

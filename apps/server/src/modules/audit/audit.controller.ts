@@ -21,10 +21,10 @@ export class AuditController {
   constructor(private readonly auditLogsService: AuditService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister les logs d’audit (admin)' })
-  @ApiResponse({ status: 200, description: 'Logs d’audit paginés' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès réservé aux admins' })
+  @ApiOperation({ summary: 'List audit logs (admin)' })
+  @ApiResponse({ status: 200, description: 'Paginated audit logs' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Admins only' })
   async findAll(@Query() pagination: PaginationDto) {
     return await this.auditLogsService.findAll(pagination);
   }

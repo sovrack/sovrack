@@ -16,8 +16,8 @@ import { RolesGuard } from '../../core/guards/roles.guard';
 import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
 import { BuildDetectorService } from './detection/build-detector.service';
 import { BuildOrchestratorService } from './build-orchestrator.service';
-import { BuildSetupService } from './services/build-setup.service';
-import { BuildLifecycleService } from './services/build-lifecycle.service';
+import { BuildSetupService } from './lifecycle/build-setup.service';
+import { BuildLifecycleService } from './lifecycle/build-lifecycle.service';
 import { CreateBuildConfigDto } from './dto/create-build-config.dto';
 import { BuildStatus } from '@prisma/client';
 
@@ -31,15 +31,15 @@ export class BuildController {
     private readonly buildsService: BuildLifecycleService,
   ) {}
 
-  @Post('prepare')
+  @Post('generate')
   @Roles(Role.ADMIN, Role.DEVELOPER)
-  async prepare(
+  async generateBuildFiles(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Query('serviceId') serviceId?: string,
     @Body() body?: CreateBuildConfigDto,
   ) {
-    return await this.buildService.prepare(
+    return await this.buildService.generateBuildFiles(
       id,
       user.id,
       user.role,
@@ -66,8 +66,15 @@ export class BuildController {
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Body() dto: CreateBuildConfigDto,
+    @Query('serviceId') serviceId?: string,
   ) {
-    await this.setupService.updateBuildConfig(id, dto, user.id, user.role);
+    await this.setupService.updateBuildConfig(
+      id,
+      dto,
+      user.id,
+      user.role,
+      serviceId,
+    );
     return { message: 'Configuration mise à jour' };
   }
 
@@ -92,10 +99,10 @@ export class BuildController {
    * Prepare all services at once.
    * Returns per-service results so frontend can show progress.
    */
-  @Post('prepare-all')
+  @Post('generate-all')
   @Roles(Role.ADMIN, Role.DEVELOPER)
-  async prepareAll(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.setupService.prepareAll(id, user.id, user.role);
+  async generateAll(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    return await this.setupService.generateAll(id, user.id, user.role);
   }
 
   /**
@@ -162,7 +169,9 @@ export class BuildController {
     @Query('branch') branch?: string,
     @Query('limit') limit?: string,
   ) {
-    const parsedLimit = limit ? Math.min(200, Math.max(1, parseInt(limit, 10) || 50)) : 50;
+    const parsedLimit = limit
+      ? Math.min(200, Math.max(1, parseInt(limit, 10) || 50))
+      : 50;
     return this.buildsService.listForProject(projectId, {
       ...(status ? { status } : {}),
       ...(branch ? { branch } : {}),

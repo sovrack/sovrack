@@ -33,8 +33,16 @@ import {
   DeploymentResponseDto,
   PaginatedDeploymentsResponseDto,
 } from './dto/deployment-response.dto';
-import { DeploymentsService } from './deployments.service';
-import { DeploymentsValidationService } from './services/deployments-validation.service';
+import { DeploymentsValidationService } from './query/deployments-validation.service';
+import { DeploymentsCreateService } from './core/deployments-create.service';
+import { DeploymentsQueryService } from './query/deployments-query.service';
+import { DeploymentsLifecycleService } from './core/deployments-lifecycle.service';
+import { DeploymentsRollbackService } from './core/deployments-rollback.service';
+import { DockerDeployExecutorService } from './core/docker-deploy-executor.service';
+import {
+  DeploymentsLogSearchService,
+  type LogLevelFilter,
+} from './query/deployments-log-search.service';
 
 @ApiTags('Deployments')
 @ApiBearerAuth()
@@ -47,17 +55,22 @@ import { DeploymentsValidationService } from './services/deployments-validation.
 @UseGuards(JwtAuthGuard)
 export class DeploymentsController {
   constructor(
-    private readonly deploymentsService: DeploymentsService,
+    private readonly createService: DeploymentsCreateService,
+    private readonly queryService: DeploymentsQueryService,
+    private readonly lifecycleService: DeploymentsLifecycleService,
+    private readonly rollbackService: DeploymentsRollbackService,
+    private readonly dockerExecutor: DockerDeployExecutorService,
     private readonly validationService: DeploymentsValidationService,
+    private readonly logSearchService: DeploymentsLogSearchService,
   ) {}
 
   @Post('validate')
-  @ApiOperation({ summary: 'Valider les prérequis avant déploiement' })
+  @ApiOperation({ summary: 'Validate the prerequisites before deployment' })
   @ApiCreatedResponse({
-    description: 'Résultat de la validation outillage',
+    description: 'Tooling validation result',
     type: ValidationResultDto,
   })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   async validate(
     @Body() dto: ValidateDeploymentDto,
     @GetUser() user: JwtPayload,
@@ -65,31 +78,35 @@ export class DeploymentsController {
     return await this.validationService.validate(
       dto.projectId,
       dto.environmentId,
-      (dto.buildSource ?? 'DOCKERFILE_LOCAL') as any,
+      dto.buildSource ?? 'DOCKERFILE_LOCAL',
       user.id,
+      dto.serviceEnvId,
     );
   }
 
   @Post()
-  @ApiOperation({ summary: 'Lancer un déploiement' })
+  @ApiOperation({ summary: 'Launch a deployment' })
   @ApiCreatedResponse({
-    description: 'Déploiement créé',
+    description: 'Deployment created',
     type: DeploymentResponseDto,
   })
   @ApiResponse({
     status: 400,
-    description: 'Préconditions de déploiement invalides',
+    description: 'Invalid deployment preconditions',
   })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé au projet' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({
+    status: 403,
+    description: 'Unauthorized access to the project',
+  })
   async create(@Body() dto: CreateDeploymentDto, @GetUser() user: JwtPayload) {
-    return await this.deploymentsService.create(dto, user.id);
+    return await this.createService.create(dto, user.id);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lister les déploiements (filtrés par rôle)' })
+  @ApiOperation({ summary: 'List deployments (filtered by role)' })
   @ApiOkResponse({
-    description: 'Liste des déploiements',
+    description: 'Deployment list',
     schema: {
       oneOf: [
         {
@@ -100,102 +117,134 @@ export class DeploymentsController {
       ],
     },
   })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   async findAll(
     @GetUser() user: JwtPayload,
     @Query() pagination: PaginationDto,
   ) {
-    return await this.deploymentsService.findAll(
-      user.id,
-      user.role,
-      pagination,
-    );
+    return await this.queryService.findAll(user.id, user.role, pagination);
   }
 
   @Get('project/:projectId')
   @ApiOperation({ summary: "Lister l'historique d'un projet" })
   @ApiOkResponse({
-    description: 'Historique des déploiements du projet',
+    description: 'Project deployment history',
     type: DeploymentDetailedResponseDto,
     isArray: true,
   })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé au projet' })
-  @ApiResponse({ status: 404, description: 'Projet non trouvé' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({
+    status: 403,
+    description: 'Unauthorized access to the project',
+  })
+  @ApiResponse({ status: 404, description: 'Project not found' })
   async findByProject(
     @Param('projectId') projectId: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.deploymentsService.findByProject(
-      projectId,
-      user.id,
-      user.role,
-    );
+    return await this.queryService.findByProject(projectId, user.id, user.role);
+  }
+
+  // Declared BEFORE @Get(':id') so the static 'preview-env' segment is not
+  // captured by the :id param route.
+  @Get('preview-env')
+  @ApiOperation({
+    summary: 'Preview the variables that will be injected (secrets masked)',
+  })
+  @ApiOkResponse({
+    description:
+      'Resolved variables (origin + isSecret) and resolution warnings',
+  })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({
+    status: 404,
+    description: 'Service-environment link not found',
+  })
+  async previewEnv(@Query('serviceEnvId') serviceEnvId: string) {
+    return await this.queryService.previewEnv(serviceEnvId);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: "Détail d'un déploiement" })
+  @ApiOperation({ summary: 'Deployment details' })
   @ApiOkResponse({
-    description: 'Détail du déploiement',
+    description: 'Deployment details',
     type: DeploymentDetailedResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
-  @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
+  @ApiResponse({ status: 404, description: 'Deployment not found' })
   async findOne(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.deploymentsService.findOne(id, user.id, user.role);
+    return await this.queryService.findOne(id, user.id, user.role);
   }
 
   @Post(':id/cancel')
-  @ApiOperation({ summary: 'Annuler un déploiement' })
+  @ApiOperation({ summary: 'Cancel a deployment' })
   @ApiCreatedResponse({
-    description: 'Déploiement annulé',
+    description: 'Deployment canceled',
     type: DeploymentResponseDto,
   })
   @ApiResponse({
     status: 400,
-    description: 'État du déploiement non annulable',
+    description: 'Deployment state cannot be canceled',
   })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
-  @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
+  @ApiResponse({ status: 404, description: 'Deployment not found' })
   async cancel(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.deploymentsService.cancel(id, user.id, user.role);
+    return await this.lifecycleService.cancel(id, user.id, user.role);
   }
 
   @Post(':id/rollback')
-  @ApiOperation({ summary: 'Rollback sur la dernière image stable' })
+  @ApiOperation({ summary: 'Roll back to the last stable image' })
   @ApiCreatedResponse({
-    description: 'Rollback lancé',
+    description: 'Rollback launched',
     type: DeploymentResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Rollback impossible' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
-  @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
+  @ApiResponse({ status: 404, description: 'Deployment not found' })
   async rollback(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.deploymentsService.rollback(id, user.id, user.role);
+    return await this.rollbackService.rollback(id, user.id, user.role);
   }
 
   @Delete(':id')
   @HttpCode(204)
-  @ApiOperation({ summary: 'Supprimer un déploiement' })
-  @ApiResponse({ status: 204, description: 'Déploiement supprimé' })
-  @ApiResponse({ status: 401, description: 'Token JWT invalide ou expiré' })
-  @ApiResponse({ status: 403, description: 'Accès non autorisé' })
-  @ApiResponse({ status: 404, description: 'Déploiement non trouvé' })
+  @ApiOperation({ summary: 'Delete a deployment' })
+  @ApiResponse({ status: 204, description: 'Deployment deleted' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access' })
+  @ApiResponse({ status: 404, description: 'Deployment not found' })
   async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    await this.deploymentsService.remove(id, user.id, user.role);
+    await this.lifecycleService.remove(id, user.id, user.role);
   }
 
   @Get(':id/container-logs')
-  @ApiOperation({ summary: 'Récupérer les logs du conteneur Docker du déploiement' })
+  @ApiOperation({ summary: 'Get the Docker container logs of the deployment' })
   async containerLogs(
     @Param('id') id: string,
     @Query('tail') tail: string | undefined,
     @GetUser() user: JwtPayload,
   ) {
     const tailNum = tail ? parseInt(tail, 10) : 300;
-    return await this.deploymentsService.getContainerLogs(id, user.id, user.role, tailNum);
+    return await this.dockerExecutor.getContainerLogs(id, tailNum);
+  }
+
+  @Get(':id/logs/search')
+  @ApiOperation({ summary: 'Search the deployment logs (text + level)' })
+  @ApiOkResponse({ description: 'Lignes correspondantes (max 200) + total' })
+  async searchLogs(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @Query('q') q: string | undefined,
+    @Query('level') level: LogLevelFilter | undefined,
+  ) {
+    return await this.logSearchService.searchLogs(
+      id,
+      user.id,
+      user.role,
+      q ?? '',
+      level ?? 'ALL',
+    );
   }
 }

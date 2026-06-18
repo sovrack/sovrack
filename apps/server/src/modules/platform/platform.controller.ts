@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -40,16 +33,19 @@ export class PlatformController {
   constructor(private readonly platform: PlatformService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister toutes les configurations globales' })
-  @ApiResponse({ status: 200, description: 'Liste retournée (secrets masqués)' })
+  @ApiOperation({ summary: 'List all global configurations' })
+  @ApiResponse({ status: 200, description: 'List returned (secrets masked)' })
   async getAll() {
     return this.platform.getAll();
   }
 
   @Put(':key')
-  @ApiOperation({ summary: 'Mettre à jour une configuration globale' })
-  @ApiResponse({ status: 200, description: 'Configuration mise à jour' })
-  async setConfig(@Param('key') key: string, @Body() dto: UpdatePlatformConfigDto) {
+  @ApiOperation({ summary: 'Update a global configuration' })
+  @ApiResponse({ status: 200, description: 'Configuration updated' })
+  async setConfig(
+    @Param('key') key: string,
+    @Body() dto: UpdatePlatformConfigDto,
+  ) {
     return this.platform.set(key, dto.value, dto.isSecret);
   }
 }

@@ -45,7 +45,10 @@ export class AutomationGateway implements OnGatewayConnection {
 
   handleConnection(client: Socket): void {
     const authData = client.handshake.auth as Record<string, unknown>;
-    const cookieName = this.configService.get<string>('AUTH_COOKIE_NAME', AUTH_COOKIE_NAME_DEFAULT);
+    const cookieName = this.configService.get<string>(
+      'AUTH_COOKIE_NAME',
+      AUTH_COOKIE_NAME_DEFAULT,
+    );
     const cookieToken = extractTokenFromCookieHeader(
       client.handshake.headers.cookie,
       cookieName,
@@ -87,7 +90,7 @@ export class AutomationGateway implements OnGatewayConnection {
       return { ok: false, error: 'runId manquant' };
     }
 
-    const run = await this.prisma.automationRun.findUnique({
+    const run = await this.prisma.serverOperation.findUnique({
       where: { id: runId },
       select: { id: true },
     });

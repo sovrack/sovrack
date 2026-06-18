@@ -28,8 +28,8 @@ export class AppController {
   ) {}
 
   @Get('health')
-  @ApiOperation({ summary: 'Vérification de santé de la plateforme' })
-  @ApiResponse({ status: 200, description: 'Service opérationnel' })
+  @ApiOperation({ summary: 'Platform health check' })
+  @ApiResponse({ status: 200, description: 'Service operational' })
   async getHealth(): Promise<HealthResponse> {
     let databaseStatus = 'disconnected';
     const webhook = await this.resolveWebhookConfigStatus();
@@ -51,7 +51,9 @@ export class AppController {
     };
   }
 
-  private async resolveWebhookConfigStatus(): Promise<HealthResponse['webhook']> {
+  private async resolveWebhookConfigStatus(): Promise<
+    HealthResponse['webhook']
+  > {
     const autoConfigure = !['0', 'false', 'no', 'off'].includes(
       this.configService
         .get<string>('GITLAB_WEBHOOK_AUTO_CONFIGURE', 'true')
@@ -91,7 +93,7 @@ export class AppController {
       }
 
       const callbackUrl = await this.platformService.buildWebhookUrl(
-        'gitlab/webhook',
+        'webhooks/incoming',
         { throwIfMissing: false },
       );
 

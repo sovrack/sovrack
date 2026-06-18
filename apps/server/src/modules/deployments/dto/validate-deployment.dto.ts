@@ -13,6 +13,14 @@ export class ValidateDeploymentDto {
   environmentId!: string;
 
   @ApiPropertyOptional({
+    example: 'service-env-uuid',
+    description: 'Required to validate DATABASE services',
+  })
+  @IsOptional()
+  @IsString()
+  serviceEnvId?: string;
+
+  @ApiPropertyOptional({
     enum: [
       'DOCKERFILE_REGISTRY',
       'DOCKERFILE_LOCAL',

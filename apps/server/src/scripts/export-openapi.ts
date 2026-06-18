@@ -21,11 +21,16 @@ async function exportOpenApi() {
   process.stdout.write(`OpenAPI exported to ${outputPath}\n`);
 }
 
-exportOpenApi().catch((error: unknown) => {
-  process.stderr.write(
-    `Failed to export OpenAPI schema: ${
-      error instanceof Error ? error.message : String(error)
-    }\n`,
-  );
-  process.exit(1);
-});
+exportOpenApi()
+  // Force exit: background workers (BullMQ deploy worker, cron schedulers)
+  // keep the event loop alive even after app.close(), so the script would
+  // otherwise hang instead of returning to the shell / CI.
+  .then(() => process.exit(0))
+  .catch((error: unknown) => {
+    process.stderr.write(
+      `Failed to export OpenAPI schema: ${
+        error instanceof Error ? error.message : String(error)
+      }\n`,
+    );
+    process.exit(1);
+  });

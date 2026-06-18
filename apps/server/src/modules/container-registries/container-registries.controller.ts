@@ -8,11 +8,7 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role, RegistryProviderType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
@@ -54,38 +50,41 @@ export class ContainerRegistriesController {
   constructor(private readonly registries: ContainerRegistriesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister les configurations de registre' })
+  @ApiOperation({ summary: 'List registry configurations' })
   async listContainerRegistries() {
     return this.registries.listRegistryConfigs();
   }
 
   @Post()
-  @ApiOperation({ summary: 'Créer une nouvelle configuration de registre' })
+  @ApiOperation({ summary: 'Create a new registry configuration' })
   async createRegistry(@Body() dto: CreateRegistryConfigDto) {
     return this.registries.createRegistryConfig(dto);
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Mettre à jour une configuration de registre' })
-  async updateRegistry(@Param('id') id: string, @Body() dto: UpdateRegistryConfigDto) {
+  @ApiOperation({ summary: 'Update a registry configuration' })
+  async updateRegistry(
+    @Param('id') id: string,
+    @Body() dto: UpdateRegistryConfigDto,
+  ) {
     return this.registries.updateRegistryConfig(id, dto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Supprimer une configuration de registre' })
+  @ApiOperation({ summary: 'Delete a registry configuration' })
   async deleteRegistry(@Param('id') id: string) {
     await this.registries.deleteRegistryConfig(id);
     return { message: 'Registre supprimé avec succès' };
   }
 
   @Post(':id/test')
-  @ApiOperation({ summary: 'Tester la connexion à un registre' })
+  @ApiOperation({ summary: 'Test the connection to a registry' })
   async testRegistry(@Param('id') id: string) {
     return this.registries.testRegistryConnection(id);
   }
 
   @Post(':id/set-default')
-  @ApiOperation({ summary: 'Définir un registre comme registre par défaut' })
+  @ApiOperation({ summary: 'Set a registry as the default registry' })
   async setDefaultRegistry(@Param('id') id: string) {
     return this.registries.setDefaultRegistryConfig(id);
   }

@@ -2,24 +2,31 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../core/database/prisma.module';
 import { CryptoModule } from '../../core/crypto/crypto.module';
-import { GitProvidersModule } from '../git-providers/git-providers.module';
-import { PlatformModule } from '../platform/platform.module';
+import { SourceProvidersModule } from '../source-providers';
+import { PlatformModule } from '../platform';
 import { BuildController } from './build.controller';
 import { BuildDetectorService } from './detection/build-detector.service';
 import { BuildOrchestratorService } from './build-orchestrator.service';
-import { BuildSetupService } from './services/build-setup.service';
-import { BuildLifecycleService } from './services/build-lifecycle.service';
-import { BuildImageService } from './services/build-image.service';
-import { DockerfileGenerator } from './generators/config-files/dockerfile.generator';
-import { GitlabCiGenerator } from './generators/ci/gitlab-ci.generator';
-import { GithubActionsGenerator } from './generators/ci/github-actions.generator';
-import { CiGeneratorFactory } from './generators/ci/ci-generator.factory';
-import { DockerignoreGenerator } from './generators/config-files/dockerignore.generator';
+import { BuildSetupService } from './lifecycle/build-setup.service';
+import { BuildLifecycleService } from './lifecycle/build-lifecycle.service';
+import { BuildImageService } from './lifecycle/build-image.service';
+import { DockerfileGenerator } from './generation/dockerfiles/dockerfile.generator';
+import { GitlabCiGenerator } from './generation/ci/gitlab-ci.generator';
+import { GithubActionsGenerator } from './generation/ci/github-actions.generator';
+import { CiGeneratorFactory } from './generation/ci/ci-generator.factory';
+import { DockerignoreGenerator } from './generation/dockerfiles/dockerignore.generator';
 import { NixpacksModule } from './engines/nixpacks/nixpacks.module';
 import { BuildStrategyResolver } from './strategies/build-strategy.resolver';
 
 @Module({
-  imports: [PrismaModule, HttpModule, CryptoModule, GitProvidersModule, PlatformModule, NixpacksModule],
+  imports: [
+    PrismaModule,
+    HttpModule,
+    CryptoModule,
+    SourceProvidersModule,
+    PlatformModule,
+    NixpacksModule,
+  ],
   controllers: [BuildController],
   providers: [
     BuildOrchestratorService,

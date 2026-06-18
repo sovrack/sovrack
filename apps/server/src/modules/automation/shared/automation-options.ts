@@ -19,8 +19,8 @@ export type AutomationAction = {
 export const AUTOMATION_ACTIONS: AutomationAction[] = [
   {
     key: 'system_update',
-    label: 'Mise à jour système',
-    description: 'Met à jour tous les packages du système (apt upgrade).',
+    label: 'System update',
+    description: 'Updates all system packages (apt upgrade).',
     playbookPath: 'prepare-server.yml',
     category: 'system',
     roles: ['system_base'],
@@ -50,7 +50,7 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
   {
     key: 'install_postgres',
     label: 'Installer PostgreSQL',
-    description: 'Installe PostgreSQL 16 et configure les accès.',
+    description: 'Installs PostgreSQL 16 and configures access.',
     playbookPath: 'prepare-server.yml',
     category: 'database',
     roles: ['postgres'],
@@ -90,7 +90,7 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
   {
     key: 'install_fail2ban',
     label: 'Installer Fail2ban',
-    description: 'Protège SSH contre les attaques brute-force.',
+    description: 'Protects SSH against brute-force attacks.',
     playbookPath: 'prepare-server.yml',
     category: 'security',
     roles: ['fail2ban'],
@@ -99,8 +99,8 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
   },
   {
     key: 'security_hardening',
-    label: 'Durcissement sécurité',
-    description: 'Applique les bonnes pratiques de sécurité système.',
+    label: 'Security hardening',
+    description: 'Applies system security best practices.',
     playbookPath: 'prepare-server.yml',
     category: 'security',
     roles: ['security_hardening'],
@@ -111,7 +111,7 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
     key: 'install_monitoring',
     label: 'Installer monitoring agent',
     description:
-      'Installe l’agent léger de monitoring sur chaque VPS cible (node_exporter/sysstat).',
+      'Installs the lightweight monitoring agent on each target VPS (node_exporter/sysstat).',
     playbookPath: 'prepare-server.yml',
     category: 'monitoring',
     roles: ['monitoring'],
@@ -140,7 +140,7 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
     key: 'install_prometheus_grafana',
     label: 'Installer Prometheus + Grafana',
     description:
-      'Installe Prometheus, Grafana et Node Exporter pour une observabilité de base.',
+      'Installs Prometheus, Grafana and Node Exporter for basic observability.',
     playbookPath: 'prepare-server.yml',
     category: 'monitoring',
     roles: ['docker', 'node_exporter', 'prometheus', 'grafana'],
@@ -150,7 +150,7 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
   {
     key: 'configure_swap',
     label: 'Configurer le swap',
-    description: 'Crée et active un fichier swap de 2 Go.',
+    description: 'Creates and enables a 2 GB swap file.',
     playbookPath: 'prepare-server.yml',
     category: 'system',
     roles: ['swap'],
@@ -159,8 +159,9 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
   },
   {
     key: 'enable_ssl',
-    label: 'Activer SSL / HTTPS (Let\'s Encrypt)',
-    description: 'Installe Certbot et obtient un certificat Let\'s Encrypt pour les domaines configurés. Renouvellement automatique activé.',
+    label: "Activer SSL / HTTPS (Let's Encrypt)",
+    description:
+      "Installs Certbot and obtains a Let's Encrypt certificate for the configured domains. Automatic renewal enabled.",
     playbookPath: 'prepare-server.yml',
     category: 'web',
     roles: ['ssl'],

@@ -55,7 +55,9 @@ export class ContainerRegistriesService {
     return registries.map((r) => this.toPublic(r));
   }
 
-  async createRegistryConfig(input: UpsertRegistryConfigInput): Promise<RegistryConfigPublic> {
+  async createRegistryConfig(
+    input: UpsertRegistryConfigInput,
+  ): Promise<RegistryConfigPublic> {
     const name = this.requireNonEmpty(input.name, 'Name est requis');
     const type = input.type;
 
@@ -84,15 +86,22 @@ export class ContainerRegistriesService {
     return this.toPublic(registry);
   }
 
-  async updateRegistryConfig(id: string, input: PatchRegistryConfigInput): Promise<RegistryConfigPublic> {
+  async updateRegistryConfig(
+    id: string,
+    input: PatchRegistryConfigInput,
+  ): Promise<RegistryConfigPublic> {
     const current = await this.getOrFail(id);
     const data: Partial<RegistryConfig> = {};
 
-    if (typeof input.name === 'string') data.name = this.requireNonEmpty(input.name, 'Name est requis');
+    if (typeof input.name === 'string')
+      data.name = this.requireNonEmpty(input.name, 'Name est requis');
     if (typeof input.type !== 'undefined') data.type = input.type;
-    if (typeof input.username === 'string') data.username = this.normalizeOptional(input.username);
-    if (typeof input.password === 'string') data.password = this.crypto.encryptOptional(input.password);
-    if (typeof input.registryUrl === 'string') data.registryUrl = this.normalizeOptional(input.registryUrl);
+    if (typeof input.username === 'string')
+      data.username = this.normalizeOptional(input.username);
+    if (typeof input.password === 'string')
+      data.password = this.crypto.encryptOptional(input.password);
+    if (typeof input.registryUrl === 'string')
+      data.registryUrl = this.normalizeOptional(input.registryUrl);
 
     if (input.isDefault === true && !current.isDefault) {
       await this.prisma.registryConfig.updateMany({
@@ -102,7 +111,10 @@ export class ContainerRegistriesService {
       data.isDefault = true;
     }
 
-    const updated = await this.prisma.registryConfig.update({ where: { id }, data });
+    const updated = await this.prisma.registryConfig.update({
+      where: { id },
+      data,
+    });
     return this.toPublic(updated);
   }
 
@@ -131,13 +143,18 @@ export class ContainerRegistriesService {
         where: { type: current.type, isDefault: true },
         data: { isDefault: false },
       }),
-      this.prisma.registryConfig.update({ where: { id }, data: { isDefault: true } }),
+      this.prisma.registryConfig.update({
+        where: { id },
+        data: { isDefault: true },
+      }),
     ]);
     const updated = await this.getOrFail(id);
     return this.toPublic(updated);
   }
 
-  async testRegistryConnection(id: string): Promise<{ ok: boolean; message: string }> {
+  async testRegistryConnection(
+    id: string,
+  ): Promise<{ ok: boolean; message: string }> {
     const registry = await this.getOrFail(id);
 
     try {
@@ -158,7 +175,8 @@ export class ContainerRegistriesService {
       }
       return { ok: false, message: 'Type de registre non reconnu' };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erreur de connexion inconnue';
+      const message =
+        error instanceof Error ? error.message : 'Erreur de connexion inconnue';
       await this.prisma.registryConfig.update({
         where: { id },
         data: { isConnected: false, connectionError: message },
@@ -167,9 +185,13 @@ export class ContainerRegistriesService {
     }
   }
 
-  private async testDockerHub(registry: RegistryConfig): Promise<{ ok: boolean; message: string }> {
+  private async testDockerHub(
+    registry: RegistryConfig,
+  ): Promise<{ ok: boolean; message: string }> {
     const username = registry.username?.trim();
-    const password = registry.password ? this.crypto.decrypt(registry.password).trim() : '';
+    const password = registry.password
+      ? this.crypto.decrypt(registry.password).trim()
+      : '';
 
     if (!username || !password) {
       throw new BadRequestException('Docker Hub username et password requis');
@@ -194,35 +216,141 @@ export class ContainerRegistriesService {
     throw new BadRequestException('Authentification Docker Hub échouée');
   }
 
-  private async testDockerRegistry(registry: RegistryConfig): Promise<{ ok: boolean; message: string }> {
+  /**
+   * Teste un registre Docker v2 (GitLab/GHCR/registre privé) en suivant le
+   * VRAI handshake d'authentification :
+   *  1. GET /v2/  →  200 = OK direct (anonyme ou Basic accepté).
+   *  2. 401 + `WWW-Authenticate: Bearer realm=…,service=…` = NORMAL → on suit le
+   *     realm avec les identifiants Basic pour obtenir un token : 200+token =
+   *     identifiants valides ; 401/403 = identifiants refusés.
+   *  3. 401 + `Basic` sans creds = le registre exige une authentification.
+   * (Un simple GET /v2/ renvoyait 401 sur GitLab et était pris à tort pour un
+   *  échec — bug corrigé.)
+   */
+  private async testDockerRegistry(
+    registry: RegistryConfig,
+  ): Promise<{ ok: boolean; message: string }> {
     const rawUrl = registry.registryUrl?.trim();
     const username = registry.username?.trim();
-    const password = registry.password ? this.crypto.decrypt(registry.password).trim() : '';
+    const password = registry.password
+      ? this.crypto.decrypt(registry.password).trim()
+      : '';
 
     if (!rawUrl) throw new BadRequestException('Registry URL requise');
 
-    const registryUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
+    const registryUrl = (
+      rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`
+    ).replace(/\/+$/, '');
+    const auth = username && password ? { username, password } : undefined;
 
-    const response = await firstValueFrom(
+    const ping = await firstValueFrom(
       this.http.get(`${registryUrl}/v2/`, {
-        auth: username && password ? { username, password } : undefined,
+        auth,
         timeout: 10000,
+        validateStatus: () => true,
       }),
     );
 
-    if (response.status === 200) {
-      await this.prisma.registryConfig.update({
-        where: { id: registry.id },
-        data: { isConnected: true, connectionError: null },
-      });
-      return { ok: true, message: 'Connexion au registre Docker réussie' };
+    if (ping.status === 200) {
+      return this.markRegistryConnected(
+        registry.id,
+        'Connexion au registre réussie.',
+      );
     }
 
-    throw new BadRequestException('Authentification au registre Docker échouée');
+    if (ping.status === 401) {
+      const challenge = this.parseBearerChallenge(
+        String(ping.headers['www-authenticate'] ?? ''),
+      );
+
+      // Auth par token (Bearer) : on demande un token au realm avec les creds.
+      if (challenge?.realm) {
+        // GitLab Container Registry : realm en /jwt/auth + service container_registry.
+        const isGitlab =
+          /\/jwt\/auth/i.test(challenge.realm) ||
+          challenge.service === 'container_registry';
+        const gitlabHint = isGitlab
+          ? ' GitLab : username = ton login, token = un Personal/Project Access Token avec le scope read_registry (write_registry pour push).'
+          : '';
+        if (!auth) {
+          throw new BadRequestException(
+            `Ce registre exige une authentification (username + token/mot de passe).${gitlabHint}`,
+          );
+        }
+        const tokenRes = await firstValueFrom(
+          this.http.get<{ token?: string; access_token?: string }>(
+            challenge.realm,
+            {
+              params: {
+                service: challenge.service,
+                scope: challenge.scope,
+              },
+              auth,
+              timeout: 10000,
+              validateStatus: () => true,
+            },
+          ),
+        );
+        if (
+          tokenRes.status === 200 &&
+          (tokenRes.data?.token || tokenRes.data?.access_token)
+        ) {
+          return this.markRegistryConnected(
+            registry.id,
+            'Authentification au registre réussie (token Bearer).',
+          );
+        }
+        throw new BadRequestException(
+          `Identifiants refusés par le registre (HTTP ${tokenRes.status}). Vérifiez username + token.${gitlabHint}`,
+        );
+      }
+
+      // Auth Basic exigée.
+      if (!auth) {
+        throw new BadRequestException(
+          'Ce registre exige une authentification (username + token/mot de passe).',
+        );
+      }
+      throw new BadRequestException(
+        'Identifiants invalides pour ce registre (401).',
+      );
+    }
+
+    throw new BadRequestException(
+      `Réponse inattendue du registre (HTTP ${ping.status}).`,
+    );
   }
 
-  private async testECR(registry: RegistryConfig): Promise<{ ok: boolean; message: string }> {
-    const message = 'Test ECR non supporté actuellement: configurez un test via AWS SDK.';
+  /** Parse un en-tête `WWW-Authenticate: Bearer realm="…",service="…",scope="…"`. */
+  private parseBearerChallenge(
+    header: string,
+  ): { realm: string; service?: string; scope?: string } | null {
+    if (!/^bearer/i.test(header.trim())) return null;
+    const pick = (key: string): string | undefined => {
+      const m = new RegExp(`${key}="([^"]*)"`, 'i').exec(header);
+      return m?.[1];
+    };
+    const realm = pick('realm');
+    if (!realm) return null;
+    return { realm, service: pick('service'), scope: pick('scope') };
+  }
+
+  private async markRegistryConnected(
+    id: string,
+    message: string,
+  ): Promise<{ ok: boolean; message: string }> {
+    await this.prisma.registryConfig.update({
+      where: { id },
+      data: { isConnected: true, connectionError: null },
+    });
+    return { ok: true, message };
+  }
+
+  private async testECR(
+    registry: RegistryConfig,
+  ): Promise<{ ok: boolean; message: string }> {
+    const message =
+      'Test ECR non supporté actuellement: configurez un test via AWS SDK.';
     await this.prisma.registryConfig.update({
       where: { id: registry.id },
       data: { isConnected: false, connectionError: message },
@@ -230,8 +358,11 @@ export class ContainerRegistriesService {
     return { ok: false, message };
   }
 
-  private async testGCR(registry: RegistryConfig): Promise<{ ok: boolean; message: string }> {
-    const message = 'Test GCR non supporté actuellement: configurez un test via GCP IAM/Artifact Registry.';
+  private async testGCR(
+    registry: RegistryConfig,
+  ): Promise<{ ok: boolean; message: string }> {
+    const message =
+      'Test GCR non supporté actuellement: configurez un test via GCP IAM/Artifact Registry.';
     await this.prisma.registryConfig.update({
       where: { id: registry.id },
       data: { isConnected: false, connectionError: message },
@@ -240,7 +371,9 @@ export class ContainerRegistriesService {
   }
 
   private async getOrFail(id: string): Promise<RegistryConfig> {
-    const registry = await this.prisma.registryConfig.findUnique({ where: { id } });
+    const registry = await this.prisma.registryConfig.findUnique({
+      where: { id },
+    });
     if (!registry) throw new NotFoundException(`Registry "${id}" non trouvée`);
     return registry;
   }

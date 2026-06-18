@@ -85,7 +85,9 @@ export class NixpacksService implements OnModuleInit {
           stdio: 'pipe',
         }).then((output) => output.trim());
         this.versionChecked = true;
-        this.logger.log(`Nixpacks binary: ${this.binaryPath} (v${this.cachedVersion})`);
+        this.logger.log(
+          `Nixpacks binary: ${this.binaryPath} (v${this.cachedVersion})`,
+        );
       } catch (error) {
         this.logger.warn(
           `Nixpacks binary found at ${this.binaryPath} but failed to execute: ${
@@ -126,26 +128,23 @@ export class NixpacksService implements OnModuleInit {
    */
   async generatePlan(sourcePath: string): Promise<NixpacksPlan> {
     if (!existsSync(sourcePath)) {
-      throw new BadRequestException(
-        `Chemin source introuvable: ${sourcePath}`,
-      );
+      throw new BadRequestException(`Chemin source introuvable: ${sourcePath}`);
     }
     this.requireBinary();
 
     const tmpDir = await mkdtemp(join(tmpdir(), 'nixpacks-plan-'));
     try {
       // `nixpacks plan <path> --out <out-dir>` writes Dockerfile + plan.json
-      await this.runNixpacksCommand(
-        ['plan', sourcePath, '--out', tmpDir],
-        { stdio: 'pipe' },
-      );
+      await this.runNixpacksCommand(['plan', sourcePath, '--out', tmpDir], {
+        stdio: 'pipe',
+      });
 
       const dockerfilePath = join(tmpDir, 'Dockerfile');
       const planPath = join(tmpDir, 'plan.json');
 
       if (!existsSync(dockerfilePath) || !existsSync(planPath)) {
         throw new BadRequestException(
-          'Nixpacks n\'a pas produit de Dockerfile ou plan.json',
+          "Nixpacks n'a pas produit de Dockerfile ou plan.json",
         );
       }
 
@@ -175,7 +174,9 @@ export class NixpacksService implements OnModuleInit {
    * (see `deploy-nixpacks.yml`), so this method is mainly for testing
    * and for the future "build on backend, push to registry" path.
    */
-  async buildImage(options: NixpacksBuildOptions): Promise<NixpacksBuildResult> {
+  async buildImage(
+    options: NixpacksBuildOptions,
+  ): Promise<NixpacksBuildResult> {
     if (!existsSync(options.sourcePath)) {
       throw new BadRequestException(
         `Chemin source introuvable: ${options.sourcePath}`,
@@ -183,7 +184,14 @@ export class NixpacksService implements OnModuleInit {
     }
     this.requireBinary();
 
-    const args: string[] = ['build', options.sourcePath, '--name', options.imageTag, '--tag', options.imageTag];
+    const args: string[] = [
+      'build',
+      options.sourcePath,
+      '--name',
+      options.imageTag,
+      '--tag',
+      options.imageTag,
+    ];
     if (options.workingDir) {
       args.push('--cwd', options.workingDir);
     }
@@ -210,7 +218,7 @@ export class NixpacksService implements OnModuleInit {
     return {
       imageTag: options.imageTag,
       dockerfile: plan.dockerfile,
-      plan: plan.plan as Record<string, unknown>,
+      plan: plan.plan,
       durationMs,
       buildLog,
     };
@@ -226,7 +234,7 @@ export class NixpacksService implements OnModuleInit {
   ): Promise<string> {
     if (!this.binaryPath) {
       throw new BadRequestException(
-        'Nixpacks n\'est pas installé sur le backend. ' +
+        "Nixpacks n'est pas installé sur le backend. " +
           'Sur le VPS, il est installé automatiquement par deploy-nixpacks.yml.',
       );
     }
@@ -261,7 +269,7 @@ export class NixpacksService implements OnModuleInit {
   private requireBinary(): void {
     if (!this.binaryPath) {
       throw new BadRequestException(
-        'Nixpacks n\'est pas installé sur le backend. ' +
+        "Nixpacks n'est pas installé sur le backend. " +
           'Pour les builds Nixpacks, utilisez le mode LOCAL — ' +
           'le playbook deploy-nixpacks.yml installe Nixpacks sur le VPS automatiquement.',
       );

@@ -7,24 +7,15 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Matches,
   Min,
 } from 'class-validator';
 
 export class CreateDeploymentDto {
-  @ApiProperty({ example: 'project-uuid' })
-  @IsString({ message: 'projectId doit être une chaîne de caractères' })
-  @IsNotEmpty({ message: 'projectId est obligatoire' })
-  projectId!: string;
-
-  @ApiPropertyOptional({ example: 'service-uuid' })
-  @IsOptional()
-  @IsString({ message: 'serviceId doit être une chaîne de caractères' })
-  serviceId?: string;
-
-  @ApiProperty({ example: 'environment-uuid' })
-  @IsString({ message: 'environmentId doit être une chaîne de caractères' })
-  @IsNotEmpty({ message: 'environmentId est obligatoire' })
-  environmentId!: string;
+  @ApiProperty({ example: 'service-env-uuid' })
+  @IsString({ message: 'serviceEnvId doit être une chaîne de caractères' })
+  @IsNotEmpty({ message: 'serviceEnvId est obligatoire' })
+  serviceEnvId!: string;
 
   @ApiPropertyOptional({ example: 'main' })
   @IsOptional()
@@ -32,21 +23,10 @@ export class CreateDeploymentDto {
   branch?: string;
 
   @ApiPropertyOptional({
-    example: 42,
-    description:
-      'Repository GitLab ciblé (recommandé pour source GROUP, optionnel pour REPO)',
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'repoId doit être un entier positif' })
-  @Min(1, { message: 'repoId doit être supérieur à 0' })
-  repoId?: number;
-
-  @ApiPropertyOptional({
     enum: ['standard', 'blue-green'],
     example: 'standard',
     description:
-      'Strategy de déploiement: standard (simple restart) ou blue-green (zero-downtime)',
+      'Deployment strategy: standard (simple restart) or blue-green (zero-downtime)',
   })
   @IsOptional()
   @IsEnum(['standard', 'blue-green'], {
@@ -65,16 +45,6 @@ export class CreateDeploymentDto {
       'EXTERNAL_IMAGE',
     ],
     example: 'DOCKERFILE_LOCAL',
-    description: [
-      'Source de build — un seul champ remplace buildPack + buildMode :',
-      '  DOCKERFILE_REGISTRY — Dockerfile buildé par CI GitLab/GitHub → registry → pull sur VPS',
-      '  DOCKERFILE_LOCAL    — Dockerfile buildé directement sur le VPS (pas de registry)',
-      '  NIXPACKS_REGISTRY   — Nixpacks buildé par CI → registry → pull sur VPS',
-      '  NIXPACKS_LOCAL      — Nixpacks buildé directement sur le VPS',
-      '  DOCKER_COMPOSE      — docker-compose.yml exécuté sur le VPS',
-      '  STATIC              — Site statique servi par Nginx sur le VPS',
-      '  EXTERNAL_IMAGE      — Image Docker externe fournie via overrideImage',
-    ].join('\n'),
   })
   @IsOptional()
   @IsEnum(
@@ -100,22 +70,19 @@ export class CreateDeploymentDto {
 
   @ApiPropertyOptional({
     example: 'docker.io/myorg/myapp:latest',
-    description: 'Image Docker externe (obligatoire si buildSource=EXTERNAL_IMAGE)',
+    description:
+      'Image Docker externe (obligatoire si buildSource=EXTERNAL_IMAGE)',
   })
   @IsOptional()
   @IsString({ message: 'overrideImage doit être une chaîne de caractères' })
+  @Matches(/^[a-zA-Z0-9][a-zA-Z0-9._\/-]*(?::[a-zA-Z0-9._-]+)?$/, {
+    message:
+      "overrideImage doit être un nom d'image Docker valide (ex: docker.io/nginx:latest)",
+  })
   overrideImage?: string;
 
-  /**
-   * Nixpacks-specific configuration (used when buildStrategy=NIXPACKS).
-   */
   @ApiPropertyOptional({
     description: 'Nixpacks configuration: build env, runtime env, port, etc.',
-    example: {
-      buildEnv: { NODE_ENV: 'production' },
-      runtimeEnv: { PORT: '3000' },
-      port: 3000,
-    },
   })
   @IsOptional()
   @IsObject()
@@ -128,16 +95,9 @@ export class CreateDeploymentDto {
     nixpacksVersion?: string;
   };
 
-  /**
-   * Static site configuration (used when buildStrategy=STATIC).
-   */
   @ApiPropertyOptional({
-    description: 'Static site configuration: source dir, build cmd, SPA mode, etc.',
-    example: {
-      sourceDir: 'dist',
-      buildCommand: 'npm run build',
-      spaFallback: true,
-    },
+    description:
+      'Static site configuration: source dir, build cmd, SPA mode, etc.',
   })
   @IsOptional()
   @IsObject()

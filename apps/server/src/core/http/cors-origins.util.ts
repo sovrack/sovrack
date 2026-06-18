@@ -5,11 +5,8 @@ import { ConfigService } from '@nestjs/config';
  */
 export function resolveCorsOrigins(config: ConfigService): string[] {
   const urls = config.get<string>('FRONTEND_URLS', '');
-  const url  = config.get<string>('FRONTEND_URL', '');
-  return [
-    ...urls.split(',').filter(Boolean),
-    url,
-  ].filter(Boolean);
+  const url = config.get<string>('FRONTEND_URL', '');
+  return [...urls.split(',').filter(Boolean), url].filter(Boolean);
 }
 
 /**

@@ -1,0 +1,86 @@
+# =============================================================================
+# Backend CI — lint · typecheck · test · build.
+# This repo's root IS the backend (no monorepo cd). Test jobs spin up Postgres
+# and Redis as GitLab services; e2e uses Testcontainers-free service DBs.
+# =============================================================================
+stages:
+  - validate
+  - test
+  - build
+
+default:
+  image: node:20
+
+variables:
+  DATABASE_URL: postgresql://postgres:postgres@postgres:5432/platform_test
+  REDIS_URL: redis://redis:6379
+  CONFIG_SECRET: ci-config-secret-minimum-32-characters-ok
+  JWT_SECRET: ci-jwt-secret-minimum-32-characters-ok
+  ANSIBLE_PLAYBOOKS_PATH: /tmp/playbooks
+  ANSIBLE_VENV_PATH: /tmp/venv
+  NODE_ENV: test
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+
+typecheck:
+  stage: validate
+  script:
+    - npm ci
+    - npm run prisma:generate
+    - npx tsc --noEmit
+
+lint:
+  stage: validate
+  # Non-bloquant : dette de lint pré-existante (any sur données externes —
+  # payloads GitLab, JSON Prisma, mocks de specs). Reste visible et à nettoyer
+  # progressivement. Les gardes-fous bloquants sont typecheck + test + build.
+  allow_failure: true
+  script:
+    - npm ci
+    - npm run lint
+    - npm run format:check
+
+test:unit:
+  stage: test
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: platform_test
+  script:
+    - npm ci
+    - npx prisma migrate deploy
+    - npm test -- --passWithNoTests --forceExit
+
+test:e2e:
+  stage: test
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: platform_test
+  script:
+    - npm ci
+    - npx prisma migrate deploy
+    - npm run test:e2e
+
+build:
+  stage: build
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 2 hours

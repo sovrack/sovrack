@@ -6,40 +6,51 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
-import { UsersModule } from './modules/users/users.module';
-import { AuthModule } from './modules/auth/auth.module';
+// Contextes consolidés — importés via leur porte publique (barrel index.ts)
+import {
+  UsersModule,
+  AuthModule,
+  TeamsModule,
+  SshKeysModule,
+} from './modules/iam';
+import {
+  ProjectsModule,
+  ServicesModule,
+  ServiceEnvironmentsModule,
+} from './modules/catalog';
+import {
+  ServersModule,
+  InfrastructureModule,
+  ContainersModule,
+  VolumesModule,
+} from './modules/infrastructure';
+import { DomainsModule, ProxyModule, SslModule } from './modules/networking';
+import { MonitoringModule, DashboardModule } from './modules/observability';
+import { DatabaseBackupsModule } from './modules/database-backups/database-backups.module';
+import { PreviewEnvironmentsModule } from './modules/preview-environments/preview-environments.module';
+// Contextes standalone — importés via leur porte publique (barrel index.ts)
+import {
+  GitlabModule,
+  SourceProvidersModule,
+} from './modules/source-providers';
+import { WebhooksModule } from './modules/webhooks';
+import { BuildModule } from './modules/build';
+import { DeploymentsModule } from './modules/deployments';
+import { PlatformModule } from './modules/platform';
+import { AuditModule } from './modules/audit';
+import { TerminalModule } from './modules/terminal';
+import { AutomationModule } from './modules/automation';
+import { ContainerRegistriesModule } from './modules/container-registries';
+// Core (technique)
 import { PrismaModule } from './core/database/prisma.module';
-import { ProjectsModule } from './modules/projects/projects.module';
-import { GitlabModule } from './modules/git-providers/gitlab/gitlab.module';
-import { GitProvidersModule } from './modules/git-providers/git-providers.module';
-import { ServersModule } from './modules/servers/servers.module';
-import { InfrastructureModule } from './modules/infrastructure/infrastructure.module';
-import { ConfigsModule } from './modules/configs/configs.module';
-import { BuildModule } from './modules/build/build.module';
-import { DeploymentsModule } from './modules/deployments/deployments.module';
-import { PlatformModule } from './modules/platform/platform.module';
-import { TeamsModule } from './modules/teams/teams.module';
 import { LoggerModule } from './core/logger/logger.module';
 import { validateEnv } from './core/config/env.validation';
-import { SshKeysModule } from './modules/ssh-keys/ssh-keys.module';
-import { AuditModule } from './modules/audit/audit.module';
-import { TerminalModule } from './modules/terminal/terminal.module';
-import { AutomationModule } from './modules/automation/automation.module';
-import { MonitoringModule } from './modules/monitoring/monitoring.module';
-import { DomainsModule } from './modules/domains/domains.module';
 import { CryptoModule } from './core/crypto/crypto.module';
-import { AnsibleModule } from './core/ansible/ansible.module';
-import { DockerModule } from './core/docker/docker.module';
+import { AnsibleModule } from './core/provisioning/ansible.module';
+import { DockerModule } from './core/container-runtime/docker.module';
 import { SshModule } from './core/ssh/ssh.module';
 import { EventsModule } from './core/events/events.module';
-import { ContainerRegistriesModule } from './modules/container-registries/container-registries.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
-import { ContainersModule } from './modules/containers/containers.module';
-import { ProxyModule } from './modules/proxy/proxy.module';
-import { ManagedServicesModule } from './modules/managed-services/managed-services.module';
-import { VolumesModule } from './modules/volumes/volumes.module';
-import { SslModule } from './modules/ssl/ssl.module';
-import { ManagedDatabasesModule } from './modules/managed-databases/managed-databases.module';
+import { QueueModule } from './core/queue/queue.module';
 
 @Module({
   imports: [
@@ -67,16 +78,17 @@ import { ManagedDatabasesModule } from './modules/managed-databases/managed-data
     DockerModule,
     SshModule,
     EventsModule,
+    QueueModule,
     PrismaModule,
     UsersModule,
     AuthModule,
     BuildModule,
     ProjectsModule,
     GitlabModule,
-    GitProvidersModule,
+    SourceProvidersModule,
+    WebhooksModule,
     ServersModule,
     InfrastructureModule,
-    ConfigsModule,
     DeploymentsModule,
     PlatformModule,
     TeamsModule,
@@ -90,10 +102,12 @@ import { ManagedDatabasesModule } from './modules/managed-databases/managed-data
     DashboardModule,
     ContainersModule,
     ProxyModule,
-    ManagedServicesModule,
+    ServiceEnvironmentsModule,
+    ServicesModule,
     VolumesModule,
     SslModule,
-    ManagedDatabasesModule,
+    DatabaseBackupsModule,
+    PreviewEnvironmentsModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
