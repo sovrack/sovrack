@@ -128,6 +128,15 @@ export const projectsService = {
     return res.data;
   },
 
+  // Pipelines du dépôt PROPRE au service (1 service = 1 repo) — évite de viser
+  // un autre dépôt du projet.
+  async getServicePipelines(projectId: string, serviceId: string): Promise<GitlabPipeline[]> {
+    const res = await api.get<GitlabPipeline[]>(
+      `/projects/${projectId}/services/${serviceId}/gitlab/pipelines`,
+    );
+    return res.data;
+  },
+
   async triggerPipeline(projectId: string, branch: string): Promise<GitlabPipeline> {
     const res = await api.post<GitlabPipeline>(
       `/projects/${projectId}/gitlab/pipelines/trigger`,

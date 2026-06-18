@@ -328,7 +328,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Pipelines (CI/CD) */}
       {tab === 'pipelines' && (
-        <ServicePipelines projectId={projectId} branch={service?.branch ?? null} />
+        <ServicePipelines projectId={projectId} serviceId={serviceId} branch={service?.branch ?? null} />
       )}
 
       {/* Monitoring */}

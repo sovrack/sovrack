@@ -19,10 +19,14 @@ const STATUS_TONE: Record<string, string> = {
  * GitHub Actions), filtré sur la branche du service. Chaque ligne ouvre le
  * pipeline chez le provider (web_url).
  */
-export function ServicePipelines({ projectId, branch }: { projectId: string; branch?: string | null }) {
+export function ServicePipelines({ projectId, serviceId, branch }: { projectId: string; serviceId?: string; branch?: string | null }) {
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['service-pipelines', projectId],
-    queryFn: () => projectsService.getPipelines(projectId),
+    queryKey: ['service-pipelines', projectId, serviceId ?? 'project'],
+    // Au niveau service : dépôt propre au service ; sinon vue projet.
+    queryFn: () =>
+      serviceId
+        ? projectsService.getServicePipelines(projectId, serviceId)
+        : projectsService.getPipelines(projectId),
     refetchInterval: 15_000,
     refetchOnWindowFocus: false,
   });
