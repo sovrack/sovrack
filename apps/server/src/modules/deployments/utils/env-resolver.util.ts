@@ -25,7 +25,11 @@
  * exposé : réservé, traité comme vide tant qu'il n'est pas peuplé.)
  */
 
-export type EnvOrigin = 'service' | 'environment' | 'serviceEnvironment';
+export type EnvOrigin =
+  | 'auto-db'
+  | 'service'
+  | 'environment'
+  | 'serviceEnvironment';
 
 export interface EnvLevel {
   levelName: EnvOrigin;

@@ -20,6 +20,7 @@ import {
   buildplatformLabels,
   toDockerEnvArray,
 } from '../../../core/utils/container-spec.util';
+import { buildDbConnectionEnv } from '../../../core/utils/db-connection.util';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
 import { SshExecutorService } from '../../../core/ssh/ssh-executor.service';
 import { CryptoService } from '../../../core/crypto/crypto.service';
@@ -197,7 +198,18 @@ export class DockerDeployExecutorService {
     // du projet via un nom fixe, indépendant de l'ID de déploiement.
     const serviceAlias = buildServiceAlias(serviceName);
     let servicePort = deployment.service?.port ?? 3000;
-    const envResolution = resolveEnvDetailed(this.buildEnvLevels(deployment));
+    // Auto-câblage des bases managées du projet (DATABASE_URL/REDIS_URL…) au
+    // niveau de PLUS BASSE précédence → l'utilisateur garde le dernier mot.
+    const levels = this.buildEnvLevels(deployment);
+    const autoDbEnv = await this.resolveAutoWiredDbEnv(deployment);
+    if (autoDbEnv) {
+      levels.unshift({
+        levelName: 'auto-db',
+        env: autoDbEnv,
+        secretsEnv: null,
+      });
+    }
+    const envResolution = resolveEnvDetailed(levels);
     const envVars = toDockerEnvArray(envResolution.entries);
 
     let commandLogs = '';
@@ -936,6 +948,79 @@ export class DockerDeployExecutorService {
         secretsEnv: this.crypto.decryptSafe(deployment.serviceEnv?.secretsEnv),
       },
     ];
+  }
+
+  /**
+   * Auto-câblage : pour une APP, génère les variables de connexion (DATABASE_URL,
+   * REDIS_URL, AMQP_URL) vers les bases managées du MÊME projet + environnement,
+   * en pointant sur leur alias DNS stable. Injecté au plus bas niveau → toute
+   * valeur définie par l'utilisateur l'emporte. Façon Coolify/Dokploy.
+   */
+  private async resolveAutoWiredDbEnv(deployment: {
+    project: { id: string };
+    service?: { id: string; type: ServiceType } | null;
+    serviceEnv?: { environment: { id: string } } | null;
+    environment?: { id: string } | null;
+  }): Promise<string | null> {
+    if (deployment.service?.type === ServiceType.DATABASE) return null;
+    const projectId = deployment.project.id;
+    const envId =
+      deployment.serviceEnv?.environment?.id ??
+      deployment.environment?.id ??
+      null;
+    if (!envId) return null;
+
+    const dbs = await this.prisma.service.findMany({
+      where: {
+        projectId,
+        type: ServiceType.DATABASE,
+        databaseType: { not: null },
+        ...(deployment.service?.id ? { id: { not: deployment.service.id } } : {}),
+        envLinks: { some: { environmentId: envId, archivedAt: null } },
+      },
+      select: { name: true, databaseType: true, databaseCredentials: true },
+    });
+    if (dbs.length === 0) return null;
+
+    const links = dbs
+      .filter(
+        (d): d is typeof d & { databaseType: ManagedServiceType } =>
+          d.databaseType !== null,
+      )
+      .map((d) => {
+        const creds = this.parseDbCredentials(d.databaseCredentials);
+        return {
+          name: d.name,
+          databaseType: d.databaseType,
+          user: creds.user,
+          password: creds.password,
+          dbName: creds.dbName,
+        };
+      });
+    return buildDbConnectionEnv(links) || null;
+  }
+
+  /** Extrait {user,password,dbName} d'un blob JSON de credentials DB. */
+  private parseDbCredentials(raw: Prisma.JsonValue | null | undefined): {
+    user?: string;
+    password?: string;
+    dbName?: string;
+  } {
+    let creds: Record<string, unknown> = {};
+    if (typeof raw === 'string') {
+      try {
+        creds = JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        return {};
+      }
+    } else if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      creds = raw as Record<string, unknown>;
+    }
+    return {
+      user: typeof creds.user === 'string' ? creds.user : undefined,
+      password: typeof creds.password === 'string' ? creds.password : undefined,
+      dbName: typeof creds.dbName === 'string' ? creds.dbName : undefined,
+    };
   }
 
   /**
