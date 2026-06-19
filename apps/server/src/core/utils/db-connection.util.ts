@@ -35,16 +35,22 @@ export function buildDbConnectionEnv(dbs: DbServiceLink[]): string {
     const name = db.dbName || 'app';
     switch (db.databaseType) {
       case 'POSTGRES':
-        lines.push(`DATABASE_URL=postgresql://${user}:${pass}@${host}:${port}/${name}`);
+        lines.push(
+          `DATABASE_URL=postgresql://${user}:${pass}@${host}:${port}/${name}`,
+        );
         break;
       case 'MYSQL':
-        lines.push(`DATABASE_URL=mysql://${user}:${pass}@${host}:${port}/${name}`);
+        lines.push(
+          `DATABASE_URL=mysql://${user}:${pass}@${host}:${port}/${name}`,
+        );
         break;
       case 'REDIS':
         lines.push(`REDIS_URL=redis://${host}:${port}`);
         break;
       case 'MONGODB':
-        lines.push(`DATABASE_URL=mongodb://${user}:${pass}@${host}:${port}/${name}`);
+        lines.push(
+          `DATABASE_URL=mongodb://${user}:${pass}@${host}:${port}/${name}`,
+        );
         break;
       case 'RABBITMQ':
         lines.push(`AMQP_URL=amqp://${user}:${pass}@${host}:${port}`);
