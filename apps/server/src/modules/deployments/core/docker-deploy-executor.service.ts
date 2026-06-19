@@ -340,6 +340,10 @@ export class DockerDeployExecutorService {
           imageRef,
           serverId,
           server,
+          // Vars non-secrètes → build-args (ex. NEXT_PUBLIC_* figées au build).
+          envResolution.entries
+            .filter((e) => !e.isSecret)
+            .map((e) => `${e.key}=${e.value}`),
         );
       } else {
         this.emitGatewayLog(
@@ -738,6 +742,10 @@ export class DockerDeployExecutorService {
     imageTag: string,
     serverId: string,
     server: { host: string; port: number; username: string; sshKey: string },
+    // Variables NON-secrètes passées au BUILD (KEY=VALUE) — requis pour les
+    // frameworks qui figent l'env au build (ex. Next.js NEXT_PUBLIC_*). Les
+    // secrets ne sont JAMAIS passés en build-arg (ils resteraient dans les layers).
+    buildArgs: string[] = [],
   ): Promise<string> {
     const svc = deployment.service;
     if (!svc?.repoPath) {
@@ -802,6 +810,11 @@ export class DockerDeployExecutorService {
       this.emitGatewayLog(deployment.id, `[LOCAL BUILD] Clone OK`, 'info');
 
       const buildCtx = rootDir === '.' ? workDir : `${workDir}/${rootDir}`;
+      // Flags build-arg (Dockerfile) / --env (Nixpacks) pour les vars non-secrètes.
+      const dockerBuildArgs = buildArgs
+        .map((a) => `--build-arg ${q(a)}`)
+        .join(' ');
+      const nixpacksEnvArgs = buildArgs.map((a) => `--env ${q(a)}`).join(' ');
 
       // On respecte STRICTEMENT le build pack choisi pour le service — pas de
       // bascule automatique. (La détection auto se fait à la création du service
@@ -810,7 +823,7 @@ export class DockerDeployExecutorService {
         // nixpacks must be installed on the server
         await this.ssh.execOrThrow(
           conn,
-          `cd ${q(buildCtx)} && nixpacks build . --name ${q(imageTag)}`,
+          `cd ${q(buildCtx)} && nixpacks build . ${nixpacksEnvArgs} --name ${q(imageTag)}`,
           'Nixpacks build failed',
         );
         logs += `[LOCAL BUILD] Nixpacks build OK → ${imageTag}\n`;
@@ -839,7 +852,7 @@ export class DockerDeployExecutorService {
         }
         await this.ssh.execOrThrow(
           conn,
-          `cd ${q(buildCtx)} && docker build -f ${q(dockerfilePath)} -t ${q(imageTag)} .`,
+          `cd ${q(buildCtx)} && docker build ${dockerBuildArgs} -f ${q(dockerfilePath)} -t ${q(imageTag)} .`,
           'Docker build failed',
         );
         logs += `[LOCAL BUILD] Docker build OK → ${imageTag}\n`;
