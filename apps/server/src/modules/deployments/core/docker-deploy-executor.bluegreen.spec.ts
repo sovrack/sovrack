@@ -33,15 +33,9 @@ describe('DockerDeployExecutorService — blue-green cut-over', () => {
       {} as DeploymentsGateway,
       {} as DeploymentsHealthcheckService,
       { decryptSafe: (v: string | null) => v } as unknown as CryptoService,
-      {} as unknown as import('../../../core/ssh/ssh-executor.service').SshExecutorService,
-      {
-        decrypt: (v: string) => v,
-      } as unknown as import('../../infrastructure/servers/services/servers-crypto.service').ServersCryptoService,
-      {
-        resolveForConnection: jest.fn(),
-      } as unknown as import('../../infrastructure/servers/services/server-host-key.service').ServerHostKeyService,
       {} as unknown as import('./traefik-route.service').TraefikRouteService,
       {} as unknown as import('./registry-auth.service').RegistryAuthService,
+      {} as unknown as import('./local-build.service').LocalBuildService,
     );
     // Skip the real 3s drain.
     jest

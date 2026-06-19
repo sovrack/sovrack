@@ -8,6 +8,7 @@ import { PrismaModule } from '../../core/database/prisma.module';
 import { AuditModule } from '../audit';
 import { ServersModule } from '../infrastructure';
 import { DockerDeployExecutorService } from './core/docker-deploy-executor.service';
+import { LocalBuildService } from './core/local-build.service';
 import { TraefikRouteService } from './core/traefik-route.service';
 import { RegistryAuthService } from './core/registry-auth.service';
 import { DeploymentsAuthorizationService } from './query/deployments-authorization.service';
@@ -52,6 +53,7 @@ import { DeploymentsProcessor } from './processors/deployments.processor';
     DeploymentsQueryService,
     DeploymentsGateway,
     DockerDeployExecutorService,
+    LocalBuildService,
     TraefikRouteService,
     RegistryAuthService,
     DeploymentsAuthorizationService,
