@@ -31,7 +31,6 @@ import { servicesService } from '@/services/services.service';
 import { deploymentsService } from '@/services/deployments.service';
 import { containersService } from '@/services/containers.service';
 import { environmentsService } from '@/services/environments.service';
-import { monitoringService, type ContainerInfo } from '@/services/monitoring.service';
 import { DeployDialog } from '@/components/deployments/deploy-dialog';
 import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
 import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
@@ -43,11 +42,11 @@ import { ServiceCiGenerator } from '@/components/projects/tabs/service/service-c
 import { ServiceTerminalDialog } from '@/components/projects/tabs/service/service-terminal-dialog';
 import { ServiceDomains } from '@/components/projects/tabs/service/service-domains';
 import { ServicePipelines } from '@/components/projects/tabs/service/service-pipelines';
-import { LogTerminal } from '@/components/log-terminal';
+import { ServiceLogs } from '@/components/projects/tabs/service/service-logs';
+import { ServiceMonitoring } from '@/components/projects/tabs/service/service-monitoring';
 import { resolveDeploymentUrl } from '@/lib/deployment-utils';
-import { useDeploymentSocket } from '@/hooks/deployments/use-deployment-socket';
 import type { Service } from '@/types/service';
-import type { Deployment, DeploymentStatus } from '@/types/deployment';
+import type { Deployment } from '@/types/deployment';
 
 type Tab = 'general' | 'variables' | 'domains' | 'webhooks' | 'logs' | 'deployments' | 'pipelines' | 'monitoring';
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
@@ -585,103 +584,6 @@ function Field({ k, v, mono, icon }: { k: string; v: string; mono?: boolean; ico
     <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2">
       <dt className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{k}</dt>
       <dd className={`mt-0.5 flex items-center gap-1 truncate text-[var(--text-primary)] ${mono ? 'font-mono text-xs' : 'text-sm'}`}>{icon}{v}</dd>
-    </div>
-  );
-}
-
-function ServiceLogs({ deploymentId, initialStatus }: { deploymentId: string | null; initialStatus: DeploymentStatus | null }) {
-  const [initialLogs, setInitialLogs] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!deploymentId) return;
-    let alive = true;
-    deploymentsService.getById(deploymentId)
-      .then((d) => { if (alive) setInitialLogs((d as { logs?: string | null }).logs ?? null); })
-      .catch(() => undefined);
-    return () => { alive = false; };
-  }, [deploymentId]);
-
-  // Flux WebSocket en direct : pendant un déploiement actif les lignes arrivent
-  // en temps réel ; sinon le hook rejoue les logs bufferisés du dernier déploiement.
-  const { logs, status } = useDeploymentSocket({
-    deploymentId: deploymentId ?? '',
-    enabled: !!deploymentId,
-    initialLogs,
-    initialStatus,
-  });
-  const isLive = status === 'PENDING' || status === 'RUNNING';
-
-  return (
-    <SectionCard title="Logs du déploiement" description="Flux en direct du dernier déploiement (build, run, health-check, route).">
-      {!deploymentId ? (
-        <p className="text-sm text-[var(--text-muted)]">Aucun déploiement.</p>
-      ) : (
-        <LogTerminal logs={logs} isLive={isLive} />
-      )}
-    </SectionCard>
-  );
-}
-
-function ServiceMonitoring({ deploymentId }: { deploymentId: string | null }) {
-  const [info, setInfo] = useState<ContainerInfo | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [live, setLive] = useState(true);
-
-  const fetchInfo = useCallback(async () => {
-    if (!deploymentId) return;
-    try { setInfo(await monitoringService.getContainerInfo(deploymentId, 0)); setError(null); }
-    catch (e) { setError(getApiErrorMessage(e)); }
-  }, [deploymentId]);
-
-  useEffect(() => { void fetchInfo(); }, [fetchInfo]);
-  // Rafraîchissement LIVE toutes les 5s (CPU/Mém/Net en temps réel).
-  useEffect(() => {
-    if (!live || !deploymentId) return;
-    const t = setInterval(() => { void fetchInfo(); }, 5000);
-    return () => clearInterval(t);
-  }, [live, deploymentId, fetchInfo]);
-
-  if (!deploymentId) return <SectionCard title="Monitoring"><p className="text-sm text-[var(--text-muted)]">No deployment yet.</p></SectionCard>;
-
-  const running = info?.status === 'running';
-  return (
-    <SectionCard title="Container metrics" description="Stats temps réel du conteneur (rafraîchies toutes les 5s).">
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setLive((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${live ? 'border-green-500/30 bg-green-500/10 text-green-400' : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${live ? 'animate-pulse bg-green-400' : 'bg-[var(--text-muted)]'}`} />
-            {live ? 'Live' : 'En pause'}
-          </button>
-          <button type="button" onClick={() => void fetchInfo()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
-            <RefreshCw size={11} /> Refresh
-          </button>
-        </div>
-        {error && <p className="text-xs text-red-400">{error}</p>}
-        {info && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat k="Status" v={info.status} />
-            <Stat k="CPU" v={info.stats?.cpuPercent ?? '—'} />
-            <Stat k="Memory" v={info.stats?.memPercent ?? '—'} />
-            <Stat k="Net I/O" v={info.stats?.netIO ?? '—'} />
-          </div>
-        )}
-        {info && !info.stats && (
-          <p className="text-xs text-[var(--text-muted)]">
-            {running ? 'Métriques en cours de collecte…' : 'Conteneur non démarré — métriques indisponibles.'}
-          </p>
-        )}
-      </div>
-    </SectionCard>
-  );
-}
-
-function Stat({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{k}</p>
-      <p className="mt-1 font-mono text-sm font-bold capitalize text-[var(--text-primary)]">{v}</p>
     </div>
   );
 }
