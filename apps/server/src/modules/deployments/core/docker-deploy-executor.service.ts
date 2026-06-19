@@ -21,6 +21,11 @@ import {
   toDockerEnvArray,
 } from '../../../core/utils/container-spec.util';
 import { buildDbConnectionEnv } from '../../../core/utils/db-connection.util';
+import {
+  buildDatabaseEnvVars,
+  getDatabaseContainerConfig,
+  parseDbCredentials,
+} from '../../../core/utils/database-spec.util';
 import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
 import { SshExecutorService } from '../../../core/ssh/ssh-executor.service';
 import { CryptoService } from '../../../core/crypto/crypto.service';
@@ -233,7 +238,7 @@ export class DockerDeployExecutorService {
       deployment.service?.type === ServiceType.DATABASE &&
       deployment.service.databaseType
     ) {
-      const dbConfig = this.getDatabaseContainerConfig(
+      const dbConfig = getDatabaseContainerConfig(
         deployment.service.databaseType,
       );
       servicePort = dbConfig.port;
@@ -243,7 +248,7 @@ export class DockerDeployExecutorService {
       await this.docker.createVolume(serverId, dbVolumeName);
       commandLogs += `Volume de données créé : ${dbVolumeName}\n`;
 
-      const dbEnv = this.resolveDatabaseEnvVars(
+      const dbEnv = buildDatabaseEnvVars(
         deployment.service.databaseType,
         deployment.service.databaseCredentials,
       );
@@ -1001,7 +1006,7 @@ export class DockerDeployExecutorService {
           d.databaseType !== null,
       )
       .map((d) => {
-        const creds = this.parseDbCredentials(d.databaseCredentials);
+        const creds = parseDbCredentials(d.databaseCredentials);
         return {
           name: d.name,
           databaseType: d.databaseType,
@@ -1011,29 +1016,6 @@ export class DockerDeployExecutorService {
         };
       });
     return buildDbConnectionEnv(links) || null;
-  }
-
-  /** Extrait {user,password,dbName} d'un blob JSON de credentials DB. */
-  private parseDbCredentials(raw: Prisma.JsonValue | null | undefined): {
-    user?: string;
-    password?: string;
-    dbName?: string;
-  } {
-    let creds: Record<string, unknown> = {};
-    if (typeof raw === 'string') {
-      try {
-        creds = JSON.parse(raw) as Record<string, unknown>;
-      } catch {
-        return {};
-      }
-    } else if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-      creds = raw as Record<string, unknown>;
-    }
-    return {
-      user: typeof creds.user === 'string' ? creds.user : undefined,
-      password: typeof creds.password === 'string' ? creds.password : undefined,
-      dbName: typeof creds.dbName === 'string' ? creds.dbName : undefined,
-    };
   }
 
   /**
@@ -1183,75 +1165,5 @@ export class DockerDeployExecutorService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  private getDatabaseContainerConfig(databaseType: ManagedServiceType): {
-    port: number;
-    dataPath: string;
-  } {
-    switch (databaseType) {
-      case 'POSTGRES':
-        return { port: 5432, dataPath: '/var/lib/postgresql/data' };
-      case 'MYSQL':
-        return { port: 3306, dataPath: '/var/lib/mysql' };
-      case 'REDIS':
-        return { port: 6379, dataPath: '/data' };
-      case 'MONGODB':
-        return { port: 27017, dataPath: '/data/db' };
-      case 'RABBITMQ':
-        return { port: 5672, dataPath: '/var/lib/rabbitmq' };
-    }
-  }
-
-  private resolveDatabaseEnvVars(
-    databaseType: ManagedServiceType,
-    rawCredentials: Prisma.JsonValue | null | undefined,
-  ): Record<string, string> {
-    const result: Record<string, string> = {};
-    let creds: Record<string, string | undefined> = {};
-    if (rawCredentials) {
-      if (typeof rawCredentials === 'string') {
-        try {
-          creds = JSON.parse(rawCredentials);
-        } catch {
-          /* ignore */
-        }
-      } else if (
-        typeof rawCredentials === 'object' &&
-        rawCredentials !== null &&
-        !Array.isArray(rawCredentials)
-      ) {
-        creds = rawCredentials as unknown as Record<string, string | undefined>;
-      }
-    }
-    const user = creds.user;
-    const password = creds.password;
-    const dbName = creds.dbName;
-
-    switch (databaseType) {
-      case 'POSTGRES':
-        result.POSTGRES_USER = user ?? 'app';
-        result.POSTGRES_PASSWORD = password ?? 'changeme';
-        result.POSTGRES_DB = dbName ?? 'app';
-        break;
-      case 'MYSQL':
-        result.MYSQL_ROOT_PASSWORD = password ?? 'changeme';
-        result.MYSQL_DATABASE = dbName ?? 'app';
-        result.MYSQL_USER = user ?? 'app';
-        result.MYSQL_PASSWORD = password ?? 'changeme';
-        break;
-      case 'REDIS':
-        break;
-      case 'MONGODB':
-        result.MONGO_INITDB_ROOT_USERNAME = user ?? 'app';
-        result.MONGO_INITDB_ROOT_PASSWORD = password ?? 'changeme';
-        result.MONGO_INITDB_DATABASE = dbName ?? 'app';
-        break;
-      case 'RABBITMQ':
-        result.RABBITMQ_DEFAULT_USER = user ?? 'app';
-        result.RABBITMQ_DEFAULT_PASS = password ?? 'changeme';
-        break;
-    }
-    return result;
   }
 }
