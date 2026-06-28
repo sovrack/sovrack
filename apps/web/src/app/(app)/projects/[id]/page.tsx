@@ -1,20 +1,20 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
-  Activity,
   ArrowLeft,
-  Boxes,
+  ChevronDown,
+  Database,
+  FolderGit2,
   Layers,
-  LayoutGrid,
   Loader2,
+  Package,
   Plus,
   Rocket,
   Settings,
 } from 'lucide-react';
-import clsx from 'clsx';
 import { useAuth } from '@/features/auth/api/use-auth';
 import { useProject } from '@/features/projects/api/use-projects';
 import { useProjectServices } from '@/features/projects/api/use-project-services';
@@ -22,50 +22,47 @@ import { useProjectEnvironments } from '@/features/projects/api/use-project-envi
 import { useProjectMembers } from '@/features/projects/api/use-project-members';
 import { useConfirm } from '@/shared/contexts/confirm-context';
 import { PageHeader } from '@/shared/layout/page-header';
+import { Modal } from '@/shared/ui/modal';
 import { ProjectEnvironmentsTab } from '@/features/projects/components/project-environments-tab';
-import { ProjectMonitoringTab } from '@/features/projects/components/project-monitoring-tab';
 import { ServicesList } from '@/features/projects/components/tabs/service/services-list';
-import { ProjectDeploymentMatrix } from '@/features/projects/components/project-deployment-matrix';
 import { AddServiceWizard } from '@/features/projects/components/add-service-wizard';
-import { DeployDialog } from '@/features/deployments/components/deploy-dialog';
+import type { ServiceKind } from '@/features/projects/components/add-service-wizard.catalog';
 import { ProjectMembersTab } from '@/features/projects/components/project-members-tab';
 import { getApiErrorMessage } from '@/shared/lib/api';
 import { projectsService } from '@/features/projects/api/projects.service';
-
-type Tab = 'matrix' | 'services' | 'environments' | 'monitoring' | 'settings';
-
-const TAB_VALUES: Tab[] = [
-  'matrix',
-  'services',
-  'environments',
-  'monitoring',
-  'settings',
-];
-
-function parseTab(value: string | null): Tab | null {
-  if (!value) return null;
-  if (TAB_VALUES.includes(value as Tab)) return value as Tab;
-  return null;
-}
 
 type ProjectPageProps = {
   params: Promise<{ id: string }>;
 };
 
+/** Types proposés par le dropdown « Create Service » (style Dokploy). */
+const CREATE_ITEMS: {
+  kind: ServiceKind;
+  label: string;
+  icon: React.ReactNode;
+  // Disabled until the deploy executor can expand a compose stack into multiple
+  // containers — see add-service-wizard.catalog (same rationale).
+  disabled?: boolean;
+}[] = [
+  { kind: 'APPLICATION', label: 'Application', icon: <FolderGit2 size={15} /> },
+  { kind: 'DATABASE', label: 'Database', icon: <Database size={15} /> },
+  { kind: 'COMPOSE', label: 'Compose', icon: <Layers size={15} />, disabled: true },
+  { kind: 'TEMPLATE', label: 'Template', icon: <Package size={15} /> },
+];
+
 export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, isAdmin } = useAuth();
   const { project, loading, error, refresh } = useProject(id);
-  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'matrix');
 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deployOpen, setDeployOpen] = useState(false);
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [addServiceOpen, setAddServiceOpen] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>(undefined);
-  const [selectedEnvId, setSelectedEnvId] = useState<string | undefined>(undefined);
+  const [addServiceKind, setAddServiceKind] = useState<ServiceKind | undefined>(undefined);
+  const [envOpen, setEnvOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const members = useProjectMembers({ projectId: id, isAdmin, refreshProject: refresh });
   const servicesQuery = useProjectServices(id);
@@ -73,32 +70,10 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const environments = environmentsQuery.data ?? [];
   const confirm = useConfirm();
 
-  useEffect(() => {
-    const requestedTab = parseTab(searchParams.get('tab'));
-    if (requestedTab) {
-      setTab(requestedTab);
-    }
-  }, [searchParams]);
-
-  const replaceProjectQuery = (updates: Record<string, string | null>) => {
-    const next = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([key, value]) => {
-      if (!value) { next.delete(key); return; }
-      next.set(key, value);
-    });
-    const query = next.toString();
-    router.replace(query ? `/projects/${id}?${query}` : `/projects/${id}`);
-  };
-
-  const handleTabChange = (nextTab: Tab) => {
-    setTab(nextTab);
-    replaceProjectQuery({ tab: nextTab, dialog: null });
-  };
-
-  const handleDeployCreated = () => {
-    setTab('services');
-    replaceProjectQuery({ tab: 'services' });
-    void servicesQuery.refetch();
+  const openCreate = (kind?: ServiceKind) => {
+    setAddServiceKind(kind);
+    setAddServiceOpen(true);
+    setCreateMenuOpen(false);
   };
 
   const handleDelete = async () => {
@@ -138,14 +113,6 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const currentMember = project.members.find((m) => m.user.id === user?.id);
   const isOwner = isAdmin || currentMember?.role === 'OWNER';
 
-  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'matrix',       label: 'Matrix',          icon: LayoutGrid },
-    { id: 'services',     label: 'Services',        icon: Boxes },
-    { id: 'environments', label: 'Environments',    icon: Layers },
-    { id: 'monitoring',   label: 'Monitoring',      icon: Activity },
-    { id: 'settings',     label: 'Members & Access', icon: Settings },
-  ];
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -153,20 +120,59 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         title={project.name}
         description={project.description ?? 'No description'}
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
             <Link href="/projects"
-              className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
               <ArrowLeft size={15} /> Projects
             </Link>
-            <button type="button" onClick={() => setDeployOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
-              <Rocket size={15} /> Deploy
+
+            {/* Déploiements PAR PROJET (console filtrée) */}
+            <Link href={`/deployments?project=${id}`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
+              <Rocket size={15} /> Deployments
+            </Link>
+
+            {/* Gestion des environnements (dialog) */}
+            <button type="button" onClick={() => setEnvOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
+              <Layers size={15} /> Project Environment
             </button>
-            <button type="button" onClick={() => setAddServiceOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
-              <Plus size={15} /> Add service
+
+            {/* Create Service — dropdown typé */}
+            <div className="relative">
+              <button type="button" onClick={() => setCreateMenuOpen((o) => !o)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
+                <Plus size={15} /> Create Service <ChevronDown size={14} />
+              </button>
+              {createMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setCreateMenuOpen(false)} />
+                  <div className="absolute right-0 z-50 mt-1 w-56 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)] py-1 shadow-xl">
+                    <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Actions</p>
+                    {CREATE_ITEMS.map((item) => (
+                      <button key={item.kind} type="button" onClick={() => openCreate(item.kind)}
+                        disabled={item.disabled}
+                        title={item.disabled ? 'Multi-service Docker Compose is coming soon' : undefined}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--text-primary)] transition enabled:hover:bg-[var(--hover)] disabled:cursor-not-allowed disabled:opacity-50">
+                        {item.icon}
+                        {item.label}
+                        {item.disabled && (
+                          <span className="ml-auto rounded-full border border-[var(--border)] bg-[var(--hover)] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--text-muted)]">Soon</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Settings (membres + suppression) */}
+            <button type="button" onClick={() => setSettingsOpen(true)}
+              title="Project settings"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+              <Settings size={16} />
             </button>
-          </>
+          </div>
         }
       />
 
@@ -192,46 +198,29 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         </div>
       )}
 
-      {/* Tabs nav */}
-      <div className="border-b border-[var(--border)]">
-        <nav className="flex flex-wrap gap-1">
-          {tabs.map(({ id: tabId, label, icon: Icon }) => (
-            <button type="button" key={tabId} onClick={() => handleTabChange(tabId)}
-              className={clsx(
-                'flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition',
-                tab === tabId
-                  ? 'border-[var(--text-primary)] text-[var(--text-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
-              )}>
-              <Icon size={15} /> {label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      {/* Corps = liste des services (style Dokploy) */}
+      <ServicesList
+        projectId={id}
+        services={servicesQuery.data ?? []}
+        onAddService={() => openCreate(undefined)}
+      />
 
-      {/* Tab panels */}
-      {tab === 'matrix' && <ProjectDeploymentMatrix projectId={id} />}
+      {/* Create Service wizard (type pré-sélectionné depuis le dropdown) */}
+      <AddServiceWizard
+        projectId={id}
+        open={addServiceOpen}
+        initialKind={addServiceKind}
+        onClose={() => setAddServiceOpen(false)}
+        onCreated={() => { setAddServiceOpen(false); void servicesQuery.refetch(); }}
+      />
 
-      {tab === 'services' && (
-        <ServicesList
-          projectId={id}
-          services={servicesQuery.data ?? []}
-          onAddService={() => setAddServiceOpen(true)}
-        />
-      )}
+      {/* Project Environment (gestion des environnements) */}
+      <Modal open={envOpen} onClose={() => setEnvOpen(false)} title="Project environments" size="lg">
+        <ProjectEnvironmentsTab projectId={id} onChanged={() => void refresh()} />
+      </Modal>
 
-      {tab === 'environments' && (
-        <ProjectEnvironmentsTab
-          projectId={id}
-          onChanged={() => void refresh()}
-        />
-      )}
-
-      {tab === 'monitoring' && (
-        <ProjectMonitoringTab projectId={id} services={servicesQuery.data ?? []} />
-      )}
-
-      {tab === 'settings' && (
+      {/* Settings (membres & accès + suppression) */}
+      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Project settings" size="lg">
         <ProjectMembersTab
           project={project}
           isOwner={isOwner}
@@ -251,24 +240,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           onDeleteProject={isOwner ? handleDelete : undefined}
           deleteLoading={deleteLoading}
         />
-      )}
-
-      <AddServiceWizard
-        projectId={id}
-        open={addServiceOpen}
-        onClose={() => setAddServiceOpen(false)}
-        onCreated={() => { setAddServiceOpen(false); void servicesQuery.refetch(); }}
-      />
-
-      <DeployDialog
-        open={deployOpen}
-        projectId={id}
-        services={servicesQuery.data ?? []}
-        initialServiceId={selectedServiceId}
-        initialEnvironmentId={selectedEnvId}
-        onClose={() => { setDeployOpen(false); setSelectedServiceId(undefined); setSelectedEnvId(undefined); }}
-        onCreated={handleDeployCreated}
-      />
+      </Modal>
     </div>
   );
 }
