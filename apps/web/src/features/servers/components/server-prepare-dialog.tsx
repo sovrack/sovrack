@@ -1,8 +1,9 @@
 'use client';
 
-import { X, Wrench } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
+import { Modal } from '@/shared/ui/modal';
 import { usePreparationReadiness, useServerPreparationOptions } from '@/features/servers/api/use-servers';
 import type { Server, ServerInstalledTool, StartServerPreparationPayload } from '@/features/servers/types/server';
 
@@ -52,7 +53,7 @@ export function ServerPrepareDialog({
   );
   const optionsQuery = useServerPreparationOptions();
 
-  if (!open || !server) return null;
+  if (!server) return null;
 
   const readiness = readinessQuery.data;
   const readinessLoading = readinessQuery.isLoading || readinessQuery.isFetching;
@@ -88,33 +89,30 @@ export function ServerPrepareDialog({
   const groups: OptionGroup[] = ['Core', 'Runtime', 'Security', 'Operations'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="absolute inset-0" onClick={onClose} aria-hidden />
-
-      <div className="relative z-10 max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
-              Prepare Server
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
-              Choose preparation options
-            </h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              {server.username}@{server.host}:{server.port}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
-            aria-label="Close"
+    <Modal
+      open={open}
+      onClose={onClose}
+      dismissable={!isBusy}
+      size="xl"
+      title="Choose preparation options"
+      description={`${server.username}@${server.host}:${server.port}`}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={isBusy}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => void onPrepare(server)}
+            disabled={isBusy || !hasSelection || !isReady}
+            loading={preparingId === server.id}
+            icon={preparingId === server.id ? undefined : <Wrench size={14} />}
           >
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="space-y-6 px-6 py-5">
+            Run preparation
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6">
           <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
             {optionsQuery.data?.message ??
               'Ansible runs from the backend control node. The target VPS remains an agentless SSH host and does not install Ansible.'}
@@ -265,23 +263,7 @@ export function ServerPrepareDialog({
               </ul>
             </div>
           )}
-        </div>
-
-        <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--bg-card)] px-6 py-4">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isBusy}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void onPrepare(server)}
-            disabled={isBusy || !hasSelection || !isReady}
-            loading={preparingId === server.id}
-            icon={preparingId === server.id ? undefined : <Wrench size={14} />}
-          >
-            Run preparation
-          </Button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
