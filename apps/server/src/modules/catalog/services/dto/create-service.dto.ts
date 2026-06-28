@@ -191,6 +191,18 @@ export class CreateServiceDto {
   @IsString()
   env?: string;
 
+  @ApiPropertyOptional({
+    description:
+      'Service-level default secrets as a JSON string (encrypted at rest, ' +
+      'AES-256-GCM). Base layer of the secret hierarchy, overridden by ' +
+      'Environment and ServiceEnvironment secrets at deploy time. Never ' +
+      'returned in clear — responses expose only secretsEnvKeys.',
+    example: '{"API_KEY":"s3cr3t"}',
+  })
+  @IsOptional()
+  @IsString({ message: 'secretsEnv doit être une chaîne JSON' })
+  secretsEnv?: string;
+
   @ApiPropertyOptional({ example: '/health' })
   @IsOptional()
   @IsString()

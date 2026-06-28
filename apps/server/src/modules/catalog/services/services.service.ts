@@ -13,6 +13,7 @@ import {
   ServiceType,
 } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { ACTIVE_FILTER } from '../../../shared/database/prisma-active.helper';
 import { normalizeRepoPath } from '../../../shared/utils/repo-path.util';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
@@ -37,9 +38,12 @@ const serviceInclude = {
   },
 } satisfies Prisma.ServiceInclude;
 
+// secretsEnv is omitted from every read: like Environment/ServiceEnvironment,
+// the encrypted service secrets are never returned to the client. They are only
+// decrypted at deploy time (deployment-env.service → crypto.decryptSafe).
 export type ServiceWithRelations = Prisma.ServiceGetPayload<{
   include: typeof serviceInclude;
-  omit: { archivedAt: true };
+  omit: { archivedAt: true; secretsEnv: true };
 }>;
 
 @Injectable()
@@ -49,6 +53,7 @@ export class ServicesService {
     private readonly serviceEnvsService: ServiceEnvironmentsService,
     private readonly sourceProviders: SourceProvidersService,
     private readonly projectAccess: ProjectAccessService,
+    private readonly crypto: CryptoService,
   ) {}
 
   private readonly logger = new Logger(ServicesService.name);
@@ -67,7 +72,7 @@ export class ServicesService {
     return await this.prisma.service.findMany({
       where: { projectId, ...ACTIVE_FILTER },
       orderBy: { createdAt: 'asc' },
-      omit: { archivedAt: true },
+      omit: { archivedAt: true, secretsEnv: true },
       include: serviceInclude,
     });
   }
@@ -86,7 +91,7 @@ export class ServicesService {
 
     const service = await this.prisma.service.findFirst({
       where: { id: serviceId, projectId, ...ACTIVE_FILTER },
-      omit: { archivedAt: true },
+      omit: { archivedAt: true, secretsEnv: true },
       include: serviceInclude,
     });
 
@@ -241,6 +246,9 @@ export class ServicesService {
               ? this.ensureDatabaseCredentials(dto.databaseCredentials)
               : dto.databaseCredentials || undefined,
           env: dto.env,
+          // Service-level default secrets encrypted at rest (AES-256-GCM);
+          // null when absent. Decrypted only at deploy time (decryptSafe).
+          secretsEnv: this.crypto.encryptOptional(dto.secretsEnv),
           healthcheckPath: dto.healthcheckPath?.trim(),
           replicas: dto.replicas ?? 1,
           cpuLimit: dto.cpuLimit ?? undefined,
@@ -377,7 +385,12 @@ export class ServicesService {
         ...(dto.replicas !== undefined ? { replicas: dto.replicas } : {}),
         ...(dto.cpuLimit !== undefined ? { cpuLimit: dto.cpuLimit } : {}),
         ...(dto.memLimitMb !== undefined ? { memLimitMb: dto.memLimitMb } : {}),
+        // Service-level secrets encrypted at rest (AES-256-GCM); '' clears them.
+        ...(dto.secretsEnv !== undefined
+          ? { secretsEnv: this.crypto.encryptOptional(dto.secretsEnv) }
+          : {}),
       },
+      omit: { archivedAt: true, secretsEnv: true },
       include: serviceInclude,
     });
     // Config du service changée → nouvelle génération désirée pour tous ses

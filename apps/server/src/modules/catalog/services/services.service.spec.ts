@@ -9,6 +9,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { ProjectAccessService } from '../access/project-access.service';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 
 describe('ServicesService — soft-delete name collision', () => {
@@ -32,6 +33,7 @@ describe('ServicesService — soft-delete name collision', () => {
       {} as never,
       {} as never,
       new ProjectAccessService(prisma),
+      {} as never, // CryptoService — unused by remove()
     );
   }
 
@@ -91,13 +93,19 @@ describe('ServicesService — CRUD + templates', () => {
       assertCanAccessProject: jest.fn().mockResolvedValue(undefined),
       assertCanManageProject: jest.fn().mockResolvedValue(undefined),
     };
+    const crypto = {
+      encryptOptional: jest.fn((v?: string | null) => (v ? `enc:${v}` : null)),
+      encrypt: jest.fn((v: string) => `enc:${v}`),
+      decryptSafe: jest.fn((v?: string | null) => v ?? null),
+    };
     const service = new ServicesService(
       prisma as unknown as PrismaService,
       serviceEnvs as unknown as ServiceEnvironmentsService,
       sourceProviders as unknown as SourceProvidersService,
       projectAccess as unknown as ProjectAccessService,
+      crypto as unknown as CryptoService,
     );
-    return { service, prisma, serviceEnvs, sourceProviders, projectAccess };
+    return { service, prisma, serviceEnvs, sourceProviders, projectAccess, crypto };
   }
 
   it('findAll checks access then returns the project services', async () => {
@@ -185,6 +193,28 @@ describe('ServicesService — CRUD + templates', () => {
       Role.ADMIN,
     );
     expect(result.id).toBe('s1');
+  });
+
+  it('create encrypts service-level secretsEnv before persisting', async () => {
+    const { service, prisma, crypto } = harness();
+    prisma.service.create.mockResolvedValue({ id: 's1' });
+    prisma.service.findFirst.mockResolvedValue({ id: 's1', name: 'api' });
+
+    await service.create(
+      projectId,
+      {
+        name: 'api',
+        type: ServiceType.APPLICATION,
+        secretsEnv: '{"API_KEY":"x"}',
+      } as CreateServiceDto,
+      userId,
+      Role.ADMIN,
+    );
+
+    expect(crypto.encryptOptional).toHaveBeenCalledWith('{"API_KEY":"x"}');
+    expect(prisma.service.create.mock.calls[0][0].data.secretsEnv).toBe(
+      'enc:{"API_KEY":"x"}',
+    );
   });
 
   it('create maps a Prisma P2002 unique violation to ConflictException', async () => {
