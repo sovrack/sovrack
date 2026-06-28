@@ -12,7 +12,6 @@ import {
   Rocket,
   Server,
   Trash2,
-  X,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { environmentsService } from '@/features/projects/api/environments.service';
@@ -21,6 +20,8 @@ import { getApiErrorMessage } from '@/shared/lib/api';
 import { DatabaseBackupsPanel } from '@/features/databases';
 import { useConfirm } from '@/shared/contexts/confirm-context';
 import { useServers } from '@/features/servers';
+import { Modal } from '@/shared/ui/modal';
+import { Button } from '@/shared/ui/button';
 import type { EnvName } from '@/features/projects/types/environment';
 
 const ENV_BADGE: Record<string, string> = {
@@ -76,94 +77,82 @@ function AddEnvDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="absolute inset-0" onClick={onClose} aria-hidden />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
-          <div>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Add an environment</h2>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">Create a deployment environment.</p>
-          </div>
-          <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]">
-            <X size={13} />
-          </button>
-        </div>
-
-        <div className="space-y-4 px-5 py-5">
-          {error && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">{error}</div>
-          )}
-
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Type d&apos;environnement</p>
-            <div className="grid grid-cols-2 gap-2">
-              {ENV_NAMES.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => setEnvName(name)}
-                  className={clsx(
-                    'rounded-xl border px-3 py-2.5 text-center text-xs font-bold uppercase tracking-wide transition',
-                    envName === name
-                      ? 'border-[var(--text-primary)] bg-[var(--hover)] text-[var(--text-primary)]'
-                      : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]',
-                  )}
-                >
-                  <span className={clsx('block rounded-full border px-2 py-0.5 text-[10px]', ENV_BADGE[name] ?? '')}>{name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Target VPS</p>
-            {servers.length === 0 ? (
-              <p className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-2 text-xs text-[var(--text-muted)]">
-                No servers yet — add one in Remote Servers, then attach it here.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-1.5">
-                {servers.map((s) => {
-                  const selected = serverIds.includes(s.id);
-                  return (
-                    <button key={s.id} type="button" onClick={() => toggleServer(s.id)}
-                      className={clsx(
-                        'flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition',
-                        selected
-                          ? 'border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]'
-                          : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]',
-                      )}>
-                      {selected ? <CheckCircle2 size={13} /> : <Server size={13} />}
-                      <span className="flex-1 truncate">{s.name}</span>
-                      <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{s.status}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] px-5 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
-          >
+    <Modal
+      open
+      onClose={onClose}
+      dismissable={!saving}
+      title="Add an environment"
+      description="Create a deployment environment."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancel
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => void handleCreate()}
-            disabled={saving}
-            className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-40"
+            loading={saving}
+            icon={saving ? undefined : <Plus size={13} />}
           >
-            {saving ? <><Loader2 size={13} className="animate-spin" /> Creating…</> : <><Plus size={13} /> Create</>}
-          </button>
+            {saving ? 'Creating…' : 'Create'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {error && (
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">{error}</div>
+        )}
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Environment type</p>
+          <div className="grid grid-cols-2 gap-2">
+            {ENV_NAMES.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setEnvName(name)}
+                className={clsx(
+                  'rounded-xl border px-3 py-2.5 text-center text-xs font-bold uppercase tracking-wide transition',
+                  envName === name
+                    ? 'border-[var(--text-primary)] bg-[var(--hover)] text-[var(--text-primary)]'
+                    : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]',
+                )}
+              >
+                <span className={clsx('block rounded-full border px-2 py-0.5 text-[10px]', ENV_BADGE[name] ?? '')}>{name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Target VPS</p>
+          {servers.length === 0 ? (
+            <p className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-2 text-xs text-[var(--text-muted)]">
+              No servers yet — add one in Remote Servers, then attach it here.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {servers.map((s) => {
+                const selected = serverIds.includes(s.id);
+                return (
+                  <button key={s.id} type="button" onClick={() => toggleServer(s.id)}
+                    className={clsx(
+                      'flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition',
+                      selected
+                        ? 'border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]'
+                        : 'border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]',
+                    )}>
+                    {selected ? <CheckCircle2 size={13} /> : <Server size={13} />}
+                    <span className="flex-1 truncate">{s.name}</span>
+                    <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{s.status}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
