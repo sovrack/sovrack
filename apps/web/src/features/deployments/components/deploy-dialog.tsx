@@ -8,9 +8,10 @@ import {
   Layers,
   Loader2,
   Rocket,
-  X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Modal } from '@/shared/ui/modal';
+import { Button } from '@/shared/ui/button';
 import { deploymentsService } from '@/features/deployments/api/deployments.service';
 import { environmentsService } from '@/features/projects';
 import { projectsService } from '@/features/projects';
@@ -212,22 +213,34 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
   const canDeploy = !loading && !submitting && envIds.length > 0 && issues.length === 0 && (ready || missing.length === 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="absolute inset-0" onClick={onClose} aria-hidden />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
-          <div>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Deploy</h2>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">Launch a new deployment</p>
-          </div>
-          <button type="button" onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]">
-            <X size={13} />
-          </button>
-        </div>
-
-        <div className="space-y-4 px-5 py-5">
+    <Modal
+      open={open}
+      onClose={onClose}
+      dismissable={!submitting}
+      title="Deploy"
+      description="Launch a new deployment"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          {missing.length > 0 && (
+            <Button variant="secondary" onClick={() => void handleSubmit()} disabled={!canDeploy}>
+              Deploy anyway
+            </Button>
+          )}
+          <Button
+            onClick={() => void handleSubmit()}
+            disabled={!canDeploy}
+            loading={submitting}
+            icon={submitting ? undefined : <Rocket size={14} />}
+          >
+            {submitting ? 'Deploying…' : envIds.length > 1 ? `Deploy to ${envIds.length} envs` : 'Deploy'}
+          </Button>
+        </>
+      }
+    >
+        <div className="space-y-4">
           {/* Success */}
           {success && (
             <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400">
@@ -425,36 +438,6 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
             <EnvVariablesPreview serviceEnvId={previewServiceEnvId} />
           ) : null}
         </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] px-5 py-4">
-          <>
-              <button type="button" onClick={onClose}
-                className="rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)]">
-                Cancel
-              </button>
-              {missing.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => void handleSubmit()}
-                  disabled={!canDeploy}
-                  className="flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-40"
-                >
-                  Deploy anyway
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => void handleSubmit()}
-                disabled={!canDeploy}
-                className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-40"
-              >
-                {submitting ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
-                {submitting ? 'Deploying…' : envIds.length > 1 ? `Deploy to ${envIds.length} envs` : 'Deploy'}
-              </button>
-          </>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
