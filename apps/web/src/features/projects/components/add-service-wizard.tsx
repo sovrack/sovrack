@@ -281,11 +281,20 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
                   key={k.kind}
                   type="button"
                   onClick={() => pickKind(k.kind)}
-                  className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4 text-left transition hover:border-[var(--text-muted)] hover:bg-[var(--hover)]"
+                  disabled={k.disabled}
+                  title={k.disabled ? k.hint : undefined}
+                  className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4 text-left transition enabled:hover:border-[var(--text-muted)] enabled:hover:bg-[var(--hover)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-secondary)]">{k.icon}</span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-[var(--text-primary)]">{k.label}</span>
+                    <span className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+                      {k.label}
+                      {k.badge && (
+                        <span className="rounded-full border border-[var(--border)] bg-[var(--hover)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                          {k.badge}
+                        </span>
+                      )}
+                    </span>
                     <span className="mt-0.5 block text-xs text-[var(--text-muted)]">{k.hint}</span>
                   </span>
                 </button>

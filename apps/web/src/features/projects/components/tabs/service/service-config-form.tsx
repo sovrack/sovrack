@@ -13,10 +13,13 @@ import type { SourceProviderOption } from '@/features/projects/types/project';
 // Build packs proposés à l'utilisateur. BUILDPACK (Cloud Native Buildpacks)
 // est volontairement omis : non implémenté côté moteur (pas de `pack build`) ;
 // Nixpacks couvre le même besoin « build sans Dockerfile » et fonctionne.
+// DOCKER_COMPOSE est également omis : le moteur de déploiement ne déploie qu'un
+// seul conteneur (pas d'expansion d'un stack compose en N services) — l'offrir
+// créerait un service qui ne se déploie jamais. À réactiver quand l'exécuteur
+// compose multi-conteneurs sera implémenté.
 const BUILD_PACKS: { value: BuildPack; label: string }[] = [
   { value: 'DOCKERFILE', label: 'Dockerfile' },
   { value: 'NIXPACKS', label: 'Nixpacks' },
-  { value: 'DOCKER_COMPOSE', label: 'Docker Compose' },
   { value: 'STATIC', label: 'Static site' },
   { value: 'NONE', label: 'None' },
 ];
