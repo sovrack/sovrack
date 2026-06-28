@@ -205,6 +205,13 @@ export function AddProviderDialog({
     }
   };
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const displayStep = step - stepOffset;
@@ -214,6 +221,8 @@ export function AddProviderDialog({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
       />
 
       {/* Panel */}
@@ -235,6 +244,7 @@ export function AddProviderDialog({
             <button
               type="button"
               onClick={onClose}
+              aria-label="Close"
               className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
             >
               <X size={13} />
