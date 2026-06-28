@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock, Loader2, Terminal, Wifi, WifiOff, Wrench, X, XCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { deploymentsService } from '@/features/deployments';
@@ -63,6 +63,15 @@ export function DeploymentLogsDialog({ open, deploymentId, initialStatus, onClos
     }
   }, [logs, open]);
 
+  // Close on Escape (parity with the shared <Modal>).
+  const handleClose = useCallback(() => onClose(), [onClose]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, handleClose]);
+
   if (!open || !deploymentId) return null;
 
   const currentStatus = status ?? initialStatus;
@@ -71,7 +80,7 @@ export function DeploymentLogsDialog({ open, deploymentId, initialStatus, onClos
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4" role="dialog" aria-modal="true">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} aria-hidden />
 
       {/* Panel */}
       <div className="relative z-10 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl"
@@ -119,7 +128,7 @@ export function DeploymentLogsDialog({ open, deploymentId, initialStatus, onClos
                   : <><WifiOff size={10} /> Connecting…</>}
               </div>
             )}
-            <button type="button" onClick={onClose}
+            <button type="button" onClick={onClose} aria-label="Close"
               className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-muted)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]">
               <X size={15} />
             </button>
@@ -133,7 +142,7 @@ export function DeploymentLogsDialog({ open, deploymentId, initialStatus, onClos
             <div className="text-xs text-amber-300">
               <p className="font-semibold">Nixpacks is not installed on this server.</p>
               <p className="mt-0.5 text-amber-400/80">
-                Ouvre <strong>Deploy → Prepare server</strong> et coche <strong>Nixpacks</strong>, ou change le Build Source en <strong>Dockerfile — Local</strong> dans Configuration → Build.
+                Open <strong>Deploy → Prepare server</strong> and check <strong>Nixpacks</strong>, or switch the Build Source to <strong>Dockerfile — Local</strong> in Configuration → Build.
               </p>
             </div>
             <AlertTriangle size={13} className="ml-auto mt-0.5 shrink-0 text-amber-500" />
