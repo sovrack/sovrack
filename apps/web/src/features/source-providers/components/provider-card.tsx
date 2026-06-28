@@ -96,7 +96,8 @@ function StatusSection({ provider }: { provider: GitlabProvider }) {
       )}
 
       {/* Self-hosted */}
-      {provider.gitlabUrl !== 'https://gitlab.com' && (
+      {provider.providerUrl !==
+        PROVIDER_META[provider.providerType ?? 'GITLAB'].defaultUrl && (
         <Chip color="default">Self-hosted</Chip>
       )}
     </div>
@@ -163,7 +164,7 @@ export function ProviderCard({
   const providerType = provider.providerType ?? 'GITLAB';
   const meta = PROVIDER_META[providerType];
   const defaultUrl = meta.defaultUrl;
-  const isSelfHosted = provider.gitlabUrl !== defaultUrl;
+  const isSelfHosted = provider.providerUrl !== defaultUrl;
   const oauthReady = Boolean(provider.applicationId && provider.applicationSecretConfigured);
   const isOAuthExpired =
     provider.oauthTokenConfigured &&
@@ -189,12 +190,12 @@ export function ProviderCard({
           </div>
 
           <a
-            href={provider.gitlabUrl}
+            href={provider.providerUrl}
             target="_blank"
             rel="noreferrer"
             className="mt-0.5 flex items-center gap-1 font-mono text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
-            {provider.gitlabUrl}
+            {provider.providerUrl}
             <ExternalLink size={10} />
           </a>
 

@@ -31,7 +31,8 @@ export type GitlabProvider = {
   name: string;
   type: 'GITLAB';
   providerType?: GitProviderType;
-  gitlabUrl: string;
+  // Canonical name matching the backend GitProviderConfig.providerUrl field.
+  providerUrl: string;
   internalUrl: string;
   redirectUri: string;
   applicationId: string;
@@ -48,7 +49,8 @@ export type GitlabProvider = {
 
 export type CreateGitlabProviderPayload = {
   name: string;
-  gitlabUrl: string;
+  // Canonical name matching the backend GitProviderConfig.providerUrl field.
+  providerUrl: string;
   internalUrl?: string;
   redirectUri?: string;
   applicationId?: string;

@@ -34,7 +34,7 @@ type DialogMode = 'create' | 'edit';
 export type ProviderFormData = {
   // Step 2 — Instance
   name: string;
-  gitlabUrl: string;
+  providerUrl: string;
   internalUrl: string;
   isDefault: boolean;
   // Step 4 — OAuth
@@ -89,7 +89,7 @@ export function AddProviderDialog({
 
   const [form, setForm] = useState<ProviderFormData>({
     name: '',
-    gitlabUrl: 'https://gitlab.com',
+    providerUrl: 'https://gitlab.com',
     internalUrl: '',
     isDefault: false,
     applicationId: '',
@@ -112,7 +112,7 @@ export function AddProviderDialog({
           : selectedType === 'GITEA'
             ? ''
             : 'https://gitlab.com';
-      setForm((prev) => ({ ...prev, gitlabUrl: defaultUrl }));
+      setForm((prev) => ({ ...prev, providerUrl: defaultUrl }));
     }
   }, [selectedType, isEdit, step]);
 
@@ -121,7 +121,7 @@ export function AddProviderDialog({
     if (isEdit && existingProvider) {
       setForm({
         name: existingProvider.name,
-        gitlabUrl: existingProvider.gitlabUrl,
+        providerUrl: existingProvider.providerUrl,
         internalUrl: existingProvider.internalUrl,
         isDefault: existingProvider.isDefault,
         applicationId: existingProvider.applicationId,
@@ -165,9 +165,9 @@ export function AddProviderDialog({
 
   const canProceed = useMemo(() => {
     if (step === 1) return PROVIDER_META[selectedType]?.available === true;
-    if (step === 2) return form.name.trim().length > 0 && form.gitlabUrl.trim().length > 0;
+    if (step === 2) return form.name.trim().length > 0 && form.providerUrl.trim().length > 0;
     return true;
-  }, [step, selectedType, form.name, form.gitlabUrl]);
+  }, [step, selectedType, form.name, form.providerUrl]);
 
   const showOAuth = authChoice === 'oauth' || authChoice === 'both';
   const showPAT = authChoice === 'pat' || authChoice === 'both';
@@ -176,7 +176,7 @@ export function AddProviderDialog({
     if (isEdit && existingProvider) {
       const payload: UpdateGitlabProviderPayload = {
         name: form.name.trim(),
-        gitlabUrl: form.gitlabUrl.trim(),
+        providerUrl: form.providerUrl.trim(),
         internalUrl: form.internalUrl.trim(),
         redirectUri: effectiveRedirectUri,
         applicationId: form.applicationId.trim(),
@@ -189,7 +189,7 @@ export function AddProviderDialog({
     } else {
       const payload: CreateGitlabProviderPayload = {
         name: form.name.trim(),
-        gitlabUrl: form.gitlabUrl.trim(),
+        providerUrl: form.providerUrl.trim(),
         internalUrl: form.internalUrl.trim(),
         redirectUri: effectiveRedirectUri,
         applicationId: form.applicationId.trim(),
@@ -358,8 +358,8 @@ export function AddProviderDialog({
                       : 'Use https://gitlab.com for the cloud version, or your self-hosted instance URL.'}
               >
                 <TextInput
-                  value={form.gitlabUrl}
-                  onChange={(v) => set('gitlabUrl', v)}
+                  value={form.providerUrl}
+                  onChange={(v) => set('providerUrl', v)}
                   placeholder="https://gitlab.com"
                 />
               </Field>

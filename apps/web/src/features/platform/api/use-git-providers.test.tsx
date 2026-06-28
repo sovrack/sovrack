@@ -20,7 +20,7 @@ const aProvider = (over: Partial<GitlabProvider> = {}): GitlabProvider => ({
   id: 'gp1',
   name: 'Main',
   type: 'GITLAB',
-  gitlabUrl: 'https://gitlab.com',
+  providerUrl: 'https://gitlab.com',
   internalUrl: 'https://gitlab.com',
   redirectUri: '',
   applicationId: '',
