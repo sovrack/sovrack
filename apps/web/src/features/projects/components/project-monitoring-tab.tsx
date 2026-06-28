@@ -60,7 +60,7 @@ function StackPill({
   return (
     <span className={`flex items-center gap-1 text-xs ${tone}`}>
       <Gauge size={12} /> {label}{' '}
-      {!configured ? '·non installé' : reachable ? '·up' : '·down'}
+      {!configured ? '·not installed' : reachable ? '·up' : '·down'}
     </span>
   );
 }
@@ -177,7 +177,7 @@ export function ProjectMonitoringTab({
 
       {services.length === 0 ? (
         <p className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-8 text-center text-sm text-[var(--text-muted)]">
-          Aucun service à monitorer. Ajoutez un service au projet.
+          No service to monitor. Add a service to the project.
         </p>
       ) : (
         services.map((s) => {
@@ -201,7 +201,7 @@ export function ProjectMonitoringTab({
                     {s.name}
                   </p>
                   <p className="text-xs text-[var(--text-muted)]">
-                    {serving ? 'Live' : latest ? 'Inactif' : 'Jamais déployé'}
+                    {serving ? 'Live' : latest ? 'Idle' : 'Never deployed'}
                     {s.type ? ` · ${s.type}` : ''}
                   </p>
                 </div>
@@ -211,9 +211,9 @@ export function ProjectMonitoringTab({
                 <Link
                   href={`/projects/${projectId}/services/${s.id}`}
                   className="flex items-center gap-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
-                  title="Détail du service"
+                  title="Service details"
                 >
-                  Détail <ChevronRight size={12} />
+                  Details <ChevronRight size={12} />
                 </Link>
               </div>
               {/* Courbe inline (historique + marqueurs de déploiement) */}

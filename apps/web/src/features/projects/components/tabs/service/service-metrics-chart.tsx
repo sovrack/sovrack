@@ -63,22 +63,21 @@ export function ServiceMetricsChart({
 
   return (
     <SectionCard
-      title="Historique (1 h)"
-      description="CPU & mémoire du conteneur dans le temps. Les lignes verticales = déploiements."
+      title="History (1 h)"
+      description="Container CPU & memory over time. Vertical lines = deployments."
     >
       {isLoading ? (
         <div className="flex items-center gap-2 py-10 text-sm text-[var(--text-secondary)]">
-          <Loader2 size={16} className="animate-spin" /> Chargement…
+          <Loader2 size={16} className="animate-spin" /> Loading…
         </div>
       ) : !data?.configured ? (
         <p className="py-8 text-center text-sm text-[var(--text-muted)]">
-          Historique indisponible — installez la stack Prometheus (Automation)
-          pour activer les courbes. Les métriques live restent disponibles
-          ci-dessus.
+          History unavailable — install the Prometheus stack (Automation) to
+          enable the charts. Live metrics remain available above.
         </p>
       ) : points.length === 0 ? (
         <p className="py-8 text-center text-sm text-[var(--text-muted)]">
-          Pas encore de points de métriques pour ce service.
+          No metric points for this service yet.
         </p>
       ) : (
         <div className="h-64 w-full">
@@ -116,7 +115,7 @@ export function ServiceMetricsChart({
                   name === 'cpu'
                     ? `${Number(value).toFixed(1)} %`
                     : `${Number(value).toFixed(0)} MB`,
-                  name === 'cpu' ? 'CPU' : 'Mémoire',
+                  name === 'cpu' ? 'CPU' : 'Memory',
                 ]}
               />
               <Line

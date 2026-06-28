@@ -52,16 +52,16 @@ export function ServiceWebhook({ projectId, serviceId }: { projectId: string; se
   return (
     <SectionCard
       title="Auto-deploy (Webhook)"
-      description="Un push (pipeline réussi) sur le repo déclenche le déploiement. 1 service = 1 webhook ; la branche choisit l'environnement."
+      description="A push (successful pipeline) on the repo triggers the deployment. 1 service = 1 webhook; the branch picks the environment."
     >
       {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
       {loading ? (
-        <p className="text-sm text-[var(--text-muted)]">Chargement…</p>
+        <p className="text-sm text-[var(--text-muted)]">Loading…</p>
       ) : !status?.configured ? (
         <div className="space-y-3">
-          <p className="text-sm text-[var(--text-secondary)]">Aucun webhook configuré pour ce service.</p>
+          <p className="text-sm text-[var(--text-secondary)]">No webhook configured for this service.</p>
           <button type="button" onClick={() => void configure()} disabled={busy} className={primaryBtn}>
-            {busy ? <Loader2 size={14} className="animate-spin" /> : <Webhook size={14} />} Activer le webhook
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Webhook size={14} />} Enable webhook
           </button>
         </div>
       ) : (
@@ -70,38 +70,38 @@ export function ServiceWebhook({ projectId, serviceId }: { projectId: string; se
             <span className={status.isActive
               ? 'rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400'
               : 'rounded-full border border-[var(--border)] bg-[var(--hover)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]'}>
-              {status.isActive ? 'Actif' : 'En pause'}
+              {status.isActive ? 'Active' : 'Paused'}
             </span>
             {status.provider && <span className="text-xs uppercase tracking-wide text-[var(--text-muted)]">{status.provider}</span>}
             {status.lastEventAt && (
-              <span className="text-xs text-[var(--text-muted)]">Dernier event : {new Date(status.lastEventAt).toLocaleString()}</span>
+              <span className="text-xs text-[var(--text-muted)]">Last event: {new Date(status.lastEventAt).toLocaleString()}</span>
             )}
           </div>
 
           <div>
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-              URL du webhook — à coller dans GitLab → Settings → Webhooks (événement « Pipeline »)
+              Webhook URL — paste it in GitLab → Settings → Webhooks (Pipeline event)
             </label>
             <div className="flex gap-2">
               <input readOnly value={status.webhookUrl ?? ''}
                 className="w-full flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 font-mono text-xs text-[var(--text-primary)] outline-none" />
               <button type="button" onClick={() => void copy(status.webhookUrl ?? '')} className={ghostBtn}>
-                {copied ? 'Copié ✓' : <><Copy size={14} /> Copier</>}
+                {copied ? 'Copied ✓' : <><Copy size={14} /> Copy</>}
               </button>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void toggleActive()} disabled={busy} className={ghostBtn}>
-              <Power size={14} /> {status.isActive ? 'Mettre en pause' : 'Réactiver'}
+              <Power size={14} /> {status.isActive ? 'Pause' : 'Resume'}
             </button>
             <button type="button" onClick={() => void configure()} disabled={busy} className={ghostBtn}>
-              <RefreshCw size={14} /> Ré-enregistrer sur le repo
+              <RefreshCw size={14} /> Re-register on the repo
             </button>
           </div>
 
           <p className="text-xs text-[var(--text-muted)]">
-            Activez ensuite <strong>Auto-deploy</strong> + la branche par environnement dans l&apos;onglet <strong>Environments &amp; variables</strong>.
+            Then enable <strong>Auto-deploy</strong> + the per-environment branch in the <strong>Environments &amp; variables</strong> tab.
           </p>
         </div>
       )}

@@ -54,14 +54,14 @@ export function ServiceDomains({
 
   return (
     <SectionCard
-      title="Domaines (HTTPS)"
-      description={`Rattachez un domaine à ce service${envName ? ` (${envName})` : ''}. Au prochain déploiement, Traefik route ${'<domaine>'} → le conteneur, en HTTPS (Let's Encrypt).`}
+      title="Domains (HTTPS)"
+      description={`Attach a domain to this service${envName ? ` (${envName})` : ''}. On the next deployment, Traefik routes ${'<domain>'} → the container over HTTPS (Let's Encrypt).`}
     >
       {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
 
       {!serviceEnvId ? (
         <p className="text-sm text-[var(--text-muted)]">
-          Liez d&apos;abord ce service à un environnement (onglet « Environments &amp; variables »).
+          Link this service to an environment first (the “Environments &amp; variables” tab).
         </p>
       ) : (
         <div className="space-y-3">
@@ -70,19 +70,19 @@ export function ServiceDomains({
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') void add(); }}
-              placeholder="app.mondomaine.com"
+              placeholder="app.mydomain.com"
               className="w-full flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 font-mono text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]"
             />
             <button type="button" onClick={() => void add()} disabled={adding || !name.trim()}
               className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50">
-              {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Ajouter
+              {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Add
             </button>
           </div>
 
           {loading ? (
-            <p className="text-sm text-[var(--text-muted)]">Chargement…</p>
+            <p className="text-sm text-[var(--text-muted)]">Loading…</p>
           ) : domains.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">Aucun domaine. Ajoutez-en un ci-dessus.</p>
+            <p className="text-sm text-[var(--text-muted)]">No domains yet. Add one above.</p>
           ) : (
             <ul className="space-y-2">
               {domains.map((d) => (
@@ -94,12 +94,12 @@ export function ServiceDomains({
                       {d.name} <ExternalLink size={11} />
                     </a>
                     {d.verified && (
-                      <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">vérifié</span>
+                      <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">verified</span>
                     )}
                   </span>
                   <button type="button" onClick={() => void remove(d.id)} disabled={busyId === d.id}
                     className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-red-500/20 text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
-                    aria-label={`Supprimer ${d.name}`}>
+                    aria-label={`Delete ${d.name}`}>
                     {busyId === d.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                   </button>
                 </li>
@@ -108,8 +108,8 @@ export function ServiceDomains({
           )}
 
           <p className="text-xs text-[var(--text-muted)]">
-            Le domaine doit pointer (DNS A/CNAME) vers le serveur de l&apos;environnement, et la
-            plateforme doit être joignable publiquement pour le certificat Let&apos;s Encrypt.
+            The domain must point (DNS A/CNAME) to the environment&apos;s server, and the
+            platform must be publicly reachable for the Let&apos;s Encrypt certificate.
           </p>
         </div>
       )}

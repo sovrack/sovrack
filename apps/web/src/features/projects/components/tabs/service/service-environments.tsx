@@ -53,19 +53,19 @@ export function ServiceEnvironments({
   return (
     <SectionCard
       title="Environments & variables"
-      description="Ce service tourne dans chaque environnement lié (1 lien = 1 instance déployable). Chaque instance a SES propres variables."
+      description="This service runs in every linked environment (1 link = 1 deployable instance). Each instance has ITS OWN variables."
     >
       {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
       {environments.length === 0 ? (
         <p className="text-sm text-[var(--text-muted)]">
-          Aucun environnement — créez-en un dans l&apos;onglet{' '}
+          No environment — create one in the project&apos;s{' '}
           <Link
             href={`/projects/${projectId}?tab=environments`}
             className="underline hover:text-[var(--text-primary)]"
           >
             Environments
           </Link>{' '}
-          du projet.
+          tab.
         </p>
       ) : (
         <div className="space-y-2">
@@ -87,7 +87,7 @@ export function ServiceEnvironments({
                     </span>
                     {linked && (
                       <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">
-                        Lié
+                        Linked
                       </span>
                     )}
                   </span>
@@ -122,7 +122,7 @@ export function ServiceEnvironments({
                       ) : (
                         <Plus size={12} />
                       )}
-                      {linked ? 'Détacher' : 'Ajouter à cet environnement'}
+                      {linked ? 'Detach' : 'Add to this environment'}
                     </button>
                   </div>
                 </div>
@@ -272,7 +272,7 @@ function EnvVarsEditor({
       const secretRows = secrets.filter((s) => s.key.trim());
       if (secretRows.length) payload.secretsEnv = kvToJson(secretRows);
       await environmentsService.updateServiceLink(projectId, serviceEnvId, payload);
-      setMsg('Enregistré ✓');
+      setMsg('Saved ✓');
       setSecrets([]);
     } catch (e) {
       setMsg(getApiErrorMessage(e));
@@ -287,7 +287,7 @@ function EnvVarsEditor({
   return (
     <div className="space-y-3 border-t border-[var(--border)] bg-[var(--bg-app)]/40 px-3 py-3">
       {loading ? (
-        <p className="text-xs text-[var(--text-muted)]">Chargement…</p>
+        <p className="text-xs text-[var(--text-muted)]">Loading…</p>
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2">
@@ -297,10 +297,10 @@ function EnvVarsEditor({
                 checked={autoDeploy}
                 onChange={(e) => setAutoDeploy(e.target.checked)}
               />
-              Auto-deploy sur push
+              Auto-deploy on push
             </label>
             <span className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-              branche
+              branch
               <input
                 value={autoBranch}
                 onChange={(e) => setAutoBranch(e.target.value)}
@@ -316,11 +316,11 @@ function EnvVarsEditor({
           </div>
           <div>
             <label className={lbl}>
-              Secrets (chiffrés au repos · écriture seule)
+              Secrets (encrypted at rest · write-only)
             </label>
             <KvRows rows={secrets} setRows={setSecrets} secret />
             <p className="mt-1 text-[10px] text-[var(--text-muted)]">
-              Laisser vide pour ne pas changer les secrets existants.
+              Leave empty to keep the existing secrets.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -335,7 +335,7 @@ function EnvVarsEditor({
               ) : (
                 <Save size={12} />
               )}{' '}
-              Enregistrer
+              Save
             </button>
             {msg && <span className="text-xs text-[var(--text-secondary)]">{msg}</span>}
           </div>
