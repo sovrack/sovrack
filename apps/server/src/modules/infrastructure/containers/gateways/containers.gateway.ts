@@ -10,13 +10,17 @@ import {
 import type { Server, Socket } from 'socket.io';
 import { DockerApiService } from '../../../../adapters/container-runtime/docker-api.service';
 import { ContainersService } from '../containers.service';
+import { resolveGatewayCorsOrigins } from '../../../../shared/http/cors-origins.util';
 
 type LogStreamPayload = {
   containerId: string;
   tail?: number;
 };
 
-@WebSocketGateway({ namespace: '/containers', cors: { origin: '*' } })
+@WebSocketGateway({
+  namespace: '/containers',
+  cors: { origin: resolveGatewayCorsOrigins(), credentials: true },
+})
 export class ContainersGateway implements OnGatewayDisconnect {
   @WebSocketServer() server!: Server;
   private readonly logger = new Logger(ContainersGateway.name);
