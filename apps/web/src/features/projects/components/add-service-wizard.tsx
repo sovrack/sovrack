@@ -98,6 +98,14 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
       .catch(() => setProviders([]));
   }, [open, reset]);
 
+  // Close on Escape (parity with the shared <Modal>).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const pickKind = (k: ServiceKind) => {
@@ -249,7 +257,7 @@ export function AddServiceWizard({ projectId, open, onClose, onCreated }: Props)
                 {step === 1 ? 'Choose a service type' : step === 2 ? `Configure ${kindLabel}` : 'Review & create'}
               </h2>
             </div>
-            <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]">
+            <button type="button" onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]">
               <X size={15} />
             </button>
           </div>

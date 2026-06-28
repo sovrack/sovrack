@@ -206,19 +206,27 @@ export function ProjectSetupWizard({ open, onClose, onCreated }: ProjectSetupWiz
     }
   };
 
+  // Close on Escape (parity with the shared <Modal>) — disabled while creating.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !creating) onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, creating, onClose]);
+
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={creating ? undefined : onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={creating ? undefined : onClose} aria-hidden />
       <div className="relative z-10 flex w-full max-w-lg flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl" style={{ maxHeight: '92vh' }}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
           <div>
             <h2 className="text-base font-semibold text-[var(--text-primary)]">New project</h2>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">Un conteneur pour vos applications</p>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">A container for your applications</p>
           </div>
-          <button type="button" onClick={onClose} disabled={creating} className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--hover)] disabled:opacity-40">
+          <button type="button" onClick={onClose} disabled={creating} aria-label="Close" className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--hover)] disabled:opacity-40">
             <X size={13} />
           </button>
         </div>
