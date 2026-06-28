@@ -31,6 +31,24 @@ import {
 } from '../../../shared/logger/log-context';
 import { randomUUID } from 'crypto';
 
+/** Subset of Deployment.specSnapshot the executor consumes (see deployments-create). */
+interface RuntimeSpecSnapshot {
+  port?: number | null;
+  startCommand?: string | null;
+  healthcheckPath?: string | null;
+  cpuLimit?: number | null;
+  memLimitMb?: number | null;
+}
+
+/** Runtime config actually applied to the container. */
+interface ResolvedRuntimeConfig {
+  port: number;
+  startCommand: string | null;
+  healthcheckPath: string | null;
+  cpuLimit: number | null;
+  memLimitMb: number | null;
+}
+
 @Injectable()
 export class DockerDeployExecutorService {
   private readonly logger = new Logger(DockerDeployExecutorService.name);
@@ -52,6 +70,50 @@ export class DockerDeployExecutorService {
     private readonly deployRouting: DeployRoutingService,
     private readonly containerLifecycle: ContainerLifecycleService,
   ) {}
+
+  /**
+   * Resolve the runtime config to apply to the container.
+   *
+   * For a ROLLBACK or AUTO-HEAL deployment we prefer the FROZEN specSnapshot
+   * captured at the original deploy (true point-in-time restore: same port,
+   * start command, healthcheck and resource limits as the release being
+   * restored), falling back to live config field-by-field if the snapshot is
+   * missing a value. A normal deploy has no snapshot yet, so it uses live
+   * config unchanged — behaviour identical to before this method existed.
+   *
+   * Env vars are deliberately NOT taken from the snapshot: secrets must never be
+   * stored there, so env always comes from live config (resolveDeploymentEnv).
+   */
+  private resolveRuntimeConfig(deployment: {
+    isRollback: boolean;
+    isAutoHealed: boolean;
+    specSnapshot: Prisma.JsonValue;
+    service: {
+      port: number | null;
+      startCommand: string | null;
+      healthcheckPath: string | null;
+      cpuLimit: number | null;
+      memLimitMb: number | null;
+    } | null;
+  }): ResolvedRuntimeConfig {
+    const usePinned =
+      (deployment.isRollback || deployment.isAutoHealed) &&
+      deployment.specSnapshot != null &&
+      typeof deployment.specSnapshot === 'object' &&
+      !Array.isArray(deployment.specSnapshot);
+    const snap = usePinned
+      ? (deployment.specSnapshot as RuntimeSpecSnapshot)
+      : null;
+    const service = deployment.service;
+    return {
+      port: snap?.port ?? service?.port ?? 3000,
+      startCommand: snap?.startCommand ?? service?.startCommand ?? null,
+      healthcheckPath:
+        snap?.healthcheckPath ?? service?.healthcheckPath ?? null,
+      cpuLimit: snap?.cpuLimit ?? service?.cpuLimit ?? null,
+      memLimitMb: snap?.memLimitMb ?? service?.memLimitMb ?? null,
+    };
+  }
 
   private buildConditions(
     type: 'Progressing' | 'Ready' | 'Degraded',
@@ -207,7 +269,10 @@ export class DockerDeployExecutorService {
     // Alias DNS stable (= nom du service) : joignable par les autres conteneurs
     // du projet via un nom fixe, indépendant de l'ID de déploiement.
     const serviceAlias = buildServiceAlias(serviceName);
-    let servicePort = deployment.service?.port ?? 3000;
+    // Rollback/auto-heal restore the frozen specSnapshot config; normal deploys
+    // use live config (unchanged behaviour). See resolveRuntimeConfig.
+    const runtime = this.resolveRuntimeConfig(deployment);
+    let servicePort = runtime.port;
     const autoDbEnv =
       await this.deploymentEnv.resolveAutoWiredDbEnv(deployment);
     const {
@@ -393,7 +458,7 @@ export class DockerDeployExecutorService {
           publishPort,
           useTraefik,
           serviceType: deployment.service?.type,
-          startCommand: deployment.service?.startCommand,
+          startCommand: runtime.startCommand,
           stopTimeout,
           binds: [
             ...(dbVolumeName && dbVolumePath
@@ -403,7 +468,10 @@ export class DockerDeployExecutorService {
           ],
           networkMode: projectNetwork,
           networkAlias: serviceAlias,
-          resourceLimits: deployment.service,
+          resourceLimits: {
+            cpuLimit: runtime.cpuLimit,
+            memLimitMb: runtime.memLimitMb,
+          },
         }),
       );
       newContainerId = container.id;
@@ -434,7 +502,7 @@ export class DockerDeployExecutorService {
         serverHost: server.host,
         publishPort,
         useTraefik,
-        healthcheckPath: deployment.service?.healthcheckPath ?? null,
+        healthcheckPath: runtime.healthcheckPath,
         deploymentId: deployment.id,
       });
 
