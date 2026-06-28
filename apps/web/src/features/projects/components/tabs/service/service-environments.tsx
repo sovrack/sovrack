@@ -215,7 +215,7 @@ function KvRows({
         onClick={() => setRows([...rows, { key: '', value: '' }])}
         className="inline-flex items-center gap-1 rounded-md border border-dashed border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
       >
-        <Plus size={11} /> Ajouter une variable
+        <Plus size={11} /> Add a variable
       </button>
     </div>
   );

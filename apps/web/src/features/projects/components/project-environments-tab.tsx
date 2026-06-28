@@ -257,8 +257,8 @@ export function ProjectEnvironmentsTab({ projectId, onChanged, onDeploy, compact
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-400"
-                    title="Liez un serveur (actif et vérifié) pour pouvoir déployer.">
-                    <AlertTriangle size={11} /> Aucun serveur lié
+                    title="Link a server (active and verified) to be able to deploy.">
+                    <AlertTriangle size={11} /> No server linked
                   </span>
                 )}
               </div>

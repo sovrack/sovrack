@@ -248,7 +248,7 @@ export function ServiceConfigForm({
                   onChange={(e) => setRegistryTag(e.target.value)} />
               </div>
               <div className="sm:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-xs text-[var(--text-muted)]">
-                En mode <span className="font-semibold text-[var(--text-secondary)]">Registry</span>, l’image est tirée (pull) depuis le registre au déploiement. Laisse vide pour la <span className="font-semibold">dériver automatiquement</span> de la CI ; renseigne-la pour fixer une image précise. Identifiants du registre dans <span className="font-semibold">Settings → Registry</span>.
+                In <span className="font-semibold text-[var(--text-secondary)]">Registry</span> mode, the image is pulled from the registry at deploy time. Leave empty to <span className="font-semibold">derive it automatically</span> from CI; set it to pin a specific image. Registry credentials live in <span className="font-semibold">Settings → Registry</span>.
               </div>
             </>
           )}

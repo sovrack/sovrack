@@ -167,7 +167,7 @@ export default function DeploymentDetailPage({ params }: { params: Promise<{ id:
 
       {/* Métadonnées */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-        <p className="mb-3 text-sm font-semibold text-[var(--text-primary)]">Détails</p>
+        <p className="mb-3 text-sm font-semibold text-[var(--text-primary)]">Details</p>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
           {meta.map((m) => (
             <div key={m.label}>

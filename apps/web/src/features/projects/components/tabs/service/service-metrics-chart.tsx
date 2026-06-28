@@ -153,10 +153,10 @@ export function ServiceMetricsChart({
               <span className="h-2 w-2 rounded-full bg-green-500" /> CPU %
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-blue-500" /> Mémoire (MB)
+              <span className="h-2 w-2 rounded-full bg-blue-500" /> Memory (MB)
             </span>
             <span className="flex items-center gap-1">
-              <span className="text-[var(--text-muted)]">⋮</span> déploiement
+              <span className="text-[var(--text-muted)]">⋮</span> deployment
             </span>
           </div>
         </div>

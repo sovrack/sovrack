@@ -196,7 +196,7 @@ export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props
         <div className="flex-1 overflow-y-auto bg-zinc-950 p-4 font-mono text-xs leading-relaxed">
           {loading && !info && (
             <div className="flex items-center gap-2 text-[var(--text-muted)]">
-              <Loader2 size={12} className="animate-spin" /> Connexion SSH et récupération des logs…
+              <Loader2 size={12} className="animate-spin" /> SSH connection and fetching logs…
             </div>
           )}
           {!loading && info && !info.logs && (
