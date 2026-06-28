@@ -21,7 +21,7 @@ import { usePagination } from '@/shared/hooks/use-pagination';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { useToasts } from '@/shared/hooks/use-toasts';
 import { UserCreateDialog } from '@/features/users/components/user-create-dialog';
-import { TeamCreateDialog } from '@/features/users/components/team-create-dialog';
+import { TeamCreateDialog } from '@/features/teams';
 import { usersService } from '@/features/users/api/users.service';
 import { teamsService } from '@/features/teams/api/teams.service';
 import { getApiErrorMessage } from '@/shared/lib/api';

@@ -13,7 +13,7 @@ import { getApiErrorMessage } from '@/shared/lib/api';
 import { DeploymentStatusBadge } from '@/features/deployments/components/deployment-status-badge';
 import { DeploymentLogsDialog } from '@/features/projects/components/tabs/runs/deployment-logs-dialog';
 import { DeploymentContainerDialog } from '@/features/deployments/components/deployment-container-dialog';
-import { DeploymentCreateDialog } from '@/features/deployments/components/deployment-create-dialog';
+import { DeployDialog } from '@/features/deployments';
 import { resolveDeploymentUrl, timeAgo, dur } from '@/features/deployments/utils';
 
 /**
@@ -209,14 +209,16 @@ export default function DeploymentDetailPage({ params }: { params: Promise<{ id:
       {/* Dialogs */}
       <DeploymentLogsDialog open={logsOpen} deploymentId={logsOpen ? dep.id : null} initialStatus={dep.status} onClose={() => setLogsOpen(false)} />
       <DeploymentContainerDialog open={containerOpen} deploymentId={containerOpen ? dep.id : null} onClose={() => setContainerOpen(false)} />
-      <DeploymentCreateDialog
-        open={redeployOpen}
-        initialProjectId={dep.project?.id ?? ''}
-        initialEnvironmentId={dep.environment?.id}
-        initialBranch={dep.branch}
-        onClose={() => setRedeployOpen(false)}
-        onCreated={async () => { setRedeployOpen(false); await refresh(); }}
-      />
+      {dep.project?.id && (
+        <DeployDialog
+          open={redeployOpen}
+          projectId={dep.project.id}
+          initialEnvironmentId={dep.environment?.id}
+          initialBranch={dep.branch}
+          onClose={() => setRedeployOpen(false)}
+          onCreated={() => { setRedeployOpen(false); void refresh(); }}
+        />
+      )}
     </div>
   );
 }

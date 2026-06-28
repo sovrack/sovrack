@@ -7,8 +7,8 @@ import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Modal } from '@/shared/ui/modal';
 import { getApiErrorMessage } from '@/shared/lib/api';
-import { teamsService } from '@/features/teams';
-import type { Team } from '@/features/teams';
+import { teamsService } from '@/features/teams/api/teams.service';
+import type { Team } from '@/features/teams/types/team';
 
 const createTeamSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),

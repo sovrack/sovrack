@@ -3,7 +3,6 @@
 // jamais depuis ses fichiers internes (frontière enforced en Phase 4).
 
 // Composants
-export { DeploymentCreateDialog } from './components/deployment-create-dialog';
 export { DeploymentStatusBadge } from './components/deployment-status-badge';
 export { DeploymentContainerDialog } from './components/deployment-container-dialog';
 export { DeployDialog } from './components/deploy-dialog';

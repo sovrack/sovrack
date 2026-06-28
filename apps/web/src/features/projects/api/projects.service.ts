@@ -17,6 +17,34 @@ import type {
   ImportGitlabGroupPayload,
 } from '@/features/projects/types/project';
 
+/** Statut de la release courante d'une cellule (déploiement). */
+export type MatrixCellStatus =
+  | 'PENDING'
+  | 'RUNNING'
+  | 'SUCCESS'
+  | 'FAILED'
+  | 'CANCELED'
+  | null;
+
+/** Une cellule de la matrice = un ServiceEnvironment (service × env). */
+export interface ProjectMatrixCell {
+  serviceId: string;
+  environmentId: string;
+  serviceEnvId: string;
+  currentDeploymentId: string | null;
+  status: MatrixCellStatus;
+  /** Config désirée ≠ config déployée (generation > observedGeneration). */
+  outOfSync: boolean;
+  lastDeployedAt: string | null;
+}
+
+/** Matrice de déploiement d'un projet : services (lignes) × env (colonnes). */
+export interface ProjectMatrix {
+  services: { id: string; name: string; type: string }[];
+  environments: { id: string; name: string; isProtected: boolean }[];
+  cells: ProjectMatrixCell[];
+}
+
 export const projectsService = {
   async getAll(): Promise<ProjectListItem[]> {
     const res = await api.get<ProjectListItem[]>('/projects');
@@ -25,6 +53,11 @@ export const projectsService = {
 
   async getById(id: string): Promise<ProjectDetail> {
     const res = await api.get<ProjectDetail>(`/projects/${id}`);
+    return res.data;
+  },
+
+  async getMatrix(id: string): Promise<ProjectMatrix> {
+    const res = await api.get<ProjectMatrix>(`/projects/${id}/matrix`);
     return res.data;
   },
 

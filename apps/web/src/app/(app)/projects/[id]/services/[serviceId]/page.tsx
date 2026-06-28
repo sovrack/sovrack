@@ -46,6 +46,7 @@ import { ServiceMonitoring } from '@/features/projects/components/tabs/service/s
 import { ServiceMetricsChart } from '@/features/projects/components/tabs/service/service-metrics-chart';
 import { ServiceLogs } from '@/features/projects/components/tabs/service/service-logs';
 import { ServiceEnvironments } from '@/features/projects/components/tabs/service/service-environments';
+import { DatabaseBackupsPanel } from '@/features/databases';
 import { resolveDeploymentUrl } from '@/features/deployments/utils';
 import type { Service } from '@/features/projects/types/service';
 import type { Deployment } from '@/features/deployments/types';
@@ -62,7 +63,7 @@ type Tab =
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'General', icon: Settings2 },
   { id: 'cicd', label: 'CI/CD', icon: GitPullRequestArrow },
-  { id: 'environnements', label: 'Environnements', icon: Layers },
+  { id: 'environnements', label: 'Environments', icon: Layers },
   { id: 'domains', label: 'Domains', icon: Globe },
   { id: 'webhooks', label: 'Webhooks', icon: Webhook },
   { id: 'deployments', label: 'Deployments', icon: Activity },
@@ -227,7 +228,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
               <ArrowLeft size={14} /> Project
             </Link>
             <button type="button" onClick={() => void handleDelete()} disabled={deleting}
-              title="Supprimer ce service"
+              title="Delete this service"
               className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50">
               {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Delete
             </button>
@@ -286,17 +287,30 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
       {tab === 'general' && (
         <div className="space-y-4">
           {isDatabase ? (
-            <SectionCard title="Database" description="Engine and connection details for this managed database.">
-              <div className="flex items-center gap-2">
-                <TypeIcon size={18} className="text-[var(--text-secondary)]" />
-                <span className="text-sm font-semibold text-[var(--text-primary)]">
-                  {service.databaseType} {service.databaseVersion ?? ''}
-                </span>
-              </div>
-              <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                {service.port != null && <Field k="Port" v={String(service.port)} />}
-              </dl>
-            </SectionCard>
+            <>
+              <SectionCard title="Database" description="Engine and connection details for this managed database.">
+                <div className="flex items-center gap-2">
+                  <TypeIcon size={18} className="text-[var(--text-secondary)]" />
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">
+                    {service.databaseType} {service.databaseVersion ?? ''}
+                  </span>
+                </div>
+                <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                  {service.port != null && <Field k="Port" v={String(service.port)} />}
+                </dl>
+              </SectionCard>
+
+              {/* Backups : à leur place — sur le service DATABASE, scopés à l'env
+                  sélectionné (avant : égarés dans l'onglet Environments du projet). */}
+              {(() => {
+                const dbLinkId = service.envLinks?.find(
+                  (l) => l.environmentId === (selectedEnvId || environments[0]?.id),
+                )?.id;
+                return dbLinkId ? (
+                  <DatabaseBackupsPanel serviceEnvId={dbLinkId} serviceName={service.name} />
+                ) : null;
+              })()}
+            </>
           ) : (
             <ServiceConfigForm projectId={projectId} service={service} onSaved={() => reload()} />
           )}

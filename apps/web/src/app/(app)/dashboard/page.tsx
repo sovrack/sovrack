@@ -159,7 +159,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             { label: 'New project', icon: <Plus size={15} />, href: '/projects?dialog=create-project', primary: true },
-            { label: 'Deploy', icon: <Rocket size={15} />, href: '/deployments?dialog=create-deployment', primary: false },
+            { label: 'Deployments', icon: <Rocket size={15} />, href: '/deployments', primary: false },
             { label: 'Projects', icon: <GitBranch size={15} />, href: '/projects', primary: false },
             { label: 'Servers', icon: <Server size={15} />, href: '/admin/servers', primary: false },
           ].map((action) => (

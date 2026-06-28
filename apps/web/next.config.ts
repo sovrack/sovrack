@@ -19,6 +19,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Legacy routes unified elsewhere. Server-side redirects keep old bookmarks
+  // working without shipping client-side redirect "stub" pages.
+  async redirects() {
+    return [
+      { source: '/profile', destination: '/settings', permanent: true },
+      { source: '/settings/profile', destination: '/settings', permanent: true },
+      { source: '/settings/account', destination: '/settings', permanent: true },
+      { source: '/admin/settings', destination: '/settings', permanent: true },
+      { source: '/settings/terminal', destination: '/terminal', permanent: true },
+      { source: '/deployments/new', destination: '/deployments', permanent: true },
+      { source: '/projects/new', destination: '/projects', permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

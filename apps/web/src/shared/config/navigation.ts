@@ -5,7 +5,6 @@ import {
   Database,
   FolderGit2,
   GitBranch,
-  GitPullRequestArrow,
   KeyRound,
   LayoutDashboard,
   Rocket,
@@ -24,23 +23,39 @@ export type AppNavItem = {
 };
 
 export type AppNavSection = {
-  id: 'operations' | 'settings';
+  id: 'overview' | 'deliver' | 'infrastructure' | 'settings';
   label: string;
   items: AppNavItem[];
 };
 
+// IA en 4 piliers : Overview · Delivery · Infrastructure · Settings.
+// - Pipelines n'est plus un item de 1er niveau : c'est un SOUS-ONGLET de
+//   Deployments (SubNav), pour lever le chevauchement Deployments/Pipelines.
+// - Servers / Registry / SSH Keys / Terminal sont regroupés sous Infrastructure
+//   (ce sont des cibles/outils d'infra, pas des « réglages »).
 export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
-    id: 'operations',
-    label: 'Operations',
+    id: 'overview',
+    label: 'Overview',
+    items: [{ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }],
+  },
+  {
+    id: 'deliver',
+    label: 'Delivery',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/projects', label: 'Projects', icon: FolderGit2 },
       { href: '/deployments', label: 'Deployments', icon: Rocket },
-      { href: '/pipelines', label: 'Pipelines', icon: GitPullRequestArrow },
-      { href: '/admin/servers', label: 'Remote Servers', icon: Server, adminOnly: true },
-      { href: '/terminal', label: 'Terminal', icon: TerminalSquare, adminOnly: true },
       { href: '/automation', label: 'Automation', icon: Wrench, adminOnly: true },
+    ],
+  },
+  {
+    id: 'infrastructure',
+    label: 'Infrastructure',
+    items: [
+      { href: '/admin/servers', label: 'Servers', icon: Server, adminOnly: true },
+      { href: '/settings/registry', label: 'Registry', icon: Database, adminOnly: true },
+      { href: '/settings/ssh-keys', label: 'SSH Keys', icon: KeyRound },
+      { href: '/terminal', label: 'Terminal', icon: TerminalSquare, adminOnly: true },
     ],
   },
   {
@@ -48,12 +63,10 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     label: 'Settings',
     items: [
       { href: '/settings', label: 'Platform Settings', icon: Settings, adminOnly: true },
-      { href: '/settings/status', label: 'System Status', icon: Activity, adminOnly: true },
-      { href: '/settings/ssh-keys', label: 'SSH Keys', icon: KeyRound },
       { href: '/settings/git', label: 'Git Providers', icon: GitBranch, adminOnly: true },
-      { href: '/settings/registry', label: 'Registry', icon: Database, adminOnly: true },
-      { href: '/settings/audit-logs', label: 'Audit Logs', icon: ClipboardList, adminOnly: true },
       { href: '/admin/users', label: 'Users & Teams', icon: Users, adminOnly: true },
+      { href: '/settings/status', label: 'System Status', icon: Activity, adminOnly: true },
+      { href: '/settings/audit-logs', label: 'Audit Logs', icon: ClipboardList, adminOnly: true },
     ],
   },
 ];

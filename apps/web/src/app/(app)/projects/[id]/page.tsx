@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   Boxes,
   Layers,
+  LayoutGrid,
   Loader2,
   Plus,
   Rocket,
@@ -24,15 +25,22 @@ import { PageHeader } from '@/shared/layout/page-header';
 import { ProjectEnvironmentsTab } from '@/features/projects/components/project-environments-tab';
 import { ProjectMonitoringTab } from '@/features/projects/components/project-monitoring-tab';
 import { ServicesList } from '@/features/projects/components/tabs/service/services-list';
+import { ProjectDeploymentMatrix } from '@/features/projects/components/project-deployment-matrix';
 import { AddServiceWizard } from '@/features/projects/components/add-service-wizard';
 import { DeployDialog } from '@/features/deployments/components/deploy-dialog';
 import { ProjectMembersTab } from '@/features/projects/components/project-members-tab';
 import { getApiErrorMessage } from '@/shared/lib/api';
 import { projectsService } from '@/features/projects/api/projects.service';
 
-type Tab = 'services' | 'environments' | 'monitoring' | 'settings';
+type Tab = 'matrix' | 'services' | 'environments' | 'monitoring' | 'settings';
 
-const TAB_VALUES: Tab[] = ['services', 'environments', 'monitoring', 'settings'];
+const TAB_VALUES: Tab[] = [
+  'matrix',
+  'services',
+  'environments',
+  'monitoring',
+  'settings',
+];
 
 function parseTab(value: string | null): Tab | null {
   if (!value) return null;
@@ -50,7 +58,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const searchParams = useSearchParams();
   const { user, isAdmin } = useAuth();
   const { project, loading, error, refresh } = useProject(id);
-  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'services');
+  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'matrix');
 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -131,6 +139,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const isOwner = isAdmin || currentMember?.role === 'OWNER';
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+    { id: 'matrix',       label: 'Matrix',          icon: LayoutGrid },
     { id: 'services',     label: 'Services',        icon: Boxes },
     { id: 'environments', label: 'Environments',    icon: Layers },
     { id: 'monitoring',   label: 'Monitoring',      icon: Activity },
@@ -201,6 +210,8 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       </div>
 
       {/* Tab panels */}
+      {tab === 'matrix' && <ProjectDeploymentMatrix projectId={id} />}
+
       {tab === 'services' && (
         <ServicesList
           projectId={id}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Activity,
   CheckCircle2,
@@ -103,6 +103,7 @@ export default function AdminServersPage() {
   const servers = useServerActions();
   const [pingMap, setPingMap] = useState<PingMap>({});
   const [pingingId, setPingingId] = useState<string | null>(null);
+  const [testingAll, setTestingAll] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -119,17 +120,30 @@ export default function AdminServersPage() {
 
   const { page, totalPages, paged: pagedServers, goToPage } = usePagination(servers.servers, { pageSize: 10 });
 
-  // Auto-ping all verified servers on load
-  const runAutoTests = useCallback(async (serverList: ServerType[]) => {
-    const toTest = serverList.filter((s) => s.isVerified || s.lastVerifiedAt);
-    if (toTest.length === 0) return;
+  // PAS d'auto-ping au montage : on n'inonde plus les serveurs de tests SSH à
+  // chaque visite (l'ancienne « tempête de ping » donnait l'impression qu'il
+  // fallait toujours re-vérifier la connexion). Le badge affiche le DERNIER
+  // état connu (SSH vérifié, en cache via server.isVerified/lastVerifiedAt) ;
+  // l'utilisateur lance une vérification À LA DEMANDE avec le bouton « Test ».
 
+  // Rafraîchit la LISTE des serveurs (léger : pas de ping SSH) toutes les 60 s,
+  // pour refléter l'avancement des jobs sans marteler les connexions.
+  useEffect(() => {
+    const id = setInterval(() => { void servers.fetchServers(); }, 60_000);
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Vérification EN MASSE, mais À LA DEMANDE (clic) — pas au montage. Remplace
+  // l'ancien auto-ping : l'utilisateur décide quand re-tester toutes les connexions.
+  const handleTestAll = async () => {
+    const toTest = servers.servers.filter((s) => s.isVerified || s.lastVerifiedAt);
+    if (toTest.length === 0) return;
+    setTestingAll(true);
     setPingMap((prev) => {
       const next = { ...prev };
       for (const s of toTest) next[s.id] = 'loading';
       return next;
     });
-
     await Promise.allSettled(
       toTest.map(async (s) => {
         try {
@@ -140,19 +154,8 @@ export default function AdminServersPage() {
         }
       }),
     );
-  }, []);
-
-  useEffect(() => {
-    if (servers.servers.length > 0 && !servers.loading) {
-      void runAutoTests(servers.servers);
-    }
-  }, [servers.servers.length, servers.loading]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-refresh the server list (replaces the manual Refresh button).
-  useEffect(() => {
-    const id = setInterval(() => { void servers.fetchServers(); }, 30_000);
-    return () => clearInterval(id);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    setTestingAll(false);
+  };
 
   const handlePing = async (server: ServerType) => {
     setPingingId(server.id);
@@ -248,11 +251,21 @@ export default function AdminServersPage() {
       <PageHeader
         eyebrow="Infrastructure"
         title="Remote Servers"
-        description="Manage your VPS servers — SSH validation, capability detection, Ansible provisioning and environment assignment. All servers are identical agentless targets."
+        description="Manage your VPS servers — SSH validation, capability detection, Ansible provisioning and environment assignment. Connection status is cached; run a check on demand (Test)."
         actions={
-          <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>
-            Add Server
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              icon={<Wifi size={16} />}
+              loading={testingAll}
+              onClick={() => void handleTestAll()}
+            >
+              Test all
+            </Button>
+            <Button icon={<Plus size={16} />} onClick={() => { setCreateError(null); setCreateOpen(true); }}>
+              Add Server
+            </Button>
+          </>
         }
       />
 

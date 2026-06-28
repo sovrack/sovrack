@@ -7,7 +7,7 @@ import { PageHeader } from '@/shared/layout/page-header';
 import { SectionCard } from '@/shared/layout/section-card';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { TeamCreateDialog } from '@/features/users/components/team-create-dialog';
+import { TeamCreateDialog } from '@/features/teams';
 import { useTeams } from '@/features/teams/api/use-teams';
 
 export default function AdminTeamsPage() {

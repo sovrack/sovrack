@@ -6,5 +6,5 @@ export default function DeploymentsError(props: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  return <SectionError {...props} title="Erreur dans les déploiements" />;
+  return <SectionError {...props} title="Error in deployments" />;
 }

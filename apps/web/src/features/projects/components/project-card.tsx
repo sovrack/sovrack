@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Users, CheckCircle, XCircle, Rocket, AlertCircle, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
-import { DeploymentCreateDialog } from '@/features/deployments';
+import { DeployDialog } from '@/features/deployments';
 import type { ProjectListItem } from '@/features/projects/types/project';
 
 type ProjectCardProps = {
@@ -95,11 +95,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
         </div>
       </div>
 
-      <DeploymentCreateDialog
+      <DeployDialog
         open={deployOpen}
-        initialProjectId={project.id}
+        projectId={project.id}
         onClose={() => setDeployOpen(false)}
-        onCreated={async () => { setDeployOpen(false); router.push('/deployments'); }}
+        onCreated={() => { setDeployOpen(false); router.push('/deployments'); }}
       />
     </>
   );

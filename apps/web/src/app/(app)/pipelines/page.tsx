@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/layout/page-header';
+import { SubNav } from '@/shared/layout/sub-nav';
 import { SectionCard } from '@/shared/layout/section-card';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
@@ -128,9 +129,16 @@ export default function PipelinesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="CI/CD"
+        eyebrow="Delivery"
         title="Pipelines"
         description="Monitor GitLab CI pipelines across all your projects."
+      />
+
+      <SubNav
+        tabs={[
+          { label: 'Deployments', href: '/deployments' },
+          { label: 'Pipelines', href: '/pipelines' },
+        ]}
       />
 
       {/* Stats */}

@@ -21,7 +21,7 @@ import {
 import type { Deployment, DeploymentStatus } from '@/features/deployments/types';
 import { deploymentsService } from '@/features/deployments';
 import { getApiErrorMessage } from '@/shared/lib/api';
-import { DeploymentCreateDialog } from '@/features/deployments';
+import { DeployDialog } from '@/features/deployments';
 import { timeAgo, dur, resolveDeploymentUrl, ENV_BADGE, STATUS_DOT, STATUS_BORDER } from '@/features/deployments/utils';
 
 type Props = {
@@ -33,6 +33,12 @@ type Props = {
   projectId?: string;
   onCreateClick?: () => void;
   onRefresh?: () => void;
+  // Masque les pastilles de statut internes quand la page parente gère déjà le
+  // filtrage (ex. la console /deployments avec sa propre barre de filtres).
+  showStatusFilter?: boolean;
+  // Total réel affiché dans l'en-tête quand la page passe une page paginée
+  // (sinon = deployments.length, qui ne serait que la page courante).
+  headerCount?: number;
 };
 
 const STATUS_FILTERS: { label: string; value: DeploymentStatus | 'ALL' }[] = [
@@ -53,7 +59,7 @@ const STATUS_COLOR: Record<DeploymentStatus, string> = {
   PENDING: 'text-amber-400', CANCELED: 'text-zinc-400',
 };
 
-export function ProjectDeploymentsTab({ deployments, loading, error, projectId, onRefresh }: Props) {
+export function ProjectDeploymentsTab({ deployments, loading, error, projectId, onRefresh, showStatusFilter = true, headerCount }: Props) {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<DeploymentStatus | 'ALL'>('ALL');
   const [rollingBackId, setRollingBackId] = useState<string | null>(null);
@@ -114,7 +120,7 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-[var(--text-primary)]">Deployments</p>
           <span className="rounded-full border border-[var(--border)] bg-[var(--hover)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">
-            {deployments.length}
+            {headerCount ?? deployments.length}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -127,20 +133,22 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
         </div>
       </div>
 
-      {/* Status filter pills */}
-      <div className="flex flex-wrap gap-1.5">
-        {STATUS_FILTERS.map((opt) => {
-          const count = opt.value === 'ALL' ? deployments.length : deployments.filter((d) => d.status === opt.value).length;
-          const active = statusFilter === opt.value;
-          return (
-            <button key={opt.value} type="button" onClick={() => setStatusFilter(opt.value)}
-              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${active ? 'border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]' : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
-              {opt.label}
-              <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${active ? 'bg-[var(--text-primary)]/20' : 'bg-[var(--hover)]'}`}>{count}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Status filter pills (masquées quand la page parente filtre déjà) */}
+      {showStatusFilter && (
+        <div className="flex flex-wrap gap-1.5">
+          {STATUS_FILTERS.map((opt) => {
+            const count = opt.value === 'ALL' ? deployments.length : deployments.filter((d) => d.status === opt.value).length;
+            const active = statusFilter === opt.value;
+            return (
+              <button key={opt.value} type="button" onClick={() => setStatusFilter(opt.value)}
+                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${active ? 'border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]' : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
+                {opt.label}
+                <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${active ? 'bg-[var(--text-primary)]/20' : 'bg-[var(--hover)]'}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Error */}
       {(error ?? rollbackError) && (
@@ -249,8 +257,8 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
                   <button type="button"
                     onClick={() => router.push(`/deployments/${dep.id}`)}
                     className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
-                    title="Voir le détail du déploiement">
-                    Détails <ChevronRight size={11} />
+                    title="View deployment details">
+                    Details <ChevronRight size={11} />
                   </button>
 
                   {isLive && (
@@ -268,14 +276,14 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
                       className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
                       title="Restore this version (redeploy it)">
                       {rollingBackId === dep.id ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
-                      <span className="hidden sm:inline">Restaurer</span>
+                      <span className="hidden sm:inline">Restore</span>
                     </button>
                   )}
                   {/* Échec → revenir au dernier déploiement réussi. */}
                   {dep.status === 'FAILED' && (
                     <button type="button" onClick={() => void handleRollback(dep.id)} disabled={rollingBackId === dep.id}
                       className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
-                      title="Revenir au dernier déploiement réussi">
+                      title="Rollback to last successful deployment">
                       {rollingBackId === dep.id ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
                       <span className="hidden sm:inline">Rollback</span>
                     </button>
@@ -326,14 +334,16 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
       )}
 
       {/* Redeploy dialog — branch + env pre-filled from original run */}
-      <DeploymentCreateDialog
-        open={redeployTarget !== null}
-        initialProjectId={redeployTarget?.projectId ?? projectId ?? ''}
-        initialEnvironmentId={redeployTarget?.environmentId}
-        initialBranch={redeployTarget?.branch}
-        onClose={() => setRedeployTarget(null)}
-        onCreated={async () => { setRedeployTarget(null); onRefresh?.(); }}
-      />
+      {(redeployTarget?.projectId ?? projectId) && (
+        <DeployDialog
+          open={redeployTarget !== null}
+          projectId={redeployTarget?.projectId ?? projectId ?? ''}
+          initialEnvironmentId={redeployTarget?.environmentId}
+          initialBranch={redeployTarget?.branch}
+          onClose={() => setRedeployTarget(null)}
+          onCreated={() => { setRedeployTarget(null); onRefresh?.(); }}
+        />
+      )}
     </div>
   );
 }
