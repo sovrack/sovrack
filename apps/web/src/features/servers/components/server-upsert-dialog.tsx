@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
+import { Modal } from '@/shared/ui/modal';
 import { Input } from '@/shared/ui/input';
 import { sshKeysService } from '@/features/ssh-keys';
 import type { SshKey } from '@/features/ssh-keys';
@@ -74,8 +75,6 @@ export function ServerUpsertDialog({
     }
   }, [initialValues, open, mode]);
 
-  if (!open) return null;
-
   const set = <K extends keyof ServerFormValues>(key: K, value: ServerFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setFormErrors((prev) => ({ ...prev, [key]: undefined, form: undefined }));
@@ -99,7 +98,7 @@ export function ServerUpsertDialog({
       }
 
       if (!server) {
-        setFormErrors({ form: 'Impossible de modifier ce serveur.' });
+        setFormErrors({ form: 'Unable to update this server.' });
         return;
       }
 
@@ -114,39 +113,30 @@ export function ServerUpsertDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="absolute inset-0" onClick={onClose} aria-hidden />
-
-      <form
-        onSubmit={handleSubmit}
-        className="relative z-10 max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl"
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
-              Infrastructure
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-              {mode === 'create' ? 'Add Server' : 'Edit Server'}
-            </h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              {mode === 'create'
-                ? 'Configure SSH connection to your VPS.'
-                : 'Update server connection settings and credentials safely.'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-secondary)]"
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="space-y-4 px-6 py-4">
+    <Modal
+      open={open}
+      onClose={onClose}
+      dismissable={!loading}
+      size="xl"
+      title={mode === 'create' ? 'Add Server' : 'Edit Server'}
+      description={
+        mode === 'create'
+          ? 'Configure SSH connection to your VPS.'
+          : 'Update server connection settings and credentials safely.'
+      }
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" form="server-upsert-form" loading={loading}>
+            {mode === 'create' ? 'Create server' : 'Save changes'}
+          </Button>
+        </>
+      }
+    >
+      <form id="server-upsert-form" onSubmit={handleSubmit}>
+        <div className="space-y-4">
           {(error || formErrors.form) && (
             <Alert tone="error">{formErrors.form ?? error}</Alert>
           )}
@@ -246,17 +236,7 @@ export function ServerUpsertDialog({
             )}
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button type="submit" loading={loading}>
-            {mode === 'create' ? 'Create server' : 'Save changes'}
-          </Button>
-        </div>
       </form>
-    </div>
+    </Modal>
   );
 }

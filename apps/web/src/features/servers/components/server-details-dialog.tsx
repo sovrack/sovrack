@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Server as ServerIcon, X } from 'lucide-react';
+import { Server as ServerIcon } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
+import { Modal } from '@/shared/ui/modal';
 import {
   ServerOverallStatusBadge,
   ServerWorkflowBadges,
@@ -54,36 +55,27 @@ export function ServerDetailsDialog({
     }
   }, [jobs.length, jobsLoading, onRefreshJobs, open, server]);
 
-  if (!open || !server) return null;
+  if (!server) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="absolute inset-0" onClick={onClose} aria-hidden />
-
-      <div className="relative z-10 max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
-              Infrastructure
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
-              Server Details
-            </h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              {server.name} · {server.username}@{server.host}:{server.port}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
+    <Modal
+      open={open}
+      onClose={onClose}
+      size="xl"
+      title="Server Details"
+      description={`${server.name} · ${server.username}@${server.host}:${server.port}`}
+      icon={
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--text-primary)]/15">
+          <ServerIcon size={16} className="text-[var(--text-secondary)]" />
         </div>
-
-        <div className="space-y-4 px-6 py-5">
+      }
+      footer={
+        <Button variant="secondary" onClick={onClose}>
+          Close
+        </Button>
+      }
+    >
+      <div className="space-y-4">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
             <div className="flex items-start gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bg-card)]">
@@ -147,14 +139,7 @@ export function ServerDetailsDialog({
             onRetryJob={onRetryJob}
             onCancelJob={onCancelJob}
           />
-        </div>
-
-        <div className="sticky bottom-0 flex items-center justify-end border-t border-[var(--border)] bg-[var(--bg-card)] px-6 py-4">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Close
-          </Button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
