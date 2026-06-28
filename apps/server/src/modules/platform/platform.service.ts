@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { type PlatformConfig } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
-import { CryptoService } from '../../core/crypto/crypto.service';
+import { PrismaService } from '../../shared/database/prisma.service';
+import { CryptoService } from '../../shared/crypto/crypto.service';
 
 type PlatformConfigPublic = Omit<PlatformConfig, 'value'> & { value: string };
 

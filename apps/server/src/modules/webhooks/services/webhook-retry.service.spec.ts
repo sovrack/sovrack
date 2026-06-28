@@ -1,5 +1,5 @@
 import { WebhookEventStatus, GitProviderType } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { IWebhookHandler } from '../interfaces/webhook-handler.interface';
 import {
@@ -7,6 +7,7 @@ import {
   WebhooksService,
   WEBHOOK_RETRY_BACKOFF_MS,
 } from '../webhooks.service';
+import { WebhookEventsService } from '../webhook-events.service';
 import { WebhookRetryService } from './webhook-retry.service';
 
 describe('WebhooksService.markFailed — exponential backoff', () => {
@@ -23,8 +24,15 @@ describe('WebhooksService.markFailed — exponential backoff', () => {
     const crypto = {
       encrypt: (v: string) => v,
       decryptSafe: (v: string) => v,
-    } as unknown as import('../../../core/crypto/crypto.service').CryptoService;
-    return { service: new WebhooksService(prisma, crypto), update };
+    } as unknown as import('../../../shared/crypto/crypto.service').CryptoService;
+    return {
+      service: new WebhooksService(
+        prisma,
+        crypto,
+        new WebhookEventsService(prisma),
+      ),
+      update,
+    };
   }
 
   it('1st failure → FAILED, nextRetryAt ≈ now + 1 min', async () => {

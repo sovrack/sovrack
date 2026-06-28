@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Deployment, DeploymentStatus, Role } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
 import { DeploymentsQueryService } from '../query/deployments-query.service';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 
 @Injectable()
@@ -15,7 +15,7 @@ export class DeploymentsRollbackService {
     private readonly prisma: PrismaService,
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly queryService: DeploymentsQueryService,
-    private readonly gateway: DeploymentsGateway,
+    private readonly gateway: DeploymentEventsPublisher,
     private readonly deployExecutor: DockerDeployExecutorService,
     private readonly auditService: AuditService,
   ) {}
@@ -24,6 +24,7 @@ export class DeploymentsRollbackService {
     id: string,
     userId: string,
     userRole: Role,
+    targetDeploymentId?: string,
   ): Promise<Deployment> {
     const deployment = await this.queryService.findOne(id, userId, userRole);
     await this.authorizationService.assertCanRollbackProject(
@@ -32,27 +33,45 @@ export class DeploymentsRollbackService {
       userRole,
     );
 
-    const previousSuccess = await this.prisma.deployment.findFirst({
-      where: {
-        projectId: deployment.projectId,
-        environmentId: deployment.environmentId,
-        // Scope to the exact same service so a rollback of service A never
-        // accidentally picks up the latest SUCCESS of service B in the same env.
-        ...(deployment.serviceId ? { serviceId: deployment.serviceId } : {}),
-        ...(deployment.serviceEnvId
-          ? { serviceEnvId: deployment.serviceEnvId }
-          : {}),
-        status: DeploymentStatus.SUCCESS,
-        id: {
-          not: deployment.id,
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    // Source to restore: a SPECIFIC past deployment if targetDeploymentId is
+    // given (rollback to ANY version), otherwise the most recent OTHER success
+    // of the same service-env (rollback to previous). Both are scoped to the
+    // same project + service-env so we never restore another service's image.
+    const previousSuccess = targetDeploymentId
+      ? await this.prisma.deployment.findFirst({
+          where: {
+            id: targetDeploymentId,
+            projectId: deployment.projectId,
+            ...(deployment.serviceId
+              ? { serviceId: deployment.serviceId }
+              : {}),
+            ...(deployment.serviceEnvId
+              ? { serviceEnvId: deployment.serviceEnvId }
+              : {}),
+            status: DeploymentStatus.SUCCESS,
+          },
+        })
+      : await this.prisma.deployment.findFirst({
+          where: {
+            projectId: deployment.projectId,
+            environmentId: deployment.environmentId,
+            ...(deployment.serviceId
+              ? { serviceId: deployment.serviceId }
+              : {}),
+            ...(deployment.serviceEnvId
+              ? { serviceEnvId: deployment.serviceEnvId }
+              : {}),
+            status: DeploymentStatus.SUCCESS,
+            id: { not: deployment.id },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
 
     if (!previousSuccess) {
       throw new BadRequestException(
-        'Aucun déploiement SUCCESS précédent trouvé',
+        targetDeploymentId
+          ? 'Déploiement cible introuvable ou non réussi pour ce service.'
+          : 'Aucun déploiement SUCCESS précédent trouvé',
       );
     }
 

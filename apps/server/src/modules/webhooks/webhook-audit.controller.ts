@@ -9,10 +9,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role, WebhookEventStatus } from '@prisma/client';
-import { Roles } from '../../core/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../core/guards/roles.guard';
+import { Roles } from '../../shared/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { RolesGuard } from '../../shared/guards/roles.guard';
 import { WebhooksService } from './webhooks.service';
 import { WebhookRetryService } from './services/webhook-retry.service';
 
@@ -26,6 +27,8 @@ import { WebhookRetryService } from './services/webhook-retry.service';
  *   GET   /projects/:id/webhooks/events/:eventId
  *   PATCH /projects/:id/webhooks/endpoints/:endpointId/enabled
  */
+@ApiTags('Webhooks')
+@ApiBearerAuth()
 @Controller('projects/:id/webhooks')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class WebhookAuditController {

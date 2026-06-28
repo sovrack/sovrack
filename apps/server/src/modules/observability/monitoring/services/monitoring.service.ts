@@ -1,36 +1,24 @@
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { ServerOperationStatus } from '@prisma/client';
+import { ServerRunStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '../../../../core/database/prisma.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 import { PlatformService } from '../../../platform/platform.service';
-import { CreateAutomationRunDto } from '../../../automation/dto/create-automation-run.dto';
-import { AUTOMATION_ACTIONS } from '../../../automation/shared/automation-options';
+import {
+  AutomationService,
+  CreateAutomationRunDto,
+  AUTOMATION_ACTIONS,
+} from '../../../automation';
 import {
   AUTOMATION_RUN_COMPLETED,
   type AutomationRunCompletedEvent,
-} from '../../../automation/shared/automation-events';
-import { AutomationService } from '../../../automation/services/automation.service';
+} from '../../../../shared/events/events.catalog';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringStatsService } from './monitoring-stats.service';
 import { MonitoringPrometheusService } from './monitoring-prometheus.service';
-
-type MonitoringMetricSnapshot = {
-  up: number | null;
-  cpuPercent: number | null;
-  memoryPercent: number | null;
-  diskPercent: number | null;
-  networkRxBytesPerSec: number | null;
-  networkTxBytesPerSec: number | null;
-  uptimeSeconds: number | null;
-};
-
-type PrometheusVectorSample = {
-  metric?: Record<string, string>;
-  value?: [number | string, string];
-};
+import { MonitoringAlertsService } from './monitoring-alerts.service';
 
 type AlertItem = {
   id: string;
@@ -54,6 +42,7 @@ export class MonitoringService {
     private readonly automation: AutomationService,
     private readonly statsService: MonitoringStatsService,
     private readonly prometheusService: MonitoringPrometheusService,
+    private readonly alertsService: MonitoringAlertsService,
   ) {}
 
   async getOverview() {
@@ -103,6 +92,45 @@ export class MonitoringService {
 
   async getPrometheusStatus() {
     return await this.prometheusService.getPrometheusStatus();
+  }
+
+  /**
+   * Historical CPU/mem/disk time-series for a host over a window (default 1h).
+   * Powers the UI charts (vs the live snapshot in getServerMonitoring).
+   */
+  async getServerMetricRange(
+    host: string,
+    rangeMinutes = 60,
+    stepSeconds = 60,
+  ) {
+    const safeRange = Math.min(Math.max(rangeMinutes, 5), 7 * 24 * 60);
+    const safeStep = Math.min(Math.max(stepSeconds, 15), 3600);
+    const to = new Date();
+    const from = new Date(to.getTime() - safeRange * 60 * 1000);
+    return await this.prometheusService.getHostMetricRange({
+      host,
+      from,
+      to,
+      stepSeconds: safeStep,
+    });
+  }
+
+  /** Historical CPU/memory time-series for one service-environment (containers). */
+  async getServiceMetricRange(
+    serviceEnvId: string,
+    rangeMinutes = 60,
+    stepSeconds = 60,
+  ) {
+    const safeRange = Math.min(Math.max(rangeMinutes, 5), 7 * 24 * 60);
+    const safeStep = Math.min(Math.max(stepSeconds, 15), 3600);
+    const to = new Date();
+    const from = new Date(to.getTime() - safeRange * 60 * 1000);
+    return await this.prometheusService.getServiceMetricRange({
+      serviceEnvId,
+      from,
+      to,
+      stepSeconds: safeStep,
+    });
   }
 
   async getGrafanaStatus() {
@@ -219,11 +247,11 @@ export class MonitoringService {
       }
     }
 
-    return await this.statsService.getDerivedAlerts();
+    return await this.alertsService.getDerivedAlerts();
   }
 
   async getInstallOptions() {
-    return await this.statsService.getInstallOptions();
+    return await this.alertsService.getInstallOptions();
   }
 
   async installMonitoring(
@@ -260,12 +288,12 @@ export class MonitoringService {
     const action = AUTOMATION_ACTIONS.find((a) => a.key === event.actionKey);
     if (!action || action.category !== 'monitoring') return;
     const installsStack = (action.roles ?? []).some((r) =>
-      ['prometheus', 'grafana'].includes(r),
+      ['prometheus', 'grafana', 'loki'].includes(r),
     );
     if (!installsStack) return;
     if (
-      event.status !== ServerOperationStatus.SUCCEEDED &&
-      event.status !== ServerOperationStatus.PARTIAL
+      event.status !== ServerRunStatus.SUCCEEDED &&
+      event.status !== ServerRunStatus.PARTIAL
     ) {
       return;
     }
@@ -280,150 +308,10 @@ export class MonitoringService {
     };
     await setIfAbsent('MONITORING_PROMETHEUS_URL', `http://${host}:9090`);
     await setIfAbsent('MONITORING_GRAFANA_URL', `http://${host}:3000`);
+    await setIfAbsent('MONITORING_LOKI_URL', `http://${host}:3100`);
     this.logger.log(
-      `Monitoring stack installed on ${host} → URLs Prometheus/Grafana câblées.`,
+      `Monitoring stack installed on ${host} → URLs Prometheus/Grafana/Loki câblées.`,
     );
-  }
-
-  private async fetchPrometheusMetricsByHost(): Promise<
-    Map<string, MonitoringMetricSnapshot>
-  > {
-    const prometheusUrl = await this.getConfigValue(
-      'MONITORING_PROMETHEUS_URL',
-    );
-    if (!prometheusUrl) {
-      return new Map();
-    }
-
-    const normalized = this.trimTrailingSlash(prometheusUrl);
-
-    const [
-      upValues,
-      cpuValues,
-      memoryValues,
-      diskValues,
-      rxValues,
-      txValues,
-      uptimeValues,
-    ] = await Promise.all([
-      this.queryPrometheus(normalized, 'up{job=~".*node.*exporter.*"}'),
-      this.queryPrometheus(
-        normalized,
-        '100 * (1 - avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])))',
-      ),
-      this.queryPrometheus(
-        normalized,
-        '100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))',
-      ),
-      this.queryPrometheus(
-        normalized,
-        '100 * (1 - (node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}))',
-      ),
-      this.queryPrometheus(
-        normalized,
-        'sum by(instance) (rate(node_network_receive_bytes_total{device!~"lo"}[5m]))',
-      ),
-      this.queryPrometheus(
-        normalized,
-        'sum by(instance) (rate(node_network_transmit_bytes_total{device!~"lo"}[5m]))',
-      ),
-      this.queryPrometheus(
-        normalized,
-        '(node_time_seconds - node_boot_time_seconds)',
-      ),
-    ]);
-
-    const metricMap = new Map<string, MonitoringMetricSnapshot>();
-
-    const setValue = (
-      host: string,
-      key: keyof MonitoringMetricSnapshot,
-      value: number | null,
-    ) => {
-      const current = metricMap.get(host) ?? this.emptyMetricSnapshot();
-      metricMap.set(host, { ...current, [key]: value });
-    };
-
-    const apply = (
-      samples: PrometheusVectorSample[],
-      key: keyof MonitoringMetricSnapshot,
-    ) => {
-      for (const sample of samples) {
-        const instance = sample.metric?.instance;
-        const host = instance ? this.extractHostFromInstance(instance) : null;
-        const rawValue = sample.value?.[1];
-        if (!host || rawValue === undefined) {
-          continue;
-        }
-        const parsed = Number(rawValue);
-        setValue(host, key, Number.isFinite(parsed) ? parsed : null);
-      }
-    };
-
-    apply(upValues, 'up');
-    apply(cpuValues, 'cpuPercent');
-    apply(memoryValues, 'memoryPercent');
-    apply(diskValues, 'diskPercent');
-    apply(rxValues, 'networkRxBytesPerSec');
-    apply(txValues, 'networkTxBytesPerSec');
-    apply(uptimeValues, 'uptimeSeconds');
-
-    return metricMap;
-  }
-
-  private async queryPrometheus(
-    prometheusUrl: string,
-    query: string,
-  ): Promise<PrometheusVectorSample[]> {
-    try {
-      const res = await firstValueFrom(
-        this.httpService.get<{
-          status?: string;
-          data?: {
-            resultType?: string;
-            result?: PrometheusVectorSample[];
-          };
-        }>(`${prometheusUrl}/api/v1/query`, {
-          params: { query },
-          timeout: 5_000,
-        }),
-      );
-
-      const result = res.data?.data?.result;
-      return Array.isArray(result) ? result : [];
-    } catch (error) {
-      this.logger.warn(
-        `Prometheus query failed (${query}): ${this.errorMessage(error)}`,
-      );
-      return [];
-    }
-  }
-
-  private extractHostFromInstance(instance: string): string {
-    const trimmed = instance.trim();
-
-    if (trimmed.startsWith('[') && trimmed.includes(']:')) {
-      return trimmed.slice(1, trimmed.indexOf(']:')).toLowerCase();
-    }
-
-    const parts = trimmed.split(':');
-    if (parts.length <= 2) {
-      return parts[0].toLowerCase();
-    }
-
-    return trimmed.toLowerCase();
-  }
-
-  private emptyMetricSnapshot(): MonitoringMetricSnapshot {
-    return {
-      up: null,
-      cpuPercent: null,
-      memoryPercent: null,
-      diskPercent: null,
-      networkRxBytesPerSec: null,
-      networkTxBytesPerSec: null,
-      uptimeSeconds: null,
-    };
   }
 
   private trimTrailingSlash(value: string): string {

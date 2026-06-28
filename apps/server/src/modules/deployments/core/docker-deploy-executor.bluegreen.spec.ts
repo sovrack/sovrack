@@ -1,17 +1,16 @@
 import { ContainerStatus } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
-import { DeploymentsHealthcheckService } from '../health/deployments-healthcheck.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
-import { DockerDeployExecutorService } from './docker-deploy-executor.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import { DeployRoutingService } from './deploy-routing.service';
+import { TraefikRouteService } from './traefik-route.service';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 
 /**
  * Unit coverage for the blue-green cut-over helper. The full executeDeploy path
  * is exercised end-to-end by the deployments e2e suite (STANDARD strategy); here
  * we isolate the cut-over: repoint proxy → drain → retire blue.
  */
-describe('DockerDeployExecutorService — blue-green cut-over', () => {
+describe('DeployRoutingService — blue-green cut-over', () => {
   function build() {
     const prisma = {
       proxyRule: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
@@ -27,37 +26,32 @@ describe('DockerDeployExecutorService — blue-green cut-over', () => {
     const docker = {
       removeContainer: jest.fn().mockResolvedValue(undefined),
     } as unknown as DockerApiService;
-    const service = new DockerDeployExecutorService(
+    const routing = new DeployRoutingService(
       prisma,
+      {} as unknown as TraefikRouteService,
       docker,
-      {} as DeploymentsGateway,
-      {} as DeploymentsHealthcheckService,
-      { decryptSafe: (v: string | null) => v } as unknown as CryptoService,
-      {} as unknown as import('./traefik-route.service').TraefikRouteService,
-      {} as unknown as import('./registry-auth.service').RegistryAuthService,
-      {} as unknown as import('./local-build.service').LocalBuildService,
+      {} as unknown as DeploymentEventsPublisher,
     );
     // Skip the real 3s drain.
     jest
-      .spyOn(service as unknown as { sleep: () => Promise<void> }, 'sleep')
+      .spyOn(routing as unknown as { sleep: () => Promise<void> }, 'sleep')
       .mockResolvedValue(undefined);
-    return { service, prisma, docker };
+    return { routing, prisma, docker };
   }
 
-  const cutover = (s: DockerDeployExecutorService, ...args: unknown[]) =>
-    (
-      s as unknown as { cutoverBlueGreen: (...a: unknown[]) => Promise<string> }
-    ).cutoverBlueGreen(...args);
-
   it('repoints proxy to the green port, drains, then removes blue', async () => {
-    const { service, prisma, docker } = build();
-    const logs = await cutover(service, 'env-1', 'srv-1', 'docker-green', 3001);
+    const { routing, prisma, docker } = build();
+    const logs = await routing.cutoverBlueGreen({
+      serviceEnvId: 'env-1',
+      serverId: 'srv-1',
+      greenDockerId: 'docker-green',
+      publishPort: 3001,
+    });
 
     expect(prisma.proxyRule.updateMany).toHaveBeenCalledWith({
       where: { serviceEnvId: 'env-1', serverId: 'srv-1' },
       data: { targetPort: 3001 },
     });
-    // Blue is selected by excluding the green dockerId.
     expect(prisma.container.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -80,19 +74,29 @@ describe('DockerDeployExecutorService — blue-green cut-over', () => {
   });
 
   it('is a no-op when there is no service-environment', async () => {
-    const { service, prisma } = build();
-    const logs = await cutover(service, null, 'srv-1', 'docker-green', 3001);
+    const { routing, prisma } = build();
+    const logs = await routing.cutoverBlueGreen({
+      serviceEnvId: null,
+      serverId: 'srv-1',
+      greenDockerId: 'docker-green',
+      publishPort: 3001,
+    });
     expect(prisma.proxyRule.updateMany).not.toHaveBeenCalled();
     expect(logs).toContain('cut-over ignoré');
   });
 
   it('does not crash if removing a blue container fails', async () => {
-    const { service, docker } = build();
+    const { routing, docker } = build();
     (docker.removeContainer as jest.Mock).mockRejectedValueOnce(
       new Error('boom'),
     );
     await expect(
-      cutover(service, 'env-1', 'srv-1', 'docker-green', 3001),
+      routing.cutoverBlueGreen({
+        serviceEnvId: 'env-1',
+        serverId: 'srv-1',
+        greenDockerId: 'docker-green',
+        publishPort: 3001,
+      }),
     ).resolves.toBeDefined();
   });
 });

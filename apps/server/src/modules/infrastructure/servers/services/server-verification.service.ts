@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../../core/database/prisma.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 import { Server, ServerLogLevel, ServerStatus } from '@prisma/client';
 
 type ValidationResultInput = {

@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, Role } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
+import { ContainerStatus, Prisma, Role } from '@prisma/client';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
 import {
   PaginationDto,
   PaginatedResult,
   paginate,
-} from '../../../core/http/pagination.dto';
+} from '../../../shared/http/pagination.dto';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import {
   EnvLevel,
@@ -62,6 +62,14 @@ export const deploymentRelationsInclude = {
     },
   },
   user: { select: { id: true, email: true, fullName: true } },
+  // « Live » réel = ce déploiement a un conteneur RUNNING (≠ status SUCCESS qui
+  // est historique). Permet au front de marquer UN seul déploiement actif et
+  // d'afficher « Superseded » sur les anciens SUCCESS.
+  containers: {
+    where: { status: ContainerStatus.RUNNING },
+    select: { id: true },
+    take: 1,
+  },
 } satisfies Prisma.DeploymentInclude;
 
 export type DeploymentWithRelations = Prisma.DeploymentGetPayload<{

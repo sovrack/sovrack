@@ -14,8 +14,11 @@ import {
   ServerJobStatus,
   ServerJobType,
 } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { PaginationDto, paginate } from '../../../../core/http/pagination.dto';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import {
+  PaginationDto,
+  paginate,
+} from '../../../../shared/http/pagination.dto';
 import { ServersConnectionService } from './servers-connection.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';
 import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';

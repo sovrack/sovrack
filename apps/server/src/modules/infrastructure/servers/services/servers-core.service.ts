@@ -1,67 +1,54 @@
 import {
   BadRequestException,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
   ContainerStatus,
   Prisma,
   Server,
-  ServerConnectionMode,
-  ServerJobStatus,
-  ServerJobType,
+  ServerOnboardingStep,
   ServerStatus,
 } from '@prisma/client';
-import { PaginationDto, paginate } from '../../../../core/http/pagination.dto';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { ACTIVE_FILTER } from '../../../../core/database/prisma-active.helper';
 import {
-  CreateServerDto,
-  ServerConnectionModeDto,
-} from '../dto/create-server.dto';
+  PaginationDto,
+  paginate,
+} from '../../../../shared/http/pagination.dto';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { ACTIVE_FILTER } from '../../../../shared/database/prisma-active.helper';
+import { CreateServerDto } from '../dto/create-server.dto';
 import { UpdateServerDto } from '../dto/update-server.dto';
-import { ServersCryptoService } from './servers-crypto.service';
-import { ServersJobsService } from './servers-jobs.service';
+import { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.service';
 import { ServersConnectionService } from './servers-connection.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';
 import { PrepareServerDto } from '../dto/prepare-server.dto';
 import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
-import { ServersDetectionService } from './servers-detection.service';
-import { ServerPreparationService } from '../../preparation/services/infra-preparation.service';
-import { ServerVerificationService } from './server-verification.service';
 import { ServersAuditService } from './servers-audit.service';
 import { AuditService } from '../../../audit/audit.service';
-import type { ServerInfraRole } from '@prisma/client';
+import { ServerPreparationService } from '../../preparation/services/infra-preparation.service';
 import {
   CreateServerResult,
-  ServerActiveJob,
   ServerJobsListResult,
   ServerListResult,
-  RegisterRunnerPayload,
   ServerPublic,
 } from '../shared/servers.types';
-
-// BLOCKED is intentionally excluded: it is a terminal state (finishedAt is set
-// when a job loses the lock race in assertJobLock). Treating it as "active"
-// would let a dead ghost job lock the server forever.
-const ACTIVE_JOB_STATUSES: ServerJobStatus[] = [
-  ServerJobStatus.RUNNING,
-  ServerJobStatus.PENDING,
-];
+import type { ServerInfraRole } from '@prisma/client';
+import {
+  serverHasDocker,
+  serverHasRunner,
+} from '../../../../adapters/server-capabilities/server-capabilities.util';
+import { toPublicServer } from '../shared/server-public.util';
+import { ServersJobsFacade } from './servers-jobs.facade';
+import { ServersReadersFacade } from './servers-readers.facade';
 
 @Injectable()
 export class ServersCoreService {
-  private readonly logger = new Logger(ServersCoreService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: ServersCryptoService,
     private readonly ssh: ServersConnectionService,
-    private readonly jobs: ServersJobsService,
-    private readonly detection: ServersDetectionService,
-    private readonly preparation: ServerPreparationService,
-    private readonly verification: ServerVerificationService,
+    private readonly jobsFacade: ServersJobsFacade,
+    private readonly readersFacade: ServersReadersFacade,
     private readonly audit: ServersAuditService,
     private readonly auditService: AuditService,
   ) {}
@@ -124,7 +111,7 @@ export class ServersCoreService {
       connectionMode: server.connectionMode,
     });
 
-    return this.toPublic(server);
+    return toPublicServer(server);
   }
 
   async findAll(pagination?: PaginationDto): Promise<ServerListResult> {
@@ -133,9 +120,11 @@ export class ServersCoreService {
         where: ACTIVE_FILTER,
         orderBy: { createdAt: 'desc' },
       });
-      const activeJobs = await this.loadActiveJobs(servers.map((s) => s.id));
+      const activeJobs = await this.jobsFacade.loadActiveJobs(
+        servers.map((s) => s.id),
+      );
       return servers.map((server) =>
-        this.toPublic(server, activeJobs.get(server.id) ?? null),
+        toPublicServer(server, activeJobs.get(server.id) ?? null),
       );
     }
 
@@ -153,11 +142,13 @@ export class ServersCoreService {
       this.prisma.server.count({ where: ACTIVE_FILTER }),
     ]);
 
-    const activeJobs = await this.loadActiveJobs(servers.map((s) => s.id));
+    const activeJobs = await this.jobsFacade.loadActiveJobs(
+      servers.map((s) => s.id),
+    );
 
     return paginate(
       servers.map((server) =>
-        this.toPublic(server, activeJobs.get(server.id) ?? null),
+        toPublicServer(server, activeJobs.get(server.id) ?? null),
       ),
       total,
       page,
@@ -167,55 +158,8 @@ export class ServersCoreService {
 
   async findOne(id: string): Promise<ServerPublic> {
     const server = await this.getServerById(id);
-    const activeJobs = await this.loadActiveJobs([id]);
-    return this.toPublic(server, activeJobs.get(id) ?? null);
-  }
-
-  /**
-   * Batch-loads the latest active (RUNNING/PENDING) job per server so
-   * the servers list response carries lock state without the client polling
-   * `GET /servers/:id/jobs` separately for each server.
-   */
-  private async loadActiveJobs(
-    serverIds: string[],
-  ): Promise<Map<string, ServerActiveJob>> {
-    const result = new Map<string, ServerActiveJob>();
-    if (serverIds.length === 0) {
-      return result;
-    }
-
-    const jobs = await this.prisma.serverJob.findMany({
-      where: {
-        serverId: { in: serverIds },
-        status: { in: ACTIVE_JOB_STATUSES },
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        serverId: true,
-        type: true,
-        status: true,
-        startedAt: true,
-        createdAt: true,
-        error: true,
-      },
-    });
-
-    for (const job of jobs) {
-      // findMany is ordered desc, so the first job seen per server is the latest
-      if (!result.has(job.serverId)) {
-        result.set(job.serverId, {
-          id: job.id,
-          type: job.type,
-          status: job.status,
-          startedAt: job.startedAt,
-          createdAt: job.createdAt,
-          error: job.error,
-        });
-      }
-    }
-
-    return result;
+    const activeJobs = await this.jobsFacade.loadActiveJobs([id]);
+    return toPublicServer(server, activeJobs.get(id) ?? null);
   }
 
   async update(
@@ -259,23 +203,17 @@ export class ServersCoreService {
       }),
       ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       ...(dto.isVerified !== undefined && { isVerified: dto.isVerified }),
-      ...(dto.hasDocker !== undefined && { hasDocker: dto.hasDocker }),
-      ...(dto.hasRunner !== undefined && { hasRunner: dto.hasRunner }),
       ...(resetVerification && {
         isVerified: false,
-        hasDocker: false,
-        hasRunner: false,
         status: ServerStatus.NEW,
         onboardingStep: resetOnboardingStep,
       }),
       ...(!resetVerification &&
-        (dto.isVerified !== undefined ||
-          dto.hasDocker !== undefined ||
-          dto.hasRunner !== undefined) && {
+        dto.isVerified !== undefined && {
           onboardingStep: this.resolveOnboardingStep({
             isVerified: dto.isVerified ?? existing.isVerified,
-            hasDocker: dto.hasDocker ?? existing.hasDocker,
-            hasRunner: dto.hasRunner ?? existing.hasRunner,
+            hasDocker: serverHasDocker(existing),
+            hasRunner: serverHasRunner(existing),
             hasSshKeyInstalled:
               existing.onboardingStep !== 'PENDING' ||
               (dto.isVerified ?? false),
@@ -301,16 +239,43 @@ export class ServersCoreService {
       changedFields: Object.keys(dto),
     });
 
-    return this.toPublic(updated);
+    return toPublicServer(updated);
   }
 
   async remove(id: string, actorUserId: string): Promise<void> {
     const server = await this.getServerById(id);
 
+    // Guard against orphaning an environment: deployments target
+    // `environment.servers[0]`, so if this is the LAST active server of its
+    // environment, deleting it would silently make that environment
+    // undeployable ("Aucun serveur cible"). Block and tell the admin to attach
+    // another server first, rather than fail at the next deploy.
+    if (server.environmentId) {
+      const otherActiveServers = await this.prisma.server.count({
+        where: {
+          environmentId: server.environmentId,
+          archivedAt: null,
+          id: { not: id },
+        },
+      });
+      if (otherActiveServers === 0) {
+        const env = await this.prisma.environment.findUnique({
+          where: { id: server.environmentId },
+          select: { name: true },
+        });
+        throw new BadRequestException(
+          `Ce serveur est le seul de l'environnement « ${env?.name ?? server.environmentId} ». Le supprimer rendrait cet environnement non déployable. Attachez un autre serveur à cet environnement avant de le supprimer.`,
+        );
+      }
+    }
+
     // Soft-delete: archive the server and mark its tracked containers EXITED so
     // logs, preparations and audit history survive (a hard DELETE would cascade
     // them away). The server disappears from listings but stays referenceable.
     // Suffix the name so it can be reused for a fresh server registration.
+    // Also unlink it from its environment and mark it inactive so it can NEVER
+    // be selected as a deploy target again (the deploy query filters on
+    // isActive, not archivedAt).
     await this.prisma.$transaction([
       this.prisma.container.updateMany({
         where: { serverId: id },
@@ -321,6 +286,8 @@ export class ServersCoreService {
         data: {
           name: `${server.name}_archived_${Date.now()}`,
           archivedAt: new Date(),
+          isActive: false,
+          environmentId: null,
         },
       }),
     ]);
@@ -331,65 +298,26 @@ export class ServersCoreService {
     id: string,
     pagination?: PaginationDto,
   ): Promise<ServerJobsListResult> {
-    return await this.jobs.listJobs(id, pagination);
+    return this.jobsFacade.listJobs(id, pagination);
   }
 
   async cancelJob(serverId: string, jobId: string) {
-    return await this.jobs.forceFailJob(serverId, jobId);
+    return this.jobsFacade.cancelJob(serverId, jobId);
   }
 
   async retryJob(id: string, jobId: string): Promise<ServerPublic> {
-    return await this.jobs.retryJob(id, jobId, {
-      verify: async () => await this.verifyServer(id),
-      install: async (payload) => await this.installTools(id, payload),
-      prepare: async (payload) => await this.prepareServer(id, payload),
-    });
+    return this.jobsFacade.retryJob(id, jobId);
   }
 
   async verifyServer(id: string, actorUserId?: string): Promise<ServerPublic> {
-    const server = await this.getServerById(id);
-
-    if (server.onboardingStep === 'PENDING' && !server.isVerified) {
-      throw new BadRequestException(
-        'La clé SSH doit être installée sur le VPS avant la vérification. Utilisez l’action "Install SSH key".',
-      );
-    }
-
-    const job = await this.jobs.createJobAtomic(
-      server.id,
-      ServerJobType.VERIFY,
-    );
-    await this.audit.record(server.id, 'SERVER_VALIDATE_SSH', actorUserId, {
-      jobId: job.id,
-    });
-
-    this.runJobInBackground(
-      job.id,
-      this.jobs.executeJobWithRetry(
-        job,
-        async (options) =>
-          this.toPublic(await this.ssh.verifyServerDirect(server, options)),
-        (error) => this.toErrorMessage(error),
-      ),
-    );
-
-    return this.toPublic(server);
+    return this.jobsFacade.verifyServer(id, actorUserId);
   }
 
   async installTools(
     id: string,
     tools?: InstallToolsDto,
   ): Promise<ServerPublic> {
-    const payload: StartServerPreparationDto = {
-      docker: tools?.docker ?? true,
-      dockerComposePlugin: tools?.docker ?? true,
-      gitlabRunner: tools?.runner ?? false,
-      systemUpdate: true,
-      securityHardening: true,
-      logrotate: true,
-    };
-
-    return await this.prepareServer(id, payload);
+    return this.jobsFacade.installTools(id, tools);
   }
 
   async prepareServer(
@@ -397,9 +325,7 @@ export class ServersCoreService {
     prepare?: PrepareServerDto | StartServerPreparationDto,
     actorUserId?: string,
   ): Promise<ServerPublic> {
-    const server = await this.getServerById(id);
-    await this.preparation.startPreparation(server.id, prepare, actorUserId);
-    return this.toPublic(server);
+    return this.jobsFacade.prepareServer(id, prepare, actorUserId);
   }
 
   async startPreparation(
@@ -407,47 +333,11 @@ export class ServersCoreService {
     prepare?: StartServerPreparationDto,
     actorUserId?: string,
   ) {
-    const server = await this.getServerById(id);
-    return await this.preparation.startPreparation(
-      server.id,
-      prepare,
-      actorUserId,
-    );
+    return this.jobsFacade.startPreparation(id, prepare, actorUserId);
   }
 
   async detectServer(id: string, actorUserId?: string): Promise<ServerPublic> {
-    const server = await this.getServerById(id);
-    return this.toPublic(await this.detection.detect(server, actorUserId));
-  }
-
-  async listAuditEvents(id: string) {
-    await this.getServerById(id);
-    return await this.audit.list(id);
-  }
-
-  async listCapabilities(id: string) {
-    await this.getServerById(id);
-    return await this.detection.listCapabilities(id);
-  }
-
-  async listInstalledTools(id: string) {
-    await this.getServerById(id);
-    return await this.detection.listInstalledTools(id);
-  }
-
-  async listValidationResults(id: string) {
-    await this.getServerById(id);
-    return await this.verification.listValidationResults(id);
-  }
-
-  async listPreparations(id: string) {
-    await this.getServerById(id);
-    return await this.preparation.listPreparations(id);
-  }
-
-  async getPreparationReadiness(id: string) {
-    await this.getServerById(id);
-    return await this.preparation.getPreparationReadiness(id);
+    return this.jobsFacade.detectServer(id, actorUserId);
   }
 
   async registerRunner(
@@ -455,39 +345,7 @@ export class ServersCoreService {
     gitlabUrl: string,
     token: string,
   ): Promise<ServerPublic> {
-    const server = await this.getServerById(id);
-    const job = await this.jobs.createJobAtomic(
-      server.id,
-      ServerJobType.REGISTER_RUNNER,
-      { gitlabUrl } satisfies RegisterRunnerPayload,
-    );
-
-    this.runJobInBackground(
-      job.id,
-      this.jobs.executeJobWithRetry(
-        job,
-        async (options) =>
-          this.toPublic(
-            await this.ssh.registerRunnerAndVerify(
-              server,
-              gitlabUrl,
-              token,
-              options,
-            ),
-          ),
-        (error) => this.toErrorMessage(error),
-      ),
-    );
-
-    return this.toPublic(server);
-  }
-
-  private runJobInBackground(jobId: string, task: Promise<unknown>): void {
-    task.catch((error: unknown) => {
-      this.logger.error(
-        `Background job ${jobId} failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    });
+    return this.jobsFacade.registerRunner(id, gitlabUrl, token);
   }
 
   async installPublicKey(
@@ -495,51 +353,95 @@ export class ServersCoreService {
     password: string,
     actorUserId?: string,
   ): Promise<{ success: true; message: string }> {
-    const result = await this.ssh.installPublicKey(id, password);
-    await this.audit.record(id, 'SERVER_INSTALL_SSH_KEY', actorUserId, {
-      success: true,
-    });
-    return result;
+    return this.jobsFacade.installPublicKey(id, password, actorUserId);
+  }
+
+  async pingServer(
+    id: string,
+    actorUserId: string,
+  ): Promise<{ ok: boolean; message: string }> {
+    return this.jobsFacade.pingServer(id, actorUserId);
   }
 
   toErrorMessage(error: unknown): string {
-    if (error instanceof BadRequestException) {
-      const response = error.getResponse();
-      if (typeof response === 'string') {
-        return response;
-      }
-      if (
-        response &&
-        typeof response === 'object' &&
-        'message' in response &&
-        typeof response.message === 'string'
-      ) {
-        return response.message;
-      }
-      return error.message;
-    }
-
-    if (error instanceof Error && error.message) {
-      return error.message;
-    }
-
-    return 'Exécution distante échouée';
+    return this.jobsFacade.toErrorMessage(error);
   }
 
-  private toConnectionModeDto(
-    mode: ServerConnectionMode,
-  ): ServerConnectionModeDto {
-    if (mode === ServerConnectionMode.SSH) {
-      return ServerConnectionModeDto.SSH;
-    }
-    return ServerConnectionModeDto.SSH;
+  async listAuditEvents(id: string) {
+    return this.readersFacade.listAuditEvents(id);
+  }
+
+  async listCapabilities(id: string) {
+    return this.readersFacade.listCapabilities(id);
+  }
+
+  async listInstalledTools(id: string) {
+    return this.readersFacade.listInstalledTools(id);
+  }
+
+  async listValidationResults(id: string) {
+    return this.readersFacade.listValidationResults(id);
+  }
+
+  async listPreparations(id: string) {
+    return this.readersFacade.listPreparations(id);
+  }
+
+  async getPreparationReadiness(id: string) {
+    return this.readersFacade.getPreparationReadiness(id);
+  }
+
+  getPreparationOptions() {
+    return this.readersFacade.getPreparationOptions();
+  }
+
+  async getPreparation(id: string) {
+    return this.readersFacade.getPreparation(id);
+  }
+
+  async getPreparationLogs(id: string, afterLine?: number) {
+    return this.readersFacade.getPreparationLogs(id, afterLine);
+  }
+
+  async retryPreparation(
+    id: string,
+    dto: Parameters<ServerPreparationService['retryPreparation']>[1],
+    actorId: string,
+  ) {
+    return this.readersFacade.retryPreparation(id, dto, actorId);
+  }
+
+  async cancelPreparation(id: string, actorId: string) {
+    return this.readersFacade.cancelPreparation(id, actorId);
+  }
+
+  async resetVerificationStatus(id: string) {
+    return this.readersFacade.resetVerificationStatus(id);
+  }
+
+  async getRecentVerificationLogs(id: string, limit = 50) {
+    return this.readersFacade.getRecentVerificationLogs(id, limit);
+  }
+
+  async setServerInfraRole(
+    id: string,
+    infraRole: ServerInfraRole,
+    actorUserId: string,
+  ): Promise<ServerPublic> {
+    return this.readersFacade.setServerInfraRole(id, infraRole, actorUserId);
+  }
+
+  async listInfraEnvironments(): Promise<ServerPublic[]> {
+    return this.readersFacade.listInfraEnvironments();
+  }
+
+  async listEnvironmentsForServer(id: string) {
+    return this.readersFacade.listEnvironmentsForServer(id);
   }
 
   private async getServerById(id: string): Promise<Server> {
     const server = await this.prisma.server.findUnique({ where: { id } });
-    if (!server) {
-      throw new NotFoundException('Serveur non trouvé');
-    }
+    if (!server) throw new NotFoundException('Serveur non trouvé');
     return server;
   }
 
@@ -548,161 +450,16 @@ export class ServersCoreService {
     hasDocker: boolean;
     hasRunner: boolean;
     hasSshKeyInstalled: boolean;
-  }): string {
+  }): ServerOnboardingStep {
     if (input.isVerified && input.hasDocker && input.hasRunner) {
-      return 'READY';
+      return ServerOnboardingStep.READY;
     }
-
     if (input.isVerified) {
-      return 'VALIDATED';
+      return ServerOnboardingStep.SSH_VALIDATED;
     }
-
     if (!input.hasSshKeyInstalled) {
-      return 'PENDING';
+      return ServerOnboardingStep.PENDING;
     }
-
-    return 'KEY_INSTALLED';
-  }
-
-  private toPublic(
-    server: Server,
-    activeJob: ServerActiveJob | null = null,
-  ): ServerPublic {
-    const { sshKey, ...publicServer } = server;
-    void sshKey;
-    return {
-      ...publicServer,
-      connectionMode: this.toConnectionModeDto(server.connectionMode),
-      activeJob,
-    };
-  }
-
-  // ─── Delegations vers ServerPreparationService ────────────────────────────
-
-  getPreparationOptions() {
-    return this.preparation.getOptions();
-  }
-
-  async getPreparation(id: string) {
-    return await this.preparation.getPreparation(id);
-  }
-
-  async getPreparationLogs(id: string, afterLine?: number) {
-    return await this.preparation.getPreparationLogs(id, afterLine);
-  }
-
-  async retryPreparation(
-    id: string,
-    dto: Parameters<ServerPreparationService['retryPreparation']>[1],
-    actorId: string,
-  ) {
-    return await this.preparation.retryPreparation(id, dto, actorId);
-  }
-
-  async cancelPreparation(id: string, actorId: string) {
-    return await this.preparation.cancelPreparation(id, actorId);
-  }
-
-  // ─── Delegations vers ServerVerificationService ──────────────────────────
-
-  async resetVerificationStatus(id: string) {
-    return await this.verification.resetStatus(id);
-  }
-
-  async getRecentVerificationLogs(id: string, limit = 50) {
-    return await this.verification.getRecentLogs(id, limit);
-  }
-
-  // ─── Infrastructure roles & environments ─────────────────────────────────
-
-  async setServerInfraRole(
-    id: string,
-    infraRole: ServerInfraRole,
-    actorUserId: string,
-  ): Promise<ServerPublic> {
-    const existing = await this.prisma.server.findUnique({ where: { id } });
-    if (!existing) {
-      throw new NotFoundException(`Serveur "${id}" non trouvé`);
-    }
-
-    const updated = await this.prisma.server.update({
-      where: { id },
-      data: { infraRole } as Prisma.ServerUpdateInput,
-    });
-
-    await this.auditService.record(
-      actorUserId,
-      'SERVER_SET_INFRA_ROLE',
-      'Server',
-      updated.id,
-      {
-        infraRole,
-      },
-    );
-
-    return this.toPublic(updated);
-  }
-
-  async listInfraEnvironments(): Promise<ServerPublic[]> {
-    const servers = await this.prisma.server.findMany({
-      where: {
-        infraRole: { in: ['STAGING', 'PRODUCTION'] as ServerInfraRole[] },
-      } as Prisma.ServerWhereInput,
-      orderBy: { name: 'asc' },
-    });
-    return servers.map((server) => this.toPublic(server));
-  }
-
-  async listEnvironmentsForServer(id: string) {
-    const server = await this.prisma.server.findUnique({ where: { id } });
-    if (!server) {
-      throw new NotFoundException(`Serveur "${id}" non trouvé`);
-    }
-    // Get environments via containers linked to this server
-    const containers = await this.prisma.container.findMany({
-      where: { serverId: id },
-      select: {
-        deployment: {
-          select: { environmentId: true },
-        },
-      },
-    });
-    const envIds = [
-      ...new Set(
-        containers.map((c) => c.deployment?.environmentId).filter(Boolean),
-      ),
-    ] as string[];
-    if (envIds.length === 0) return [];
-    return await this.prisma.environment.findMany({
-      where: { id: { in: envIds } },
-      include: { project: { select: { id: true, name: true } } },
-      orderBy: { name: 'asc' },
-    });
-  }
-
-  // ─── Ping (test SSH rapide) ───────────────────────────────────────────────
-
-  async pingServer(
-    id: string,
-    actorUserId: string,
-  ): Promise<{ ok: boolean; message: string }> {
-    const server = await this.prisma.server.findUnique({ where: { id } });
-    if (!server) {
-      throw new NotFoundException(`Serveur "${id}" non trouvé`);
-    }
-
-    try {
-      await this.verification.startVerification(id);
-      const result = await this.verifyServer(id, actorUserId);
-      return {
-        ok: Boolean(result.isVerified),
-        message: result.verificationError ?? 'Connexion SSH validée',
-      };
-    } catch (err) {
-      return {
-        ok: false,
-        message: this.toErrorMessage(err),
-      };
-    }
+    return ServerOnboardingStep.KEY_INSTALLED;
   }
 }

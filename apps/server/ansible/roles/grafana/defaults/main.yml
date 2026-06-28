@@ -4,3 +4,9 @@ grafana_port: 3000
 grafana_data_dir: /opt/monitoring/grafana/data
 grafana_admin_user: admin
 grafana_admin_password: admin
+
+# Provisioning (datasource + default dashboards shipped out of the box).
+grafana_provisioning_dir: /opt/monitoring/grafana/provisioning
+grafana_dashboards_dir: /opt/monitoring/grafana/dashboards
+# Grafana runs in a container; reach the host-published Prometheus via the host IP.
+grafana_prometheus_url: "http://{{ ansible_default_ipv4.address | default('localhost') }}:9090"

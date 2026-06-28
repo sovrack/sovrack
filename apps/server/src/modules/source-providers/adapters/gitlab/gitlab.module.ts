@@ -1,8 +1,8 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from '../../../../core/database/prisma.module';
-import { CryptoModule } from '../../../../core/crypto/crypto.module';
+import { PrismaModule } from '../../../../shared/database/prisma.module';
+import { CryptoModule } from '../../../../shared/crypto/crypto.module';
 import { GitProviderConfigModule } from '../../shared/connection/git-provider-config.module';
 import { GitlabClient } from './gitlab.client';
 import { GitlabCiService } from './gitlab-ci.service';

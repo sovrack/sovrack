@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { GitProviderType, Role } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
 import { GiteaAdapter } from './gitea.adapter';
 import { GiteaClient } from './gitea.client';

@@ -1,6 +1,10 @@
 import request from 'supertest';
 import { DeploymentStatus } from '@prisma/client';
-import { bootstrapE2E, E2EContext, waitForDeploymentStatus } from '../setup-e2e';
+import {
+  bootstrapE2E,
+  E2EContext,
+  waitForDeploymentStatus,
+} from '../setup-e2e';
 import { createTestFixtures } from '../utils/test-fixtures';
 
 /**
@@ -18,8 +22,10 @@ import { createTestFixtures } from '../utils/test-fixtures';
  */
 describe('Rollback (e2e)', () => {
   let ctx: E2EContext;
-  const OLD_SHA = 'sha256:0ld0000000000000000000000000000000000000000000000000000000000000';
-  const NEW_SHA = 'sha256:new0000000000000000000000000000000000000000000000000000000000000';
+  const OLD_SHA =
+    'sha256:0ld0000000000000000000000000000000000000000000000000000000000000';
+  const NEW_SHA =
+    'sha256:new0000000000000000000000000000000000000000000000000000000000000';
 
   beforeAll(async () => {
     ctx = await bootstrapE2E();
@@ -91,7 +97,16 @@ describe('Rollback (e2e)', () => {
     expect(final.status).toBe('SUCCESS');
 
     // The pin: the executor pulled the OLD digest, never the newer one.
-    expect(ctx.docker.pullImage).toHaveBeenCalledWith(expect.any(String), OLD_SHA);
-    expect(ctx.docker.pullImage).not.toHaveBeenCalledWith(expect.any(String), NEW_SHA);
+    // pullImage(serverId, imageRef, pullAuth) — pullAuth is undefined for an
+    // anonymous (public) pull.
+    expect(ctx.docker.pullImage).toHaveBeenCalledWith(
+      expect.any(String),
+      OLD_SHA,
+      undefined,
+    );
+    expect(ctx.docker.pullImage).not.toHaveBeenCalledWith(
+      expect.any(String),
+      NEW_SHA,
+    );
   });
 });

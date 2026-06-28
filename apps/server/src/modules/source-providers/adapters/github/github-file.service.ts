@@ -9,9 +9,9 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { GitProviderType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { ALLOWED_PUSH_FILES } from '../../../../core/utils/file-constants';
-import { normalizeRepoPath } from '../../../../core/utils/repo-path.util';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { ALLOWED_PUSH_FILES } from '../../../../shared/utils/file-constants';
+import { normalizeRepoPath } from '../../../../shared/utils/repo-path.util';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
 import { GithubClient } from './github.client';
 import type {
@@ -72,7 +72,7 @@ export class GithubFileService {
   async writeFiles(
     projectId: string,
     files: Record<string, string>,
-    serviceId?: string,
+    _serviceId?: string,
   ): Promise<RepoWriteResult> {
     const blocked = Object.keys(files).filter(
       (f) => !ALLOWED_PUSH_FILES.has(f),
@@ -161,12 +161,10 @@ export class GithubFileService {
     }
     const provider = gitProviderConfig;
     const adminToken = provider.adminToken
-      ? await this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
+      ? this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
       : '';
     const oauthToken = provider.oauthAccessToken
-      ? await this.gitProviderRegistry.decryptProviderToken(
-          provider.oauthAccessToken,
-        )
+      ? this.gitProviderRegistry.decryptProviderToken(provider.oauthAccessToken)
       : '';
     const token = oauthToken || adminToken;
     if (!token)

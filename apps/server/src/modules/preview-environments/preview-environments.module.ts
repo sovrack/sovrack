@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../core/database/prisma.module';
+import { PrismaModule } from '../../shared/database/prisma.module';
 import { SourceProvidersModule } from '../source-providers';
 import { PreviewEnvironmentService } from './preview-environment.service';
 import { PreviewEnvironmentsController } from './preview-environments.controller';

@@ -7,10 +7,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { SslCertificateService } from './ssl-certificate.service';
 import type { SslCertificateRequest } from './ssl-certificate.service';
 
+@ApiTags('SSL')
+@ApiBearerAuth()
 @Controller('ssl')
 @UseGuards(JwtAuthGuard)
 export class SslController {

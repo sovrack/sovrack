@@ -3,13 +3,36 @@
   ansible.builtin.command: docker --version
   changed_when: false
 
-- name: "grafana | Create data directory"
+- name: "grafana | Create data + provisioning directories"
   ansible.builtin.file:
-    path: "{{ grafana_data_dir }}"
+    path: "{{ item }}"
     state: directory
     owner: "472"
     group: "472"
     mode: '0755'
+  loop:
+    - "{{ grafana_data_dir }}"
+    - "{{ grafana_provisioning_dir }}/datasources"
+    - "{{ grafana_provisioning_dir }}/dashboards"
+    - "{{ grafana_dashboards_dir }}"
+
+- name: "grafana | Provision the Prometheus datasource"
+  ansible.builtin.template:
+    src: datasource-prometheus.yml.j2
+    dest: "{{ grafana_provisioning_dir }}/datasources/prometheus.yml"
+    mode: '0644'
+
+- name: "grafana | Provision the dashboards provider"
+  ansible.builtin.copy:
+    src: dashboards-provider.yml
+    dest: "{{ grafana_provisioning_dir }}/dashboards/platform.yml"
+    mode: '0644'
+
+- name: "grafana | Ship the default platform dashboard"
+  ansible.builtin.copy:
+    src: platform-overview.json
+    dest: "{{ grafana_dashboards_dir }}/platform-overview.json"
+    mode: '0644'
 
 - name: "grafana | Remove previous container if present"
   ansible.builtin.shell: docker rm -f grafana >/dev/null 2>&1 || true
@@ -29,6 +52,10 @@
       - "{{ grafana_port }}:3000"
       - --volume
       - "{{ grafana_data_dir }}:/var/lib/grafana"
+      - --volume
+      - "{{ grafana_provisioning_dir }}:/etc/grafana/provisioning"
+      - --volume
+      - "{{ grafana_dashboards_dir }}:/var/lib/grafana/dashboards"
       - --env
       - "GF_SECURITY_ADMIN_USER={{ grafana_admin_user }}"
       - --env

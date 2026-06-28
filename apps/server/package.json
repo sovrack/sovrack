@@ -7,7 +7,9 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "arch:check": "depcruise src",
+    "arch:check": "depcruise src --config .dependency-cruiser.cjs --output-type err",
+    "arch:check:detailed": "depcruise src --config .dependency-cruiser.cjs --output-type err-long",
+    "check:all": "npm run arch:check && npm run lint && npx tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "start": "nest start",
@@ -28,7 +30,7 @@
     "prisma:migrate:status": "prisma migrate status",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "openapi:export": "TS_NODE_FILES=true ts-node src/scripts/export-openapi.ts",
+    "openapi:export": "nest build && node dist/scripts/export-openapi.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -36,6 +38,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand --forceExit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1073.0",
     "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
@@ -51,18 +54,19 @@
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.17",
     "@prisma/client": "^6.16.2",
-    "@xterm/addon-fit": "^0.11.0",
-    "@xterm/addon-web-links": "^0.12.0",
+    "argon2": "^0.44.0",
     "axios": "^1.14.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.78.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "compression": "^1.8.1",
     "crypto-js": "^4.2.0",
     "dockerode": "^5.0.0",
+    "helmet": "^8.2.0",
     "ioredis": "^5.10.1",
     "node-ssh": "^13.2.1",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "^9.0.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
@@ -82,6 +86,7 @@
     "@nestjs/testing": "^11.0.1",
     "@testcontainers/postgresql": "^12.0.1",
     "@types/bcrypt": "^6.0.0",
+    "@types/compression": "^1.8.1",
     "@types/crypto-js": "^4.2.2",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
@@ -111,7 +116,8 @@
   "overrides": {
     "minimatch@3.1.5": {
       "brace-expansion": "^1.1.13"
-    }
+    },
+    "multer": "^2.2.0"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -126,6 +132,25 @@
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "\\.module\\.ts$",
+      "\\.dto\\.ts$",
+      "main\\.ts$"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 55,
+        "branches": 46,
+        "functions": 50,
+        "lines": 54
+      }
+    },
+    "coverageReporters": [
+      "text",
+      "cobertura",
+      "lcov"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

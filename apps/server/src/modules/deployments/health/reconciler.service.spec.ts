@@ -1,5 +1,5 @@
-import { PrismaService } from '../../../core/database/prisma.service';
-import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 import { ReconcilerService } from './reconciler.service';
@@ -112,5 +112,44 @@ describe('ReconcilerService', () => {
     await service.reconcile();
     expect(dockerApi.inspectContainer).not.toHaveBeenCalled();
     expect(prisma.deployment.create).not.toHaveBeenCalled();
+  });
+
+  it('skips an env with no container yet (nothing deployed)', async () => {
+    prisma.serviceEnvironment.findMany.mockResolvedValue([
+      makeCandidate({ containers: [] }),
+    ]);
+    await service.reconcile();
+    expect(dockerApi.inspectContainer).not.toHaveBeenCalled();
+    expect(prisma.deployment.create).not.toHaveBeenCalled();
+  });
+
+  it('skips a legacy row with no resolved serverId', async () => {
+    prisma.serviceEnvironment.findMany.mockResolvedValue([
+      makeCandidate({ resolvedRefs: {} }),
+    ]);
+    await service.reconcile();
+    expect(dockerApi.inspectContainer).not.toHaveBeenCalled();
+    expect(prisma.deployment.create).not.toHaveBeenCalled();
+  });
+
+  it('does not crash when the auto-heal deploy itself fails', async () => {
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'exited' },
+    });
+    executor.executeDeploy.mockRejectedValue(new Error('pull failed'));
+    await service.reconcile();
+    // executeDeploy is fire-and-forget (void … .catch) → let the rejection
+    // handler run on the next microtask, then assert nothing leaked.
+    await new Promise((r) => setImmediate(r));
+    expect(prisma.deployment.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not crash when the auto-heal notification fails', async () => {
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'exited' },
+    });
+    notifications.notifyAutoHeal.mockRejectedValue(new Error('smtp down'));
+    await expect(service.reconcile()).resolves.toBeUndefined();
+    expect(prisma.deployment.create).toHaveBeenCalledTimes(1);
   });
 });

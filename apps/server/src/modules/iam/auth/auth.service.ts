@@ -5,11 +5,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
+import { PasswordHasher } from '../security/password-hasher.service';
 import { LoginDto } from './dto/login.dto';
 import { User } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 
 /**
@@ -29,6 +29,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly passwordHasher: PasswordHasher,
   ) {}
 
   /**
@@ -44,8 +45,11 @@ export class AuthService {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
 
-    // Comparer le mot de passe avec bcrypt
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+    // Vérifie le mot de passe (argon2id, ou bcrypt legacy en transparence).
+    const isPasswordValid = await this.passwordHasher.verify(
+      user.password,
+      dto.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
@@ -53,6 +57,25 @@ export class AuthService {
     // Bloque explicitement les comptes desactives.
     if (!user.isActive) {
       throw new UnauthorizedException('Votre compte est désactivé');
+    }
+
+    // Migration douce : si le hachage est legacy (bcrypt), on le remplace par
+    // argon2id maintenant qu'on a le mot de passe en clair et qu'il est valide.
+    // Best-effort — un échec ici ne doit jamais bloquer la connexion.
+    if (this.passwordHasher.needsRehash(user.password)) {
+      try {
+        const rehashed = await this.passwordHasher.hash(dto.password);
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { password: rehashed },
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Re-hachage argon2id échoué pour ${user.id}: ${
+            err instanceof Error ? err.message : 'erreur inconnue'
+          }`,
+        );
+      }
     }
 
     // Générer le token JWT

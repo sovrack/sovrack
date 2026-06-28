@@ -1,11 +1,10 @@
 import {
-  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { ProjectRole, Role } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '../../shared/database/prisma.service';
 import { BuildDetectorService } from './detection/build-detector.service';
 import { DockerfileGenerator } from './generation/dockerfiles/dockerfile.generator';
 import { DockerignoreGenerator } from './generation/dockerfiles/dockerignore.generator';
@@ -13,8 +12,6 @@ import { CiGeneratorFactory } from './generation/ci/ci-generator.factory';
 import { SourceProvidersService } from '../source-providers/source-providers.service';
 import type { RepoWriteResult } from '../source-providers/contracts/git-provider.contract';
 import type {
-  BuildArtifactStatus,
-  BuildPrepareStatus,
   BuildPrepareServiceResult,
   BuildPrepareResponse,
 } from './types/build-prepare.types';
@@ -113,7 +110,7 @@ export class BuildOrchestratorService {
     projectId: string,
     serviceId?: string,
     overwriteDockerfile?: boolean,
-    overwriteGitlabCi?: boolean,
+    _overwriteGitlabCi?: boolean,
   ): Promise<BuildPrepareResponse> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -142,22 +139,6 @@ export class BuildOrchestratorService {
       projectId,
       serviceId,
     );
-    const knownLanguageAliases = new Set([
-      'nodejs',
-      'nestjs',
-      'nextjs',
-      'react',
-      'python',
-      'django',
-      'go',
-      'golang',
-      'java',
-      'spring-boot',
-      'ruby',
-      'php',
-      'laravel',
-      'rust',
-    ]);
     const type = detected.recommendedBuildType || detected.type;
     const port = detected.recommendedPort ?? 3000;
     const startCmd = detected.recommendedStartCommand ?? 'node index.js';
@@ -176,23 +157,15 @@ export class BuildOrchestratorService {
       branches: uniqueBranches.length > 0 ? uniqueBranches : undefined,
     });
 
-    const shouldGenerateDockerfile = overwriteDockerfile ?? true;
-    const filesToPush: Record<string, string> = {};
-    if (shouldGenerateDockerfile) {
-      filesToPush['Dockerfile'] = dockerfileContent;
-      filesToPush['.dockerignore'] = dockerignoreContent;
-    }
-    // SECURITY: .gitlab-ci.yml is generated + saved to project for the user
-    // to copy manually — never auto-pushed (would overwrite client CI).
-
-    let pushResult: RepoWriteResult | null = null;
-    if (Object.keys(filesToPush).length > 0) {
-      // Invariant : provider lié au SERVICE — résolution par service si dispo.
-      const provider = serviceId
-        ? await this.gitProvidersService.forService(serviceId)
-        : await this.gitProvidersService.forProject(projectId);
-      pushResult = await provider.writeFiles(projectId, filesToPush, serviceId);
-    }
+    // PREVIEW ONLY — this path NEVER writes to the user's repository. Auto-
+    // pushing Dockerfile/.dockerignore would overwrite files the user already
+    // has on their default branch (conflict / data loss). Repo writes happen
+    // exclusively through the explicit /build/push-files action. Here we just
+    // return the generated content for the user to copy; the Dockerfile is also
+    // stored on the Service (local DB, consumed by the local build engine) —
+    // never committed to the repo.
+    void overwriteDockerfile;
+    const pushResult: RepoWriteResult | null = null;
 
     // Build config now stored on Service model, not Project
     if (serviceId && service) {

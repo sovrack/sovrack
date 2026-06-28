@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ContainerStatus } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
 
 @Injectable()
 export class ContainersService {

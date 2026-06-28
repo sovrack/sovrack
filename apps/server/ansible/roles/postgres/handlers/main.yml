@@ -1,5 +1,4 @@
 ---
 - name: restart postgres
-  ansible.builtin.systemd:
-    name: "{{ postgres_service_name }}"
-    state: restarted
+  ansible.builtin.command: "docker restart {{ postgres_container_name }}"
+  changed_when: true

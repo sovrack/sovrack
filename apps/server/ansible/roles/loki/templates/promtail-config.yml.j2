@@ -1,0 +1,36 @@
+---
+# Promtail config — rendu par le rôle Ansible `loki`.
+# Découvre les conteneurs Docker locaux et expédie leurs logs à Loki, en
+# propageant les labels `platform.*` (posés au déploiement par buildplatformLabels)
+# comme labels Loki → filtrage par projet / service / service×env / déploiement.
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://127.0.0.1:{{ loki_port }}/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 10s
+    relabel_configs:
+      # Ne shipper QUE les conteneurs gérés par la plateforme.
+      - source_labels: ['__meta_docker_container_label_platform_managed']
+        regex: 'true'
+        action: keep
+      # Labels `platform.*` (les points deviennent `_` côté meta) → labels Loki.
+      - source_labels: ['__meta_docker_container_label_platform_project']
+        target_label: 'platform_project'
+      - source_labels: ['__meta_docker_container_label_platform_service']
+        target_label: 'platform_service'
+      - source_labels: ['__meta_docker_container_label_platform_service_env']
+        target_label: 'platform_service_env'
+      - source_labels: ['__meta_docker_container_label_platform_deployment']
+        target_label: 'platform_deployment'
+      - source_labels: ['__meta_docker_container_name']
+        target_label: 'container'

@@ -13,6 +13,37 @@ export type MonitoringMetricSnapshot = {
   uptimeSeconds: number | null;
 };
 
+export type MetricRangePoint = { t: number; value: number | null };
+export type HostMetricRange = {
+  configured: boolean;
+  host: string;
+  from: number;
+  to: number;
+  stepSeconds: number;
+  series: {
+    cpuPercent: MetricRangePoint[];
+    memoryPercent: MetricRangePoint[];
+    diskPercent: MetricRangePoint[];
+  };
+};
+
+export type ServiceMetricRange = {
+  configured: boolean;
+  serviceEnvId: string;
+  from: number;
+  to: number;
+  stepSeconds: number;
+  series: {
+    cpuPercent: MetricRangePoint[];
+    memoryMb: MetricRangePoint[];
+  };
+};
+
+type PrometheusMatrixSample = {
+  metric?: Record<string, string>;
+  values?: Array<[number, string]>;
+};
+
 type PrometheusVectorSample = {
   metric?: Record<string, string>;
   value?: [number | string, string];
@@ -172,6 +203,161 @@ export class MonitoringPrometheusService {
     apply(uptimeValues, 'uptimeSeconds');
 
     return metricMap;
+  }
+
+  /**
+   * Historical (time-series) metrics for one host, via Prometheus
+   * `query_range`. Complements the live snapshot: lets the UI draw CPU/mem/disk
+   * charts over a window instead of only the instant value.
+   */
+  async getHostMetricRange(params: {
+    host: string;
+    from: Date;
+    to: Date;
+    stepSeconds: number;
+  }): Promise<HostMetricRange> {
+    const { host, from, to, stepSeconds } = params;
+    const base: HostMetricRange = {
+      configured: false,
+      host,
+      from: Math.floor(from.getTime() / 1000),
+      to: Math.floor(to.getTime() / 1000),
+      stepSeconds,
+      series: { cpuPercent: [], memoryPercent: [], diskPercent: [] },
+    };
+
+    const prometheusUrl = await this.getConfigValue(
+      'MONITORING_PROMETHEUS_URL',
+    );
+    if (!prometheusUrl) return base;
+    const normalized = this.trimTrailingSlash(prometheusUrl);
+
+    // Escape regex metacharacters AND the double-quote so the host can neither
+    // alter the regex nor break out of the PromQL string literal.
+    const h = host.replace(/["\\.*+?^${}()|[\]]/g, '\\$&');
+    const inst = `instance=~"${h}:.*"`;
+
+    const [cpu, mem, disk] = await Promise.all([
+      this.queryRangePrometheus(
+        normalized,
+        `100 * (1 - avg by(instance) (rate(node_cpu_seconds_total{mode="idle",${inst}}[5m])))`,
+        base.from,
+        base.to,
+        stepSeconds,
+      ),
+      this.queryRangePrometheus(
+        normalized,
+        `100 * (1 - (node_memory_MemAvailable_bytes{${inst}} / node_memory_MemTotal_bytes{${inst}}))`,
+        base.from,
+        base.to,
+        stepSeconds,
+      ),
+      this.queryRangePrometheus(
+        normalized,
+        `100 * (1 - (node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay",${inst}} / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay",${inst}}))`,
+        base.from,
+        base.to,
+        stepSeconds,
+      ),
+    ]);
+
+    return {
+      ...base,
+      configured: true,
+      series: {
+        cpuPercent: cpu,
+        memoryPercent: mem,
+        diskPercent: disk,
+      },
+    };
+  }
+
+  /**
+   * Historical CPU/memory time-series for a SERVICE-ENVIRONMENT's container(s),
+   * via cAdvisor metrics filtered on the `platform.service_env` Docker label
+   * (exposed by cAdvisor as `container_label_platform_service_env`). Powers the
+   * per-service charts + deployment markers. Returns empty when the Prometheus
+   * stack is not installed (graceful degradation → UI falls back to live).
+   */
+  async getServiceMetricRange(params: {
+    serviceEnvId: string;
+    from: Date;
+    to: Date;
+    stepSeconds: number;
+  }): Promise<ServiceMetricRange> {
+    const { serviceEnvId, from, to, stepSeconds } = params;
+    const base: ServiceMetricRange = {
+      configured: false,
+      serviceEnvId,
+      from: Math.floor(from.getTime() / 1000),
+      to: Math.floor(to.getTime() / 1000),
+      stepSeconds,
+      series: { cpuPercent: [], memoryMb: [] },
+    };
+
+    const prometheusUrl = await this.getConfigValue(
+      'MONITORING_PROMETHEUS_URL',
+    );
+    if (!prometheusUrl) return base;
+    const normalized = this.trimTrailingSlash(prometheusUrl);
+
+    // Escape regex/quote so the id can neither alter the regex nor break the
+    // PromQL string literal.
+    const id = serviceEnvId.replace(/["\\.*+?^${}()|[\]]/g, '\\$&');
+    const sel = `container_label_platform_service_env="${id}"`;
+
+    const [cpu, mem] = await Promise.all([
+      this.queryRangePrometheus(
+        normalized,
+        `sum(rate(container_cpu_usage_seconds_total{${sel}}[5m])) * 100`,
+        base.from,
+        base.to,
+        stepSeconds,
+      ),
+      this.queryRangePrometheus(
+        normalized,
+        `sum(container_memory_usage_bytes{${sel}}) / 1024 / 1024`,
+        base.from,
+        base.to,
+        stepSeconds,
+      ),
+    ]);
+
+    return {
+      ...base,
+      configured: true,
+      series: { cpuPercent: cpu, memoryMb: mem },
+    };
+  }
+
+  private async queryRangePrometheus(
+    prometheusUrl: string,
+    query: string,
+    start: number,
+    end: number,
+    step: number,
+  ): Promise<MetricRangePoint[]> {
+    try {
+      const res = await firstValueFrom(
+        this.httpService.get<{
+          data?: { result?: PrometheusMatrixSample[] };
+        }>(`${prometheusUrl}/api/v1/query_range`, {
+          params: { query, start, end, step },
+          timeout: 8_000,
+        }),
+      );
+      // First series only (query is filtered to a single host).
+      const values = res.data?.data?.result?.[0]?.values ?? [];
+      return values.map(([t, v]) => {
+        const parsed = Number(v);
+        return { t: Number(t), value: Number.isFinite(parsed) ? parsed : null };
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Prometheus query_range failed (${query}): ${this.errorMessage(error)}`,
+      );
+      return [];
+    }
   }
 
   private async queryPrometheus(

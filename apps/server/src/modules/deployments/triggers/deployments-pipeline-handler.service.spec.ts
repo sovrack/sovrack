@@ -5,9 +5,9 @@ import {
   PipelineRunStatus,
 } from '@prisma/client';
 import { DeploymentsPipelineHandlerService } from './deployments-pipeline-handler.service';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { NotificationsService } from '../../notifications/notifications.service';
 
 const buildPrisma = () => ({
@@ -56,7 +56,7 @@ describe('DeploymentsPipelineHandlerService', () => {
         DeploymentsPipelineHandlerService,
         { provide: PrismaService, useValue: prisma },
         { provide: DockerDeployExecutorService, useValue: ansible },
-        { provide: DeploymentsGateway, useValue: gateway },
+        { provide: DeploymentEventsPublisher, useValue: gateway },
         { provide: NotificationsService, useValue: buildNotifications() },
       ],
     }).compile();

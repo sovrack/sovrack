@@ -2,8 +2,9 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { GitProviderType, WebhookEventStatus } from '@prisma/client';
 import { WebhooksService } from './webhooks.service';
-import { PrismaService } from '../../core/database/prisma.service';
-import { CryptoService } from '../../core/crypto/crypto.service';
+import { WebhookEventsService } from './webhook-events.service';
+import { PrismaService } from '../../shared/database/prisma.service';
+import { CryptoService } from '../../shared/crypto/crypto.service';
 
 /**
  * P4 — Webhook observability. The service is the audit log: it records
@@ -50,6 +51,7 @@ describe('WebhooksService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         WebhooksService,
+        WebhookEventsService,
         { provide: PrismaService, useValue: prisma },
         {
           provide: CryptoService,

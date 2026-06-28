@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  BuildMode,
   BuildPack,
+  DeployTrigger,
   GitProviderType,
   ManagedServiceType,
   Prisma,
@@ -10,9 +12,9 @@ import {
 import { Type } from 'class-transformer';
 import {
   IsEnum,
-  IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
@@ -87,18 +89,15 @@ export class CreateServiceDto {
   @IsEnum(BuildPack)
   buildPack?: BuildPack;
 
-  @ApiPropertyOptional({ enum: ['LOCAL', 'REGISTRY'], example: 'LOCAL' })
+  @ApiPropertyOptional({ enum: BuildMode, example: BuildMode.LOCAL })
   @IsOptional()
-  @IsIn(['LOCAL', 'REGISTRY'])
-  buildMode?: string;
+  @IsEnum(BuildMode)
+  buildMode?: BuildMode;
 
-  @ApiPropertyOptional({
-    enum: ['PUSH', 'PIPELINE_SUCCESS', 'CI_HOOK', 'MANUAL'],
-    example: 'PUSH',
-  })
+  @ApiPropertyOptional({ enum: DeployTrigger, example: DeployTrigger.PUSH })
   @IsOptional()
-  @IsIn(['PUSH', 'PIPELINE_SUCCESS', 'CI_HOOK', 'MANUAL'])
-  deployTrigger?: string;
+  @IsEnum(DeployTrigger)
+  deployTrigger?: DeployTrigger;
 
   @ApiPropertyOptional({
     example: 'registry.gitlab.com/grp/app:latest',
@@ -129,6 +128,20 @@ export class CreateServiceDto {
   @IsOptional()
   @IsString()
   startCommand?: string;
+
+  @ApiPropertyOptional({ example: 0.5, description: 'CPU limit in cores' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  cpuLimit?: number;
+
+  @ApiPropertyOptional({ example: 512, description: 'Memory limit in MB' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  memLimitMb?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -2,14 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
-  ServerOperationStatus,
-  ServerOperationTargetStatus,
   Prisma,
-  Server,
   ServerLogLevel,
+  ServerRunKind,
+  ServerRunStatus,
+  ServerRunStepStatus,
 } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { ServerPreparationAnsibleService } from '../../infrastructure/preparation/services/server-preparation-ansible.service';
+import { ServerRunsService } from '../../infrastructure/server-runs/server-runs.service';
 import type { PreparationRoleKey } from '../../infrastructure/servers/shared/server-preparation-options';
 import { AutomationGateway } from '../automation.gateway';
 import {
@@ -22,18 +23,18 @@ type RunConfig = {
   gitlabRunnerExecutor: string;
 };
 
-type AutomationRunWithTargets = {
-  id: string;
-  status: ServerOperationStatus;
-  actionKey: string;
-  actionLabel: string;
-  requestedById: string | null;
-  paramsJson: Prisma.JsonValue;
-  targets: Array<{
-    id: string;
-    server: Server;
-  }>;
-};
+// AUTOMATION runs persist one ServerRunStep per targeted server (serverId set,
+// roleKey null). We load the steps with their server to drive execution.
+const runWithStepsInclude = {
+  steps: {
+    include: { server: true },
+    orderBy: { id: 'asc' },
+  },
+} satisfies Prisma.ServerRunInclude;
+
+type AutomationRunWithSteps = Prisma.ServerRunGetPayload<{
+  include: typeof runWithStepsInclude;
+}>;
 
 @Injectable()
 export class AutomationRunnerService {
@@ -46,6 +47,7 @@ export class AutomationRunnerService {
     private readonly gateway: AutomationGateway,
     private readonly configService: ConfigService,
     private readonly events: EventEmitter2,
+    private readonly serverRuns: ServerRunsService,
   ) {}
 
   executeInBackground(runId: string): void {
@@ -63,23 +65,15 @@ export class AutomationRunnerService {
   }
 
   private async executeRun(runId: string): Promise<void> {
-    const run = (await this.prisma.serverOperation.findUnique({
-      where: { id: runId },
-      include: {
-        targets: {
-          include: {
-            server: true,
-          },
-          orderBy: {
-            id: 'asc',
-          },
-        },
-      },
-    })) as AutomationRunWithTargets | null;
+    const run: AutomationRunWithSteps | null =
+      await this.prisma.serverRun.findFirst({
+        where: { id: runId, kind: ServerRunKind.AUTOMATION },
+        include: runWithStepsInclude,
+      });
     if (!run) {
       return;
     }
-    if (run.status === ServerOperationStatus.CANCELED) {
+    if (run.status === ServerRunStatus.CANCELED) {
       return;
     }
 
@@ -94,10 +88,10 @@ export class AutomationRunnerService {
     let skipped = 0;
     const succeededHosts: string[] = [];
 
-    await this.prisma.serverOperation.update({
+    await this.prisma.serverRun.update({
       where: { id: runId },
       data: {
-        status: ServerOperationStatus.RUNNING,
+        status: ServerRunStatus.RUNNING,
         startedAt: new Date(),
         finishedAt: null,
         errorMessage: null,
@@ -105,7 +99,7 @@ export class AutomationRunnerService {
     });
     this.gateway.emitRunStatus({
       runId,
-      status: ServerOperationStatus.RUNNING,
+      status: ServerRunStatus.RUNNING,
     });
 
     await this.appendRunLog(runId, {
@@ -116,20 +110,22 @@ export class AutomationRunnerService {
     });
 
     try {
-      for (const target of run.targets) {
+      for (const step of run.steps) {
         if (controller.signal.aborted) {
           skipped += 1;
-          await this.markTargetSkipped(
-            target.id,
-            'Run canceled by administrator',
-          );
+          await this.markStepSkipped(step.id, 'Run canceled by administrator');
           continue;
         }
 
-        const server = target.server;
+        const server = step.server;
+        if (!server) {
+          skipped += 1;
+          await this.markStepSkipped(step.id, 'Server missing');
+          continue;
+        }
         if (!server.isActive) {
           skipped += 1;
-          await this.markTargetSkipped(target.id, 'Server disabled');
+          await this.markStepSkipped(step.id, 'Server disabled');
           await this.appendRunLog(runId, {
             serverId: server.id,
             level: ServerLogLevel.WARNING,
@@ -141,7 +137,7 @@ export class AutomationRunnerService {
 
         if (!server.isVerified) {
           skipped += 1;
-          await this.markTargetSkipped(target.id, 'SSH not validated');
+          await this.markStepSkipped(step.id, 'SSH not validated');
           await this.appendRunLog(runId, {
             serverId: server.id,
             level: ServerLogLevel.WARNING,
@@ -151,10 +147,10 @@ export class AutomationRunnerService {
           continue;
         }
 
-        await this.prisma.serverOperationTarget.update({
-          where: { id: target.id },
+        await this.prisma.serverRunStep.update({
+          where: { id: step.id },
           data: {
-            status: ServerOperationTargetStatus.RUNNING,
+            status: ServerRunStepStatus.RUNNING,
             startedAt: new Date(),
             finishedAt: null,
             errorMessage: null,
@@ -177,7 +173,7 @@ export class AutomationRunnerService {
           serverId: server.id,
           level: ServerLogLevel.INFO,
           source: 'orchestrator',
-          message: `Running ${run.actionLabel} on ${server.name} (${server.host}).`,
+          message: `Running ${run.actionLabel ?? run.actionKey ?? 'automation'} on ${server.name} (${server.host}).`,
         });
 
         try {
@@ -203,10 +199,10 @@ export class AutomationRunnerService {
 
           succeeded += 1;
           succeededHosts.push(server.host);
-          await this.prisma.serverOperationTarget.update({
-            where: { id: target.id },
+          await this.prisma.serverRunStep.update({
+            where: { id: step.id },
             data: {
-              status: ServerOperationTargetStatus.SUCCEEDED,
+              status: ServerRunStepStatus.SUCCEEDED,
               finishedAt: new Date(),
               errorMessage: null,
             },
@@ -228,10 +224,10 @@ export class AutomationRunnerService {
             error instanceof Error ? error.message : String(error);
           if (controller.signal.aborted) {
             skipped += 1;
-            await this.prisma.serverOperationTarget.update({
-              where: { id: target.id },
+            await this.prisma.serverRunStep.update({
+              where: { id: step.id },
               data: {
-                status: ServerOperationTargetStatus.SKIPPED,
+                status: ServerRunStepStatus.SKIPPED,
                 finishedAt: new Date(),
                 errorMessage: 'Run canceled by administrator',
               },
@@ -251,12 +247,12 @@ export class AutomationRunnerService {
           } else {
             failed += 1;
           }
-          await this.prisma.serverOperationTarget.update({
-            where: { id: target.id },
+          await this.prisma.serverRunStep.update({
+            where: { id: step.id },
             data: {
               status: isTimeout
-                ? ServerOperationTargetStatus.TIMEOUT
-                : ServerOperationTargetStatus.FAILED,
+                ? ServerRunStepStatus.TIMEOUT
+                : ServerRunStepStatus.FAILED,
               finishedAt: new Date(),
               errorMessage: this.redactSecrets(message),
             },
@@ -287,29 +283,29 @@ export class AutomationRunnerService {
 
       const canceled = controller.signal.aborted;
       const finalStatus = canceled
-        ? ServerOperationStatus.CANCELED
+        ? ServerRunStatus.CANCELED
         : timedOut > 0
           ? succeeded > 0
-            ? ServerOperationStatus.PARTIAL
-            : ServerOperationStatus.TIMEOUT
+            ? ServerRunStatus.PARTIAL
+            : ServerRunStatus.TIMEOUT
           : failed > 0
             ? succeeded > 0
-              ? ServerOperationStatus.PARTIAL
-              : ServerOperationStatus.FAILED
-            : ServerOperationStatus.SUCCEEDED;
+              ? ServerRunStatus.PARTIAL
+              : ServerRunStatus.FAILED
+            : ServerRunStatus.SUCCEEDED;
       const summary = canceled
         ? 'Automation canceled by administrator.'
-        : `Targets: ${String(run.targets.length)} total, ${String(succeeded)} succeeded, ${String(failed)} failed, ${String(timedOut)} timed out, ${String(skipped)} skipped.`;
+        : `Targets: ${String(run.steps.length)} total, ${String(succeeded)} succeeded, ${String(failed)} failed, ${String(timedOut)} timed out, ${String(skipped)} skipped.`;
 
-      await this.prisma.serverOperation.update({
+      await this.prisma.serverRun.update({
         where: { id: runId },
         data: {
           status: finalStatus,
           summary,
           finishedAt: new Date(),
-          ...(finalStatus === ServerOperationStatus.FAILED
+          ...(finalStatus === ServerRunStatus.FAILED
             ? { errorMessage: 'One or more targets failed.' }
-            : finalStatus === ServerOperationStatus.TIMEOUT
+            : finalStatus === ServerRunStatus.TIMEOUT
               ? { errorMessage: 'One or more targets timed out.' }
               : { errorMessage: null }),
         },
@@ -317,7 +313,7 @@ export class AutomationRunnerService {
 
       this.events.emit(AUTOMATION_RUN_COMPLETED, {
         runId,
-        actionKey: run.actionKey,
+        actionKey: run.actionKey ?? '',
         status: finalStatus,
         succeededHosts,
       } satisfies AutomationRunCompletedEvent);
@@ -333,14 +329,14 @@ export class AutomationRunnerService {
     }
   }
 
-  private async markTargetSkipped(
-    targetId: string,
+  private async markStepSkipped(
+    stepId: string,
     message: string,
   ): Promise<void> {
-    await this.prisma.serverOperationTarget.update({
-      where: { id: targetId },
+    await this.prisma.serverRunStep.update({
+      where: { id: stepId },
       data: {
-        status: ServerOperationTargetStatus.SKIPPED,
+        status: ServerRunStepStatus.SKIPPED,
         finishedAt: new Date(),
         errorMessage: message,
       },
@@ -356,27 +352,15 @@ export class AutomationRunnerService {
       message: string;
     },
   ): Promise<void> {
-    const created = await this.prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`automation-log:${runId}`}))`;
-      const lastLine = await tx.serverOperationLog.findFirst({
-        where: { operationId: runId },
-        orderBy: { lineNumber: 'desc' },
-        select: { lineNumber: true },
-      });
-      return await tx.serverOperationLog.create({
-        data: {
-          operationId: runId,
-          serverId: payload.serverId ?? null,
-          level: payload.level,
-          source: payload.source,
-          message: this.redactSecrets(payload.message),
-          lineNumber: (lastLine?.lineNumber ?? 0) + 1,
-        },
-      });
+    const created = await this.serverRuns.appendLog(runId, {
+      serverId: payload.serverId ?? null,
+      level: payload.level,
+      source: payload.source,
+      message: this.redactSecrets(payload.message),
     });
 
     this.gateway.emitRunLog({
-      runId: created.operationId,
+      runId: created.runId,
       serverId: created.serverId,
       level: created.level,
       source: created.source,

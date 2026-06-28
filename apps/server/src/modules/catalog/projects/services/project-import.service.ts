@@ -11,8 +11,7 @@ import {
   SourceType,
   ServiceType,
 } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { ConnectGitlabDto } from '../../../source-providers/adapters/gitlab/dto/connect-gitlab.dto';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 import { GitlabAdapter } from '../../../source-providers/adapters/gitlab/gitlab.adapter';
 import {
   GitlabGroupImportRepositoryDto,

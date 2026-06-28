@@ -25,7 +25,10 @@ describe('Preview env (e2e)', () => {
     const f = await createTestFixtures(ctx.prisma);
     await ctx.prisma.service.update({
       where: { id: f.serviceId },
-      data: { env: JSON.stringify({ NODE_ENV: 'production' }), secretsEnv: JSON.stringify({ DB_PASSWORD: 'super-secret' }) },
+      data: {
+        env: JSON.stringify({ NODE_ENV: 'production' }),
+        secretsEnv: JSON.stringify({ DB_PASSWORD: 'super-secret' }),
+      },
     });
     await ctx.prisma.serviceEnvironment.update({
       where: { id: f.serviceEnvId },

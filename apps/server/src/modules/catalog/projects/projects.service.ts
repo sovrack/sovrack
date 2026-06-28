@@ -5,13 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Project, ProjectRole, Prisma, Role } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import {
   PaginationDto,
   PaginatedResult,
   paginate,
-} from '../../../core/http/pagination.dto';
+} from '../../../shared/http/pagination.dto';
+import { ProjectAccessService } from '../access/project-access.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
@@ -54,6 +55,7 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly projectAccess: ProjectAccessService,
   ) {}
 
   /**
@@ -154,6 +156,7 @@ export class ProjectsService {
       id: project.id,
       name: project.name,
       description: project.description,
+      maxConcurrentDeploys: project.maxConcurrentDeploys,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       memberCount: project._count.members,
@@ -255,24 +258,13 @@ export class ProjectsService {
     userId: string,
     userRole: Role,
   ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-
-    if (userRole === Role.ADMIN) {
-      return;
-    }
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException('Accès non autorisé à ce projet');
-    }
+    // Delegates to the single shared implementation (ProjectAccessService).
+    // Kept as a public method because ProjectMembersService relies on it.
+    return this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
   }
 
   /**
@@ -283,26 +275,11 @@ export class ProjectsService {
     userId: string,
     userRole: Role,
   ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-
-    if (userRole === Role.ADMIN) {
-      return;
-    }
-
-    const ownerMembership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-    });
-
-    if (!ownerMembership || ownerMembership.role !== ProjectRole.OWNER) {
-      throw new ForbiddenException(
-        'Action réservée au OWNER du projet ou ADMIN',
-      );
-    }
+    return this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
   }
 
   private assertAdminRole(userRole: Role): void {
@@ -315,11 +292,6 @@ export class ProjectsService {
    * Vérifie l'existence du projet.
    */
   async ensureProjectExists(projectId: string): Promise<void> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) {
-      throw new NotFoundException('Projet non trouvé');
-    }
+    return this.projectAccess.ensureProjectExists(projectId);
   }
 }

@@ -6,6 +6,8 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
+import { AppJwtModule } from './shared/jwt/jwt.module';
+import { JwtAuthGuard } from './shared/guards/jwt-auth.guard';
 // Contextes consolidés — importés via leur porte publique (barrel index.ts)
 import {
   UsersModule,
@@ -26,8 +28,8 @@ import {
 } from './modules/infrastructure';
 import { DomainsModule, ProxyModule, SslModule } from './modules/networking';
 import { MonitoringModule, DashboardModule } from './modules/observability';
-import { DatabaseBackupsModule } from './modules/database-backups/database-backups.module';
-import { PreviewEnvironmentsModule } from './modules/preview-environments/preview-environments.module';
+import { DatabaseBackupsModule } from './modules/database-backups';
+import { PreviewEnvironmentsModule } from './modules/preview-environments';
 // Contextes standalone — importés via leur porte publique (barrel index.ts)
 import {
   GitlabModule,
@@ -41,19 +43,19 @@ import { AuditModule } from './modules/audit';
 import { TerminalModule } from './modules/terminal';
 import { AutomationModule } from './modules/automation';
 import { ContainerRegistriesModule } from './modules/container-registries';
-// Core (technique)
-import { PrismaModule } from './core/database/prisma.module';
-import { LoggerModule } from './core/logger/logger.module';
-import { validateEnv } from './core/config/env.validation';
-import { CryptoModule } from './core/crypto/crypto.module';
-import { AnsibleModule } from './core/provisioning/ansible.module';
-import { DockerModule } from './core/container-runtime/docker.module';
-import { SshModule } from './core/ssh/ssh.module';
-import { EventsModule } from './core/events/events.module';
-import { QueueModule } from './core/queue/queue.module';
+// shared/ (technique pur) + adapters/ (I/O : docker, ssh, ansible)
+import { PrismaModule } from './shared/database/prisma.module';
+import { LoggerModule } from './shared/logger/logger.module';
+import { validateEnv } from './shared/config/env.validation';
+import { CryptoModule } from './shared/crypto/crypto.module';
+import { AnsibleModule } from './adapters/provisioning/ansible.module';
+import { DockerModule } from './adapters/container-runtime/docker.module';
+import { SshModule } from './adapters/ssh/ssh.module';
+import { QueueModule } from './shared/queue/queue.module';
 
 @Module({
   imports: [
+    AppJwtModule,
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
@@ -77,7 +79,6 @@ import { QueueModule } from './core/queue/queue.module';
     AnsibleModule,
     DockerModule,
     SshModule,
-    EventsModule,
     QueueModule,
     PrismaModule,
     UsersModule,
@@ -110,6 +111,11 @@ import { QueueModule } from './core/queue/queue.module';
     PreviewEnvironmentsModule,
   ],
   controllers: [AppController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  // Guards globaux : rate-limit puis auth JWT (fail-secure — toute route exige
+  // un JWT valide sauf si marquée @Public). L'ordre compte (throttle d'abord).
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+  ],
 })
 export class AppModule {}

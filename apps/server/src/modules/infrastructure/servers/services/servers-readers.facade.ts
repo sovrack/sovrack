@@ -1,0 +1,158 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, ServerInfraRole } from '@prisma/client';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { ServersAuditService } from './servers-audit.service';
+import { ServersDetectionService } from './servers-detection.service';
+import { ServerVerificationService } from './server-verification.service';
+import { ServerPreparationService } from '../../preparation/services/infra-preparation.service';
+import { AuditService } from '../../../audit/audit.service';
+import { toPublicServer } from '../shared/server-public.util';
+import type { ServerPublic } from '../shared/servers.types';
+
+@Injectable()
+export class ServersReadersFacade {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: ServersAuditService,
+    private readonly detection: ServersDetectionService,
+    private readonly verification: ServerVerificationService,
+    private readonly preparation: ServerPreparationService,
+    private readonly auditService: AuditService,
+  ) {}
+
+  // ─── Audit ────────────────────────────────────────────────────────────────
+
+  async listAuditEvents(id: string) {
+    await this.assertServerExists(id);
+    return this.audit.list(id);
+  }
+
+  // ─── Detection ────────────────────────────────────────────────────────────
+
+  async listCapabilities(id: string) {
+    await this.assertServerExists(id);
+    return this.detection.listCapabilities(id);
+  }
+
+  async listInstalledTools(id: string) {
+    await this.assertServerExists(id);
+    return this.detection.listInstalledTools(id);
+  }
+
+  // ─── Verification ─────────────────────────────────────────────────────────
+
+  async listValidationResults(id: string) {
+    await this.assertServerExists(id);
+    return this.verification.listValidationResults(id);
+  }
+
+  async resetVerificationStatus(id: string) {
+    return this.verification.resetStatus(id);
+  }
+
+  async getRecentVerificationLogs(id: string, limit = 50) {
+    return this.verification.getRecentLogs(id, limit);
+  }
+
+  // ─── Preparation ──────────────────────────────────────────────────────────
+
+  async listPreparations(id: string) {
+    await this.assertServerExists(id);
+    return this.preparation.listPreparations(id);
+  }
+
+  async getPreparationReadiness(id: string) {
+    await this.assertServerExists(id);
+    return this.preparation.getPreparationReadiness(id);
+  }
+
+  getPreparationOptions() {
+    return this.preparation.getOptions();
+  }
+
+  async getPreparation(id: string) {
+    return this.preparation.getPreparation(id);
+  }
+
+  async getPreparationLogs(id: string, afterLine?: number) {
+    return this.preparation.getPreparationLogs(id, afterLine);
+  }
+
+  async retryPreparation(
+    id: string,
+    dto: Parameters<ServerPreparationService['retryPreparation']>[1],
+    actorId: string,
+  ) {
+    return this.preparation.retryPreparation(id, dto, actorId);
+  }
+
+  async cancelPreparation(id: string, actorId: string) {
+    return this.preparation.cancelPreparation(id, actorId);
+  }
+
+  // ─── Infrastructure roles & environments ──────────────────────────────────
+
+  async setServerInfraRole(
+    id: string,
+    infraRole: ServerInfraRole,
+    actorUserId: string,
+  ): Promise<ServerPublic> {
+    const existing = await this.prisma.server.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Serveur "${id}" non trouvé`);
+
+    const updated = await this.prisma.server.update({
+      where: { id },
+      data: { infraRole } as Prisma.ServerUpdateInput,
+    });
+
+    await this.auditService.record(
+      actorUserId,
+      'SERVER_SET_INFRA_ROLE',
+      'Server',
+      updated.id,
+      { infraRole },
+    );
+
+    return toPublicServer(updated);
+  }
+
+  async listInfraEnvironments(): Promise<ServerPublic[]> {
+    const servers = await this.prisma.server.findMany({
+      where: {
+        infraRole: { in: ['STAGING', 'PRODUCTION'] as ServerInfraRole[] },
+      } as Prisma.ServerWhereInput,
+      orderBy: { name: 'asc' },
+    });
+    return servers.map((s) => toPublicServer(s));
+  }
+
+  async listEnvironmentsForServer(id: string) {
+    const server = await this.prisma.server.findUnique({ where: { id } });
+    if (!server) throw new NotFoundException(`Serveur "${id}" non trouvé`);
+
+    const containers = await this.prisma.container.findMany({
+      where: { serverId: id },
+      select: {
+        deployment: { select: { environmentId: true } },
+      },
+    });
+    const envIds = [
+      ...new Set(
+        containers.map((c) => c.deployment?.environmentId).filter(Boolean),
+      ),
+    ] as string[];
+    if (envIds.length === 0) return [];
+    return this.prisma.environment.findMany({
+      where: { id: { in: envIds } },
+      include: { project: { select: { id: true, name: true } } },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  // ─── Internal ─────────────────────────────────────────────────────────────
+
+  private async assertServerExists(id: string): Promise<void> {
+    const server = await this.prisma.server.findUnique({ where: { id } });
+    if (!server) throw new NotFoundException('Serveur non trouvé');
+  }
+}

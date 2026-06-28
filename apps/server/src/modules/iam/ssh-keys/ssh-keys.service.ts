@@ -3,8 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { ServersCryptoService } from '../../infrastructure/servers/services';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { ServersCryptoService } from '../../../adapters/ssh/servers-crypto.service';
 import type { CreateSshKeyDto } from './dto/create-ssh-key.dto';
 
 export type SshKeyPublic = {

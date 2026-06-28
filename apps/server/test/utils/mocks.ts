@@ -1,6 +1,7 @@
 import { DockerApiService } from '../../src/core/container-runtime/docker-api.service';
 import { DockerDeployExecutorService } from '../../src/modules/deployments/core/docker-deploy-executor.service';
 import { DeploymentsHealthcheckService } from '../../src/modules/deployments/health/deployments-healthcheck.service';
+import { LocalBuildService } from '../../src/modules/deployments/core/local-build.service';
 import { GitlabAdapter } from '../../src/modules/source-providers/adapters/gitlab/gitlab.adapter';
 
 export type AnsibleMockHandle = {
@@ -66,11 +67,15 @@ export type DockerApiMockHandle = {
   removeContainer: jest.Mock;
   inspectImage: jest.Mock;
   createVolume: jest.Mock;
+  createNetwork: jest.Mock;
+  inspectContainer: jest.Mock;
+  pruneDanglingImages: jest.Mock;
   streamContainerLogs: jest.Mock;
   reset: () => void;
 };
 
-export const E2E_IMAGE_DIGEST = 'sha256:e2eaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+export const E2E_IMAGE_DIGEST =
+  'sha256:e2eaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 export function mockDockerApiService(): {
   provide: typeof DockerApiService;
@@ -78,14 +83,22 @@ export function mockDockerApiService(): {
 } {
   const pullImage = jest.fn().mockResolvedValue(undefined);
   const listContainers = jest.fn().mockResolvedValue([]);
-  const createContainer = jest.fn().mockResolvedValue({ id: 'container-e2e-0123456789ab' });
+  const createContainer = jest
+    .fn()
+    .mockResolvedValue({ id: 'container-e2e-0123456789ab' });
   const startContainer = jest.fn().mockResolvedValue(undefined);
   const removeContainer = jest.fn().mockResolvedValue(undefined);
-  const inspectImage = jest
-    .fn()
-    .mockResolvedValue({ Id: E2E_IMAGE_DIGEST, RepoDigests: [`repo@${E2E_IMAGE_DIGEST}`] });
+  const inspectImage = jest.fn().mockResolvedValue({
+    Id: E2E_IMAGE_DIGEST,
+    RepoDigests: [`repo@${E2E_IMAGE_DIGEST}`],
+  });
   const createVolume = jest.fn().mockResolvedValue(undefined);
-  // eslint-disable-next-line @typescript-eslint/require-await
+  const createNetwork = jest.fn().mockResolvedValue(undefined);
+  const inspectContainer = jest
+    .fn()
+    .mockResolvedValue({ State: { Status: 'running' } });
+  const pruneDanglingImages = jest.fn().mockResolvedValue(undefined);
+
   const streamContainerLogs = jest.fn(async function* () {
     yield { stream: 'stdout', line: 'e2e log line' };
   });
@@ -99,6 +112,9 @@ export function mockDockerApiService(): {
       removeContainer,
       inspectImage,
       createVolume,
+      createNetwork,
+      inspectContainer,
+      pruneDanglingImages,
       streamContainerLogs,
       reset: () => {
         [
@@ -109,10 +125,31 @@ export function mockDockerApiService(): {
           removeContainer,
           inspectImage,
           createVolume,
+          createNetwork,
+          inspectContainer,
+          pruneDanglingImages,
           streamContainerLogs,
         ].forEach((m) => m.mockClear());
       },
     } as unknown as DockerApiMockHandle,
+  };
+}
+
+export type LocalBuildMockHandle = { run: jest.Mock; reset: () => void };
+
+/**
+ * Local-build mock: the real local build SSHes into the target server to
+ * git-clone + docker build. e2e has only a fake server, so we mock it to return
+ * a build log line — the real executor orchestration around it still runs.
+ */
+export function mockLocalBuildService(): {
+  provide: typeof LocalBuildService;
+  useValue: LocalBuildMockHandle;
+} {
+  const run = jest.fn().mockResolvedValue('[BUILD] e2e local build ok\n');
+  return {
+    provide: LocalBuildService,
+    useValue: { run, reset: () => run.mockClear() },
   };
 }
 
@@ -124,7 +161,9 @@ export function mockHealthcheckService(): {
   return {
     provide: DeploymentsHealthcheckService,
     useValue: {
-      runPostDeployHealthChecks: jest.fn().mockResolvedValue('[HEALTH] skipped in e2e'),
+      runPostDeployHealthChecks: jest
+        .fn()
+        .mockResolvedValue('[HEALTH] skipped in e2e'),
     },
   };
 }

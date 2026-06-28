@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { WebhookManagementService } from './webhook-management.service';
 
 /**
@@ -10,6 +11,8 @@ import { WebhookManagementService } from './webhook-management.service';
  *   POST /projects/:projectId/webhook/pause       → disable incoming events
  *   POST /projects/:projectId/webhook/resume      → re-enable incoming events
  */
+@ApiTags('Webhooks')
+@ApiBearerAuth()
 @Controller('projects/:projectId/webhook')
 @UseGuards(JwtAuthGuard)
 export class WebhookManagementController {

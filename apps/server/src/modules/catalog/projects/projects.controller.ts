@@ -16,12 +16,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { Roles } from '../../../core/decorators/roles.decorator';
-import { GetUser } from '../../../core/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../core/guards/roles.guard';
-import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
-import { PaginationDto } from '../../../core/http/pagination.dto';
+import { Roles } from '../../../shared/decorators/roles.decorator';
+import { GetUser } from '../../../shared/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../shared/guards/roles.guard';
+import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
+import { PaginationDto } from '../../../shared/http/pagination.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ImportGitlabGroupDto } from './dto/import-gitlab-group.dto';

@@ -3,9 +3,9 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
-import { RolesGuard } from '../../../core/guards/roles.guard';
+import { RolesGuard } from '../../../shared/guards/roles.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
-import { AppJwtModule } from '../../../core/jwt/jwt.module';
+import { AppJwtModule } from '../../../shared/jwt/jwt.module';
 import { AuditModule } from '../../audit';
 
 /**

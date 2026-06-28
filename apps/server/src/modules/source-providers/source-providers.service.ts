@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { GitProviderType } from '@prisma/client';
 import { Role } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '../../shared/database/prisma.service';
 import { GitlabAdapter } from './adapters/gitlab/gitlab.adapter';
 import { GitlabClient } from './adapters/gitlab/gitlab.client';
 import { GitlabConnectionService } from './adapters/gitlab/gitlab-connection.service';
@@ -276,11 +276,22 @@ export class SourceProvidersService {
           groupPath,
           connection.gitlabToken,
         );
-        return repos.map((r: any) => ({
-          repoPath: r.path_with_namespace ?? r.path ?? String(r.id),
-          name: r.name ?? r.path ?? String(r.id),
-          defaultBranch: r.default_branch ?? 'main',
-        }));
+        return repos.map((repo) => {
+          const r = repo as Record<string, unknown>;
+          const str = (v: unknown): string | undefined =>
+            typeof v === 'string'
+              ? v
+              : typeof v === 'number'
+                ? String(v)
+                : undefined;
+          const id = str(r.id) ?? '';
+          const path = str(r.path);
+          return {
+            repoPath: str(r.path_with_namespace) ?? path ?? id,
+            name: str(r.name) ?? path ?? id,
+            defaultBranch: str(r.default_branch) ?? 'main',
+          };
+        });
       }
       case GitProviderType.GITHUB:
         return this.github.discoverOrgRepos(groupPath, token, providerId);

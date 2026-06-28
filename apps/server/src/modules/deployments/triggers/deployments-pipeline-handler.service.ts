@@ -5,13 +5,13 @@ import {
   GitProviderType,
   PipelineRunStatus,
 } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import {
   DEPLOYMENT_PIPELINE_UPDATED,
   type PipelineUpdatedEvent,
 } from '../events/deployment.events';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { NotificationsService } from '../../notifications/notifications.service';
 import {
   deploymentRelationsInclude,
@@ -34,7 +34,7 @@ export class DeploymentsPipelineHandlerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly deployExecutor: DockerDeployExecutorService,
-    private readonly gateway: DeploymentsGateway,
+    private readonly gateway: DeploymentEventsPublisher,
     private readonly notificationsService: NotificationsService,
   ) {}
 

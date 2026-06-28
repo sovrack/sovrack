@@ -2,9 +2,9 @@ import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import { Role } from '@prisma/client';
-import { Roles } from '../../core/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../core/guards/roles.guard';
+import { Roles } from '../../shared/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { RolesGuard } from '../../shared/guards/roles.guard';
 import { NotificationsService } from './notifications.service';
 
 class UpdateNotificationSettingsDto {

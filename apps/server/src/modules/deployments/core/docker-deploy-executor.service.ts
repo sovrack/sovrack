@@ -4,39 +4,32 @@ import {
   Deployment,
   DeploymentStatus,
   DeploymentStrategy,
-  ManagedServiceType,
   Prisma,
   ServiceType,
 } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import {
   buildContainerPrefix,
   buildServiceAlias,
   buildplatformLabels,
-  toDockerEnvArray,
-} from '../../../core/utils/container-spec.util';
-import { buildDbConnectionEnv } from '../../../core/utils/db-connection.util';
-import {
-  buildDatabaseEnvVars,
-  getDatabaseContainerConfig,
-  parseDbCredentials,
-} from '../../../core/utils/database-spec.util';
-import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
-import { LocalBuildService } from './local-build.service';
+} from '../../../shared/utils/container-spec.util';
+import { getDatabaseContainerConfig } from '../../../shared/utils/database-spec.util';
+import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
 import { TraefikRouteService } from './traefik-route.service';
-import { RegistryAuthService } from './registry-auth.service';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
-import { DeploymentsHealthcheckService } from '../health/deployments-healthcheck.service';
-import { EnvLevel, resolveEnvDetailed } from '../utils/env-resolver.util';
+import { DeployRoutingService } from './deploy-routing.service';
+import { ContainerLifecycleService } from './container-lifecycle.service';
+import { ImageResolverService } from './image-resolver.service';
+import { DeploymentLogEmitter } from './deployment-log-emitter.service';
+import { DeploymentEnvService } from './deployment-env.service';
+import { DeploymentPrelaunchService } from './deployment-prelaunch.service';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
+import { buildContainerCreateSpec } from '../utils/container-create-spec.util';
 import {
   getLogContext,
   runWithLogContext,
   setLogContext,
-} from '../../../core/logger/log-context';
+} from '../../../shared/logger/log-context';
 import { randomUUID } from 'crypto';
-
-type DeploymentLogLevel = 'info' | 'error' | 'success';
 
 @Injectable()
 export class DockerDeployExecutorService {
@@ -50,12 +43,14 @@ export class DockerDeployExecutorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly docker: DockerApiService,
-    private readonly gateway: DeploymentsGateway,
-    private readonly healthcheckService: DeploymentsHealthcheckService,
-    private readonly crypto: CryptoService,
+    private readonly gateway: DeploymentEventsPublisher,
+    private readonly prelaunch: DeploymentPrelaunchService,
     private readonly traefik: TraefikRouteService,
-    private readonly registryAuth: RegistryAuthService,
-    private readonly localBuild: LocalBuildService,
+    private readonly imageResolver: ImageResolverService,
+    private readonly logEmitter: DeploymentLogEmitter,
+    private readonly deploymentEnv: DeploymentEnvService,
+    private readonly deployRouting: DeployRoutingService,
+    private readonly containerLifecycle: ContainerLifecycleService,
   ) {}
 
   private buildConditions(
@@ -113,6 +108,8 @@ export class DockerDeployExecutorService {
             databaseVersion: true,
             databaseCredentials: true,
             healthcheckPath: true,
+            cpuLimit: true,
+            memLimitMb: true,
             preDeployCommand: true,
             preDeployTimeout: true,
             shutdownTimeout: true,
@@ -162,12 +159,19 @@ export class DockerDeployExecutorService {
       userId: deployment.user?.id,
     });
 
-    // Résoudre le serveur : d'abord via serviceEnv, puis via resolvedRefs (backward compat)
+    // Résoudre le serveur cible, par ordre de priorité :
+    //  1) ServiceEnvironment.serverId (cible EXPLICITE — découplage serveur↔env :
+    //     un service choisit son serveur, un VPS peut héberger plusieurs envs),
+    //  2) le 1er serveur de l'environnement (comportement historique),
+    //  3) resolvedRefs.serverId (lignes legacy).
     const servers = deployment.serviceEnv?.environment.servers ?? [];
     const resolvedRefs = deployment.resolvedRefs as {
       serverId?: string;
     } | null;
-    const serverId = servers[0]?.id ?? resolvedRefs?.serverId;
+    const serverId =
+      deployment.serviceEnv?.serverId ??
+      servers[0]?.id ??
+      resolvedRefs?.serverId;
     if (!serverId) {
       const envName =
         deployment.serviceEnv?.environment?.name ?? 'cet environnement';
@@ -194,102 +198,38 @@ export class DockerDeployExecutorService {
     // du projet via un nom fixe, indépendant de l'ID de déploiement.
     const serviceAlias = buildServiceAlias(serviceName);
     let servicePort = deployment.service?.port ?? 3000;
-    // Auto-câblage des bases managées du projet (DATABASE_URL/REDIS_URL…) au
-    // niveau de PLUS BASSE précédence → l'utilisateur garde le dernier mot.
-    const levels = this.buildEnvLevels(deployment);
-    const autoDbEnv = await this.resolveAutoWiredDbEnv(deployment);
-    if (autoDbEnv) {
-      levels.unshift({
-        levelName: 'auto-db',
-        env: autoDbEnv,
-        secretsEnv: null,
-      });
-    }
-    const envResolution = resolveEnvDetailed(levels);
-    const envVars = toDockerEnvArray(envResolution.entries);
-
-    let commandLogs = '';
-    // Surface (do NOT swallow) any unresolved env/secret level so the operator
-    // sees it in the live deploy log instead of getting a container missing
-    // a critical variable silently. Non-blocking: the deploy continues.
-    for (const warning of envResolution.warnings) {
-      this.emitGatewayLog(
-        deployment.id,
-        `[ENV] Variable non résolue: ${warning}`,
-        'error',
-      );
-      this.logger.warn(
-        `Deployment ${deployment.id} env resolution warning: ${warning}`,
-      );
-      commandLogs += `[ENV] ${warning}\n`;
-    }
-    let dbVolumeName: string | undefined;
-    let dbVolumePath: string | undefined;
-    if (
-      deployment.service?.type === ServiceType.DATABASE &&
-      deployment.service.databaseType
-    ) {
+    const autoDbEnv =
+      await this.deploymentEnv.resolveAutoWiredDbEnv(deployment);
+    const {
+      envVars,
+      envResolution,
+      commandLogs: envLogs,
+    } = this.deploymentEnv.resolveDeploymentEnv(deployment, autoDbEnv);
+    let commandLogs = envLogs;
+    const {
+      dbVolumeName,
+      dbVolumePath,
+      commandLogs: dbLogs,
+    } = await this.deploymentEnv.setupDbVolume(
+      deployment,
+      serverId,
+      envVars,
+      servicePort,
+    );
+    commandLogs += dbLogs;
+    if (dbVolumePath) {
       const dbConfig = getDatabaseContainerConfig(
-        deployment.service.databaseType,
+        deployment.service!.databaseType!,
       );
       servicePort = dbConfig.port;
-      dbVolumeName = `${deployment.id}-data`;
-      dbVolumePath = dbConfig.dataPath;
-
-      await this.docker.createVolume(serverId, dbVolumeName);
-      commandLogs += `Volume de données créé : ${dbVolumeName}\n`;
-
-      const dbEnv = buildDatabaseEnvVars(
-        deployment.service.databaseType,
-        deployment.service.databaseCredentials,
-      );
-      for (const [key, value] of Object.entries(dbEnv)) {
-        const entry = `${key}=${value}`;
-        if (!envVars.includes(entry)) {
-          envVars.push(entry);
-        }
-      }
     }
 
-    // Blue-green only applies to stateless application containers; stateful
-    // databases keep the standard in-place path. When enabled, the new (green)
-    // container publishes on a standby port so the live (blue) one keeps serving
-    // until green passes its health-check.
-    // Domaine rattaché à ce service-env ? → routage Traefik : le conteneur ne
-    // publie PAS de port hôte (Traefik le joint via le réseau 'web') → évite les
-    // conflits de port entre services et permet plusieurs apps sur 80/443.
-    const traefikServiceEnvId = deployment.serviceEnv?.id;
-    let traefikDomain =
-      traefikServiceEnvId && deployment.service?.type !== ServiceType.DATABASE
-        ? ((
-            await this.prisma.domain.findFirst({
-              where: { serviceEnvId: traefikServiceEnvId },
-              orderBy: { createdAt: 'desc' },
-              select: { name: true },
-            })
-          )?.name ?? null)
-        : null;
-
-    // Phase « domaines par défaut » : si aucun domaine explicite n'est rattaché et
-    // que c'est un service web (APPLICATION), on génère un sous-domaine automatique
-    // routé par Traefik (zéro port hôte → zéro conflit, HTTPS). Activé via la
-    // PlatformConfig PLATFORM_BASE_DOMAIN (ex. apps.exemple.com) ou, à défaut,
-    // PLATFORM_AUTO_SUBDOMAIN=true qui utilise nip.io sur l'IP du serveur.
-    if (
-      !traefikDomain &&
-      traefikServiceEnvId &&
-      deployment.service?.type === ServiceType.APPLICATION
-    ) {
-      const auto = await this.traefik.resolveAutoSubdomain(
-        deployment.project.id,
-        traefikServiceEnvId,
+    const { traefikDomain, traefikServiceEnvId, useTraefik } =
+      await this.deployRouting.resolveTraefikConfig(
+        deployment,
+        servers,
         serviceName,
-        deployment.serviceEnv?.environment?.name ?? 'env',
-        servers[0]?.host,
       );
-      if (auto) traefikDomain = auto;
-    }
-    const useTraefik = !!traefikDomain;
 
     const blueGreen =
       deployment.strategy === DeploymentStrategy.BLUE_GREEN &&
@@ -320,125 +260,83 @@ export class DockerDeployExecutorService {
       },
     });
 
+    // Tracked across try/catch so a failed deploy can roll the service back to
+    // the previous container(s) it had to stop (see the catch block).
+    let stoppedOld: Array<{ id: string; name: string }> = [];
+    let newContainerId: string | null = null;
+
     try {
       const isLocalBuild = !!deployment.build?.isLocalBuild;
-      const imageRef = await this.resolveImageRef(
+      const imageRef = this.imageResolver.resolveImageRef(
         deployment,
         overrideImage,
         serverId,
       );
       commandLogs += `Image résolue : ${imageRef}\n`;
 
-      if (isLocalBuild) {
-        // Build the image directly on the server via SSH.
-        commandLogs += await this.localBuild.run({
-          deployment,
-          imageTag: imageRef,
-          server,
-          // Vars non-secrètes → build-args (ex. NEXT_PUBLIC_* figées au build).
-          buildArgs: envResolution.entries
-            .filter((e) => !e.isSecret)
-            .map((e) => `${e.key}=${e.value}`),
-          onLog: (m, l) => this.emitGatewayLog(deployment.id, m, l ?? 'info'),
-        });
-      } else {
-        this.emitGatewayLog(
-          deployment.id,
-          `Pull de l'image ${imageRef}...`,
-          'info',
-        );
-        // Images privées : on résout les identifiants du registre dont le host
-        // correspond à l'image (Docker Hub / GitLab / GHCR…) et on les passe au
-        // pull. Sans registre correspondant → pull anonyme (images publiques).
-        const pullAuth = await this.registryAuth
-          .resolveAuthForImage(imageRef)
-          .catch(() => undefined);
-        await this.docker.pullImage(serverId, imageRef, pullAuth);
-        commandLogs += `Image pullée : ${imageRef}${pullAuth ? ' (authentifié)' : ''}\n`;
-      }
+      commandLogs += await this.imageResolver.buildOrPullImage(
+        deployment,
+        imageRef,
+        isLocalBuild,
+        server,
+        serverId,
+        // Vars non-secrètes → build-args (ex. NEXT_PUBLIC_* figées au build).
+        envResolution.entries
+          .filter((e) => !e.isSecret)
+          .map((e) => `${e.key}=${e.value}`),
+        // Secrets → BuildKit --secret (jamais en build-arg : pas de fuite image).
+        envResolution.entries
+          .filter((e) => e.isSecret)
+          .map((e) => `${e.key}=${e.value}`),
+        // Image épinglée (rollback / redeploy d'une image précise) → réutiliser
+        // l'image locale existante au lieu de rebuild. Un deploy frais (sans
+        // override) reconstruit toujours.
+        Boolean(overrideImage),
+      );
 
-      // Remove ALL previous containers of THIS service (name = prefix + a past
-      // deploy id) so a redeploy never collides on the published port.
-      const existing = await this.docker.listContainers(serverId, true);
-
-      // ── Host-port conflict guard ────────────────────────────────────────
-      // En mode port hôte (sans Traefik), deux services ne peuvent pas partager
-      // le même port. On détecte le conflit AVANT de toucher aux conteneurs pour
-      // lever une erreur claire (au lieu du « Bind for 0.0.0.0:<port> failed:
-      // port is already allocated » brut de Docker) ET sans couper le service
-      // déjà en place. Les conteneurs de CE service (même préfixe) sont exclus :
-      // un redeploy réutilise son propre port.
       const publishesHostPort =
         !useTraefik &&
         deployment.service?.type !== 'WORKER' &&
         deployment.service?.type !== 'CRON';
-      if (publishesHostPort) {
-        const conflict = existing.find(
-          (c) =>
-            (c.Ports ?? []).some((p) => p.PublicPort === publishPort) &&
-            !(c.Names ?? []).some((n) =>
-              n.replace(/^\//, '').startsWith(containerPrefix),
-            ),
-        );
-        if (conflict) {
-          const who = (conflict.Names?.[0] ?? conflict.Id).replace(/^\//, '');
-          throw new BadRequestException(
-            `Le port hôte ${publishPort} est déjà utilisé sur ce serveur par le ` +
-              `conteneur "${who}". Choisis un autre port pour ce service, ou ` +
-              `attribue-lui un domaine (routage Traefik, sans port hôte).`,
-          );
-        }
-      }
 
-      const stale = existing.filter((c) =>
-        (c.Names ?? []).some((n) =>
-          n.replace(/^\//, '').startsWith(containerPrefix),
-        ),
+      // Start-before-stop (Coolify/Railway/Dokploy parity). The new container
+      // can run alongside the old one only when it won't collide on a host port:
+      //  - Traefik mode  → the container publishes no host port,
+      //  - blue-green    → the green publishes on an offset port.
+      // In those modes the OLD container keeps serving until the new one is
+      // healthy, then it is retired → true zero-downtime. Otherwise we must stop
+      // the old one first to free the port, but we remember it so a FAILED
+      // deploy brings it back (automatic recovery — never leave the service down).
+      const canOverlap = useTraefik || blueGreen;
+      commandLogs += await this.containerLifecycle.assertNoForeignPortConflict(
+        serverId,
+        containerPrefix,
+        publishPort,
+        publishesHostPort,
       );
-      for (const old of stale) {
-        const oldName = (old.Names?.[0] ?? old.Id).replace(/^\//, '');
-        this.emitGatewayLog(
+      const oldContainers = await this.containerLifecycle.listServiceContainers(
+        serverId,
+        containerPrefix,
+      );
+      stoppedOld = canOverlap ? [] : oldContainers;
+      if (stoppedOld.length > 0) {
+        commandLogs += await this.containerLifecycle.stopContainers(
+          serverId,
+          stoppedOld,
           deployment.id,
-          `Suppression de l'ancien conteneur ${oldName}...`,
-          'info',
         );
-        await this.docker.removeContainer(serverId, old.Id, true);
-        commandLogs += `Ancien conteneur supprimé : ${old.Id.slice(0, 12)}\n`;
       }
 
       // ── Pre-deploy command ──────────────────────────────────────────────
       if (deployment.service?.preDeployCommand) {
-        const preCmd = deployment.service.preDeployCommand;
-        const preTimeout = deployment.service.preDeployTimeout ?? 120;
-        this.emitGatewayLog(
-          deployment.id,
-          `[PRE-DEPLOY] Running: ${preCmd}`,
-          'info',
-        );
-        const preContainer = await this.docker.createContainer(serverId, {
-          Image: imageRef,
-          name: `pre-${containerName}`,
-          Env: envVars,
-          HostConfig: { AutoRemove: true },
-          Cmd: ['sh', '-c', preCmd],
-        });
-        await this.docker.startContainer(serverId, preContainer.id);
-        // Poll until the pre-deploy container exits.
-        const exitCode = await this.waitForContainerExit(
+        commandLogs += await this.prelaunch.runPreDeployCommand(
           serverId,
-          preContainer.id,
-          preTimeout,
-        );
-        if (exitCode !== 0) {
-          throw new BadRequestException(
-            `Pre-deploy command failed with exit code ${String(exitCode)}: ${preCmd}`,
-          );
-        }
-        commandLogs += `[PRE-DEPLOY] Completed successfully.\n`;
-        this.emitGatewayLog(
+          imageRef,
+          containerName,
+          envVars,
+          deployment.service.preDeployCommand,
+          deployment.service.preDeployTimeout ?? 120,
           deployment.id,
-          `[PRE-DEPLOY] Completed successfully.`,
-          'info',
         );
       }
 
@@ -474,48 +372,31 @@ export class DockerDeployExecutorService {
         deploymentId: deployment.id,
       });
 
-      const container = await this.docker.createContainer(serverId, {
-        Image: imageRef,
-        name: containerName,
-        Labels: platformLabels,
-        Env: envVars,
-        ExposedPorts:
-          deployment.service?.type !== 'WORKER' &&
-          deployment.service?.type !== 'CRON'
-            ? { [`${servicePort}/tcp`]: {} }
-            : undefined,
-        StopTimeout: stopTimeout,
-        HostConfig: {
-          // En mode Traefik : aucun port hôte publié (Traefik route via 'web').
-          PortBindings:
-            useTraefik ||
-            deployment.service?.type === 'WORKER' ||
-            deployment.service?.type === 'CRON'
-              ? {}
-              : { [`${servicePort}/tcp`]: [{ HostPort: String(publishPort) }] },
-          RestartPolicy: {
-            Name: deployment.service?.type === 'CRON' ? 'no' : 'unless-stopped',
-          },
-          AutoRemove: false,
-          Binds: [
+      const container = await this.docker.createContainer(
+        serverId,
+        buildContainerCreateSpec({
+          imageRef,
+          containerName,
+          labels: platformLabels,
+          envVars,
+          servicePort,
+          publishPort,
+          useTraefik,
+          serviceType: deployment.service?.type,
+          startCommand: deployment.service?.startCommand,
+          stopTimeout,
+          binds: [
             ...(dbVolumeName && dbVolumePath
               ? [`${dbVolumeName}:${dbVolumePath}`]
               : []),
             ...appBinds,
           ],
-          NetworkMode: projectNetwork,
-        },
-        // Alias DNS stable sur le réseau projet (= nom du service) → les autres
-        // conteneurs le joignent par un nom fixe entre redéploiements.
-        NetworkingConfig: {
-          EndpointsConfig: {
-            [projectNetwork]: { Aliases: [serviceAlias] },
-          },
-        },
-        Cmd: deployment.service?.startCommand
-          ? ['sh', '-c', deployment.service.startCommand]
-          : undefined,
-      });
+          networkMode: projectNetwork,
+          networkAlias: serviceAlias,
+          resourceLimits: deployment.service,
+        }),
+      );
+      newContainerId = container.id;
       commandLogs += `Conteneur créé : ${container.id.slice(0, 12)}\n`;
 
       this.emitGatewayLog(deployment.id, 'Démarrage du conteneur...', 'info');
@@ -537,97 +418,60 @@ export class DockerDeployExecutorService {
       });
       commandLogs += 'Enregistrement du conteneur en base de données\n';
 
-      try {
-        if (useTraefik) {
-          // Mode Traefik : pas de port hôte → on vérifie que le conteneur tourne
-          // (Traefik effectue le vrai routage/santé via 'web'). Petite attente
-          // anti-flap avant l'inspection.
-          await this.sleep(3000);
-          const info = await this.docker.inspectContainer(
-            serverId,
-            container.id,
-          );
-          if (info.State.Status !== 'running') {
-            throw new BadRequestException(
-              `Conteneur non démarré (état: ${info.State.Status})`,
-            );
-          }
-          commandLogs += `Conteneur en cours d'exécution (mode Traefik, sans port hôte).\n`;
-        } else {
-          const healthLogs =
-            await this.healthcheckService.runPostDeployHealthChecks({
-              deploymentId: deployment.id,
-              environmentDomain: null,
-              serviceDomain: null,
-              serverHost: server.host,
-              serverId,
-              appPort: publishPort,
-              healthcheckPath: deployment.service?.healthcheckPath ?? null,
-            });
-          commandLogs += `${healthLogs}\n`;
-        }
-      } catch (healthError) {
-        // Health-check failed → stop the broken container so it does not linger
-        // in RUNNING, then rethrow so the outer catch marks the deploy FAILED.
-        this.emitGatewayLog(
-          deployment.id,
-          'Health-check échoué : arrêt du conteneur défaillant.',
-          'error',
-        );
-        await this.docker
-          .stopContainer(serverId, container.id)
-          .catch((stopErr: unknown) => {
-            this.logger.warn(
-              `Could not stop unhealthy container ${container.id}: ${stopErr instanceof Error ? stopErr.message : 'unknown'}`,
-            );
-          });
-        await this.prisma.container
-          .updateMany({
-            where: { dockerId: container.id },
-            data: { status: ContainerStatus.EXITED },
-          })
-          .catch(() => undefined);
-        throw healthError;
-      }
+      commandLogs += await this.prelaunch.runHealthGate({
+        serverId,
+        containerId: container.id,
+        serverHost: server.host,
+        publishPort,
+        useTraefik,
+        healthcheckPath: deployment.service?.healthcheckPath ?? null,
+        deploymentId: deployment.id,
+      });
 
-      // ── Reverse-proxy Traefik : route le domaine (résolu en amont) vers le
-      // conteneur (réseau 'web' + config dynamique fichier).
       if (useTraefik && traefikDomain && traefikServiceEnvId) {
-        try {
-          const routeLog = await this.traefik.applyRoute(
-            serverId,
-            server,
-            traefikServiceEnvId,
-            traefikDomain,
-            containerName,
-            servicePort,
-          );
-          this.emitGatewayLog(deployment.id, routeLog, 'info');
-          commandLogs += routeLog + '\n';
-        } catch (proxyError) {
-          const msg =
-            proxyError instanceof Error ? proxyError.message : 'unknown';
-          this.emitGatewayLog(
-            deployment.id,
-            `[TRAEFIK] Route non configurée: ${msg}`,
-            'error',
-          );
-          commandLogs += `[TRAEFIK] Route non configurée: ${msg}\n`;
-        }
+        commandLogs += await this.deployRouting.applyRoute({
+          deploymentId: deployment.id,
+          serverId,
+          server,
+          serviceEnvId: traefikServiceEnvId,
+          traefikDomain,
+          containerName,
+          servicePort,
+        });
       }
 
-      // Green is healthy → cut over: repoint the proxy rule, drain in-flight
-      // requests on blue, then retire the old (blue) container(s).
       if (blueGreen) {
-        commandLogs += await this.cutoverBlueGreen(
-          deployment.serviceEnv?.id ?? null,
+        commandLogs += await this.deployRouting.cutoverBlueGreen({
+          serviceEnvId: deployment.serviceEnv?.id ?? null,
           serverId,
-          container.id,
+          greenDockerId: container.id,
           publishPort,
+        });
+      }
+
+      // New container healthy and serving → NOW retire the previous one(s).
+      // Blue-green retires the still-running blue inside cutoverBlueGreen, so
+      // here we only clean up the container(s) we had to stop up front.
+      const toRetire = blueGreen ? stoppedOld : oldContainers;
+      if (toRetire.length > 0) {
+        commandLogs += await this.containerLifecycle.removeContainers(
+          serverId,
+          toRetire,
+          deployment.id,
         );
       }
 
-      const imageDigest = await this.resolveImageDigest(serverId, imageRef);
+      const digestResult = await this.imageResolver.resolveImageDigest(
+        serverId,
+        imageRef,
+      );
+      // Result<string,string> : on garde le fallback ET on logge la raison.
+      if (!digestResult.ok) {
+        this.logger.warn(
+          `Digest non résolu pour ${imageRef}: ${digestResult.error}`,
+        );
+      }
+      const imageDigest = digestResult.ok ? digestResult.value : null;
 
       // Nettoyage best-effort des images orphelines (anciens builds) → évite que
       // le disque du VPS se remplisse au fil des déploiements. Non bloquant.
@@ -657,6 +501,20 @@ export class DockerDeployExecutorService {
 
       return finished;
     } catch (error) {
+      // Automatic recovery: remove the half-deployed new container and bring
+      // back any previous container(s) we had to stop, so a FAILED deploy never
+      // leaves the service down (Dokploy-style auto-rollback on failure).
+      if (newContainerId) {
+        await this.docker
+          .removeContainer(serverId, newContainerId, true)
+          .catch(() => undefined);
+      }
+      if (stoppedOld.length > 0) {
+        commandLogs += await this.containerLifecycle
+          .restartContainers(serverId, stoppedOld, deployment.id)
+          .catch(() => '');
+      }
+
       const message =
         error instanceof Error ? error.message : 'Échec du déploiement Docker';
 
@@ -685,6 +543,9 @@ export class DockerDeployExecutorService {
     }
   }
 
+  // ─── Deploy phases (extracted from executeDeployInternal) ────────────────────
+
+  /** Run the optional pre-deploy command in a throwaway container; throw on failure. */
   async getContainerLogs(deploymentId: string, tail = 300): Promise<string> {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },
@@ -714,144 +575,12 @@ export class DockerDeployExecutorService {
     return '';
   }
 
-  /**
-   * Poll Docker inspect until the given container has exited, then return the
-   * exit code. Times out after `timeoutSec` seconds and returns -1.
-   */
-  private async waitForContainerExit(
-    serverId: string,
-    containerId: string,
-    timeoutSec: number,
-  ): Promise<number> {
-    const deadline = Date.now() + timeoutSec * 1000;
-    while (Date.now() < deadline) {
-      try {
-        const info = await this.docker.inspectContainer(serverId, containerId);
-        if (info.State.Status === 'exited' || info.State.Status === 'dead') {
-          return info.State.ExitCode ?? -1;
-        }
-      } catch {
-        return -1;
-      }
-      await new Promise<void>((r) => setTimeout(r, 2000));
-    }
-    return -1;
-  }
-
   emitGatewayLog(
     deploymentId: string,
     rawMessage: string,
     fallbackLevel: 'info' | 'error',
   ): void {
-    const lines = rawMessage
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-    for (const line of lines) {
-      this.gateway.emitLog({
-        deploymentId,
-        message: line,
-        level: this.inferLogLevel(line, fallbackLevel),
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }
-
-  private inferLogLevel(
-    message: string,
-    fallbackLevel: 'info' | 'error',
-  ): DeploymentLogLevel {
-    if (/error|fail|fatal|exception/i.test(message)) return 'error';
-    if (/success|ok|done|completed|ready/i.test(message)) return 'success';
-    return fallbackLevel;
-  }
-
-  /**
-   * Build the ordered 3-level input for {@link resolveEnvDetailed}. The
-   * "environment" level reads from serviceEnv.environment when available (the
-   * standard ServiceEnvironment path), else the directly-linked environment
-   * (legacy / database path).
-   */
-  private buildEnvLevels(deployment: {
-    service?: { env?: string | null; secretsEnv?: string | null } | null;
-    serviceEnv?: {
-      env?: string | null;
-      secretsEnv?: string | null;
-      environment: { env?: string | null; secretsEnv?: string | null };
-    } | null;
-    environment?: { env?: string | null; secretsEnv?: string | null } | null;
-  }): EnvLevel[] {
-    const envLevel =
-      deployment.serviceEnv?.environment ?? deployment.environment ?? null;
-    // secretsEnv is encrypted at rest — decrypt before the resolver parses it
-    // (decryptSafe passes through legacy plaintext / null unchanged).
-    return [
-      {
-        levelName: 'service',
-        env: deployment.service?.env ?? null,
-        secretsEnv: this.crypto.decryptSafe(deployment.service?.secretsEnv),
-      },
-      {
-        levelName: 'environment',
-        env: envLevel?.env ?? null,
-        secretsEnv: this.crypto.decryptSafe(envLevel?.secretsEnv),
-      },
-      {
-        levelName: 'serviceEnvironment',
-        env: deployment.serviceEnv?.env ?? null,
-        secretsEnv: this.crypto.decryptSafe(deployment.serviceEnv?.secretsEnv),
-      },
-    ];
-  }
-
-  /**
-   * Auto-câblage : pour une APP, génère les variables de connexion (DATABASE_URL,
-   * REDIS_URL, AMQP_URL) vers les bases managées du MÊME projet + environnement,
-   * en pointant sur leur alias DNS stable. Injecté au plus bas niveau → toute
-   * valeur définie par l'utilisateur l'emporte. Façon Coolify/Dokploy.
-   */
-  private async resolveAutoWiredDbEnv(deployment: {
-    project: { id: string };
-    service?: { id: string; type: ServiceType } | null;
-    serviceEnv?: { environment: { id: string } } | null;
-    environment?: { id: string } | null;
-  }): Promise<string | null> {
-    if (deployment.service?.type === ServiceType.DATABASE) return null;
-    const projectId = deployment.project.id;
-    const envId =
-      deployment.serviceEnv?.environment?.id ??
-      deployment.environment?.id ??
-      null;
-    if (!envId) return null;
-
-    const dbs = await this.prisma.service.findMany({
-      where: {
-        projectId,
-        type: ServiceType.DATABASE,
-        databaseType: { not: null },
-        ...(deployment.service?.id ? { id: { not: deployment.service.id } } : {}),
-        envLinks: { some: { environmentId: envId, archivedAt: null } },
-      },
-      select: { name: true, databaseType: true, databaseCredentials: true },
-    });
-    if (dbs.length === 0) return null;
-
-    const links = dbs
-      .filter(
-        (d): d is typeof d & { databaseType: ManagedServiceType } =>
-          d.databaseType !== null,
-      )
-      .map((d) => {
-        const creds = parseDbCredentials(d.databaseCredentials);
-        return {
-          name: d.name,
-          databaseType: d.databaseType,
-          user: creds.user,
-          password: creds.password,
-          dbName: creds.dbName,
-        };
-      });
-    return buildDbConnectionEnv(links) || null;
+    this.logEmitter.emit(deploymentId, rawMessage, fallbackLevel);
   }
 
   /**
@@ -883,123 +612,5 @@ export class DockerDeployExecutorService {
       });
     }
     return conditions as unknown as Prisma.InputJsonValue;
-  }
-
-  private async resolveImageRef(
-    deployment: {
-      build?: {
-        isLocalBuild?: boolean | null;
-        imageSha?: string | null;
-        buildPack?: string | null;
-      } | null;
-      dockerImage?: string | null;
-      service?: { id?: string | null; name?: string | null } | null;
-      project: { id: string; name: string };
-      branch: string;
-    },
-    overrideImage?: string,
-    _serverId?: string,
-  ): Promise<string> {
-    if (overrideImage) return overrideImage;
-    if (deployment.dockerImage) return deployment.dockerImage;
-
-    // Local builds produce an image tagged only on the server — no registry.
-    if (deployment.build?.isLocalBuild) {
-      const safeName = (deployment.service?.name ?? deployment.project.name)
-        .toLowerCase()
-        .replace(/[^a-z0-9_-]/g, '-');
-      const safeProject = deployment.project.name
-        .toLowerCase()
-        .replace(/[^a-z0-9_-]/g, '-');
-      return `local/${safeProject}-${safeName}:${deployment.branch || 'latest'}`;
-    }
-
-    if (deployment.build?.imageSha) {
-      return `platform/${deployment.project.id}:${deployment.build.imageSha}`;
-    }
-    return `platform/${deployment.project.id}:${deployment.branch || 'latest'}`;
-  }
-
-  private async resolveImageDigest(
-    serverId: string,
-    imageRef: string,
-  ): Promise<string | null> {
-    try {
-      const info = await this.docker.inspectImage(serverId, imageRef);
-      const digest = info?.RepoDigests?.[0];
-      if (digest) {
-        const parts = digest.split('@');
-        return parts[1] ?? null;
-      }
-      return info?.Id ?? null;
-    } catch {
-      return null;
-    }
-  }
-
-  // ─── DATABASE helpers ──────────────────────────────────────────────────────
-
-  /**
-   * Blue-green cut-over. Green is already running and healthy on its standby
-   * port. We repoint the proxy rule to it, wait for blue to drain, then retire
-   * the previous (blue) container(s) of this ServiceEnvironment.
-   *
-   * NOTE: seamless traffic hand-off requires a reverse proxy honouring
-   * ProxyRule.targetPort. Until one is wired, this still delivers the core
-   * blue-green safety guarantee: a broken image is caught on green and never
-   * removes the live blue container (see the health-check failure path).
-   */
-  private async cutoverBlueGreen(
-    serviceEnvId: string | null,
-    serverId: string,
-    greenDockerId: string,
-    publishPort: number,
-  ): Promise<string> {
-    if (!serviceEnvId)
-      return '[BLUE-GREEN] Pas de service-env, cut-over ignoré\n';
-
-    let logs = '';
-    // 1. Repoint the proxy rule(s) to the green port.
-    const repointed = await this.prisma.proxyRule.updateMany({
-      where: { serviceEnvId, serverId },
-      data: { targetPort: publishPort },
-    });
-    if (repointed.count > 0) {
-      logs += `[BLUE-GREEN] ${repointed.count} règle(s) proxy repointée(s) vers ${publishPort}\n`;
-    }
-
-    // 2. Drain: give in-flight requests on blue a moment to complete.
-    await this.sleep(DockerDeployExecutorService.BLUE_GREEN_DRAIN_MS);
-
-    // 3. Retire the old blue container(s).
-    const blues = await this.prisma.container.findMany({
-      where: {
-        serviceEnvId,
-        status: ContainerStatus.RUNNING,
-        dockerId: { not: greenDockerId },
-      },
-      select: { id: true, dockerId: true, name: true },
-    });
-    for (const blue of blues) {
-      try {
-        await this.docker.removeContainer(serverId, blue.dockerId, true);
-        await this.prisma.container.update({
-          where: { id: blue.id },
-          data: { status: ContainerStatus.EXITED },
-        });
-        logs += `[BLUE-GREEN] Ancien conteneur retiré : ${blue.name}\n`;
-      } catch (error) {
-        this.logger.warn(
-          `Blue-green: could not remove old container ${blue.name}: ${
-            error instanceof Error ? error.message : 'unknown'
-          }`,
-        );
-      }
-    }
-    return logs;
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

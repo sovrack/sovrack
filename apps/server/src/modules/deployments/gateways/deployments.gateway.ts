@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { OnEvent } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 import {
@@ -12,43 +13,24 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { PrismaService } from '../../../core/database/prisma.service';
-import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import {
   extractTokenFromCookieHeader,
   AUTH_COOKIE_NAME_DEFAULT,
-} from '../../../core/http/auth-cookie.util';
-import { resolveGatewayCorsOrigins } from '../../../core/http/cors-origins.util';
+} from '../../../shared/http/auth-cookie.util';
+import { resolveGatewayCorsOrigins } from '../../../shared/http/cors-origins.util';
 import { DeploymentsLogStreamService } from '../query/deployments-log-stream.service';
-
-type DeploymentLogLevel = 'info' | 'error' | 'success';
-
-type DeploymentStartedPayload = {
-  deploymentId: string;
-  projectId?: string;
-  environmentId?: string;
-  status?: string;
-  startedAt?: Date | null;
-  initiatorRole?: string;
-};
-
-type DeploymentLogPayload = {
-  deploymentId: string;
-  message: string;
-  level: DeploymentLogLevel;
-  timestamp: string;
-};
-
-type DeploymentStatusPayload = {
-  deploymentId: string;
-  status: string;
-};
-
-type DeploymentFinishedPayload = {
-  deploymentId: string;
-  status: string;
-  finishedAt?: Date | null;
-};
+import {
+  DEPLOYMENT_WS_STARTED,
+  DEPLOYMENT_WS_LOG,
+  DEPLOYMENT_WS_STATUS,
+  DEPLOYMENT_WS_FINISHED,
+  type DeploymentStartedPayload,
+  type DeploymentLogPayload,
+  type DeploymentStatusPayload,
+  type DeploymentFinishedPayload,
+} from '../events/deployment-ws.events';
 
 type JoinDeploymentPayload = {
   deploymentId?: string;
@@ -182,12 +164,14 @@ export class DeploymentsGateway
     return { ok: true, deploymentId };
   }
 
+  @OnEvent(DEPLOYMENT_WS_STARTED)
   emitStarted(payload: DeploymentStartedPayload): void {
     this.server
       .to(this.roomName(payload.deploymentId))
       .emit('deployment:started', payload);
   }
 
+  @OnEvent(DEPLOYMENT_WS_LOG)
   emitLog(payload: DeploymentLogPayload): void {
     this.appendToBuffer(payload);
     this.server
@@ -195,12 +179,14 @@ export class DeploymentsGateway
       .emit('deployment:log', payload);
   }
 
+  @OnEvent(DEPLOYMENT_WS_STATUS)
   emitStatus(payload: DeploymentStatusPayload): void {
     this.server
       .to(this.roomName(payload.deploymentId))
       .emit('deployment:status', payload);
   }
 
+  @OnEvent(DEPLOYMENT_WS_FINISHED)
   emitFinished(payload: DeploymentFinishedPayload): void {
     this.server
       .to(this.roomName(payload.deploymentId))

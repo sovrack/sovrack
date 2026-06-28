@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '../../shared/database/prisma.service';
 import { SourceProvidersService } from '../source-providers/source-providers.service';
 import { PlatformService } from '../platform/platform.service';
 import { WebhooksService } from './webhooks.service';

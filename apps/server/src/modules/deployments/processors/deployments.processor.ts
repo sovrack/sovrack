@@ -1,10 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { createDeploymentsWorker } from '../../../core/queue/queue.provider';
+import { createDeploymentsWorker } from '../../../shared/queue/queue.provider';
 import type {
   DeployJobData,
   RollbackJobData,
-} from '../../../core/queue/queue.service';
+} from '../../../shared/queue/queue.service';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 
 @Injectable()

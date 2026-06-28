@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
-import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
+import { mkdtemp, readFile, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 
@@ -230,7 +230,7 @@ export class NixpacksService implements OnModuleInit {
    */
   private async runNixpacksCommand(
     args: string[],
-    options: { stdio: 'pipe' | 'inherit' } = { stdio: 'pipe' },
+    _options: { stdio: 'pipe' | 'inherit' } = { stdio: 'pipe' },
   ): Promise<string> {
     if (!this.binaryPath) {
       throw new BadRequestException(

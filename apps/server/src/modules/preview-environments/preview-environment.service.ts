@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ServiceType, SourceType } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '../../shared/database/prisma.service';
 import { SourceProvidersService } from '../source-providers/source-providers.service';
 
 export type PreviewSummary = {

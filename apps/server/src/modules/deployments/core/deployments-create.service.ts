@@ -12,18 +12,18 @@ import {
   Prisma,
   ServiceType,
 } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { CreateDeploymentDto } from '../dto/create-deployment.dto';
 import { DeploymentsConfigResolver } from '../query/deployments-config-resolver.service';
 import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 import type { PipelineItem } from '../../source-providers/contracts/git-provider.contract';
 import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
 import { BuildStrategyResolver } from '../../build/strategies/build-strategy.resolver';
 import { AuditService } from '../../audit/audit.service';
-import { QueueService } from '../../../core/queue/queue.service';
+import { QueueService } from '../../../shared/queue/queue.service';
 
 @Injectable()
 export class DeploymentsCreateService {
@@ -32,7 +32,7 @@ export class DeploymentsCreateService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gitProvidersService: SourceProvidersService,
-    private readonly gateway: DeploymentsGateway,
+    private readonly gateway: DeploymentEventsPublisher,
     private readonly configResolver: DeploymentsConfigResolver,
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly dockerDeployExecutor: DockerDeployExecutorService,
@@ -51,7 +51,9 @@ export class DeploymentsCreateService {
         service: true,
         environment: {
           include: {
-            project: { select: { id: true, name: true } },
+            project: {
+              select: { id: true, name: true, maxConcurrentDeploys: true },
+            },
             servers: {
               where: { isActive: true, isVerified: true },
               take: 1,
@@ -116,7 +118,7 @@ export class DeploymentsCreateService {
         )
       `;
 
-      const staleTimeout = new Date(Date.now() - 5 * 60 * 1000);
+      const staleTimeout = new Date(Date.now() - 45 * 60 * 1000); // aligné build timeout (30min) + cron 45min : ne pas tuer un build long légitime
       await tx.deployment.updateMany({
         where: {
           serviceEnvId: serviceEnv.id,
@@ -146,6 +148,26 @@ export class DeploymentsCreateService {
           `Un déploiement est déjà en cours pour ce service sur cet environnement ` +
             `(ID: ${active.id}, statut: ${active.status}).`,
         );
+      }
+
+      // Multi-tenant fair-share: enforce the project-wide concurrent-deploy cap
+      // (if configured) so one project can't saturate the shared deploy workers.
+      const maxConcurrent = project.maxConcurrentDeploys;
+      if (maxConcurrent && maxConcurrent > 0) {
+        const inFlight = await tx.deployment.count({
+          where: {
+            projectId: project.id,
+            status: {
+              in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING],
+            },
+          },
+        });
+        if (inFlight >= maxConcurrent) {
+          throw new BadRequestException(
+            `Limite de déploiements simultanés atteinte pour ce projet ` +
+              `(${inFlight}/${maxConcurrent}). Réessayez quand un déploiement en cours sera terminé.`,
+          );
+        }
       }
 
       const build = await this.buildsService.create(
@@ -373,7 +395,7 @@ export class DeploymentsCreateService {
         SELECT pg_advisory_xact_lock(hashtext('deploy_env:' || ${serviceEnv.id}))
       `;
 
-      const staleTimeout = new Date(Date.now() - 5 * 60 * 1000);
+      const staleTimeout = new Date(Date.now() - 45 * 60 * 1000); // aligné build timeout (30min) + cron 45min : ne pas tuer un build long légitime
       await tx.deployment.updateMany({
         where: {
           serviceEnvId: serviceEnv.id,

@@ -9,14 +9,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { GetUser } from '../../../core/decorators/get-user.decorator';
-import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
-import { Roles } from '../../../core/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../core/guards/roles.guard';
+import { GetUser } from '../../../shared/decorators/get-user.decorator';
+import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
+import { Roles } from '../../../shared/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../shared/guards/roles.guard';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateAutomationRunDto } from '../dto/create-automation-run.dto';
 import { AutomationService } from '../services/automation.service';
 
+@ApiTags('Automation')
+@ApiBearerAuth()
 @Controller()
 @Roles(Role.ADMIN)
 @UseGuards(JwtAuthGuard, RolesGuard)

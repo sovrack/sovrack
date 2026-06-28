@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from '@prisma/client';
+import { Role, ServerRunKind } from '@prisma/client';
 import {
   ConnectedSocket,
   MessageBody,
@@ -11,13 +11,13 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { PrismaService } from '../../core/database/prisma.service';
-import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
+import { PrismaService } from '../../shared/database/prisma.service';
+import type { JwtPayload } from '../../shared/jwt/dto/jwt-payload.dto';
 import {
   AUTH_COOKIE_NAME_DEFAULT,
   extractTokenFromCookieHeader,
-} from '../../core/http/auth-cookie.util';
-import { resolveGatewayCorsOrigins } from '../../core/http/cors-origins.util';
+} from '../../shared/http/auth-cookie.util';
+import { resolveGatewayCorsOrigins } from '../../shared/http/cors-origins.util';
 
 type JoinRunPayload = {
   runId?: string;
@@ -90,8 +90,8 @@ export class AutomationGateway implements OnGatewayConnection {
       return { ok: false, error: 'runId manquant' };
     }
 
-    const run = await this.prisma.serverOperation.findUnique({
-      where: { id: runId },
+    const run = await this.prisma.serverRun.findFirst({
+      where: { id: runId, kind: ServerRunKind.AUTOMATION },
       select: { id: true },
     });
     if (!run) {

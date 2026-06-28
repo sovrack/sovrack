@@ -1,5 +1,9 @@
 import request from 'supertest';
-import { bootstrapE2E, E2EContext, waitForDeploymentStatus } from '../setup-e2e';
+import {
+  bootstrapE2E,
+  E2EContext,
+  waitForDeploymentStatus,
+} from '../setup-e2e';
 import { createTestFixtures } from '../utils/test-fixtures';
 
 /**
@@ -32,7 +36,11 @@ describe('Deploy (manual, e2e)', () => {
     const res = await request(ctx.app.getHttpServer())
       .post('/deployments')
       .set('Cookie', ctx.authCookie(f.userId))
-      .send({ serviceEnvId: f.serviceEnvId, branch: 'main', buildSource: 'DOCKERFILE_LOCAL' });
+      .send({
+        serviceEnvId: f.serviceEnvId,
+        branch: 'main',
+        buildSource: 'DOCKERFILE_LOCAL',
+      });
 
     expect([200, 201]).toContain(res.status);
     const deploymentId: string = res.body.id;
@@ -42,14 +50,18 @@ describe('Deploy (manual, e2e)', () => {
     expect(final.status).toBe('SUCCESS');
     expect(final.imageSha).toBeTruthy();
 
-    const container = await ctx.prisma.container.findFirst({ where: { deploymentId } });
+    const container = await ctx.prisma.container.findFirst({
+      where: { deploymentId },
+    });
     expect(container).not.toBeNull();
     expect(container?.status).toBe('RUNNING');
 
     expect(JSON.stringify(final.conditions)).toContain('Ready');
 
-    // The fake daemon was actually driven by the real executor.
-    expect(ctx.docker.pullImage).toHaveBeenCalled();
+    // The fake daemon was actually driven by the real executor. buildSource is
+    // DOCKERFILE_LOCAL, so the executor builds on the server (mocked) rather
+    // than pulling — assert the build was invoked, plus the container lifecycle.
+    expect(ctx.localBuild.run).toHaveBeenCalled();
     expect(ctx.docker.createContainer).toHaveBeenCalled();
     expect(ctx.docker.startContainer).toHaveBeenCalled();
   });

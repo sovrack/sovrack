@@ -1,5 +1,5 @@
 import { Role } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { DeploymentsQueryService } from './deployments-query.service';
 import { DeploymentsLogSearchService } from './deployments-log-search.service';
 

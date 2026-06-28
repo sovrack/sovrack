@@ -1,15 +1,15 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Server, ServerLogLevel } from '@prisma/client';
 import { join } from 'path';
-import { ServersCryptoService } from '../../servers/services/servers-crypto.service';
-import { ServerHostKeyService } from '../../servers/services/server-host-key.service';
+import { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.service';
+import { ServerHostKeyService } from '../../../../adapters/ssh/server-host-key.service';
 import { ServersConnectionService } from '../../servers/services/servers-connection.service';
 import {
   AnsibleRunnerService,
   type AnsibleLogEvent as CoreAnsibleLogEvent,
-} from '../../../../core/provisioning/ansible-runner.service';
+} from '../../../../adapters/provisioning/ansible-runner.service';
 import type { PreparationRoleKey } from '../../servers/shared/server-preparation-options';
-import { assertSafeLinuxUsername } from '../../servers/shared/servers-shell.utils';
+import { assertSafeLinuxUsername } from '../../servers/shared/servers-shell.util';
 
 type AnsibleLogEvent = {
   level: ServerLogLevel;

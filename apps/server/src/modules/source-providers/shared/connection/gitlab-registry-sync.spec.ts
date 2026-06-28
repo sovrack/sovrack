@@ -1,11 +1,12 @@
 import { of } from 'rxjs';
-import { GitProviderConfigService } from './git-provider-config.service';
+import { GitProviderLegacySyncService } from './git-provider-legacy-sync.service';
 
 /**
  * Vérifie l'auto-provision « pro » du registre GitLab lié à un provider :
  * réutilisation du token + username récupéré via l'API + lien providerId.
+ * (Logique extraite de GitProviderConfigService vers GitProviderLegacySyncService.)
  */
-describe('GitProviderConfigService.syncGitlabRegistry', () => {
+describe('GitProviderLegacySyncService.syncRegistry', () => {
   function make(opts: {
     userStatus?: number;
     username?: string;
@@ -35,22 +36,17 @@ describe('GitProviderConfigService.syncGitlabRegistry', () => {
       ),
     };
     const crypto = { decrypt: (v: string) => `raw(${v})` };
-    const svc = new GitProviderConfigService(
+    const svc = new GitProviderLegacySyncService(
       prisma as never,
       http as never,
       crypto as never,
-      {} as never,
     );
     return { svc, prisma, http, created, updated };
   }
 
   it('crée un registre lié (providerId) avec token réutilisé + username via API', async () => {
     const { svc, http, created } = make({ username: 'alice' });
-    await (
-      svc as unknown as {
-        syncGitlabRegistry: (p: unknown) => Promise<void>;
-      }
-    ).syncGitlabRegistry({
+    await svc.syncRegistry({
       id: 'p1',
       name: 'perso',
       providerUrl: 'https://gitlab.com',
@@ -74,11 +70,7 @@ describe('GitProviderConfigService.syncGitlabRegistry', () => {
 
   it('met à jour le registre existant au lieu d’en créer un doublon', async () => {
     const { svc, prisma, updated } = make({ existing: { id: 'r1' } });
-    await (
-      svc as unknown as {
-        syncGitlabRegistry: (p: unknown) => Promise<void>;
-      }
-    ).syncGitlabRegistry({
+    await svc.syncRegistry({
       id: 'p1',
       name: 'perso',
       providerUrl: 'https://gitlab.com',
@@ -90,11 +82,7 @@ describe('GitProviderConfigService.syncGitlabRegistry', () => {
 
   it('sans token → registre créé sans creds (à compléter), toujours lié', async () => {
     const { svc, created } = make({});
-    await (
-      svc as unknown as {
-        syncGitlabRegistry: (p: unknown) => Promise<void>;
-      }
-    ).syncGitlabRegistry({
+    await svc.syncRegistry({
       id: 'p1',
       name: 'perso',
       providerUrl: 'https://gitlab.com',

@@ -9,8 +9,8 @@ import { ConfigService } from '@nestjs/config';
 import { GitProviderType, type GitProviderConfig } from '@prisma/client';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { CryptoService } from '../../../../core/crypto/crypto.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { CryptoService } from '../../../../shared/crypto/crypto.service';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

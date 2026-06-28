@@ -7,14 +7,14 @@ import {
   BuildTrigger,
   BuildStatus,
 } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { QueueService } from '../../../core/queue/queue.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { QueueService } from '../../../shared/queue/queue.service';
 import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
 import {
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
   type AutoDeployTriggerEvent,
 } from '../events/deployment.events';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 
 /**
  * Handles automatic deployments triggered by a push event or pipeline success.
@@ -34,7 +34,7 @@ export class DeploymentsAutoTriggerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly queueService: QueueService,
-    private readonly gateway: DeploymentsGateway,
+    private readonly gateway: DeploymentEventsPublisher,
     private readonly buildsService: BuildLifecycleService,
   ) {}
 
@@ -74,7 +74,7 @@ export class DeploymentsAutoTriggerService {
         service: {
           select: { buildPack: true, nixpacksConfig: true, staticConfig: true },
         },
-        environment: { select: { id: true } },
+        environment: { select: { id: true, isProtected: true, name: true } },
       },
     });
 
@@ -92,6 +92,19 @@ export class DeploymentsAutoTriggerService {
 
     for (const svcEnv of matchingServiceEnvs) {
       try {
+        // Authorization parity with the manual path: a webhook/pipeline trigger
+        // is a SYSTEM action with no privileged actor, so it must NOT deploy to
+        // a protected environment (which requires platform ADMIN or project
+        // OWNER — see DeploymentsAuthorizationService.assertCanDeployToEnvironment).
+        // Auto-deploying here would bypass that gate.
+        if (svcEnv.environment.isProtected) {
+          this.logger.warn(
+            `Auto-deploy skipped: environment "${svcEnv.environment.name}" is protected — ` +
+              `webhook/pipeline triggers cannot deploy to it (ADMIN/OWNER manual deploy required).`,
+          );
+          continue;
+        }
+
         // Deduplicate: skip if a deployment for this pipeline is already recorded.
         if (pipelineIdValue || autoDeployMarker) {
           const existing = await this.prisma.deployment.findFirst({
@@ -110,6 +123,26 @@ export class DeploymentsAutoTriggerService {
             select: { id: true },
           });
           if (existing) continue;
+        }
+
+        // Concurrency guard (parity with the manual path in DeploymentsCreate):
+        // never start a second deploy for a service-env that already has one in
+        // flight — otherwise a manual deploy + a webhook (or two webhooks) could
+        // race on the same container/host port.
+        const inFlight = await this.prisma.deployment.findFirst({
+          where: {
+            serviceEnvId: svcEnv.id,
+            status: {
+              in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING],
+            },
+          },
+          select: { id: true },
+        });
+        if (inFlight) {
+          this.logger.warn(
+            `Auto-deploy skipped for serviceEnv ${svcEnv.id}: deployment ${inFlight.id} already in flight.`,
+          );
+          continue;
         }
 
         // Resolve build config from ServiceEnvironment override or Service default.

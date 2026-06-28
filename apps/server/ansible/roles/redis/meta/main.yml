@@ -1,4 +1,4 @@
 ---
 galaxy_info:
   role_name: redis
-  description: Redis server installation.
+  description: Redis server (Docker container).

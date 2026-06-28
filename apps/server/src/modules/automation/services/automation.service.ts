@@ -4,11 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  ServerOperationStatus,
-  ServerOperationTargetStatus,
   Prisma,
+  ServerRunKind,
+  ServerRunStatus,
+  ServerRunStepStatus,
 } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { ServerRunsService } from '../../infrastructure/server-runs/server-runs.service';
 import { CreateAutomationRunDto } from '../dto/create-automation-run.dto';
 import {
   AUTOMATION_ACTIONS,
@@ -16,16 +18,43 @@ import {
 } from '../shared/automation-options';
 import { AutomationRunnerService } from './automation-runner.service';
 
-const ACTIVE_RUN_STATUSES: ServerOperationStatus[] = [
-  ServerOperationStatus.QUEUED,
-  ServerOperationStatus.RUNNING,
+const ACTIVE_RUN_STATUSES: ServerRunStatus[] = [
+  ServerRunStatus.QUEUED,
+  ServerRunStatus.RUNNING,
 ];
+
+// Each AUTOMATION ServerRun persists one ServerRunStep per targeted server.
+// The legacy API exposed these as `targets`, so we keep that field name in the
+// response shape (the frontend reads `run.targets`).
+const runListInclude = {
+  requestedBy: { select: { id: true, fullName: true, email: true } },
+  steps: {
+    include: { server: { select: { id: true, name: true, host: true } } },
+  },
+} satisfies Prisma.ServerRunInclude;
+
+const runDetailInclude = {
+  requestedBy: { select: { id: true, fullName: true, email: true } },
+  steps: {
+    include: { server: { select: { id: true, name: true, host: true } } },
+    orderBy: { id: 'asc' },
+  },
+  logs: { orderBy: { lineNumber: 'asc' } },
+} satisfies Prisma.ServerRunInclude;
+
+type AutomationRunRow = Prisma.ServerRunGetPayload<{
+  include: typeof runListInclude;
+}>;
+type AutomationRunDetailRow = Prisma.ServerRunGetPayload<{
+  include: typeof runDetailInclude;
+}>;
 
 @Injectable()
 export class AutomationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly runner: AutomationRunnerService,
+    private readonly serverRuns: ServerRunsService,
   ) {}
 
   getActions() {
@@ -35,57 +64,41 @@ export class AutomationService {
   async getRuns(page = 1, pageSize = 20) {
     const skip = (page - 1) * pageSize;
     const [items, total] = await Promise.all([
-      this.prisma.serverOperation.findMany({
+      this.prisma.serverRun.findMany({
+        where: { kind: ServerRunKind.AUTOMATION },
         skip,
         take: pageSize,
         orderBy: { createdAt: 'desc' },
-        include: {
-          requestedBy: { select: { id: true, fullName: true, email: true } },
-          targets: {
-            include: {
-              server: { select: { id: true, name: true, host: true } },
-            },
-          },
-        },
+        include: runListInclude,
       }),
-      this.prisma.serverOperation.count(),
+      this.prisma.serverRun.count({
+        where: { kind: ServerRunKind.AUTOMATION },
+      }),
     ]);
-    return { items, total, page, pageSize };
+    return {
+      items: items.map((run) => this.toAutomationRunShape(run)),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async getRun(id: string) {
-    const run = await this.prisma.serverOperation.findUnique({
-      where: { id },
-      include: {
-        requestedBy: { select: { id: true, fullName: true, email: true } },
-        targets: {
-          include: {
-            server: { select: { id: true, name: true, host: true } },
-          },
-          orderBy: { id: 'asc' },
-        },
-        logs: { orderBy: { lineNumber: 'asc' } },
-      },
+    const run = await this.prisma.serverRun.findFirst({
+      where: { id, kind: ServerRunKind.AUTOMATION },
+      include: runDetailInclude,
     });
     if (!run) throw new NotFoundException('Automation run not found');
-    return run;
+    return this.toAutomationRunShape(run);
   }
 
   async getRunLogs(id: string, afterLine?: number) {
-    const run = await this.prisma.serverOperation.findUnique({
-      where: { id },
+    const run = await this.prisma.serverRun.findFirst({
+      where: { id, kind: ServerRunKind.AUTOMATION },
       select: { id: true },
     });
     if (!run) throw new NotFoundException('Automation run not found');
-
-    return await this.prisma.serverOperationLog.findMany({
-      where: {
-        operationId: id,
-        ...(afterLine ? { lineNumber: { gt: afterLine } } : {}),
-      },
-      orderBy: { lineNumber: 'asc' },
-      take: 1_000,
-    });
+    return this.serverRuns.getLogs(id, afterLine);
   }
 
   async startRun(dto: CreateAutomationRunDto, actorId?: string) {
@@ -116,31 +129,25 @@ export class AutomationService {
       );
     }
 
-    const run = await this.prisma.serverOperation.create({
+    const run = await this.prisma.serverRun.create({
       data: {
+        kind: ServerRunKind.AUTOMATION,
         actionKey: action.key,
         actionLabel: action.label,
-        status: ServerOperationStatus.QUEUED,
+        status: ServerRunStatus.QUEUED,
         requestedById: actorId,
         paramsJson: {
           selected_roles: action.roles ?? [],
           gitlabRunnerExecutor: dto.gitlabRunnerExecutor?.trim() || 'docker',
         } as Prisma.InputJsonValue,
-        targets: {
+        steps: {
           create: serverIds.map((serverId) => ({
             serverId,
-            status: ServerOperationTargetStatus.PENDING,
+            status: ServerRunStepStatus.PENDING,
           })),
         },
       },
-      include: {
-        requestedBy: { select: { id: true, fullName: true, email: true } },
-        targets: {
-          include: {
-            server: { select: { id: true, name: true, host: true } },
-          },
-        },
-      },
+      include: runListInclude,
     });
 
     await this.prisma.auditLog.createMany({
@@ -158,14 +165,14 @@ export class AutomationService {
     });
 
     this.runner.executeInBackground(run.id);
-    return run;
+    return this.toAutomationRunShape(run);
   }
 
   async cancelRun(id: string, actorId?: string) {
-    const run = await this.prisma.serverOperation.findUnique({
-      where: { id },
+    const run = await this.prisma.serverRun.findFirst({
+      where: { id, kind: ServerRunKind.AUTOMATION },
       include: {
-        targets: { select: { serverId: true } },
+        steps: { select: { serverId: true } },
       },
     });
     if (!run) throw new NotFoundException('Automation run not found');
@@ -175,21 +182,24 @@ export class AutomationService {
       );
     }
 
-    await this.prisma.serverOperation.update({
+    await this.prisma.serverRun.update({
       where: { id },
       data: {
-        status: ServerOperationStatus.CANCELED,
+        status: ServerRunStatus.CANCELED,
         summary: 'Automation canceled by administrator.',
         finishedAt: new Date(),
       },
     });
     this.runner.cancel(id);
 
-    if (run.targets.length > 0) {
+    const canceledServerIds = run.steps
+      .map((step) => step.serverId)
+      .filter((serverId): serverId is string => Boolean(serverId));
+    if (canceledServerIds.length > 0) {
       await this.prisma.auditLog.createMany({
-        data: run.targets.map((target) => ({
+        data: canceledServerIds.map((serverId) => ({
           resourceType: 'SERVER',
-          resourceId: target.serverId,
+          resourceId: serverId,
           userId: actorId ?? null,
           action: 'AUTOMATION_RUN_CANCELED',
           metadata: { runId: id } as Prisma.InputJsonValue,
@@ -201,17 +211,38 @@ export class AutomationService {
   }
 
   async deleteRun(id: string) {
-    const run = await this.prisma.serverOperation.findUnique({ where: { id } });
+    const run = await this.prisma.serverRun.findFirst({
+      where: { id, kind: ServerRunKind.AUTOMATION },
+    });
     if (!run) throw new NotFoundException('Automation run not found');
     if (ACTIVE_RUN_STATUSES.includes(run.status)) {
       throw new BadRequestException(
         'Cannot delete an active run. Cancel it first.',
       );
     }
-    await this.prisma.serverOperationLog.deleteMany({
-      where: { operationId: id },
-    });
-    await this.prisma.serverOperation.delete({ where: { id } });
+    // ServerRunStep and ServerRunLog cascade-delete with the run.
+    await this.prisma.serverRun.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  /**
+   * Maps a unified ServerRun into the legacy AutomationRun response shape the
+   * frontend expects: the per-server ServerRunSteps are surfaced as `targets`.
+   */
+  private toAutomationRunShape(run: AutomationRunRow | AutomationRunDetailRow) {
+    const { steps, ...rest } = run;
+    return {
+      ...rest,
+      targets: steps.map((step) => ({
+        id: step.id,
+        runId: step.runId,
+        serverId: step.serverId,
+        status: step.status,
+        startedAt: step.startedAt,
+        finishedAt: step.finishedAt,
+        errorMessage: step.errorMessage,
+        server: step.server,
+      })),
+    };
   }
 }

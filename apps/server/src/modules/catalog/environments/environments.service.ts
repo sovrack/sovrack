@@ -1,12 +1,14 @@
 import {
-  ForbiddenException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ProjectRole, Role } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
+import { Prisma, Role } from '@prisma/client';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { ACTIVE_FILTER } from '../../../shared/database/prisma-active.helper';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
+import { ProjectAccessService } from '../access/project-access.service';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { UpdateEnvironmentDto } from './dto/update-environment.dto';
 
@@ -60,6 +62,7 @@ export class EnvironmentsService {
     private readonly prisma: PrismaService,
     private readonly serviceEnvsService: ServiceEnvironmentsService,
     private readonly crypto: CryptoService,
+    private readonly projectAccess: ProjectAccessService,
   ) {}
 
   async create(
@@ -68,7 +71,11 @@ export class EnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<EnvironmentWithRelations> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const env = await this.prisma.environment.create({
       data: {
@@ -96,10 +103,14 @@ export class EnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<EnvironmentWithRelations[]> {
-    await this.assertCanAccessProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     return await this.prisma.environment.findMany({
-      where: { projectId },
+      where: { projectId, ...ACTIVE_FILTER },
       orderBy: { createdAt: 'asc' },
       include: environmentsInclude,
     });
@@ -111,10 +122,14 @@ export class EnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<EnvironmentWithRelations> {
-    await this.assertCanAccessProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const env = await this.prisma.environment.findFirst({
-      where: { id: envId, projectId },
+      where: { id: envId, projectId, ...ACTIVE_FILTER },
       include: environmentsInclude,
     });
 
@@ -132,7 +147,11 @@ export class EnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<EnvironmentWithRelations> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
     await this.ensureEnvironmentExists(projectId, envId);
 
     return await this.prisma.environment.update({
@@ -154,12 +173,48 @@ export class EnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<void> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
     await this.ensureEnvironmentExists(projectId, envId);
 
-    await this.prisma.environment.delete({
-      where: { id: envId },
+    // Network integrity: a public domain must not keep routing to a service of
+    // an archived environment — require detaching domains first (same guard as
+    // ServiceEnvironmentsService.unlink).
+    const activeDomains = await this.prisma.domain.count({
+      where: { serviceEnv: { environmentId: envId } },
     });
+    if (activeDomains > 0) {
+      throw new ConflictException(
+        `Impossible de supprimer : ${activeDomains} domaine(s) pointent encore vers un service de cet environnement. Détachez-les d'abord.`,
+      );
+    }
+
+    const env = await this.prisma.environment.findUnique({
+      where: { id: envId },
+      select: { name: true },
+    });
+
+    // Soft-delete (NOT a hard delete): Deployment.environment is a REQUIRED
+    // relation with onDelete: Cascade, so a hard delete would destroy the whole
+    // deployment history of this environment. Archiving preserves it. The name
+    // is suffixed so @@unique([projectId, name]) is freed for reuse, and the
+    // environment's ServiceEnvironments are archived in the same transaction.
+    await this.prisma.$transaction([
+      this.prisma.serviceEnvironment.updateMany({
+        where: { environmentId: envId, archivedAt: null },
+        data: { archivedAt: new Date() },
+      }),
+      this.prisma.environment.update({
+        where: { id: envId },
+        data: {
+          name: `${env?.name ?? envId}_archived_${Date.now()}`,
+          archivedAt: new Date(),
+        },
+      }),
+    ]);
   }
 
   // NOUVEAU : assigner un serveur à un environnement
@@ -170,7 +225,11 @@ export class EnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<EnvironmentWithRelations> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
     await this.ensureEnvironmentExists(projectId, envId);
 
     const server = await this.prisma.server.findUnique({
@@ -196,7 +255,11 @@ export class EnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<EnvironmentWithRelations> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
     await this.ensureEnvironmentExists(projectId, envId);
 
     return await this.prisma.environment.update({
@@ -216,7 +279,11 @@ export class EnvironmentsService {
     userId: string,
     userRole: Role,
   ) {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
     await this.ensureEnvironmentExists(projectId, envId);
 
     const service = await this.prisma.service.findFirst({
@@ -231,75 +298,14 @@ export class EnvironmentsService {
         serviceId_environmentId: { serviceId, environmentId: envId },
       },
       create: { serviceId, environmentId: envId },
-      update: {},
+      // Reactivate a previously archived link instead of leaving it invisible
+      // (parity with ServiceEnvironmentsService.link).
+      update: { archivedAt: null },
       include: {
         service: { select: { id: true, name: true, type: true } },
         environment: { select: { id: true, name: true } },
       },
     });
-  }
-
-  private async assertCanAccessProject(
-    projectId: string,
-    userId: string,
-    userRole: Role,
-  ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-
-    if (userRole === Role.ADMIN) {
-      return;
-    }
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException('Accès non autorisé à ce projet');
-    }
-  }
-
-  private async assertCanManageProject(
-    projectId: string,
-    userId: string,
-    userRole: Role,
-  ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-
-    if (userRole === Role.ADMIN) {
-      return;
-    }
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-      select: { role: true },
-    });
-
-    if (membership?.role === ProjectRole.OWNER) {
-      return;
-    }
-
-    throw new ForbiddenException('Action réservée au OWNER du projet ou ADMIN');
-  }
-
-  private async ensureProjectExists(projectId: string): Promise<void> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new NotFoundException('Projet non trouvé');
-    }
   }
 
   private async ensureEnvironmentExists(
@@ -310,6 +316,7 @@ export class EnvironmentsService {
       where: {
         id: envId,
         projectId,
+        ...ACTIVE_FILTER,
       },
     });
 

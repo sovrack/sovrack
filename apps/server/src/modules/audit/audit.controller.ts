@@ -6,10 +6,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { Roles } from '../../core/decorators/roles.decorator';
-import { PaginationDto } from '../../core/http/pagination.dto';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../core/guards/roles.guard';
+import { Roles } from '../../shared/decorators/roles.decorator';
+import { PaginationDto } from '../../shared/http/pagination.dto';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { RolesGuard } from '../../shared/guards/roles.guard';
 import { AuditService } from './audit.service';
 
 @ApiTags('Audit Logs')

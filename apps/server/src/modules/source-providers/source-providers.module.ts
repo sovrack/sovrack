@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../core/database/prisma.module';
+import { PrismaModule } from '../../shared/database/prisma.module';
 import { GitlabModule } from './adapters/gitlab/gitlab.module';
 import { GithubModule } from './adapters/github/github.module';
 import { GiteaModule } from './adapters/gitea/gitea.module';

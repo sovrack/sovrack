@@ -1,7 +1,7 @@
 import { RegistryProviderType } from '@prisma/client';
 import { RegistryAuthService } from './registry-auth.service';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
 
 describe('RegistryAuthService.resolveAuthForImage', () => {
   function make(registries: Array<Record<string, unknown>>) {

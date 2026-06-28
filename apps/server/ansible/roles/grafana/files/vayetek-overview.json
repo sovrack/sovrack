@@ -1,0 +1,72 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 0,
+  "schemaVersion": 39,
+  "tags": ["platform"],
+  "title": "platform — Overview",
+  "uid": "platform-overview",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Managed containers (live)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "count(container_last_seen{container_label_platform_managed=\"true\"})",
+          "legendFormat": "containers"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "CPU usage by service (cores)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (container_label_platform_service_name) (rate(container_cpu_usage_seconds_total{container_label_platform_managed=\"true\"}[5m]))",
+          "legendFormat": "{{container_label_platform_service_name}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Memory usage by service",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (container_label_platform_service_name) (container_memory_usage_bytes{container_label_platform_managed=\"true\"})",
+          "legendFormat": "{{container_label_platform_service_name}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Network RX/TX by service (bytes/s)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "sum by (container_label_platform_service_name) (rate(container_network_receive_bytes_total{container_label_platform_managed=\"true\"}[5m]))",
+          "legendFormat": "rx {{container_label_platform_service_name}}"
+        },
+        {
+          "expr": "sum by (container_label_platform_service_name) (rate(container_network_transmit_bytes_total{container_label_platform_managed=\"true\"}[5m]))",
+          "legendFormat": "tx {{container_label_platform_service_name}}"
+        }
+      ]
+    }
+  ]
+}

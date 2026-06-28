@@ -1,4 +1,4 @@
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -8,7 +8,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { DockerApiService } from '../../../../core/container-runtime/docker-api.service';
+import { DockerApiService } from '../../../../adapters/container-runtime/docker-api.service';
 import { ContainersService } from '../containers.service';
 
 type LogStreamPayload = {

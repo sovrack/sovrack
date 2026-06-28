@@ -12,10 +12,10 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Role } from '@prisma/client';
-import { GetUser } from '../../core/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
-import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
-import { PrismaService } from '../../core/database/prisma.service';
+import { GetUser } from '../../shared/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../shared/jwt/dto/jwt-payload.dto';
+import { PrismaService } from '../../shared/database/prisma.service';
 import { PreviewEnvironmentService } from './preview-environment.service';
 
 class OpenPreviewDto {

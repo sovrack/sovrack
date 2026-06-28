@@ -1,14 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import {
   IsEnum,
-  IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
   Matches,
-  Min,
 } from 'class-validator';
 
 export class CreateDeploymentDto {
@@ -75,7 +72,7 @@ export class CreateDeploymentDto {
   })
   @IsOptional()
   @IsString({ message: 'overrideImage doit être une chaîne de caractères' })
-  @Matches(/^[a-zA-Z0-9][a-zA-Z0-9._\/-]*(?::[a-zA-Z0-9._-]+)?$/, {
+  @Matches(/^[a-zA-Z0-9][a-zA-Z0-9._/-]*(?::[a-zA-Z0-9._-]+)?$/, {
     message:
       "overrideImage doit être un nom d'image Docker valide (ex: docker.io/nginx:latest)",
   })

@@ -1,6 +1,6 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../../../core/database/prisma.module';
+import { PrismaModule } from '../../../../shared/database/prisma.module';
 import { GitProviderConfigModule } from '../../shared/connection/git-provider-config.module';
 import { GiteaClient } from './gitea.client';
 import { GiteaAdapter } from './gitea.adapter';

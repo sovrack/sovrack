@@ -19,10 +19,11 @@ import {
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { GetUser } from '../../core/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
-import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
-import { PaginationDto } from '../../core/http/pagination.dto';
+import { Throttle } from '@nestjs/throttler';
+import { GetUser } from '../../shared/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../shared/jwt/dto/jwt-payload.dto';
+import { PaginationDto } from '../../shared/http/pagination.dto';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import {
   ValidateDeploymentDto,
@@ -85,6 +86,9 @@ export class DeploymentsController {
   }
 
   @Post()
+  // Tighter than the global 120/min: a deploy is a heavy, side-effecting op —
+  // cap bursts (accidental double-clicks, scripts) without blocking normal use.
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @ApiOperation({ summary: 'Launch a deployment' })
   @ApiCreatedResponse({
     description: 'Deployment created',
@@ -195,6 +199,8 @@ export class DeploymentsController {
   }
 
   @Post(':id/rollback')
+  // Rollback re-deploys (heavy + side-effecting) → same tight cap as create.
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @ApiOperation({ summary: 'Roll back to the last stable image' })
   @ApiCreatedResponse({
     description: 'Rollback launched',
@@ -204,8 +210,17 @@ export class DeploymentsController {
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Unauthorized access' })
   @ApiResponse({ status: 404, description: 'Deployment not found' })
-  async rollback(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.rollbackService.rollback(id, user.id, user.role);
+  async rollback(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @Body() body?: { targetDeploymentId?: string },
+  ) {
+    return await this.rollbackService.rollback(
+      id,
+      user.id,
+      user.role,
+      body?.targetDeploymentId,
+    );
   }
 
   @Delete(':id')
@@ -224,7 +239,7 @@ export class DeploymentsController {
   async containerLogs(
     @Param('id') id: string,
     @Query('tail') tail: string | undefined,
-    @GetUser() user: JwtPayload,
+    @GetUser() _user: JwtPayload,
   ) {
     const tailNum = tail ? parseInt(tail, 10) : 300;
     return await this.dockerExecutor.getContainerLogs(id, tailNum);

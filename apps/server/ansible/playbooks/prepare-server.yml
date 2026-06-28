@@ -41,6 +41,12 @@
           - fail2ban
           - ssl
           - monitoring
+          - node_exporter
+          - cadvisor
+          - prometheus
+          - grafana
+          - alertmanager
+          - loki
           - backup
           - logrotate
           - swap

@@ -1,5 +1,4 @@
 ---
 - name: restart redis
-  ansible.builtin.systemd:
-    name: "{{ redis_service_name }}"
-    state: restarted
+  ansible.builtin.command: "docker restart {{ redis_container_name }}"
+  changed_when: true

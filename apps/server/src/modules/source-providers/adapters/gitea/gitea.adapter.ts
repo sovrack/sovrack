@@ -4,8 +4,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Role, GitProviderType } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { sanitizeDockerTag } from '../../../../shared/utils/docker-tag.util';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
 import { GiteaClient } from './gitea.client';
 import type {
@@ -33,6 +33,10 @@ type GiteaConnection = {
  * Mirrors the GitHub adapter: the provider is linked to a SERVICE
  * (service.providerId → GitProviderConfig of type GITEA), and all credentials
  * are resolved from that config's encrypted token.
+ *
+ * EXPERIMENTAL (Beta): repos/branches/files/webhooks/registry are implemented,
+ * but Gitea Actions (CI) coverage is less battle-tested than GitLab/GitHub. The
+ * UI flags this provider with a "Beta" badge (see frontend provider-meta).
  */
 @Injectable()
 export class GiteaAdapter implements IGitProvider {

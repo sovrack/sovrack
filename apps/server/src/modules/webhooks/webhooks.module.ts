@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../core/database/prisma.module';
+import { PrismaModule } from '../../shared/database/prisma.module';
 import { PlatformModule } from '../platform';
 import { NotificationsModule } from '../notifications';
 import {
@@ -10,6 +10,7 @@ import {
 import { GitlabWebhookHandler } from '../source-providers/adapters/gitlab/gitlab-webhook.handler';
 import { GithubWebhookHandler } from '../source-providers/adapters/github/github-webhook.handler';
 import { WebhooksService } from './webhooks.service';
+import { WebhookEventsService } from './webhook-events.service';
 import { WebhookRetryService } from './services/webhook-retry.service';
 import { IncomingWebhookController } from './incoming-webhook.controller';
 import { WebhookAuditController } from './webhook-audit.controller';
@@ -51,6 +52,7 @@ import {
   ],
   providers: [
     WebhooksService,
+    WebhookEventsService,
     WebhookRetryService,
     WebhookManagementService,
     {

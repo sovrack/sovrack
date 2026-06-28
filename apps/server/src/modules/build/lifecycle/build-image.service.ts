@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
-import { sanitizeDockerTag } from '../../../core/utils/docker-tag.util';
+import { sanitizeDockerTag } from '../../../shared/utils/docker-tag.util';
 
 /**
  * Resolves the Docker image reference for a project.

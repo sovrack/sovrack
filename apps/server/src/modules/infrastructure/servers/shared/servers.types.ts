@@ -4,7 +4,7 @@ import type {
   ServerJobStatus,
   ServerJobType,
 } from '@prisma/client';
-import type { PaginatedResult } from '../../../../core/http/pagination.dto';
+import type { PaginatedResult } from '../../../../shared/http/pagination.dto';
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
 
 /** Minimal view of the currently active (RUNNING/PENDING) job for a server. */
@@ -23,6 +23,10 @@ export type ServerPublic = Omit<
 > & {
   connectionMode: ServerConnectionModeDto;
   activeJob?: ServerActiveJob | null;
+  // Derived from `capabilities` (the hasDocker/hasRunner columns were removed);
+  // computed in ServersCoreService.toPublic.
+  hasDocker: boolean;
+  hasRunner: boolean;
 };
 
 export type CreateServerResult = ServerPublic & {

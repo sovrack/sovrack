@@ -1,10 +1,10 @@
 import { ConfigService } from '@nestjs/config';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { DeploymentsHealthcheckService } from './deployments-healthcheck.service';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { SshExecutorService } from '../../../core/ssh/ssh-executor.service';
-import { ServersCryptoService } from '../../infrastructure/servers/services/servers-crypto.service';
-import { ServerHostKeyService } from '../../infrastructure/servers/services/server-host-key.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { SshExecutorService } from '../../../adapters/ssh/ssh-executor.service';
+import { ServersCryptoService } from '../../../adapters/ssh/servers-crypto.service';
+import { ServerHostKeyService } from '../../../adapters/ssh/server-host-key.service';
 
 describe('DeploymentsHealthcheckService — progressive 3-phase', () => {
   // Mock SSH exec to return responses based on a queue
@@ -52,7 +52,9 @@ describe('DeploymentsHealthcheckService — progressive 3-phase', () => {
     const configService = {
       get: (key: string) => config[key],
     } as unknown as ConfigService;
-    const gateway = { emitLog: jest.fn() } as unknown as DeploymentsGateway;
+    const gateway = {
+      emitLog: jest.fn(),
+    } as unknown as DeploymentEventsPublisher;
     return new DeploymentsHealthcheckService(
       configService,
       gateway,

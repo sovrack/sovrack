@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import {
   GitProviderType,
@@ -6,32 +6,19 @@ import {
   WebhookEvent,
   WebhookEventStatus,
 } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
-import { CryptoService } from '../../core/crypto/crypto.service';
+import { PrismaService } from '../../shared/database/prisma.service';
+import { CryptoService } from '../../shared/crypto/crypto.service';
 import { WebhookEndpointContext } from './interfaces/webhook-handler.interface';
+import { WebhookEventsService } from './webhook-events.service';
 
-/** After this many attempts a failed webhook is dead-lettered (no more retries). */
-export const WEBHOOK_MAX_ATTEMPTS = 5;
-
-/**
- * Exponential backoff keyed by the attempt number being scheduled:
- *   1 → 1 min · 2 → 5 min · 3 → 30 min · 4 → 2 h · 5+ → dead-letter.
- */
-export const WEBHOOK_RETRY_BACKOFF_MS: Record<number, number> = {
-  1: 60_000,
-  2: 5 * 60_000,
-  3: 30 * 60_000,
-  4: 2 * 60 * 60_000,
-};
-
-/** A failed webhook ready to be retried, with its resolved endpoint context. */
-export type RetryableWebhookEvent = {
-  id: string;
-  provider: GitProviderType;
-  attempts: number;
-  payload: Prisma.JsonValue;
-  endpoint: WebhookEndpointContext;
-};
+// Re-exportés depuis webhook-events.service (leur foyer) pour rétrocompat des
+// importeurs existants (webhook-retry.service…).
+export {
+  WEBHOOK_MAX_ATTEMPTS,
+  WEBHOOK_RETRY_BACKOFF_MS,
+  type RetryableWebhookEvent,
+} from './webhook-events.service';
+import type { RetryableWebhookEvent } from './webhook-events.service';
 
 /**
  * Service responsible for the observability + lifecycle layer of webhooks.
@@ -54,6 +41,7 @@ export class WebhooksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
+    private readonly events: WebhookEventsService,
   ) {}
 
   // ─── WebhookEndpoint lifecycle ───────────────────────────────────────────
@@ -190,7 +178,11 @@ export class WebhooksService {
    * This protects against provider retries (GitLab may re-deliver the
    * same webhook 3 times in a 5-minute window).
    */
-  async record(params: {
+  // ─── WebhookEvent lifecycle (délégué à WebhookEventsService) ─────────────
+  // Façade rétrocompatible : les appelants (controllers, retry service)
+  // continuent d'appeler webhooksService.X ; la logique vit dans events.
+
+  record(params: {
     endpointId: string;
     provider: GitProviderType;
     eventType: string;
@@ -198,243 +190,59 @@ export class WebhooksService {
     payload: Prisma.InputJsonValue;
     headers: Prisma.InputJsonValue;
   }): Promise<{ id: string; deduplicated: boolean }> {
-    if (params.externalDeliveryId) {
-      const existing = await this.prisma.webhookEvent.findFirst({
-        where: {
-          endpointId: params.endpointId,
-          externalDeliveryId: params.externalDeliveryId,
-        },
-        select: { id: true },
-      });
-      if (existing) {
-        return { id: existing.id, deduplicated: true };
-      }
-    }
-
-    const event = await this.prisma.webhookEvent.create({
-      data: {
-        endpointId: params.endpointId,
-        provider: params.provider,
-        eventType: params.eventType,
-        externalDeliveryId: params.externalDeliveryId ?? null,
-        payload: params.payload,
-        headers: params.headers,
-        status: WebhookEventStatus.RECEIVED,
-      },
-      select: { id: true },
-    });
-
-    await this.prisma.webhookEndpoint.update({
-      where: { id: params.endpointId },
-      data: { lastEventAt: new Date() },
-    });
-
-    return { id: event.id, deduplicated: false };
+    return this.events.record(params);
   }
 
-  async markProcessed(
+  markProcessed(
     eventId: string,
     normalizedEvent?: Prisma.InputJsonValue,
   ): Promise<WebhookEvent> {
-    return this.prisma.webhookEvent.update({
-      where: { id: eventId },
-      data: {
-        status: WebhookEventStatus.PROCESSED,
-        processedAt: new Date(),
-        lastAttemptAt: new Date(),
-        attempts: { increment: 1 },
-        ...(normalizedEvent ? { normalizedEvent } : {}),
-      },
-    });
+    return this.events.markProcessed(eventId, normalizedEvent);
   }
 
-  /**
-   * Record a failed attempt. Increments `attempts`, computes `nextRetryAt`
-   * with exponential backoff, and dead-letters automatically once the attempt
-   * count reaches {@link WEBHOOK_MAX_ATTEMPTS} (or when `options.deadLetter`).
-   * Dead-lettered events get `nextRetryAt = null` so the retry cron skips them.
-   */
-  async markFailed(
+  markFailed(
     eventId: string,
     errorMessage: string,
     options: { nextRetryAt?: Date; deadLetter?: boolean } = {},
   ): Promise<WebhookEvent> {
-    const current = await this.prisma.webhookEvent.findUnique({
-      where: { id: eventId },
-      select: { attempts: true },
-    });
-    const nextAttempt = (current?.attempts ?? 0) + 1;
-    const isDeadLetter =
-      options.deadLetter === true || nextAttempt >= WEBHOOK_MAX_ATTEMPTS;
-    const backoffMs = WEBHOOK_RETRY_BACKOFF_MS[nextAttempt];
-    const nextRetryAt = isDeadLetter
-      ? null
-      : (options.nextRetryAt ??
-        new Date(
-          Date.now() +
-            (backoffMs ?? WEBHOOK_RETRY_BACKOFF_MS[WEBHOOK_MAX_ATTEMPTS - 1]),
-        ));
-
-    return this.prisma.webhookEvent.update({
-      where: { id: eventId },
-      data: {
-        status: isDeadLetter
-          ? WebhookEventStatus.DEAD_LETTER
-          : WebhookEventStatus.FAILED,
-        lastAttemptAt: new Date(),
-        attempts: { increment: 1 },
-        errorMessage: errorMessage.slice(0, 50_000),
-        nextRetryAt,
-      },
-    });
+    return this.events.markFailed(eventId, errorMessage, options);
   }
 
-  /** Force an event into the dead-letter state (no further retries). */
-  async markDeadLetter(eventId: string): Promise<WebhookEvent> {
-    return this.prisma.webhookEvent.update({
-      where: { id: eventId },
-      data: { status: WebhookEventStatus.DEAD_LETTER, nextRetryAt: null },
-    });
+  markDeadLetter(eventId: string): Promise<WebhookEvent> {
+    return this.events.markDeadLetter(eventId);
   }
 
-  // ─── Retry support ───────────────────────────────────────────────────────
-
-  /**
-   * FAILED events whose `nextRetryAt` is due and that have not exhausted their
-   * attempts, with the resolved endpoint context needed to re-dispatch.
-   */
-  async listDueRetries(limit = 20): Promise<RetryableWebhookEvent[]> {
-    const rows = await this.prisma.webhookEvent.findMany({
-      where: {
-        status: WebhookEventStatus.FAILED,
-        nextRetryAt: { lte: new Date() },
-        attempts: { lt: WEBHOOK_MAX_ATTEMPTS },
-      },
-      orderBy: { nextRetryAt: 'asc' },
-      take: limit,
-      select: {
-        id: true,
-        provider: true,
-        attempts: true,
-        payload: true,
-        endpoint: {
-          select: {
-            id: true,
-            projectId: true,
-            serviceEnvId: true,
-            serviceId: true,
-            provider: true,
-            isActive: true,
-          },
-        },
-      },
-    });
-    return rows.map((row) => ({
-      id: row.id,
-      provider: row.provider,
-      attempts: row.attempts,
-      payload: row.payload,
-      endpoint: row.endpoint,
-    }));
+  listDueRetries(limit = 20): Promise<RetryableWebhookEvent[]> {
+    return this.events.listDueRetries(limit);
   }
 
-  /**
-   * Atomically claim a FAILED event for retry by flipping it to RECEIVED.
-   * Returns true only for the worker that won the race — two concurrent crons
-   * can never both pick the same event (idempotence).
-   */
-  async claimForRetry(eventId: string): Promise<boolean> {
-    const res = await this.prisma.webhookEvent.updateMany({
-      where: { id: eventId, status: WebhookEventStatus.FAILED },
-      data: { status: WebhookEventStatus.RECEIVED, lastAttemptAt: new Date() },
-    });
-    return res.count === 1;
+  claimForRetry(eventId: string): Promise<boolean> {
+    return this.events.claimForRetry(eventId);
   }
 
-  /** Load an event with its endpoint context (used by manual replay). */
-  async findEventForRetry(eventId: string): Promise<RetryableWebhookEvent> {
-    const row = await this.prisma.webhookEvent.findUnique({
-      where: { id: eventId },
-      select: {
-        id: true,
-        provider: true,
-        attempts: true,
-        payload: true,
-        endpoint: {
-          select: {
-            id: true,
-            projectId: true,
-            serviceEnvId: true,
-            serviceId: true,
-            provider: true,
-            isActive: true,
-          },
-        },
-      },
-    });
-    if (!row) {
-      throw new NotFoundException(`WebhookEvent ${eventId} introuvable`);
-    }
-    return {
-      id: row.id,
-      provider: row.provider,
-      attempts: row.attempts,
-      payload: row.payload,
-      endpoint: row.endpoint,
-    };
+  findEventForRetry(eventId: string): Promise<RetryableWebhookEvent> {
+    return this.events.findEventForRetry(eventId);
   }
 
-  /** Reset an event so it can be replayed from scratch (manual admin action). */
-  async resetForReplay(eventId: string): Promise<WebhookEvent> {
-    return this.prisma.webhookEvent.update({
-      where: { id: eventId },
-      data: {
-        status: WebhookEventStatus.RECEIVED,
-        attempts: 0,
-        nextRetryAt: null,
-        errorMessage: null,
-      },
-    });
+  resetForReplay(eventId: string): Promise<WebhookEvent> {
+    return this.events.resetForReplay(eventId);
   }
 
-  // ─── Read APIs (UI / admin) ──────────────────────────────────────────────
-
-  async listEventsForEndpoint(
+  listEventsForEndpoint(
     endpointId: string,
     options: { status?: WebhookEventStatus; limit?: number } = {},
   ) {
-    return this.prisma.webhookEvent.findMany({
-      where: {
-        endpointId,
-        ...(options.status ? { status: options.status } : {}),
-      },
-      orderBy: { receivedAt: 'desc' },
-      take: options.limit ?? 50,
-    });
+    return this.events.listEventsForEndpoint(endpointId, options);
   }
 
-  async listEventsForProject(
+  listEventsForProject(
     projectId: string,
     options: { limit?: number; status?: WebhookEventStatus } = {},
   ) {
-    return this.prisma.webhookEvent.findMany({
-      where: {
-        endpoint: { projectId },
-        ...(options.status ? { status: options.status } : {}),
-      },
-      orderBy: { receivedAt: 'desc' },
-      take: options.limit ?? 100,
-      include: {
-        endpoint: { select: { id: true, webhookToken: true, provider: true } },
-      },
-    });
+    return this.events.listEventsForProject(projectId, options);
   }
 
-  async findEvent(id: string): Promise<WebhookEvent> {
-    const event = await this.prisma.webhookEvent.findUnique({ where: { id } });
-    if (!event) {
-      throw new NotFoundException(`WebhookEvent ${id} introuvable`);
-    }
-    return event;
+  findEvent(id: string): Promise<WebhookEvent> {
+    return this.events.findEvent(id);
   }
 }

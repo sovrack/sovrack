@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
-import { AppJwtModule } from '../../../core/jwt/jwt.module';
+import { AppJwtModule } from '../../../shared/jwt/jwt.module';
 import { InfrastructureCoreModule } from '../core/infrastructure-core.module';
+import { ServerRunsModule } from '../server-runs/server-runs.module';
 import { ServerPreparationController } from './controllers/server-preparation.controller';
 import { ServerPreparationsController } from './controllers/server-preparations.controller';
 import { ServerPreparationOptionsController } from './controllers/server-preparation-options.controller';
 import { ServerPreparationService } from './services/infra-preparation.service';
 import { ServerPreparationAnsibleService } from './services/server-preparation-ansible.service';
 import { ServerPreparationStateService } from './services/preparation/server-preparation-state.service';
+import { InfraPreparationRunnerService } from './services/infra-preparation-runner.service';
 import { ServerPreparationGateway } from './gateways/server-preparation.gateway';
 
 /**
@@ -19,17 +21,18 @@ import { ServerPreparationGateway } from './gateways/server-preparation.gateway'
  * `forwardRef` cycle is gone.
  */
 @Module({
-  imports: [AppJwtModule, InfrastructureCoreModule],
+  imports: [AppJwtModule, InfrastructureCoreModule, ServerRunsModule],
   controllers: [
     ServerPreparationController,
     ServerPreparationsController,
     ServerPreparationOptionsController,
   ],
   providers: [
-    ServerPreparationService,
     ServerPreparationAnsibleService,
     ServerPreparationStateService,
     ServerPreparationGateway,
+    InfraPreparationRunnerService,
+    ServerPreparationService,
   ],
   exports: [ServerPreparationService, ServerPreparationAnsibleService],
 })

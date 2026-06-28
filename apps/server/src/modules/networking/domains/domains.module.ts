@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../../core/database/prisma.module';
-import { CryptoModule } from '../../../core/crypto/crypto.module';
+import { PrismaModule } from '../../../shared/database/prisma.module';
+import { CryptoModule } from '../../../shared/crypto/crypto.module';
 import { DomainsController } from './domains.controller';
 import { DomainsService } from './domains.service';
 

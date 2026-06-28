@@ -12,8 +12,8 @@ import { Server, Socket } from 'socket.io';
 import {
   AUTH_COOKIE_NAME_DEFAULT,
   extractTokenFromCookieHeader,
-} from '../../core/http/auth-cookie.util';
-import { resolveGatewayCorsOrigins } from '../../core/http/cors-origins.util';
+} from '../../shared/http/auth-cookie.util';
+import { resolveGatewayCorsOrigins } from '../../shared/http/cors-origins.util';
 import { TerminalService } from './terminal.service';
 
 type JwtPayload = {

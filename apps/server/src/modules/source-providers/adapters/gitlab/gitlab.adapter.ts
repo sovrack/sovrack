@@ -5,9 +5,9 @@ import {
 } from '@nestjs/common';
 import { GitProviderType, ServiceType, SourceType, Role } from '@prisma/client';
 import { randomBytes } from 'crypto';
-import { PrismaService } from '../../../../core/database/prisma.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 import type { GitlabResolvedConfig } from './gitlab.types';
-import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
+import { sanitizeDockerTag } from '../../../../shared/utils/docker-tag.util';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
 import {
   GitlabClient,
@@ -17,7 +17,7 @@ import {
   GitlabPipelineItem,
   GitlabRepoItem,
 } from './gitlab.client';
-import { CryptoService } from '../../../../core/crypto/crypto.service';
+import { CryptoService } from '../../../../shared/crypto/crypto.service';
 import { PublicGitlabConfig } from './gitlab.types';
 import {
   GitProviderConfigService,
@@ -499,12 +499,14 @@ export class GitlabAdapter implements IGitProvider {
     const raw = await this.getBranches(projectId, userId, userRole);
     return raw.map((b) => {
       const branch = b as Record<string, unknown>;
+      const name = branch['name'];
+      const commitId = (
+        branch['commit'] as Record<string, unknown> | undefined
+      )?.['id'];
       return {
-        name: String(branch['name'] ?? ''),
+        name: typeof name === 'string' ? name : '',
         isDefault: Boolean(branch['default'] ?? false),
-        commitSha: String(
-          (branch['commit'] as Record<string, unknown>)?.['id'] ?? '',
-        ),
+        commitSha: typeof commitId === 'string' ? commitId : '',
       };
     });
   }

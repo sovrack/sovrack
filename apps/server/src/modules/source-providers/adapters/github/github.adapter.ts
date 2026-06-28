@@ -4,10 +4,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Role, GitProviderType, ServiceType, SourceType } from '@prisma/client';
-import { randomBytes } from 'crypto';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { CryptoService } from '../../../../core/crypto/crypto.service';
-import { sanitizeDockerTag } from '../../../../core/utils/docker-tag.util';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { CryptoService } from '../../../../shared/crypto/crypto.service';
+import { sanitizeDockerTag } from '../../../../shared/utils/docker-tag.util';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
 import { GithubClient } from './github.client';
 import { GithubFileService } from './github-file.service';
@@ -46,8 +45,8 @@ export class GithubAdapter implements IGitProvider {
 
   async listRepos(
     projectId: string,
-    userId: string,
-    userRole: Role,
+    _userId: string,
+    _userRole: Role,
   ): Promise<RepoItem[]> {
     const { token, apiBase } = await this.resolveProjectCredentials(projectId);
     return this.api.listRepos(apiBase, token);
@@ -55,8 +54,8 @@ export class GithubAdapter implements IGitProvider {
 
   async listBranches(
     projectId: string,
-    userId: string,
-    userRole: Role,
+    _userId: string,
+    _userRole: Role,
     repoId?: string,
   ): Promise<BranchItem[]> {
     const { token, apiBase, fullRepoName, defaultBranch } =
@@ -66,8 +65,8 @@ export class GithubAdapter implements IGitProvider {
 
   async listPipelines(
     projectId: string,
-    userId: string,
-    userRole: Role,
+    _userId: string,
+    _userRole: Role,
   ): Promise<PipelineItem[]> {
     const { token, apiBase, fullRepoName } =
       await this.resolveProjectCredentials(projectId);
@@ -77,9 +76,9 @@ export class GithubAdapter implements IGitProvider {
   async triggerPipeline(
     projectId: string,
     branch: string,
-    userId: string,
-    userRole: Role,
-    preferredRepoId?: number,
+    _userId: string,
+    _userRole: Role,
+    _preferredRepoId?: number,
   ): Promise<PipelineItem> {
     const { token, apiBase, fullRepoName } =
       await this.resolveProjectCredentials(projectId);
@@ -127,12 +126,10 @@ export class GithubAdapter implements IGitProvider {
         );
       }
       const adminToken = provider.adminToken
-        ? await this.gitProviderRegistry.decryptProviderToken(
-            provider.adminToken,
-          )
+        ? this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
         : '';
       const oauthToken = provider.oauthAccessToken
-        ? await this.gitProviderRegistry.decryptProviderToken(
+        ? this.gitProviderRegistry.decryptProviderToken(
             provider.oauthAccessToken,
           )
         : '';
@@ -217,12 +214,10 @@ export class GithubAdapter implements IGitProvider {
 
     const provider = gitProviderConfig;
     const adminToken = provider.adminToken
-      ? await this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
+      ? this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
       : '';
     const oauthToken = provider.oauthAccessToken
-      ? await this.gitProviderRegistry.decryptProviderToken(
-          provider.oauthAccessToken,
-        )
+      ? this.gitProviderRegistry.decryptProviderToken(provider.oauthAccessToken)
       : '';
     const token = oauthToken || adminToken;
 

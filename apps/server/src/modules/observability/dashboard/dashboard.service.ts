@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { DeploymentStatus, ServerStatus } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { DeploymentStatus, Prisma, Role, ServerStatus } from '@prisma/client';
+import { PrismaService } from '../../../shared/database/prisma.service';
 
 export type DayActivity = {
   date: string;
@@ -56,10 +56,32 @@ const RUNNING: DeploymentStatus[] = ['PENDING', 'RUNNING'];
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getStats(): Promise<DashboardStats> {
+  async getStats(userId: string, userRole: Role): Promise<DashboardStats> {
     const now = new Date();
     const since7d = new Date(now.getTime() - 7 * 86400_000);
     const since30d = new Date(now.getTime() - 30 * 86400_000);
+
+    // Non-admins only see the projects they are a member of — the dashboard
+    // must not leak other projects' names, deploy counts or failures. Admins
+    // (projectIds === null) see the whole platform.
+    const projectIds =
+      userRole === Role.ADMIN
+        ? null
+        : (
+            await this.prisma.projectMember.findMany({
+              where: { userId },
+              select: { projectId: true },
+            })
+          ).map((m) => m.projectId);
+    const projectIn = projectIds ? { in: projectIds } : undefined;
+    const deployScope: Prisma.DeploymentWhereInput = projectIn
+      ? { projectId: projectIn }
+      : {};
+    // Servers are platform infra: scope to those attached to the caller's
+    // projects' environments (admins see all).
+    const serverScope: Prisma.ServerWhereInput = projectIn
+      ? { environment: { projectId: projectIn } }
+      : {};
 
     const [
       totalProjects,
@@ -70,11 +92,15 @@ export class DashboardService {
       allServers,
       recentFailures,
     ] = await Promise.all([
-      this.prisma.project.count(),
-      this.prisma.environment.count(),
-      this.prisma.server.count(),
+      this.prisma.project.count(
+        projectIn ? { where: { id: projectIn } } : undefined,
+      ),
+      this.prisma.environment.count(
+        projectIn ? { where: { projectId: projectIn } } : undefined,
+      ),
+      this.prisma.server.count({ where: serverScope }),
       this.prisma.deployment.findMany({
-        where: { createdAt: { gte: since30d } },
+        where: { createdAt: { gte: since30d }, ...deployScope },
         select: {
           id: true,
           status: true,
@@ -88,10 +114,19 @@ export class DashboardService {
         },
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.deployment.count({ where: { status: { in: RUNNING } } }),
-      this.prisma.server.findMany({ select: { status: true } }),
+      this.prisma.deployment.count({
+        where: { status: { in: RUNNING }, ...deployScope },
+      }),
+      this.prisma.server.findMany({
+        where: serverScope,
+        select: { status: true },
+      }),
       this.prisma.deployment.findMany({
-        where: { status: { in: FAILED }, createdAt: { gte: since7d } },
+        where: {
+          status: { in: FAILED },
+          createdAt: { gte: since7d },
+          ...deployScope,
+        },
         select: {
           id: true,
           branch: true,

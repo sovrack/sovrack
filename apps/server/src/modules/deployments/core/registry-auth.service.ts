@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RegistryProviderType } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
 
 export type DockerPullAuth = {
   username: string;

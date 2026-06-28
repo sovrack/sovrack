@@ -5,10 +5,10 @@ import {
   DeploymentStatus,
   Role,
 } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
 import { AuditService } from '../../audit/audit.service';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
 import { DeploymentsQueryService } from '../query/deployments-query.service';
 
@@ -19,7 +19,7 @@ export class DeploymentsLifecycleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly docker: DockerApiService,
-    private readonly gateway: DeploymentsGateway,
+    private readonly gateway: DeploymentEventsPublisher,
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly queryService: DeploymentsQueryService,
     private readonly auditService: AuditService,

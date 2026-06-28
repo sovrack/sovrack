@@ -3,8 +3,8 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as nodemailer from 'nodemailer';
 import { WebhookEvent } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
-import { CryptoService } from '../../core/crypto/crypto.service';
+import { PrismaService } from '../../shared/database/prisma.service';
+import { CryptoService } from '../../shared/crypto/crypto.service';
 
 const SLACK_WEBHOOK_KEY = 'SLACK_WEBHOOK_URL';
 const NOTIFY_ON_SUCCESS_KEY = 'NOTIFY_ON_SUCCESS';

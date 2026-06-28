@@ -15,11 +15,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { Roles } from '../../../../core/decorators/roles.decorator';
-import { GetUser } from '../../../../core/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../../core/guards/roles.guard';
-import type { JwtPayload } from '../../../../core/jwt/dto/jwt-payload.dto';
+import { Roles } from '../../../../shared/decorators/roles.decorator';
+import { GetUser } from '../../../../shared/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../../shared/guards/roles.guard';
+import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { ValidateServerSshDto } from '../dto';
 import {
   ServerLogDto,
@@ -28,6 +28,10 @@ import {
   ServerVerificationStatusDto,
 } from '../dto/server-response.dto';
 import { ServersCoreService } from '../services';
+import {
+  serverHasDocker,
+  serverHasRunner,
+} from '../../../../adapters/server-capabilities/server-capabilities.util';
 
 @ApiTags('Servers Validation')
 @ApiBearerAuth()
@@ -74,8 +78,8 @@ export class ServerValidationController {
       verificationError: server.verificationError,
       lastVerifiedAt: server.lastVerifiedAt,
       isVerified: server.isVerified,
-      hasDocker: server.hasDocker,
-      hasRunner: server.hasRunner,
+      hasDocker: serverHasDocker(server),
+      hasRunner: serverHasRunner(server),
       recentLogs: recentLogs.map((log) => ({
         id: log.id,
         serverId: log.serverId,

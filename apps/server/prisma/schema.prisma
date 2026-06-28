@@ -61,33 +61,28 @@ enum ServerStatus {
   DISABLED
 }
 
+// Step in the server onboarding wizard (Server.onboardingStep). Distinct from
+// ServerStatus (the lifecycle state): onboardingStep tracks "where the user is"
+// in setup. Only PENDING is branched on in logic; the rest are informational.
+enum ServerOnboardingStep {
+  PENDING
+  KEY_INSTALLED
+  SSH_VALIDATED
+  INFO_DETECTED
+  PREPARATION_PENDING
+  PREPARING
+  READY
+  PREPARATION_FAILED
+}
+
 enum ServerLogLevel {
   INFO
   WARNING
   ERROR
 }
 
-enum ServerPreparationStatus {
-  QUEUED
-  RESOLVING_OPTIONS
-  WAITING_FOR_LOCK
-  RUNNING
-  SUCCEEDED
-  PARTIAL
-  FAILED
-  TIMEOUT
-  CANCELED
-}
-
-enum ServerPreparationTaskStatus {
-  PENDING
-  SKIPPED
-  RUNNING
-  OK
-  CHANGED
-  FAILED
-  TIMEOUT
-}
+// ServerPreparationStatus / ServerPreparationTaskStatus removed — preparation
+// runs now use the unified ServerRunStatus / ServerRunStepStatus enums.
 
 enum ServerInstalledToolStatus {
   INSTALLED
@@ -142,6 +137,20 @@ enum BuildPack {
   DOCKER_COMPOSE
   STATIC
   NONE
+}
+
+// How a deployment of a service is triggered (Service.deployTrigger).
+enum DeployTrigger {
+  PUSH // deploy on every push (Coolify-style)
+  PIPELINE_SUCCESS // deploy when the CI pipeline goes green
+  CI_HOOK // the CI calls a deploy-hook
+  MANUAL // deploy only on explicit request
+}
+
+// Where the image is produced (Service.buildMode).
+enum BuildMode {
+  LOCAL // built on the VPS
+  REGISTRY // built by CI, pulled from a registry
 }
 
 enum BuildTrigger {
@@ -202,6 +211,13 @@ enum ProxyCertType {
   NONE
 }
 
+// Circuit breaker state for a DockerConnection (anti-notification-storm).
+enum CircuitState {
+  CLOSED // normal
+  OPEN // failing, alerts suppressed until cooldown
+  HALF_OPEN // probing once to decide whether to close again
+}
+
 model User {
   id                          String              @id @default(uuid())
   email                       String              @unique
@@ -215,8 +231,7 @@ model User {
   builds                      Build[]
   auditLogs                   AuditLog[]
   sshKeys                     SshKey[]
-  requestedServerPreparations ServerPreparation[] @relation("ServerPreparationRequestedBy")
-  serverOperations            ServerOperation[]   @relation("ServerOperationRequestedBy")
+  serverRunsRequested         ServerRun[]         @relation("ServerRunRequestedBy")
   createdAt                   DateTime            @default(now())
   updatedAt                   DateTime            @updatedAt
 }
@@ -225,6 +240,9 @@ model Project {
   id               String            @id @default(uuid())
   name             String
   description      String?
+  // Multi-tenant fair-share: cap simultaneous in-flight deployments for this
+  // project so one tenant can't monopolize the deploy workers. Null = unlimited.
+  maxConcurrentDeploys Int?
   members          ProjectMember[]
   environments     Environment[]
   services         Service[]
@@ -246,6 +264,7 @@ model ProjectMember {
   userId    String
   role      ProjectRole @default(DEVELOPER)
   joinedAt  DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
 
   @@unique([projectId, userId])
   @@index([userId, projectId])
@@ -268,11 +287,10 @@ model Server {
   lastVerifiedAt    DateTime?
   lastDetectedAt    DateTime?
   lastPreparedAt    DateTime?
-  onboardingStep    String                   @default("PENDING")
-  // Transitional denormalized fields kept for compatibility with existing UI/deployment checks.
-  // The source of truth for new server tooling is ServerCapability / ServerInstalledTool.
-  hasDocker         Boolean                  @default(false)
-  hasRunner         Boolean                  @default(false)
+  onboardingStep    ServerOnboardingStep     @default(PENDING)
+  // hasDocker/hasRunner removed — derived from `capabilities` via
+  // serverHasDocker/serverHasRunner (server-capabilities.util). Single source
+  // of truth = the capabilities JSON written by detection.
   jobs              ServerJob[]
   logs              ServerLog[]
   validationResults ServerValidationResult[]
@@ -282,12 +300,13 @@ model Server {
   // source of truth, no joins, no 3-way drift on "does this server have Docker".
   capabilities      Json?                    @default("{}")
   installedTools    Json?                    @default("[]")
-  preparations      ServerPreparation[]
-  serverOperations  ServerOperationTarget[]
+  serverRuns        ServerRun[]             @relation("ServerRuns")
+  serverRunSteps    ServerRunStep[]         @relation("ServerRunSteps")
   dockerConnection  DockerConnection?
   containers       Container[]
   volumes          Volume[]
   proxyRules        ProxyRule[]
+  serviceEnvironments ServiceEnvironment[]
   environmentId     String?
   environment       Environment?             @relation(fields: [environmentId], references: [id], onDelete: SetNull)
   // Soft-delete: NULL = active. Set instead of DELETE so server logs,
@@ -358,67 +377,9 @@ model ServerValidationResult {
 // in Server.capabilities (JSON map) and Server.installedTools (JSON array).
 // See servers-detection.service.ts for the read/write shape.
 
-model ServerPreparation {
-  id                   String                   @id @default(uuid())
-  server               Server                   @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  serverId             String
-  status               ServerPreparationStatus  @default(QUEUED)
-  profile              ServerPreparationProfile @default(CUSTOM)
-  triggerSource        String                   @default("USER")
-  requestedBy          User?                    @relation("ServerPreparationRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
-  requestedById        String?
-  startedAt            DateTime?
-  finishedAt           DateTime?
-  selectedOptionsJson  Json
-  resolvedRolesJson    Json
-  summary              String?                  @db.Text
-  errorMessage         String?                  @db.Text
-  retryOfPreparation   ServerPreparation?       @relation("ServerPreparationRetry", fields: [retryOfPreparationId], references: [id], onDelete: SetNull)
-  retryOfPreparationId String?
-  retries              ServerPreparation[]      @relation("ServerPreparationRetry")
-  tasks                ServerPreparationTask[]
-  logs                 ServerPreparationLog[]
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
-
-  @@index([serverId, status])
-  @@index([serverId, createdAt])
-  @@index([requestedById])
-  @@index([retryOfPreparationId])
-}
-
-model ServerPreparationTask {
-  id            String                      @id @default(uuid())
-  preparation   ServerPreparation           @relation(fields: [preparationId], references: [id], onDelete: Cascade)
-  preparationId String
-  roleKey       String
-  taskName      String
-  orderIndex    Int
-  status        ServerPreparationTaskStatus @default(PENDING)
-  startedAt     DateTime?
-  finishedAt    DateTime?
-  message       String?                     @db.Text
-  createdAt     DateTime                    @default(now())
-  updatedAt     DateTime                    @updatedAt
-
-  @@unique([preparationId, roleKey])
-  @@index([preparationId, orderIndex])
-}
-
-model ServerPreparationLog {
-  id            String            @id @default(uuid())
-  preparation   ServerPreparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
-  preparationId String
-  level         ServerLogLevel    @default(INFO)
-  source        String
-  message       String            @db.Text
-  lineNumber    Int
-  createdAt     DateTime          @default(now())
-
-  @@index([preparationId, lineNumber])
-  @@index([preparationId, createdAt])
-  @@index([level])
-}
+// ServerPreparation / ServerPreparationTask / ServerPreparationLog removed —
+// preparation runs are now persisted in the unified ServerRun / ServerRunStep /
+// ServerRunLog tables (kind=PREPARATION). See ServerPreparationService.
 
 // ServerAuditEvent model removed — server audit events now live in AuditLog with
 // resourceType='SERVER', resourceId=serverId, action=eventType, metadata=payloadJson.
@@ -439,6 +400,10 @@ model Environment {
   serviceLinks ServiceEnvironment[]
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
+  // Soft-delete: archive instead of DELETE so the deployment history that
+  // references this environment (Deployment.environment is onDelete: Cascade,
+  // required) is preserved. Archived rows are filtered out of the API.
+  archivedAt   DateTime?
 
   @@unique([projectId, name])
 }
@@ -449,6 +414,13 @@ model ServiceEnvironment {
   service       Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   environmentId String
   environment   Environment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+
+  // Cible de déploiement EXPLICITE (découplage serveur↔environnement). Si défini,
+  // ce service-env déploie sur CE serveur ; sinon fallback sur le 1er serveur de
+  // l'environnement (comportement historique). Permet à un même VPS d'héberger
+  // plusieurs environnements/projets (modèle Coolify/Dokploy).
+  serverId      String?
+  server        Server?     @relation(fields: [serverId], references: [id], onDelete: SetNull)
 
   // Overrides — all optional (null = use default from Service)
   branch          String?
@@ -495,8 +467,14 @@ model ServiceEnvironment {
   pipelineRuns     PipelineRun[]
   databaseBackups  DatabaseBackup[]
 
+  createdAt        DateTime    @default(now())
+  // @default(now()) (in addition to @updatedAt) so the column has a DB default —
+  // required for `prisma db push` to add it to a non-empty table (e2e harness).
+  updatedAt        DateTime    @default(now()) @updatedAt
+
   @@unique([serviceId, environmentId])
   @@index([environmentId])
+  @@index([serverId])
 }
 
 
@@ -558,7 +536,8 @@ model Deployment {
   @@index([externalPipelineId])
   @@index([projectId, environmentId, externalPipelineId])
   @@index([serviceId])
-  @@index([serviceEnvId])
+  // [serviceEnvId] alone is covered by the [serviceEnvId, status, createdAt]
+  // composite (prefix) below — keeping only the composite avoids a redundant index.
   @@index([buildId])
   @@index([status, updatedAt])
   @@index([environmentId, status])
@@ -577,14 +556,12 @@ model Deployment {
 // the same image, rollbacks, blue-green swaps), and one Deployment always
 // references exactly one Build.
 //
-// Phase 1 of the rollout: this table is introduced without breaking changes
-// (buildId on Deployment is nullable). Existing deployments keep their
-// buildStrategy/buildMode/nixpacksConfig/staticConfig on the Deployment row
-// (duplicated values) until the next non-breaking migration backfills the
-// Build rows. A subsequent breaking migration will drop the duplicate
-// columns from Deployment.
+// Rollout DONE: the duplicate build columns that used to live on Deployment
+// (buildStrategy/buildMode/nixpacksConfig/staticConfig/buildLog) have already
+// been dropped — Build is now the single source of truth for build state.
+// `Deployment.buildId` references the Build (nullable only for legacy rows).
 //
-// Fields mirror the columns that currently bleed into Deployment:
+// Build carries the build state (was duplicated on Deployment):
 //   - buildStatus / buildLog  →  Build.status / Build.logs
 //   - nixpacksConfig/staticConfig →  Build.nixpacksConfig / Build.staticConfig
 //   - gitlabPipelineId → Build.gitlabPipelineId
@@ -620,8 +597,7 @@ model Build {
   finishedAt         DateTime?
   // CI/CD pipeline ID (GitLab pipeline ID or GitHub Actions run ID).
   externalPipelineId BigInt?
-  // Build-pack-specific config (duplicated on Deployment for now; the
-  // breaking migration will drop the dupes and read from here).
+  // Build-pack-specific config (single source of truth — no longer on Deployment).
   nixpacksConfig     Json?
   staticConfig       Json?
   // Error message when status=FAILED.
@@ -1072,8 +1048,8 @@ model DockerConnection {
   // ── Circuit breaker (anti-notification-storm on flapping connections) ──
   // CLOSED: normal. OPEN: failing, alerts suppressed until cooldown elapses.
   // HALF_OPEN: probing once to decide whether to close again.
-  consecutiveFailures Int       @default(0)
-  circuitState        String    @default("CLOSED")
+  consecutiveFailures Int          @default(0)
+  circuitState        CircuitState @default(CLOSED)
   circuitOpenedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -1194,15 +1170,17 @@ model Service {
   // Mode de build choisi : LOCAL (build sur le VPS) ou REGISTRY (image construite
   // par la CI puis pull). Combiné à buildPack → buildSource (DOCKERFILE_LOCAL,
   // DOCKERFILE_REGISTRY, NIXPACKS_LOCAL…). Image externe = sourceType DOCKER_IMAGE.
-  buildMode            String?    @default("LOCAL")
-  // Déclencheur du déploiement : PUSH (deploy à chaque push, façon Coolify),
-  // PIPELINE_SUCCESS (deploy si le pipeline CI passe au vert), CI_HOOK (la CI
-  // appelle un deploy-hook), MANUAL. Défaut DB = PIPELINE_SUCCESS (rétro-compat) ;
-  // les nouveaux services sont créés en PUSH.
-  deployTrigger        String?    @default("PIPELINE_SUCCESS")
+  buildMode            BuildMode? @default(LOCAL)
+  // Déclencheur du déploiement. Défaut DB = PIPELINE_SUCCESS (rétro-compat) ;
+  // les nouveaux services sont créés en PUSH (cf services.service.create).
+  deployTrigger        DeployTrigger? @default(PIPELINE_SUCCESS)
   // Mode REGISTRY : référence d'image (registry/chemin:tag) à tirer telle quelle
   // au déploiement, au lieu de la dériver de la CI. Null = dérivation auto.
   registryImage        String?
+  // RESOLVED build type detected/declared for the pipeline (e.g. "dockerized",
+  // "nixpacks", "static"). Distinct from buildPack (the user's strategy choice)
+  // and buildMode (LOCAL vs REGISTRY): build-detector WRITES it, build-setup
+  // READS it (`service.buildType ?? 'dockerized'`). Not user-facing input.
   buildType            String?
   dockerfile           String?    @db.Text
   port                 Int?       @default(3000)
@@ -1223,6 +1201,11 @@ model Service {
   secretsEnv      String? @db.Text // JSON — secrets du service (chiffré au repos, jamais affiché en clair)
   healthcheckPath String?
   replicas        Int     @default(1)
+  // Resource quotas (multi-tenant safety). cpuLimit = fractional cores
+  // (e.g. 0.5), memLimitMb = hard memory cap in MB. Null = unlimited. Applied
+  // to the container HostConfig (NanoCpus / Memory) at deploy.
+  cpuLimit        Float?
+  memLimitMb      Int?
   // Pre-deploy command executed inside the new image before traffic cutover
   // (e.g. "npx prisma migrate deploy"). Exit code ≠ 0 → deployment FAILED.
   preDeployCommand    String?
@@ -1245,7 +1228,11 @@ model Service {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([projectId, name])
+  // NOTE: unicité (projectId, name) appliquée par un INDEX UNIQUE PARTIEL
+  // `WHERE "archivedAt" IS NULL` (migration 20260625130000), PAS par @@unique :
+  // ainsi un service ARCHIVÉ ne bloque plus la réutilisation de son nom. Prisma
+  // ne modélise pas les index partiels mais les IGNORE proprement au diff
+  // (vérifié : aucun "drift") → cohabitation sans accroc.
   @@index([projectId])
   @@index([providerId])
 }
@@ -1262,6 +1249,13 @@ enum BackupTrigger {
   SCHEDULED
 }
 
+/// Where a backup dump is stored. LOCAL = backend host filesystem (default),
+/// S3 = external S3-compatible object storage (durable, survives host loss).
+enum BackupStorageProvider {
+  LOCAL
+  S3
+}
+
 /// A point-in-time logical dump of a managed database ServiceEnvironment.
 /// Produced by running the engine's dump tool (pg_dump / mysqldump /
 /// mongodump) inside the running container via the Docker API.
@@ -1271,9 +1265,14 @@ model DatabaseBackup {
   serviceEnvironment   ServiceEnvironment @relation(fields: [serviceEnvironmentId], references: [id], onDelete: Cascade)
   status               BackupStatus       @default(PENDING)
   trigger              BackupTrigger      @default(MANUAL)
-  /// Absolute path of the dump file on the backend host.
+  /// Where the dump lives (LOCAL host path or S3 object key).
+  storageProvider      BackupStorageProvider @default(LOCAL)
+  /// Local absolute path OR S3 object key, depending on storageProvider.
   storagePath          String?
+  /// Compressed size on disk/object store (bytes).
   sizeBytes            Int?
+  /// SHA-256 of the stored (gzipped) dump — integrity check against silent corruption.
+  checksum             String?
   error                String?            @db.Text
   startedAt            DateTime?
   finishedAt           DateTime?
@@ -1285,59 +1284,92 @@ model DatabaseBackup {
 
 // ============================================================================
 // ServerOperation — registre des opérations serveur MULTI-CIBLES (P7).
-// Modélise les opérations initiées par un admin sur N serveurs (automation /
-// actions ansible) : 1 opération → N targets (serveurs) → logs temps réel.
-// Remplace AutomationRun (supprimé). NE remplace PAS ServerJob/ServerPreparation,
-// qui forment le moteur de concurrence PAR-SERVEUR (verrou mutex par serveur via
-// index unique partiel + advisory lock, retry/attempts/timeout, tâches/logs UI) :
-// concern distinct, volontairement conservé — cf. servers-jobs / infra-preparation.
-// ============================================================================
-enum ServerOperationStatus {
+// ServerOperation / ServerOperationTarget / ServerOperationLog (and their
+// ServerOperationStatus / ServerOperationTargetStatus enums) removed —
+// automation runs are now persisted in the unified ServerRun / ServerRunStep /
+// ServerRunLog tables (kind=AUTOMATION). See AutomationService.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ServerRun — generic run/step/log hierarchy unifying the two near-identical
+// structural families:
+//   Family B: ServerPreparation / ServerPreparationTask / ServerPreparationLog
+//   Family C: ServerOperation / ServerOperationTarget / ServerOperationLog
+//
+// PREPARATION runs target a single server and progress per ansible role.
+// AUTOMATION  runs target N servers in parallel and progress per server.
+//
+// Family A (ServerJob / ServerLog / ServerValidationResult) is intentionally
+// kept separate: ServerJob is a mutex/retry-lock primitive, ServerLog is a
+// flat audit feed, and ServerValidationResult is a snapshot cache — none of
+// these have the "run → ordered steps → streaming log" shape that B and C
+// share. Collapsing them into ServerRun would add nullable columns for
+// unrelated concerns (nullable-everything anti-pattern).
+//
+// The old B/C models are kept alive during the cutover window and will be
+// dropped in a separate confirmed migration once everything is verified.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ServerRunKind {
+  PREPARATION
+  AUTOMATION
+}
+
+enum ServerRunStatus {
   QUEUED
+  RESOLVING_OPTIONS
+  WAITING_FOR_LOCK
   RUNNING
   SUCCEEDED
   PARTIAL
   FAILED
-  CANCELED
   TIMEOUT
+  CANCELED
 }
 
-enum ServerOperationTargetStatus {
+enum ServerRunStepStatus {
   PENDING
+  SKIPPED
   RUNNING
+  OK
+  CHANGED
   SUCCEEDED
   FAILED
-  SKIPPED
   TIMEOUT
   CANCELED
 }
 
-model ServerOperation {
-  id            String                @id @default(uuid())
-  actionKey     String // verify | install-tools | prepare | ssl | <action ansible>
+model ServerRun {
+  id            String          @id @default(uuid())
+  kind          ServerRunKind
+  // PREPARATION: serverId set, steps keyed by roleKey.
+  // AUTOMATION:  serverId null, steps keyed by serverId.
+  serverId      String?
+  server        Server?         @relation("ServerRuns", fields: [serverId], references: [id], onDelete: Cascade)
+  actionKey     String?
   actionLabel   String?
-  status        ServerOperationStatus @default(QUEUED)
-  triggerSource String                @default("USER")
   profile       String?
+  status        ServerRunStatus @default(QUEUED)
+  triggerSource String          @default("USER")
   requestedById String?
-  requestedBy   User?                 @relation("ServerOperationRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
-  paramsJson    Json                  @default("{}") // ex extraVarsJson / selectedOptionsJson
-  resolvedJson  Json? // ex resolvedRolesJson
-  summary       String?               @db.Text
-  errorMessage  String?               @db.Text
-  attempts      Int                   @default(0)
-  maxAttempts   Int                   @default(1)
+  requestedBy   User?           @relation("ServerRunRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  paramsJson    Json            @default("{}")
+  resolvedJson  Json?
+  summary       String?         @db.Text
+  errorMessage  String?         @db.Text
+  attempts      Int             @default(0)
+  maxAttempts   Int             @default(1)
   timeoutMs     Int?
   retryOfId     String?
-  retryOf       ServerOperation?      @relation("ServerOperationRetry", fields: [retryOfId], references: [id], onDelete: SetNull)
-  retries       ServerOperation[]     @relation("ServerOperationRetry")
+  retryOf       ServerRun?      @relation("ServerRunRetry", fields: [retryOfId], references: [id], onDelete: SetNull)
+  retries       ServerRun[]     @relation("ServerRunRetry")
   startedAt     DateTime?
   finishedAt    DateTime?
-  targets       ServerOperationTarget[]
-  logs          ServerOperationLog[]
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
+  steps         ServerRunStep[]
+  logs          ServerRunLog[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
+  @@index([serverId, status])
   @@index([status])
   @@index([actionKey])
   @@index([createdAt])
@@ -1345,34 +1377,46 @@ model ServerOperation {
   @@index([retryOfId])
 }
 
-model ServerOperationTarget {
-  id           String                @id @default(uuid())
-  operationId  String
-  operation    ServerOperation       @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  serverId     String
-  server       Server                @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  status       ServerOperationTargetStatus @default(PENDING)
+model ServerRunStep {
+  id           String              @id @default(uuid())
+  runId        String
+  run          ServerRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
+  // PREPARATION step: roleKey set, serverId null.
+  // AUTOMATION  step: serverId set, roleKey null.
+  // Both @@unique constraints use nullable columns; Postgres treats NULL as
+  // distinct in unique indexes so the non-applicable side never collides.
+  roleKey      String?
+  serverId     String?
+  server       Server?             @relation("ServerRunSteps", fields: [serverId], references: [id], onDelete: Cascade)
+  taskName     String?
+  orderIndex   Int                 @default(0)
+  status       ServerRunStepStatus @default(PENDING)
   startedAt    DateTime?
   finishedAt   DateTime?
-  errorMessage String?               @db.Text
-  output       String?               @db.Text
+  message      String?             @db.Text
+  errorMessage String?             @db.Text
+  output       String?             @db.Text
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
-  @@unique([operationId, serverId])
-  @@index([operationId])
-  @@index([serverId])
+  @@unique([runId, roleKey])
+  @@unique([runId, serverId])
+  @@index([runId, orderIndex])
 }
 
-model ServerOperationLog {
-  id          String          @id @default(uuid())
-  operationId String
-  operation   ServerOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  serverId    String?
-  level       ServerLogLevel  @default(INFO)
-  source      String          @default("orchestrator")
-  message     String          @db.Text
-  lineNumber  Int             @default(0)
-  createdAt   DateTime        @default(now())
+model ServerRunLog {
+  id         String         @id @default(uuid())
+  runId      String
+  run        ServerRun      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  serverId   String?
+  level      ServerLogLevel @default(INFO)
+  source     String         @default("orchestrator")
+  message    String         @db.Text
+  lineNumber Int            @default(0)
+  createdAt  DateTime       @default(now())
 
-  @@index([operationId, lineNumber])
+  @@index([runId, lineNumber])
+  @@index([runId, createdAt])
+  @@index([level])
   @@index([serverId])
 }

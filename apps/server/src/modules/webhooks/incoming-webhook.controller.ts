@@ -14,7 +14,9 @@ import {
   UnauthorizedException,
   type RawBodyRequest,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { GitProviderType, Prisma } from '@prisma/client';
+import { Public } from '../../shared/decorators/public.decorator';
 import { createHmac, timingSafeEqual } from 'crypto';
 import type { Request } from 'express';
 import { WebhooksService } from './webhooks.service';
@@ -44,6 +46,8 @@ import {
  *      no new route, no new switch case here.
  *   5. Mark the event PROCESSED or FAILED.
  */
+@ApiTags('Webhooks (Incoming)')
+@Public() // signature-authenticated (HMAC / X-Gitlab-Token), not JWT
 @Controller('webhooks/incoming')
 export class IncomingWebhookController {
   private readonly logger = new Logger(IncomingWebhookController.name);

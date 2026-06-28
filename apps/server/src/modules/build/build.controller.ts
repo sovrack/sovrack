@@ -9,18 +9,21 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { GetUser } from '../../core/decorators/get-user.decorator';
-import { Roles } from '../../core/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../core/guards/roles.guard';
-import type { JwtPayload } from '../../core/jwt/dto/jwt-payload.dto';
+import { GetUser } from '../../shared/decorators/get-user.decorator';
+import { Roles } from '../../shared/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { RolesGuard } from '../../shared/guards/roles.guard';
+import type { JwtPayload } from '../../shared/jwt/dto/jwt-payload.dto';
 import { BuildDetectorService } from './detection/build-detector.service';
 import { BuildOrchestratorService } from './build-orchestrator.service';
 import { BuildSetupService } from './lifecycle/build-setup.service';
 import { BuildLifecycleService } from './lifecycle/build-lifecycle.service';
 import { CreateBuildConfigDto } from './dto/create-build-config.dto';
 import { BuildStatus } from '@prisma/client';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Build')
+@ApiBearerAuth()
 @Controller('projects/:id/build')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BuildController {

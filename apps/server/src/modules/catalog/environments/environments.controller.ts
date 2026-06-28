@@ -14,9 +14,9 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { GetUser } from '../../../core/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
-import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
+import { GetUser } from '../../../shared/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { UpdateEnvironmentDto } from './dto/update-environment.dto';
 

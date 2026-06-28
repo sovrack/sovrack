@@ -5,16 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { BuildOrchestratorService } from '../build-orchestrator.service';
 import { CreateBuildConfigDto } from '../dto/create-build-config.dto';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 import { NixpacksService } from '../engines/nixpacks/nixpacks.service';
-import type {
-  BuildArtifactStatus,
-  BuildPrepareStatus,
-  BuildPrepareServiceResult,
-} from '../types/build-prepare.types';
+import type { BuildPrepareServiceResult } from '../types/build-prepare.types';
 
 const SUPPORTED_TYPES = [
   'nestjs',
@@ -433,12 +429,14 @@ export class BuildSetupService {
       },
       {
         key: 'BUILDPACK',
-        label: 'Buildpacks (pack CLI)',
+        label: 'Buildpacks (pack CLI) — bientôt',
         description:
-          "Heroku-style buildpacks. Détection automatique de l'image de base, support de Heroku, Google, Paketo buildpacks.",
+          "Heroku-style buildpacks (Heroku/Google/Paketo via la CLI `pack`). NON disponible pour l'instant : utilisez Nixpacks (auto-détection équivalente) en attendant l'intégration du moteur pack.",
         requiresDockerfile: false,
         supportsLocal: true,
-        available: true,
+        // Not wired yet (no `pack` engine) — kept visible as a roadmap item but
+        // marked unavailable so the UI disables it (no broken build path).
+        available: false,
       },
       {
         key: 'DOCKER_COMPOSE',

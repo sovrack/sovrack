@@ -5,16 +5,11 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { promisify } from 'util';
 import type { BuildSource } from '../../build/strategies/build-strategy.interface';
-import { PrismaService } from '../../../core/database/prisma.service';
-import type { InstalledTool } from '../../infrastructure/servers/shared/server-capabilities.types';
-import {
-  SshExecutorService,
-  type SshConnection,
-} from '../../../core/ssh/ssh-executor.service';
-import {
-  ServerHostKeyService,
-  ServersCryptoService,
-} from '../../infrastructure/servers/services';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import type { InstalledTool } from '../../../adapters/server-capabilities/server-capabilities.types';
+import { SshExecutorService } from '../../../adapters/ssh/ssh-executor.service';
+import { ServersCryptoService } from '../../../adapters/ssh/servers-crypto.service';
+import { ServerHostKeyService } from '../../../adapters/ssh/server-host-key.service';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 
@@ -150,7 +145,7 @@ export class DeploymentsValidationService {
           );
         }
         if (svc.databaseCredentials) {
-          const creds =
+          const creds: unknown =
             typeof svc.databaseCredentials === 'string'
               ? JSON.parse(svc.databaseCredentials)
               : svc.databaseCredentials;
@@ -330,9 +325,10 @@ export class DeploymentsValidationService {
   private async getLatestSuccessfulPreparation(
     serverId: string,
   ): Promise<{ id: string; finishedAt: Date | null } | null> {
-    return this.prisma.serverPreparation.findFirst({
+    return this.prisma.serverRun.findFirst({
       where: {
         serverId,
+        kind: 'PREPARATION' as const,
         status: 'SUCCEEDED' as const,
       },
       orderBy: { finishedAt: 'desc' },

@@ -1,14 +1,22 @@
-import { promises as fs } from 'fs';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   BackupStatus,
+  BackupStorageProvider,
   ContainerStatus,
   ManagedServiceType,
   Role,
 } from '@prisma/client';
-import { PrismaService } from '../../core/database/prisma.service';
-import { DockerApiService } from '../../core/container-runtime/docker-api.service';
+import { createHash, randomBytes } from 'crypto';
+import { gzipSync } from 'zlib';
+import { PrismaService } from '../../shared/database/prisma.service';
+import { DockerApiService } from '../../adapters/container-runtime/docker-api.service';
+import { PlatformService } from '../platform/platform.service';
 import { DatabaseBackupService } from './database-backup.service';
+import { BackupStorageService } from './backup-storage.service';
 
 describe('DatabaseBackupService', () => {
   let prisma: {
@@ -18,12 +26,14 @@ describe('DatabaseBackupService', () => {
       create: jest.Mock;
       update: jest.Mock;
       findMany: jest.Mock;
+      delete: jest.Mock;
+      findUnique: jest.Mock;
     };
     projectMember: { findUnique: jest.Mock };
   };
-  let docker: { execCapture: jest.Mock };
+  let docker: { execCapture: jest.Mock; execWithInput: jest.Mock };
+  let storage: { upload: jest.Mock; download: jest.Mock };
   let service: DatabaseBackupService;
-  let writeSpy: jest.SpyInstance;
 
   beforeEach(() => {
     prisma = {
@@ -49,18 +59,31 @@ describe('DatabaseBackupService', () => {
             Promise.resolve({ id: 'bk-1', ...data }),
           ),
         findMany: jest.fn().mockResolvedValue([]),
+        delete: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn(),
       },
       projectMember: {
         findUnique: jest.fn().mockResolvedValue({ role: 'OWNER' }),
       },
     };
-    docker = { execCapture: jest.fn() };
+    docker = { execCapture: jest.fn(), execWithInput: jest.fn() };
+    storage = {
+      upload: jest.fn().mockImplementation((key: string, data: Buffer) =>
+        Promise.resolve({
+          provider: BackupStorageProvider.LOCAL,
+          location: `/backups/${key}`,
+          sizeBytes: data.byteLength,
+        }),
+      ),
+      download: jest.fn(),
+    };
+    const platform = { get: jest.fn().mockResolvedValue(null) };
     service = new DatabaseBackupService(
       prisma as unknown as PrismaService,
       docker as unknown as DockerApiService,
+      storage as unknown as BackupStorageService,
+      platform as unknown as PlatformService,
     );
-    writeSpy = jest.spyOn(fs, 'writeFile').mockResolvedValue(undefined);
-    jest.spyOn(fs, 'mkdir').mockResolvedValue(undefined as unknown as string);
   });
 
   afterEach(() => jest.restoreAllMocks());
@@ -78,9 +101,12 @@ describe('DatabaseBackupService', () => {
       '-c',
       expect.stringContaining('pg_dump'),
     ]);
-    expect(writeSpy).toHaveBeenCalled();
+    expect(storage.upload).toHaveBeenCalled();
     expect(result.status).toBe(BackupStatus.SUCCESS);
-    expect(result.sizeBytes).toBe(Buffer.from('-- dump\n').byteLength);
+    // Dump is gzipped before upload, so size is the compressed length (>0)
+    // and a SHA-256 checksum is recorded for integrity.
+    expect(result.sizeBytes).toBeGreaterThan(0);
+    expect(result.checksum).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it('records FAILED when the dump exits non-zero', async () => {
@@ -92,7 +118,7 @@ describe('DatabaseBackupService', () => {
     const result = await service.createBackup('env-1', 'u1', Role.ADMIN);
     expect(result.status).toBe(BackupStatus.FAILED);
     expect(result.error).toContain('auth failed');
-    expect(writeSpy).not.toHaveBeenCalled();
+    expect(storage.upload).not.toHaveBeenCalled();
   });
 
   it('rejects engines without a logical dump (REDIS)', async () => {
@@ -131,5 +157,91 @@ describe('DatabaseBackupService', () => {
         where: { serviceEnvId: 'env-1', status: ContainerStatus.RUNNING },
       }),
     );
+  });
+
+  describe('restoreBackup', () => {
+    const dump = Buffer.from('-- restore me\n');
+    const gzipped = gzipSync(dump);
+    const checksum = createHash('sha256').update(gzipped).digest('hex');
+
+    const successBackup = (over: Record<string, unknown> = {}) => ({
+      id: 'bk-1',
+      serviceEnvironmentId: 'env-1',
+      status: BackupStatus.SUCCESS,
+      storageProvider: BackupStorageProvider.LOCAL,
+      storagePath: '/backups/env-1/bk-1.sql.gz',
+      checksum,
+      serviceEnvironment: {
+        service: { databaseType: ManagedServiceType.POSTGRES },
+      },
+      ...over,
+    });
+
+    it('downloads, verifies checksum and pipes the dump to psql', async () => {
+      prisma.databaseBackup.findUnique.mockResolvedValue(successBackup());
+      storage.download.mockResolvedValue(gzipped);
+      docker.execWithInput.mockResolvedValue({
+        stdout: Buffer.alloc(0),
+        stderr: '',
+        exitCode: 0,
+      });
+
+      const result = await service.restoreBackup('bk-1', 'u1', Role.ADMIN);
+
+      expect(result).toEqual({ ok: true, warnings: null });
+      expect(docker.execWithInput).toHaveBeenCalledWith(
+        'srv-1',
+        'db-env-1',
+        ['sh', '-c', expect.stringContaining('psql')],
+        dump,
+      );
+    });
+
+    it('rejects a backup that did not succeed', async () => {
+      prisma.databaseBackup.findUnique.mockResolvedValue(
+        successBackup({ status: BackupStatus.FAILED }),
+      );
+      await expect(
+        service.restoreBackup('bk-1', 'u1', Role.ADMIN),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(docker.execWithInput).not.toHaveBeenCalled();
+    });
+
+    it('aborts on checksum mismatch (corruption) without touching the DB', async () => {
+      prisma.databaseBackup.findUnique.mockResolvedValue(successBackup());
+      storage.download.mockResolvedValue(gzipSync(randomBytes(16)));
+      await expect(
+        service.restoreBackup('bk-1', 'u1', Role.ADMIN),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(docker.execWithInput).not.toHaveBeenCalled();
+    });
+
+    it('throws when the restore tool exits non-zero', async () => {
+      prisma.databaseBackup.findUnique.mockResolvedValue(successBackup());
+      storage.download.mockResolvedValue(gzipped);
+      docker.execWithInput.mockResolvedValue({
+        stdout: Buffer.alloc(0),
+        stderr: 'syntax error',
+        exitCode: 1,
+      });
+      await expect(
+        service.restoreBackup('bk-1', 'u1', Role.ADMIN),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('404s on an unknown backup', async () => {
+      prisma.databaseBackup.findUnique.mockResolvedValue(null);
+      await expect(
+        service.restoreBackup('nope', 'u1', Role.ADMIN),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('denies a non-member developer', async () => {
+      prisma.databaseBackup.findUnique.mockResolvedValue(successBackup());
+      prisma.projectMember.findUnique.mockResolvedValue(null);
+      await expect(
+        service.restoreBackup('bk-1', 'u2', Role.DEVELOPER),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
   });
 });

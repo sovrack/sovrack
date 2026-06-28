@@ -6,7 +6,7 @@ import {
   BuildTrigger,
   Prisma,
 } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 
 /**
  * Service responsible for the lifecycle of `Build` rows — the central table

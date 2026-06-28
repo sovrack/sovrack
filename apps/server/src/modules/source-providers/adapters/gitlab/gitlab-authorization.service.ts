@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ProjectRole, Role } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 
 @Injectable()
 export class GitlabAuthorizationService {

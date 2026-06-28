@@ -1,11 +1,44 @@
 ---
-- name: "postgres | Install packages"
-  ansible.builtin.package:
-    name: "{{ postgres_packages }}"
-    state: present
+# PostgreSQL en conteneur Docker. Piloté via la CLI docker (pas de dépendance au
+# SDK Python docker côté cible), même pattern éprouvé que traefik/prometheus.
+# Exécuté en become (root). Les données vivent dans un volume nommé → un
+# rm -f / run de recréation ne les perd pas.
 
-- name: "postgres | Enable and start service"
-  ansible.builtin.systemd:
-    name: "{{ postgres_service_name }}"
-    state: started
-    enabled: true
+- name: "postgres | Vérifier que Docker est disponible"
+  ansible.builtin.command: docker info
+  register: _pg_docker
+  changed_when: false
+  failed_when: _pg_docker.rc != 0
+
+- name: "postgres | Exiger un mot de passe (PostgreSQL refuse de démarrer sans)"
+  ansible.builtin.assert:
+    that:
+      - postgres_password | default('') | length > 0
+    fail_msg: "postgres_password doit être défini (extra-vars) pour démarrer PostgreSQL."
+
+- name: "postgres | Réseau Docker partagé '{{ postgres_network }}'"
+  ansible.builtin.command: "docker network create {{ postgres_network }}"
+  register: _pg_net
+  changed_when: _pg_net.rc == 0
+  failed_when: >-
+    _pg_net.rc != 0 and 'already exists' not in (_pg_net.stderr | default(''))
+
+- name: "postgres | Volume de données persistant '{{ postgres_volume }}'"
+  ansible.builtin.command: "docker volume create {{ postgres_volume }}"
+  changed_when: false # idempotent (docker renvoie le nom du volume, rc 0)
+
+- name: "postgres | (Re)créer le conteneur PostgreSQL"
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      docker rm -f {{ postgres_container_name }} >/dev/null 2>&1 || true
+      docker run -d --name {{ postgres_container_name }} --restart unless-stopped \
+        --network {{ postgres_network }} \
+        -p 127.0.0.1:{{ postgres_port }}:5432 \
+        -e POSTGRES_USER='{{ postgres_user }}' \
+        -e POSTGRES_PASSWORD='{{ postgres_password }}' \
+        -e POSTGRES_DB='{{ postgres_db }}' \
+        -v {{ postgres_volume }}:/var/lib/postgresql/data \
+        {{ postgres_image }}
+  changed_when: true
+  no_log: true # le mot de passe figure dans la commande → ne jamais le logger

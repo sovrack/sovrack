@@ -1,6 +1,7 @@
 import { of } from 'rxjs';
 import { RegistryProviderType } from '@prisma/client';
 import { ContainerRegistriesService } from './container-registries.service';
+import { RegistryConnectionTesterService } from './registry-connection-tester.service';
 
 /**
  * Régression du bug "Request failed with status code 401" : le test d'un
@@ -25,10 +26,15 @@ describe('ContainerRegistriesService.testRegistryConnection (Docker v2 Bearer)',
     };
     const http = { get: httpGet };
     const crypto = { decrypt: (v: string) => v };
-    const svc = new ContainerRegistriesService(
+    const tester = new RegistryConnectionTesterService(
       prisma as never,
       http as never,
       crypto as never,
+    );
+    const svc = new ContainerRegistriesService(
+      prisma as never,
+      crypto as never,
+      tester,
     );
     return { svc, prisma };
   }

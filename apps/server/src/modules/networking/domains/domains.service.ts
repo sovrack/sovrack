@@ -4,8 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DnsProvider, DnsProviderType, Prisma } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { CreateDomainDto } from './dto/create-domain.dto';
 import { CreateDnsProviderDto } from './dto/create-dns-provider.dto';
 import { UpsertDnsRecordDto } from './dto/upsert-dns-record.dto';

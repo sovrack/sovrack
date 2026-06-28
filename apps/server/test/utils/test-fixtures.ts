@@ -1,4 +1,12 @@
-import { PrismaClient, Role, ProjectRole, ServiceType, SourceType, BuildPack, GitProviderType } from '@prisma/client';
+import {
+  PrismaClient,
+  Role,
+  ProjectRole,
+  ServiceType,
+  SourceType,
+  BuildPack,
+  GitProviderType,
+} from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
 export type TestFixtures = Awaited<ReturnType<typeof createTestFixtures>>;
@@ -41,9 +49,8 @@ export async function createTestFixtures(prisma: PrismaClient) {
       username: 'root',
       sshKey: 'e2e-ssh-private-key',
       isVerified: true,
-      // Docker readiness now lives on the Server JSON columns (the former
-      // ServerInstalledTool join table was removed in Sprint 3).
-      hasDocker: true,
+      // Docker readiness is derived from the installedTools JSON (the legacy
+      // hasDocker/hasRunner boolean columns were removed from the schema).
       installedTools: [
         {
           toolKey: 'docker',

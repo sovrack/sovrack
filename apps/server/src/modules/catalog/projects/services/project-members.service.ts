@@ -5,11 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, ProjectRole, Role } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 import { AddMemberDto } from '../dto/add-member.dto';
 import { ProjectsService } from '../projects.service';
 
-const projectWithMembersInclude = {
+// Shape used only to derive the ProjectWithMembers type (via typeof); the
+// runtime value itself isn't passed to a query, hence the `_` prefix.
+const _projectWithMembersInclude = {
   members: {
     orderBy: { joinedAt: 'asc' as const },
     include: {
@@ -29,7 +31,7 @@ const projectWithMembersInclude = {
 } satisfies Prisma.ProjectInclude;
 
 type ProjectWithMembers = Prisma.ProjectGetPayload<{
-  include: typeof projectWithMembersInclude;
+  include: typeof _projectWithMembersInclude;
 }>;
 
 @Injectable()

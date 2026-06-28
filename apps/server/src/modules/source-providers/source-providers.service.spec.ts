@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { GitProviderType } from '@prisma/client';
 import { SourceProvidersService } from './source-providers.service';
-import { PrismaService } from '../../core/database/prisma.service';
+import { PrismaService } from '../../shared/database/prisma.service';
 import { GitlabAdapter } from './adapters/gitlab/gitlab.adapter';
 import { GitlabClient } from './adapters/gitlab/gitlab.client';
 import { GitlabConnectionService } from './adapters/gitlab/gitlab-connection.service';
@@ -21,7 +21,7 @@ import { GiteaAdapter } from './adapters/gitea/gitea.adapter';
 describe('SourceProvidersService (factory)', () => {
   let service: SourceProvidersService;
   let prisma: {
-    service: { findFirst: jest.Mock };
+    service: { findFirst: jest.Mock; findUnique: jest.Mock };
     gitProviderConfig: { findUnique: jest.Mock };
   };
   // Minimal IGitProvider-shaped mocks (only the methods we exercise).
@@ -40,7 +40,7 @@ describe('SourceProvidersService (factory)', () => {
 
   beforeEach(async () => {
     prisma = {
-      service: { findFirst: jest.fn() },
+      service: { findFirst: jest.fn(), findUnique: jest.fn() },
       gitProviderConfig: { findUnique: jest.fn() },
     };
     const methods = () => ({
@@ -90,6 +90,45 @@ describe('SourceProvidersService (factory)', () => {
         id: string;
       };
       expect(provider.id).toBe('gitea-impl');
+    });
+  });
+
+  describe('forService', () => {
+    it('resolves the provider from the service GitProviderConfig type', async () => {
+      prisma.service.findUnique.mockResolvedValue({ providerId: 'cfg-1' });
+      prisma.gitProviderConfig.findUnique.mockResolvedValue({
+        type: GitProviderType.GITHUB,
+      });
+
+      const provider = await service.forService('svc-1');
+
+      expect(provider).toBe(github);
+    });
+
+    it('falls back to GitLab when the resolved provider type is unset', async () => {
+      prisma.service.findUnique.mockResolvedValue({ providerId: 'cfg-1' });
+      prisma.gitProviderConfig.findUnique.mockResolvedValue({ type: null });
+
+      const provider = await service.forService('svc-1');
+
+      expect(provider).toBe(gitlab);
+    });
+
+    it('throws NotFoundException when the service has no providerId', async () => {
+      prisma.service.findUnique.mockResolvedValue({ providerId: null });
+
+      await expect(service.forService('svc-1')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('throws NotFoundException when the GitProviderConfig is missing', async () => {
+      prisma.service.findUnique.mockResolvedValue({ providerId: 'cfg-gone' });
+      prisma.gitProviderConfig.findUnique.mockResolvedValue(null);
+
+      await expect(service.forService('svc-1')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 

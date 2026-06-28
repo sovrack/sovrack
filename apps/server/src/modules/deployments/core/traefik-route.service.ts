@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
-import { SshExecutorService } from '../../../core/ssh/ssh-executor.service';
-import { ServersCryptoService } from '../../infrastructure/servers/services/servers-crypto.service';
-import { ServerHostKeyService } from '../../infrastructure/servers/services/server-host-key.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import { SshExecutorService } from '../../../adapters/ssh/ssh-executor.service';
+import { ServersCryptoService } from '../../../adapters/ssh/servers-crypto.service';
+import { ServerHostKeyService } from '../../../adapters/ssh/server-host-key.service';
 
 type SshServer = {
   host: string;

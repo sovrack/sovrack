@@ -6,10 +6,10 @@ import {
   BuildStatus,
 } from '@prisma/client';
 import { DeploymentsAutoTriggerService } from './deployments-auto-trigger.service';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
-import { QueueService } from '../../../core/queue/queue.service';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
+import { QueueService } from '../../../shared/queue/queue.service';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 
 const PROJECT_ID = 'project-1';
 const SVC_ENV_ID = 'svcenv-1';
@@ -29,7 +29,7 @@ const makeSvcEnv = (overrides = {}) => ({
     nixpacksConfig: null,
     staticConfig: null,
   },
-  environment: { id: ENV_ID },
+  environment: { id: ENV_ID, isProtected: false, name: 'production' },
   ...overrides,
 });
 
@@ -69,7 +69,7 @@ describe('DeploymentsAutoTriggerService', () => {
         DeploymentsAutoTriggerService,
         { provide: PrismaService, useValue: prisma },
         { provide: QueueService, useValue: queue },
-        { provide: DeploymentsGateway, useValue: gateway },
+        { provide: DeploymentEventsPublisher, useValue: gateway },
         { provide: BuildLifecycleService, useValue: buildsService },
       ],
     }).compile();
@@ -131,6 +131,20 @@ describe('DeploymentsAutoTriggerService', () => {
       );
     });
 
+    it('skips a protected environment (webhook/system cannot deploy there)', async () => {
+      prisma.serviceEnvironment.findMany.mockResolvedValue([
+        makeSvcEnv({
+          environment: { id: ENV_ID, isProtected: true, name: 'production' },
+        }),
+      ]);
+
+      await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
+
+      expect(prisma.deployment.findFirst).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(queue.enqueueDeploy).not.toHaveBeenCalled();
+    });
+
     it('skips ServiceEnvironment when deployment with same pipeline ID already exists', async () => {
       prisma.serviceEnvironment.findMany.mockResolvedValue([makeSvcEnv()]);
       prisma.deployment.findFirst.mockResolvedValue({ id: 'existing-deploy' });
@@ -141,6 +155,18 @@ describe('DeploymentsAutoTriggerService', () => {
         undefined,
         42,
       );
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(queue.enqueueDeploy).not.toHaveBeenCalled();
+    });
+
+    it('skips when a deployment is already in flight for the service-env (concurrency guard)', async () => {
+      prisma.serviceEnvironment.findMany.mockResolvedValue([makeSvcEnv()]);
+      // No pipeline ID → dedup block skipped; the in-flight guard findFirst
+      // returns an active deployment → the webhook must not start a second one.
+      prisma.deployment.findFirst.mockResolvedValue({ id: 'in-flight-deploy' });
+
+      await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(queue.enqueueDeploy).not.toHaveBeenCalled();

@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Socket } from 'socket.io';
-import { DockerApiService as DockerRemoteService } from '../../../core/container-runtime/docker-api.service';
+import { DockerApiService as DockerRemoteService } from '../../../adapters/container-runtime/docker-api.service';
 
 /**
  * Per-socket log streaming manager.

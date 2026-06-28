@@ -6,14 +6,14 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { Prisma, Role, User } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import {
   PaginationDto,
   PaginatedResult,
   paginate,
-} from '../../../core/http/pagination.dto';
+} from '../../../shared/http/pagination.dto';
+import { PasswordHasher } from '../security/password-hasher.service';
 import { ChangeMyPasswordDto } from './dto/change-my-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -25,7 +25,10 @@ type UpdateActor = {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly passwordHasher: PasswordHasher,
+  ) {}
 
   /**
    * Recherche un utilisateur par email
@@ -54,7 +57,7 @@ export class UsersService {
       throw new ConflictException('Cet email est déjà utilisé');
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const hashedPassword = await this.passwordHasher.hash(dto.password);
 
     const user = await this.prisma.user.create({
       data: {
@@ -179,15 +182,15 @@ export class UsersService {
         );
       }
 
-      const isCurrentPasswordValid = await bcrypt.compare(
-        dto.currentPassword,
+      const isCurrentPasswordValid = await this.passwordHasher.verify(
         user.password,
+        dto.currentPassword,
       );
       if (!isCurrentPasswordValid) {
         throw new UnauthorizedException('Mot de passe actuel incorrect');
       }
 
-      data.password = await bcrypt.hash(dto.newPassword, 10);
+      data.password = await this.passwordHasher.hash(dto.newPassword);
     }
 
     if (Object.keys(data).length === 0) {
@@ -213,16 +216,16 @@ export class UsersService {
       );
     }
 
-    const isCurrentPasswordValid = await bcrypt.compare(
-      dto.currentPassword,
+    const isCurrentPasswordValid = await this.passwordHasher.verify(
       user.password,
+      dto.currentPassword,
     );
 
     if (!isCurrentPasswordValid) {
       throw new UnauthorizedException('Mot de passe actuel incorrect');
     }
 
-    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+    const hashedPassword = await this.passwordHasher.hash(dto.newPassword);
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },

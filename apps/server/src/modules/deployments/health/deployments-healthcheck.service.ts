@@ -3,11 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import {
   SshExecutorService,
   type SshConnection,
-} from '../../../core/ssh/ssh-executor.service';
-import { ServerHostKeyService } from '../../infrastructure/servers/services/server-host-key.service';
-import { ServersCryptoService } from '../../infrastructure/servers/services/servers-crypto.service';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { DeploymentsGateway } from '../gateways/deployments.gateway';
+} from '../../../adapters/ssh/ssh-executor.service';
+import { ServerHostKeyService } from '../../../adapters/ssh/server-host-key.service';
+import { ServersCryptoService } from '../../../adapters/ssh/servers-crypto.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 
 type DeploymentLogLevel = 'info' | 'error' | 'success';
 
@@ -15,7 +15,7 @@ type DeploymentLogLevel = 'info' | 'error' | 'success';
 export class DeploymentsHealthcheckService {
   constructor(
     private readonly configService: ConfigService,
-    private readonly gateway: DeploymentsGateway,
+    private readonly gateway: DeploymentEventsPublisher,
     private readonly prisma: PrismaService,
     private readonly ssh: SshExecutorService,
     private readonly serversCrypto: ServersCryptoService,

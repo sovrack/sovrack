@@ -1,19 +1,10 @@
-import { GitProviderType } from '@prisma/client';
-
-export const DEPLOYMENT_PIPELINE_UPDATED = 'deployment.pipeline.updated';
-export const DEPLOYMENT_AUTO_DEPLOY_TRIGGER = 'deployment.auto_deploy.trigger';
-
-export type PipelineUpdatedEvent = {
-  pipelineId: number;
-  webhookStatus: string;
-  image?: string;
-  provider?: GitProviderType;
-};
-
-export type AutoDeployTriggerEvent = {
-  projectId: string;
-  branch: string;
-  dockerImage?: string;
-  pipelineId?: number;
-  serviceId?: string;
-};
+// Re-export depuis la source canonique.
+// Les consommateurs INTERNES (deployments/triggers/) peuvent continuer
+// à importer depuis ici. Les consommateurs EXTERNES doivent désormais
+// importer depuis 'src/shared/events/events.catalog'.
+export {
+  DEPLOYMENT_PIPELINE_UPDATED,
+  DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
+  type PipelineUpdatedEvent,
+  type AutoDeployTriggerEvent,
+} from '../../../shared/events/events.catalog';

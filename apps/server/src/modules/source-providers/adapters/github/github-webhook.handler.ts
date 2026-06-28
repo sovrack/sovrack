@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GitProviderType } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 import {
   DEPLOYMENT_PIPELINE_UPDATED,
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
   type PipelineUpdatedEvent,
   type AutoDeployTriggerEvent,
-} from '../../../deployments/events/deployment.events';
+} from '../../../../shared/events/events.catalog';
 import {
   IWebhookHandler,
   WebhookEndpointContext,

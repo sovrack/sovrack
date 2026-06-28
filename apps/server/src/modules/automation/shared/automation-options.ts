@@ -137,6 +137,17 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
     requiresSudo: true,
   },
   {
+    key: 'install_loki',
+    label: 'Installer Loki (logs centralisés)',
+    description:
+      'Déploie Loki + Promtail pour le stockage et la recherche historique des logs runtime des conteneurs.',
+    playbookPath: 'prepare-server.yml',
+    category: 'monitoring',
+    roles: ['loki'],
+    requiresSshValidated: true,
+    requiresSudo: true,
+  },
+  {
     key: 'install_prometheus_grafana',
     label: 'Installer Prometheus + Grafana',
     description:

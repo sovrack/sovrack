@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 /**
  * DTO de mise à jour de projet.
@@ -14,4 +14,14 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsString({ message: 'La description doit être une chaîne de caractères' })
   description?: string;
+
+  @ApiPropertyOptional({
+    example: 3,
+    description:
+      'Max simultaneous in-flight deployments for this project (0 = unlimited).',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  maxConcurrentDeploys?: number;
 }

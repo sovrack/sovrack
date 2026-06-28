@@ -11,11 +11,11 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { GetUser } from '../../../../core/decorators/get-user.decorator';
-import { Roles } from '../../../../core/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../../../core/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../../core/guards/roles.guard';
-import type { JwtPayload } from '../../../../core/jwt/dto/jwt-payload.dto';
+import { GetUser } from '../../../../shared/decorators/get-user.decorator';
+import { Roles } from '../../../../shared/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../../shared/guards/roles.guard';
+import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringService } from '../services/monitoring.service';
 import { ContainerStatsService } from '../../../infrastructure/containers/services/container-stats.service';
@@ -61,6 +61,40 @@ export class MonitoringController {
   @ApiOperation({ summary: 'Prometheus connectivity and target status' })
   async prometheusStatus() {
     return await this.monitoringService.getPrometheusStatus();
+  }
+
+  @Get('servers/:host/metrics/range')
+  @ApiOperation({
+    summary:
+      'Historical CPU/mem/disk time-series for a host (Prometheus range)',
+  })
+  async serverMetricRange(
+    @Param('host') host: string,
+    @Query('minutes', new DefaultValuePipe(60), ParseIntPipe) minutes: number,
+    @Query('step', new DefaultValuePipe(60), ParseIntPipe) step: number,
+  ) {
+    return await this.monitoringService.getServerMetricRange(
+      host,
+      minutes,
+      step,
+    );
+  }
+
+  @Get('services/:serviceEnvId/metrics/range')
+  @ApiOperation({
+    summary:
+      'Historical CPU/memory time-series for a service-environment (Prometheus range)',
+  })
+  async serviceMetricRange(
+    @Param('serviceEnvId') serviceEnvId: string,
+    @Query('minutes', new DefaultValuePipe(60), ParseIntPipe) minutes: number,
+    @Query('step', new DefaultValuePipe(60), ParseIntPipe) step: number,
+  ) {
+    return await this.monitoringService.getServiceMetricRange(
+      serviceEnvId,
+      minutes,
+      step,
+    );
   }
 
   @Get('grafana/status')

@@ -1,15 +1,13 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 import {
   SshExecutorService,
   type SshConnection,
-} from '../../../core/ssh/ssh-executor.service';
-import { DockerApiService } from '../../../core/container-runtime/docker-api.service';
-import { DockerSshService } from '../../../core/container-runtime/docker-ssh.service';
-import {
-  ServerHostKeyService,
-  ServersCryptoService,
-} from '../../infrastructure/servers/services';
+} from '../../../adapters/ssh/ssh-executor.service';
+import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import { DockerSshService } from '../../../adapters/container-runtime/docker-ssh.service';
+import { ServersCryptoService } from '../../../adapters/ssh/servers-crypto.service';
+import { ServerHostKeyService } from '../../../adapters/ssh/server-host-key.service';
 
 /**
  * Handles container-level operations for deployments:

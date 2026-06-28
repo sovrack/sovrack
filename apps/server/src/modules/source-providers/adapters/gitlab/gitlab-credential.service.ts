@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SourceType } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { CryptoService } from '../../../../core/crypto/crypto.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { CryptoService } from '../../../../shared/crypto/crypto.service';
 import type { RegistryCredentials } from '../../contracts/git-provider.contract';
 import type { GitlabResolvedConfig } from './gitlab.types';
 

@@ -15,7 +15,10 @@ RUN npm run build
 # ── Production stage ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
 
-RUN apk add --no-cache python3 ansible openssh-client curl ca-certificates
+# ansible-core (~8 MB) instead of the full `ansible` meta-package (~100+ MB which
+# bundles hundreds of collections). We install ONLY the 3 collections we actually
+# use (ansible/requirements.yml) below → much smaller image, same capabilities.
+RUN apk add --no-cache python3 ansible-core openssh-client curl ca-certificates
 
 # Créer un utilisateur non-root pour la sécurité
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
@@ -40,6 +43,13 @@ COPY prisma ./prisma
 # Résolus via ANSIBLE_PLAYBOOKS_PATH (cf. ENV plus bas).
 COPY ansible ./ansible
 ENV ANSIBLE_PLAYBOOKS_PATH=/app/ansible/playbooks
+
+# Install ONLY the collections we use into a world-readable system path so the
+# non-root runtime user (appuser) finds them. /usr/share/ansible/collections is
+# already on ansible-core's default COLLECTIONS_PATH; we also export it to be safe.
+RUN ansible-galaxy collection install -r ansible/requirements.yml \
+      -p /usr/share/ansible/collections
+ENV ANSIBLE_COLLECTIONS_PATH=/usr/share/ansible/collections
 
 # ── Install Nixpacks (used by NixpacksService for local builds + plan generation) ──
 # Nixpacks is a single static binary (~50MB) — no runtime deps, no Nix daemon required.

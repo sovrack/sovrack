@@ -3,7 +3,7 @@ import { BuildPack, ManagedServiceType, Prisma } from '@prisma/client';
 import type { BuildSource } from '../../build/strategies/build-strategy.interface';
 import { CreateDeploymentDto } from '../dto/create-deployment.dto';
 import { BuildImageService } from '../../build/lifecycle/build-image.service';
-import { sanitizeDockerTag } from '../../../core/utils/docker-tag.util';
+import { sanitizeDockerTag } from '../../../shared/utils/docker-tag.util';
 
 export type DeploymentConfig = {
   branch: string;

@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../../core/database/prisma.module';
-import { AppJwtModule } from '../../../core/jwt/jwt.module';
+import { PrismaModule } from '../../../shared/database/prisma.module';
+import { AppJwtModule } from '../../../shared/jwt/jwt.module';
 import { InfrastructureModule } from '../preparation/infrastructure.module';
 import { InfrastructureCoreModule } from '../core/infrastructure-core.module';
 import { AuditModule } from '../../audit';
 import { ServersCoreService } from './services';
+import { ServersJobsFacade } from './services/servers-jobs.facade';
+import { ServersReadersFacade } from './services/servers-readers.facade';
 
 /**
  * Server lifecycle facade (ServersCoreService). The shared primitives (SSH,
@@ -22,7 +24,7 @@ import { ServersCoreService } from './services';
     InfrastructureModule,
     AuditModule,
   ],
-  providers: [ServersCoreService],
+  providers: [ServersJobsFacade, ServersReadersFacade, ServersCoreService],
   exports: [ServersCoreService, InfrastructureCoreModule],
 })
 export class ServersSharedModule {}

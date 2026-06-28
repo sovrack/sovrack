@@ -9,8 +9,10 @@ import {
 import { ApiExcludeController } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { GitProviderOauthService } from '../../shared/connection/git-provider-oauth.service';
+import { Public } from '../../../../shared/decorators/public.decorator';
 
 @ApiExcludeController()
+@Public() // OAuth callback — no JWT yet (the user is mid-authorization flow)
 @Controller('gitlab')
 export class GitlabOAuthController {
   constructor(private readonly oauth: GitProviderOauthService) {}

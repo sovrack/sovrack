@@ -14,9 +14,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { GetUser } from '../../../core/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
-import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
+import { GetUser } from '../../../shared/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
+import { CreateFromTemplateDto } from './dto/create-from-template.dto';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { DiscoverGroupDto } from './dto/discover-group.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -67,6 +68,30 @@ export class ServicesController {
     return await this.servicesService.discoverGroup(
       projectId,
       dto,
+      user.id,
+      user.role,
+    );
+  }
+
+  @Get('templates')
+  @ApiOperation({ summary: 'List one-click service templates' })
+  listTemplates() {
+    return this.servicesService.listTemplates();
+  }
+
+  @Post('templates/:templateId')
+  @ApiOperation({ summary: 'Create every service of a one-click template' })
+  @ApiResponse({ status: 201, description: 'Template services created' })
+  async createFromTemplate(
+    @Param('projectId') projectId: string,
+    @Param('templateId') templateId: string,
+    @Body() dto: CreateFromTemplateDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.servicesService.createFromTemplate(
+      projectId,
+      templateId,
+      dto.name,
       user.id,
       user.role,
     );

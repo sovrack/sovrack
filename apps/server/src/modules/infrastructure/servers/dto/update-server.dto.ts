@@ -69,13 +69,6 @@ export class UpdateServerDto {
   @IsBoolean()
   isVerified?: boolean;
 
-  @ApiPropertyOptional({ example: true })
-  @IsOptional()
-  @IsBoolean()
-  hasDocker?: boolean;
-
-  @ApiPropertyOptional({ example: true })
-  @IsOptional()
-  @IsBoolean()
-  hasRunner?: boolean;
+  // hasDocker/hasRunner removed: they are derived from Server.capabilities
+  // (written by detection), not user-settable.
 }

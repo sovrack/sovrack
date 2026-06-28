@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { GitProviderType } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 import type { ICiGenerator } from '../../interfaces/ci-generator.interface';
 import { GitlabCiGenerator } from './gitlab-ci.generator';
 import { GithubActionsGenerator } from './github-actions.generator';

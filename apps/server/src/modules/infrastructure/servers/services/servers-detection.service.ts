@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma, Server, ServerStatus } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { InstalledTool } from '../shared/server-capabilities.types';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { InstalledTool } from '../../../../adapters/server-capabilities/server-capabilities.types';
 import { ServersAuditService } from './servers-audit.service';
 import { ServerVerificationService } from './server-verification.service';
 import { ServersConnectionService } from './servers-connection.service';
@@ -155,8 +155,8 @@ export class ServersDetectionService {
           status: ServerStatus.INFO_DETECTED,
           onboardingStep: 'INFO_DETECTED',
           lastDetectedAt: new Date(),
-          hasDocker: Boolean(installed.docker),
-          hasRunner: Boolean(installed.gitlab_runner),
+          // hasDocker/hasRunner are no longer stored — derived from capabilities
+          // via serverHasDocker/serverHasRunner (single source of truth).
           capabilities: capabilities as Prisma.InputJsonValue,
           installedTools: installedTools as unknown as Prisma.InputJsonValue,
         },

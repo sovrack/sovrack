@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { BuildPack, BuildStatus, BuildTrigger } from '@prisma/client';
 import { BuildLifecycleService } from './build-lifecycle.service';
-import { PrismaService } from '../../../core/database/prisma.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 
 /**
  * P2-#1 — Build table centralization. These tests pin the contract of

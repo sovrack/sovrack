@@ -8,11 +8,11 @@ import { ConfigService } from '@nestjs/config';
 import { Server, ServerConnectionMode, ServerStatus } from '@prisma/client';
 import { rm, writeFile } from 'fs/promises';
 import { NodeSSH } from 'node-ssh';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { SshExecutorService } from '../../../../core/ssh/ssh-executor.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { SshExecutorService } from '../../../../adapters/ssh/ssh-executor.service';
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
-import { ServersCryptoService } from './servers-crypto.service';
-import { ServerHostKeyService } from './server-host-key.service';
+import { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.service';
+import { ServerHostKeyService } from '../../../../adapters/ssh/server-host-key.service';
 import { ServerVerificationService } from './server-verification.service';
 import { ServerExecutionOptions } from '../shared/servers.types';
 import {
@@ -20,7 +20,7 @@ import {
   assertSafeLinuxUsername,
   onAbort,
   shellQuote,
-} from '../shared/servers-shell.utils';
+} from '../shared/servers-shell.util';
 
 type SshConnection = {
   target: NodeSSH;
@@ -439,10 +439,17 @@ export class ServersConnectionService {
         );
       }
 
-      await this.prisma.server.update({
-        where: { id: server.id },
-        data: { hasRunner: true },
-      });
+      // Reflect the freshly-registered runner immediately in the capabilities
+      // map (source of truth) so the UI shows it before the next full detection.
+      // jsonb_set targets the single top-level key "gitlab_runner.installed".
+      await this.prisma.$executeRaw`
+        UPDATE "Server"
+        SET capabilities = jsonb_set(
+          COALESCE("capabilities", '{}'::jsonb),
+          '{gitlab_runner.installed}',
+          '"true"'::jsonb
+        )
+        WHERE id = ${server.id}`;
     } finally {
       detachAbort();
       safeClose();

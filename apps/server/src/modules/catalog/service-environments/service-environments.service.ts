@@ -1,12 +1,12 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ProjectRole, Role } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { CryptoService } from '../../../core/crypto/crypto.service';
+import { Prisma, Role } from '@prisma/client';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
+import { ProjectAccessService } from '../access/project-access.service';
 import { CreateServiceEnvironmentDto } from './dto/create-service-environment.dto';
 import { UpdateServiceEnvironmentDto } from './dto/update-service-environment.dto';
 
@@ -36,6 +36,7 @@ export class ServiceEnvironmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
+    private readonly projectAccess: ProjectAccessService,
   ) {}
 
   async link(
@@ -44,7 +45,11 @@ export class ServiceEnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceEnvWithRelations> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const service = await this.prisma.service.findFirst({
       where: { id: dto.serviceId, projectId },
@@ -75,6 +80,7 @@ export class ServiceEnvironmentsService {
     }
 
     const overrides = {
+      serverId: dto.serverId || null,
       branch: dto.branch,
       port: dto.port,
       startCommand: dto.startCommand,
@@ -116,7 +122,11 @@ export class ServiceEnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceEnvWithRelations[]> {
-    await this.assertCanAccessProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     return this.prisma.serviceEnvironment.findMany({
       where: { serviceId, service: { projectId }, archivedAt: null },
@@ -131,7 +141,11 @@ export class ServiceEnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceEnvWithRelations[]> {
-    await this.assertCanAccessProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     return this.prisma.serviceEnvironment.findMany({
       where: { environmentId, environment: { projectId }, archivedAt: null },
@@ -146,7 +160,11 @@ export class ServiceEnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceEnvWithRelations> {
-    await this.assertCanAccessProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const link = await this.prisma.serviceEnvironment.findFirst({
       where: { id, service: { projectId } },
@@ -167,12 +185,19 @@ export class ServiceEnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceEnvWithRelations> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
     await this.ensureExists(projectId, id);
 
     return this.prisma.serviceEnvironment.update({
       where: { id },
       data: {
+        ...(dto.serverId !== undefined
+          ? { serverId: dto.serverId || null }
+          : {}),
         ...(dto.branch !== undefined ? { branch: dto.branch } : {}),
         ...(dto.port !== undefined ? { port: dto.port } : {}),
         ...(dto.startCommand !== undefined
@@ -203,7 +228,11 @@ export class ServiceEnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<void> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
     await this.ensureExists(projectId, id);
 
     // Intégrité réseau : ne pas laisser un domaine public router vers un
@@ -230,34 +259,45 @@ export class ServiceEnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceEnvWithRelations[]> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
+    // Active environments only — never link a new service to an archived env.
     const envs = await this.prisma.environment.findMany({
-      where: { projectId },
+      where: { projectId, archivedAt: null },
       select: { id: true },
     });
+    if (envs.length === 0) return [];
+
+    // Single read of existing links instead of one findUnique per env (no N+1).
+    const existingLinks = await this.prisma.serviceEnvironment.findMany({
+      where: { serviceId, environmentId: { in: envs.map((e) => e.id) } },
+      select: { id: true, environmentId: true, archivedAt: true },
+    });
+    const linkByEnv = new Map(existingLinks.map((l) => [l.environmentId, l]));
 
     const results: ServiceEnvWithRelations[] = [];
     for (const env of envs) {
-      const existing = await this.prisma.serviceEnvironment.findUnique({
-        where: {
-          serviceId_environmentId: { serviceId, environmentId: env.id },
-        },
-      });
+      const existing = linkByEnv.get(env.id);
       if (!existing) {
-        const link = await this.prisma.serviceEnvironment.create({
-          data: { serviceId, environmentId: env.id },
-          include: serviceEnvInclude,
-        });
-        results.push(link);
+        results.push(
+          await this.prisma.serviceEnvironment.create({
+            data: { serviceId, environmentId: env.id },
+            include: serviceEnvInclude,
+          }),
+        );
       } else if (existing.archivedAt !== null) {
         // Réactive un lien précédemment archivé au lieu de le laisser de côté.
-        const link = await this.prisma.serviceEnvironment.update({
-          where: { id: existing.id },
-          data: { archivedAt: null },
-          include: serviceEnvInclude,
-        });
-        results.push(link);
+        results.push(
+          await this.prisma.serviceEnvironment.update({
+            where: { id: existing.id },
+            data: { archivedAt: null },
+            include: serviceEnvInclude,
+          }),
+        );
       }
     }
     return results;
@@ -270,54 +310,6 @@ export class ServiceEnvironmentsService {
     });
     if (!link) {
       throw new NotFoundException('Lien service-environnement non trouvé');
-    }
-  }
-
-  private async assertCanAccessProject(
-    projectId: string,
-    userId: string,
-    userRole: Role,
-  ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-
-    if (userRole === Role.ADMIN) return;
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId } },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException('Accès non autorisé à ce projet');
-    }
-  }
-
-  private async assertCanManageProject(
-    projectId: string,
-    userId: string,
-    userRole: Role,
-  ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-
-    if (userRole === Role.ADMIN) return;
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId } },
-      select: { role: true },
-    });
-
-    if (membership?.role !== ProjectRole.OWNER) {
-      throw new ForbiddenException(
-        'Action réservée au OWNER du projet ou ADMIN',
-      );
-    }
-  }
-
-  private async ensureProjectExists(projectId: string): Promise<void> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) {
-      throw new NotFoundException('Projet non trouvé');
     }
   }
 }

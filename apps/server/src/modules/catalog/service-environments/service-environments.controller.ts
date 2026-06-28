@@ -14,9 +14,9 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { GetUser } from '../../../core/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../core/guards/jwt-auth.guard';
-import type { JwtPayload } from '../../../core/jwt/dto/jwt-payload.dto';
+import { GetUser } from '../../../shared/decorators/get-user.decorator';
+import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { CreateServiceEnvironmentDto } from './dto/create-service-environment.dto';
 import { UpdateServiceEnvironmentDto } from './dto/update-service-environment.dto';
 import { ServiceEnvironmentsService } from './service-environments.service';
@@ -45,8 +45,8 @@ export class ServiceEnvironmentsController {
     summary: 'List all project links (by service or environment)',
   })
   async findAll(
-    @Param('projectId') projectId: string,
-    @GetUser() user: JwtPayload,
+    @Param('projectId') _projectId: string,
+    @GetUser() _user: JwtPayload,
   ) {
     return {
       message:

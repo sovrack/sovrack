@@ -13,10 +13,15 @@ import { DeploymentsGateway } from '../src/modules/deployments/gateways/deployme
 import { BuildImageService } from '../src/modules/build/lifecycle/build-image.service';
 import { CreateDeploymentDto } from '../src/modules/deployments/dto/create-deployment.dto';
 
-import { createTestFixtures, createTestService, TestFixtures } from './utils/test-fixtures';
-import { mockDockerDeployExecutorService, mockGitlabService } from './utils/mocks';
+import { createTestFixtures, TestFixtures } from './utils/test-fixtures';
+import {
+  mockDockerDeployExecutorService,
+  mockGitlabService,
+} from './utils/mocks';
 
-type AnsibleMock = ReturnType<typeof mockDockerDeployExecutorService>['useValue'];
+type AnsibleMock = ReturnType<
+  typeof mockDockerDeployExecutorService
+>['useValue'];
 type GitlabMock = ReturnType<typeof mockGitlabService>['useValue'];
 
 interface MatrixCase {
@@ -28,7 +33,10 @@ interface MatrixCase {
   expectedPipelineTriggered: boolean;
 }
 
-const buildDto = (f: TestFixtures, overrides: Partial<CreateDeploymentDto> = {}): CreateDeploymentDto => ({
+const buildDto = (
+  f: TestFixtures,
+  overrides: Partial<CreateDeploymentDto> = {},
+): CreateDeploymentDto => ({
   serviceEnvId: f.serviceEnvId,
   branch: 'main',
   buildSource: 'DOCKERFILE_REGISTRY',
@@ -70,9 +78,15 @@ describe('DeploymentsCreateService (e2e)', () => {
       // (mocked) executor synchronously when a 'deploy' job is enqueued.
       .overrideProvider('DEPLOYMENTS_QUEUE')
       .useValue({
-        add: (name: string, data: { deploymentId: string; overrideImage?: string }) => {
+        add: (
+          name: string,
+          data: { deploymentId: string; overrideImage?: string },
+        ) => {
           if (name === 'deploy') {
-            void dockerExecMock.executeDeploy(data.deploymentId, data.overrideImage);
+            void dockerExecMock.executeDeploy(
+              data.deploymentId,
+              data.overrideImage,
+            );
           }
           return Promise.resolve({ id: 'stub-job' });
         },
@@ -82,7 +96,9 @@ describe('DeploymentsCreateService (e2e)', () => {
       .compile();
 
     app = moduleRef.createNestApplication({ logger: false });
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -176,8 +192,11 @@ describe('DeploymentsCreateService (e2e)', () => {
   describe.each(cases)('$name', (tc) => {
     it('selects the right playbook and triggers the right downstream', async () => {
       const fixtures = await createTestFixtures(prisma);
-      const extra: Partial<CreateDeploymentDto> = { buildSource: tc.buildSource };
-      if (tc.buildSource === 'EXTERNAL_IMAGE') extra.overrideImage = 'docker.io/nginx:latest';
+      const extra: Partial<CreateDeploymentDto> = {
+        buildSource: tc.buildSource,
+      };
+      if (tc.buildSource === 'EXTERNAL_IMAGE')
+        extra.overrideImage = 'docker.io/nginx:latest';
       const dto = buildDto(fixtures, extra);
 
       const deployment = await createService.create(dto, fixtures.userId);
@@ -189,7 +208,10 @@ describe('DeploymentsCreateService (e2e)', () => {
       // Downstream trigger assertion
       if (tc.expectedDirectTrigger) {
         expect(ansibleMock.executeDeploy).toHaveBeenCalledTimes(1);
-        expect(ansibleMock.executeDeploy).toHaveBeenCalledWith(deployment.id, undefined);
+        expect(ansibleMock.executeDeploy).toHaveBeenCalledWith(
+          deployment.id,
+          undefined,
+        );
         expect(gitlabMock.triggerPipeline).not.toHaveBeenCalled();
       } else {
         expect(gitlabMock.triggerPipeline).toHaveBeenCalledTimes(1);
@@ -199,8 +221,11 @@ describe('DeploymentsCreateService (e2e)', () => {
 
     it('persists isLocalBuild on the linked Build row', async () => {
       const fixtures = await createTestFixtures(prisma);
-      const extra: Partial<CreateDeploymentDto> = { buildSource: tc.buildSource };
-      if (tc.buildSource === 'EXTERNAL_IMAGE') extra.overrideImage = 'docker.io/nginx:latest';
+      const extra: Partial<CreateDeploymentDto> = {
+        buildSource: tc.buildSource,
+      };
+      if (tc.buildSource === 'EXTERNAL_IMAGE')
+        extra.overrideImage = 'docker.io/nginx:latest';
       const dto = buildDto(fixtures, extra);
       const deployment = await createService.create(dto, fixtures.userId);
 
@@ -215,8 +240,11 @@ describe('DeploymentsCreateService (e2e)', () => {
     // without its build, and vice versa).
     it('creates a Build row alongside the Deployment (P2-#1)', async () => {
       const fixtures = await createTestFixtures(prisma);
-      const extra: Partial<CreateDeploymentDto> = { buildSource: tc.buildSource };
-      if (tc.buildSource === 'EXTERNAL_IMAGE') extra.overrideImage = 'docker.io/nginx:latest';
+      const extra: Partial<CreateDeploymentDto> = {
+        buildSource: tc.buildSource,
+      };
+      if (tc.buildSource === 'EXTERNAL_IMAGE')
+        extra.overrideImage = 'docker.io/nginx:latest';
       const dto = buildDto(fixtures, extra);
       const deployment = await createService.create(dto, fixtures.userId);
 
@@ -242,7 +270,10 @@ describe('DeploymentsCreateService (e2e)', () => {
       const dto = buildDto(fixtures, { buildSource: 'STATIC' });
       const deployment = await createService.create(dto, fixtures.userId);
       expect(deployment.status).toBe(DeploymentStatus.RUNNING);
-      expect(ansibleMock.executeDeploy).toHaveBeenCalledWith(deployment.id, undefined);
+      expect(ansibleMock.executeDeploy).toHaveBeenCalledWith(
+        deployment.id,
+        undefined,
+      );
     });
 
     it('NIXPACKS_LOCAL deployment: ansible MUST be triggered (no hang)', async () => {
@@ -250,7 +281,10 @@ describe('DeploymentsCreateService (e2e)', () => {
       const dto = buildDto(fixtures, { buildSource: 'NIXPACKS_LOCAL' });
       const deployment = await createService.create(dto, fixtures.userId);
       expect(deployment.status).toBe(DeploymentStatus.RUNNING);
-      expect(ansibleMock.executeDeploy).toHaveBeenCalledWith(deployment.id, undefined);
+      expect(ansibleMock.executeDeploy).toHaveBeenCalledWith(
+        deployment.id,
+        undefined,
+      );
     });
   });
 
@@ -259,9 +293,9 @@ describe('DeploymentsCreateService (e2e)', () => {
       const fixtures = await createTestFixtures(prisma);
       const dto = buildDto(fixtures, { buildSource: 'NIXPACKS_LOCAL' });
       await createService.create(dto, fixtures.userId);
-      await expect(
-        createService.create(dto, fixtures.userId),
-      ).rejects.toThrow(/déjà en cours/i);
+      await expect(createService.create(dto, fixtures.userId)).rejects.toThrow(
+        /déjà en cours/i,
+      );
     });
 
     it('rejects when no Git provider config on project', async () => {
@@ -290,16 +324,21 @@ describe('DeploymentsCreateService (e2e)', () => {
      *  - the router's choice matches what the service did
      */
     const allSources: BuildSource[] = [
-      'DOCKERFILE_REGISTRY', 'DOCKERFILE_LOCAL',
-      'NIXPACKS_REGISTRY', 'NIXPACKS_LOCAL',
-      'DOCKER_COMPOSE', 'STATIC', 'EXTERNAL_IMAGE',
+      'DOCKERFILE_REGISTRY',
+      'DOCKERFILE_LOCAL',
+      'NIXPACKS_REGISTRY',
+      'NIXPACKS_LOCAL',
+      'DOCKER_COMPOSE',
+      'STATIC',
+      'EXTERNAL_IMAGE',
     ];
     it.each(allSources)(
       'buildSource %s always triggers exactly one downstream (no hang)',
       async (src) => {
         const fixtures = await createTestFixtures(prisma);
         const extra: Partial<CreateDeploymentDto> = { buildSource: src };
-        if (src === 'EXTERNAL_IMAGE') extra.overrideImage = 'docker.io/nginx:latest';
+        if (src === 'EXTERNAL_IMAGE')
+          extra.overrideImage = 'docker.io/nginx:latest';
         const dto = buildDto(fixtures, extra);
         const deployment = await createService.create(dto, fixtures.userId);
 

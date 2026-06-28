@@ -1,4 +1,7 @@
-import { startTestDatabase, stopTestDatabase } from './utils/postgres-container';
+import {
+  startTestDatabase,
+  stopTestDatabase,
+} from './utils/postgres-container';
 
 export default async function globalSetup(): Promise<void> {
   const { databaseUrl } = await startTestDatabase();
@@ -9,7 +12,7 @@ export default async function globalSetup(): Promise<void> {
   process.env.FRONTEND_URL = 'http://localhost:3000';
   process.env.GITLAB_WEBHOOK_AUTO_CONFIGURE = 'false';
   process.env.NODE_ENV = 'test';
-  // eslint-disable-next-line no-console
+
   console.log(`[e2e] Postgres ready at ${databaseUrl}`);
 }
 

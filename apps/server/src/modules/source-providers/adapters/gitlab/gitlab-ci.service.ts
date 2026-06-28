@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { GitProviderType, Role } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 import { GitlabClient, GitlabPipelineItem } from './gitlab.client';
 import { GitlabAuthorizationService } from './gitlab-authorization.service';
 import { GitlabProjectConfigService } from './gitlab-project-config.service';

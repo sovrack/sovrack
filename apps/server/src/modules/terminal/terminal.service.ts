@@ -5,9 +5,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../core/database/prisma.service';
-import { ServerHostKeyService } from '../infrastructure/servers/services/server-host-key.service';
-import { ServersCryptoService } from '../infrastructure/servers/services/servers-crypto.service';
+import { PrismaService } from '../../shared/database/prisma.service';
+import { ServerHostKeyService } from '../../adapters/ssh/server-host-key.service';
+import { ServersCryptoService } from '../../adapters/ssh/servers-crypto.service';
 import { SshSessionService } from './ssh-session.service';
 import { TerminalAuditService } from './terminal-audit.service';
 

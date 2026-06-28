@@ -22,6 +22,15 @@ export class CreateServiceEnvironmentDto {
   @IsNotEmpty({ message: 'environmentId est requis' })
   environmentId!: string;
 
+  @ApiPropertyOptional({
+    example: 'server-uuid',
+    description:
+      'Serveur cible explicite de ce service-env (sinon : 1er serveur de l’environnement).',
+  })
+  @IsOptional()
+  @IsString()
+  serverId?: string;
+
   @ApiPropertyOptional({ example: 'develop' })
   @IsOptional()
   @IsString()

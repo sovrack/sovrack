@@ -2,15 +2,17 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
-import type { NextFunction, Request, Response } from 'express';
+import helmet from 'helmet';
+import compression from 'compression';
+import type { Application, NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
-import { AllExceptionsFilter } from './core/filters/http-exception.filter';
-import { LoggerService } from './core/logger/logger.service';
-import { buildSwaggerConfig } from './core/config/swagger';
-import { PrismaService } from './core/database/prisma.service';
+import { AllExceptionsFilter } from './shared/filters/http-exception.filter';
+import { LoggerService } from './shared/logger/logger.service';
+import { buildSwaggerConfig } from './shared/config/swagger';
+import { PrismaService } from './shared/database/prisma.service';
 import { DeploymentsLifecycleService } from './modules/deployments/core/deployments-lifecycle.service';
-import { BigIntSerializationInterceptor } from './core/interceptors/bigint.interceptor';
-import { runWithLogContext } from './core/logger/log-context';
+import { BigIntSerializationInterceptor } from './shared/interceptors/bigint.interceptor';
+import { runWithLogContext } from './shared/logger/log-context';
 
 type RequiredEnv = {
   name: string;
@@ -47,18 +49,18 @@ function assertRequiredEnv(): void {
   for (const { name, hint, validate } of REQUIRED_ENV) {
     const value = process.env[name]?.trim();
     if (!value) {
-      problems.push(`${name.padEnd(22)}→ ${hint}`);
+      problems.push(`${name.padEnd(22)}-> ${hint}`);
       continue;
     }
     const invalid = validate?.(value);
     if (invalid) {
-      problems.push(`${name.padEnd(22)}→ ${hint} (${invalid})`);
+      problems.push(`${name.padEnd(22)}-> ${hint} (${invalid})`);
     }
   }
 
   if (problems.length > 0) {
     const message = [
-      '[BOOT] ❌ Missing or invalid required environment variables:',
+      '[BOOT] Missing or invalid required environment variables:',
       ...problems.map((line) => `  - ${line}`),
       'Fix your .env file and restart.',
     ].join('\n');
@@ -127,6 +129,25 @@ async function bootstrap() {
   const prisma = app.get(PrismaService);
   const allowedOrigins = new Set(resolveAllowedOrigins());
 
+  // Security headers (CSP, HSTS, no-sniff, frameguard...) + gzip compression.
+  // CSP is enabled in production (helmet's safe defaults) where the API serves
+  // only JSON; in development it's disabled so the Swagger UI (inline
+  // scripts/styles) keeps working. Swagger is itself prod-gated below.
+  const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
+  app.use(helmet({ contentSecurityPolicy: isProd ? undefined : false }));
+  app.use(compression());
+
+  // Behind a reverse proxy (Traefik), trust the configured number of hops so
+  // req.ip / rate-limiting see the REAL client IP and X-Forwarded-For from
+  // untrusted hops can't be spoofed. Off by default (direct connection).
+  // Set TRUST_PROXY=1 in production behind a single proxy.
+  const trustProxy = process.env.TRUST_PROXY?.trim();
+  if (trustProxy) {
+    const hops = Number(trustProxy);
+    const expressApp = app.getHttpAdapter().getInstance() as Application;
+    expressApp.set('trust proxy', Number.isFinite(hops) ? hops : trustProxy);
+  }
+
   app.useGlobalFilters(new AllExceptionsFilter(logger));
   app.useGlobalInterceptors(new BigIntSerializationInterceptor());
 
@@ -179,9 +200,14 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Configuration Swagger
-  const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
-  SwaggerModule.setup('api', app, document);
+  // Swagger — exposé hors production uniquement (évite de divulguer la
+  // cartographie complète de l'API à un attaquant en prod).
+  const swaggerEnabled =
+    (process.env.NODE_ENV ?? 'development') !== 'production';
+  if (swaggerEnabled) {
+    const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
+    SwaggerModule.setup('api', app, document);
+  }
 
   await assertRequiredTables(prisma);
   await recoverInFlightDeployments(app, logger);
@@ -190,11 +216,13 @@ async function bootstrap() {
   const port = Number(process.env.PORT ?? '3001') || 3001;
   await app.listen(port);
   logger.log(`Backend running on http://localhost:${port}`, 'Bootstrap');
-  logger.log(`Swagger UI      -> http://localhost:${port}/api`, 'Bootstrap');
+  if (swaggerEnabled) {
+    logger.log(`Swagger UI      -> http://localhost:${port}/api`, 'Bootstrap');
+  }
 }
-// Sur toute erreur de boot (ex. EADDRINUSE si un 2ᵉ backend démarre alors qu'un
-// 1ᵉr tient déjà le port), on QUITTE le process. Sinon le worker BullMQ — démarré
-// pendant l'init des modules, avant app.listen() — resterait vivant en « zombie »
+// Sur toute erreur de boot (ex. EADDRINUSE si un 2e backend démarre alors qu'un
+// 1er tient déjà le port), on QUITTE le process. Sinon le worker BullMQ — démarré
+// pendant l'init des modules, avant app.listen() — resterait vivant en zombie« »
 // et consommerait des jobs de déploiement en parallèle de l'instance saine.
 bootstrap().catch((err) => {
   console.error(err);
@@ -279,7 +307,7 @@ async function assertRequiredTables(prisma: PrismaService): Promise<void> {
   if (missingTables.length > 0) {
     throw new Error(
       `Base de données incomplète: tables manquantes [${missingTables.join(', ')}]. ` +
-        `Appliquez les migrations avec "npx prisma migrate deploy" puis redémarrez le backend.`,
+        `Appliquez les migrations avec "npx prisma migrate deploy" puis redémarez le backend.`,
     );
   }
 }

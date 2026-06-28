@@ -1,14 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import {
-  SshExecutorService,
-  type SshConnection,
-} from '../../../../core/ssh/ssh-executor.service';
-import { DockerSshService } from '../../../../core/container-runtime/docker-ssh.service';
-import {
-  ServerHostKeyService,
-  ServersCryptoService,
-} from '../../servers/services';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { type SshConnection } from '../../../../adapters/ssh/ssh-executor.service';
+import { SshConnectionPoolService } from '../../../../adapters/ssh/ssh-connection-pool.service';
+import { DockerSshService } from '../../../../adapters/container-runtime/docker-ssh.service';
+import { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.service';
+import { ServerHostKeyService } from '../../../../adapters/ssh/server-host-key.service';
 
 export type ContainerStats = {
   containerId: string;
@@ -36,7 +32,9 @@ export class ContainerStatsService {
     private readonly prisma: PrismaService,
     private readonly serversCryptoService: ServersCryptoService,
     private readonly serverHostKeyService: ServerHostKeyService,
-    private readonly ssh: SshExecutorService,
+    // Live stats/logs are polled in a loop → reuse SSH connections (pool)
+    // instead of re-handshaking on every poll. dispose() returns to the pool.
+    private readonly sshPool: SshConnectionPoolService,
     private readonly dockerSsh: DockerSshService,
   ) {}
 
@@ -83,7 +81,7 @@ export class ContainerStatsService {
         { allowTrustOnFirstUse: false },
       );
 
-      conn = await this.ssh.connect({
+      conn = await this.sshPool.acquire({
         host: server.host,
         port: server.port,
         username: server.username,
@@ -162,7 +160,7 @@ export class ContainerStatsService {
         { allowTrustOnFirstUse: false },
       );
 
-      conn = await this.ssh.connect({
+      conn = await this.sshPool.acquire({
         host: server.host,
         port: server.port,
         username: server.username,

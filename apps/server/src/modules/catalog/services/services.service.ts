@@ -1,20 +1,31 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { Prisma, ProjectRole, Role, ServiceType } from '@prisma/client';
-import { PrismaService } from '../../../core/database/prisma.service';
-import { ACTIVE_FILTER } from '../../../core/database/prisma-active.helper';
-import { normalizeRepoPath } from '../../../core/utils/repo-path.util';
+import {
+  BuildMode,
+  DeployTrigger,
+  Prisma,
+  Role,
+  ServiceType,
+} from '@prisma/client';
+import { PrismaService } from '../../../shared/database/prisma.service';
+import { ACTIVE_FILTER } from '../../../shared/database/prisma-active.helper';
+import { normalizeRepoPath } from '../../../shared/utils/repo-path.util';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
+import { ProjectAccessService } from '../access/project-access.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { DiscoverGroupDto } from './dto/discover-group.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import {
+  findServiceTemplate,
+  resolveServiceTemplateComponents,
+  SERVICE_TEMPLATES,
+} from './templates/service-templates.catalogue';
 
 const serviceInclude = {
   envLinks: {
@@ -37,6 +48,7 @@ export class ServicesService {
     private readonly prisma: PrismaService,
     private readonly serviceEnvsService: ServiceEnvironmentsService,
     private readonly sourceProviders: SourceProvidersService,
+    private readonly projectAccess: ProjectAccessService,
   ) {}
 
   private readonly logger = new Logger(ServicesService.name);
@@ -46,7 +58,11 @@ export class ServicesService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceWithRelations[]> {
-    await this.assertCanAccessProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     return await this.prisma.service.findMany({
       where: { projectId, ...ACTIVE_FILTER },
@@ -62,7 +78,11 @@ export class ServicesService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceWithRelations> {
-    await this.assertCanAccessProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     const service = await this.prisma.service.findFirst({
       where: { id: serviceId, projectId, ...ACTIVE_FILTER },
@@ -83,7 +103,11 @@ export class ServicesService {
     userId: string,
     userRole: Role,
   ) {
-    await this.assertCanAccessProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
     return this.sourceProviders.discoverGroup(
       projectId,
       dto.groupPath,
@@ -93,13 +117,95 @@ export class ServicesService {
     );
   }
 
+  listTemplates() {
+    return SERVICE_TEMPLATES.map(({ id, name, description, components }) => ({
+      id,
+      name,
+      description,
+      services: components.map((c) => ({
+        nameSuffix: c.nameSuffix,
+        type: c.type,
+        databaseType: c.databaseType,
+      })),
+    }));
+  }
+
+  /**
+   * Creates every component of a one-click template as its own Service.
+   * Components needing each other (e.g. pgAdmin reaching Postgres) rely on
+   * the existing project-network auto-wiring, not on anything done here. If
+   * a component fails to create, the previously created ones are rolled
+   * back (hard-deleted — they have no deployment/build history yet) so the
+   * template creation is all-or-nothing.
+   */
+  async createFromTemplate(
+    projectId: string,
+    templateId: string,
+    baseName: string,
+    userId: string,
+    userRole: Role,
+  ) {
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
+
+    const template = findServiceTemplate(templateId);
+    if (!template) {
+      throw new NotFoundException(`Template "${templateId}" introuvable`);
+    }
+
+    const components = resolveServiceTemplateComponents(template, baseName);
+    const created: Awaited<ReturnType<typeof this.create>>[] = [];
+
+    for (const component of components) {
+      try {
+        const service = await this.create(
+          projectId,
+          {
+            name: component.name,
+            type: component.type,
+            sourceType: component.sourceType,
+            repoPath: component.repoPath,
+            buildPack: component.buildPack,
+            port: component.port,
+            databaseType: component.databaseType,
+            databaseVersion: component.databaseVersion,
+            env: component.env,
+          } as CreateServiceDto,
+          userId,
+          userRole,
+        );
+        created.push(service);
+      } catch (err) {
+        for (const rollback of created) {
+          await this.prisma.service
+            .delete({ where: { id: rollback.id } })
+            .catch((cleanupErr: unknown) =>
+              this.logger.warn(
+                `Rollback cleanup failed for service ${rollback.id}: ${String(cleanupErr)}`,
+              ),
+            );
+        }
+        throw err;
+      }
+    }
+
+    return created;
+  }
+
   async create(
     projectId: string,
     dto: CreateServiceDto,
     userId: string,
     userRole: Role,
   ) {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     let service: Awaited<ReturnType<typeof this.prisma.service.create>>;
     try {
@@ -115,9 +221,9 @@ export class ServicesService {
           providerId: dto.providerId?.trim(),
           rootDir: dto.rootDir?.trim() || '/',
           buildPack: dto.buildPack,
-          buildMode: dto.buildMode ?? 'LOCAL',
+          buildMode: dto.buildMode ?? BuildMode.LOCAL,
           // Nouveau service → déploiement sur push par défaut (façon Coolify).
-          deployTrigger: dto.deployTrigger ?? 'PUSH',
+          deployTrigger: dto.deployTrigger ?? DeployTrigger.PUSH,
           registryImage: dto.registryImage?.trim() || null,
           buildType: dto.buildType?.trim(),
           dockerfile: dto.dockerfile,
@@ -137,6 +243,8 @@ export class ServicesService {
           env: dto.env,
           healthcheckPath: dto.healthcheckPath?.trim(),
           replicas: dto.replicas ?? 1,
+          cpuLimit: dto.cpuLimit ?? undefined,
+          memLimitMb: dto.memLimitMb ?? undefined,
         },
       });
     } catch (err) {
@@ -190,7 +298,11 @@ export class ServicesService {
     userId: string,
     userRole: Role,
   ) {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
     await this.ensureServiceExists(projectId, serviceId);
 
     const updated = await this.prisma.service.update({
@@ -263,6 +375,8 @@ export class ServicesService {
           ? { healthcheckPath: dto.healthcheckPath?.trim() }
           : {}),
         ...(dto.replicas !== undefined ? { replicas: dto.replicas } : {}),
+        ...(dto.cpuLimit !== undefined ? { cpuLimit: dto.cpuLimit } : {}),
+        ...(dto.memLimitMb !== undefined ? { memLimitMb: dto.memLimitMb } : {}),
       },
       include: serviceInclude,
     });
@@ -281,7 +395,11 @@ export class ServicesService {
     userId: string,
     userRole: Role,
   ): Promise<void> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
     await this.ensureServiceExists(projectId, serviceId);
 
     // Soft-delete: archive instead of DELETE so Deployment/Build history that
@@ -327,54 +445,6 @@ export class ServicesService {
     });
     if (!service) {
       throw new NotFoundException('Service non trouvé');
-    }
-  }
-
-  private async ensureProjectExists(projectId: string): Promise<void> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) {
-      throw new NotFoundException('Projet non trouvé');
-    }
-  }
-
-  private async assertCanAccessProject(
-    projectId: string,
-    userId: string,
-    userRole: Role,
-  ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-
-    if (userRole === Role.ADMIN) return;
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId } },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException('Accès non autorisé à ce projet');
-    }
-  }
-
-  private async assertCanManageProject(
-    projectId: string,
-    userId: string,
-    userRole: Role,
-  ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-
-    if (userRole === Role.ADMIN) return;
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId } },
-      select: { role: true },
-    });
-
-    if (membership?.role !== ProjectRole.OWNER) {
-      throw new ForbiddenException(
-        'Action réservée au OWNER du projet ou ADMIN',
-      );
     }
   }
 }

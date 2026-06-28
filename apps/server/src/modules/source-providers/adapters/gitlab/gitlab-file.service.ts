@@ -12,10 +12,10 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { SourceType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from '../../../../core/database/prisma.service';
-import { CryptoService } from '../../../../core/crypto/crypto.service';
-import { ALLOWED_PUSH_FILES } from '../../../../core/utils/file-constants';
-import { normalizeRepoPath } from '../../../../core/utils/repo-path.util';
+import { PrismaService } from '../../../../shared/database/prisma.service';
+import { CryptoService } from '../../../../shared/crypto/crypto.service';
+import { ALLOWED_PUSH_FILES } from '../../../../shared/utils/file-constants';
+import { normalizeRepoPath } from '../../../../shared/utils/repo-path.util';
 import type {
   RepoWriteResult,
   GitCredentials,

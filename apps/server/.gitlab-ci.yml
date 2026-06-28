@@ -7,6 +7,7 @@ stages:
   - validate
   - test
   - build
+  - security
 
 default:
   image: node:20
@@ -34,10 +35,8 @@ typecheck:
 
 lint:
   stage: validate
-  # Non-bloquant : dette de lint pré-existante (any sur données externes —
-  # payloads GitLab, JSON Prisma, mocks de specs). Reste visible et à nettoyer
-  # progressivement. Les gardes-fous bloquants sont typecheck + test + build.
-  allow_failure: true
+  # Bloquant : la dette de lint a été résorbée (0 erreur). On empêche désormais
+  # toute régression de qualité d'entrer dans la base.
   script:
     - npm ci
     - npm run lint
@@ -57,7 +56,18 @@ test:unit:
   script:
     - npm ci
     - npx prisma migrate deploy
-    - npm test -- --passWithNoTests --forceExit
+    # --coverage enforces the coverageThreshold gate (regression ratchet) in jest config.
+    - npm test -- --passWithNoTests --forceExit --coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d.]+)/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      - coverage/
+    expire_in: 1 week
 
 test:e2e:
   stage: test
@@ -84,3 +94,46 @@ build:
     paths:
       - dist/
     expire_in: 2 hours
+
+# ── Security & quality gates ────────────────────────────────────────────────
+
+# Dependency vulnerability gate: fail on any HIGH/CRITICAL advisory. Moderate
+# advisories are reported but non-blocking (run `npm audit` to see them).
+security:audit:
+  stage: security
+  script:
+    - npm ci
+    - npm audit --audit-level=high
+
+# SonarQube static analysis + Quality Gate. Reuses the coverage produced by
+# test:unit (coverage/lcov.info). Runs only when SONAR_TOKEN is configured.
+sonarqube:
+  stage: security
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: ['']
+  needs:
+    - job: test:unit
+      artifacts: true
+  variables:
+    SONAR_USER_HOME: '${CI_PROJECT_DIR}/.sonar'
+    GIT_DEPTH: '0'
+  cache:
+    key: sonar-${CI_COMMIT_REF_SLUG}
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner -Dsonar.host.url="${SONAR_HOST_URL}"
+  rules:
+    - if: '$SONAR_TOKEN'
+
+# Trivy filesystem scan (dependencies + IaC). Informational: CVE feeds change
+# daily, so a daily-new CVE shouldn't break an unrelated MR. Review its report.
+security:trivy:
+  stage: security
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: ['']
+  script:
+    - trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --no-progress .
+  allow_failure: true

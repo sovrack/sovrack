@@ -1,8 +1,8 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GitProviderType, PipelineRunStatus } from '@prisma/client';
-import { PrismaService } from '../../../../core/database/prisma.service';
+import { PrismaService } from '../../../../shared/database/prisma.service';
 import { GitlabWebhookHandler } from './gitlab-webhook.handler';
-import { DEPLOYMENT_AUTO_DEPLOY_TRIGGER } from '../../../deployments/events/deployment.events';
+import { DEPLOYMENT_AUTO_DEPLOY_TRIGGER } from '../../../../shared/events/events.catalog';
 import type { WebhookEndpointContext } from '../../../webhooks/interfaces/webhook-handler.interface';
 
 /**

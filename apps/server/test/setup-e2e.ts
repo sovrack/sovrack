@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Role } from '@prisma/client';
 
 import { AppModule } from '../src/app.module';
@@ -12,9 +13,11 @@ import { DockerDeployExecutorService } from '../src/modules/deployments/core/doc
 import {
   DockerApiMockHandle,
   GitlabMockHandle,
+  LocalBuildMockHandle,
   mockDockerApiService,
   mockGitlabService,
   mockHealthcheckService,
+  mockLocalBuildService,
 } from './utils/mocks';
 
 export interface E2EContext {
@@ -22,6 +25,7 @@ export interface E2EContext {
   prisma: PrismaService;
   docker: DockerApiMockHandle;
   gitlab: GitlabMockHandle;
+  localBuild: LocalBuildMockHandle;
   /** Build a Cookie header that authenticates as the given user. */
   authCookie: (userId: string, role?: Role, email?: string) => string;
   /** Truncate all data between tests. */
@@ -56,9 +60,13 @@ export async function bootstrapE2E(): Promise<E2EContext> {
   const dockerMock = mockDockerApiService();
   const gitlabMock = mockGitlabService();
   const healthMock = mockHealthcheckService();
+  const localBuildMock = mockLocalBuildService();
   // Patched after app.init() to drive the real executor (simulated worker).
   const deploymentsQueueStub: {
-    add: (name: string, data: { deploymentId: string; overrideImage?: string }) => Promise<{ id: string }>;
+    add: (
+      name: string,
+      data: { deploymentId: string; overrideImage?: string },
+    ) => Promise<{ id: string }>;
   } = { add: () => Promise.resolve({ id: 'stub-job' }) };
 
   const moduleRef: TestingModule = await Test.createTestingModule({
@@ -70,8 +78,13 @@ export async function bootstrapE2E(): Promise<E2EContext> {
     .useValue(healthMock.useValue)
     .overrideProvider(gitlabMock.provide)
     .useValue(gitlabMock.useValue)
+    .overrideProvider(localBuildMock.provide)
+    .useValue(localBuildMock.useValue)
     .overrideProvider(AnsibleRunnerService)
-    .useValue({ run: jest.fn().mockResolvedValue(undefined), runPlaybook: jest.fn().mockResolvedValue('') })
+    .useValue({
+      run: jest.fn().mockResolvedValue(undefined),
+      runPlaybook: jest.fn().mockResolvedValue(''),
+    })
     .overrideProvider(DeploymentsGateway)
     .useValue({
       emitStarted: jest.fn(),
@@ -79,6 +92,10 @@ export async function bootstrapE2E(): Promise<E2EContext> {
       emitFinished: jest.fn(),
       emitLog: jest.fn(),
     })
+    // e2e tests business logic, not rate limiting — disable the global throttler
+    // so rapid-fire test requests (matrix deploys) aren't 429'd by per-route caps.
+    .overrideGuard(ThrottlerGuard)
+    .useValue({ canActivate: () => true })
     // Decouple e2e from Redis: stub the queue token + worker bootstrap. The
     // stub's `add` is patched after init() to invoke the real executor, so
     // enqueueDeploy still runs the deployment like the BullMQ worker would.
@@ -118,7 +135,9 @@ export async function bootstrapE2E(): Promise<E2EContext> {
 
   const resetDb = async (): Promise<void> => {
     const list = TRUNCATE_ROOTS.map((t) => `"${t}"`).join(', ');
-    await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
+    await prisma.$executeRawUnsafe(
+      `TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`,
+    );
   };
 
   return {
@@ -126,6 +145,7 @@ export async function bootstrapE2E(): Promise<E2EContext> {
     prisma,
     docker: dockerMock.useValue,
     gitlab: gitlabMock.useValue,
+    localBuild: localBuildMock.useValue,
     authCookie,
     resetDb,
     close: async () => {
@@ -142,7 +162,7 @@ export async function waitForDeploymentStatus(
   timeoutMs = 15000,
 ): Promise<{ status: string; imageSha: string | null; conditions: unknown }> {
   const start = Date.now();
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     const dep = await prisma.deployment.findUnique({
       where: { id: deploymentId },

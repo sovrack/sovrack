@@ -1,4 +1,4 @@
 ---
 galaxy_info:
   role_name: postgres
-  description: PostgreSQL server installation.
+  description: PostgreSQL server (Docker container).

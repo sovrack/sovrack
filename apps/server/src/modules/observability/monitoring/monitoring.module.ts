@@ -1,13 +1,17 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../../core/database/prisma.module';
+import { PrismaModule } from '../../../shared/database/prisma.module';
 import { AutomationModule } from '../../automation';
 import { PlatformModule } from '../../platform';
 import { ServersModule, ContainersModule } from '../../infrastructure';
 import { MonitoringController } from './controllers/monitoring.controller';
+import { RuntimeLogsController } from './controllers/runtime-logs.controller';
 import { MonitoringService } from './services/monitoring.service';
 import { MonitoringStatsService } from './services/monitoring-stats.service';
 import { MonitoringPrometheusService } from './services/monitoring-prometheus.service';
+import { MonitoringLokiService } from './services/monitoring-loki.service';
+import { MonitoringAlertsService } from './services/monitoring-alerts.service';
+import { RuntimeLogsService } from './services/runtime-logs.service';
 
 @Module({
   imports: [
@@ -18,16 +22,20 @@ import { MonitoringPrometheusService } from './services/monitoring-prometheus.se
     ServersModule,
     ContainersModule,
   ],
-  controllers: [MonitoringController],
+  controllers: [MonitoringController, RuntimeLogsController],
   providers: [
     MonitoringService,
     MonitoringStatsService,
     MonitoringPrometheusService,
+    MonitoringLokiService,
+    MonitoringAlertsService,
+    RuntimeLogsService,
   ],
   exports: [
     MonitoringService,
     MonitoringStatsService,
     MonitoringPrometheusService,
+    MonitoringLokiService,
   ],
 })
 export class MonitoringModule {}
