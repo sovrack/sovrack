@@ -522,6 +522,11 @@ model Deployment {
   branch             String
   serviceId          String?
   service            Service?           @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  // Nullable is INTENTIONAL: set to null via onDelete:SetNull when the parent
+  // ServiceEnvironment is archived (soft-delete), so deployment history survives
+  // for audit/rollback without a dangling FK. All live deploy paths (create,
+  // rollback, auto-heal) always set it; the executor fails fast on a null cell
+  // (a deploy without a cell can't move currentDeploymentId or be reconciled).
   serviceEnvId       String?
   serviceEnv         ServiceEnvironment? @relation("ServiceEnvDeployments", fields: [serviceEnvId], references: [id], onDelete: SetNull)
   // Back-relation du pointeur "release courante" (ServiceEnvironment.currentDeployment).

@@ -154,6 +154,16 @@ export class DockerDeployExecutorService {
     });
 
     if (!deployment) throw new BadRequestException('Déploiement non trouvé');
+    // serviceEnvId is nullable in the schema only to preserve history when a
+    // ServiceEnvironment is archived (onDelete: SetNull). Every live path sets
+    // it; a null here is a malformed/legacy row that cannot bind to a cell —
+    // fail fast rather than deploy something that can't move the
+    // currentDeployment pointer or be reconciled/auto-healed.
+    if (!deployment.serviceEnvId) {
+      throw new BadRequestException(
+        `Déploiement ${deployment.id} sans serviceEnvId (son ServiceEnvironment a peut-être été archivé). Exécution impossible.`,
+      );
+    }
     setLogContext({
       serviceEnvId: deployment.serviceEnv?.id,
       userId: deployment.user?.id,
