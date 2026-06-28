@@ -489,6 +489,17 @@ export class DockerDeployExecutorService {
         },
       });
 
+      // Pointeur "release courante" (L3) : ce déploiement devient LE live de sa
+      // cellule. Source unique du "live" (fin de l'heuristique "dernier SUCCESS
+      // deviné par date") — couvre déploiement normal, rollback ET pipeline CI,
+      // qui passent tous par ici. Rollback = ce pointeur se déplace atomiquement.
+      if (finished.serviceEnvId) {
+        await this.prisma.serviceEnvironment.update({
+          where: { id: finished.serviceEnvId },
+          data: { currentDeploymentId: finished.id },
+        });
+      }
+
       this.gateway.emitStatus({
         deploymentId: finished.id,
         status: finished.status,

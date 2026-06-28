@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { DeploymentStatus, Prisma } from '@prisma/client';
+import { DeploymentStatus } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import {
+  conditionsToJson,
+  staleDegradedCondition,
+} from '../utils/deployment-conditions.util';
 
 const STALE_THRESHOLD_MINUTES = 45;
 
@@ -49,16 +53,12 @@ export class DeploymentsStaleRecoveryService {
         data: {
           status: DeploymentStatus.FAILED,
           finishedAt: new Date(),
-          conditions: [
-            {
-              type: 'Degraded',
-              status: 'False',
-              reason: 'AutoRecovered',
-              message: note,
-              lastTransitionAt: new Date().toISOString(),
-            },
-          ] as unknown as Prisma.InputJsonValue,
-          observedGeneration: 1,
+          conditions: conditionsToJson(
+            staleDegradedCondition('AutoRecovered', note),
+          ),
+          // NB: on ne TOUCHE PAS observedGeneration ici (avant: codé en dur à 1,
+          // ce qui faussait la compta désiré↔observé). Un déploiement FAILED
+          // conserve la génération qu'il reflétait.
           logs: `${d.logs ?? ''}\n${note}`.trim(),
         },
       });

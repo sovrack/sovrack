@@ -152,4 +152,131 @@ describe('ReconcilerService', () => {
     await expect(service.reconcile()).resolves.toBeUndefined();
     expect(prisma.deployment.create).toHaveBeenCalledTimes(1);
   });
+
+  // ── L2 : conteneur DISPARU (404) ────────────────────────────────────────
+  it('heals a MISSING container (inspect 404) — recreates it', async () => {
+    dockerApi.inspectContainer.mockRejectedValue(
+      Object.assign(new Error('no such container'), { statusCode: 404 }),
+    );
+    await service.reconcile();
+    expect(prisma.deployment.create).toHaveBeenCalledTimes(1);
+    expect(prisma.deployment.create.mock.calls[0][0].data).toMatchObject({
+      isAutoHealed: true,
+      autoHealReason: 'container_missing',
+      previousDeploymentId: 'd1',
+    });
+  });
+
+  it('does NOT heal when inspect fails with a generic (non-404) error', async () => {
+    dockerApi.inspectContainer.mockRejectedValue(
+      new Error('no docker connection'),
+    );
+    await service.reconcile();
+    expect(prisma.deployment.create).not.toHaveBeenCalled();
+  });
+
+  // ── L1 : dérive de CONFIG (generation > observedGeneration) ──────────────
+  function makeDriftCandidate(
+    generation: number,
+    observedGeneration: number | null,
+    conditions: unknown = null,
+  ) {
+    return {
+      id: 'se1',
+      serviceId: 'svc1',
+      environmentId: 'env1',
+      generation,
+      service: { projectId: 'p1' },
+      deployments: [
+        {
+          id: 'd1',
+          branch: 'main',
+          specSnapshot: {},
+          resolvedRefs: { serverId: 'srv1' },
+          conditions,
+          observedGeneration,
+          dockerImage: 'img:1',
+          imageSha: 'sha256:abc',
+          isAutoHealed: false,
+          createdAt: new Date(Date.now() - 3_600_000),
+          containers: [{ id: 'c1', dockerId: 'dock1', name: 'app' }],
+        },
+      ],
+    };
+  }
+
+  it('flags OutOfSync when desired generation > observed (running container)', async () => {
+    prisma.serviceEnvironment.findMany.mockResolvedValue([
+      makeDriftCandidate(5, 4),
+    ]);
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'running' },
+    });
+    await service.reconcile();
+    expect(prisma.deployment.create).not.toHaveBeenCalled(); // pas de redeploy auto
+    expect(prisma.deployment.update).toHaveBeenCalledTimes(1);
+    const conditions = prisma.deployment.update.mock.calls[0][0].data
+      .conditions as Array<{ reason: string }>;
+    expect(conditions[0].reason).toBe('ConfigDrift');
+  });
+
+  it('is idempotent: does not re-flag an already-OutOfSync deployment', async () => {
+    prisma.serviceEnvironment.findMany.mockResolvedValue([
+      makeDriftCandidate(5, 4, [{ reason: 'ConfigDrift' }]),
+    ]);
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'running' },
+    });
+    await service.reconcile();
+    expect(prisma.deployment.update).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when config is in sync (generation == observed)', async () => {
+    prisma.serviceEnvironment.findMany.mockResolvedValue([
+      makeDriftCandidate(4, 4),
+    ]);
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'running' },
+    });
+    await service.reconcile();
+    expect(prisma.deployment.update).not.toHaveBeenCalled();
+    expect(prisma.deployment.create).not.toHaveBeenCalled();
+  });
+
+  // ── L3 : le pointeur "release courante" est la source autoritaire ─────────
+  it('reconciles the CURRENT deployment (pointer), not last SUCCESS by date', async () => {
+    const dep = (id: string, dockerId: string) => ({
+      id,
+      branch: 'main',
+      specSnapshot: {},
+      resolvedRefs: { serverId: 'srv1' },
+      conditions: null,
+      observedGeneration: 1,
+      dockerImage: `img:${id}`,
+      imageSha: `sha256:${id}`,
+      isAutoHealed: false,
+      createdAt: new Date(Date.now() - 3_600_000),
+      containers: [{ id: `c-${id}`, dockerId, name: `app-${id}` }],
+    });
+    prisma.serviceEnvironment.findMany.mockResolvedValue([
+      {
+        id: 'se1',
+        serviceId: 'svc1',
+        environmentId: 'env1',
+        generation: 1,
+        service: { projectId: 'p1' },
+        currentDeployment: dep('cur', 'CURRENT-dock'),
+        deployments: [dep('old', 'OLD-dock')], // dernier SUCCESS par date (≠ pointeur)
+      },
+    ]);
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'running' },
+    });
+    await service.reconcile();
+    // C'est le conteneur du POINTEUR qui est inspecté, pas celui du fallback.
+    expect(dockerApi.inspectContainer).toHaveBeenCalledWith(
+      'srv1',
+      'CURRENT-dock',
+    );
+  });
 });

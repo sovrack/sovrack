@@ -197,6 +197,86 @@ export class ProjectsService {
   }
 
   /**
+   * Matrice de déploiement du projet : services (lignes) × environnements
+   * (colonnes), chaque cellule = un ServiceEnvironment avec l'état de sa release
+   * COURANTE (currentDeployment, pointeur L3) et un drapeau OutOfSync
+   * (génération désirée > génération déployée, L1). Vue qui reflète 1:1 le modèle
+   * M:N — l'unité visible est la CELLULE, pas le service. Une cellule absente du
+   * tableau = service non lié à cet environnement.
+   */
+  async getMatrix(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<{
+    services: { id: string; name: string; type: string }[];
+    environments: { id: string; name: string; isProtected: boolean }[];
+    cells: {
+      serviceId: string;
+      environmentId: string;
+      serviceEnvId: string;
+      currentDeploymentId: string | null;
+      status: string | null;
+      outOfSync: boolean;
+      lastDeployedAt: Date | null;
+    }[];
+  }> {
+    await this.assertCanAccessProject(projectId, userId, userRole);
+
+    const [services, environments, links] = await Promise.all([
+      this.prisma.service.findMany({
+        where: { projectId, archivedAt: null },
+        select: { id: true, name: true, type: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.environment.findMany({
+        where: { projectId, archivedAt: null },
+        select: { id: true, name: true, isProtected: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.serviceEnvironment.findMany({
+        where: { archivedAt: null, environment: { projectId } },
+        select: {
+          id: true,
+          serviceId: true,
+          environmentId: true,
+          generation: true,
+          currentDeploymentId: true,
+          currentDeployment: {
+            select: {
+              id: true,
+              status: true,
+              observedGeneration: true,
+              finishedAt: true,
+              createdAt: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const cells = links.map((link) => {
+      const current = link.currentDeployment;
+      // OutOfSync (L1) : la config désirée (generation de la cellule) dépasse
+      // celle réellement déployée (observedGeneration de la release courante).
+      const outOfSync = current
+        ? link.generation > (current.observedGeneration ?? 0)
+        : false;
+      return {
+        serviceId: link.serviceId,
+        environmentId: link.environmentId,
+        serviceEnvId: link.id,
+        currentDeploymentId: link.currentDeploymentId ?? null,
+        status: current?.status ?? null,
+        outOfSync,
+        lastDeployedAt: current?.finishedAt ?? current?.createdAt ?? null,
+      };
+    });
+
+    return { services, environments, cells };
+  }
+
+  /**
    * Met à jour un projet si utilisateur OWNER ou ADMIN.
    */
   async update(

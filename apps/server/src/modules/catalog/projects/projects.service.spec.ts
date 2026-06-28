@@ -20,6 +20,9 @@ describe('ProjectsService', () => {
     };
     user: { findUnique: jest.Mock };
     projectMember: { findUnique: jest.Mock };
+    service: { findMany: jest.Mock };
+    environment: { findMany: jest.Mock };
+    serviceEnvironment: { findMany: jest.Mock };
     $transaction: jest.Mock;
   };
   let audit: { record: jest.Mock };
@@ -42,6 +45,9 @@ describe('ProjectsService', () => {
           .mockResolvedValue({ id: 'o1', role: Role.DEVELOPER }),
       },
       projectMember: { findUnique: jest.fn().mockResolvedValue(null) },
+      service: { findMany: jest.fn().mockResolvedValue([]) },
+      environment: { findMany: jest.fn().mockResolvedValue([]) },
+      serviceEnvironment: { findMany: jest.fn().mockResolvedValue([]) },
       $transaction: jest.fn(),
     };
     audit = { record: jest.fn().mockResolvedValue(undefined) };
@@ -68,6 +74,59 @@ describe('ProjectsService', () => {
       'p1',
       expect.anything(),
     );
+  });
+
+  it('builds the deployment matrix with live status + OutOfSync per cell', async () => {
+    prisma.service.findMany.mockResolvedValue([
+      { id: 'svc1', name: 'web', type: 'APPLICATION' },
+    ]);
+    prisma.environment.findMany.mockResolvedValue([
+      { id: 'env1', name: 'staging', isProtected: false },
+      { id: 'env2', name: 'production', isProtected: true },
+    ]);
+    prisma.serviceEnvironment.findMany.mockResolvedValue([
+      // staging : config dérivée (generation 5 > observed 4) → OutOfSync
+      {
+        id: 'se1',
+        serviceId: 'svc1',
+        environmentId: 'env1',
+        generation: 5,
+        currentDeploymentId: 'dep1',
+        currentDeployment: {
+          id: 'dep1',
+          status: 'SUCCESS',
+          observedGeneration: 4,
+          finishedAt: new Date('2026-06-28T00:00:00Z'),
+          createdAt: new Date('2026-06-28T00:00:00Z'),
+        },
+      },
+      // production : en phase (5 == 5), pas OutOfSync
+      {
+        id: 'se2',
+        serviceId: 'svc1',
+        environmentId: 'env2',
+        generation: 5,
+        currentDeploymentId: 'dep2',
+        currentDeployment: {
+          id: 'dep2',
+          status: 'SUCCESS',
+          observedGeneration: 5,
+          finishedAt: new Date('2026-06-28T01:00:00Z'),
+          createdAt: new Date('2026-06-28T01:00:00Z'),
+        },
+      },
+    ]);
+
+    const matrix = await service.getMatrix('p1', 'admin', Role.ADMIN);
+
+    expect(matrix.services).toHaveLength(1);
+    expect(matrix.environments).toHaveLength(2);
+    expect(matrix.cells).toHaveLength(2);
+
+    const staging = matrix.cells.find((c) => c.environmentId === 'env1');
+    const prod = matrix.cells.find((c) => c.environmentId === 'env2');
+    expect(staging).toMatchObject({ status: 'SUCCESS', outOfSync: true });
+    expect(prod).toMatchObject({ status: 'SUCCESS', outOfSync: false });
   });
 
   it('forbids a non-admin from assigning a different owner', async () => {

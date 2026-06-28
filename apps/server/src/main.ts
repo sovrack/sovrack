@@ -224,6 +224,8 @@ async function bootstrap() {
 // 1er tient déjà le port), on QUITTE le process. Sinon le worker BullMQ — démarré
 // pendant l'init des modules, avant app.listen() — resterait vivant en zombie« »
 // et consommerait des jobs de déploiement en parallèle de l'instance saine.
+// NB pratique : si le port est squatté par un vieux `node dist/main`, le watch
+// (start:dev) ne peut pas écouter et sert du code périmé → `lsof -i:3001` puis kill.
 bootstrap().catch((err) => {
   console.error(err);
   process.exit(1);

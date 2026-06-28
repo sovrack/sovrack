@@ -24,6 +24,10 @@ import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.ser
 import { BuildStrategyResolver } from '../../build/strategies/build-strategy.resolver';
 import { AuditService } from '../../audit/audit.service';
 import { QueueService } from '../../../shared/queue/queue.service';
+import {
+  conditionsToJson,
+  staleDegradedCondition,
+} from '../utils/deployment-conditions.util';
 
 @Injectable()
 export class DeploymentsCreateService {
@@ -41,6 +45,79 @@ export class DeploymentsCreateService {
     private readonly auditService: AuditService,
     private readonly queueService: QueueService,
   ) {}
+
+  /**
+   * Réserve un « slot » de déploiement pour ce service-env, dans une transaction :
+   *  1. verrou consultatif par service-env (anti double-déploiement concurrent) ;
+   *  2. reprise des déploiements bloqués (stale > 45 min) → FAILED ;
+   *  3. refus si un déploiement est déjà actif (PENDING/RUNNING) ;
+   *  4. plafond de concurrence par projet (multi-tenant fair-share).
+   *
+   * Mutualisé entre le chemin applicatif ET le chemin base de données. Avant,
+   * ce bloc était dupliqué et les deux copies avaient DIVERGÉ : la version DB
+   * n'appliquait pas le plafond (4) et écrivait `conditions` en objet (invisible
+   * dans l'UI qui attend un tableau).
+   */
+  private async acquireDeploySlot(
+    tx: Prisma.TransactionClient,
+    serviceEnvId: string,
+    project: { id: string; maxConcurrentDeploys: number | null },
+  ): Promise<void> {
+    await tx.$executeRaw`
+      SELECT pg_advisory_xact_lock(hashtext('deploy_env:' || ${serviceEnvId}))
+    `;
+
+    // aligné build timeout (30 min) + cron 45 min : ne pas tuer un build long légitime
+    const staleTimeout = new Date(Date.now() - 45 * 60 * 1000);
+    await tx.deployment.updateMany({
+      where: {
+        serviceEnvId,
+        status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
+        startedAt: { lt: staleTimeout },
+      },
+      data: {
+        status: DeploymentStatus.FAILED,
+        finishedAt: new Date(),
+        conditions: conditionsToJson(
+          staleDegradedCondition(
+            'StaleRecovery',
+            'Déploiement récupéré après un crash du service.',
+          ),
+        ),
+      },
+    });
+
+    const active = await tx.deployment.findFirst({
+      where: {
+        serviceEnvId,
+        status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
+      },
+      select: { id: true, status: true },
+    });
+    if (active) {
+      throw new BadRequestException(
+        `Un déploiement est déjà en cours pour ce service sur cet environnement ` +
+          `(ID: ${active.id}, statut: ${active.status}).`,
+      );
+    }
+
+    // Multi-tenant fair-share : un projet ne peut pas saturer les workers.
+    const maxConcurrent = project.maxConcurrentDeploys;
+    if (maxConcurrent && maxConcurrent > 0) {
+      const inFlight = await tx.deployment.count({
+        where: {
+          projectId: project.id,
+          status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
+        },
+      });
+      if (inFlight >= maxConcurrent) {
+        throw new BadRequestException(
+          `Limite de déploiements simultanés atteinte pour ce projet ` +
+            `(${inFlight}/${maxConcurrent}). Réessayez quand un déploiement en cours sera terminé.`,
+        );
+      }
+    }
+  }
 
   async create(dto: CreateDeploymentDto, userId: string): Promise<Deployment> {
     const actor = await this.authorizationService.getActor(userId);
@@ -112,63 +189,7 @@ export class DeploymentsCreateService {
     const server = environment.servers[0] ?? null;
 
     let deployment = await this.prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`
-        SELECT pg_advisory_xact_lock(
-          hashtext('deploy_env:' || ${serviceEnv.id})
-        )
-      `;
-
-      const staleTimeout = new Date(Date.now() - 45 * 60 * 1000); // aligné build timeout (30min) + cron 45min : ne pas tuer un build long légitime
-      await tx.deployment.updateMany({
-        where: {
-          serviceEnvId: serviceEnv.id,
-          status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
-          startedAt: { lt: staleTimeout },
-        },
-        data: {
-          status: DeploymentStatus.FAILED,
-          finishedAt: new Date(),
-          conditions: {
-            type: 'Degraded',
-            reason: 'StaleRecovery',
-            message: 'Déploiement récupéré après un crash du service.',
-          } as unknown as Prisma.InputJsonValue,
-        },
-      });
-
-      const active = await tx.deployment.findFirst({
-        where: {
-          serviceEnvId: serviceEnv.id,
-          status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
-        },
-        select: { id: true, status: true, createdAt: true },
-      });
-      if (active) {
-        throw new BadRequestException(
-          `Un déploiement est déjà en cours pour ce service sur cet environnement ` +
-            `(ID: ${active.id}, statut: ${active.status}).`,
-        );
-      }
-
-      // Multi-tenant fair-share: enforce the project-wide concurrent-deploy cap
-      // (if configured) so one project can't saturate the shared deploy workers.
-      const maxConcurrent = project.maxConcurrentDeploys;
-      if (maxConcurrent && maxConcurrent > 0) {
-        const inFlight = await tx.deployment.count({
-          where: {
-            projectId: project.id,
-            status: {
-              in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING],
-            },
-          },
-        });
-        if (inFlight >= maxConcurrent) {
-          throw new BadRequestException(
-            `Limite de déploiements simultanés atteinte pour ce projet ` +
-              `(${inFlight}/${maxConcurrent}). Réessayez quand un déploiement en cours sera terminé.`,
-          );
-        }
-      }
+      await this.acquireDeploySlot(tx, serviceEnv.id, project);
 
       const build = await this.buildsService.create(
         {
@@ -185,9 +206,13 @@ export class DeploymentsCreateService {
         tx,
       );
 
-      // Immutable Release : on gèle TOUTE la config de build au moment du deploy
-      // (reproductibilité + audit). Lu par le reconciler ; sera la source unique
-      // de l'executor en P2 (bascule runtime). Étape additive, sans migration.
+      // Immutable Release : on gèle TOUTE la config (build + runtime) au moment
+      // du deploy (reproductibilité + audit). On capture la config EFFECTIVE,
+      // c.-à-d. override cellule (ServiceEnvironment) > défaut service — pour que
+      // le snapshot reflète exactement l'état désiré déployé. Lu par le reconciler ;
+      // sera la source unique de l'executor en P2 (rollback EXACT, bascule runtime).
+      // Étape additive, sans migration. NB: les secrets ne sont PAS gelés ici
+      // (chiffrés au repos, jamais en clair dans le snapshot).
       const specSnapshot = {
         capturedAt: new Date().toISOString(),
         repoPath: service.repoPath ?? null,
@@ -197,9 +222,15 @@ export class DeploymentsCreateService {
         buildPack: this.configResolver.buildSourceToBuildPack(buildSource),
         dockerfile: service.dockerfile ?? null,
         rootDir: service.rootDir ?? null,
-        port: service.port ?? null,
-        startCommand: service.startCommand ?? null,
-        healthcheckPath: service.healthcheckPath ?? null,
+        // Config runtime EFFECTIVE (override cellule > défaut service).
+        port: serviceEnv.port ?? service.port ?? null,
+        startCommand: serviceEnv.startCommand ?? service.startCommand ?? null,
+        healthcheckPath:
+          serviceEnv.healthcheckPath ?? service.healthcheckPath ?? null,
+        replicas: serviceEnv.replicas ?? service.replicas ?? 1,
+        cpuLimit: service.cpuLimit ?? null,
+        memLimitMb: service.memLimitMb ?? null,
+        buildArgs: service.buildArgs ?? null,
         strategy: dto.strategy === 'blue-green' ? 'BLUE_GREEN' : 'STANDARD',
         nixpacksConfig: resolvedNixpacksConfig ?? null,
         staticConfig: resolvedStaticConfig ?? null,
@@ -373,10 +404,14 @@ export class DeploymentsCreateService {
       databaseVersion: string | null;
       databaseCredentials: Prisma.JsonValue | null;
     },
-    serviceEnv: { id: string },
+    serviceEnv: { id: string; generation: number },
     environment: {
       id: string;
-      project: { id: string; name: string };
+      project: {
+        id: string;
+        name: string;
+        maxConcurrentDeploys: number | null;
+      };
       servers: { id: string }[];
     },
   ): Promise<Deployment> {
@@ -391,40 +426,7 @@ export class DeploymentsCreateService {
     const server = environment.servers[0] ?? null;
 
     const deployment = await this.prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`
-        SELECT pg_advisory_xact_lock(hashtext('deploy_env:' || ${serviceEnv.id}))
-      `;
-
-      const staleTimeout = new Date(Date.now() - 45 * 60 * 1000); // aligné build timeout (30min) + cron 45min : ne pas tuer un build long légitime
-      await tx.deployment.updateMany({
-        where: {
-          serviceEnvId: serviceEnv.id,
-          status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
-          startedAt: { lt: staleTimeout },
-        },
-        data: {
-          status: DeploymentStatus.FAILED,
-          finishedAt: new Date(),
-          conditions: {
-            type: 'Degraded',
-            reason: 'StaleRecovery',
-            message: 'Déploiement récupéré après un crash du service.',
-          } as unknown as Prisma.InputJsonValue,
-        },
-      });
-
-      const active = await tx.deployment.findFirst({
-        where: {
-          serviceEnvId: serviceEnv.id,
-          status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
-        },
-        select: { id: true, status: true, createdAt: true },
-      });
-      if (active) {
-        throw new BadRequestException(
-          `Un déploiement est déjà en cours (ID: ${active.id}, statut: ${active.status}).`,
-        );
-      }
+      await this.acquireDeploySlot(tx, serviceEnv.id, project);
 
       const specSnapshot = {
         capturedAt: new Date().toISOString(),
@@ -452,6 +454,7 @@ export class DeploymentsCreateService {
           resolvedRefs: {
             serverId: server?.id ?? null,
           } as unknown as Prisma.InputJsonValue,
+          observedGeneration: serviceEnv.generation,
         },
       });
     });
