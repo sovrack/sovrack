@@ -11,7 +11,7 @@ import { AlertTriangle, RotateCcw } from 'lucide-react';
 export function SectionError({
   error,
   reset,
-  title = 'Quelque chose a mal tourné',
+  title = 'Something went wrong',
 }: {
   error: Error & { digest?: string };
   reset: () => void;
@@ -31,12 +31,12 @@ export function SectionError({
         {title}
       </h2>
       <p className="mt-1 max-w-md text-sm text-[var(--text-muted)]">
-        Cette section a rencontré une erreur. Réessayez — si le problème
-        persiste, contactez un administrateur.
+        This section ran into an error. Try again — if the problem persists,
+        contact an administrator.
       </p>
       {error.digest && (
         <p className="mt-2 text-xs text-[var(--text-muted)] opacity-60">
-          Réf : {error.digest}
+          Ref: {error.digest}
         </p>
       )}
       <button
@@ -44,7 +44,7 @@ export function SectionError({
         onClick={() => reset()}
         className="mt-5 inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
       >
-        <RotateCcw size={14} /> Réessayer
+        <RotateCcw size={14} /> Try again
       </button>
     </div>
   );

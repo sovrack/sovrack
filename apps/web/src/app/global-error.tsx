@@ -13,7 +13,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <html lang="fr">
+    <html lang="en">
       <body
         style={{
           margin: 0,
@@ -28,14 +28,14 @@ export default function GlobalError({
       >
         <div style={{ maxWidth: 480, padding: 24, textAlign: 'center' }}>
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>
-            Une erreur inattendue est survenue
+            An unexpected error occurred
           </h1>
           <p style={{ marginTop: 8, fontSize: 14, opacity: 0.7 }}>
-            L&apos;application a rencontré un problème. Vous pouvez réessayer.
+            The application ran into a problem. You can try again.
           </p>
           {error.digest && (
             <p style={{ marginTop: 8, fontSize: 12, opacity: 0.4 }}>
-              Réf : {error.digest}
+              Ref: {error.digest}
             </p>
           )}
           <button type="button"
@@ -50,7 +50,7 @@ export default function GlobalError({
               cursor: 'pointer',
             }}
           >
-            Réessayer
+            Try again
           </button>
         </div>
       </body>
