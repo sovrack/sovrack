@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus, Users2 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
-import { TeamCreateDialog } from '@/components/users/team-create-dialog';
-import { useTeams } from '@/hooks/teams/use-teams';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { Button } from '@/shared/ui/button';
+import { EmptyState } from '@/shared/ui/empty-state';
+import { TeamCreateDialog } from '@/features/users/components/team-create-dialog';
+import { useTeams } from '@/features/teams/api/use-teams';
 
 export default function AdminTeamsPage() {
   const router = useRouter();

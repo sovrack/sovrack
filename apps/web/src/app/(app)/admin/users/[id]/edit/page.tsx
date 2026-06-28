@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { usersService } from '@/services/users.service';
-import { getApiErrorMessage } from '@/lib/api';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { usersService } from '@/features/users/api/users.service';
+import { getApiErrorMessage } from '@/shared/lib/api';
 
 const editUserSchema = z.object({
   firstName: z

@@ -3,14 +3,14 @@
 import { useMemo, useState } from 'react';
 import { ClipboardList, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { Alert } from '@/components/ui/alert';
-import { Pagination } from '@/components/ui/pagination';
-import { useAuth } from '@/hooks/auth/use-auth';
-import { auditLogsService } from '@/services/audit-logs.service';
-import { getApiErrorMessage } from '@/lib/api';
-import type { AuditLogItem } from '@/types/audit-log';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { Alert } from '@/shared/ui/alert';
+import { Pagination } from '@/shared/ui/pagination';
+import { useAuth } from '@/features/auth/api/use-auth';
+import { auditLogsService } from '@/features/platform/api/audit-logs.service';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import type { AuditLogItem } from '@/features/platform/types/audit-log';
 
 const PAGE_SIZE = 20;
 

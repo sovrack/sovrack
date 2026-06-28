@@ -1,0 +1,49 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/features/auth/api/use-auth';
+import type { UserRole } from '@/features/auth/types/auth';
+
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  requiredRole?: UserRole;
+}
+
+export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+  const router = useRouter();
+  const { isAuthenticated, user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      if (!isAuthenticated) {
+        router.replace('/login');
+      } else if (requiredRole && user?.role !== requiredRole && user?.role !== 'ADMIN') {
+        router.replace('/access-denied');
+      }
+    }
+  }, [isAuthenticated, user, loading, requiredRole, router]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-[var(--border)] border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-[var(--text-secondary)]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  if (requiredRole && user?.role !== requiredRole && user?.role !== 'ADMIN') {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+export default ProtectedRoute;

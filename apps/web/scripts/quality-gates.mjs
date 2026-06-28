@@ -6,7 +6,7 @@ import path from 'node:path';
 const mode = process.argv[2] ?? 'all';
 const root = process.cwd();
 const srcDir = path.join(root, 'src');
-const navigationFile = path.join(srcDir, 'config', 'navigation.ts');
+const navigationFile = path.join(srcDir, 'shared', 'config', 'navigation.ts');
 const appRoot = path.join(srcDir, 'app', '(app)');
 
 const bannedColorPatterns = [
@@ -156,12 +156,62 @@ function printColorReport(result) {
   console.log('');
 }
 
+// Une feature n'importe une AUTRE feature que par son barrel (@/features/<x>),
+// jamais ses internes (@/features/<x>/components|api|types/...).
+async function checkFeatureIsolation() {
+  const featuresDir = path.join(srcDir, 'features');
+  let features = [];
+  try {
+    features = (await fs.readdir(featuresDir, { withFileTypes: true }))
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name);
+  } catch {
+    return { passed: true, violations: [], scanned: 0 };
+  }
+  const violations = [];
+  let scanned = 0;
+  for (const feat of features) {
+    const files = await listFilesRecursive(path.join(featuresDir, feat));
+    for (const file of files) {
+      if (!/\.(ts|tsx)$/.test(file)) continue;
+      scanned += 1;
+      const source = await fs.readFile(file, 'utf8');
+      const re = /@\/features\/([\w-]+)\/(?:components|api|types)\//g;
+      let match;
+      while ((match = re.exec(source)) !== null) {
+        if (match[1] !== feat) {
+          violations.push({ file: path.relative(root, file), target: match[1] });
+        }
+      }
+    }
+  }
+  return { passed: violations.length === 0, violations, scanned };
+}
+
+function printFeatureIsolationReport(result) {
+  console.log('Feature Isolation Gate');
+  console.log(`- Files scanned: ${result.scanned}`);
+  if (result.violations.length > 0) {
+    console.log('- Import profond cross-feature (passe par le barrel @/features/<x>):');
+    result.violations.forEach((v) =>
+      console.log(`  • ${v.file} -> @/features/${v.target}/internals`),
+    );
+  }
+  if (result.passed) {
+    console.log('- OK');
+  }
+  console.log('');
+}
+
 async function main() {
   const runNavigation = mode === 'all' || mode === 'navigation';
   const runColors = mode === 'all' || mode === 'colors';
+  const runIsolation = mode === 'all' || mode === 'isolation';
 
-  if (!runNavigation && !runColors) {
-    console.error('Usage: node scripts/quality-gates.mjs [all|navigation|colors]');
+  if (!runNavigation && !runColors && !runIsolation) {
+    console.error(
+      'Usage: node scripts/quality-gates.mjs [all|navigation|colors|isolation]',
+    );
     process.exit(1);
   }
 
@@ -177,6 +227,12 @@ async function main() {
     const colors = await checkColors();
     printColorReport(colors);
     results.push(colors.passed);
+  }
+
+  if (runIsolation) {
+    const isolation = await checkFeatureIsolation();
+    printFeatureIsolationReport(isolation);
+    results.push(isolation.passed);
   }
 
   if (results.every(Boolean)) {

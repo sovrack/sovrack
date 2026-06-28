@@ -4,21 +4,21 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, Radar, Wrench, Zap } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { Button } from '@/shared/ui/button';
 import {
   formatPreparationBlockingReason,
   ServerOverallStatusBadge,
   ServerWorkflowBadges,
-} from '@/components/servers/server-status-badges';
-import { ServerValidationCard } from '@/components/servers/server-validation-card';
-import { ServerCapabilitiesCard } from '@/components/servers/server-capabilities-card';
-import { InstalledToolsList } from '@/components/servers/installed-tools-list';
-import { ServerPreparationHistory } from '@/components/servers/server-preparation-history';
-import { ServerPreparationLogViewer } from '@/components/servers/server-preparation-log-viewer';
-import { ServerPrepareDialog, type PrepareOptions } from '@/components/servers/server-prepare-dialog';
-import { ServerAuditTimeline } from '@/components/servers/server-audit-timeline';
+} from '@/features/servers/components/server-status-badges';
+import { ServerValidationCard } from '@/features/servers/components/server-validation-card';
+import { ServerCapabilitiesCard } from '@/features/servers/components/server-capabilities-card';
+import { InstalledToolsList } from '@/features/servers/components/installed-tools-list';
+import { ServerPreparationHistory } from '@/features/servers/components/server-preparation-history';
+import { ServerPreparationLogViewer } from '@/features/servers/components/server-preparation-log-viewer';
+import { ServerPrepareDialog, type PrepareOptions } from '@/features/servers/components/server-prepare-dialog';
+import { ServerAuditTimeline } from '@/features/servers/components/server-audit-timeline';
 import {
   useCancelPreparation,
   useDetectServerInfo,
@@ -32,8 +32,8 @@ import {
   useServerValidationResults,
   useStartServerPreparation,
   useValidateServerSsh,
-} from '@/hooks/servers/use-servers';
-import type { Server, ServerPreparation } from '@/types/server';
+} from '@/features/servers/api/use-servers';
+import type { Server, ServerPreparation } from '@/features/servers/types/server';
 
 export default function AdminServerDetailPage() {
   const params = useParams();

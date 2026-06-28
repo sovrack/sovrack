@@ -1,6 +1,39 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "AppController_getLiveness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Liveness probe (process up)",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "AppController_getReadiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Ready to serve traffic"
+          },
+          "503": {
+            "description": "A hard dependency is unavailable"
+          }
+        },
+        "summary": "Readiness probe (dependencies reachable)",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "AppController_getHealth",
@@ -485,6 +518,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -516,6 +554,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -557,6 +600,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -580,6 +628,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -611,6 +664,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -634,6 +692,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -657,6 +720,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -680,6 +748,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -711,6 +784,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -725,6 +803,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -772,6 +855,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -795,6 +883,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Build"
         ]
@@ -1449,6 +1542,72 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "perPage",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "visibility",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "archived",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeSubgroups",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gitlabUrl",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gitlabToken",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1483,6 +1642,72 @@
             "name": "gitlabProjectId",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "perPage",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "visibility",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "archived",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeSubgroups",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gitlabUrl",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gitlabToken",
+            "required": false,
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -1626,6 +1851,52 @@
           }
         ],
         "summary": "List GitLab pipelines",
+        "tags": [
+          "GitLab"
+        ]
+      }
+    },
+    "/projects/{id}/services/{serviceId}/gitlab/pipelines": {
+      "get": {
+        "operationId": "GitlabController_getPipelinesForService",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GitLab pipelines fetched"
+          },
+          "401": {
+            "description": "Invalid or expired JWT token"
+          },
+          "403": {
+            "description": "Unauthorized access"
+          },
+          "404": {
+            "description": "Service or GitLab config not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List GitLab pipelines for a service repo",
         "tags": [
           "GitLab"
         ]
@@ -2829,7 +3100,7 @@
           }
         },
         "tags": [
-          "IncomingWebhook"
+          "Webhooks (Incoming)"
         ]
       }
     },
@@ -2851,8 +3122,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "WebhookAudit"
+          "Webhooks"
         ]
       }
     },
@@ -2890,8 +3166,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "WebhookAudit"
+          "Webhooks"
         ]
       }
     },
@@ -2913,8 +3194,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "WebhookAudit"
+          "Webhooks"
         ]
       }
     },
@@ -2936,8 +3222,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "WebhookAudit"
+          "Webhooks"
         ]
       }
     },
@@ -2967,8 +3258,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "WebhookAudit"
+          "Webhooks"
         ]
       }
     },
@@ -2980,6 +3276,14 @@
             "name": "projectId",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -2998,8 +3302,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "WebhookManagement"
+          "Webhooks"
         ]
       }
     },
@@ -3011,6 +3320,14 @@
             "name": "projectId",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -3029,8 +3346,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "WebhookManagement"
+          "Webhooks"
         ]
       }
     },
@@ -3047,32 +3369,9 @@
             }
           },
           {
-            "name": "serviceEnvId",
+            "name": "serviceId",
             "required": true,
             "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "WebhookManagement"
-        ]
-      }
-    },
-    "/projects/{projectId}/webhook/resume": {
-      "post": {
-        "operationId": "WebhookManagementController_resume",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -3091,8 +3390,57 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "WebhookManagement"
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{projectId}/webhook/resume": {
+      "post": {
+        "operationId": "WebhookManagementController_resume",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
         ]
       }
     },
@@ -5302,6 +5650,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Automation"
         ]
@@ -5333,6 +5686,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Automation"
         ]
@@ -5355,6 +5713,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Automation"
         ]
@@ -5378,6 +5741,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Automation"
         ]
@@ -5399,6 +5767,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Automation"
         ]
@@ -5430,6 +5803,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Automation"
         ]
@@ -5453,6 +5831,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
           "Automation"
         ]
@@ -5553,6 +5936,51 @@
           }
         ],
         "summary": "Prometheus connectivity and target status",
+        "tags": [
+          "Monitoring"
+        ]
+      }
+    },
+    "/monitoring/servers/{host}/metrics/range": {
+      "get": {
+        "operationId": "MonitoringController_serverMetricRange",
+        "parameters": [
+          {
+            "name": "host",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minutes",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "step",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Historical CPU/mem/disk time-series for a host (Prometheus range)",
         "tags": [
           "Monitoring"
         ]
@@ -5722,6 +6150,59 @@
         ]
       }
     },
+    "/runtime-logs/service/{serviceEnvId}": {
+      "get": {
+        "operationId": "RuntimeLogsController_searchServiceLogs",
+        "parameters": [
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tail",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stream",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search the running container logs of a service-environment",
+        "tags": [
+          "Observability"
+        ]
+      }
+    },
     "/containers": {
       "get": {
         "operationId": "ContainersController_findAll",
@@ -5741,6 +6222,15 @@
             "in": "query",
             "schema": {
               "example": "svc_xxx",
+              "type": "string"
+            }
+          },
+          {
+            "name": "deploymentId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "dep_xxx",
               "type": "string"
             }
           }
@@ -6034,6 +6524,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6075,6 +6573,35 @@
           }
         ],
         "summary": "Add a DNS domain",
+        "tags": [
+          "Domains"
+        ]
+      }
+    },
+    "/dns/domains/{id}": {
+      "delete": {
+        "operationId": "DomainsController_removeDomain",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a DNS domain",
         "tags": [
           "Domains"
         ]
@@ -6695,6 +7222,73 @@
         ]
       }
     },
+    "/projects/{projectId}/services/templates": {
+      "get": {
+        "operationId": "ServicesController_listTemplates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List one-click service templates",
+        "tags": [
+          "Services"
+        ]
+      }
+    },
+    "/projects/{projectId}/services/templates/{templateId}": {
+      "post": {
+        "operationId": "ServicesController_createFromTemplate",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFromTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template services created"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create every service of a one-click template",
+        "tags": [
+          "Services"
+        ]
+      }
+    },
     "/projects/{projectId}/services/{serviceId}": {
       "get": {
         "operationId": "ServicesController_findOne",
@@ -6954,8 +7548,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "Ssl"
+          "SSL"
         ]
       }
     },
@@ -6977,8 +7576,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "Ssl"
+          "SSL"
         ]
       }
     },
@@ -6991,8 +7595,13 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "tags": [
-          "Ssl"
+          "SSL"
         ]
       }
     },
@@ -7047,6 +7656,35 @@
           }
         ],
         "summary": "Trigger a manual backup",
+        "tags": [
+          "Database Backups"
+        ]
+      }
+    },
+    "/service-environments/{serviceEnvId}/backups/{backupId}/restore": {
+      "post": {
+        "operationId": "DatabaseBackupsController_restore",
+        "parameters": [
+          {
+            "name": "backupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore a backup into the running database",
         "tags": [
           "Database Backups"
         ]
@@ -7178,10 +7816,12 @@
         "properties": {
           "email": {
             "type": "string",
+            "format": "email",
             "example": "dev@devops.com"
           },
           "password": {
             "type": "string",
+            "minLength": 8,
             "example": "StrongPassword123!"
           },
           "fullName": {
@@ -7189,11 +7829,11 @@
             "example": "John Developer"
           },
           "role": {
-            "type": "string",
             "enum": [
               "ADMIN",
               "DEVELOPER"
             ],
+            "type": "string",
             "default": "DEVELOPER"
           }
         },
@@ -7212,6 +7852,7 @@
           },
           "newPassword": {
             "type": "string",
+            "minLength": 8,
             "example": "NouveauMotDePasse123!"
           },
           "confirmNewPassword": {
@@ -7233,11 +7874,11 @@
             "example": "John Updated"
           },
           "role": {
-            "type": "string",
             "enum": [
               "ADMIN",
               "DEVELOPER"
-            ]
+            ],
+            "type": "string"
           },
           "isActive": {
             "type": "boolean",
@@ -7249,6 +7890,7 @@
           },
           "newPassword": {
             "type": "string",
+            "minLength": 8,
             "example": "NouveauMotDePasse123!"
           },
           "confirmNewPassword": {
@@ -7259,30 +7901,143 @@
       },
       "LoginDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
       },
       "CreateBuildConfigDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "defaultBuildSource": {
+            "type": "string"
+          },
+          "projectType": {
+            "type": "string"
+          },
+          "buildPort": {
+            "type": "number",
+            "minimum": 1
+          },
+          "buildStartCmd": {
+            "type": "string"
+          },
+          "autoDeploy": {
+            "type": "boolean"
+          },
+          "autoDeployBranch": {
+            "type": "string"
+          },
+          "dockerfileContent": {
+            "type": "string"
+          },
+          "gitlabCiContent": {
+            "type": "string"
+          },
+          "dockerComposeContent": {
+            "type": "string"
+          },
+          "overwriteDockerfile": {
+            "type": "boolean"
+          },
+          "overwriteGitlabCi": {
+            "type": "boolean"
+          },
+          "nixpacksConfig": {
+            "type": "object"
+          },
+          "staticConfig": {
+            "type": "object"
+          }
+        }
       },
       "CreateGitlabProviderDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "providerUrl": {
+            "type": "string"
+          },
+          "internalUrl": {
+            "type": "string"
+          },
+          "redirectUri": {
+            "type": "string"
+          },
+          "applicationId": {
+            "type": "string"
+          },
+          "applicationSecret": {
+            "type": "string"
+          },
+          "groupNames": {
+            "type": "string"
+          },
+          "adminToken": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "providerUrl"
+        ]
       },
       "UpdateGitlabProviderDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "providerUrl": {
+            "type": "string"
+          },
+          "internalUrl": {
+            "type": "string"
+          },
+          "redirectUri": {
+            "type": "string"
+          },
+          "applicationId": {
+            "type": "string"
+          },
+          "applicationSecret": {
+            "type": "string"
+          },
+          "groupNames": {
+            "type": "string"
+          },
+          "adminToken": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        }
       },
       "ConnectSourceDto": {
         "type": "object",
         "properties": {
           "provider": {
-            "type": "string",
             "enum": [
               "GITLAB",
               "GITHUB",
               "GITEA"
             ],
+            "type": "string",
             "example": "GITLAB",
             "description": "Type de provider Git (GITLAB ou GITHUB)"
           },
@@ -7348,11 +8103,32 @@
       },
       "TriggerPipelineDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "branch": {
+            "type": "string"
+          },
+          "repoId": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "branch"
+        ]
       },
       "UpdatePlatformConfigDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "isSecret": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "value"
+        ]
       },
       "CreateProjectDto": {
         "type": "object",
@@ -7367,6 +8143,7 @@
           },
           "ownerId": {
             "type": "string",
+            "format": "uuid",
             "example": "0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd",
             "description": "DEVELOPER user to assign as OWNER"
           }
@@ -7380,6 +8157,7 @@
         "properties": {
           "id": {
             "type": "number",
+            "minimum": 1,
             "example": 123456
           },
           "name": {
@@ -7399,14 +8177,14 @@
             "example": "frontend"
           },
           "serviceType": {
-            "type": "string",
             "enum": [
               "APPLICATION",
               "DATABASE",
               "MANAGED",
               "WORKER",
               "CRON"
-            ]
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -7433,6 +8211,7 @@
           },
           "gitlabUrl": {
             "type": "string",
+            "format": "uri",
             "example": "https://gitlab.com"
           },
           "gitlabToken": {
@@ -7444,14 +8223,15 @@
             "example": "company/my-apps"
           },
           "importMode": {
-            "type": "string",
             "enum": [
               "ONE_APPLICATION",
               "SEPARATE_PROJECTS"
             ],
+            "type": "string",
             "example": "ONE_APPLICATION"
           },
           "repositories": {
+            "minItems": 1,
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/GitlabGroupImportRepositoryDto"
@@ -7459,6 +8239,7 @@
           },
           "ownerId": {
             "type": "string",
+            "format": "uuid",
             "example": "0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd",
             "description": "DEVELOPER user to assign as OWNER"
           }
@@ -7480,6 +8261,12 @@
           "description": {
             "type": "string",
             "example": "Updated description"
+          },
+          "maxConcurrentDeploys": {
+            "type": "number",
+            "minimum": 0,
+            "example": 3,
+            "description": "Max simultaneous in-flight deployments for this project (0 = unlimited)."
           }
         }
       },
@@ -7492,15 +8279,16 @@
           },
           "email": {
             "type": "string",
+            "format": "email",
             "example": "dev@devops.com"
           },
           "role": {
-            "type": "string",
             "enum": [
               "OWNER",
               "DEVELOPER",
               "VIEWER"
             ],
+            "type": "string",
             "default": "DEVELOPER"
           }
         }
@@ -7510,11 +8298,18 @@
         "properties": {
           "name": {
             "type": "string",
+            "maxLength": 50,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
             "example": "staging"
           },
           "env": {
             "type": "string",
             "example": "{\"NODE_ENV\":\"staging\",\"PORT\":3001}"
+          },
+          "secretsEnv": {
+            "type": "string",
+            "description": "Secrets JSON (chiffrés au repos)",
+            "example": "{\"DB_PASSWORD\":\"...\"}"
           }
         },
         "required": [
@@ -7526,11 +8321,18 @@
         "properties": {
           "name": {
             "type": "string",
+            "maxLength": 50,
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$",
             "example": "production"
           },
           "env": {
             "type": "string",
             "example": "{\"NODE_ENV\":\"production\"}"
+          },
+          "secretsEnv": {
+            "type": "string",
+            "description": "Secrets JSON (chiffrés au repos)",
+            "example": "{\"DB_PASSWORD\":\"...\"}"
           }
         }
       },
@@ -7551,6 +8353,7 @@
           },
           "port": {
             "type": "number",
+            "minimum": 1,
             "example": 4000
           },
           "startCommand": {
@@ -7559,6 +8362,7 @@
           },
           "replicas": {
             "type": "number",
+            "minimum": 0,
             "example": 2
           },
           "healthcheckPath": {
@@ -7566,7 +8370,6 @@
             "example": "/health"
           },
           "buildPack": {
-            "type": "string",
             "enum": [
               "NIXPACKS",
               "BUILDPACK",
@@ -7575,6 +8378,7 @@
               "STATIC",
               "NONE"
             ],
+            "type": "string",
             "example": "DOCKERFILE"
           },
           "env": {
@@ -7585,6 +8389,16 @@
             "type": "string",
             "description": "Secret variables as JSON. Encrypted at rest; never returned by the API.",
             "example": "{\"DB_PASSWORD\":\"s3cr3t\"}"
+          },
+          "autoDeploy": {
+            "type": "boolean",
+            "description": "Déploiement auto sur push (via webhook).",
+            "example": true
+          },
+          "autoBranch": {
+            "type": "string",
+            "description": "Branche déclenchant le déploiement auto.",
+            "example": "main"
           }
         },
         "required": [
@@ -7609,6 +8423,7 @@
           },
           "port": {
             "type": "number",
+            "minimum": 1,
             "example": 4000
           },
           "startCommand": {
@@ -7617,6 +8432,7 @@
           },
           "replicas": {
             "type": "number",
+            "minimum": 0,
             "example": 2
           },
           "healthcheckPath": {
@@ -7624,7 +8440,6 @@
             "example": "/health"
           },
           "buildPack": {
-            "type": "string",
             "enum": [
               "NIXPACKS",
               "BUILDPACK",
@@ -7633,6 +8448,7 @@
               "STATIC",
               "NONE"
             ],
+            "type": "string",
             "example": "DOCKERFILE"
           },
           "env": {
@@ -7643,12 +8459,50 @@
             "type": "string",
             "description": "Secret variables as JSON. Encrypted at rest; never returned by the API.",
             "example": "{\"DB_PASSWORD\":\"s3cr3t\"}"
+          },
+          "autoDeploy": {
+            "type": "boolean",
+            "description": "Déploiement auto sur push (via webhook).",
+            "example": true
+          },
+          "autoBranch": {
+            "type": "string",
+            "description": "Branche déclenchant le déploiement auto.",
+            "example": "main"
           }
         }
       },
       "UpdateNotificationSettingsDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "slackWebhookUrl": {
+            "type": "string"
+          },
+          "notifyOnSuccess": {
+            "type": "boolean"
+          },
+          "notifyOnFailure": {
+            "type": "boolean"
+          },
+          "smtpHost": {
+            "type": "string"
+          },
+          "smtpPort": {
+            "type": "number"
+          },
+          "smtpUser": {
+            "type": "string"
+          },
+          "smtpPass": {
+            "type": "string"
+          },
+          "smtpFrom": {
+            "type": "string"
+          },
+          "smtpTo": {
+            "type": "string"
+          }
+        }
       },
       "ServerActiveJobDto": {
         "type": "object",
@@ -7657,16 +8511,15 @@
             "type": "string"
           },
           "type": {
-            "type": "string",
             "enum": [
               "VERIFY",
               "INSTALL_TOOLS",
               "PREPARE_SERVER",
               "REGISTER_RUNNER"
-            ]
+            ],
+            "type": "string"
           },
           "status": {
-            "type": "string",
             "enum": [
               "PENDING",
               "RUNNING",
@@ -7674,7 +8527,8 @@
               "FAILED",
               "TIMEOUT",
               "BLOCKED"
-            ]
+            ],
+            "type": "string"
           },
           "startedAt": {
             "type": "string",
@@ -7752,7 +8606,6 @@
             "type": "string"
           },
           "status": {
-            "type": "string",
             "enum": [
               "NEW",
               "SSH_PENDING",
@@ -7766,7 +8619,8 @@
               "PREPARATION_FAILED",
               "UNREACHABLE",
               "DISABLED"
-            ]
+            ],
+            "type": "string"
           },
           "verificationError": {
             "type": "string",
@@ -7888,7 +8742,6 @@
             "type": "string"
           },
           "status": {
-            "type": "string",
             "enum": [
               "NEW",
               "SSH_PENDING",
@@ -7902,7 +8755,8 @@
               "PREPARATION_FAILED",
               "UNREACHABLE",
               "DISABLED"
-            ]
+            ],
+            "type": "string"
           },
           "verificationError": {
             "type": "string",
@@ -8012,16 +8866,15 @@
             "type": "string"
           },
           "type": {
-            "type": "string",
             "enum": [
               "VERIFY",
               "INSTALL_TOOLS",
               "PREPARE_SERVER",
               "REGISTER_RUNNER"
-            ]
+            ],
+            "type": "string"
           },
           "status": {
-            "type": "string",
             "enum": [
               "PENDING",
               "RUNNING",
@@ -8029,7 +8882,8 @@
               "FAILED",
               "TIMEOUT",
               "BLOCKED"
-            ]
+            ],
+            "type": "string"
           },
           "output": {
             "type": "string",
@@ -8143,33 +8997,41 @@
         "properties": {
           "name": {
             "type": "string",
+            "maxLength": 80,
             "example": "Production VPS"
           },
           "host": {
             "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9.-]{0,253}$",
             "example": "192.168.1.100"
           },
           "port": {
             "type": "number",
+            "minimum": 1,
+            "maximum": 65535,
             "example": 22,
             "default": 22
           },
           "username": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^[a-z_][a-z0-9_-]{0,31}$",
             "example": "ubuntu",
             "default": "ubuntu"
           },
           "sshKey": {
             "type": "string",
+            "pattern": "PRIVATE KEY",
             "example": "-----BEGIN OPENSSH PRIVATE KEY-----\n...",
             "description": "SSH private key (OpenSSH or PKCS8). If omitted, the platform auto-generates a key pair."
           },
           "verificationMode": {
-            "type": "string",
             "enum": [
               "manual",
               "ssh"
             ],
+            "type": "string",
             "default": "manual",
             "description": "Deprecated: this field is ignored. The server is created, then the SSH key must be installed via /servers/:id/install-key.",
             "deprecated": true
@@ -8197,22 +9059,28 @@
         "properties": {
           "name": {
             "type": "string",
+            "maxLength": 80,
             "example": "Production VPS"
           },
           "host": {
             "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9.-]{0,253}$",
             "example": "10.0.0.10"
           },
           "port": {
             "type": "number",
+            "minimum": 1,
+            "maximum": 65535,
             "example": 22
           },
           "username": {
             "type": "string",
+            "pattern": "^[a-z_][a-z0-9_-]{0,31}$",
             "example": "ubuntu"
           },
           "sshKey": {
             "type": "string",
+            "pattern": "PRIVATE KEY",
             "example": "-----BEGIN OPENSSH PRIVATE KEY-----\n..."
           },
           "connectionMode": {
@@ -8226,14 +9094,6 @@
             "example": true
           },
           "isVerified": {
-            "type": "boolean",
-            "example": true
-          },
-          "hasDocker": {
-            "type": "boolean",
-            "example": true
-          },
-          "hasRunner": {
             "type": "boolean",
             "example": true
           }
@@ -8253,15 +9113,56 @@
       },
       "RegisterRunnerDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "gitlabUrl": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "gitlabUrl",
+          "token"
+        ]
       },
       "SetServerRoleDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "infraRole": {
+            "type": "string",
+            "enum": [
+              "STAGING",
+              "PRODUCTION"
+            ]
+          }
+        },
+        "required": [
+          "infraRole"
+        ]
       },
       "UpsertDockerConnectionDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "endpoint": {
+            "type": "string"
+          },
+          "tlsCaCert": {
+            "type": "string"
+          },
+          "tlsClientCert": {
+            "type": "string"
+          },
+          "tlsClientKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint",
+          "tlsCaCert",
+          "tlsClientCert",
+          "tlsClientKey"
+        ]
       },
       "ServerAuditEventDto": {
         "type": "object",
@@ -8273,7 +9174,7 @@
             "type": "string"
           },
           "actorId": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "eventType": {
@@ -8319,12 +9220,12 @@
             "type": "string"
           },
           "level": {
-            "type": "string",
             "enum": [
               "INFO",
               "WARNING",
               "ERROR"
-            ]
+            ],
+            "type": "string"
           },
           "context": {
             "type": "string"
@@ -8352,7 +9253,6 @@
             "type": "string"
           },
           "status": {
-            "type": "string",
             "enum": [
               "NEW",
               "SSH_PENDING",
@@ -8366,7 +9266,8 @@
               "PREPARATION_FAILED",
               "UNREACHABLE",
               "DISABLED"
-            ]
+            ],
+            "type": "string"
           },
           "verificationError": {
             "type": "string"
@@ -8420,30 +9321,30 @@
             "type": "boolean"
           },
           "fingerprint": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "osName": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "osVersion": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "architecture": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "pythonAvailable": {
             "type": "boolean"
           },
           "validationMessage": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "validatedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "format": "date-time"
           }
@@ -8514,24 +9415,24 @@
             "type": "string"
           },
           "version": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "installedBy": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "status": {
-            "type": "string",
             "enum": [
               "INSTALLED",
               "MISSING",
               "FAILED",
               "UNKNOWN"
-            ]
+            ],
+            "type": "string"
           },
           "installedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "format": "date-time"
           }
@@ -8548,7 +9449,6 @@
         "type": "object",
         "properties": {
           "profile": {
-            "type": "string",
             "enum": [
               "BASIC",
               "WEB",
@@ -8557,6 +9457,7 @@
               "FULL",
               "CUSTOM"
             ],
+            "type": "string",
             "default": "BASIC",
             "description": "Reusable preparation profile. Explicit options override profile defaults."
           },
@@ -8644,6 +9545,7 @@
           },
           "gitlabRunnerExecutor": {
             "type": "string",
+            "maxLength": 32,
             "example": "docker",
             "description": "Executor mode for GitLab Runner. docker implies Docker dependency."
           },
@@ -8679,29 +9581,31 @@
             "type": "number"
           },
           "status": {
-            "type": "string",
             "enum": [
               "PENDING",
               "SKIPPED",
               "RUNNING",
               "OK",
               "CHANGED",
+              "SUCCEEDED",
               "FAILED",
-              "TIMEOUT"
-            ]
+              "TIMEOUT",
+              "CANCELED"
+            ],
+            "type": "string"
           },
           "startedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "format": "date-time"
           },
           "finishedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "format": "date-time"
           },
           "message": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           }
         },
@@ -8724,7 +9628,6 @@
             "type": "string"
           },
           "status": {
-            "type": "string",
             "enum": [
               "QUEUED",
               "RESOLVING_OPTIONS",
@@ -8735,10 +9638,10 @@
               "FAILED",
               "TIMEOUT",
               "CANCELED"
-            ]
+            ],
+            "type": "string"
           },
           "profile": {
-            "type": "string",
             "enum": [
               "BASIC",
               "WEB",
@@ -8746,35 +9649,36 @@
               "RUNNER",
               "FULL",
               "CUSTOM"
-            ]
+            ],
+            "type": "string"
           },
           "triggerSource": {
             "type": "string"
           },
           "requestedById": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "startedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "format": "date-time"
           },
           "finishedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "format": "date-time"
           },
           "summary": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "errorMessage": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "retryOfPreparationId": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "tasks": {
@@ -8869,12 +9773,12 @@
             "type": "string"
           },
           "level": {
-            "type": "string",
             "enum": [
               "INFO",
               "WARNING",
               "ERROR"
-            ]
+            ],
+            "type": "string"
           },
           "source": {
             "type": "string"
@@ -8905,6 +9809,7 @@
         "properties": {
           "reason": {
             "type": "string",
+            "maxLength": 240,
             "example": "Retry after firewall package mirror outage"
           }
         }
@@ -8916,14 +9821,14 @@
             "type": "string"
           },
           "status": {
-            "type": "string",
             "enum": [
               "PENDING",
               "RUNNING",
               "SUCCESS",
               "FAILED",
               "CANCELED"
-            ]
+            ],
+            "type": "string"
           },
           "logs": {
             "type": "string",
@@ -8949,10 +9854,15 @@
             "description": "Concrete refs this deployment resolved to (server, environment)."
           },
           "conditions": {
-            "description": "Structured reconciliation status (Progressing/Ready/Degraded with reason+message).",
             "type": "array",
             "items": {
-              "type": "object"
+              "required": false,
+              "nullable": true,
+              "description": "Structured reconciliation status (Progressing/Ready/Degraded with reason+message).",
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
             }
           },
           "observedGeneration": {
@@ -9000,21 +9910,38 @@
           },
           "databaseInfo": {
             "type": "object",
-            "nullable": true,
-            "description": "Database connection info (type, version, credentials masked)",
-            "example": {
-              "databaseType": "POSTGRES",
-              "databaseVersion": "16",
+            "properties": {
+              "databaseType": {
+                "type": "string"
+              },
+              "databaseVersion": {
+                "type": "string",
+                "nullable": true
+              },
               "credentials": {
-                "user": "app",
-                "dbName": "app"
+                "type": "object",
+                "properties": {
+                  "user": {
+                    "type": "string"
+                  },
+                  "dbName": {
+                    "type": "string"
+                  }
+                },
+                "selfRequired": true
               }
-            }
+            },
+            "required": [
+              "databaseType",
+              "databaseVersion",
+              "credentials"
+            ]
           }
         },
         "required": [
           "id",
           "status",
+          "conditions",
           "branch",
           "environmentId",
           "projectId",
@@ -9158,14 +10085,14 @@
             "type": "string"
           },
           "status": {
-            "type": "string",
             "enum": [
               "PENDING",
               "RUNNING",
               "SUCCESS",
               "FAILED",
               "CANCELED"
-            ]
+            ],
+            "type": "string"
           },
           "logs": {
             "type": "string",
@@ -9191,10 +10118,15 @@
             "description": "Concrete refs this deployment resolved to (server, environment)."
           },
           "conditions": {
-            "description": "Structured reconciliation status (Progressing/Ready/Degraded with reason+message).",
             "type": "array",
             "items": {
-              "type": "object"
+              "required": false,
+              "nullable": true,
+              "description": "Structured reconciliation status (Progressing/Ready/Degraded with reason+message).",
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
             }
           },
           "observedGeneration": {
@@ -9242,16 +10174,32 @@
           },
           "databaseInfo": {
             "type": "object",
-            "nullable": true,
-            "description": "Database connection info (type, version, credentials masked)",
-            "example": {
-              "databaseType": "POSTGRES",
-              "databaseVersion": "16",
+            "properties": {
+              "databaseType": {
+                "type": "string"
+              },
+              "databaseVersion": {
+                "type": "string",
+                "nullable": true
+              },
               "credentials": {
-                "user": "app",
-                "dbName": "app"
+                "type": "object",
+                "properties": {
+                  "user": {
+                    "type": "string"
+                  },
+                  "dbName": {
+                    "type": "string"
+                  }
+                },
+                "selfRequired": true
               }
-            }
+            },
+            "required": [
+              "databaseType",
+              "databaseVersion",
+              "credentials"
+            ]
           },
           "project": {
             "$ref": "#/components/schemas/DeploymentProjectSummaryDto"
@@ -9280,6 +10228,7 @@
         "required": [
           "id",
           "status",
+          "conditions",
           "branch",
           "environmentId",
           "projectId",
@@ -9338,7 +10287,6 @@
             "description": "Required to validate DATABASE services"
           },
           "buildSource": {
-            "type": "string",
             "enum": [
               "DOCKERFILE_REGISTRY",
               "DOCKERFILE_LOCAL",
@@ -9347,7 +10295,8 @@
               "DOCKER_COMPOSE",
               "STATIC",
               "EXTERNAL_IMAGE"
-            ]
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -9422,16 +10371,15 @@
             "example": "main"
           },
           "strategy": {
-            "type": "string",
             "enum": [
               "standard",
               "blue-green"
             ],
+            "type": "string",
             "example": "standard",
             "description": "Deployment strategy: standard (simple restart) or blue-green (zero-downtime)"
           },
           "buildSource": {
-            "type": "string",
             "enum": [
               "DOCKERFILE_REGISTRY",
               "DOCKERFILE_LOCAL",
@@ -9441,20 +10389,59 @@
               "STATIC",
               "EXTERNAL_IMAGE"
             ],
+            "type": "string",
             "example": "DOCKERFILE_LOCAL"
           },
           "overrideImage": {
             "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._/-]*(?::[a-zA-Z0-9._-]+)?$",
             "example": "docker.io/myorg/myapp:latest",
             "description": "Image Docker externe (obligatoire si buildSource=EXTERNAL_IMAGE)"
           },
           "nixpacksConfig": {
             "type": "object",
-            "description": "Nixpacks configuration: build env, runtime env, port, etc."
+            "properties": {
+              "buildEnv": {
+                "type": "object"
+              },
+              "runtimeEnv": {
+                "type": "object"
+              },
+              "buildCommand": {
+                "type": "string"
+              },
+              "startCommand": {
+                "type": "string"
+              },
+              "port": {
+                "type": "number"
+              },
+              "nixpacksVersion": {
+                "type": "string"
+              }
+            },
+            "required": []
           },
           "staticConfig": {
             "type": "object",
-            "description": "Static site configuration: source dir, build cmd, SPA mode, etc."
+            "properties": {
+              "sourceDir": {
+                "type": "string"
+              },
+              "buildCommand": {
+                "type": "string"
+              },
+              "buildDir": {
+                "type": "string"
+              },
+              "spaFallback": {
+                "type": "boolean"
+              },
+              "page404": {
+                "type": "string"
+              }
+            },
+            "required": []
           }
         },
         "required": [
@@ -9463,27 +10450,128 @@
       },
       "CreateTeamDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
       },
       "UpdateTeamDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
       },
       "AddTeamMemberDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId"
+        ]
       },
       "CreateSshKeyDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "privateKey": {
+            "type": "string",
+            "minLength": 10
+          },
+          "publicKey": {
+            "type": "string",
+            "minLength": 10
+          },
+          "keyType": {
+            "type": "string",
+            "enum": [
+              "rsa",
+              "ed25519"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "privateKey",
+          "publicKey"
+        ]
       },
       "CreateAutomationRunDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "actionKey": {
+            "type": "string",
+            "enum": [
+              "system_update",
+              "install_docker",
+              "install_nginx",
+              "install_postgres",
+              "install_redis",
+              "install_gitlab_runner",
+              "configure_firewall",
+              "install_fail2ban",
+              "security_hardening",
+              "install_monitoring",
+              "install_monitoring_stack",
+              "install_prometheus_grafana",
+              "configure_swap",
+              "enable_ssl",
+              "install_nodejs"
+            ]
+          },
+          "serverIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "gitlabRunnerExecutor": {
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "actionKey",
+          "serverIds"
+        ]
       },
       "InstallMonitoringDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "actionKey": {
+            "type": "string"
+          },
+          "serverIds": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "actionKey",
+          "serverIds"
+        ]
       },
       "CreateDnsProviderDto": {
         "type": "object",
@@ -9493,13 +10581,13 @@
             "example": "Manual DNS"
           },
           "type": {
-            "type": "string",
             "enum": [
               "CLOUDFLARE",
               "DIGITALOCEAN",
               "OVH",
               "MANUAL"
             ],
+            "type": "string",
             "example": "MANUAL"
           },
           "apiToken": {
@@ -9525,6 +10613,7 @@
         "properties": {
           "name": {
             "type": "string",
+            "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$",
             "example": "example.com"
           },
           "providerId": {
@@ -9534,6 +10623,10 @@
           "projectId": {
             "type": "string",
             "example": "project-uuid"
+          },
+          "serviceEnvId": {
+            "type": "string",
+            "example": "service-env-uuid"
           }
         },
         "required": [
@@ -9544,12 +10637,12 @@
         "type": "object",
         "properties": {
           "type": {
-            "type": "string",
             "enum": [
               "A",
               "CNAME",
               "TXT"
             ],
+            "type": "string",
             "example": "A"
           },
           "name": {
@@ -9562,6 +10655,7 @@
           },
           "ttl": {
             "type": "number",
+            "minimum": 60,
             "example": 300
           },
           "proxied": {
@@ -9581,11 +10675,67 @@
       },
       "CreateRegistryConfigDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "GITLAB",
+              "DOCKER_HUB",
+              "DOCKER_REGISTRY",
+              "ECR",
+              "GCR"
+            ]
+          },
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "registryUrl": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
       },
       "UpdateRegistryConfigDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "GITLAB",
+              "DOCKER_HUB",
+              "DOCKER_REGISTRY",
+              "ECR",
+              "GCR"
+            ]
+          },
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "registryUrl": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        }
       },
       "CreateProxyRuleDto": {
         "type": "object",
@@ -9596,6 +10746,8 @@
           },
           "targetPort": {
             "type": "number",
+            "minimum": 1,
+            "maximum": 65535,
             "example": 3000
           },
           "serverId": {
@@ -9608,13 +10760,13 @@
             "default": true
           },
           "certType": {
-            "type": "string",
             "enum": [
               "LETS_ENCRYPT",
               "CUSTOM",
               "SELF_SIGNED",
               "NONE"
             ],
+            "type": "string",
             "default": "LETS_ENCRYPT"
           },
           "serviceEnvId": {
@@ -9633,6 +10785,8 @@
         "properties": {
           "targetPort": {
             "type": "number",
+            "minimum": 1,
+            "maximum": 65535,
             "example": 3001
           },
           "sslEnabled": {
@@ -9640,13 +10794,13 @@
             "example": false
           },
           "certType": {
-            "type": "string",
             "enum": [
               "LETS_ENCRYPT",
               "CUSTOM",
               "SELF_SIGNED",
               "NONE"
-            ]
+            ],
+            "type": "string"
           },
           "isActive": {
             "type": "boolean",
@@ -9658,12 +10812,12 @@
         "type": "object",
         "properties": {
           "provider": {
-            "type": "string",
             "enum": [
               "GITLAB",
               "GITHUB",
               "GITEA"
-            ]
+            ],
+            "type": "string"
           },
           "repoPath": {
             "type": "string",
@@ -9692,7 +10846,6 @@
             "example": "api"
           },
           "type": {
-            "type": "string",
             "enum": [
               "APPLICATION",
               "DATABASE",
@@ -9700,6 +10853,7 @@
               "WORKER",
               "CRON"
             ],
+            "type": "string",
             "example": "APPLICATION"
           },
           "description": {
@@ -9707,12 +10861,12 @@
             "example": "Backend API NestJS"
           },
           "sourceType": {
-            "type": "string",
             "enum": [
               "GIT",
               "DOCKER_IMAGE",
               "NONE"
             ],
+            "type": "string",
             "example": "GIT"
           },
           "repoPath": {
@@ -9732,7 +10886,6 @@
             "example": "/"
           },
           "buildPack": {
-            "type": "string",
             "enum": [
               "NIXPACKS",
               "BUILDPACK",
@@ -9741,7 +10894,31 @@
               "STATIC",
               "NONE"
             ],
+            "type": "string",
             "example": "DOCKERFILE"
+          },
+          "buildMode": {
+            "enum": [
+              "LOCAL",
+              "REGISTRY"
+            ],
+            "type": "string",
+            "example": "LOCAL"
+          },
+          "deployTrigger": {
+            "enum": [
+              "PUSH",
+              "PIPELINE_SUCCESS",
+              "CI_HOOK",
+              "MANUAL"
+            ],
+            "type": "string",
+            "example": "PUSH"
+          },
+          "registryImage": {
+            "type": "string",
+            "example": "registry.gitlab.com/grp/app:latest",
+            "description": "Mode REGISTRY : image à tirer telle quelle (sinon dérivée)."
           },
           "buildType": {
             "type": "string",
@@ -9753,11 +10930,24 @@
           },
           "port": {
             "type": "number",
+            "minimum": 1,
             "example": 3000
           },
           "startCommand": {
             "type": "string",
             "example": "npm run start:prod"
+          },
+          "cpuLimit": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0.5,
+            "description": "CPU limit in cores"
+          },
+          "memLimitMb": {
+            "type": "number",
+            "minimum": 0,
+            "example": 512,
+            "description": "Memory limit in MB"
           },
           "buildArgs": {
             "type": "object"
@@ -9777,7 +10967,6 @@
             "example": "api"
           },
           "databaseType": {
-            "type": "string",
             "enum": [
               "POSTGRES",
               "MYSQL",
@@ -9785,6 +10974,7 @@
               "MONGODB",
               "RABBITMQ"
             ],
+            "type": "string",
             "example": "POSTGRES"
           },
           "databaseVersion": {
@@ -9804,6 +10994,7 @@
           },
           "replicas": {
             "type": "number",
+            "minimum": 0,
             "example": 1
           },
           "source": {
@@ -9823,12 +11014,12 @@
         "type": "object",
         "properties": {
           "provider": {
-            "type": "string",
             "enum": [
               "GITLAB",
               "GITHUB",
               "GITEA"
-            ]
+            ],
+            "type": "string"
           },
           "groupPath": {
             "type": "string",
@@ -9845,8 +11036,19 @@
         },
         "required": [
           "provider",
-          "groupPath",
-          "token"
+          "groupPath"
+        ]
+      },
+      "CreateFromTemplateDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "my-stack"
+          }
+        },
+        "required": [
+          "name"
         ]
       },
       "UpdateServiceDto": {
@@ -9857,7 +11059,6 @@
             "example": "api"
           },
           "type": {
-            "type": "string",
             "enum": [
               "APPLICATION",
               "DATABASE",
@@ -9865,6 +11066,7 @@
               "WORKER",
               "CRON"
             ],
+            "type": "string",
             "example": "APPLICATION"
           },
           "description": {
@@ -9872,12 +11074,12 @@
             "example": "Backend API NestJS"
           },
           "sourceType": {
-            "type": "string",
             "enum": [
               "GIT",
               "DOCKER_IMAGE",
               "NONE"
             ],
+            "type": "string",
             "example": "GIT"
           },
           "repoPath": {
@@ -9897,7 +11099,6 @@
             "example": "/"
           },
           "buildPack": {
-            "type": "string",
             "enum": [
               "NIXPACKS",
               "BUILDPACK",
@@ -9906,7 +11107,31 @@
               "STATIC",
               "NONE"
             ],
+            "type": "string",
             "example": "DOCKERFILE"
+          },
+          "buildMode": {
+            "enum": [
+              "LOCAL",
+              "REGISTRY"
+            ],
+            "type": "string",
+            "example": "LOCAL"
+          },
+          "deployTrigger": {
+            "enum": [
+              "PUSH",
+              "PIPELINE_SUCCESS",
+              "CI_HOOK",
+              "MANUAL"
+            ],
+            "type": "string",
+            "example": "PUSH"
+          },
+          "registryImage": {
+            "type": "string",
+            "example": "registry.gitlab.com/grp/app:latest",
+            "description": "Mode REGISTRY : image à tirer telle quelle (sinon dérivée)."
           },
           "buildType": {
             "type": "string",
@@ -9918,11 +11143,24 @@
           },
           "port": {
             "type": "number",
+            "minimum": 1,
             "example": 3000
           },
           "startCommand": {
             "type": "string",
             "example": "npm run start:prod"
+          },
+          "cpuLimit": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0.5,
+            "description": "CPU limit in cores"
+          },
+          "memLimitMb": {
+            "type": "number",
+            "minimum": 0,
+            "example": 512,
+            "description": "Memory limit in MB"
           },
           "buildArgs": {
             "type": "object"
@@ -9942,7 +11180,6 @@
             "example": "api"
           },
           "databaseType": {
-            "type": "string",
             "enum": [
               "POSTGRES",
               "MYSQL",
@@ -9950,6 +11187,7 @@
               "MONGODB",
               "RABBITMQ"
             ],
+            "type": "string",
             "example": "POSTGRES"
           },
           "databaseVersion": {
@@ -9969,6 +11207,7 @@
           },
           "replicas": {
             "type": "number",
+            "minimum": 0,
             "example": 1
           },
           "source": {
@@ -9998,6 +11237,7 @@
           },
           "sizeGb": {
             "type": "number",
+            "minimum": 1,
             "example": 10,
             "description": "Taille en Go"
           },
@@ -10020,13 +11260,25 @@
           },
           "sizeGb": {
             "type": "number",
+            "minimum": 1,
             "example": 20
           }
         }
       },
       "OpenPreviewDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "mergeRequestId": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mergeRequestId",
+          "branch"
+        ]
       }
     }
   }

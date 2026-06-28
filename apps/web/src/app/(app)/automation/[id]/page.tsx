@@ -10,19 +10,19 @@ import {
   StopCircle,
   XCircle,
 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { LogTerminal } from '@/components/log-terminal';
-import { getApiErrorMessage } from '@/lib/api';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { Badge } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
+import { LogTerminal } from '@/shared/common/log-terminal';
+import { getApiErrorMessage } from '@/shared/lib/api';
 import {
   useAutomationRun,
   useAutomationRunLogs,
   useCancelAutomationRun,
-} from '@/hooks/automation/use-automation';
-import { useAutomationLogStream } from '@/hooks/automation/use-automation-log-stream';
-import type { AutomationRun, AutomationRunLog, AutomationRunStatus, AutomationTargetStatus } from '@/types/automation';
+} from '@/features/automation/api/use-automation';
+import { useAutomationLogStream } from '@/features/automation/api/use-automation-log-stream';
+import type { AutomationRun, AutomationRunLog, AutomationRunStatus, AutomationTargetStatus } from '@/features/automation/types/automation';
 
 type Props = { params: Promise<{ id: string }> };
 

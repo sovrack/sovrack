@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -20,41 +20,54 @@ import {
   StopCircle,
   TerminalSquare,
   Trash2,
+  Webhook,
 } from 'lucide-react';
-import { getApiErrorMessage } from '@/lib/api';
-import { useConfirm } from '@/contexts/confirm-context';
-import { servicesService } from '@/services/services.service';
-import { deploymentsService } from '@/services/deployments.service';
-import { containersService } from '@/services/containers.service';
-import { environmentsService } from '@/services/environments.service';
-import { DeployDialog } from '@/components/deployments/deploy-dialog';
-import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
-import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { ServiceConfigForm } from '@/components/projects/tabs/service/service-config-form';
-import { ServiceWebhook } from '@/components/projects/tabs/service/service-webhook';
-import { ServiceCiGenerator } from '@/components/projects/tabs/service/service-ci-generator';
-import { ServiceTerminalDialog } from '@/components/projects/tabs/service/service-terminal-dialog';
-import { ServiceDomains } from '@/components/projects/tabs/service/service-domains';
-import { ServicePipelines } from '@/components/projects/tabs/service/service-pipelines';
-import { ServiceLogs } from '@/components/projects/tabs/service/service-logs';
-import { ServiceMonitoring } from '@/components/projects/tabs/service/service-monitoring';
-import { ServiceEnvironments } from '@/components/projects/tabs/service/service-environments';
-import { resolveDeploymentUrl } from '@/lib/deployment-utils';
-import type { Service } from '@/types/service';
-import type { Deployment } from '@/types/deployment';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { useConfirm } from '@/shared/contexts/confirm-context';
+import { servicesService } from '@/features/projects/api/services.service';
+import { deploymentsService } from '@/features/deployments/api/deployments.service';
+import { containersService } from '@/features/registry/api/containers.service';
+import { environmentsService } from '@/features/projects/api/environments.service';
+import { useProjectServices } from '@/features/projects/api/use-project-services';
+import { useProjectDeployments } from '@/features/projects/api/use-project-deployments';
+import { useProjectEnvironments } from '@/features/projects/api/use-project-environments';
+import { DeployDialog } from '@/features/deployments/components/deploy-dialog';
+import { DeploymentStatusBadge } from '@/features/deployments/components/deployment-status-badge';
+import { ProjectDeploymentsTab } from '@/features/projects/components/project-deployments-tab';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { ServiceConfigForm } from '@/features/projects/components/tabs/service/service-config-form';
+import { ServiceWebhook } from '@/features/projects/components/tabs/service/service-webhook';
+import { ServiceCiGenerator } from '@/features/projects/components/tabs/service/service-ci-generator';
+import { ServiceTerminalDialog } from '@/features/projects/components/tabs/service/service-terminal-dialog';
+import { ServiceDomains } from '@/features/projects/components/tabs/service/service-domains';
+import { ServicePipelines } from '@/features/projects/components/tabs/service/service-pipelines';
+import { ServiceMonitoring } from '@/features/projects/components/tabs/service/service-monitoring';
+import { ServiceMetricsChart } from '@/features/projects/components/tabs/service/service-metrics-chart';
+import { ServiceLogs } from '@/features/projects/components/tabs/service/service-logs';
+import { ServiceEnvironments } from '@/features/projects/components/tabs/service/service-environments';
+import { resolveDeploymentUrl } from '@/features/deployments/utils';
+import type { Service } from '@/features/projects/types/service';
+import type { Deployment } from '@/features/deployments/types';
 
-type Tab = 'general' | 'variables' | 'domains' | 'webhooks' | 'logs' | 'deployments' | 'pipelines' | 'monitoring';
+type Tab =
+  | 'general'
+  | 'cicd'
+  | 'environnements'
+  | 'domains'
+  | 'webhooks'
+  | 'deployments'
+  | 'monitoring'
+  | 'logs';
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'general', label: 'General', icon: Settings2 },
-  { id: 'variables', label: 'Variables', icon: ScrollText },
+  { id: 'cicd', label: 'CI/CD', icon: GitPullRequestArrow },
+  { id: 'environnements', label: 'Environnements', icon: Layers },
   { id: 'domains', label: 'Domains', icon: Globe },
-  { id: 'webhooks', label: 'Webhooks', icon: GitPullRequestArrow },
-  { id: 'logs', label: 'Logs', icon: ScrollText },
+  { id: 'webhooks', label: 'Webhooks', icon: Webhook },
   { id: 'deployments', label: 'Deployments', icon: Activity },
-  { id: 'pipelines', label: 'Pipelines', icon: GitPullRequestArrow },
   { id: 'monitoring', label: 'Monitoring', icon: ContainerIcon },
+  { id: 'logs', label: 'Logs', icon: ScrollText },
 ];
 
 export default function ServiceDetailPage({ params }: { params: Promise<{ id: string; serviceId: string }> }) {
@@ -62,42 +75,52 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
   const router = useRouter();
   const confirm = useConfirm();
 
-  const [service, setService] = useState<Service | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [services, setServices] = useState<Service[]>([]);
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('general');
   const [deployOpen, setDeployOpen] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [redeploying, setRedeploying] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [environments, setEnvironments] = useState<{ id: string; name: string }[]>([]);
   const [selectedEnvId, setSelectedEnvId] = useState<string>('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [all, deps, envs] = await Promise.all([
-        servicesService.getAll(projectId),
-        deploymentsService.getByProject(projectId),
-        environmentsService.getAll(projectId),
-      ]);
-      setServices(all);
-      setService(all.find((s) => s.id === serviceId) ?? null);
-      setDeployments(deps.filter((d) => d.serviceId === serviceId));
-      setEnvironments(envs.map((e) => ({ id: e.id, name: e.name })));
-      setSelectedEnvId((prev) => prev || envs[0]?.id || '');
-    } catch (e) {
-      setError(getApiErrorMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId, serviceId]);
+  // Data via React Query (cohérent avec la page projet ; le cache est partagé,
+  // donc naviguer projet → service réutilise les listes déjà chargées).
+  const servicesQuery = useProjectServices(projectId);
+  const deploymentsQuery = useProjectDeployments(projectId);
+  const environmentsQuery = useProjectEnvironments(projectId);
 
-  useEffect(() => { void load(); }, [load]);
+  const services: Service[] = servicesQuery.data ?? [];
+  const service = services.find((s) => s.id === serviceId) ?? null;
+  const deployments: Deployment[] = (deploymentsQuery.deployments ?? []).filter(
+    (d) => d.serviceId === serviceId,
+  );
+  const environments = (environmentsQuery.data ?? []).map((e) => ({
+    id: e.id,
+    name: e.name,
+  }));
+  const loading =
+    servicesQuery.isLoading ||
+    deploymentsQuery.loading ||
+    environmentsQuery.isLoading;
+  const error =
+    (servicesQuery.error ? getApiErrorMessage(servicesQuery.error) : null) ??
+    (environmentsQuery.error
+      ? getApiErrorMessage(environmentsQuery.error)
+      : null) ??
+    deploymentsQuery.error;
+
+  const reload = () => {
+    void servicesQuery.refetch();
+    void deploymentsQuery.refresh();
+    void environmentsQuery.refetch();
+  };
+
+  // Sélecteur d'environnement cible : défaut = 1er env une fois chargé.
+  useEffect(() => {
+    const first = environmentsQuery.data?.[0]?.id;
+    if (first) setSelectedEnvId((prev) => prev || first);
+  }, [environmentsQuery.data]);
 
   const lastDeployment = deployments[0] ?? null;
   const appUrl = lastDeployment ? resolveDeploymentUrl(lastDeployment) : null;
@@ -120,7 +143,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
       }
       await deploymentsService.create({ serviceEnvId: link.id, branch: lastDeployment?.branch ?? undefined });
       setNotice('Redeploy lancé.');
-      void load();
+      reload();
     } catch (e) {
       setNotice(getApiErrorMessage(e));
     } finally {
@@ -136,7 +159,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
       if (!running) { setNotice('No running container found for this service.'); return; }
       await containersService.stop(running.id);
       setNotice('Container stopped.');
-      void load();
+      reload();
     } catch (e) {
       setNotice(getApiErrorMessage(e));
     } finally {
@@ -275,27 +298,34 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
               </dl>
             </SectionCard>
           ) : (
-            <>
-              <ServiceConfigForm projectId={projectId} service={service} onSaved={() => void load()} />
-              <ServiceCiGenerator projectId={projectId} serviceId={serviceId} />
-            </>
+            <ServiceConfigForm projectId={projectId} service={service} onSaved={() => reload()} />
           )}
         </div>
       )}
 
-      {/* Webhooks (intégration CI/CD) */}
+      {/* CI/CD — générateur (Dockerfile + .dockerignore + fichier CI) + runs pipeline */}
+      {tab === 'cicd' && (
+        <div className="space-y-4">
+          {!isDatabase && (
+            <ServiceCiGenerator projectId={projectId} serviceId={serviceId} />
+          )}
+          <ServicePipelines projectId={projectId} serviceId={serviceId} branch={service?.branch ?? null} />
+        </div>
+      )}
+
+      {/* Webhooks (onglet séparé — gère le webhook de déploiement) */}
       {tab === 'webhooks' && (
         <ServiceWebhook projectId={projectId} serviceId={serviceId} />
       )}
 
-      {/* Variables & environnements (ex-onglet Environment) */}
-      {tab === 'variables' && (
+      {/* Environnements (liens service↔env + variables/secrets par env) */}
+      {tab === 'environnements' && (
         <ServiceEnvironments
           projectId={projectId}
           serviceId={serviceId}
           environments={environments}
           envLinks={service.envLinks ?? []}
-          onChanged={() => void load()}
+          onChanged={() => reload()}
         />
       )}
 
@@ -308,33 +338,48 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         />
       )}
 
-      {/* Logs */}
-      {tab === 'logs' && <ServiceLogs deploymentId={lastDeployment?.id ?? null} initialStatus={lastDeployment?.status ?? null} />}
-
-      {/* Deployments — même UI que l'onglet projet (logs/container/rollback en dialog) */}
+      {/* Deployments — historique + logs par déploiement (en dialog) */}
       {tab === 'deployments' && (
         <ProjectDeploymentsTab
           deployments={deployments}
           loading={loading}
           error={error}
           projectId={projectId}
-          onRefresh={() => void load()}
+          onRefresh={() => reload()}
         />
       )}
 
-      {/* Pipelines (CI/CD) */}
-      {tab === 'pipelines' && (
-        <ServicePipelines projectId={projectId} serviceId={serviceId} branch={service?.branch ?? null} />
+      {/* Monitoring : stats live + historique (courbes + marqueurs de déploiement) */}
+      {tab === 'monitoring' && (
+        <div className="space-y-4">
+          <ServiceMonitoring deploymentId={lastDeployment?.id ?? null} />
+          <ServiceMetricsChart
+            serviceEnvId={
+              service.envLinks?.find(
+                (l) => l.environmentId === (selectedEnvId || environments[0]?.id),
+              )?.id ?? null
+            }
+            deployments={deployments}
+          />
+        </div>
       )}
 
-      {/* Monitoring */}
-      {tab === 'monitoring' && <ServiceMonitoring deploymentId={lastDeployment?.id ?? null} />}
+      {/* Logs : recherche historique centralisée (Loki) par période */}
+      {tab === 'logs' && (
+        <ServiceLogs
+          serviceEnvId={
+            service.envLinks?.find(
+              (l) => l.environmentId === (selectedEnvId || environments[0]?.id),
+            )?.id ?? null
+          }
+        />
+      )}
 
       <DeployDialog
         projectId={projectId}
         open={deployOpen}
         onClose={() => setDeployOpen(false)}
-        onCreated={() => { setDeployOpen(false); void load(); }}
+        onCreated={() => { setDeployOpen(false); reload(); }}
         services={services}
         initialServiceId={serviceId}
         initialEnvironmentId={selectedEnvId || undefined}

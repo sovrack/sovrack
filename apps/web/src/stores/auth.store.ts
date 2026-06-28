@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import api, { getApiErrorMessage } from '@/lib/api';
-import { clearAuthStorage } from '@/lib/auth';
-import type { AuthUser } from '@/types/auth';
-import type { LoginResponse } from '@/types/auth';
+import api, { getApiErrorMessage } from '@/shared/lib/api';
+import { clearAuthStorage } from '@/shared/lib/auth';
+import type { AuthUser } from '@/features/auth/types/auth';
+import type { LoginResponse } from '@/features/auth/types/auth';
 
 type AuthState = {
   user: AuthUser | null;

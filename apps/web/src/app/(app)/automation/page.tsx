@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Play, StopCircle, Trash2 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { getApiErrorMessage } from '@/lib/api';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { Badge } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
+import { getApiErrorMessage } from '@/shared/lib/api';
 import {
   useAutomationActions,
   useAutomationRun,
@@ -16,11 +16,11 @@ import {
   useCancelAutomationRun,
   useDeleteAutomationRun,
   useStartAutomationRun,
-} from '@/hooks/automation/use-automation';
-import { useAutomationLogStream } from '@/hooks/automation/use-automation-log-stream';
-import { useServers } from '@/hooks/servers/use-servers';
-import { useConfirm } from '@/contexts/confirm-context';
-import type { AutomationRun, AutomationRunLog, AutomationRunStatus } from '@/types/automation';
+} from '@/features/automation/api/use-automation';
+import { useAutomationLogStream } from '@/features/automation/api/use-automation-log-stream';
+import { useServers } from '@/features/servers/api/use-servers';
+import { useConfirm } from '@/shared/contexts/confirm-context';
+import type { AutomationRun, AutomationRunLog, AutomationRunStatus } from '@/features/automation/types/automation';
 
 const ACTIVE_RUN_STATUSES: AutomationRunStatus[] = ['QUEUED', 'RUNNING'];
 const AUTOMATION_STATUS_FILTERS: Array<'ALL' | AutomationRunStatus> = [

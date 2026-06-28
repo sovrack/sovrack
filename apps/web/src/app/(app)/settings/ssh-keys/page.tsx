@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Copy, Download, KeyRound, Loader2, Plus, Trash2, X } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
-import { Alert } from '@/components/ui/alert';
-import { getApiErrorMessage } from '@/lib/api';
-import { sshKeysService } from '@/services/ssh-keys.service';
-import { useSshKeys } from '@/hooks/ssh-keys/use-ssh-keys';
-import type { SshKey } from '@/types/ssh-key';
+import { PageHeader } from '@/shared/layout/page-header';
+import { Button } from '@/shared/ui/button';
+import { Alert } from '@/shared/ui/alert';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { sshKeysService } from '@/features/ssh-keys/api/ssh-keys.service';
+import { useSshKeys } from '@/features/ssh-keys/api/use-ssh-keys';
+import type { SshKey } from '@/features/ssh-keys/types/ssh-key';
 
 type KeyType = 'ed25519' | 'rsa';
 

@@ -3,6 +3,7 @@
 import { use, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
   AlertTriangle,
@@ -14,15 +15,14 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { teamsService } from '@/services/teams.service';
-import { usersService } from '@/services/users.service';
-import { getApiErrorMessage } from '@/lib/api';
-import { useAuth } from '@/hooks/auth/use-auth';
-import type { Team } from '@/types/team';
-import type { UserListItem } from '@/types/user';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { teamsService } from '@/features/teams/api/teams.service';
+import { useTeam, teamKey } from '@/features/teams/api/use-teams';
+import { useUsers } from '@/features/users/api/use-users';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { useAuth } from '@/features/auth/api/use-auth';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -40,9 +40,14 @@ export default function TeamDetailPage({ params }: Props) {
   const router = useRouter();
   const { isAdmin, loading: authLoading } = useAuth();
 
-  const [team, setTeam] = useState<Team | null>(null);
-  const [users, setUsers] = useState<UserListItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const canQuery = !authLoading && isAdmin;
+  const teamQuery = useTeam(id, canQuery);
+  const usersQuery = useUsers(canQuery);
+  const team = teamQuery.data ?? null;
+  const users = usersQuery.data ?? [];
+  const loading = teamQuery.isLoading || usersQuery.isLoading;
+
   const [saving, setSaving] = useState(false);
   const [addingUserId, setAddingUserId] = useState<string | null>(null);
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
@@ -50,41 +55,27 @@ export default function TeamDetailPage({ params }: Props) {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [form, setForm] = useState<FormData>({ name: '', description: '' });
+  const [hydrated, setHydrated] = useState(false);
 
   const showToast = useCallback((message: string, tone: 'success' | 'error') => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2600);
   }, []);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [fetchedTeam, fetchedUsers] = await Promise.all([
-        teamsService.getById(id),
-        usersService.getAll(),
-      ]);
-      setTeam(fetchedTeam);
-      setForm({
-        name: fetchedTeam.name,
-        description: fetchedTeam.description ?? '',
-      });
-      setUsers(fetchedUsers);
-    } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [id, showToast]);
-
+  // Redirige les non-admins ; le chargement des données passe par React Query.
   useEffect(() => {
     if (!authLoading && !isAdmin) {
       router.replace('/access-denied');
-      return;
     }
-    if (!authLoading && isAdmin) {
-      void loadData();
+  }, [authLoading, isAdmin, router]);
+
+  // Hydrate le formulaire une seule fois, dès que l'équipe est chargée.
+  useEffect(() => {
+    if (team && !hydrated) {
+      setForm({ name: team.name, description: team.description ?? '' });
+      setHydrated(true);
     }
-  }, [authLoading, isAdmin, loadData, router]);
+  }, [team, hydrated]);
 
   const setField = <K extends keyof FormData>(key: K, value: FormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -113,7 +104,7 @@ export default function TeamDetailPage({ params }: Props) {
         name: parsed.data.name,
         description: parsed.data.description || undefined,
       });
-      setTeam(updated);
+      queryClient.setQueryData(teamKey(id), updated);
       showToast('Team updated', 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
@@ -126,7 +117,7 @@ export default function TeamDetailPage({ params }: Props) {
     setAddingUserId(userId);
     try {
       const updated = await teamsService.addMember(id, { userId });
-      setTeam(updated);
+      queryClient.setQueryData(teamKey(id), updated);
       showToast('Member added', 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
@@ -139,7 +130,7 @@ export default function TeamDetailPage({ params }: Props) {
     setRemovingUserId(userId);
     try {
       const updated = await teamsService.removeMember(id, userId);
-      setTeam(updated);
+      queryClient.setQueryData(teamKey(id), updated);
       showToast('Member removed', 'success');
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
@@ -245,7 +236,7 @@ export default function TeamDetailPage({ params }: Props) {
 
       <SectionCard title={`Membres (${team.members.length})`}>
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] text-[var(--text-primary)]">
+          <div className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
             <Users size={18} className="text-[var(--text-secondary)]" />
             Membres
           </div>
@@ -253,17 +244,17 @@ export default function TeamDetailPage({ params }: Props) {
           {team.members.length === 0 ? (
             <p className="text-sm text-[var(--text-secondary)]">No members yet.</p>
           ) : (
-            <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] border-[var(--border)]">
+            <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
               {team.members.map((member) => (
                 <div
                   key={member.id}
                   className="flex items-center justify-between px-4 py-3"
                 >
                   <div>
-                    <p className="text-sm font-medium text-[var(--text-primary)] text-[var(--text-primary)]">{member.user.fullName}</p>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{member.user.fullName}</p>
                     <p className="text-xs text-[var(--text-secondary)]">{member.user.email}</p>
                   </div>
-                  <button
+                  <button type="button"
                     onClick={() => void handleRemoveMember(member.userId)}
                     disabled={removingUserId === member.userId}
                     className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
@@ -285,17 +276,17 @@ export default function TeamDetailPage({ params }: Props) {
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
                 Add member
               </p>
-              <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] border-[var(--border)]">
+              <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
                 {availableUsers.map((user) => (
                   <div
                     key={user.id}
                     className="flex items-center justify-between px-4 py-3"
                   >
                     <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)] text-[var(--text-primary)]">{user.fullName}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{user.fullName}</p>
                       <p className="text-xs text-[var(--text-secondary)]">{user.email}</p>
                     </div>
-                    <button
+                    <button type="button"
                       onClick={() => void handleAddMember(user.id)}
                       disabled={addingUserId === user.id}
                       className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
@@ -320,7 +311,7 @@ export default function TeamDetailPage({ params }: Props) {
         description="Deleting this team cannot be undone."
         className="border-red-200 bg-red-50"
       >
-        <button
+        <button type="button"
           onClick={() => setConfirmDeleteOpen(true)}
           className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
         >

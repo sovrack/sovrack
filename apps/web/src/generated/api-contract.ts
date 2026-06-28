@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liveness probe (process up) */
+        get: operations["AppController_getLiveness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readiness probe (dependencies reachable) */
+        get: operations["AppController_getReadiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -758,6 +792,23 @@ export interface paths {
         };
         /** List GitLab pipelines */
         get: operations["GitlabController_getPipelines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{id}/services/{serviceId}/gitlab/pipelines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List GitLab pipelines for a service repo */
+        get: operations["GitlabController_getPipelinesForService"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2204,6 +2255,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/monitoring/servers/{host}/metrics/range": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historical CPU/mem/disk time-series for a host (Prometheus range) */
+        get: operations["MonitoringController_serverMetricRange"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/monitoring/grafana/status": {
         parameters: {
             query?: never;
@@ -2298,6 +2366,23 @@ export interface paths {
         };
         /** List running containers for a project on a server */
         get: operations["MonitoringController_projectContainers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runtime-logs/service/{serviceEnvId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search the running container logs of a service-environment */
+        get: operations["RuntimeLogsController_searchServiceLogs"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2491,6 +2576,23 @@ export interface paths {
         /** Add a DNS domain */
         post: operations["DomainsController_createDomain"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dns/domains/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a DNS domain */
+        delete: operations["DomainsController_removeDomain"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2725,6 +2827,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectId}/services/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List one-click service templates */
+        get: operations["ServicesController_listTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/services/templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create every service of a one-click template */
+        post: operations["ServicesController_createFromTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectId}/services/{serviceId}": {
         parameters: {
             query?: never;
@@ -2847,6 +2983,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/service-environments/{serviceEnvId}/backups/{backupId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a backup into the running database */
+        post: operations["DatabaseBackupsController_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{projectId}/previews": {
         parameters: {
             query?: never;
@@ -2887,7 +3040,10 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         CreateUserDto: {
-            /** @example dev@devops.com */
+            /**
+             * Format: email
+             * @example dev@devops.com
+             */
             email: string;
             /** @example StrongPassword123! */
             password: string;
@@ -2921,10 +3077,48 @@ export interface components {
             /** @example NouveauMotDePasse123! */
             confirmNewPassword?: string;
         };
-        LoginDto: Record<string, never>;
-        CreateBuildConfigDto: Record<string, never>;
-        CreateGitlabProviderDto: Record<string, never>;
-        UpdateGitlabProviderDto: Record<string, never>;
+        LoginDto: {
+            /** Format: email */
+            email: string;
+            password: string;
+        };
+        CreateBuildConfigDto: {
+            defaultBuildSource?: string;
+            projectType?: string;
+            buildPort?: number;
+            buildStartCmd?: string;
+            autoDeploy?: boolean;
+            autoDeployBranch?: string;
+            dockerfileContent?: string;
+            gitlabCiContent?: string;
+            dockerComposeContent?: string;
+            overwriteDockerfile?: boolean;
+            overwriteGitlabCi?: boolean;
+            nixpacksConfig?: Record<string, never>;
+            staticConfig?: Record<string, never>;
+        };
+        CreateGitlabProviderDto: {
+            name: string;
+            providerUrl: string;
+            internalUrl?: string;
+            redirectUri?: string;
+            applicationId?: string;
+            applicationSecret?: string;
+            groupNames?: string;
+            adminToken?: string;
+            isDefault?: boolean;
+        };
+        UpdateGitlabProviderDto: {
+            name?: string;
+            providerUrl?: string;
+            internalUrl?: string;
+            redirectUri?: string;
+            applicationId?: string;
+            applicationSecret?: string;
+            groupNames?: string;
+            adminToken?: string;
+            isDefault?: boolean;
+        };
         ConnectSourceDto: {
             /**
              * @description Type de provider Git (GITLAB ou GITHUB)
@@ -2975,14 +3169,21 @@ export interface components {
              */
             defaultBranch?: string;
         };
-        TriggerPipelineDto: Record<string, never>;
-        UpdatePlatformConfigDto: Record<string, never>;
+        TriggerPipelineDto: {
+            branch: string;
+            repoId?: number;
+        };
+        UpdatePlatformConfigDto: {
+            value: string;
+            isSecret?: boolean;
+        };
         CreateProjectDto: {
             /** @example App E-commerce */
             name: string;
             /** @example Application e-commerce interne */
             description?: string;
             /**
+             * Format: uuid
              * @description DEVELOPER user to assign as OWNER
              * @example 0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd
              */
@@ -3009,7 +3210,10 @@ export interface components {
             description?: string;
             /** @example provider-uuid */
             providerId?: string;
-            /** @example https://gitlab.com */
+            /**
+             * Format: uri
+             * @example https://gitlab.com
+             */
             gitlabUrl?: string;
             /** @example glpat-xxxxxxxxxxxxxxxxxxxx */
             gitlabToken?: string;
@@ -3022,6 +3226,7 @@ export interface components {
             importMode: "ONE_APPLICATION" | "SEPARATE_PROJECTS";
             repositories: components["schemas"]["GitlabGroupImportRepositoryDto"][];
             /**
+             * Format: uuid
              * @description DEVELOPER user to assign as OWNER
              * @example 0fca8a5f-4f31-43fc-a5a8-d4f07102e8dd
              */
@@ -3032,11 +3237,19 @@ export interface components {
             name?: string;
             /** @example Updated description */
             description?: string;
+            /**
+             * @description Max simultaneous in-flight deployments for this project (0 = unlimited).
+             * @example 3
+             */
+            maxConcurrentDeploys?: number;
         };
         AddMemberDto: {
             /** @example uuid-user */
             userId?: string;
-            /** @example dev@devops.com */
+            /**
+             * Format: email
+             * @example dev@devops.com
+             */
             email?: string;
             /**
              * @default DEVELOPER
@@ -3049,12 +3262,22 @@ export interface components {
             name: string;
             /** @example {"NODE_ENV":"staging","PORT":3001} */
             env?: string;
+            /**
+             * @description Secrets JSON (chiffrés au repos)
+             * @example {"DB_PASSWORD":"..."}
+             */
+            secretsEnv?: string;
         };
         UpdateEnvironmentDto: {
             /** @example production */
             name?: string;
             /** @example {"NODE_ENV":"production"} */
             env?: string;
+            /**
+             * @description Secrets JSON (chiffrés au repos)
+             * @example {"DB_PASSWORD":"..."}
+             */
+            secretsEnv?: string;
         };
         CreateServiceEnvironmentDto: {
             /** @example service-uuid */
@@ -3083,6 +3306,16 @@ export interface components {
              * @example {"DB_PASSWORD":"s3cr3t"}
              */
             secretsEnv?: string;
+            /**
+             * @description Déploiement auto sur push (via webhook).
+             * @example true
+             */
+            autoDeploy?: boolean;
+            /**
+             * @description Branche déclenchant le déploiement auto.
+             * @example main
+             */
+            autoBranch?: string;
         };
         UpdateServiceEnvironmentDto: {
             /** @example service-uuid */
@@ -3111,8 +3344,28 @@ export interface components {
              * @example {"DB_PASSWORD":"s3cr3t"}
              */
             secretsEnv?: string;
+            /**
+             * @description Déploiement auto sur push (via webhook).
+             * @example true
+             */
+            autoDeploy?: boolean;
+            /**
+             * @description Branche déclenchant le déploiement auto.
+             * @example main
+             */
+            autoBranch?: string;
         };
-        UpdateNotificationSettingsDto: Record<string, never>;
+        UpdateNotificationSettingsDto: {
+            slackWebhookUrl?: string;
+            notifyOnSuccess?: boolean;
+            notifyOnFailure?: boolean;
+            smtpHost?: string;
+            smtpPort?: number;
+            smtpUser?: string;
+            smtpPass?: string;
+            smtpFrom?: string;
+            smtpTo?: string;
+        };
         ServerActiveJobDto: {
             id: string;
             /** @enum {string} */
@@ -3302,22 +3555,29 @@ export interface components {
             isActive?: boolean;
             /** @example true */
             isVerified?: boolean;
-            /** @example true */
-            hasDocker?: boolean;
-            /** @example true */
-            hasRunner?: boolean;
         };
         InstallKeyDto: {
             /** @example temporary-ssh-password */
             password: string;
         };
-        RegisterRunnerDto: Record<string, never>;
-        SetServerRoleDto: Record<string, never>;
-        UpsertDockerConnectionDto: Record<string, never>;
+        RegisterRunnerDto: {
+            gitlabUrl: string;
+            token: string;
+        };
+        SetServerRoleDto: {
+            /** @enum {string} */
+            infraRole: "STAGING" | "PRODUCTION";
+        };
+        UpsertDockerConnectionDto: {
+            endpoint: string;
+            tlsCaCert: string;
+            tlsClientCert: string;
+            tlsClientKey: string;
+        };
         ServerAuditEventDto: {
             id: string;
             serverId: string;
-            actorId?: Record<string, never> | null;
+            actorId?: string | null;
             eventType: string;
             /** @description JSON payload describing the audited action context. */
             payloadJson?: Record<string, never> | null;
@@ -3360,14 +3620,14 @@ export interface components {
             sshReachable: boolean;
             authSucceeded: boolean;
             sudoAvailable: boolean;
-            fingerprint?: Record<string, never> | null;
-            osName?: Record<string, never> | null;
-            osVersion?: Record<string, never> | null;
-            architecture?: Record<string, never> | null;
+            fingerprint?: string | null;
+            osName?: string | null;
+            osVersion?: string | null;
+            architecture?: string | null;
             pythonAvailable: boolean;
-            validationMessage?: Record<string, never> | null;
+            validationMessage?: string | null;
             /** Format: date-time */
-            validatedAt?: Record<string, never> | null;
+            validatedAt?: string | null;
         };
         DetectServerDto: {
             /** @example true */
@@ -3387,12 +3647,12 @@ export interface components {
             serverId: string;
             toolKey: string;
             displayName: string;
-            version?: Record<string, never> | null;
-            installedBy?: Record<string, never> | null;
+            version?: string | null;
+            installedBy?: string | null;
             /** @enum {string} */
             status: "INSTALLED" | "MISSING" | "FAILED" | "UNKNOWN";
             /** Format: date-time */
-            installedAt?: Record<string, never> | null;
+            installedAt?: string | null;
         };
         StartServerPreparationDto: {
             /**
@@ -3468,12 +3728,12 @@ export interface components {
             taskName: string;
             orderIndex: number;
             /** @enum {string} */
-            status: "PENDING" | "SKIPPED" | "RUNNING" | "OK" | "CHANGED" | "FAILED" | "TIMEOUT";
+            status: "PENDING" | "SKIPPED" | "RUNNING" | "OK" | "CHANGED" | "SUCCEEDED" | "FAILED" | "TIMEOUT" | "CANCELED";
             /** Format: date-time */
-            startedAt?: Record<string, never> | null;
+            startedAt?: string | null;
             /** Format: date-time */
-            finishedAt?: Record<string, never> | null;
-            message?: Record<string, never> | null;
+            finishedAt?: string | null;
+            message?: string | null;
         };
         ServerPreparationDto: {
             id: string;
@@ -3483,14 +3743,14 @@ export interface components {
             /** @enum {string} */
             profile: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
             triggerSource: string;
-            requestedById?: Record<string, never> | null;
+            requestedById?: string | null;
             /** Format: date-time */
-            startedAt?: Record<string, never> | null;
+            startedAt?: string | null;
             /** Format: date-time */
-            finishedAt?: Record<string, never> | null;
-            summary?: Record<string, never> | null;
-            errorMessage?: Record<string, never> | null;
-            retryOfPreparationId?: Record<string, never> | null;
+            finishedAt?: string | null;
+            summary?: string | null;
+            errorMessage?: string | null;
+            retryOfPreparationId?: string | null;
             tasks: components["schemas"]["ServerPreparationTaskDto"][];
         };
         ServerPreparationReadinessChecksDto: {
@@ -3537,8 +3797,7 @@ export interface components {
             specSnapshot?: Record<string, never> | null;
             /** @description Concrete refs this deployment resolved to (server, environment). */
             resolvedRefs?: Record<string, never> | null;
-            /** @description Structured reconciliation status (Progressing/Ready/Degraded with reason+message). */
-            conditions?: Record<string, never>[];
+            conditions: (Record<string, never>[] | null)[];
             observedGeneration?: number | null;
             branch: string;
             environmentId: string;
@@ -3555,18 +3814,14 @@ export interface components {
             updatedAt: string;
             /** @description External pipeline ID (GitLab or GitHub) */
             externalPipelineId?: string | null;
-            /**
-             * @description Database connection info (type, version, credentials masked)
-             * @example {
-             *       "databaseType": "POSTGRES",
-             *       "databaseVersion": "16",
-             *       "credentials": {
-             *         "user": "app",
-             *         "dbName": "app"
-             *       }
-             *     }
-             */
-            databaseInfo?: Record<string, never> | null;
+            databaseInfo?: {
+                databaseType: string;
+                databaseVersion: string | null;
+                credentials: {
+                    user?: string;
+                    dbName?: string;
+                };
+            };
         };
         DeploymentProjectSummaryDto: {
             id: string;
@@ -3614,8 +3869,7 @@ export interface components {
             specSnapshot?: Record<string, never> | null;
             /** @description Concrete refs this deployment resolved to (server, environment). */
             resolvedRefs?: Record<string, never> | null;
-            /** @description Structured reconciliation status (Progressing/Ready/Degraded with reason+message). */
-            conditions?: Record<string, never>[];
+            conditions: (Record<string, never>[] | null)[];
             observedGeneration?: number | null;
             branch: string;
             environmentId: string;
@@ -3632,18 +3886,14 @@ export interface components {
             updatedAt: string;
             /** @description External pipeline ID (GitLab or GitHub) */
             externalPipelineId?: string | null;
-            /**
-             * @description Database connection info (type, version, credentials masked)
-             * @example {
-             *       "databaseType": "POSTGRES",
-             *       "databaseVersion": "16",
-             *       "credentials": {
-             *         "user": "app",
-             *         "dbName": "app"
-             *       }
-             *     }
-             */
-            databaseInfo?: Record<string, never> | null;
+            databaseInfo?: {
+                databaseType: string;
+                databaseVersion: string | null;
+                credentials: {
+                    user?: string;
+                    dbName?: string;
+                };
+            };
             project: components["schemas"]["DeploymentProjectSummaryDto"];
             environment: components["schemas"]["DeploymentEnvironmentSummaryDto"];
             user: components["schemas"]["DeploymentUserSummaryDto"];
@@ -3707,17 +3957,51 @@ export interface components {
              * @example docker.io/myorg/myapp:latest
              */
             overrideImage?: string;
-            /** @description Nixpacks configuration: build env, runtime env, port, etc. */
-            nixpacksConfig?: Record<string, never>;
-            /** @description Static site configuration: source dir, build cmd, SPA mode, etc. */
-            staticConfig?: Record<string, never>;
+            nixpacksConfig?: {
+                buildEnv?: Record<string, never>;
+                runtimeEnv?: Record<string, never>;
+                buildCommand?: string;
+                startCommand?: string;
+                port?: number;
+                nixpacksVersion?: string;
+            };
+            staticConfig?: {
+                sourceDir?: string;
+                buildCommand?: string;
+                buildDir?: string;
+                spaFallback?: boolean;
+                page404?: string;
+            };
         };
-        CreateTeamDto: Record<string, never>;
-        UpdateTeamDto: Record<string, never>;
-        AddTeamMemberDto: Record<string, never>;
-        CreateSshKeyDto: Record<string, never>;
-        CreateAutomationRunDto: Record<string, never>;
-        InstallMonitoringDto: Record<string, never>;
+        CreateTeamDto: {
+            name: string;
+            description?: string;
+        };
+        UpdateTeamDto: {
+            name?: string;
+            description?: string;
+        };
+        AddTeamMemberDto: {
+            /** Format: uuid */
+            userId: string;
+        };
+        CreateSshKeyDto: {
+            name: string;
+            privateKey: string;
+            publicKey: string;
+            /** @enum {string} */
+            keyType?: "rsa" | "ed25519";
+        };
+        CreateAutomationRunDto: {
+            /** @enum {string} */
+            actionKey: "system_update" | "install_docker" | "install_nginx" | "install_postgres" | "install_redis" | "install_gitlab_runner" | "configure_firewall" | "install_fail2ban" | "security_hardening" | "install_monitoring" | "install_monitoring_stack" | "install_prometheus_grafana" | "configure_swap" | "enable_ssl" | "install_nodejs";
+            serverIds: string[];
+            gitlabRunnerExecutor?: string;
+        };
+        InstallMonitoringDto: {
+            actionKey: string;
+            serverIds: string[];
+        };
         CreateDnsProviderDto: {
             /** @example Manual DNS */
             name: string;
@@ -3740,6 +4024,8 @@ export interface components {
             providerId?: string;
             /** @example project-uuid */
             projectId?: string;
+            /** @example service-env-uuid */
+            serviceEnvId?: string;
         };
         UpsertDnsRecordDto: {
             /**
@@ -3758,8 +4044,24 @@ export interface components {
             /** @example service_env-uuid */
             serviceEnvId?: string;
         };
-        CreateRegistryConfigDto: Record<string, never>;
-        UpdateRegistryConfigDto: Record<string, never>;
+        CreateRegistryConfigDto: {
+            name: string;
+            /** @enum {string} */
+            type: "GITLAB" | "DOCKER_HUB" | "DOCKER_REGISTRY" | "ECR" | "GCR";
+            username?: string;
+            password?: string;
+            registryUrl?: string;
+            isDefault?: boolean;
+        };
+        UpdateRegistryConfigDto: {
+            name?: string;
+            /** @enum {string} */
+            type?: "GITLAB" | "DOCKER_HUB" | "DOCKER_REGISTRY" | "ECR" | "GCR";
+            username?: string;
+            password?: string;
+            registryUrl?: string;
+            isDefault?: boolean;
+        };
         CreateProxyRuleDto: {
             /** @example app.example.com */
             domain: string;
@@ -3828,6 +4130,21 @@ export interface components {
              * @enum {string}
              */
             buildPack?: "NIXPACKS" | "BUILDPACK" | "DOCKERFILE" | "DOCKER_COMPOSE" | "STATIC" | "NONE";
+            /**
+             * @example LOCAL
+             * @enum {string}
+             */
+            buildMode?: "LOCAL" | "REGISTRY";
+            /**
+             * @example PUSH
+             * @enum {string}
+             */
+            deployTrigger?: "PUSH" | "PIPELINE_SUCCESS" | "CI_HOOK" | "MANUAL";
+            /**
+             * @description Mode REGISTRY : image à tirer telle quelle (sinon dérivée).
+             * @example registry.gitlab.com/grp/app:latest
+             */
+            registryImage?: string;
             /** @example railpack */
             buildType?: string;
             /**
@@ -3840,6 +4157,16 @@ export interface components {
             port?: number;
             /** @example npm run start:prod */
             startCommand?: string;
+            /**
+             * @description CPU limit in cores
+             * @example 0.5
+             */
+            cpuLimit?: number;
+            /**
+             * @description Memory limit in MB
+             * @example 512
+             */
+            memLimitMb?: number;
             buildArgs?: Record<string, never>;
             nixpacksConfig?: Record<string, never>;
             staticConfig?: Record<string, never>;
@@ -3875,9 +4202,13 @@ export interface components {
             /** @example my-group */
             groupPath: string;
             /** @example glpat-xxx */
-            token: string;
+            token?: string;
             /** @example b5073d11-f378-4c71-87da-093f3ecf20af */
             providerId?: string;
+        };
+        CreateFromTemplateDto: {
+            /** @example my-stack */
+            name: string;
         };
         UpdateServiceDto: {
             /** @example api */
@@ -3907,6 +4238,21 @@ export interface components {
              * @enum {string}
              */
             buildPack?: "NIXPACKS" | "BUILDPACK" | "DOCKERFILE" | "DOCKER_COMPOSE" | "STATIC" | "NONE";
+            /**
+             * @example LOCAL
+             * @enum {string}
+             */
+            buildMode?: "LOCAL" | "REGISTRY";
+            /**
+             * @example PUSH
+             * @enum {string}
+             */
+            deployTrigger?: "PUSH" | "PIPELINE_SUCCESS" | "CI_HOOK" | "MANUAL";
+            /**
+             * @description Mode REGISTRY : image à tirer telle quelle (sinon dérivée).
+             * @example registry.gitlab.com/grp/app:latest
+             */
+            registryImage?: string;
             /** @example railpack */
             buildType?: string;
             /**
@@ -3919,6 +4265,16 @@ export interface components {
             port?: number;
             /** @example npm run start:prod */
             startCommand?: string;
+            /**
+             * @description CPU limit in cores
+             * @example 0.5
+             */
+            cpuLimit?: number;
+            /**
+             * @description Memory limit in MB
+             * @example 512
+             */
+            memLimitMb?: number;
             buildArgs?: Record<string, never>;
             nixpacksConfig?: Record<string, never>;
             staticConfig?: Record<string, never>;
@@ -3969,7 +4325,10 @@ export interface components {
             /** @example 20 */
             sizeGb?: number;
         };
-        OpenPreviewDto: Record<string, never>;
+        OpenPreviewDto: {
+            mergeRequestId: string;
+            branch: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -3979,6 +4338,48 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    AppController_getLiveness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AppController_getReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ready to serve traffic */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A hard dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AppController_getHealth: {
         parameters: {
             query?: never;
@@ -5154,7 +5555,16 @@ export interface operations {
     };
     GitlabController_listGroupRepositories: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                perPage?: number;
+                search?: string;
+                visibility?: string;
+                archived?: string;
+                includeSubgroups?: string;
+                gitlabUrl?: string;
+                gitlabToken?: string;
+            };
             header?: never;
             path: {
                 providerId: string;
@@ -5175,7 +5585,16 @@ export interface operations {
     };
     GitlabController_listProjectBranchesByProvider: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                perPage?: number;
+                search?: string;
+                visibility?: string;
+                archived?: string;
+                includeSubgroups?: string;
+                gitlabUrl?: string;
+                gitlabToken?: string;
+            };
             header?: never;
             path: {
                 providerId: string;
@@ -5320,6 +5739,48 @@ export interface operations {
                 content?: never;
             };
             /** @description Project or GitLab config not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GitlabController_getPipelinesForService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description GitLab pipelines fetched */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid or expired JWT token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized access */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service or GitLab config not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -6328,6 +6789,7 @@ export interface operations {
     WebhookManagementController_configure: {
         parameters: {
             query: {
+                serviceId: string;
                 serviceEnvId: string;
             };
             header?: never;
@@ -6349,6 +6811,7 @@ export interface operations {
     WebhookManagementController_status: {
         parameters: {
             query: {
+                serviceId: string;
                 serviceEnvId: string;
             };
             header?: never;
@@ -6370,6 +6833,7 @@ export interface operations {
     WebhookManagementController_pause: {
         parameters: {
             query: {
+                serviceId: string;
                 serviceEnvId: string;
             };
             header?: never;
@@ -6391,6 +6855,7 @@ export interface operations {
     WebhookManagementController_resume: {
         parameters: {
             query: {
+                serviceId: string;
                 serviceEnvId: string;
             };
             header?: never;
@@ -8125,6 +8590,28 @@ export interface operations {
             };
         };
     };
+    MonitoringController_serverMetricRange: {
+        parameters: {
+            query: {
+                minutes: number;
+                step: number;
+            };
+            header?: never;
+            path: {
+                host: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     MonitoringController_grafanaStatus: {
         parameters: {
             query?: never;
@@ -8239,11 +8726,35 @@ export interface operations {
             };
         };
     };
+    RuntimeLogsController_searchServiceLogs: {
+        parameters: {
+            query: {
+                tail: string;
+                search: string;
+                stream: string;
+            };
+            header?: never;
+            path: {
+                serviceEnvId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ContainersController_findAll: {
         parameters: {
             query?: {
                 serverId?: string;
                 serviceId?: string;
+                deploymentId?: string;
             };
             header?: never;
             path?: never;
@@ -8475,6 +8986,7 @@ export interface operations {
         parameters: {
             query: {
                 projectId: string;
+                serviceEnvId: string;
             };
             header?: never;
             path?: never;
@@ -8506,6 +9018,25 @@ export interface operations {
         responses: {
             /** @description DNS domain created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DomainsController_removeDomain: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8944,6 +9475,48 @@ export interface operations {
             };
         };
     };
+    ServicesController_listTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServicesController_createFromTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                templateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateFromTemplateDto"];
+            };
+        };
+        responses: {
+            /** @description Template services created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ServicesController_findOne: {
         parameters: {
             query?: never;
@@ -9188,6 +9761,25 @@ export interface operations {
             header?: never;
             path: {
                 serviceEnvId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DatabaseBackupsController_restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                backupId: string;
             };
             cookie?: never;
         };

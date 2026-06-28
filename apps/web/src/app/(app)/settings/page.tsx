@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell, Building2, Loader2, Save, ShieldCheck, UserRound } from 'lucide-react';
-import api from '@/lib/api';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { Alert } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/auth/use-auth';
-import { getApiErrorMessage } from '@/lib/api';
-import { platformConfigService } from '@/services/platform-config.service';
-import { usersService } from '@/services/users.service';
-import type { PlatformConfigItem } from '@/types/platform-config';
+import api from '@/shared/lib/api';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { Alert } from '@/shared/ui/alert';
+import { Button } from '@/shared/ui/button';
+import { useAuth } from '@/features/auth/api/use-auth';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { platformConfigService } from '@/features/platform/api/platform-config.service';
+import { usersService } from '@/features/users/api/users.service';
+import type { PlatformConfigItem } from '@/features/platform/types/platform-config';
 
 const PLATFORM_NAME_KEY = 'PLATFORM_NAME';
 const WEBHOOK_BASE_URL_KEY = 'WEBHOOK_BASE_URL';

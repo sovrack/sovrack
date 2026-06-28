@@ -1,26 +1,25 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { GitBranch, Globe, Info, Plus, Puzzle } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { ProviderCard } from '@/components/source-providers/provider-card';
-import { AddProviderDialog } from '@/components/source-providers/add-provider-dialog';
-import { GitLabLogo } from '@/components/source-providers/provider-meta';
-import { useAuth } from '@/hooks/auth/use-auth';
-import { getApiErrorMessage } from '@/lib/api';
-import { platformConfigService } from '@/services/platform-config.service';
+import { useEffect, useMemo, useState } from 'react';
+import { GitBranch, Plus } from 'lucide-react';
+import { PageHeader } from '@/shared/layout/page-header';
+import { Button } from '@/shared/ui/button';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { ProviderCard } from '@/features/source-providers/components/provider-card';
+import { AddProviderDialog } from '@/features/source-providers/components/add-provider-dialog';
+import { GitLabLogo } from '@/features/source-providers/components/provider-meta';
+import { useAuth } from '@/features/auth/api/use-auth';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { useToasts, type ToastItem } from '@/shared/hooks/use-toasts';
+import { useGitProviders, useReloadGitProviders } from '@/features/platform';
+import { platformConfigService } from '@/features/platform/api/platform-config.service';
 import type {
   CreateGitlabProviderPayload,
   GitlabProvider,
   UpdateGitlabProviderPayload,
-} from '@/types/platform-config';
+} from '@/features/platform/types/platform-config';
 
 /* ─── Toast ─────────────────────────────────────────────────────────────── */
-
-type ToastTone = 'success' | 'error';
-type ToastItem = { id: number; message: string; tone: ToastTone };
 
 function Toast({ item, onRemove }: { item: ToastItem; onRemove: (id: number) => void }) {
   return (
@@ -67,56 +66,6 @@ function EmptyProviders({ isAdmin, onAdd }: { isAdmin: boolean; onAdd: () => voi
   );
 }
 
-/* ─── Info banner ────────────────────────────────────────────────────────── */
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function InfoBanner() {
-  return (
-    <div className="flex gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-[var(--text-secondary)]">
-      <Info size={15} className="mt-0.5 shrink-0 text-blue-400" />
-      <div>
-        <span className="font-semibold text-[var(--text-primary)]">Global platform integration.</span>{' '}
-        Git providers defined here are reusable across all projects. When you connect a repository
-        or group to a project, you select which provider to use.
-      </div>
-    </div>
-  );
-}
-
-/* ─── Upcoming providers teaser ─────────────────────────────────────────── */
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function UpcomingProviders() {
-  const upcoming = [
-    { name: 'Gitea', icon: '🟢', desc: 'Self-hosted Gitea instances' },
-    { name: 'Bitbucket', icon: '🔵', desc: 'Bitbucket Cloud & Server' },
-    { name: 'Azure DevOps', icon: '🔷', desc: 'Azure Repos & Pipelines' },
-  ];
-
-  return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)]">
-      <div className="flex items-center gap-2 border-b border-[var(--border)] px-5 py-4">
-        <Puzzle size={14} className="text-[var(--text-muted)]" />
-        <p className="text-sm font-semibold text-[var(--text-secondary)]">Coming Soon</p>
-      </div>
-      <div className="flex flex-wrap gap-0 divide-x divide-[var(--border)]">
-        {upcoming.map((p) => (
-          <div key={p.name} className="flex min-w-[160px] flex-1 flex-col gap-0.5 px-5 py-4">
-            <div className="flex items-center gap-2">
-              <span className="text-base">{p.icon}</span>
-              <p className="text-sm font-semibold text-[var(--text-primary)]">{p.name}</p>
-              <span className="rounded-full border border-[var(--border)] px-1.5 py-0.5 text-[9px] font-semibold uppercase text-[var(--text-muted)]">
-                Soon
-              </span>
-            </div>
-            <p className="text-xs text-[var(--text-muted)]">{p.desc}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /* ─── Loading skeleton ───────────────────────────────────────────────────── */
 
 function SkeletonLoading() {
@@ -129,46 +78,18 @@ function SkeletonLoading() {
   );
 }
 
-/* ─── Stats bar ──────────────────────────────────────────────────────────── */
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function StatsBar({ providers }: { providers: GitlabProvider[] }) {
-  if (providers.length === 0) return null;
-  const configured = providers.filter((p) => p.status === 'CONFIGURED').length;
-  const withOAuth = providers.filter((p) => p.oauthTokenConfigured).length;
-  const withPat = providers.filter((p) => p.adminTokenConfigured).length;
-  const defaults = providers.filter((p) => p.isDefault).length;
-
-  return (
-    <div className="flex flex-wrap gap-0 divide-x divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--bg-app)]">
-      {[
-        { icon: <Globe size={13} />, label: 'Total', value: providers.length },
-        { icon: null, label: 'Connected', value: configured },
-        { icon: null, label: 'OAuth', value: withOAuth },
-        { icon: null, label: 'PAT', value: withPat },
-        { icon: null, label: 'Default', value: defaults },
-      ].map((s) => (
-        <div key={s.label} className="flex flex-1 flex-col items-center gap-0.5 px-4 py-3 text-center">
-          <p className="text-lg font-bold text-[var(--text-primary)]">{s.value}</p>
-          <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
-            {s.label}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 
 export default function GitSettingsPage() {
   const { isAdmin } = useAuth();
 
-  const [providers, setProviders] = useState<GitlabProvider[]>([]);
-  const [loading, setLoading] = useState(true);
+  const providersQuery = useGitProviders();
+  const reloadProviders = useReloadGitProviders();
+  const providers = useMemo(() => providersQuery.data ?? [], [providersQuery.data]);
+  const loading = providersQuery.isLoading;
   const [saving, setSaving] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const { toasts, showToast, dismiss: dismissToast } = useToasts(3000);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
@@ -190,32 +111,6 @@ export default function GitSettingsPage() {
       : `${window.location.origin}/providers/gitlab/callback`;
   }, []);
 
-  const showToast = useCallback((message: string, tone: ToastTone) => {
-    const id = Date.now() + Math.floor(Math.random() * 1000);
-    setToasts((prev) => [...prev, { id, message, tone }]);
-    window.setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
-  }, []);
-
-  const loadProviders = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [gitlabList, githubList, giteaList] = await Promise.allSettled([
-        platformConfigService.listGitlabProviders(),
-        platformConfigService.listGithubProviders(),
-        platformConfigService.listGiteaProviders(),
-      ]);
-      const gitlab = gitlabList.status === 'fulfilled' ? gitlabList.value.map((p) => ({ ...p, providerType: 'GITLAB' as const })) : [];
-      const github = githubList.status === 'fulfilled' ? githubList.value.map((p) => ({ ...p, providerType: 'GITHUB' as const })) : [];
-      const gitea = giteaList.status === 'fulfilled' ? giteaList.value.map((p) => ({ ...p, providerType: 'GITEA' as const })) : [];
-      setProviders([...gitlab, ...github, ...gitea]);
-    } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [showToast]);
-
-  useEffect(() => { void loadProviders(); }, [loadProviders]);
 
   // Handle OAuth callback query params
   useEffect(() => {
@@ -235,8 +130,8 @@ export default function GitSettingsPage() {
     params.delete('provider_id');
     const q = params.toString();
     window.history.replaceState({}, '', `${window.location.pathname}${q ? `?${q}` : ''}`);
-    void loadProviders();
-  }, [loadProviders, showToast]);
+    void reloadProviders();
+  }, [reloadProviders, showToast]);
 
   const openCreate = (type: 'GITLAB' | 'GITHUB' | 'GITEA' = 'GITLAB') => {
     setDialogProviderType(type);
@@ -290,7 +185,7 @@ export default function GitSettingsPage() {
         }
         showToast('Provider updated', 'success');
       }
-      await loadProviders();
+      await reloadProviders();
       closeDialog();
     } catch (err) {
       setDialogError(getApiErrorMessage(err));
@@ -311,7 +206,7 @@ export default function GitSettingsPage() {
         ? await platformConfigService.testGithubProvider(id)
         : await platformConfigService.testGitlabProvider(id);
       showToast(result.message, result.ok ? 'success' : 'error');
-      await loadProviders();
+      await reloadProviders();
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
     } finally {
@@ -347,7 +242,7 @@ export default function GitSettingsPage() {
         await platformConfigService.setDefaultGitlabProvider(id);
       }
       showToast('Default provider updated', 'success');
-      await loadProviders();
+      await reloadProviders();
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
     } finally {
@@ -368,7 +263,7 @@ export default function GitSettingsPage() {
       }
       showToast('Provider removed', 'success');
       setDeleteTarget(null);
-      await loadProviders();
+      await reloadProviders();
     } catch (err) {
       showToast(getApiErrorMessage(err), 'error');
     } finally {
@@ -471,7 +366,7 @@ export default function GitSettingsPage() {
             <Toast
               key={t.id}
               item={t}
-              onRemove={(id) => setToasts((prev) => prev.filter((x) => x.id !== id))}
+              onRemove={dismissToast}
             />
           ))}
         </div>

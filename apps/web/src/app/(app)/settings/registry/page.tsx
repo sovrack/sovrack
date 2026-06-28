@@ -12,28 +12,26 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { Alert } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { useAuth } from '@/hooks/auth/use-auth';
-import { getApiErrorMessage } from '@/lib/api';
-import { platformConfigService } from '@/services/platform-config.service';
+import { PageHeader } from '@/shared/layout/page-header';
+import { Alert } from '@/shared/ui/alert';
+import { Button } from '@/shared/ui/button';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useAuth } from '@/features/auth/api/use-auth';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { useToasts } from '@/shared/hooks/use-toasts';
+import { platformConfigService } from '@/features/platform/api/platform-config.service';
 import type {
   CreateRegistryConfigPayload,
   RegistryConfig,
   RegistryProviderType,
   UpdateRegistryConfigPayload,
-} from '@/types/platform-config';
+} from '@/features/platform/types/platform-config';
 import {
   RegistryForm,
   REGISTRY_TYPE_LABELS,
   type DialogMode,
   type RegistryFormState,
-} from '@/components/registry/registry-form';
-
-type ToastTone = 'success' | 'error';
-type ToastItem = { id: number; message: string; tone: ToastTone };
+} from '@/features/registry/components/registry-form';
 
 function RegistryLogo({ type }: { type: RegistryProviderType }) {
   if (type === 'DOCKER_HUB') {
@@ -91,7 +89,7 @@ function ConnectionStatusBadge({
 export default function RegistrySettingsPage() {
   const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const { toasts, showToast: addToast } = useToasts(5000);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [selectedRegistry, setSelectedRegistry] = useState<RegistryConfig | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,13 +108,6 @@ export default function RegistrySettingsPage() {
   const error = queryError ? getApiErrorMessage(queryError) : null;
   const invalidate = useCallback(() => queryClient.invalidateQueries({ queryKey: ['registry-configs'] }), [queryClient]);
 
-  const addToast = useCallback((message: string, tone: ToastTone) => {
-    const id = Date.now() + Math.floor(Math.random() * 1000);
-    setToasts((previous) => [...previous, { id, message, tone }]);
-    window.setTimeout(() => {
-      setToasts((previous) => previous.filter((item) => item.id !== id));
-    }, 5000);
-  }, []);
 
   const formData = useMemo(() => {
     if (!selectedRegistry) {

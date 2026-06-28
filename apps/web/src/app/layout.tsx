@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { ErrorBoundary } from '@/components/error-boundary';
-import { Providers } from '@/components/providers';
+import { ErrorBoundary } from '@/shared/common/error-boundary';
+import { Providers } from '@/shared/providers';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {

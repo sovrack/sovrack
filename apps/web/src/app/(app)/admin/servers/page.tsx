@@ -16,27 +16,27 @@ import {
   XCircle,
 } from 'lucide-react';
 import clsx from 'clsx';
-import type { Server as ServerType, ServerInfraRole } from '@/types/server';
-import { serversService } from '@/services/servers.service';
-import { getApiErrorMessage } from '@/lib/api';
-import { Alert } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { EmptyState } from '@/components/ui/empty-state';
-import { PageHeader } from '@/components/layout/page-header';
-import { ServerCard } from '@/components/servers/server-card';
-import { ServerDetailsDialog } from '@/components/servers/server-details-dialog';
-import { ServerLogsDialog } from '@/components/servers/server-logs-dialog';
-import { ServerKeyInstallDialog } from '@/components/servers/server-key-install-dialog';
-import { ServerPrepareDialog } from '@/components/servers/server-prepare-dialog';
+import type { Server as ServerType } from '@/features/servers/types/server';
+import { serversService } from '@/features/servers/api/servers.service';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { Alert } from '@/shared/ui/alert';
+import { Button } from '@/shared/ui/button';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { EmptyState } from '@/shared/ui/empty-state';
+import { PageHeader } from '@/shared/layout/page-header';
+import { ServerCard } from '@/features/servers/components/server-card';
+import { ServerDetailsDialog } from '@/features/servers/components/server-details-dialog';
+import { ServerLogsDialog } from '@/features/servers/components/server-logs-dialog';
+import { ServerKeyInstallDialog } from '@/features/servers/components/server-key-install-dialog';
+import { ServerPrepareDialog } from '@/features/servers/components/server-prepare-dialog';
 import {
   ServerUpsertDialog,
   type CreateServerOptions,
-} from '@/components/servers/server-upsert-dialog';
-import { useServerActions } from '@/hooks/servers/use-server-actions';
-import { useInstalledTools } from '@/hooks/servers/use-servers';
-import { usePagination } from '@/hooks/shared/use-pagination';
-import { Pagination } from '@/components/ui/pagination';
+} from '@/features/servers/components/server-upsert-dialog';
+import { useServerActions } from '@/features/servers/api/use-server-actions';
+import { useInstalledTools } from '@/features/servers/api/use-servers';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { Pagination } from '@/shared/ui/pagination';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 
@@ -167,12 +167,6 @@ export default function AdminServersPage() {
     } finally {
       setPingingId(null);
     }
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSetRole = async (id: string, role: ServerInfraRole) => {
-    await serversService.setRole(id, role);
-    await servers.fetchServers();
   };
 
   const resolveLiveServer = (target: ServerType | null) =>

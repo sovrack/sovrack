@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { timeAgo } from '@/shared/lib/format-date';
 import Link from 'next/link';
 import {
   Activity,
@@ -13,14 +14,14 @@ import {
   Clock,
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
-import { projectsService } from '@/services/projects.service';
-import { getApiErrorMessage } from '@/lib/api';
-import type { GitlabPipeline, ProjectListItem } from '@/types/project';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { Badge } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
+import { EmptyState } from '@/shared/ui/empty-state';
+import { projectsService } from '@/features/projects/api/projects.service';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import type { GitlabPipeline, ProjectListItem } from '@/features/projects/types/project';
 
 type PipelineWithProject = GitlabPipeline & { project: Pick<ProjectListItem, 'id' | 'name'> };
 
@@ -46,16 +47,6 @@ function PipelineStatusBadge({ status }: { status: string }) {
       {status}
     </Badge>
   );
-}
-
-function formatRelative(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60_000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
 }
 
 export default function PipelinesPage() {
@@ -263,7 +254,7 @@ export default function PipelinesPage() {
                           {pipeline.sha.slice(0, 7)}
                         </span>
                       )}
-                      <span>{formatRelative(pipeline.created_at)}</span>
+                      <span>{timeAgo(pipeline.created_at)}</span>
                     </div>
                   </div>
 

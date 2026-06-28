@@ -13,25 +13,18 @@ import {
   Server,
   Zap,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/auth/use-auth';
-import { getApiErrorMessage } from '@/lib/api';
-import { dashboardService } from '@/services/dashboard.service';
-import { deploymentsService } from '@/services/deployments.service';
-import { resolveDeploymentUrl } from '@/lib/deployment-utils';
-import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
-import { ActivityChart } from '@/components/dashboard/activity-chart';
-import { ServerHealthCard } from '@/components/dashboard/server-health-card';
-import { TopProjectsCard } from '@/components/dashboard/top-projects-card';
-import { PageHeader } from '@/components/layout/page-header';
-import { Alert } from '@/components/ui/alert';
-
-function formatRelative(value: string): string {
-  const diff = Date.now() - new Date(value).getTime();
-  if (diff < 60_000) return 'just now';
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  return `${Math.floor(diff / 86_400_000)}d ago`;
-}
+import { useAuth } from '@/features/auth/api/use-auth';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { dashboardService } from '@/features/dashboard/api/dashboard.service';
+import { deploymentsService } from '@/features/deployments/api/deployments.service';
+import { resolveDeploymentUrl } from '@/features/deployments/utils';
+import { DeploymentStatusBadge } from '@/features/deployments/components/deployment-status-badge';
+import { ActivityChart } from '@/features/dashboard/components/activity-chart';
+import { ServerHealthCard } from '@/features/dashboard/components/server-health-card';
+import { TopProjectsCard } from '@/features/dashboard/components/top-projects-card';
+import { PageHeader } from '@/shared/layout/page-header';
+import { Alert } from '@/shared/ui/alert';
+import { timeAgo } from '@/shared/lib/format-date';
 
 function formatDuration(seconds: number | null): string {
   if (seconds === null) return '—';
@@ -150,7 +143,7 @@ export default function DashboardPage() {
               {data.recentFailures.length} recent failure{data.recentFailures.length > 1 ? 's' : ''}
             </span>{' '}
             — {data.recentFailures[0].projectName} · {data.recentFailures[0].environmentName} ·{' '}
-            {formatRelative(data.recentFailures[0].createdAt)}{' '}
+            {timeAgo(data.recentFailures[0].createdAt)}{' '}
             <Link
               href={`/deployments?logs=${data.recentFailures[0].id}`}
               className="underline hover:text-[var(--text-primary)]"
@@ -324,7 +317,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-[var(--text-secondary)]">
-                    {formatRelative(f.createdAt)}
+                    {timeAgo(f.createdAt)}
                   </span>
                   <Link
                     href={`/deployments?logs=${f.id}`}

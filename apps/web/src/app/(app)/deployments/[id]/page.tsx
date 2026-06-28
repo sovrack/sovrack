@@ -8,13 +8,13 @@ import {
   ArrowLeft, Box, CheckCircle2, Clock, ExternalLink, GitCommitHorizontal,
   Globe, Loader2, RotateCcw, Rocket, Server, Square, Terminal, Trash2, User, XCircle,
 } from 'lucide-react';
-import { deploymentsService } from '@/services/deployments.service';
-import { getApiErrorMessage } from '@/lib/api';
-import { DeploymentStatusBadge } from '@/components/deployments/deployment-status-badge';
-import { DeploymentLogsDialog } from '@/components/projects/tabs/runs/deployment-logs-dialog';
-import { DeploymentContainerDialog } from '@/components/deployments/deployment-container-dialog';
-import { DeploymentCreateDialog } from '@/components/deployments/deployment-create-dialog';
-import { resolveDeploymentUrl, timeAgo, dur } from '@/lib/deployment-utils';
+import { deploymentsService } from '@/features/deployments/api/deployments.service';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { DeploymentStatusBadge } from '@/features/deployments/components/deployment-status-badge';
+import { DeploymentLogsDialog } from '@/features/projects/components/tabs/runs/deployment-logs-dialog';
+import { DeploymentContainerDialog } from '@/features/deployments/components/deployment-container-dialog';
+import { DeploymentCreateDialog } from '@/features/deployments/components/deployment-create-dialog';
+import { resolveDeploymentUrl, timeAgo, dur } from '@/features/deployments/utils';
 
 /**
  * Page de détail d'un déploiement : TOUT ce qui le concerne sur une seule page —

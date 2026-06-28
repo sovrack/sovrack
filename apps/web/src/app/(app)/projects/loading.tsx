@@ -1,4 +1,4 @@
-import { Skeleton, SkeletonGrid } from '@/components/ui/skeleton';
+import { Skeleton, SkeletonGrid } from '@/shared/ui/skeleton';
 
 export default function ProjectsLoading() {
   return (

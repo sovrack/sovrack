@@ -1,6 +1,6 @@
 'use client';
 
-import { TerminalHub } from '@/components/terminal/terminal-hub';
+import { TerminalHub } from '@/features/terminal/components/terminal-hub';
 
 export default function TerminalPage() {
   return <TerminalHub />;

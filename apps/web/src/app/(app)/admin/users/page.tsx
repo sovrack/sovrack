@@ -12,45 +12,25 @@ import {
   Search,
   Shield,
   Trash2,
-  UserMinus,
-  UserPlus,
   Users,
 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { Pagination } from '@/components/ui/pagination';
-import { usePagination } from '@/hooks/shared/use-pagination';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { UserCreateDialog } from '@/components/users/user-create-dialog';
-import { TeamCreateDialog } from '@/components/users/team-create-dialog';
-import { usersService } from '@/services/users.service';
-import { teamsService } from '@/services/teams.service';
-import { getApiErrorMessage } from '@/lib/api';
-import { useAuth } from '@/hooks/auth/use-auth';
-import type { UserListItem } from '@/types/user';
-import type { Team } from '@/types/team';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { Pagination } from '@/shared/ui/pagination';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { useToasts } from '@/shared/hooks/use-toasts';
+import { UserCreateDialog } from '@/features/users/components/user-create-dialog';
+import { TeamCreateDialog } from '@/features/users/components/team-create-dialog';
+import { usersService } from '@/features/users/api/users.service';
+import { teamsService } from '@/features/teams/api/teams.service';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { useAuth } from '@/features/auth/api/use-auth';
+import { UserRow } from '@/features/users/components/user-row';
+import type { UserListItem } from '@/features/users/types/user';
+import type { Team } from '@/features/teams/types/team';
 
 type RoleFilter = 'ALL' | 'ADMIN' | 'DEVELOPER';
-type ToastTone = 'success' | 'error';
-
-type ToastItem = {
-  id: number;
-  message: string;
-  tone: ToastTone;
-};
-
-function formatDate(value: string): string {
-  const asDate = new Date(value);
-  if (Number.isNaN(asDate.getTime())) {
-    return '-';
-  }
-
-  return new Intl.DateTimeFormat('fr-FR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(asDate);
-}
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -62,7 +42,7 @@ export default function AdminUsersPage() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const { toasts, showToast } = useToasts(2600);
   const [confirmUser, setConfirmUser] = useState<UserListItem | null>(null);
   const [confirmTeam, setConfirmTeam] = useState<Team | null>(null);
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -92,15 +72,6 @@ export default function AdminUsersPage() {
   const usersError = usersQueryError ? getApiErrorMessage(usersQueryError) : null;
   const teamsError = teamsQueryError ? getApiErrorMessage(teamsQueryError) : null;
   const loading = loadingUsers || loadingTeams;
-
-  const showToast = useCallback((message: string, tone: ToastTone) => {
-    const id = Date.now() + Math.floor(Math.random() * 1000);
-    setToasts((prev) => [...prev, { id, message, tone }]);
-
-    window.setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 2600);
-  }, []);
 
   const clearDialogQuery = useCallback(() => {
     const next = new URLSearchParams(searchParams.toString());
@@ -229,7 +200,7 @@ export default function AdminUsersPage() {
         {[1, 2, 3].map((index) => (
           <div
             key={index}
-            className="h-14 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--bg-card)] border-[var(--border)] bg-[var(--bg-card)]"
+            className="h-14 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--bg-card)]"
           />
         ))}
       </div>
@@ -244,14 +215,14 @@ export default function AdminUsersPage() {
         description="Manage users and teams from a single page."
         actions={
           <>
-            <button
+            <button type="button"
               onClick={() => setCreateUserOpen(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:bg-[var(--text-primary)]"
             >
               <Plus size={16} />
               Create user
             </button>
-            <button
+            <button type="button"
               onClick={() => setCreateTeamOpen(true)}
               className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] shadow transition hover:bg-[var(--hover)]"
             >
@@ -325,20 +296,20 @@ export default function AdminUsersPage() {
           <label className="relative block">
             <Search
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-[var(--text-secondary)]"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
             />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by name or email..."
-              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] pl-10 pr-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100 border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]"
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] pl-10 pr-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100 bg-[var(--bg-card)]"
             />
           </label>
 
           <select
             value={roleFilter}
             onChange={(event) => setRoleFilter(event.target.value as RoleFilter)}
-            className="h-11 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100 border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]"
+            className="h-11 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100 bg-[var(--bg-card)]"
           >
             <option value="ALL">All roles</option>
             <option value="ADMIN">ADMIN</option>
@@ -356,14 +327,14 @@ export default function AdminUsersPage() {
             ))}
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--hover)] px-6 py-12 text-center border-[var(--border)] bg-[var(--bg-card)]">
+          <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--hover)] px-6 py-12 text-center bg-[var(--bg-card)]">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--hover)] bg-[var(--bg-card)]">
               <Users size={24} className="text-[var(--text-secondary)]" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)] text-[var(--text-primary)]">
+            <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)]">
               No users found
             </h3>
-            <p className="mt-2 text-sm text-[var(--text-secondary)] text-[var(--text-secondary)]">
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">
               Adjust your search or create a new account.
             </p>
           </div>
@@ -371,97 +342,37 @@ export default function AdminUsersPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--hover)] border-[var(--border)] bg-[var(--bg-card)]">
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
+                <tr className="border-b border-[var(--border)] bg-[var(--hover)] bg-[var(--bg-card)]">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                     Nom
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                     Email
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                     Role
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                     Created at
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] text-[var(--text-secondary)]">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {pagedUsers.map((item) => (
-                  <tr key={item.id} className="hover:bg-[var(--hover)]">
-                    <td className="px-4 py-3 text-[var(--text-primary)] text-[var(--text-primary)]">{item.fullName}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-[var(--text-secondary)] text-[var(--text-primary)]">
-                      {item.email}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                          item.role === 'ADMIN'
-                            ? 'border border-zinc-500/20 bg-[var(--text-primary)]/10 text-[var(--text-muted)]'
-                            : 'border border-zinc-500/20 bg-[var(--text-primary)]/10 text-[var(--text-muted)]'
-                        }`}
-                      >
-                        {item.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                          item.isActive
-                            ? 'border border-green-500/20 bg-green-500/10 text-green-400'
-                            : 'border border-zinc-500/20 bg-[var(--text-primary)]/10 text-[var(--text-muted)]'
-                        }`}
-                      >
-                        {item.isActive ? 'Actif' : 'Inactif'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[var(--text-secondary)] text-[var(--text-primary)]">
-                      {formatDate(item.createdAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <Link
-                          href={`/admin/users/${item.id}/edit`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] border-[var(--border)] text-[var(--text-primary)]"
-                        >
-                          <Pencil size={13} />
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => void handleToggleActive(item.id)}
-                          disabled={togglingId === item.id}
-                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50 border-[var(--border)] text-[var(--text-primary)]"
-                        >
-                          {togglingId === item.id ? (
-                            <Loader2 size={13} className="animate-spin" />
-                          ) : item.isActive ? (
-                            <UserMinus size={13} />
-                          ) : (
-                            <UserPlus size={13} />
-                          )}
-                          {item.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => void handleDelete(item)}
-                          disabled={deletingUserId === item.id}
-                          className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                        >
-                          {deletingUserId === item.id ? (
-                            <Loader2 size={13} className="animate-spin" />
-                          ) : (
-                            <Trash2 size={13} />
-                          )}
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  <UserRow
+                    key={item.id}
+                    user={item}
+                    onToggleActive={(id) => void handleToggleActive(id)}
+                    onDelete={(u) => void handleDelete(u)}
+                    togglingId={togglingId}
+                    deletingUserId={deletingUserId}
+                  />
                 ))}
               </tbody>
             </table>
@@ -481,17 +392,17 @@ export default function AdminUsersPage() {
             ))}
           </div>
         ) : teams.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--hover)] px-6 py-12 text-center border-[var(--border)] bg-[var(--bg-card)]">
+          <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--hover)] px-6 py-12 text-center bg-[var(--bg-card)]">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--hover)] bg-[var(--bg-card)]">
               <Users size={24} className="text-[var(--text-secondary)]" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)] text-[var(--text-primary)]">
+            <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)]">
               No teams yet
             </h3>
-            <p className="mt-2 text-sm text-[var(--text-secondary)] text-[var(--text-secondary)]">
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">
               Create your first team to organize your developers.
             </p>
-            <button
+            <button type="button"
               onClick={() => setCreateTeamOpen(true)}
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)]"
             >
@@ -503,7 +414,7 @@ export default function AdminUsersPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--hover)] border-[var(--border)] bg-[var(--bg-card)]">
+                <tr className="border-b border-[var(--border)] bg-[var(--hover)] bg-[var(--bg-card)]">
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                     Nom
                   </th>
@@ -521,7 +432,7 @@ export default function AdminUsersPage() {
               <tbody className="divide-y divide-[var(--border)]">
                 {teams.map((team) => (
                   <tr key={team.id} className="hover:bg-[var(--hover)]">
-                    <td className="px-4 py-3 font-medium text-[var(--text-primary)] text-[var(--text-primary)]">
+                    <td className="px-4 py-3 font-medium text-[var(--text-primary)]">
                       {team.name}
                     </td>
                     <td className="px-4 py-3 text-[var(--text-secondary)]">
@@ -539,12 +450,12 @@ export default function AdminUsersPage() {
                       <div className="flex justify-end gap-2">
                         <Link
                           href={`/admin/teams/${team.id}`}
-                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] border-[var(--border)] text-[var(--text-primary)]"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] text-[var(--text-primary)]"
                         >
                           <Pencil size={13} />
                           Manage
                         </Link>
-                        <button
+                        <button type="button"
                           onClick={() => void handleDeleteTeam(team)}
                           disabled={deletingTeamId === team.id}
                           className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"

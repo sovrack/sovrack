@@ -5,6 +5,7 @@
 stages:
   - validate
   - build
+  - security
 
 default:
   image: node:20
@@ -30,6 +31,18 @@ lint:
     - npm ci
     - npm run lint
 
+test:
+  stage: validate
+  script:
+    - npm ci
+    # test:cov enforces the coverage thresholds (scoped to src/lib) in vitest.config.
+    - npm run test:cov
+  artifacts:
+    when: always
+    paths:
+      - coverage/
+    expire_in: 1 week
+
 contract:check:
   stage: validate
   script:
@@ -43,3 +56,44 @@ build:
   script:
     - npm ci
     - npm run build
+
+# ── Security & quality gates ────────────────────────────────────────────────
+
+# Dependency vulnerability gate: fail on any HIGH/CRITICAL advisory.
+security:audit:
+  stage: security
+  script:
+    - npm ci
+    - npm audit --audit-level=high
+
+# SonarQube static analysis + Quality Gate. Reuses the coverage produced by the
+# test job (coverage/lcov.info). Runs only when SONAR_TOKEN is configured.
+sonarqube:
+  stage: security
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: ['']
+  needs:
+    - job: test
+      artifacts: true
+  variables:
+    SONAR_USER_HOME: '${CI_PROJECT_DIR}/.sonar'
+    GIT_DEPTH: '0'
+  cache:
+    key: sonar-${CI_COMMIT_REF_SLUG}
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner -Dsonar.host.url="${SONAR_HOST_URL}"
+  rules:
+    - if: '$SONAR_TOKEN'
+
+# Trivy filesystem scan (dependencies). Informational (CVE feeds change daily).
+security:trivy:
+  stage: security
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: ['']
+  script:
+    - trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --no-progress .
+  allow_failure: true

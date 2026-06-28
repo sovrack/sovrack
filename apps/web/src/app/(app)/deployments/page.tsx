@@ -3,19 +3,28 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Activity, CheckCircle2, Rocket } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { deploymentsService } from '@/services/deployments.service';
-import { getApiErrorMessage } from '@/lib/api';
-import { DeploymentLogsDialog } from '@/components/projects/tabs/runs/deployment-logs-dialog';
-import { DeploymentContainerDialog } from '@/components/deployments/deployment-container-dialog';
-import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
-import { PageHeader } from '@/components/layout/page-header';
-import type { Deployment } from '@/types/deployment';
+import { deploymentsService } from '@/features/deployments/api/deployments.service';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { DeploymentLogsDialog } from '@/features/projects/components/tabs/runs/deployment-logs-dialog';
+import { DeploymentContainerDialog } from '@/features/deployments/components/deployment-container-dialog';
+import { ProjectDeploymentsTab } from '@/features/projects/components/project-deployments-tab';
+import { PageHeader } from '@/shared/layout/page-header';
+import type { Deployment } from '@/features/deployments/types';
 
 /**
  * Centre de déploiements (tous projets) — vue de CONSULTATION.
  * On NE déploie PAS depuis ici (un déploiement se définit dans un contexte
  * service × env) : on déploie depuis le projet/service. Ici on consulte le
  * statut, on ouvre les logs/conteneur en dialog, on rollback/redeploy par ligne.
+ *
+ * Page-détail vs dialogs — modèle ASSUMÉ (et non un doublon mort) :
+ *  - Vue complète d'un déploiement = page dédiée `/deployments/[id]`
+ *    (clic sur une ligne dans l'onglet projet → URL partageable).
+ *  - Accès RAPIDE aux logs/conteneur = ce dialog deep-linké
+ *    (`?logs=`/`?container=`), ciblé par le dashboard, la top-nav et la page
+ *    service. Les deux RÉUTILISENT les mêmes composants
+ *    (DeploymentLogsDialog / DeploymentContainerDialog) → aucune duplication
+ *    de code, juste deux portes d'entrée (peek vs page complète).
  */
 export default function DeploymentsPage() {
   const router = useRouter();

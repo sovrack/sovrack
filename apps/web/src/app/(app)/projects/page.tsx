@@ -9,17 +9,17 @@ import {
   Workflow,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useProjects } from '@/hooks/projects/use-projects';
-import { usePagination } from '@/hooks/shared/use-pagination';
-import { Pagination } from '@/components/ui/pagination';
-import { useAuth } from '@/hooks/auth/use-auth';
-import { ProjectCard } from '@/components/projects/project-card';
-import { ProjectsEmpty } from '@/components/projects/projects-empty';
-import { ProjectSetupWizard } from '@/components/projects/project-setup-wizard';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import type { ProjectListItem } from '@/types/project';
-import { Alert } from '@/components/ui/alert';
+import { useProjects } from '@/features/projects/api/use-projects';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { Pagination } from '@/shared/ui/pagination';
+import { useAuth } from '@/features/auth/api/use-auth';
+import { ProjectCard } from '@/features/projects/components/project-card';
+import { ProjectsEmpty } from '@/features/projects/components/projects-empty';
+import { ProjectSetupWizard } from '@/features/projects/components/project-setup-wizard';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import type { ProjectListItem } from '@/features/projects/types/project';
+import { Alert } from '@/shared/ui/alert';
 
 function isProjectGitlabConnected(project: ProjectListItem): boolean {
   const hasGitlabConfig = project.hasGitlabConfig ?? false;
@@ -92,7 +92,7 @@ export default function ProjectsPage() {
               <button
                 type="button"
                 onClick={() => setCreateDialogOpen(true)}
-                className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90 text-[var(--bg-app)]"
+                className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90"
               >
                 <Plus size={16} />
                 New Project
@@ -107,13 +107,13 @@ export default function ProjectsPage() {
         contentClassName="!p-0"
       >
         <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-3">
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 border-[var(--border)] bg-[var(--bg-card)]">
-            <p className="text-xs font-medium text-[var(--text-secondary)] text-[var(--text-secondary)]">Total projects</p>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+            <p className="text-xs font-medium text-[var(--text-secondary)]">Total projects</p>
             <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
               {projects.length}
             </p>
           </div>
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 border-[var(--border)] bg-[var(--bg-card)]">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
             <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)] text-[var(--text-primary)]">
               <Link2 size={14} />
               GitLab connected
@@ -122,7 +122,7 @@ export default function ProjectsPage() {
               {gitlabConnectedCount}
             </p>
           </div>
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 border-[var(--border)] bg-[var(--bg-card)]">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
             <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)] text-[var(--text-primary)]">
               <Workflow size={14} />
               Ready for deploy
@@ -159,7 +159,7 @@ export default function ProjectsPage() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 border-[var(--border)]"
+              className="animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5"
             >
               <div className="flex items-start gap-3">
                 <div className="h-10 w-10 rounded-xl bg-[var(--hover)]" />
@@ -169,7 +169,7 @@ export default function ProjectsPage() {
                 </div>
               </div>
               <div className="mt-4 h-3 w-20 rounded bg-[var(--hover)]" />
-              <div className="mt-4 flex gap-4 border-t border-[var(--border)] pt-3 border-[var(--border)]">
+              <div className="mt-4 flex gap-4 border-t border-[var(--border)] pt-3">
                 <div className="h-3 w-16 rounded bg-[var(--hover)]" />
                 <div className="h-3 w-16 rounded bg-[var(--hover)]" />
               </div>
@@ -190,9 +190,9 @@ export default function ProjectsPage() {
           <p className="text-sm font-medium text-[var(--text-secondary)]">
             No projects match &quot;{search}&quot;
           </p>
-          <button
+          <button type="button"
             onClick={() => setSearch('')}
-            className="mt-2 text-xs text-[var(--text-secondary)] hover:underline text-[var(--text-secondary)]"
+            className="mt-2 text-xs text-[var(--text-secondary)] hover:underline"
           >
             Clear search
           </button>

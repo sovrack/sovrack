@@ -7,37 +7,32 @@ import {
   Activity,
   ArrowLeft,
   Boxes,
-  GitPullRequestArrow,
   Layers,
-  LayoutDashboard,
   Loader2,
+  Plus,
   Rocket,
   Settings,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { useAuth } from '@/hooks/auth/use-auth';
-import { useProject } from '@/hooks/projects/use-projects';
-import { useProjectServices } from '@/hooks/projects/use-project-services';
-import { useProjectEnvironments } from '@/hooks/projects/use-project-environments';
-import { useProjectMembers } from '@/hooks/projects/use-project-members';
-import { useConfirm } from '@/contexts/confirm-context';
-import { PageHeader } from '@/components/layout/page-header';
-import { ProjectOverviewTab } from '@/components/projects/project-overview-tab';
-import { ProjectEnvironmentsTab } from '@/components/projects/project-environments-tab';
-import { ProjectDeploymentsTab } from '@/components/projects/project-deployments-tab';
-import { ProjectMonitoringTab } from '@/components/projects/project-monitoring-tab';
-import { ServicePipelines } from '@/components/projects/tabs/service/service-pipelines';
-import { useProjectDeployments } from '@/hooks/projects/use-project-deployments';
-import { ServicesList } from '@/components/projects/tabs/service/services-list';
-import { AddServiceWizard } from '@/components/projects/add-service-wizard';
-import { DeployDialog } from '@/components/deployments/deploy-dialog';
-import { ProjectMembersTab } from '@/components/projects/project-members-tab';
-import { getApiErrorMessage } from '@/lib/api';
-import { projectsService } from '@/services/projects.service';
+import { useAuth } from '@/features/auth/api/use-auth';
+import { useProject } from '@/features/projects/api/use-projects';
+import { useProjectServices } from '@/features/projects/api/use-project-services';
+import { useProjectEnvironments } from '@/features/projects/api/use-project-environments';
+import { useProjectMembers } from '@/features/projects/api/use-project-members';
+import { useConfirm } from '@/shared/contexts/confirm-context';
+import { PageHeader } from '@/shared/layout/page-header';
+import { ProjectEnvironmentsTab } from '@/features/projects/components/project-environments-tab';
+import { ProjectMonitoringTab } from '@/features/projects/components/project-monitoring-tab';
+import { ServicesList } from '@/features/projects/components/tabs/service/services-list';
+import { AddServiceWizard } from '@/features/projects/components/add-service-wizard';
+import { DeployDialog } from '@/features/deployments/components/deploy-dialog';
+import { ProjectMembersTab } from '@/features/projects/components/project-members-tab';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { projectsService } from '@/features/projects/api/projects.service';
 
-type Tab = 'overview' | 'services' | 'deployments' | 'pipelines' | 'environments' | 'monitoring' | 'settings';
+type Tab = 'services' | 'environments' | 'monitoring' | 'settings';
 
-const TAB_VALUES: Tab[] = ['overview', 'services', 'deployments', 'pipelines', 'environments', 'monitoring', 'settings'];
+const TAB_VALUES: Tab[] = ['services', 'environments', 'monitoring', 'settings'];
 
 function parseTab(value: string | null): Tab | null {
   if (!value) return null;
@@ -55,7 +50,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const searchParams = useSearchParams();
   const { user, isAdmin } = useAuth();
   const { project, loading, error, refresh } = useProject(id);
-  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'overview');
+  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')) ?? 'services');
 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -67,7 +62,6 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const members = useProjectMembers({ projectId: id, isAdmin, refreshProject: refresh });
   const servicesQuery = useProjectServices(id);
   const environmentsQuery = useProjectEnvironments(id);
-  const deploymentsQuery = useProjectDeployments(id);
   const environments = environmentsQuery.data ?? [];
   const confirm = useConfirm();
 
@@ -137,10 +131,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const isOwner = isAdmin || currentMember?.role === 'OWNER';
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'overview',     label: 'Overview',        icon: LayoutDashboard },
     { id: 'services',     label: 'Services',        icon: Boxes },
-    { id: 'deployments',  label: 'Deployments',     icon: Rocket },
-    { id: 'pipelines',    label: 'Pipelines',       icon: GitPullRequestArrow },
     { id: 'environments', label: 'Environments',    icon: Layers },
     { id: 'monitoring',   label: 'Monitoring',      icon: Activity },
     { id: 'settings',     label: 'Members & Access', icon: Settings },
@@ -158,11 +149,13 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
               className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
               <ArrowLeft size={15} /> Projects
             </Link>
-            {/* « Add service » est contextuel à l'onglet Services (cf. ServicesList) —
-                on ne le duplique pas dans le header global. */}
             <button type="button" onClick={() => setDeployOpen(true)}
               className="flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
               <Rocket size={15} /> Deploy
+            </button>
+            <button type="button" onClick={() => setAddServiceOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
+              <Plus size={15} /> Add service
             </button>
           </>
         }
@@ -194,7 +187,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       <div className="border-b border-[var(--border)]">
         <nav className="flex flex-wrap gap-1">
           {tabs.map(({ id: tabId, label, icon: Icon }) => (
-            <button key={tabId} onClick={() => handleTabChange(tabId)}
+            <button type="button" key={tabId} onClick={() => handleTabChange(tabId)}
               className={clsx(
                 'flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition',
                 tab === tabId
@@ -208,31 +201,11 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       </div>
 
       {/* Tab panels */}
-      {tab === 'overview' && (
-        <ProjectOverviewTab
-          projectId={id}
-          services={servicesQuery.data ?? []}
-          environments={environments}
-          deployments={deploymentsQuery.deployments ?? []}
-          onNavigate={handleTabChange}
-        />
-      )}
-
       {tab === 'services' && (
         <ServicesList
           projectId={id}
           services={servicesQuery.data ?? []}
           onAddService={() => setAddServiceOpen(true)}
-        />
-      )}
-
-      {tab === 'deployments' && (
-        <ProjectDeploymentsTab
-          deployments={deploymentsQuery.deployments}
-          loading={deploymentsQuery.loading}
-          error={deploymentsQuery.error}
-          projectId={id}
-          onRefresh={() => void deploymentsQuery.refresh()}
         />
       )}
 
@@ -243,9 +216,9 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         />
       )}
 
-      {tab === 'pipelines' && <ServicePipelines projectId={id} />}
-
-      {tab === 'monitoring' && <ProjectMonitoringTab projectId={id} />}
+      {tab === 'monitoring' && (
+        <ProjectMonitoringTab projectId={id} services={servicesQuery.data ?? []} />
+      )}
 
       {tab === 'settings' && (
         <ProjectMembersTab

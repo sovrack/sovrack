@@ -4,12 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Copy, KeyRound, Loader2 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { ServerForm } from '@/components/servers/server-form';
-import { getApiErrorMessage } from '@/lib/api';
-import { serversService } from '@/services/servers.service';
-import type { CreateServerPayload, CreateServerResult } from '@/types/server';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { ServerForm } from '@/features/servers/components/server-form';
+import { getApiErrorMessage } from '@/shared/lib/api';
+import { serversService } from '@/features/servers/api/servers.service';
+import type { CreateServerPayload, CreateServerResult } from '@/features/servers/types/server';
 
 type SetupStep = 'form' | 'install' | 'validate' | 'done';
 

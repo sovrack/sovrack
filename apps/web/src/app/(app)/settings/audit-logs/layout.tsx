@@ -1,4 +1,4 @@
-import { ProtectedRoute } from '@/components/protected-route';
+import { ProtectedRoute } from '@/shared/common/protected-route';
 
 export default function AuditLogsLayout({
   children,

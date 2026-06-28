@@ -4,13 +4,15 @@ import { use, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useProject } from '@/hooks/projects/use-projects';
-import { ProjectForm } from '@/components/projects/project-form';
-import { PageHeader } from '@/components/layout/page-header';
-import { SectionCard } from '@/components/layout/section-card';
-import { projectsService } from '@/services/projects.service';
-import { getApiErrorMessage } from '@/lib/api';
-import type { CreateProjectPayload } from '@/types/project';
+import { useProject } from '@/features/projects/api/use-projects';
+import {
+  ProjectForm,
+  type ProjectFormPayload,
+} from '@/features/projects/components/project-form';
+import { PageHeader } from '@/shared/layout/page-header';
+import { SectionCard } from '@/shared/layout/section-card';
+import { projectsService } from '@/features/projects/api/projects.service';
+import { getApiErrorMessage } from '@/shared/lib/api';
 
 type EditProjectPageProps = {
   params: Promise<{ id: string }>;
@@ -23,7 +25,7 @@ export default function EditProjectPage({ params }: EditProjectPageProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleUpdate = async (payload: CreateProjectPayload) => {
+  const handleUpdate = async (payload: ProjectFormPayload) => {
     setSaving(true);
     setError(null);
     try {
@@ -76,6 +78,7 @@ export default function EditProjectPage({ params }: EditProjectPageProps) {
           submitLabel="Save Changes"
           loading={saving}
           error={error}
+          showDeployCap
         />
       </SectionCard>
     </div>
