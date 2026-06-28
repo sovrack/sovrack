@@ -28,10 +28,23 @@ export class ProxyService {
   }
 
   async create(dto: CreateProxyRuleDto) {
+    const domain = dto.domain.trim().toLowerCase();
+    // Link to the Domain row for this hostname when one exists and isn't already
+    // bound to a rule (domainId is @unique → one ProxyRule per Domain). This is
+    // what makes deleting a Domain cascade to its proxy rule (P5).
+    const matchingDomain = await this.prisma.domain.findFirst({
+      where: {
+        name: domain,
+        proxyRule: { is: null },
+        ...(dto.serviceEnvId ? { serviceEnvId: dto.serviceEnvId } : {}),
+      },
+      select: { id: true },
+    });
     try {
       return await this.prisma.proxyRule.create({
         data: {
-          domain: dto.domain.trim().toLowerCase(),
+          domain,
+          domainId: matchingDomain?.id ?? null,
           targetPort: dto.targetPort,
           serverId: dto.serverId,
           sslEnabled: dto.sslEnabled ?? true,

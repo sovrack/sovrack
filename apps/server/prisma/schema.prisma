@@ -693,7 +693,14 @@ model Volume {
 // ============================================================================
 model ProxyRule {
   id            String        @id @default(uuid())
+  // Hostname (kept denormalized for Traefik config generation + the existing
+  // [serverId, domain] uniqueness). Prefer domainRef as the source of truth.
   domain        String
+  // FK to the Domain row for this hostname (nullable: legacy rules + rules made
+  // before a Domain exists). onDelete:Cascade so deleting a Domain removes its
+  // proxy rule instead of leaving an orphan. @unique → one ProxyRule per Domain.
+  domainId      String?       @unique
+  domainRef     Domain?       @relation("ProxyRuleDomain", fields: [domainId], references: [id], onDelete: Cascade)
   targetPort    Int
   sslEnabled    Boolean       @default(true)
   certType      ProxyCertType @default(LETS_ENCRYPT)
@@ -868,6 +875,8 @@ model Domain {
   verified     Boolean             @default(false)
   records      DnsRecord[]
   sslCertificate SslCertificate?
+  // Reverse-proxy rule for this hostname (1:1). Cascade-deletes with the Domain.
+  proxyRule      ProxyRule?          @relation("ProxyRuleDomain")
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
