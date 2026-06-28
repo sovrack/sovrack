@@ -101,6 +101,14 @@ export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props
     if (open && info?.logs) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [info?.logs, open]);
 
+  // Close on Escape (parity with the shared <Modal>).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   if (!open || !deploymentId) return null;
 
   return (
@@ -124,7 +132,7 @@ export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">Stats &amp; logs runtime du conteneur sur le serveur cible.</p>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">Runtime stats &amp; logs of the container on the target server.</p>
           </div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => setLive((v) => !v)}
@@ -135,7 +143,7 @@ export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props
               className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:text-[var(--text-primary)] disabled:opacity-40">
               <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
             </button>
-            <button type="button" onClick={onClose}
+            <button type="button" onClick={onClose} aria-label="Close"
               className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-muted)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]">
               <X size={15} />
             </button>
@@ -172,7 +180,7 @@ export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props
               onClick={() => void runAction('restart')} className="text-blue-400 border-blue-500/30 hover:bg-blue-500/10" />
             {confirmRemove ? (
               <span className="flex items-center gap-1.5">
-                <OpBtn label="Confirmer" icon={<Trash2 size={11} />} busy={acting === 'remove'}
+                <OpBtn label="Confirm" icon={<Trash2 size={11} />} busy={acting === 'remove'}
                   onClick={() => void runAction('remove')} className="text-red-400 border-red-500/50 bg-red-500/10 hover:bg-red-500/20" />
                 <button type="button" onClick={() => setConfirmRemove(false)}
                   className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]">Annuler</button>
@@ -192,7 +200,7 @@ export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props
             </div>
           )}
           {!loading && info && !info.logs && (
-            <span className="text-zinc-600">Aucun log de conteneur.</span>
+            <span className="text-zinc-600">No container logs.</span>
           )}
           {info?.logs && (
             <pre className="whitespace-pre-wrap break-words text-green-300">{info.logs}</pre>
@@ -202,7 +210,7 @@ export function DeploymentContainerDialog({ open, deploymentId, onClose }: Props
 
         {/* Footer */}
         <div className="flex items-center justify-end border-t border-[var(--border)] px-5 py-3">
-          <button type="button" onClick={onClose}
+          <button type="button" onClick={onClose} aria-label="Close"
             className="rounded-xl border border-[var(--border)] px-4 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
             Close
           </button>
