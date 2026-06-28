@@ -1,10 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { createDeploymentsWorker } from '../../../shared/queue/queue.provider';
-import type {
-  DeployJobData,
-  RollbackJobData,
-} from '../../../shared/queue/queue.service';
+import type { DeployJobData } from '../../../shared/queue/queue.service';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 
 @Injectable()
@@ -28,24 +25,14 @@ export class DeploymentsProcessor implements OnModuleInit {
     switch (job.name) {
       case 'deploy':
         return this.handleDeploy(job.data as DeployJobData);
-      case 'rollback':
-        return this.handleRollback(job.data as RollbackJobData);
       default:
+        // Rollbacks run synchronously (see DeploymentsRollbackService) and are
+        // never enqueued, so 'deploy' is the only job type this worker handles.
         this.logger.warn(`Unknown job type: ${job.name}`);
     }
   }
 
   private async handleDeploy(data: DeployJobData): Promise<void> {
     await this.executor.executeDeploy(data.deploymentId, data.overrideImage);
-  }
-
-  private async handleRollback(data: RollbackJobData): Promise<void> {
-    // A rollback deployment record is pre-created by DeploymentsRollbackService
-    // before the job is enqueued. The job just needs to execute the deploy with
-    // the pinned image override that was resolved at creation time.
-    await this.executor.executeDeploy(
-      data.deploymentId,
-      data.targetDeploymentId,
-    );
   }
 }

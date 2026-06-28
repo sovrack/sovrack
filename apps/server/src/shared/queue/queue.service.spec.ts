@@ -34,15 +34,6 @@ describe('QueueService', () => {
     );
   });
 
-  it('enqueues a rollback job (deploymentId → targetDeploymentId)', async () => {
-    await service.enqueueRollback('dep-1', 'dep-0');
-    expect(queue.add).toHaveBeenCalledWith(
-      'rollback',
-      { deploymentId: 'dep-1', targetDeploymentId: 'dep-0' },
-      expect.objectContaining({ attempts: 1 }),
-    );
-  });
-
   it('returns an empty string when BullMQ yields no job id', async () => {
     queue.add.mockResolvedValueOnce({ id: undefined });
     expect(await service.enqueueDeploy('dep-2')).toBe('');

@@ -6,11 +6,6 @@ export type DeployJobData = {
   overrideImage?: string;
 };
 
-export type RollbackJobData = {
-  deploymentId: string;
-  targetDeploymentId: string;
-};
-
 @Injectable()
 export class QueueService {
   private readonly logger = new Logger(QueueService.name);
@@ -19,6 +14,16 @@ export class QueueService {
     @Inject('DEPLOYMENTS_QUEUE') private readonly deploymentsQueue: Queue,
   ) {}
 
+  /**
+   * Enqueue a deployment for async execution by the BullMQ worker.
+   *
+   * Note: rollbacks intentionally do NOT go through the queue. They are
+   * human-triggered, low-frequency, and run synchronously via a direct
+   * `executeDeploy(rollbackId, pinnedImageRef)` call in
+   * DeploymentsRollbackService. The former `enqueueRollback`/`handleRollback`
+   * path was dead code with a latent bug (it passed a Deployment UUID into the
+   * `overrideImage` slot, where a Docker image ref is expected) and was removed.
+   */
   async enqueueDeploy(
     deploymentId: string,
     overrideImage?: string,
@@ -38,26 +43,6 @@ export class QueueService {
     );
     this.logger.log(
       `Deploy job ${job.id} enqueued for deployment ${deploymentId}`,
-    );
-    return job.id ?? '';
-  }
-
-  async enqueueRollback(
-    deploymentId: string,
-    targetDeploymentId: string,
-  ): Promise<string> {
-    const job = await this.deploymentsQueue.add(
-      'rollback',
-      { deploymentId, targetDeploymentId } satisfies RollbackJobData,
-      {
-        // Same as deploy: no auto-retry (recovery keeps the old container up).
-        attempts: 1,
-        removeOnComplete: { age: 3600 },
-        removeOnFail: { age: 86400 },
-      },
-    );
-    this.logger.log(
-      `Rollback job ${job.id} enqueued: ${deploymentId} → ${targetDeploymentId}`,
     );
     return job.id ?? '';
   }
