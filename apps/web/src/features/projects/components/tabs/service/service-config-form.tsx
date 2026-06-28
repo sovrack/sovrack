@@ -163,7 +163,7 @@ export function ServiceConfigForm({
               <label className={labelClass} htmlFor="svc-repopath">Repository path</label>
               {/* Source figée : le dépôt s'établit à la création (changer de dépôt = autre service). */}
               <input id="svc-repopath" className={`${inputClass} font-mono opacity-70`} value={repoPath}
-                readOnly title="Le dépôt est figé. Pour en changer, créez un nouveau service." />
+                readOnly title="The repository is fixed. To change it, create a new service." />
             </div>
           )}
           <div>
@@ -198,17 +198,17 @@ export function ServiceConfigForm({
             <label className={labelClass} htmlFor="svc-buildmode">Build mode</label>
             <select id="svc-buildmode" className={inputClass} value={buildMode}
               onChange={(e) => setBuildMode(e.target.value)}>
-              <option value="LOCAL">Build on server (sur le VPS)</option>
-              <option value="REGISTRY">Registry (image construite par la CI → pull)</option>
+              <option value="LOCAL">Build on server (on the VPS)</option>
+              <option value="REGISTRY">Registry (image built by CI → pull)</option>
             </select>
           </div>
           <div>
-            <label className={labelClass} htmlFor="svc-trigger">Déclencheur de déploiement</label>
+            <label className={labelClass} htmlFor="svc-trigger">Deployment trigger</label>
             <select id="svc-trigger" className={inputClass} value={deployTrigger}
               onChange={(e) => setDeployTrigger(e.target.value)}>
-              <option value="PUSH">Push — déploie à chaque git push</option>
-              <option value="PIPELINE_SUCCESS">Pipeline réussi — déploie si la CI passe au vert</option>
-              <option value="MANUAL">Manuel — déploiement à la demande uniquement</option>
+              <option value="PUSH">Push — deploy on every git push</option>
+              <option value="PIPELINE_SUCCESS">Pipeline success — deploy when CI goes green</option>
+              <option value="MANUAL">Manual — deploy on demand only</option>
             </select>
           </div>
           <div>

@@ -266,7 +266,7 @@ export function ProjectDeploymentsTab({ deployments, loading, error, projectId, 
                   {isSuperseded && (
                     <button type="button" onClick={() => void handleRestore(dep.id)} disabled={rollingBackId === dep.id}
                       className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
-                      title="Restaurer cette version (la redéployer)">
+                      title="Restore this version (redeploy it)">
                       {rollingBackId === dep.id ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
                       <span className="hidden sm:inline">Restaurer</span>
                     </button>

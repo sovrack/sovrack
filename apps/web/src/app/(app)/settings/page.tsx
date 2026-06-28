@@ -282,10 +282,10 @@ export default function SettingsPage() {
                 className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 font-mono text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-60"
               />
               <p className="mt-1.5 text-xs text-[var(--text-muted)]">
-                URL où ce backend est joignable. Sert à construire les URLs de webhook
-                (<code>&lt;url&gt;/webhooks/incoming/&lt;token&gt;</code>). Pour un déclenchement
-                par GitLab/GitHub, elle doit être <strong>publique</strong> ; en local, on peut
-                mettre <code>http://localhost:3001</code> pour tester.
+                URL where this backend is reachable. Used to build webhook URLs
+                (<code>&lt;url&gt;/webhooks/incoming/&lt;token&gt;</code>). For GitLab/GitHub
+                to trigger it, it must be <strong>public</strong>; locally you can use{' '}
+                <code>http://localhost:3001</code> for testing.
               </p>
             </div>
 

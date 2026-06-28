@@ -142,7 +142,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
         return;
       }
       await deploymentsService.create({ serviceEnvId: link.id, branch: lastDeployment?.branch ?? undefined });
-      setNotice('Redeploy lancé.');
+      setNotice('Redeploy started.');
       reload();
     } catch (e) {
       setNotice(getApiErrorMessage(e));

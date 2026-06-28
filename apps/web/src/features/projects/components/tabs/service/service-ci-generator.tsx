@@ -83,14 +83,13 @@ export function ServiceCiGenerator({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-[var(--text-primary)]">
-            Config CI/CD standardisée
+            Standardized CI/CD config
           </p>
           <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-            Génère le <code className="font-mono">Dockerfile</code>, le{' '}
-            <code className="font-mono">.dockerignore</code> et le fichier CI à{' '}
-            <span className="font-semibold">coller dans ton dépôt</span>. Aperçu
-            seulement — rien n&apos;est écrit dans le dépôt (zéro risque de
-            conflit).
+            Generates the <code className="font-mono">Dockerfile</code>, the{' '}
+            <code className="font-mono">.dockerignore</code> and the CI file to{' '}
+            <span className="font-semibold">paste into your repo</span>. Preview
+            only — nothing is written to the repo (zero conflict risk).
           </p>
         </div>
         <button
@@ -104,7 +103,7 @@ export function ServiceCiGenerator({
           ) : (
             <Wand2 size={15} />
           )}{' '}
-          Générer
+          Generate
         </button>
       </div>
 
@@ -171,11 +170,11 @@ export function ServiceCiGenerator({
                 >
                   {copied === f.name ? (
                     <>
-                      <Check size={12} /> Copié
+                      <Check size={12} /> Copied
                     </>
                   ) : (
                     <>
-                      <Copy size={12} /> Copier
+                      <Copy size={12} /> Copy
                     </>
                   )}
                 </button>

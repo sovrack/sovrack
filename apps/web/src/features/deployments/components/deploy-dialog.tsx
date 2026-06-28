@@ -141,9 +141,9 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
         // (onglet General → ServiceConfigForm), PAS dans la liste des services.
         const svcConfigHref = svc ? `/projects/${projectId}/services/${svc.id}` : `/projects/${projectId}`;
         const detected: ValidationIssue[] = [];
-        if (services.length > 0 && !src) detected.push({ type: 'no-source', message: `${svc?.name ?? 'Service'} : aucune source Git configurée.`, href: svcConfigHref });
-        if (services.length > 0 && !buildReady) detected.push({ type: 'no-build-config', message: `${svc?.name ?? 'Service'} : build pack non configuré.`, href: svcConfigHref });
-        if (envs.length === 0) detected.push({ type: 'no-environment', message: 'Aucun environnement configuré.', href: `/projects/${projectId}?tab=environments` });
+        if (services.length > 0 && !src) detected.push({ type: 'no-source', message: `${svc?.name ?? 'Service'}: no Git source configured.`, href: svcConfigHref });
+        if (services.length > 0 && !buildReady) detected.push({ type: 'no-build-config', message: `${svc?.name ?? 'Service'}: build pack not configured.`, href: svcConfigHref });
+        if (envs.length === 0) detected.push({ type: 'no-environment', message: 'No environment configured.', href: `/projects/${projectId}?tab=environments` });
         setIssues(detected);
       })
       .catch((err) => setError(getApiErrorMessage(err)))

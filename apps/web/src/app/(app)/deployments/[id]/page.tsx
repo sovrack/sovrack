@@ -56,7 +56,7 @@ export default function DeploymentDetailPage({ params }: { params: Promise<{ id:
   );
   if (qErr || !dep) return (
     <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center text-sm text-red-300">
-      {qErr ? getApiErrorMessage(qErr) : 'Déploiement introuvable.'}
+      {qErr ? getApiErrorMessage(qErr) : 'Deployment not found.'}
       <div className="mt-3"><Link href="/deployments" className="text-xs underline">← Deployments</Link></div>
     </div>
   );
@@ -68,15 +68,15 @@ export default function DeploymentDetailPage({ params }: { params: Promise<{ id:
   const spec = (dep.specSnapshot ?? {}) as Record<string, unknown>;
 
   const meta: { label: string; value: React.ReactNode }[] = [
-    { label: 'Projet', value: dep.project ? <Link href={`/projects/${dep.project.id}`} className="text-[var(--text-primary)] hover:underline">{dep.project.name}</Link> : '—' },
-    { label: 'Environnement', value: dep.environment?.name ?? '—' },
+    { label: 'Project', value: dep.project ? <Link href={`/projects/${dep.project.id}`} className="text-[var(--text-primary)] hover:underline">{dep.project.name}</Link> : '—' },
+    { label: 'Environment', value: dep.environment?.name ?? '—' },
     { label: 'Service', value: dep.service?.name ?? '—' },
-    { label: 'Branche', value: <span className="font-mono">{dep.branch}</span> },
-    { label: 'Serveur', value: dep.environment?.server ? <span className="inline-flex items-center gap-1"><Server size={12} /> {dep.environment.server.name} <span className="text-[var(--text-muted)]">({dep.environment.server.host})</span></span> : '—' },
-    { label: 'Déclencheur', value: <span className="inline-flex items-center gap-1"><User size={12} /> {dep.user?.fullName ?? 'Auto-deploy'}</span> },
-    { label: 'Créé', value: `${timeAgo(dep.createdAt)} · ${new Date(dep.createdAt).toLocaleString()}` },
-    { label: 'Durée', value: duration || '—' },
-    { label: 'Stratégie', value: (spec.strategy as string) ?? 'STANDARD' },
+    { label: 'Branch', value: <span className="font-mono">{dep.branch}</span> },
+    { label: 'Server', value: dep.environment?.server ? <span className="inline-flex items-center gap-1"><Server size={12} /> {dep.environment.server.name} <span className="text-[var(--text-muted)]">({dep.environment.server.host})</span></span> : '—' },
+    { label: 'Trigger', value: <span className="inline-flex items-center gap-1"><User size={12} /> {dep.user?.fullName ?? 'Auto-deploy'}</span> },
+    { label: 'Created', value: `${timeAgo(dep.createdAt)} · ${new Date(dep.createdAt).toLocaleString()}` },
+    { label: 'Duration', value: duration || '—' },
+    { label: 'Strategy', value: (spec.strategy as string) ?? 'STANDARD' },
     { label: 'Pipeline CI', value: dep.externalPipelineId ? <span className="inline-flex items-center gap-1 font-mono text-blue-400"><GitCommitHorizontal size={12} /> #{dep.externalPipelineId}</span> : '—' },
     { label: 'Image Docker', value: dep.dockerImage ? <span className="break-all font-mono text-xs">{dep.dockerImage}</span> : '—' },
     { label: 'Image SHA', value: dep.imageSha ? <span className="break-all font-mono text-xs">{dep.imageSha}</span> : '—' },
@@ -182,7 +182,7 @@ export default function DeploymentDetailPage({ params }: { params: Promise<{ id:
       {specRows.length > 0 && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
           <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-            <Clock size={13} /> Configuration figée (Immutable Release)
+            <Clock size={13} /> Frozen configuration (Immutable Release)
           </p>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
             {specRows.map(([k, v]) => (

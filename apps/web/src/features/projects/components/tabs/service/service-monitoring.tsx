@@ -92,8 +92,8 @@ export function ServiceMonitoring({ deploymentId }: { deploymentId: string | nul
         {info && !info.stats && (
           <p className="text-xs text-[var(--text-muted)]">
             {running
-              ? 'Métriques en cours de collecte…'
-              : 'Conteneur non démarré — métriques indisponibles.'}
+              ? 'Metrics are being collected…'
+              : 'Container not started — metrics unavailable.'}
           </p>
         )}
       </div>

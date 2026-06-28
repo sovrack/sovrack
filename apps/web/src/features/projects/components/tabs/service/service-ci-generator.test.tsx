@@ -30,7 +30,7 @@ describe('ServiceCiGenerator', () => {
     });
 
     render(<ServiceCiGenerator projectId="p1" serviceId="s1" />);
-    fireEvent.click(screen.getByText('Générer'));
+    fireEvent.click(screen.getByText('Generate'));
 
     // The CI file must NOT be hardcoded to .gitlab-ci.yml for a GitHub repo.
     await waitFor(() =>
@@ -49,7 +49,7 @@ describe('ServiceCiGenerator', () => {
       new Error('boom'),
     );
     render(<ServiceCiGenerator projectId="p1" serviceId="s1" />);
-    fireEvent.click(screen.getByText('Générer'));
+    fireEvent.click(screen.getByText('Generate'));
     await waitFor(() => expect(screen.getByText(/boom/)).toBeInTheDocument());
   });
 });
