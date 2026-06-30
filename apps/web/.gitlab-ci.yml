@@ -47,9 +47,14 @@ contract:check:
   stage: validate
   script:
     - npm ci
-    # The OpenAPI contract is generated from the backend; fail if it drifts.
+    # Re-generate TypeScript types from the committed openapi.json, then fail
+    # if api-contract.ts drifts — meaning someone updated the JSON but forgot
+    # to re-run 'npm run contract:types' and commit the result.
+    # Note: updating api-contract.openapi.json itself requires running
+    # 'npm run contract:generate' locally (needs backend running) and committing both files.
+    - npm run contract:types
     - git diff --exit-code src/generated/api-contract.ts
-      || (echo "api-contract.ts is outdated — run 'npm run contract:generate'" && exit 1)
+      || (echo "ERROR: api-contract.ts is outdated. Run 'npm run contract:types' and commit the result." && exit 1)
 
 build:
   stage: build

@@ -1,10 +1,10 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 import type {
   Environment,
   CreateEnvironmentPayload,
   UpdateEnvironmentPayload,
-} from '@/features/projects/types/environment';
-import type { ServiceEnvironment } from '@/features/projects/types/service-environment';
+} from "@/features/projects/types/environment";
+import type { ServiceEnvironment } from "@/features/projects/types/service-environment";
 
 type RawServiceLink = {
   id: string;
@@ -25,10 +25,12 @@ type RawServiceLink = {
 function normalizeEnvironments(envs: unknown[]): Environment[] {
   return (envs as Array<Record<string, unknown>>).map((env) => ({
     ...(env as object),
-    serviceLinks: ((env.serviceLinks ?? []) as RawServiceLink[]).map((link) => ({
-      ...link,
-      lastDeployment: link.deployments?.[0] ?? null,
-    })),
+    serviceLinks: ((env.serviceLinks ?? []) as RawServiceLink[]).map(
+      (link) => ({
+        ...link,
+        lastDeployment: link.deployments?.[0] ?? null,
+      }),
+    ),
   })) as Environment[];
 }
 
@@ -38,18 +40,33 @@ export const environmentsService = {
     return normalizeEnvironments(res.data);
   },
 
-  async create(projectId: string, payload: CreateEnvironmentPayload): Promise<Environment> {
-    const res = await api.post<Environment>(`/projects/${projectId}/environments`, payload);
+  async create(
+    projectId: string,
+    payload: CreateEnvironmentPayload,
+  ): Promise<Environment> {
+    const res = await api.post<Environment>(
+      `/projects/${projectId}/environments`,
+      payload,
+    );
     return res.data;
   },
 
   async getById(projectId: string, envId: string): Promise<Environment> {
-    const res = await api.get<Environment>(`/projects/${projectId}/environments/${envId}`);
+    const res = await api.get<Environment>(
+      `/projects/${projectId}/environments/${envId}`,
+    );
     return res.data;
   },
 
-  async update(projectId: string, envId: string, payload: UpdateEnvironmentPayload): Promise<Environment> {
-    const res = await api.put<Environment>(`/projects/${projectId}/environments/${envId}`, payload);
+  async update(
+    projectId: string,
+    envId: string,
+    payload: UpdateEnvironmentPayload,
+  ): Promise<Environment> {
+    const res = await api.put<Environment>(
+      `/projects/${projectId}/environments/${envId}`,
+      payload,
+    );
     return res.data;
   },
 
@@ -66,33 +83,63 @@ export const environmentsService = {
 
   // Backend : POST /projects/:id/environments/:envId/servers/:serverId (serverId
   // dans le PATH, pas dans le body).
-  async assignServer(projectId: string, envId: string, serverId: string): Promise<void> {
-    await api.post(`/projects/${projectId}/environments/${envId}/servers/${serverId}`);
+  async assignServer(
+    projectId: string,
+    envId: string,
+    serverId: string,
+  ): Promise<void> {
+    await api.post(
+      `/projects/${projectId}/environments/${envId}/servers/${serverId}`,
+    );
   },
 
-  async removeServer(projectId: string, envId: string, serverId: string): Promise<void> {
-    await api.delete(`/projects/${projectId}/environments/${envId}/servers/${serverId}`);
+  async removeServer(
+    projectId: string,
+    envId: string,
+    serverId: string,
+  ): Promise<void> {
+    await api.delete(
+      `/projects/${projectId}/environments/${envId}/servers/${serverId}`,
+    );
   },
 
   // Backend : GET /projects/:id/environments/:envId/services
-  async getServiceLinks(projectId: string, envId: string): Promise<ServiceEnvironment[]> {
-    const res = await api.get<ServiceEnvironment[]>(`/projects/${projectId}/environments/${envId}/services`);
+  async getServiceLinks(
+    projectId: string,
+    envId: string,
+  ): Promise<ServiceEnvironment[]> {
+    const res = await api.get<ServiceEnvironment[]>(
+      `/projects/${projectId}/environments/${envId}/services`,
+    );
     return res.data;
   },
 
   // Backend : POST /projects/:id/environments/:envId/services/:serviceId
-  async linkService(projectId: string, envId: string, serviceId: string): Promise<void> {
-    await api.post(`/projects/${projectId}/environments/${envId}/services/${serviceId}`);
+  async linkService(
+    projectId: string,
+    envId: string,
+    serviceId: string,
+  ): Promise<void> {
+    await api.post(
+      `/projects/${projectId}/environments/${envId}/services/${serviceId}`,
+    );
   },
 
   // Un "service link" EST un ServiceEnvironment → suppression via son contrôleur dédié.
   async unlinkService(projectId: string, serviceLinkId: string): Promise<void> {
-    await api.delete(`/projects/${projectId}/service-environments/${serviceLinkId}`);
+    await api.delete(
+      `/projects/${projectId}/service-environments/${serviceLinkId}`,
+    );
   },
 
   // Détail d'un ServiceEnvironment (inclut env ; secretsEnv jamais renvoyé en clair).
-  async getServiceLink(projectId: string, id: string): Promise<ServiceEnvironment> {
-    const res = await api.get<ServiceEnvironment>(`/projects/${projectId}/service-environments/${id}`);
+  async getServiceLink(
+    projectId: string,
+    id: string,
+  ): Promise<ServiceEnvironment> {
+    const res = await api.get<ServiceEnvironment>(
+      `/projects/${projectId}/service-environments/${id}`,
+    );
     return res.data;
   },
 
@@ -101,7 +148,12 @@ export const environmentsService = {
   async updateServiceLink(
     projectId: string,
     id: string,
-    payload: { env?: string; secretsEnv?: string; autoDeploy?: boolean; autoBranch?: string },
+    payload: {
+      env?: string;
+      secretsEnv?: string;
+      autoDeploy?: boolean;
+      autoBranch?: string;
+    },
   ): Promise<void> {
     await api.put(`/projects/${projectId}/service-environments/${id}`, payload);
   },

@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import type { CreateServerPayload } from '@/features/servers/types/server';
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import type { CreateServerPayload } from "@/features/servers/types/server";
 import {
   validateServerForm,
   buildCreatePayload,
   createDefaultValues,
   type ServerFormValues,
   type ServerFormErrors,
-} from './server-form.validation';
+} from "./server-form.validation";
 
 type ServerFormProps = {
   onSubmit: (payload: CreateServerPayload) => Promise<void>;
@@ -18,22 +18,29 @@ type ServerFormProps = {
 };
 
 const inputBase =
-  'w-full rounded-xl border bg-[var(--bg-card)]/5 px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:bg-[var(--bg-card)]/8 focus:ring-2';
+  "w-full rounded-xl border bg-[var(--bg-card)]/5 px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:bg-[var(--bg-card)]/8 focus:ring-2";
 const inputNormal = `${inputBase} border-[var(--border)] focus:border-[var(--border)] focus:ring-zinc-500/20`;
 const inputError = `${inputBase} border-red-500/40 focus:border-red-500/60 focus:ring-red-500/20`;
-const inputMono = 'font-mono';
+const inputMono = "font-mono";
 
-export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps) {
+export function ServerForm({
+  onSubmit,
+  loading = false,
+  error,
+}: ServerFormProps) {
   const [values, setValues] = useState<ServerFormValues>(createDefaultValues);
   const [formErrors, setFormErrors] = useState<ServerFormErrors>({});
-  const set = <K extends keyof ServerFormValues>(key: K, value: ServerFormValues[K]) => {
+  const set = <K extends keyof ServerFormValues>(
+    key: K,
+    value: ServerFormValues[K],
+  ) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setFormErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { errors, parsed } = validateServerForm('create', values);
+    const { errors, parsed } = validateServerForm("create", values);
     if (!parsed) {
       setFormErrors(errors);
       return;
@@ -58,11 +65,13 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
           <input
             type="text"
             value={values.name}
-            onChange={(e) => set('name', e.target.value)}
+            onChange={(e) => set("name", e.target.value)}
             placeholder="VPS Production OVH"
             className={formErrors.name ? inputError : inputNormal}
           />
-          {formErrors.name && <p className="mt-1 text-xs text-red-400">{formErrors.name}</p>}
+          {formErrors.name && (
+            <p className="mt-1 text-xs text-red-400">{formErrors.name}</p>
+          )}
         </div>
 
         {/* Host */}
@@ -73,11 +82,13 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
           <input
             type="text"
             value={values.host}
-            onChange={(e) => set('host', e.target.value)}
+            onChange={(e) => set("host", e.target.value)}
             placeholder="192.168.1.10 ou vps.exemple.com"
             className={`${formErrors.host ? inputError : inputNormal} ${inputMono}`}
           />
-          {formErrors.host && <p className="mt-1 text-xs text-red-400">{formErrors.host}</p>}
+          {formErrors.host && (
+            <p className="mt-1 text-xs text-red-400">{formErrors.host}</p>
+          )}
         </div>
 
         {/* Port */}
@@ -88,12 +99,14 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
           <input
             type="number"
             value={values.port}
-            onChange={(e) => set('port', e.target.value)}
+            onChange={(e) => set("port", e.target.value)}
             min="1"
             max="65535"
             className={`${formErrors.port ? inputError : inputNormal} ${inputMono}`}
           />
-          {formErrors.port && <p className="mt-1 text-xs text-red-400">{formErrors.port}</p>}
+          {formErrors.port && (
+            <p className="mt-1 text-xs text-red-400">{formErrors.port}</p>
+          )}
         </div>
 
         {/* Username */}
@@ -104,13 +117,14 @@ export function ServerForm({ onSubmit, loading = false, error }: ServerFormProps
           <input
             type="text"
             value={values.username}
-            onChange={(e) => set('username', e.target.value)}
+            onChange={(e) => set("username", e.target.value)}
             placeholder="ubuntu"
             className={`${formErrors.username ? inputError : inputNormal} ${inputMono}`}
           />
-          {formErrors.username && <p className="mt-1 text-xs text-red-400">{formErrors.username}</p>}
+          {formErrors.username && (
+            <p className="mt-1 text-xs text-red-400">{formErrors.username}</p>
+          )}
         </div>
-
       </div>
 
       <button

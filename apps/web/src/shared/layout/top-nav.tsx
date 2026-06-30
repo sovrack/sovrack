@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/features/auth/api/use-auth';
-import { useSidebar } from '@/shared/contexts/sidebar-context';
-import { ThemeToggle } from '@/shared/common/theme-toggle';
-import { deploymentsService } from '@/features/deployments/api/deployments.service';
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/features/auth/api/use-auth";
+import { useSidebar } from "@/shared/contexts/sidebar-context";
+import { ThemeToggle } from "@/shared/common/theme-toggle";
+import { deploymentsService } from "@/features/deployments/api/deployments.service";
 import {
   Bell,
   CheckCircle2,
@@ -19,49 +19,62 @@ import {
   XCircle,
   Loader2,
   Rocket,
-} from 'lucide-react';
-import clsx from 'clsx';
-import type { Deployment } from '@/features/deployments/types';
-import { timeAgoCompact } from '@/shared/lib/format-date';
+} from "lucide-react";
+import clsx from "clsx";
+import type { Deployment } from "@/features/deployments/types";
+import { timeAgoCompact } from "@/shared/lib/format-date";
 
 /* ─── Notification bell ─────────────────────────────────────────────────── */
 
-function statusIcon(status: Deployment['status']) {
-  if (status === 'SUCCESS') return <CheckCircle2 size={13} className="shrink-0 text-green-400" />;
-  if (status === 'FAILED' || status === 'CANCELED') return <XCircle size={13} className="shrink-0 text-red-400" />;
+function statusIcon(status: Deployment["status"]) {
+  if (status === "SUCCESS")
+    return <CheckCircle2 size={13} className="shrink-0 text-green-400" />;
+  if (status === "FAILED" || status === "CANCELED")
+    return <XCircle size={13} className="shrink-0 text-red-400" />;
   return <Loader2 size={13} className="shrink-0 animate-spin text-blue-400" />;
 }
 
 function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [lastSeen, setLastSeen] = useState<string>(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('notif_last_seen') ?? new Date(0).toISOString();
+    if (typeof window !== "undefined")
+      return (
+        localStorage.getItem("notif_last_seen") ?? new Date(0).toISOString()
+      );
     return new Date(0).toISOString();
   });
   const ref = useRef<HTMLDivElement>(null);
 
   const { data: deployments = [] } = useQuery({
-    queryKey: ['notif-deployments'],
+    queryKey: ["notif-deployments"],
     queryFn: () => deploymentsService.getAll(),
     staleTime: 30_000,
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
     select: (list) =>
       list
-        .filter((d) => ['SUCCESS', 'FAILED', 'CANCELED', 'RUNNING'].includes(d.status))
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .filter((d) =>
+          ["SUCCESS", "FAILED", "CANCELED", "RUNNING"].includes(d.status),
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
         .slice(0, 8),
   });
 
-  const unseen = deployments.filter((d) => new Date(d.createdAt) > new Date(lastSeen));
+  const unseen = deployments.filter(
+    (d) => new Date(d.createdAt) > new Date(lastSeen),
+  );
   const hasUnread = unseen.length > 0;
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleOpen = () => {
@@ -69,7 +82,7 @@ function NotificationBell() {
     if (!open) {
       const now = new Date().toISOString();
       setLastSeen(now);
-      localStorage.setItem('notif_last_seen', now);
+      localStorage.setItem("notif_last_seen", now);
     }
   };
 
@@ -91,7 +104,9 @@ function NotificationBell() {
         <div className="absolute right-0 mt-2 w-80 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl z-50">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-            <span className="text-sm font-semibold text-[var(--text-primary)]">Recent activity</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">
+              Recent activity
+            </span>
             <Link
               href="/settings"
               onClick={() => setOpen(false)}
@@ -106,7 +121,9 @@ function NotificationBell() {
             {deployments.length === 0 ? (
               <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
                 <Rocket size={20} className="mb-2 text-[var(--text-muted)]" />
-                <p className="text-xs text-[var(--text-secondary)]">No recent activity</p>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  No recent activity
+                </p>
               </div>
             ) : (
               deployments.map((dep) => {
@@ -117,8 +134,8 @@ function NotificationBell() {
                     href={`/deployments?logs=${dep.id}`}
                     onClick={() => setOpen(false)}
                     className={clsx(
-                      'flex items-start gap-3 px-4 py-3 text-left transition hover:bg-[var(--hover)]',
-                      isNew && 'bg-blue-500/5',
+                      "flex items-start gap-3 px-4 py-3 text-left transition hover:bg-[var(--hover)]",
+                      isNew && "bg-blue-500/5",
                     )}
                   >
                     <div className="mt-0.5">{statusIcon(dep.status)}</div>
@@ -126,14 +143,18 @@ function NotificationBell() {
                       <p className="truncate text-xs font-semibold text-[var(--text-primary)]">
                         {dep.project.name}
                         {isNew && (
-                          <span className="ml-2 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-400">New</span>
+                          <span className="ml-2 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-400">
+                            New
+                          </span>
                         )}
                       </p>
                       <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
                         {dep.environment.name} · {dep.branch} · {dep.status}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[10px] text-[var(--text-muted)]">{timeAgoCompact(dep.createdAt)}</span>
+                    <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
+                      {timeAgoCompact(dep.createdAt)}
+                    </span>
                   </Link>
                 );
               })
@@ -166,29 +187,38 @@ export function TopNav() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const initials = user?.fullName
-    ? user.fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'U';
+    ? user.fullName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "U";
 
   const handleLogout = () => {
     setDropdownOpen(false);
     logout();
-    router.push('/login');
+    router.push("/login");
   };
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setDropdownOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-app)]/90 backdrop-blur-xl">
       <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
-        <button type="button"
+        <button
+          type="button"
           onClick={toggleSidebar}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-900"
           title="Toggle sidebar"
@@ -202,7 +232,8 @@ export function TopNav() {
           <NotificationBell />
 
           <div ref={dropdownRef} className="relative">
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setDropdownOpen((v) => !v)}
               className="flex items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-sm transition hover:bg-[var(--hover)]"
             >
@@ -211,13 +242,16 @@ export function TopNav() {
               </div>
               <div className="hidden text-left md:block">
                 <p className="max-w-[140px] truncate text-sm font-semibold text-[var(--text-primary)]">
-                  {user?.fullName ?? 'User'}
+                  {user?.fullName ?? "User"}
                 </p>
                 <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  {user?.role ?? 'DEVELOPER'}
+                  {user?.role ?? "DEVELOPER"}
                 </p>
               </div>
-              <ChevronDown size={14} className="hidden text-[var(--text-muted)] md:block" />
+              <ChevronDown
+                size={14}
+                className="hidden text-[var(--text-muted)] md:block"
+              />
             </button>
 
             {dropdownOpen && (
@@ -232,14 +266,19 @@ export function TopNav() {
                 </div>
 
                 <div className="mt-1.5 space-y-0.5">
-                  <button type="button"
-                    onClick={() => { setDropdownOpen(false); router.push('/settings'); }}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      router.push("/settings");
+                    }}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                   >
                     <User size={14} className="text-[var(--text-muted)]" />
                     Settings
                   </button>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={handleLogout}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-400"
                   >

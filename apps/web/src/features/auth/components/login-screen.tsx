@@ -1,42 +1,46 @@
-'use client';
+"use client";
 
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Rocket, GitBranch, Server, Shield, Zap } from 'lucide-react';
-import { useAuth } from '@/features/auth/api/use-auth';
-import { getApiErrorMessage } from '@/shared/lib/api';
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Rocket, GitBranch, Server, Shield, Zap } from "lucide-react";
+import { useAuth } from "@/features/auth/api/use-auth";
+import { getApiErrorMessage } from "@/shared/lib/api";
 
 const TEST_CREDENTIALS = {
   admin: {
-    email: process.env.NEXT_PUBLIC_TEST_ADMIN_EMAIL ?? '',
-    password: process.env.NEXT_PUBLIC_TEST_ADMIN_PASSWORD ?? '',
+    email: process.env.NEXT_PUBLIC_TEST_ADMIN_EMAIL ?? "",
+    password: process.env.NEXT_PUBLIC_TEST_ADMIN_PASSWORD ?? "",
   },
   developer: {
-    email: process.env.NEXT_PUBLIC_TEST_DEV_EMAIL ?? '',
-    password: process.env.NEXT_PUBLIC_TEST_DEV_PASSWORD ?? '',
+    email: process.env.NEXT_PUBLIC_TEST_DEV_EMAIL ?? "",
+    password: process.env.NEXT_PUBLIC_TEST_DEV_PASSWORD ?? "",
   },
 } as const;
 
 const FEATURES = [
   {
     icon: Rocket,
-    title: 'Automated Deployments',
-    description: 'Push to GitLab and watch your app deploy automatically via Ansible.',
+    title: "Automated Deployments",
+    description:
+      "Push to GitLab and watch your app deploy automatically via Ansible.",
   },
   {
     icon: GitBranch,
-    title: 'GitLab Integration',
-    description: 'Connect repos and groups. Webhook-driven CI/CD out of the box.',
+    title: "GitLab Integration",
+    description:
+      "Connect repos and groups. Webhook-driven CI/CD out of the box.",
   },
   {
     icon: Server,
-    title: 'Multi-Server Management',
-    description: 'SSH into any server — direct, bastion, or agent mode — in one place.',
+    title: "Multi-Server Management",
+    description:
+      "SSH into any server — direct, bastion, or agent mode — in one place.",
   },
   {
     icon: Shield,
-    title: 'Enterprise Security',
-    description: 'AES-256 encrypted credentials, RBAC roles, and full audit logging.',
+    title: "Enterprise Security",
+    description:
+      "AES-256 encrypted credentials, RBAC roles, and full audit logging.",
   },
 ] as const;
 
@@ -44,28 +48,31 @@ export function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fillTest = (role: 'admin' | 'developer') => {
+  const fillTest = (role: "admin" | "developer") => {
     const creds = TEST_CREDENTIALS[role];
     if (!creds.email) return;
-    setError('');
+    setError("");
     setEmail(creds.email);
     setPassword(creds.password);
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       await login(email, password);
-      router.replace('/dashboard');
+      router.replace("/dashboard");
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err) || 'Invalid email or password. Please try again.');
+      setError(
+        getApiErrorMessage(err) ||
+          "Invalid email or password. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -134,11 +141,12 @@ export function LoginScreen() {
               disabled={loading}
               className="w-full rounded-xl bg-[#1B2B4B] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#2D6BB5] focus:outline-none focus:ring-4 focus:ring-[#2D6BB5]/30 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
 
-          {(TEST_CREDENTIALS.admin.email || TEST_CREDENTIALS.developer.email) && (
+          {(TEST_CREDENTIALS.admin.email ||
+            TEST_CREDENTIALS.developer.email) && (
             <div className="mt-6 space-y-2">
               <p className="text-center text-xs font-medium text-gray-400">
                 Quick access (dev only)
@@ -147,7 +155,7 @@ export function LoginScreen() {
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={() => fillTest('admin')}
+                  onClick={() => fillTest("admin")}
                   className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
                 >
                   Admin Test
@@ -155,7 +163,7 @@ export function LoginScreen() {
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={() => fillTest('developer')}
+                  onClick={() => fillTest("developer")}
                   className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
                 >
                   Developer Test
@@ -173,18 +181,22 @@ export function LoginScreen() {
       {/* Right — platform gradient branding panel */}
       <section
         className="hidden lg:flex lg:flex-col lg:items-center lg:justify-center lg:px-12 lg:py-16"
-        style={{ background: 'linear-gradient(135deg, #1B2B4B 0%, #2D6BB5 100%)' }}
+        style={{
+          background: "linear-gradient(135deg, #1B2B4B 0%, #2D6BB5 100%)",
+        }}
       >
         <div className="w-full max-w-md">
           <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
             Deploy Automation Platform
           </p>
           <h2 className="mt-3 text-3xl font-bold leading-snug text-white">
-            Ship faster.<br />Sleep better.
+            Ship faster.
+            <br />
+            Sleep better.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-white/70">
-            A self-hosted deployment platform built for engineering teams that run on GitLab.
-            One config, every environment.
+            A self-hosted deployment platform built for engineering teams that
+            run on GitLab. One config, every environment.
           </p>
 
           <div className="mt-10 space-y-4">
@@ -198,7 +210,9 @@ export function LoginScreen() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">{title}</p>
-                  <p className="mt-0.5 text-sm leading-relaxed text-white/70">{description}</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-white/70">
+                    {description}
+                  </p>
                 </div>
               </div>
             ))}

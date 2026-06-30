@@ -1,12 +1,8 @@
-import { CheckCircle, Circle, Server } from 'lucide-react';
-import { Badge } from '@/shared/ui/badge';
-import {
-  ServerOverallStatusBadge,
-  ServerStatusBadge,
-  ServerWorkflowBadges,
-} from '@/features/servers/components/server-status-badges';
-import { ServerActions } from '@/features/servers/components/server-actions';
-import type { Server as ServerType } from '@/features/servers/types/server';
+import { CheckCircle, Server } from "lucide-react";
+import { Badge } from "@/shared/ui/badge";
+import { ServerStatusBadge } from "@/features/servers/components/server-status-badges";
+import { ServerActions } from "@/features/servers/components/server-actions";
+import type { Server as ServerType } from "@/features/servers/types/server";
 
 type ServerCardProps = {
   server: ServerType;
@@ -17,7 +13,7 @@ type ServerCardProps = {
   installingKeyId: string | null;
   deletingId: string | null;
   updatingId: string | null;
-  formatConnectionMode: (mode: ServerType['connectionMode']) => string;
+  formatConnectionMode: (mode: ServerType["connectionMode"]) => string;
   onVerify: (id: string) => Promise<void>;
   onDetect: (id: string) => Promise<void>;
   onInstallKey: (server: ServerType) => void;
@@ -48,13 +44,13 @@ export function ServerCard({
   onDelete,
 }: ServerCardProps) {
   const needsSshKeyInstall =
-    server.connectionMode === 'ssh' &&
-    server.onboardingStep === 'PENDING' &&
+    server.connectionMode === "ssh" &&
+    server.onboardingStep === "PENDING" &&
     !server.isVerified;
 
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition hover:border-[var(--border)]/70">
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.4fr),minmax(0,0.9fr),minmax(0,1.25fr),auto]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.6fr),minmax(0,1fr),auto]">
         <div className="min-w-0">
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--hover)]">
@@ -83,11 +79,11 @@ export function ServerCard({
                 </p>
               )}
               <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
-                Added on{' '}
-                {new Date(server.createdAt).toLocaleDateString('fr-FR', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
+                Added on{" "}
+                {new Date(server.createdAt).toLocaleDateString("fr-FR", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
                 })}
               </p>
             </div>
@@ -106,28 +102,6 @@ export function ServerCard({
               Agentless SSH target
             </p>
           </div>
-        </div>
-
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
-            Readiness
-          </p>
-          <div className="mt-1.5 space-y-2">
-            <ServerOverallStatusBadge server={server} />
-            <ServerWorkflowBadges server={server} />
-          </div>
-          {server.lastDetectedAt && (
-            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
-              <span className={`flex items-center gap-1 text-[11px] ${server.hasDocker ? 'text-green-500' : 'text-[var(--text-muted)]'}`}>
-                {server.hasDocker ? <CheckCircle size={10} /> : <Circle size={10} />}
-                Docker
-              </span>
-              <span className={`flex items-center gap-1 text-[11px] ${server.hasRunner ? 'text-green-500' : 'text-[var(--text-muted)]'}`}>
-                {server.hasRunner ? <CheckCircle size={10} /> : <Circle size={10} />}
-                Runner
-              </span>
-            </div>
-          )}
         </div>
 
         <div className="flex flex-col items-end gap-2">

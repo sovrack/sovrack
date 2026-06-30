@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { z } from 'zod';
-import { Loader2, Shield } from 'lucide-react';
-import { Alert } from '@/shared/ui/alert';
-import { Button } from '@/shared/ui/button';
-import { Modal } from '@/shared/ui/modal';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { usersService } from '@/features/users/api/users.service';
-import type { UserListItem } from '@/features/users/types/user';
+import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
+import { Loader2, Shield } from "lucide-react";
+import { Alert } from "@/shared/ui/alert";
+import { Button } from "@/shared/ui/button";
+import { Modal } from "@/shared/ui/modal";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { usersService } from "@/features/users/api/users.service";
+import type { UserListItem } from "@/features/users/types/user";
 
 const createUserSchema = z.object({
-  firstName: z.string().trim().min(1, 'First name is required'),
-  lastName: z.string().trim().min(1, 'Last name is required'),
-  email: z.string().trim().min(1, 'Email is required').email('Invalid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['ADMIN', 'DEVELOPER']),
+  firstName: z.string().trim().min(1, "First name is required"),
+  lastName: z.string().trim().min(1, "Last name is required"),
+  email: z.string().trim().min(1, "Email is required").email("Invalid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  role: z.enum(["ADMIN", "DEVELOPER"]),
   isActive: z.boolean(),
 });
 
@@ -29,11 +29,11 @@ type UserCreateDialogProps = {
 };
 
 const DEFAULT_FORM: FormData = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  password: '',
-  role: 'DEVELOPER',
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
+  role: "DEVELOPER",
   isActive: true,
 };
 
@@ -80,7 +80,7 @@ export function UserCreateDialog({
       const nextErrors: FormErrors = {};
       for (const issue of parsed.error.issues) {
         const field = issue.path[0];
-        if (typeof field === 'string' && !nextErrors[field as keyof FormData]) {
+        if (typeof field === "string" && !nextErrors[field as keyof FormData]) {
           nextErrors[field as keyof FormData] = issue.message;
         }
       }
@@ -123,8 +123,16 @@ export function UserCreateDialog({
           <Button variant="secondary" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" form="user-create-form" disabled={!canSubmit || submitting}>
-            {submitting ? <Loader2 size={15} className="animate-spin" /> : 'Create user'}
+          <Button
+            type="submit"
+            form="user-create-form"
+            disabled={!canSubmit || submitting}
+          >
+            {submitting ? (
+              <Loader2 size={15} className="animate-spin" />
+            ) : (
+              "Create user"
+            )}
           </Button>
         </>
       }
@@ -143,11 +151,13 @@ export function UserCreateDialog({
             </label>
             <input
               value={form.firstName}
-              onChange={(event) => setField('firstName', event.target.value)}
+              onChange={(event) => setField("firstName", event.target.value)}
               placeholder="John"
               className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20"
             />
-            {errors.firstName && <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>}
+            {errors.firstName && (
+              <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>
+            )}
           </div>
 
           <div>
@@ -156,11 +166,13 @@ export function UserCreateDialog({
             </label>
             <input
               value={form.lastName}
-              onChange={(event) => setField('lastName', event.target.value)}
+              onChange={(event) => setField("lastName", event.target.value)}
               placeholder="Developer"
               className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20"
             />
-            {errors.lastName && <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>}
+            {errors.lastName && (
+              <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -170,11 +182,13 @@ export function UserCreateDialog({
             <input
               type="email"
               value={form.email}
-              onChange={(event) => setField('email', event.target.value)}
+              onChange={(event) => setField("email", event.target.value)}
               placeholder="dev@devops.com"
               className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20"
             />
-            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
+            {errors.email && (
+              <p className="mt-1 text-xs text-red-600">{errors.email}</p>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -184,11 +198,13 @@ export function UserCreateDialog({
             <input
               type="password"
               value={form.password}
-              onChange={(event) => setField('password', event.target.value)}
+              onChange={(event) => setField("password", event.target.value)}
               placeholder="Minimum 8 characters"
               className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20"
             />
-            {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
+            {errors.password && (
+              <p className="mt-1 text-xs text-red-600">{errors.password}</p>
+            )}
           </div>
 
           <div className="space-y-2 md:col-span-2">
@@ -199,21 +215,23 @@ export function UserCreateDialog({
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <label
                 className={`cursor-pointer rounded-xl border px-4 py-3 transition ${
-                  form.role === 'DEVELOPER'
-                    ? 'border-[var(--border)] bg-[var(--active)]'
-                    : 'border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--hover)]'
+                  form.role === "DEVELOPER"
+                    ? "border-[var(--border)] bg-[var(--active)]"
+                    : "border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--hover)]"
                 }`}
               >
                 <div className="flex items-start gap-2">
                   <input
                     type="radio"
                     name="role"
-                    checked={form.role === 'DEVELOPER'}
-                    onChange={() => setField('role', 'DEVELOPER')}
+                    checked={form.role === "DEVELOPER"}
+                    onChange={() => setField("role", "DEVELOPER")}
                     className="mt-1 accent-zinc-500"
                   />
                   <div>
-                    <p className="text-sm font-semibold text-[var(--text-primary)]">Developer</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
+                      Developer
+                    </p>
                     <p className="text-xs text-[var(--text-secondary)]">
                       Deploy and operate assigned projects.
                     </p>
@@ -223,17 +241,17 @@ export function UserCreateDialog({
 
               <label
                 className={`cursor-pointer rounded-xl border px-4 py-3 transition ${
-                  form.role === 'ADMIN'
-                    ? 'border-[var(--border)] bg-[var(--active)]'
-                    : 'border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--hover)]'
+                  form.role === "ADMIN"
+                    ? "border-[var(--border)] bg-[var(--active)]"
+                    : "border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--hover)]"
                 }`}
               >
                 <div className="flex items-start gap-2">
                   <input
                     type="radio"
                     name="role"
-                    checked={form.role === 'ADMIN'}
-                    onChange={() => setField('role', 'ADMIN')}
+                    checked={form.role === "ADMIN"}
+                    onChange={() => setField("role", "ADMIN")}
                     className="mt-1 accent-zinc-500"
                   />
                   <div>
@@ -255,10 +273,12 @@ export function UserCreateDialog({
               <input
                 type="checkbox"
                 checked={form.isActive}
-                onChange={(event) => setField('isActive', event.target.checked)}
+                onChange={(event) => setField("isActive", event.target.checked)}
                 className="h-4 w-4 rounded border-[var(--border)] text-[var(--text-secondary)] focus:ring-zinc-300"
               />
-              <span className="text-sm text-[var(--text-primary)]">Active by default</span>
+              <span className="text-sm text-[var(--text-primary)]">
+                Active by default
+              </span>
             </label>
           </div>
         </div>

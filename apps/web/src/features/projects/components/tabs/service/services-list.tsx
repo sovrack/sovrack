@@ -1,29 +1,31 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
+import Link from "next/link";
 import {
   ChevronRight,
   Container as ContainerIcon,
   Database,
   FolderGit2,
   Plus,
-} from 'lucide-react';
-import type { Service } from '@/features/projects/types/service';
+} from "lucide-react";
+import type { Service } from "@/features/projects/types/service";
 
 function serviceIcon(svc: Service) {
-  if (svc.type === 'DATABASE') return Database;
-  if (svc.sourceType === 'DOCKER_IMAGE') return ContainerIcon;
+  if (svc.type === "DATABASE") return Database;
+  if (svc.sourceType === "DOCKER_IMAGE") return ContainerIcon;
   return FolderGit2;
 }
 
 function serviceSummary(svc: Service): string {
-  if (svc.type === 'DATABASE') {
-    return `${svc.databaseType ?? 'Database'} · ${svc.databaseVersion ?? 'latest'}`;
+  if (svc.type === "DATABASE") {
+    return `${svc.databaseType ?? "Database"} · ${svc.databaseVersion ?? "latest"}`;
   }
-  const parts = [svc.repoPath ?? svc.repoUrl ?? svc.sourceType ?? 'Application'];
+  const parts = [
+    svc.repoPath ?? svc.repoUrl ?? svc.sourceType ?? "Application",
+  ];
   if (svc.buildPack) parts.push(svc.buildPack);
   if (svc.branch) parts.push(svc.branch);
-  return parts.join(' · ');
+  return parts.join(" · ");
 }
 
 /**
@@ -44,28 +46,30 @@ export function ServicesList({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Services</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+            Services
+          </h2>
           <p className="text-xs text-[var(--text-muted)]">
-            {services.length} service{services.length !== 1 ? 's' : ''} in this project
+            {services.length} service{services.length !== 1 ? "s" : ""} in this
+            project
           </p>
         </div>
-        {onAddService && services.length > 0 && (
-          <button type="button" onClick={onAddService}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-3 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90">
-            <Plus size={15} /> Add service
-          </button>
-        )}
       </div>
 
       {services.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-card)] px-6 py-10 text-center">
-          <p className="text-sm font-medium text-[var(--text-primary)]">No services yet</p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">
+            No services yet
+          </p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
             Connect a Git source to add your first service.
           </p>
           {onAddService && (
-            <button type="button" onClick={onAddService}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]">
+            <button
+              type="button"
+              onClick={onAddService}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
+            >
               <Plus size={15} /> Add service
             </button>
           )}
@@ -75,19 +79,29 @@ export function ServicesList({
           {services.map((svc) => {
             const Icon = serviceIcon(svc);
             return (
-              <Link key={svc.id} href={`/projects/${projectId}/services/${svc.id}`}
-                className="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 transition hover:border-[var(--text-muted)] hover:bg-[var(--hover)]">
+              <Link
+                key={svc.id}
+                href={`/projects/${projectId}/services/${svc.id}`}
+                className="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 transition hover:border-[var(--text-muted)] hover:bg-[var(--hover)]"
+              >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--hover)]">
                   <Icon size={16} className="text-[var(--text-secondary)]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{svc.name}</p>
-                  <p className="truncate font-mono text-xs text-[var(--text-muted)]">{serviceSummary(svc)}</p>
+                  <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                    {svc.name}
+                  </p>
+                  <p className="truncate font-mono text-xs text-[var(--text-muted)]">
+                    {serviceSummary(svc)}
+                  </p>
                 </div>
                 <span className="shrink-0 rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
                   {svc.type}
                 </span>
-                <ChevronRight size={16} className="shrink-0 text-[var(--text-muted)] transition group-hover:text-[var(--text-primary)]" />
+                <ChevronRight
+                  size={16}
+                  className="shrink-0 text-[var(--text-muted)] transition group-hover:text-[var(--text-primary)]"
+                />
               </Link>
             );
           })}

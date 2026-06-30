@@ -1,14 +1,14 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 import type {
   ChangeMyPasswordPayload,
   CreateUserPayload,
   UpdateUserPayload,
   UserListItem,
-} from '@/features/users/types/user';
+} from "@/features/users/types/user";
 
 export const usersService = {
   async getAll(): Promise<UserListItem[]> {
-    const res = await api.get<UserListItem[]>('/users');
+    const res = await api.get<UserListItem[]>("/users");
     return res.data;
   },
 
@@ -18,7 +18,7 @@ export const usersService = {
   },
 
   async create(data: CreateUserPayload): Promise<UserListItem> {
-    const res = await api.post<UserListItem>('/users', data);
+    const res = await api.post<UserListItem>("/users", data);
     return res.data;
   },
 
@@ -28,7 +28,7 @@ export const usersService = {
   },
 
   async changeMyPassword(data: ChangeMyPasswordPayload): Promise<UserListItem> {
-    const res = await api.put<UserListItem>('/users/me/password', data);
+    const res = await api.put<UserListItem>("/users/me/password", data);
     return res.data;
   },
 

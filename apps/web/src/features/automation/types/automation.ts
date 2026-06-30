@@ -1,11 +1,5 @@
 export type AutomationActionCategory =
-  | 'system'
-  | 'docker'
-  | 'web'
-  | 'database'
-  | 'security'
-  | 'monitoring'
-  | 'ci';
+  "system" | "docker" | "web" | "database" | "security" | "monitoring" | "ci";
 
 export type AutomationAction = {
   key: string;
@@ -19,21 +13,16 @@ export type AutomationAction = {
 };
 
 export type AutomationRunStatus =
-  | 'QUEUED'
-  | 'RUNNING'
-  | 'SUCCEEDED'
-  | 'PARTIAL'
-  | 'FAILED'
-  | 'CANCELED'
-  | 'TIMEOUT';
+  | "QUEUED"
+  | "RUNNING"
+  | "SUCCEEDED"
+  | "PARTIAL"
+  | "FAILED"
+  | "CANCELED"
+  | "TIMEOUT";
 
 export type AutomationTargetStatus =
-  | 'PENDING'
-  | 'RUNNING'
-  | 'SUCCEEDED'
-  | 'FAILED'
-  | 'SKIPPED'
-  | 'TIMEOUT';
+  "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "SKIPPED" | "TIMEOUT";
 
 export type AutomationRunTarget = {
   id: string;
@@ -54,7 +43,7 @@ export type AutomationRunLog = {
   id: string;
   runId: string;
   serverId?: string | null;
-  level: 'INFO' | 'WARNING' | 'ERROR';
+  level: "INFO" | "WARNING" | "ERROR";
   source: string;
   message: string;
   lineNumber: number;

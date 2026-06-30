@@ -1,15 +1,15 @@
-import type { Metadata } from 'next';
-import { ErrorBoundary } from '@/shared/common/error-boundary';
-import { Providers } from '@/shared/providers';
-import '@/styles/globals.css';
+import type { Metadata } from "next";
+import { ErrorBoundary } from "@/shared/common/error-boundary";
+import { Providers } from "@/shared/providers";
+import "@/styles/globals.css";
 
 export const metadata: Metadata = {
-  title: 'platform Deploy Platform',
-  description: 'Deployment automation workspace powered by platform',
+  title: "platform Deploy Platform",
+  description: "Deployment automation workspace powered by platform",
 };
 
 export const viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
 };
 

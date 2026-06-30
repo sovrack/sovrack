@@ -1,7 +1,7 @@
-import type { components } from '@/generated/api-contract';
-import type { UserRole } from '@/features/auth';
+import type { components } from "@/generated/api-contract";
+import type { UserRole } from "@/features/auth";
 
-type ApiSchema = components['schemas'];
+type ApiSchema = components["schemas"];
 
 export type UserListItem = {
   id: string;
@@ -13,10 +13,10 @@ export type UserListItem = {
   updatedAt: string;
 };
 
-export type CreateUserPayload = Omit<ApiSchema['CreateUserDto'], 'role'> & {
+export type CreateUserPayload = Omit<ApiSchema["CreateUserDto"], "role"> & {
   role: UserRole;
 };
 
-export type UpdateUserPayload = ApiSchema['UpdateUserDto'];
+export type UpdateUserPayload = ApiSchema["UpdateUserDto"];
 
-export type ChangeMyPasswordPayload = ApiSchema['ChangeMyPasswordDto'];
+export type ChangeMyPasswordPayload = ApiSchema["ChangeMyPasswordDto"];

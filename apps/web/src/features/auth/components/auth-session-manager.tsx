@@ -1,17 +1,24 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { AUTH_UNAUTHORIZED_EVENT, registerUnauthorizedHandler } from '@/shared/lib/api';
-import { useAuthStore } from '@/stores/auth.store';
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  AUTH_UNAUTHORIZED_EVENT,
+  registerUnauthorizedHandler,
+} from "@/shared/lib/api";
+import { useAuthStore } from "@/stores/auth.store";
 
-const LOGIN_ROUTE = '/login';
+const LOGIN_ROUTE = "/login";
 
 function isLoginPath(pathname: string): boolean {
-  return pathname.startsWith('/login') || pathname.startsWith('/auth/login');
+  return pathname.startsWith("/login") || pathname.startsWith("/auth/login");
 }
 
-export function AuthSessionManager({ children }: { children: React.ReactNode }) {
+export function AuthSessionManager({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const pathname = usePathname();
 

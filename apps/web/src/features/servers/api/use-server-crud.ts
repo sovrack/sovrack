@@ -1,9 +1,12 @@
-'use client';
+"use client";
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { serversService } from '@/features/servers/api/servers.service';
-import type { CreateServerPayload, UpdateServerPayload } from '@/features/servers/types/server';
-import { serverKeys } from './server-query-keys';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { serversService } from "@/features/servers/api/servers.service";
+import type {
+  CreateServerPayload,
+  UpdateServerPayload,
+} from "@/features/servers/types/server";
+import { serverKeys } from "./server-query-keys";
 
 export function useServers() {
   return useQuery({
@@ -25,15 +28,19 @@ export function useServer(id: string) {
 export function useCreateServer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateServerPayload) => serversService.create(payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: serverKeys.all }),
+    mutationFn: (payload: CreateServerPayload) =>
+      serversService.create(payload),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: serverKeys.all }),
   });
 }
 
 export function useUpdateServer(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateServerPayload) => serversService.update(id, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: serverKeys.all }),
+    mutationFn: (payload: UpdateServerPayload) =>
+      serversService.update(id, payload),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: serverKeys.all }),
   });
 }

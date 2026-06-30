@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Server } from 'lucide-react';
-import Link from 'next/link';
+import { Server } from "lucide-react";
+import Link from "next/link";
 
 type Props = {
   servers: {
@@ -20,10 +20,10 @@ export function ServerHealthCard({ servers, isAdmin }: Props) {
   }
 
   const items = [
-    { label: 'Ready', value: servers.ready, color: 'bg-emerald-400' },
-    { label: 'Provisioning', value: servers.preparing, color: 'bg-blue-400' },
-    { label: 'En erreur', value: servers.error, color: 'bg-red-400' },
-    { label: 'Offline', value: servers.offline, color: 'bg-zinc-500' },
+    { label: "Ready", value: servers.ready, color: "bg-emerald-400" },
+    { label: "Provisioning", value: servers.preparing, color: "bg-blue-400" },
+    { label: "En erreur", value: servers.error, color: "bg-red-400" },
+    { label: "Offline", value: servers.offline, color: "bg-zinc-500" },
   ];
 
   const healthPct =

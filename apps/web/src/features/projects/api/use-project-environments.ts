@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { environmentsService } from '@/features/projects/api/environments.service';
+import { useQuery } from "@tanstack/react-query";
+import { environmentsService } from "@/features/projects/api/environments.service";
+import { projectKeys } from "@/features/projects/api/project-query-keys";
 
 /**
  * React Query source for a project's environments
@@ -11,7 +12,7 @@ import { environmentsService } from '@/features/projects/api/environments.servic
  */
 export function useProjectEnvironments(projectId: string) {
   return useQuery({
-    queryKey: ['project', projectId, 'environments'],
+    queryKey: projectKeys.environments(projectId),
     queryFn: () => environmentsService.getAll(projectId),
     enabled: Boolean(projectId),
     staleTime: 10_000,

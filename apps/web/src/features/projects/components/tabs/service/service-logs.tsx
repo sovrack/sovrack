@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Loader2, RefreshCw, ScrollText, Search } from 'lucide-react';
-import { useServiceLogs } from '@/features/monitoring';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { SectionCard } from '@/shared/layout/section-card';
+import { useState } from "react";
+import { Loader2, RefreshCw, ScrollText, Search } from "lucide-react";
+import { useServiceLogs } from "@/features/monitoring";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { SectionCard } from "@/shared/layout/section-card";
 
 const PERIODS = [
-  { label: '15 min', minutes: 15 },
-  { label: '1 h', minutes: 60 },
-  { label: '24 h', minutes: 60 * 24 },
-  { label: '7 j', minutes: 60 * 24 * 7 },
+  { label: "15 min", minutes: 15 },
+  { label: "1 h", minutes: 60 },
+  { label: "24 h", minutes: 60 * 24 },
+  { label: "7 j", minutes: 60 * 24 * 7 },
 ];
 
 /**
@@ -20,8 +20,8 @@ const PERIODS = [
  */
 export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
   const [minutes, setMinutes] = useState(60);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
 
   const query = useServiceLogs(serviceEnvId, {
     fromMinutes: minutes,
@@ -41,11 +41,11 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
   }
 
   const pillBase =
-    'rounded-lg border px-3 py-1.5 text-xs font-medium transition';
+    "rounded-lg border px-3 py-1.5 text-xs font-medium transition";
   const pillActive =
-    'border-[var(--text-primary)] bg-[var(--hover)] text-[var(--text-primary)]';
+    "border-[var(--text-primary)] bg-[var(--hover)] text-[var(--text-primary)]";
   const pillIdle =
-    'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]';
+    "border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]";
 
   return (
     <SectionCard
@@ -73,7 +73,9 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
             <input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') setSearch(searchInput); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") setSearch(searchInput);
+              }}
               placeholder="Filter lines…"
               className="h-9 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] pl-9 pr-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]"
             />
@@ -81,7 +83,10 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
 
           <button
             type="button"
-            onClick={() => { setSearch(searchInput); void query.refetch(); }}
+            onClick={() => {
+              setSearch(searchInput);
+              void query.refetch();
+            }}
             className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
           >
             <RefreshCw size={14} /> Search
@@ -95,31 +100,38 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
         )}
 
         {query.error && (
-          <p className="text-xs text-red-400">{getApiErrorMessage(query.error)}</p>
+          <p className="text-xs text-red-400">
+            {getApiErrorMessage(query.error)}
+          </p>
         )}
 
         {data && !data.configured && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
             Loki is not configured. Install the centralized logs stack
-            (Automation → <strong>“Install Loki”</strong> action) to enable history
-            search. In the meantime, the
-            {' '}<strong>Deployments</strong> tab shows the container&apos;s live tail.
+            (Automation → <strong>“Install Loki”</strong> action) to enable
+            history search. In the meantime, the <strong>Deployments</strong>{" "}
+            tab shows the container&apos;s live tail.
           </div>
         )}
 
         {data && data.configured && !data.reachable && (
-          <p className="text-xs text-red-400">{data.message ?? 'Loki unreachable.'}</p>
+          <p className="text-xs text-red-400">
+            {data.message ?? "Loki unreachable."}
+          </p>
         )}
 
-        {data && data.configured && data.reachable && (
-          data.entries.length === 0 ? (
+        {data &&
+          data.configured &&
+          data.reachable &&
+          (data.entries.length === 0 ? (
             <p className="text-sm text-[var(--text-muted)]">
-              No logs in this window{search ? ' for this filter' : ''}.
+              No logs in this window{search ? " for this filter" : ""}.
             </p>
           ) : (
             <div className="max-h-[28rem] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-3 font-mono text-xs">
               <div className="mb-2 flex items-center gap-2 font-sans text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
-                <ScrollText size={12} /> {data.total} line{data.total !== 1 ? 's' : ''}
+                <ScrollText size={12} /> {data.total} line
+                {data.total !== 1 ? "s" : ""}
               </div>
               {data.entries.map((e, i) => (
                 <div key={`${e.ts}-${i}`} className="flex gap-3 py-0.5">
@@ -132,8 +144,7 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
                 </div>
               ))}
             </div>
-          )
-        )}
+          ))}
       </div>
     </SectionCard>
   );

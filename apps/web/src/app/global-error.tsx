@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Top-level error boundary. Catches errors thrown in the root layout itself
@@ -17,16 +17,16 @@ export default function GlobalError({
       <body
         style={{
           margin: 0,
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'system-ui, sans-serif',
-          background: '#0b0b0f',
-          color: '#e5e7eb',
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "system-ui, sans-serif",
+          background: "#0b0b0f",
+          color: "#e5e7eb",
         }}
       >
-        <div style={{ maxWidth: 480, padding: 24, textAlign: 'center' }}>
+        <div style={{ maxWidth: 480, padding: 24, textAlign: "center" }}>
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>
             An unexpected error occurred
           </h1>
@@ -38,16 +38,17 @@ export default function GlobalError({
               Ref: {error.digest}
             </p>
           )}
-          <button type="button"
+          <button
+            type="button"
             onClick={() => reset()}
             style={{
               marginTop: 16,
-              padding: '8px 16px',
+              padding: "8px 16px",
               borderRadius: 8,
-              border: '1px solid #374151',
-              background: '#111827',
-              color: '#e5e7eb',
-              cursor: 'pointer',
+              border: "1px solid #374151",
+              background: "#111827",
+              color: "#e5e7eb",
+              cursor: "pointer",
             }}
           >
             Try again

@@ -1,10 +1,10 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 
 const BUILD_PREPARE_TIMEOUT_MS = 60_000;
 
 export type BuildDetectResult = {
   type: string;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: "high" | "medium" | "low";
   language: string;
   framework: string;
   packageManager: string;
@@ -12,11 +12,11 @@ export type BuildDetectResult = {
   hasDockerCompose: boolean;
   hasCiConfig: boolean;
   recommendedStrategy:
-    | 'docker'
-    | 'docker-multi-stage'
-    | 'nixpacks'
-    | 'static-build'
-    | 'service-container';
+    | "docker"
+    | "docker-multi-stage"
+    | "nixpacks"
+    | "static-build"
+    | "service-container";
   recommendedBuildType: string;
   recommendedStartCommand: string;
   recommendedPort: number;
@@ -71,18 +71,23 @@ export type BuildServiceStatus = {
   gitlabProjectId: string | null;
   ready: boolean;
   missingRequirements: string[];
-  lastPipeline: { id: number; status: string; ref: string; webUrl: string } | null;
+  lastPipeline: {
+    id: number;
+    status: string;
+    ref: string;
+    webUrl: string;
+  } | null;
 };
 
 export type BuildAllResult = {
   serviceId: string;
   serviceName: string;
-  status: 'SUCCESS' | 'PARTIAL_SUCCESS' | 'FAILED';
+  status: "SUCCESS" | "PARTIAL_SUCCESS" | "FAILED";
   message: string;
-  dockerfileStatus: 'CREATED' | 'UPDATED' | 'SKIPPED' | 'FAILED';
-  dockerignoreStatus: 'CREATED' | 'UPDATED' | 'SKIPPED' | 'FAILED';
-  ciStatus: 'CREATED' | 'UPDATED' | 'SKIPPED' | 'FAILED';
-  webhookStatus: 'CONFIGURED' | 'PENDING_CONFIGURATION' | 'FAILED' | 'DISABLED';
+  dockerfileStatus: "CREATED" | "UPDATED" | "SKIPPED" | "FAILED";
+  dockerignoreStatus: "CREATED" | "UPDATED" | "SKIPPED" | "FAILED";
+  ciStatus: "CREATED" | "UPDATED" | "SKIPPED" | "FAILED";
+  webhookStatus: "CONFIGURED" | "PENDING_CONFIGURATION" | "FAILED" | "DISABLED";
   webhookMessage: string | null;
   pipelineUrl: string | null;
 };
@@ -90,15 +95,21 @@ export type BuildAllResult = {
 export type BuildStatusResult = {
   projectDockerfileReady: boolean;
   projectCiReady: boolean;
-  sourceType: 'REPO' | 'GROUP' | null;
+  sourceType: "REPO" | "GROUP" | null;
   services: BuildServiceStatus[];
 };
 
 export const buildService = {
-  async detect(projectId: string, serviceId?: string): Promise<BuildDetectResult> {
-    const res = await api.get<BuildDetectResult>(`/projects/${projectId}/build/detect`, {
-      params: serviceId ? { serviceId } : undefined,
-    });
+  async detect(
+    projectId: string,
+    serviceId?: string,
+  ): Promise<BuildDetectResult> {
+    const res = await api.get<BuildDetectResult>(
+      `/projects/${projectId}/build/detect`,
+      {
+        params: serviceId ? { serviceId } : undefined,
+      },
+    );
     return res.data;
   },
 
@@ -127,7 +138,9 @@ export const buildService = {
     return res.data;
   },
 
-  async reconcileWebhooks(projectId: string): Promise<{ results: BuildAllResult[] }> {
+  async reconcileWebhooks(
+    projectId: string,
+  ): Promise<{ results: BuildAllResult[] }> {
     const res = await api.post<{ results: BuildAllResult[] }>(
       `/projects/${projectId}/build/reconcile-webhooks`,
       undefined,
@@ -137,7 +150,9 @@ export const buildService = {
   },
 
   async getBuildStatus(projectId: string): Promise<BuildStatusResult> {
-    const res = await api.get<BuildStatusResult>(`/projects/${projectId}/build/status`);
+    const res = await api.get<BuildStatusResult>(
+      `/projects/${projectId}/build/status`,
+    );
     return res.data;
   },
 
@@ -152,7 +167,9 @@ export const buildService = {
   },
 
   async getTemplates(projectId: string): Promise<BuildTemplates> {
-    const res = await api.get<BuildTemplates>(`/projects/${projectId}/build/templates`);
+    const res = await api.get<BuildTemplates>(
+      `/projects/${projectId}/build/templates`,
+    );
     return res.data;
   },
 };

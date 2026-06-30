@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { use, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useProject } from '@/features/projects/api/use-projects';
+import { use, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useProject } from "@/features/projects/api/use-projects";
 import {
   ProjectForm,
   type ProjectFormPayload,
-} from '@/features/projects/components/project-form';
-import { PageHeader } from '@/shared/layout/page-header';
-import { SectionCard } from '@/shared/layout/section-card';
-import { projectsService } from '@/features/projects/api/projects.service';
-import { getApiErrorMessage } from '@/shared/lib/api';
+} from "@/features/projects/components/project-form";
+import { PageHeader } from "@/shared/layout/page-header";
+import { SectionCard } from "@/shared/layout/section-card";
+import { projectsService } from "@/features/projects/api/projects.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
 
 type EditProjectPageProps = {
   params: Promise<{ id: string }>;
@@ -41,7 +41,10 @@ export default function EditProjectPage({ params }: EditProjectPageProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" />
+        <Loader2
+          size={24}
+          className="animate-spin text-[var(--text-secondary)]"
+        />
       </div>
     );
   }

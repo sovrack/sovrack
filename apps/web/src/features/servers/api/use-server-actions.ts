@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { serversService, type PrepareServerPayload } from '@/features/servers/api/servers.service';
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/shared/contexts/toast-context";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import {
+  serversService,
+  type PrepareServerPayload,
+} from "@/features/servers/api/servers.service";
 import {
   canCancelJob,
   canRetryJob,
   formatConnectionMode,
   formatJobType,
   getJobStatusClassName,
-} from '@/features/servers/utils';
+} from "@/features/servers/utils";
+import { serverKeys } from "@/features/servers/api/server-query-keys";
 import type {
   CreateServerPayload,
   Server as ServerType,
   ServerJob,
   UpdateServerPayload,
-} from '@/features/servers/types/server';
-
-type ToastTone = 'success' | 'error';
-type ToastItem = { id: number; message: string; tone: ToastTone };
-
-const ADMIN_SERVERS_QUERY_KEY = ['admin-servers'] as const;
+} from "@/features/servers/types/server";
 
 export function useServerActions() {
   const queryClient = useQueryClient();
@@ -33,114 +33,86 @@ export function useServerActions() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [loadingJobsByServer, setLoadingJobsByServer] = useState<Record<string, boolean>>({});
-  const [jobsByServer, setJobsByServer] = useState<Record<string, ServerJob[]>>({});
+  const [loadingJobsByServer, setLoadingJobsByServer] = useState<
+    Record<string, boolean>
+  >({});
+  const [jobsByServer, setJobsByServer] = useState<Record<string, ServerJob[]>>(
+    {},
+  );
   const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
   const [cancelingJobId, setCancelingJobId] = useState<string | null>(null);
-  const [prepareDrafts, setPrepareDrafts] = useState<Record<string, PrepareServerPayload>>({});
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [prepareDrafts, setPrepareDrafts] = useState<
+    Record<string, PrepareServerPayload>
+  >({});
+  const showToast = useToast();
 
-  const showToast = useCallback((message: string, tone: ToastTone) => {
-    const id = Date.now() + Math.floor(Math.random() * 1000);
-    setToasts((prev) => [...prev, { id, message, tone }]);
-    window.setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 3000);
-  }, []);
+  /**
+   * Tracks the active job seen per server on the previous successful fetch so
+   * we can detect job-completion transitions and fire a toast.
+   */
+  const prevActiveJobRef = useRef<
+    Record<string, { jobId: string; type: ServerJob["type"] }>
+  >({});
 
   const {
     data: servers = [],
     isLoading: loading,
-    refetch: refetchServers,
     error: queryError,
   } = useQuery({
-    queryKey: ADMIN_SERVERS_QUERY_KEY,
-    queryFn: async () => await serversService.getAll(),
+    queryKey: serverKeys.adminList(),
+    queryFn: async () => {
+      const result = await serversService.getAll();
+
+      // Detect job-completion transitions: a server that HAD an active job
+      // but no longer does → fetch its jobs once for the final status toast.
+      const activeNow = new Set(
+        result.filter((s) => s.activeJob).map((s) => s.id),
+      );
+      for (const [serverId, prev] of Object.entries(prevActiveJobRef.current)) {
+        if (!activeNow.has(serverId)) {
+          delete prevActiveJobRef.current[serverId];
+          serversService
+            .getJobs(serverId)
+            .then((jobs) => {
+              const finished = jobs.find((j) => j.id === prev.jobId);
+              if (finished?.status === "SUCCESS") {
+                showToast(`${formatJobType(prev.type)} completed`, "success");
+              } else if (
+                finished?.status === "FAILED" ||
+                finished?.status === "TIMEOUT"
+              ) {
+                showToast(`${formatJobType(prev.type)} failed`, "error");
+              }
+              setJobsByServer((cur) => ({ ...cur, [serverId]: jobs }));
+            })
+            .catch(() => {});
+        }
+      }
+      for (const s of result) {
+        if (s.activeJob) {
+          prevActiveJobRef.current[s.id] = {
+            jobId: s.activeJob.id,
+            type: s.activeJob.type,
+          };
+        }
+      }
+
+      return result;
+    },
     staleTime: 10_000,
+    // Poll every 3 s while any server has an active job; stop when idle.
+    // React Query handles the interval internally — no manual setInterval needed.
+    refetchInterval: (query) => {
+      const data = query.state.data ?? [];
+      return data.some((s) => s.activeJob) ? 3_000 : false;
+    },
   });
 
   const error = queryError ? getApiErrorMessage(queryError) : null;
 
   const fetchServers = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ADMIN_SERVERS_QUERY_KEY });
-    await refetchServers();
-  }, [queryClient, refetchServers]);
-
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Tracks the active job (id + type) seen per server on the previous render so
-  // we can fire a completion toast when it clears, with a single targeted fetch.
-  const prevActiveJobRef = useRef<
-    Record<string, { jobId: string; type: ServerJob['type'] }>
-  >({});
-
-  useEffect(() => {
-    const serversWithActiveJob = servers.filter((s) => s.activeJob);
-    const activeServerIds = new Set(serversWithActiveJob.map((s) => s.id));
-
-    // Detect transitions: a server that HAD an active job but no longer does.
-    // Fetch that server's jobs once to report the final status accurately.
-    for (const [serverId, prev] of Object.entries(prevActiveJobRef.current)) {
-      if (!activeServerIds.has(serverId)) {
-        delete prevActiveJobRef.current[serverId];
-        serversService
-          .getJobs(serverId)
-          .then((jobs) => {
-            const finished = jobs.find((j) => j.id === prev.jobId);
-            if (finished?.status === 'SUCCESS') {
-              showToast(`${formatJobType(prev.type)} completed`, 'success');
-            } else if (
-              finished?.status === 'FAILED' ||
-              finished?.status === 'TIMEOUT'
-            ) {
-              showToast(`${formatJobType(prev.type)} failed`, 'error');
-            }
-            setJobsByServer((cur) => ({ ...cur, [serverId]: jobs }));
-          })
-          .catch(() => {});
-      }
-    }
-
-    // Record current active jobs for next comparison
-    for (const s of serversWithActiveJob) {
-      if (s.activeJob) {
-        prevActiveJobRef.current[s.id] = {
-          jobId: s.activeJob.id,
-          type: s.activeJob.type,
-        };
-      }
-    }
-
-    const hasActiveJob = serversWithActiveJob.length > 0;
-
-    // While any server is locked, poll the servers list (single request that
-    // already carries activeJob) instead of polling jobs per server.
-    if (hasActiveJob && !pollingRef.current) {
-      pollingRef.current = setInterval(() => {
-        void queryClient.invalidateQueries({ queryKey: ADMIN_SERVERS_QUERY_KEY });
-        // Keep the open details dialog's full job history fresh, if loaded.
-        for (const id of activeServerIds) {
-          if (jobsByServer[id]) {
-            serversService
-              .getJobs(id)
-              .then((jobs) => setJobsByServer((prev) => ({ ...prev, [id]: jobs })))
-              .catch(() => {});
-          }
-        }
-      }, 3_000);
-    }
-
-    if (!hasActiveJob && pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [servers, jobsByServer, queryClient, showToast]);
+    await queryClient.invalidateQueries({ queryKey: serverKeys.adminList() });
+  }, [queryClient]);
 
   const refreshJobs = async (serverId: string) => {
     setLoadingJobsByServer((prev) => ({ ...prev, [serverId]: true }));
@@ -148,7 +120,7 @@ export function useServerActions() {
       const jobs = await serversService.getJobs(serverId);
       setJobsByServer((prev) => ({ ...prev, [serverId]: jobs }));
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
     } finally {
       setLoadingJobsByServer((prev) => ({ ...prev, [serverId]: false }));
     }
@@ -157,7 +129,7 @@ export function useServerActions() {
   const getPrepareOptions = (server: ServerType): PrepareServerPayload => {
     return (
       prepareDrafts[server.id] ?? {
-        gitlabRunnerExecutor: 'docker',
+        gitlabRunnerExecutor: "docker",
       }
     );
   };
@@ -190,10 +162,10 @@ export function useServerActions() {
     try {
       const created = await serversService.create(payload);
       await fetchServers();
-      showToast('Server created. Install SSH key to continue.', 'success');
+      showToast("Server created. Install SSH key to continue.", "success");
       return created;
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
       throw err;
     } finally {
       setCreating(false);
@@ -205,9 +177,9 @@ export function useServerActions() {
     try {
       await serversService.update(id, payload);
       await fetchServers();
-      showToast('Server updated', 'success');
+      showToast("Server updated", "success");
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
       throw err;
     } finally {
       setUpdatingId(null);
@@ -218,11 +190,11 @@ export function useServerActions() {
     setVerifyingId(id);
     try {
       await serversService.verify(id);
-      showToast('SSH validation started', 'success');
+      showToast("SSH validation started", "success");
       await refreshJobs(id);
       await fetchServers();
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
     } finally {
       setVerifyingId(null);
     }
@@ -232,10 +204,10 @@ export function useServerActions() {
     setDetectingId(id);
     try {
       await serversService.detect(id);
-      showToast('Server information detected', 'success');
+      showToast("Server information detected", "success");
       await fetchServers();
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
     } finally {
       setDetectingId(null);
     }
@@ -246,12 +218,12 @@ export function useServerActions() {
     setPreparingId(server.id);
     try {
       await serversService.prepare(server.id, payload);
-      showToast('Preparation started', 'success');
+      showToast("Preparation started", "success");
       await refreshJobs(server.id);
       await fetchServers();
       clearPrepareDraft(server.id);
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
     } finally {
       setPreparingId(null);
     }
@@ -262,10 +234,10 @@ export function useServerActions() {
     try {
       const result = await serversService.installKey(serverId, { password });
       await fetchServers();
-      showToast(result.message, 'success');
+      showToast(result.message, "success");
       return result;
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
       throw err;
     } finally {
       setInstallingKeyId(null);
@@ -282,9 +254,9 @@ export function useServerActions() {
         delete next[id];
         return next;
       });
-      showToast(`Server "${name}" deleted`, 'success');
+      showToast(`Server "${name}" deleted`, "success");
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
       throw err;
     } finally {
       setDeletingId(null);
@@ -296,10 +268,10 @@ export function useServerActions() {
     try {
       await serversService.retryJob(serverId, jobId);
       await fetchServers();
-      showToast('Job retried', 'success');
+      showToast("Job retried", "success");
       await refreshJobs(serverId);
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
     } finally {
       setRetryingJobId(null);
     }
@@ -309,11 +281,11 @@ export function useServerActions() {
     setCancelingJobId(jobId);
     try {
       await serversService.cancelJob(serverId, jobId);
-      showToast('Job canceled — the server is available again', 'success');
+      showToast("Job canceled — the server is available again", "success");
       await refreshJobs(serverId);
       await fetchServers();
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
     } finally {
       setCancelingJobId(null);
     }
@@ -324,7 +296,7 @@ export function useServerActions() {
     [servers],
   );
   const readyCount = useMemo(
-    () => servers.filter((server) => server.status === 'PREPARED').length,
+    () => servers.filter((server) => server.status === "PREPARED").length,
     [servers],
   );
   const unverifiedCount = servers.length - verifiedCount;
@@ -344,7 +316,6 @@ export function useServerActions() {
     jobsByServer,
     retryingJobId,
     cancelingJobId,
-    toasts,
     fetchServers,
     refreshJobs,
     getPrepareOptions,

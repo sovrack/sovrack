@@ -1,14 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
-import { Alert } from '@/shared/ui/alert';
-import { Button } from '@/shared/ui/button';
-import { Modal } from '@/shared/ui/modal';
-import { Input } from '@/shared/ui/input';
-import { sshKeysService } from '@/features/ssh-keys';
-import type { SshKey } from '@/features/ssh-keys';
-import type { CreateServerPayload, Server, UpdateServerPayload } from '@/features/servers/types/server';
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { Alert } from "@/shared/ui/alert";
+import { Button } from "@/shared/ui/button";
+import { Modal } from "@/shared/ui/modal";
+import { Input } from "@/shared/ui/input";
+import { sshKeysService } from "@/features/ssh-keys";
+import type { SshKey } from "@/features/ssh-keys";
+import type {
+  CreateServerPayload,
+  Server,
+  UpdateServerPayload,
+} from "@/features/servers/types/server";
 import {
   validateServerForm,
   buildCreatePayload,
@@ -17,9 +21,9 @@ import {
   createValuesFromServer,
   type ServerFormValues,
   type ServerFormErrors,
-} from './server-form.validation';
+} from "./server-form.validation";
 
-type DialogMode = 'create' | 'edit';
+type DialogMode = "create" | "edit";
 
 export type CreateServerOptions = {
   temporaryPassword?: string;
@@ -50,7 +54,7 @@ export function ServerUpsertDialog({
   onUpdate,
 }: ServerUpsertDialogProps) {
   const initialValues = useMemo(() => {
-    if (mode === 'edit' && server) return createValuesFromServer(server);
+    if (mode === "edit" && server) return createValuesFromServer(server);
     return createDefaultValues();
   }, [mode, server]);
 
@@ -58,24 +62,34 @@ export function ServerUpsertDialog({
   const [formErrors, setFormErrors] = useState<ServerFormErrors>({});
   const [sshKeys, setSshKeys] = useState<SshKey[]>([]);
   const [keysLoading, setKeysLoading] = useState(false);
-  const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [temporaryPassword, setTemporaryPassword] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setValues(initialValues);
     setFormErrors({});
-    setTemporaryPassword('');
+    setTemporaryPassword("");
 
-    if (mode === 'create') {
+    if (mode === "create") {
       setKeysLoading(true);
-      sshKeysService.getAll()
-        .then((keys) => { setSshKeys(keys); })
-        .catch(() => { setSshKeys([]); })
-        .finally(() => { setKeysLoading(false); });
+      sshKeysService
+        .getAll()
+        .then((keys) => {
+          setSshKeys(keys);
+        })
+        .catch(() => {
+          setSshKeys([]);
+        })
+        .finally(() => {
+          setKeysLoading(false);
+        });
     }
   }, [initialValues, open, mode]);
 
-  const set = <K extends keyof ServerFormValues>(key: K, value: ServerFormValues[K]) => {
+  const set = <K extends keyof ServerFormValues>(
+    key: K,
+    value: ServerFormValues[K],
+  ) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setFormErrors((prev) => ({ ...prev, [key]: undefined, form: undefined }));
   };
@@ -90,7 +104,7 @@ export function ServerUpsertDialog({
     }
 
     try {
-      if (mode === 'create') {
+      if (mode === "create") {
         await onCreate(buildCreatePayload(parsed), {
           temporaryPassword: temporaryPassword.trim() || undefined,
         });
@@ -98,13 +112,13 @@ export function ServerUpsertDialog({
       }
 
       if (!server) {
-        setFormErrors({ form: 'Unable to update this server.' });
+        setFormErrors({ form: "Unable to update this server." });
         return;
       }
 
       const updatePayload = buildUpdatePayload(parsed, server);
       if (Object.keys(updatePayload).length === 0) {
-        setFormErrors({ form: 'No changes detected.' });
+        setFormErrors({ form: "No changes detected." });
         return;
       }
 
@@ -118,11 +132,11 @@ export function ServerUpsertDialog({
       onClose={onClose}
       dismissable={!loading}
       size="xl"
-      title={mode === 'create' ? 'Add Server' : 'Edit Server'}
+      title={mode === "create" ? "Add Server" : "Edit Server"}
       description={
-        mode === 'create'
-          ? 'Configure SSH connection to your VPS.'
-          : 'Update server connection settings and credentials safely.'
+        mode === "create"
+          ? "Configure SSH connection to your VPS."
+          : "Update server connection settings and credentials safely."
       }
       footer={
         <>
@@ -130,7 +144,7 @@ export function ServerUpsertDialog({
             Cancel
           </Button>
           <Button type="submit" form="server-upsert-form" loading={loading}>
-            {mode === 'create' ? 'Create server' : 'Save changes'}
+            {mode === "create" ? "Create server" : "Save changes"}
           </Button>
         </>
       }
@@ -141,15 +155,15 @@ export function ServerUpsertDialog({
             <Alert tone="error">{formErrors.form ?? error}</Alert>
           )}
 
-          {mode === 'create' && (
+          {mode === "create" && (
             <Alert tone="warning">
-              Enter a temporary VPS password if you want automatic key installation
-              right after creation.
+              Enter a temporary VPS password if you want automatic key
+              installation right after creation.
             </Alert>
           )}
 
           {/* SSH Key selector (create only) */}
-          {mode === 'create' && (
+          {mode === "create" && (
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
                 SSH Key <span className="text-red-400">*</span>
@@ -157,12 +171,12 @@ export function ServerUpsertDialog({
               <div className="relative">
                 <select
                   value={values.sshKeyId}
-                  onChange={(e) => set('sshKeyId', e.target.value)}
+                  onChange={(e) => set("sshKeyId", e.target.value)}
                   disabled={keysLoading}
                   className="h-11 w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 pr-10 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
                 >
                   <option value="">
-                    {keysLoading ? 'Loading SSH keys…' : '— Select a SSH key —'}
+                    {keysLoading ? "Loading SSH keys…" : "— Select a SSH key —"}
                   </option>
                   {sshKeys.map((key) => (
                     <option key={key.id} value={key.id}>
@@ -180,10 +194,13 @@ export function ServerUpsertDialog({
               )}
               {sshKeys.length === 0 && !keysLoading && (
                 <p className="text-xs text-[var(--text-secondary)]">
-                  No SSH keys found. Go to{' '}
-                  <a href="/settings/ssh-keys" className="underline hover:text-[var(--text-primary)]">
+                  No SSH keys found. Go to{" "}
+                  <a
+                    href="/settings/ssh-keys"
+                    className="underline hover:text-[var(--text-primary)]"
+                  >
                     Settings › SSH Keys
-                  </a>{' '}
+                  </a>{" "}
                   to create one first.
                 </p>
               )}
@@ -195,14 +212,14 @@ export function ServerUpsertDialog({
             <Input
               label="Server name"
               value={values.name}
-              onChange={(e) => set('name', e.target.value)}
+              onChange={(e) => set("name", e.target.value)}
               placeholder="VPS Production"
               error={formErrors.name}
             />
             <Input
               label="Host or IP"
               value={values.host}
-              onChange={(e) => set('host', e.target.value)}
+              onChange={(e) => set("host", e.target.value)}
               placeholder="192.168.1.10"
               error={formErrors.host}
             />
@@ -212,18 +229,18 @@ export function ServerUpsertDialog({
               min={1}
               max={65535}
               value={values.port}
-              onChange={(e) => set('port', e.target.value)}
+              onChange={(e) => set("port", e.target.value)}
               error={formErrors.port}
             />
             <Input
               label="SSH username"
               value={values.username}
-              onChange={(e) => set('username', e.target.value)}
+              onChange={(e) => set("username", e.target.value)}
               placeholder="ubuntu"
               hint='Use "root" or a non-root user with passwordless sudo access.'
               error={formErrors.username}
             />
-            {mode === 'create' && (
+            {mode === "create" && (
               <Input
                 type="password"
                 label="Temporary VPS password (optional)"

@@ -1,9 +1,13 @@
-import api from '@/shared/lib/api';
-import type { DnsProvider, DnsProviderType, Domain } from '@/features/platform/types/dns';
+import api from "@/shared/lib/api";
+import type {
+  DnsProvider,
+  DnsProviderType,
+  Domain,
+} from "@/features/platform/types/dns";
 
 export const dnsService = {
   async listProviders(): Promise<DnsProvider[]> {
-    const res = await api.get<DnsProvider[]>('/dns/providers');
+    const res = await api.get<DnsProvider[]>("/dns/providers");
     return res.data;
   },
 
@@ -14,19 +18,26 @@ export const dnsService = {
     accountId?: string;
     zoneId?: string;
   }): Promise<DnsProvider> {
-    const res = await api.post<DnsProvider>('/dns/providers', payload);
+    const res = await api.post<DnsProvider>("/dns/providers", payload);
     return res.data;
   },
 
-  async testProvider(id: string): Promise<{ ok: boolean; status: string; message: string }> {
-    const res = await api.post<{ ok: boolean; status: string; message: string }>(
-      `/dns/providers/${id}/test`,
-    );
+  async testProvider(
+    id: string,
+  ): Promise<{ ok: boolean; status: string; message: string }> {
+    const res = await api.post<{
+      ok: boolean;
+      status: string;
+      message: string;
+    }>(`/dns/providers/${id}/test`);
     return res.data;
   },
 
-  async listDomains(filters?: { projectId?: string; serviceEnvId?: string }): Promise<Domain[]> {
-    const res = await api.get<Domain[]>('/dns/domains', {
+  async listDomains(filters?: {
+    projectId?: string;
+    serviceEnvId?: string;
+  }): Promise<Domain[]> {
+    const res = await api.get<Domain[]>("/dns/domains", {
       params: filters,
     });
     return res.data;
@@ -38,7 +49,7 @@ export const dnsService = {
     projectId?: string;
     serviceEnvId?: string;
   }): Promise<Domain> {
-    const res = await api.post<Domain>('/dns/domains', payload);
+    const res = await api.post<Domain>("/dns/domains", payload);
     return res.data;
   },
 

@@ -1,20 +1,27 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bell, Building2, Loader2, Save, ShieldCheck, UserRound } from 'lucide-react';
-import api from '@/shared/lib/api';
-import { PageHeader } from '@/shared/layout/page-header';
-import { SectionCard } from '@/shared/layout/section-card';
-import { Alert } from '@/shared/ui/alert';
-import { Button } from '@/shared/ui/button';
-import { useAuth } from '@/features/auth/api/use-auth';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { platformConfigService } from '@/features/platform/api/platform-config.service';
-import { usersService } from '@/features/users/api/users.service';
-import type { PlatformConfigItem } from '@/features/platform/types/platform-config';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Bell,
+  Building2,
+  Loader2,
+  Save,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
+import api from "@/shared/lib/api";
+import { PageHeader } from "@/shared/layout/page-header";
+import { SectionCard } from "@/shared/layout/section-card";
+import { Alert } from "@/shared/ui/alert";
+import { Button } from "@/shared/ui/button";
+import { useAuth } from "@/features/auth/api/use-auth";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { platformConfigService } from "@/features/platform/api/platform-config.service";
+import { usersService } from "@/features/users/api/users.service";
+import type { PlatformConfigItem } from "@/features/platform/types/platform-config";
 
-const PLATFORM_NAME_KEY = 'PLATFORM_NAME';
-const WEBHOOK_BASE_URL_KEY = 'WEBHOOK_BASE_URL';
+const PLATFORM_NAME_KEY = "PLATFORM_NAME";
+const WEBHOOK_BASE_URL_KEY = "WEBHOOK_BASE_URL";
 
 type NotifSettings = {
   slackWebhookUrl: string;
@@ -29,7 +36,7 @@ type NotifSettings = {
 };
 
 type Notice = {
-  tone: 'success' | 'error';
+  tone: "success" | "error";
   message: string;
 } | null;
 
@@ -40,21 +47,28 @@ export default function SettingsPage() {
 
   const [loadingPlatform, setLoadingPlatform] = useState(false);
   const [savingPlatform, setSavingPlatform] = useState(false);
-  const [platformName, setPlatformName] = useState('Deploy Automation');
-  const [webhookBaseUrl, setWebhookBaseUrl] = useState('');
+  const [platformName, setPlatformName] = useState("Deploy Automation");
+  const [webhookBaseUrl, setWebhookBaseUrl] = useState("");
 
   const [notifSettings, setNotifSettings] = useState<NotifSettings>({
-    slackWebhookUrl: '', notifyOnSuccess: true, notifyOnFailure: true,
-    smtpHost: '', smtpPort: 587, smtpUser: '', smtpPass: '', smtpFrom: '', smtpTo: '',
+    slackWebhookUrl: "",
+    notifyOnSuccess: true,
+    notifyOnFailure: true,
+    smtpHost: "",
+    smtpPort: 587,
+    smtpUser: "",
+    smtpPass: "",
+    smtpFrom: "",
+    smtpTo: "",
   });
   const [savingNotif, setSavingNotif] = useState(false);
 
-  const [fullName, setFullName] = useState(user?.fullName ?? '');
+  const [fullName, setFullName] = useState(user?.fullName ?? "");
   const [savingUserInfo, setSavingUserInfo] = useState(false);
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
@@ -74,10 +88,10 @@ export default function SettingsPage() {
       const map = new Map<string, PlatformConfigItem>(
         rows.map((item) => [item.key, item]),
       );
-      setPlatformName(map.get(PLATFORM_NAME_KEY)?.value || 'Deploy Automation');
-      setWebhookBaseUrl(map.get(WEBHOOK_BASE_URL_KEY)?.value || '');
+      setPlatformName(map.get(PLATFORM_NAME_KEY)?.value || "Deploy Automation");
+      setWebhookBaseUrl(map.get(WEBHOOK_BASE_URL_KEY)?.value || "");
     } catch (error) {
-      setNotice({ tone: 'error', message: getApiErrorMessage(error) });
+      setNotice({ tone: "error", message: getApiErrorMessage(error) });
     } finally {
       setLoadingPlatform(false);
     }
@@ -89,16 +103,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    api.get<NotifSettings>('/notifications/settings').then((r) => setNotifSettings(r.data)).catch(() => {});
+    api
+      .get<NotifSettings>("/notifications/settings")
+      .then((r) => setNotifSettings(r.data))
+      .catch(() => {});
   }, [isAdmin]);
 
   const handleSaveNotif = async () => {
     setSavingNotif(true);
     try {
-      await api.put('/notifications/settings', notifSettings);
-      setNotice({ tone: 'success', message: 'Notification settings saved.' });
+      await api.put("/notifications/settings", notifSettings);
+      setNotice({ tone: "success", message: "Notification settings saved." });
     } catch (err) {
-      setNotice({ tone: 'error', message: getApiErrorMessage(err) });
+      setNotice({ tone: "error", message: getApiErrorMessage(err) });
     } finally {
       setSavingNotif(false);
     }
@@ -113,7 +130,9 @@ export default function SettingsPage() {
     if (!user || savingUserInfo) {
       return false;
     }
-    return fullName.trim().length > 0 && fullName.trim() !== user.fullName.trim();
+    return (
+      fullName.trim().length > 0 && fullName.trim() !== user.fullName.trim()
+    );
   }, [fullName, savingUserInfo, user]);
 
   const canSavePassword = useMemo(() => {
@@ -144,15 +163,17 @@ export default function SettingsPage() {
         value: webhookBaseUrl.trim(),
         isSecret: false,
       });
-      setNotice({ tone: 'success', message: 'Platform identity updated.' });
+      setNotice({ tone: "success", message: "Platform identity updated." });
     } catch (error) {
-      setNotice({ tone: 'error', message: getApiErrorMessage(error) });
+      setNotice({ tone: "error", message: getApiErrorMessage(error) });
     } finally {
       setSavingPlatform(false);
     }
   };
 
-  const handleSaveUserInfo = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveUserInfo = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
     if (!user) {
       return;
@@ -160,7 +181,7 @@ export default function SettingsPage() {
 
     const nextFullName = fullName.trim();
     if (!nextFullName) {
-      setNotice({ tone: 'error', message: 'Full name is required.' });
+      setNotice({ tone: "error", message: "Full name is required." });
       return;
     }
 
@@ -169,29 +190,31 @@ export default function SettingsPage() {
     try {
       await usersService.update(user.id, { fullName: nextFullName });
       await refreshUser();
-      setNotice({ tone: 'success', message: 'User information updated.' });
+      setNotice({ tone: "success", message: "User information updated." });
     } catch (error) {
-      setNotice({ tone: 'error', message: getApiErrorMessage(error) });
+      setNotice({ tone: "error", message: getApiErrorMessage(error) });
     } finally {
       setSavingUserInfo(false);
     }
   };
 
-  const handleChangePassword = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleChangePassword = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
     if (newPassword !== confirmPassword) {
       setNotice({
-        tone: 'error',
-        message: 'Password confirmation does not match.',
+        tone: "error",
+        message: "Password confirmation does not match.",
       });
       return;
     }
 
     if (newPassword.length < 8) {
       setNotice({
-        tone: 'error',
-        message: 'New password must contain at least 8 characters.',
+        tone: "error",
+        message: "New password must contain at least 8 characters.",
       });
       return;
     }
@@ -204,12 +227,12 @@ export default function SettingsPage() {
         newPassword,
         confirmNewPassword: confirmPassword,
       });
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setNotice({ tone: 'success', message: 'Password updated.' });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setNotice({ tone: "success", message: "Password updated." });
     } catch (error) {
-      setNotice({ tone: 'error', message: getApiErrorMessage(error) });
+      setNotice({ tone: "error", message: getApiErrorMessage(error) });
     } finally {
       setSavingPassword(false);
     }
@@ -218,7 +241,10 @@ export default function SettingsPage() {
   if (!user) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 size={22} className="animate-spin text-[var(--text-secondary)]" />
+        <Loader2
+          size={22}
+          className="animate-spin text-[var(--text-secondary)]"
+        />
       </div>
     );
   }
@@ -234,7 +260,7 @@ export default function SettingsPage() {
       {notice && (
         <Alert
           tone={notice.tone}
-          title={notice.tone === 'success' ? 'Success' : 'Error'}
+          title={notice.tone === "success" ? "Success" : "Error"}
         >
           {notice.message}
         </Alert>
@@ -252,7 +278,8 @@ export default function SettingsPage() {
                 Platform identity
               </div>
               <p className="mt-1">
-                Keep this value stable. It is reused across admin screens and operational logs.
+                Keep this value stable. It is reused across admin screens and
+                operational logs.
               </p>
             </div>
 
@@ -283,9 +310,10 @@ export default function SettingsPage() {
               />
               <p className="mt-1.5 text-xs text-[var(--text-muted)]">
                 URL where this backend is reachable. Used to build webhook URLs
-                (<code>&lt;url&gt;/webhooks/incoming/&lt;token&gt;</code>). For GitLab/GitHub
-                to trigger it, it must be <strong>public</strong>; locally you can use{' '}
-                <code>http://localhost:3001</code> for testing.
+                (<code>&lt;url&gt;/webhooks/incoming/&lt;token&gt;</code>). For
+                GitLab/GitHub to trigger it, it must be <strong>public</strong>;
+                locally you can use <code>http://localhost:3001</code> for
+                testing.
               </p>
             </div>
 
@@ -305,7 +333,10 @@ export default function SettingsPage() {
         title="Security"
         description="Update your session security by changing your password."
       >
-        <form onSubmit={handleChangePassword} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <form
+          onSubmit={handleChangePassword}
+          className="grid grid-cols-1 gap-4 lg:grid-cols-3"
+        >
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
               Current password
@@ -418,7 +449,9 @@ export default function SettingsPage() {
           <div className="space-y-6">
             {/* Slack */}
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Slack</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                Slack
+              </p>
               <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
                 <Bell size={15} className="shrink-0" />
                 <span>Incoming Slack webhook to receive real-time alerts.</span>
@@ -430,61 +463,180 @@ export default function SettingsPage() {
                 <input
                   type="url"
                   value={notifSettings.slackWebhookUrl}
-                  onChange={(e) => setNotifSettings((p) => ({ ...p, slackWebhookUrl: e.target.value }))}
+                  onChange={(e) =>
+                    setNotifSettings((p) => ({
+                      ...p,
+                      slackWebhookUrl: e.target.value,
+                    }))
+                  }
                   placeholder="https://hooks.slack.com/services/..."
                   className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 font-mono text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
                 />
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Leave empty to disable Slack.</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  Leave empty to disable Slack.
+                </p>
               </div>
             </div>
 
             {/* Email SMTP */}
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Email SMTP</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                Email SMTP
+              </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">SMTP host</label>
-                  <input type="text" value={notifSettings.smtpHost} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpHost: e.target.value }))} placeholder="smtp.gmail.com" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                    SMTP host
+                  </label>
+                  <input
+                    type="text"
+                    value={notifSettings.smtpHost}
+                    onChange={(e) =>
+                      setNotifSettings((p) => ({
+                        ...p,
+                        smtpHost: e.target.value,
+                      }))
+                    }
+                    placeholder="smtp.gmail.com"
+                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+                  />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Port</label>
-                  <input type="number" value={notifSettings.smtpPort} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpPort: parseInt(e.target.value, 10) || 587 }))} placeholder="587" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                    Port
+                  </label>
+                  <input
+                    type="number"
+                    value={notifSettings.smtpPort}
+                    onChange={(e) =>
+                      setNotifSettings((p) => ({
+                        ...p,
+                        smtpPort: parseInt(e.target.value, 10) || 587,
+                      }))
+                    }
+                    placeholder="587"
+                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+                  />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Utilisateur SMTP</label>
-                  <input type="text" value={notifSettings.smtpUser} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpUser: e.target.value }))} placeholder="user@gmail.com" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                    Utilisateur SMTP
+                  </label>
+                  <input
+                    type="text"
+                    value={notifSettings.smtpUser}
+                    onChange={(e) =>
+                      setNotifSettings((p) => ({
+                        ...p,
+                        smtpUser: e.target.value,
+                      }))
+                    }
+                    placeholder="user@gmail.com"
+                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+                  />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Mot de passe SMTP</label>
-                  <input type="password" value={notifSettings.smtpPass} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpPass: e.target.value }))} placeholder="••••••••" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                    Mot de passe SMTP
+                  </label>
+                  <input
+                    type="password"
+                    value={notifSettings.smtpPass}
+                    onChange={(e) =>
+                      setNotifSettings((p) => ({
+                        ...p,
+                        smtpPass: e.target.value,
+                      }))
+                    }
+                    placeholder="••••••••"
+                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+                  />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Sender (From)</label>
-                  <input type="text" value={notifSettings.smtpFrom} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpFrom: e.target.value }))} placeholder="Vaytek Deploy <noreply@vaytek.com>" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                    Sender (From)
+                  </label>
+                  <input
+                    type="text"
+                    value={notifSettings.smtpFrom}
+                    onChange={(e) =>
+                      setNotifSettings((p) => ({
+                        ...p,
+                        smtpFrom: e.target.value,
+                      }))
+                    }
+                    placeholder="Vaytek Deploy <noreply@vaytek.com>"
+                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+                  />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Destinataire (To)</label>
-                  <input type="text" value={notifSettings.smtpTo} onChange={(e) => setNotifSettings((p) => ({ ...p, smtpTo: e.target.value }))} placeholder="team@vaytek.com" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20" />
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                    Destinataire (To)
+                  </label>
+                  <input
+                    type="text"
+                    value={notifSettings.smtpTo}
+                    onChange={(e) =>
+                      setNotifSettings((p) => ({
+                        ...p,
+                        smtpTo: e.target.value,
+                      }))
+                    }
+                    placeholder="team@vaytek.com"
+                    className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+                  />
                 </div>
               </div>
-              <p className="text-xs text-[var(--text-muted)]">Leave all SMTP fields empty to disable emails.</p>
+              <p className="text-xs text-[var(--text-muted)]">
+                Leave all SMTP fields empty to disable emails.
+              </p>
             </div>
 
             {/* Triggers */}
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">Triggers</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                Triggers
+              </p>
               {[
-                { key: 'notifyOnSuccess' as const, label: 'Notify on success', color: 'text-green-400' },
-                { key: 'notifyOnFailure' as const, label: 'Notify on failure / cancellation', color: 'text-red-400' },
+                {
+                  key: "notifyOnSuccess" as const,
+                  label: "Notify on success",
+                  color: "text-green-400",
+                },
+                {
+                  key: "notifyOnFailure" as const,
+                  label: "Notify on failure / cancellation",
+                  color: "text-red-400",
+                },
               ].map(({ key, label, color }) => (
-                <label key={key} className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-                  <input type="checkbox" checked={notifSettings[key]} onChange={(e) => setNotifSettings((p) => ({ ...p, [key]: e.target.checked }))} className="h-4 w-4 rounded accent-current" />
-                  <span className={`text-sm font-medium ${color}`}>{label}</span>
+                <label
+                  key={key}
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3"
+                >
+                  <input
+                    type="checkbox"
+                    checked={notifSettings[key]}
+                    onChange={(e) =>
+                      setNotifSettings((p) => ({
+                        ...p,
+                        [key]: e.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4 rounded accent-current"
+                  />
+                  <span className={`text-sm font-medium ${color}`}>
+                    {label}
+                  </span>
                 </label>
               ))}
             </div>
 
-            <Button onClick={() => void handleSaveNotif()} disabled={savingNotif} loading={savingNotif} icon={savingNotif ? undefined : <Save size={14} />}>
+            <Button
+              onClick={() => void handleSaveNotif()}
+              disabled={savingNotif}
+              loading={savingNotif}
+              icon={savingNotif ? undefined : <Save size={14} />}
+            >
               Save notifications
             </Button>
           </div>

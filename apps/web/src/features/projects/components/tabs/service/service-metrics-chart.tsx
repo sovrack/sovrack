@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 import {
   CartesianGrid,
   Line,
@@ -10,11 +10,11 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts';
-import { Loader2 } from 'lucide-react';
-import { monitoringService } from '@/features/monitoring';
-import { SectionCard } from '@/shared/layout/section-card';
-import type { Deployment } from '@/features/deployments/types';
+} from "recharts";
+import { Loader2 } from "lucide-react";
+import { monitoringService } from "@/features/monitoring";
+import { SectionCard } from "@/shared/layout/section-card";
+import type { Deployment } from "@/features/deployments/types";
 
 /**
  * Historique CPU/mémoire d'un service (Prometheus) avec MARQUEURS DE DÉPLOIEMENT :
@@ -29,8 +29,9 @@ export function ServiceMetricsChart({
   deployments: Deployment[];
 }) {
   const { data, isLoading } = useQuery({
-    queryKey: ['service-metric-range', serviceEnvId],
-    queryFn: () => monitoringService.getServiceMetricRange(serviceEnvId!, 60, 60),
+    queryKey: ["service-metric-range", serviceEnvId],
+    queryFn: () =>
+      monitoringService.getServiceMetricRange(serviceEnvId!, 60, 60),
     enabled: Boolean(serviceEnvId),
     refetchInterval: 30_000,
   });
@@ -57,8 +58,8 @@ export function ServiceMetricsChart({
 
   const fmtTime = (t: number) =>
     new Date(t * 1000).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
   return (
@@ -82,7 +83,10 @@ export function ServiceMetricsChart({
       ) : (
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={points} margin={{ top: 8, right: 8, bottom: 4, left: -8 }}>
+            <LineChart
+              data={points}
+              margin={{ top: 8, right: 8, bottom: 4, left: -8 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis
                 dataKey="t"
@@ -106,16 +110,16 @@ export function ServiceMetricsChart({
               <Tooltip
                 labelFormatter={(t) => fmtTime(Number(t))}
                 contentStyle={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border)",
                   borderRadius: 8,
                   fontSize: 12,
                 }}
                 formatter={(value: unknown, name: unknown) => [
-                  name === 'cpu'
+                  name === "cpu"
                     ? `${Number(value).toFixed(1)} %`
                     : `${Number(value).toFixed(0)} MB`,
-                  name === 'cpu' ? 'CPU' : 'Memory',
+                  name === "cpu" ? "CPU" : "Memory",
                 ]}
               />
               <Line
@@ -143,7 +147,11 @@ export function ServiceMetricsChart({
                   x={m.t}
                   stroke="var(--text-muted)"
                   strokeDasharray="2 2"
-                  label={{ value: '⬩', fill: 'var(--text-muted)', fontSize: 10 }}
+                  label={{
+                    value: "⬩",
+                    fill: "var(--text-muted)",
+                    fontSize: 10,
+                  }}
                 />
               ))}
             </LineChart>

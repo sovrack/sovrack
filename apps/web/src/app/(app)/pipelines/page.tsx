@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import { timeAgo } from '@/shared/lib/format-date';
-import Link from 'next/link';
+import { useMemo, useState } from "react";
+import { timeAgo } from "@/shared/lib/format-date";
+import Link from "next/link";
 import {
   Activity,
   CheckCircle,
@@ -12,35 +12,45 @@ import {
   Play,
   XCircle,
   Clock,
-} from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { PageHeader } from '@/shared/layout/page-header';
-import { SubNav } from '@/shared/layout/sub-nav';
-import { SectionCard } from '@/shared/layout/section-card';
-import { Badge } from '@/shared/ui/badge';
-import { Button } from '@/shared/ui/button';
-import { EmptyState } from '@/shared/ui/empty-state';
-import { projectsService } from '@/features/projects/api/projects.service';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import type { GitlabPipeline, ProjectListItem } from '@/features/projects/types/project';
+} from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { PageHeader } from "@/shared/layout/page-header";
+import { SubNav } from "@/shared/layout/sub-nav";
+import { SectionCard } from "@/shared/layout/section-card";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { EmptyState } from "@/shared/ui/empty-state";
+import { projectsService } from "@/features/projects/api/projects.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import type {
+  GitlabPipeline,
+  ProjectListItem,
+} from "@/features/projects/types/project";
 
-type PipelineWithProject = GitlabPipeline & { project: Pick<ProjectListItem, 'id' | 'name'> };
+type PipelineWithProject = GitlabPipeline & {
+  project: Pick<ProjectListItem, "id" | "name">;
+};
 
 function pipelineStatusTone(status: string) {
-  if (status === 'success') return 'success' as const;
-  if (status === 'failed' || status === 'canceled') return 'error' as const;
-  if (status === 'running') return 'info' as const;
-  if (status === 'pending' || status === 'created') return 'default' as const;
-  return 'default' as const;
+  if (status === "success") return "success" as const;
+  if (status === "failed" || status === "canceled") return "error" as const;
+  if (status === "running") return "info" as const;
+  if (status === "pending" || status === "created") return "default" as const;
+  return "default" as const;
 }
 
 function PipelineStatusBadge({ status }: { status: string }) {
   const tone = pipelineStatusTone(status);
   const icon =
-    status === 'success' ? <CheckCircle size={10} /> :
-    status === 'failed' || status === 'canceled' ? <XCircle size={10} /> :
-    status === 'running' ? <Loader2 size={10} className="animate-spin" /> :
-    <Clock size={10} />;
+    status === "success" ? (
+      <CheckCircle size={10} />
+    ) : status === "failed" || status === "canceled" ? (
+      <XCircle size={10} />
+    ) : status === "running" ? (
+      <Loader2 size={10} className="animate-spin" />
+    ) : (
+      <Clock size={10} />
+    );
 
   return (
     <Badge tone={tone} size="sm">
@@ -54,26 +64,32 @@ export default function PipelinesPage() {
   const queryClient = useQueryClient();
   const [triggeringId, setTriggeringId] = useState<string | null>(null);
   const [triggerError, setTriggerError] = useState<string | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [branchFilter, setBranchFilter] = useState<string>('all');
-  const [commitFilter, setCommitFilter] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [branchFilter, setBranchFilter] = useState<string>("all");
+  const [commitFilter, setCommitFilter] = useState("");
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['pipelines-all'],
+    queryKey: ["pipelines-all"],
     queryFn: async () => {
       const allProjects = await projectsService.getAll();
       const results = await Promise.allSettled(
         allProjects.map(async (p) => {
           const items = await projectsService.getPipelines(p.id);
-          return items.map((item) => ({ ...item, project: { id: p.id, name: p.name } }));
+          return items.map((item) => ({
+            ...item,
+            project: { id: p.id, name: p.name },
+          }));
         }),
       );
       const merged: PipelineWithProject[] = [];
       for (const result of results) {
-        if (result.status === 'fulfilled') merged.push(...result.value);
+        if (result.status === "fulfilled") merged.push(...result.value);
       }
-      merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      merged.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
       return { projects: allProjects, pipelines: merged };
     },
     staleTime: 30_000,
@@ -81,15 +97,21 @@ export default function PipelinesPage() {
     refetchOnWindowFocus: false,
   });
 
-  const projects = useMemo<ProjectListItem[]>(() => data?.projects ?? [], [data]);
-  const pipelines = useMemo<PipelineWithProject[]>(() => data?.pipelines ?? [], [data]);
+  const projects = useMemo<ProjectListItem[]>(
+    () => data?.projects ?? [],
+    [data],
+  );
+  const pipelines = useMemo<PipelineWithProject[]>(
+    () => data?.pipelines ?? [],
+    [data],
+  );
 
   const handleTrigger = async (projectId: string, ref: string) => {
     setTriggeringId(`${projectId}-${ref}`);
     setTriggerError(null);
     try {
       await projectsService.triggerPipeline(projectId, ref);
-      await queryClient.invalidateQueries({ queryKey: ['pipelines-all'] });
+      await queryClient.invalidateQueries({ queryKey: ["pipelines-all"] });
     } catch (err) {
       setTriggerError(getApiErrorMessage(err));
     } finally {
@@ -98,7 +120,8 @@ export default function PipelinesPage() {
   };
 
   const statusOptions = useMemo(
-    () => Array.from(new Set(pipelines.map((pipeline) => pipeline.status))).sort(),
+    () =>
+      Array.from(new Set(pipelines.map((pipeline) => pipeline.status))).sort(),
     [pipelines],
   );
   const branchOptions = useMemo(
@@ -109,9 +132,12 @@ export default function PipelinesPage() {
   const filtered = useMemo(() => {
     return pipelines.filter((pipeline) => {
       const projectMatch =
-        selectedProjectId === 'all' || pipeline.project.id === selectedProjectId;
-      const statusMatch = statusFilter === 'all' || pipeline.status === statusFilter;
-      const branchMatch = branchFilter === 'all' || pipeline.ref === branchFilter;
+        selectedProjectId === "all" ||
+        pipeline.project.id === selectedProjectId;
+      const statusMatch =
+        statusFilter === "all" || pipeline.status === statusFilter;
+      const branchMatch =
+        branchFilter === "all" || pipeline.ref === branchFilter;
       const commitMatch =
         commitFilter.trim().length === 0 ||
         pipeline.sha.toLowerCase().includes(commitFilter.trim().toLowerCase());
@@ -119,12 +145,17 @@ export default function PipelinesPage() {
     });
   }, [branchFilter, commitFilter, pipelines, selectedProjectId, statusFilter]);
 
-  const stats = useMemo(() => ({
-    total: pipelines.length,
-    success: pipelines.filter((p) => p.status === 'success').length,
-    failed: pipelines.filter((p) => p.status === 'failed').length,
-    running: pipelines.filter((p) => p.status === 'running' || p.status === 'pending').length,
-  }), [pipelines]);
+  const stats = useMemo(
+    () => ({
+      total: pipelines.length,
+      success: pipelines.filter((p) => p.status === "success").length,
+      failed: pipelines.filter((p) => p.status === "failed").length,
+      running: pipelines.filter(
+        (p) => p.status === "running" || p.status === "pending",
+      ).length,
+    }),
+    [pipelines],
+  );
 
   return (
     <div className="space-y-6">
@@ -136,22 +167,29 @@ export default function PipelinesPage() {
 
       <SubNav
         tabs={[
-          { label: 'Deployments', href: '/deployments' },
-          { label: 'Pipelines', href: '/pipelines' },
+          { label: "Deployments", href: "/deployments" },
+          { label: "Pipelines", href: "/pipelines" },
         ]}
       />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: 'Total', value: stats.total, tone: 'default' },
-          { label: 'Success', value: stats.success, tone: 'success' },
-          { label: 'Failed', value: stats.failed, tone: 'error' },
-          { label: 'Running', value: stats.running, tone: 'info' },
+          { label: "Total", value: stats.total, tone: "default" },
+          { label: "Success", value: stats.success, tone: "success" },
+          { label: "Failed", value: stats.failed, tone: "error" },
+          { label: "Running", value: stats.running, tone: "info" },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
-            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">{value}</p>
+          <div
+            key={label}
+            className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3"
+          >
+            <p className="text-xs font-medium text-[var(--text-muted)]">
+              {label}
+            </p>
+            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
+              {value}
+            </p>
           </div>
         ))}
       </div>
@@ -163,7 +201,11 @@ export default function PipelinesPage() {
       )}
 
       {/* Filter */}
-      <SectionCard title="Filter" description="Project, status, branch, commit." contentClassName="pt-0">
+      <SectionCard
+        title="Filter"
+        description="Project, status, branch, commit."
+        contentClassName="pt-0"
+      >
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           <select
             value={selectedProjectId}
@@ -172,7 +214,9 @@ export default function PipelinesPage() {
           >
             <option value="all">All projects</option>
             {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
             ))}
           </select>
 
@@ -213,7 +257,10 @@ export default function PipelinesPage() {
 
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" />
+          <Loader2
+            size={24}
+            className="animate-spin text-[var(--text-secondary)]"
+          />
         </div>
       )}
 
@@ -224,8 +271,8 @@ export default function PipelinesPage() {
             title="No pipelines found"
             description={
               pipelines.length === 0
-                ? 'Pipelines will appear here once your projects are connected to GitLab and CI runs.'
-                : 'No pipeline matches the current filters.'
+                ? "Pipelines will appear here once your projects are connected to GitLab and CI runs."
+                : "No pipeline matches the current filters."
             }
           />
         </SectionCard>
@@ -270,10 +317,16 @@ export default function PipelinesPage() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      icon={triggeringId === triggerKey
-                        ? <Loader2 size={13} className="animate-spin" />
-                        : <Play size={13} />}
-                      onClick={() => void handleTrigger(pipeline.project.id, pipeline.ref)}
+                      icon={
+                        triggeringId === triggerKey ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Play size={13} />
+                        )
+                      }
+                      onClick={() =>
+                        void handleTrigger(pipeline.project.id, pipeline.ref)
+                      }
                       disabled={!!triggeringId}
                       loading={triggeringId === triggerKey}
                     >

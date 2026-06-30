@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Trash2, Crown, User } from 'lucide-react';
-import clsx from 'clsx';
-import type { ProjectMember } from '@/features/projects/types/project';
+import { useState } from "react";
+import { Trash2, Crown, User } from "lucide-react";
+import clsx from "clsx";
+import type { ProjectMember } from "@/features/projects/types/project";
 
 type MembersListProps = {
   members: ProjectMember[];
@@ -34,7 +34,7 @@ export function MembersList({
     <div className="space-y-2">
       {members.map((member) => {
         const isCurrentUser = member.user.id === currentUserId;
-        const isOwner = member.role === 'OWNER';
+        const isOwner = member.role === "OWNER";
 
         return (
           <div
@@ -59,22 +59,25 @@ export function MembersList({
                 </p>
                 <span
                   className={clsx(
-                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                     isOwner
-                      ? 'bg-yellow-500/15 text-yellow-300'
-                      : 'bg-[var(--bg-card)]/10 text-[var(--text-primary)]',
+                      ? "bg-yellow-500/15 text-yellow-300"
+                      : "bg-[var(--bg-card)]/10 text-[var(--text-primary)]",
                   )}
                 >
                   {isOwner ? <Crown size={9} /> : <User size={9} />}
                   {member.role}
                 </span>
               </div>
-              <p className="truncate text-xs text-[var(--text-secondary)]">{member.user.email}</p>
+              <p className="truncate text-xs text-[var(--text-secondary)]">
+                {member.user.email}
+              </p>
             </div>
 
             {/* Remove button */}
             {canManage && !isCurrentUser && !isOwner && (
-              <button type="button"
+              <button
+                type="button"
                 onClick={() => void handleRemove(member.user.id)}
                 disabled={removingId === member.user.id}
                 className="shrink-0 rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"

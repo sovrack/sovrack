@@ -1,30 +1,30 @@
-import type { components } from '@/generated/api-contract';
+import type { components } from "@/generated/api-contract";
 
-type ApiSchema = components['schemas'];
+type ApiSchema = components["schemas"];
 
-type ServerInstalledToolApi = ApiSchema['ServerInstalledToolDto'];
-type ServerValidationResultApi = ApiSchema['ServerValidationResultDto'];
-type ServerPreparationTaskApi = ApiSchema['ServerPreparationTaskDto'];
-type ServerPreparationApi = ApiSchema['ServerPreparationDto'];
-type ServerAuditEventApi = ApiSchema['ServerAuditEventDto'];
+type ServerInstalledToolApi = ApiSchema["ServerInstalledToolDto"];
+type ServerValidationResultApi = ApiSchema["ServerValidationResultDto"];
+type ServerPreparationTaskApi = ApiSchema["ServerPreparationTaskDto"];
+type ServerPreparationApi = ApiSchema["ServerPreparationDto"];
+type ServerAuditEventApi = ApiSchema["ServerAuditEventDto"];
 
-export type ServerStatus = ApiSchema['ServerResponseDto']['status'];
-export type ServerPreparationStatus = ApiSchema['ServerPreparationDto']['status'];
-export type ServerPreparationTaskStatus = ApiSchema['ServerPreparationTaskDto']['status'];
-export type ServerPreparationProfile = NonNullable<ApiSchema['StartServerPreparationDto']['profile']>;
-export type ServerConnectionMode = ApiSchema['ServerResponseDto']['connectionMode'];
+export type ServerStatus = ApiSchema["ServerResponseDto"]["status"];
+export type ServerPreparationStatus =
+  ApiSchema["ServerPreparationDto"]["status"];
+export type ServerPreparationTaskStatus =
+  ApiSchema["ServerPreparationTaskDto"]["status"];
+export type ServerPreparationProfile = NonNullable<
+  ApiSchema["StartServerPreparationDto"]["profile"]
+>;
+export type ServerConnectionMode =
+  ApiSchema["ServerResponseDto"]["connectionMode"];
 
 export type ServerInfraRole =
-  | 'NONE'
-  | 'STAGING'
-  | 'PRODUCTION'
-  | 'DATABASE'
-  | 'RUNNER'
-  | 'MONITORING';
+  "NONE" | "STAGING" | "PRODUCTION" | "DATABASE" | "RUNNER" | "MONITORING";
 
-export type ServerActiveJob = ApiSchema['ServerActiveJobDto'];
+export type ServerActiveJob = ApiSchema["ServerActiveJobDto"];
 
-export type Server = ApiSchema['ServerResponseDto'] & {
+export type Server = ApiSchema["ServerResponseDto"] & {
   infraRole?: ServerInfraRole;
   description?: string;
 };
@@ -41,42 +41,43 @@ export type InfraEnvironmentServer = {
   hasRunner: boolean;
 };
 
-export type CreateServerPayload = ApiSchema['CreateServerDto'] & {
+export type CreateServerPayload = ApiSchema["CreateServerDto"] & {
   description?: string;
 };
 
-export type CreateServerResult = ApiSchema['CreateServerResponseDto'] & {
+export type CreateServerResult = ApiSchema["CreateServerResponseDto"] & {
   infraRole?: ServerInfraRole;
   description?: string;
 };
 
-export type UpdateServerPayload = ApiSchema['UpdateServerDto'] & {
+export type UpdateServerPayload = ApiSchema["UpdateServerDto"] & {
   description?: string;
 };
 
 export type InstallToolsPayload = Record<string, unknown>;
 
-export type StartServerPreparationPayload = ApiSchema['StartServerPreparationDto'] & {
-  reinstallOptions?: string[];
-};
+export type StartServerPreparationPayload =
+  ApiSchema["StartServerPreparationDto"] & {
+    reinstallOptions?: string[];
+  };
 
-export type RegisterRunnerPayload = ApiSchema['RegisterRunnerDto'];
+export type RegisterRunnerPayload = ApiSchema["RegisterRunnerDto"];
 
-export type InstallServerKeyPayload = ApiSchema['InstallKeyDto'];
+export type InstallServerKeyPayload = ApiSchema["InstallKeyDto"];
 
-export type InstallServerKeyResult = ApiSchema['InstallKeyResponseDto'];
+export type InstallServerKeyResult = ApiSchema["InstallKeyResponseDto"];
 
-export type ServerJobStatus = ApiSchema['ServerJobResponseDto']['status'];
+export type ServerJobStatus = ApiSchema["ServerJobResponseDto"]["status"];
 
-export type ServerJobType = ApiSchema['ServerJobResponseDto']['type'];
+export type ServerJobType = ApiSchema["ServerJobResponseDto"]["type"];
 
-export type ServerJob = ApiSchema['ServerJobResponseDto'];
+export type ServerJob = ApiSchema["ServerJobResponseDto"];
 
-export type ServerCapability = ApiSchema['ServerCapabilityDto'];
+export type ServerCapability = ApiSchema["ServerCapabilityDto"];
 
 export type ServerInstalledTool = Omit<
   ServerInstalledToolApi,
-  'version' | 'installedBy' | 'installedAt'
+  "version" | "installedBy" | "installedAt"
 > & {
   version?: string | null;
   installedBy?: string | null;
@@ -85,12 +86,12 @@ export type ServerInstalledTool = Omit<
 
 export type ServerValidationResult = Omit<
   ServerValidationResultApi,
-  | 'fingerprint'
-  | 'osName'
-  | 'osVersion'
-  | 'architecture'
-  | 'validationMessage'
-  | 'validatedAt'
+  | "fingerprint"
+  | "osName"
+  | "osVersion"
+  | "architecture"
+  | "validationMessage"
+  | "validatedAt"
 > & {
   fingerprint?: string | null;
   osName?: string | null;
@@ -104,7 +105,7 @@ export type ServerValidationResult = Omit<
 
 export type ServerPreparationTask = Omit<
   ServerPreparationTaskApi,
-  'startedAt' | 'finishedAt' | 'message'
+  "startedAt" | "finishedAt" | "message"
 > & {
   startedAt?: string | null;
   finishedAt?: string | null;
@@ -115,7 +116,12 @@ export type ServerPreparationTask = Omit<
 
 export type ServerPreparation = Omit<
   ServerPreparationApi,
-  'startedAt' | 'finishedAt' | 'summary' | 'errorMessage' | 'retryOfPreparationId' | 'tasks'
+  | "startedAt"
+  | "finishedAt"
+  | "summary"
+  | "errorMessage"
+  | "retryOfPreparationId"
+  | "tasks"
 > & {
   startedAt?: string | null;
   finishedAt?: string | null;
@@ -129,13 +135,14 @@ export type ServerPreparation = Omit<
   tasks: ServerPreparationTask[];
 };
 
-export type ServerPreparationLog = ApiSchema['ServerPreparationLogDto'];
+export type ServerPreparationLog = ApiSchema["ServerPreparationLogDto"];
 
-export type ServerPreparationReadiness = ApiSchema['ServerPreparationReadinessDto'];
+export type ServerPreparationReadiness =
+  ApiSchema["ServerPreparationReadinessDto"];
 
 export type ServerAuditEvent = Omit<
   ServerAuditEventApi,
-  'actorId' | 'payloadJson'
+  "actorId" | "payloadJson"
 > & {
   actorId?: string | null;
   payloadJson?: Record<string, unknown> | null;
@@ -157,7 +164,7 @@ export type ServerPreparationOptionsResponse = {
   options: PreparationOptionDefinition[];
   profileDefaults: Record<
     ServerPreparationProfile,
-    Partial<Record<PreparationOptionDefinition['key'], boolean>>
+    Partial<Record<PreparationOptionDefinition["key"], boolean>>
   >;
 };
 

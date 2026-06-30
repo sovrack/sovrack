@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useCallback, useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   CheckCircle2,
@@ -11,30 +11,30 @@ import {
   Trash2,
   X,
   XCircle,
-} from 'lucide-react';
-import { PageHeader } from '@/shared/layout/page-header';
-import { Alert } from '@/shared/ui/alert';
-import { Button } from '@/shared/ui/button';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { useAuth } from '@/features/auth/api/use-auth';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { useToasts } from '@/shared/hooks/use-toasts';
-import { platformConfigService } from '@/features/platform/api/platform-config.service';
+} from "lucide-react";
+import { PageHeader } from "@/shared/layout/page-header";
+import { Alert } from "@/shared/ui/alert";
+import { Button } from "@/shared/ui/button";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { useAuth } from "@/features/auth/api/use-auth";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { useToasts } from "@/shared/hooks/use-toasts";
+import { platformConfigService } from "@/features/platform/api/platform-config.service";
 import type {
   CreateRegistryConfigPayload,
   RegistryConfig,
   RegistryProviderType,
   UpdateRegistryConfigPayload,
-} from '@/features/platform/types/platform-config';
+} from "@/features/platform/types/platform-config";
 import {
   RegistryForm,
   REGISTRY_TYPE_LABELS,
   type DialogMode,
   type RegistryFormState,
-} from '@/features/registry/components/registry-form';
+} from "@/features/registry/components/registry-form";
 
 function RegistryLogo({ type }: { type: RegistryProviderType }) {
-  if (type === 'DOCKER_HUB') {
+  if (type === "DOCKER_HUB") {
     return (
       <svg viewBox="0 0 64 64" className="h-5 w-5" fill="none" aria-hidden>
         <path
@@ -46,7 +46,12 @@ function RegistryLogo({ type }: { type: RegistryProviderType }) {
   }
 
   return (
-    <svg viewBox="0 0 64 64" className="h-5 w-5" fill="currentColor" aria-hidden>
+    <svg
+      viewBox="0 0 64 64"
+      className="h-5 w-5"
+      fill="currentColor"
+      aria-hidden
+    >
       <path d="M32 4C17.66 4 6 15.66 6 30c0 14.34 11.66 26 26 26s26-11.66 26-26c0-14.34-11.66-26-26-26z" />
     </svg>
   );
@@ -85,20 +90,24 @@ function ConnectionStatusBadge({
   );
 }
 
-
 export default function RegistrySettingsPage() {
   const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const { toasts, showToast: addToast } = useToasts(5000);
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
-  const [selectedRegistry, setSelectedRegistry] = useState<RegistryConfig | null>(null);
+  const [selectedRegistry, setSelectedRegistry] =
+    useState<RegistryConfig | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
 
-  const { data: registries = [], isLoading: loading, error: queryError } = useQuery({
-    queryKey: ['registry-configs'],
+  const {
+    data: registries = [],
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["registry-configs"],
     queryFn: () => platformConfigService.listRegistryConfigs(),
     enabled: isAdmin,
     staleTime: 30_000,
@@ -106,8 +115,10 @@ export default function RegistrySettingsPage() {
   });
 
   const error = queryError ? getApiErrorMessage(queryError) : null;
-  const invalidate = useCallback(() => queryClient.invalidateQueries({ queryKey: ['registry-configs'] }), [queryClient]);
-
+  const invalidate = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ["registry-configs"] }),
+    [queryClient],
+  );
 
   const formData = useMemo(() => {
     if (!selectedRegistry) {
@@ -119,7 +130,7 @@ export default function RegistrySettingsPage() {
       name: selectedRegistry.name,
       type: selectedRegistry.type,
       username: selectedRegistry.username,
-      password: '',
+      password: "",
       registryUrl: selectedRegistry.registryUrl,
       isDefault: selectedRegistry.isDefault,
     } satisfies RegistryFormState;
@@ -130,39 +141,45 @@ export default function RegistrySettingsPage() {
       setIsSubmitting(true);
 
       try {
-        if (dialogMode === 'create') {
+        if (dialogMode === "create") {
           const payload: CreateRegistryConfigPayload = {
             name: data.name.trim(),
             type: data.type,
             isDefault: data.isDefault,
             ...(data.username.trim() ? { username: data.username.trim() } : {}),
             ...(data.password.trim() ? { password: data.password.trim() } : {}),
-            ...(data.registryUrl.trim() ? { registryUrl: data.registryUrl.trim() } : {}),
+            ...(data.registryUrl.trim()
+              ? { registryUrl: data.registryUrl.trim() }
+              : {}),
           };
 
           await platformConfigService.createRegistryConfig(payload);
-          addToast('Registry created avec succes.', 'success');
+          addToast("Registry created avec succes.", "success");
         }
 
-        if (dialogMode === 'edit' && data.id) {
+        if (dialogMode === "edit" && data.id) {
           const payload: UpdateRegistryConfigPayload = {
             name: data.name.trim(),
             type: data.type,
             isDefault: data.isDefault,
-            ...(data.username.trim() ? { username: data.username.trim() } : { username: '' }),
+            ...(data.username.trim()
+              ? { username: data.username.trim() }
+              : { username: "" }),
             ...(data.password.trim() ? { password: data.password.trim() } : {}),
-            ...(data.registryUrl.trim() ? { registryUrl: data.registryUrl.trim() } : { registryUrl: '' }),
+            ...(data.registryUrl.trim()
+              ? { registryUrl: data.registryUrl.trim() }
+              : { registryUrl: "" }),
           };
 
           await platformConfigService.updateRegistryConfig(data.id, payload);
-          addToast('Registry updated avec succes.', 'success');
+          addToast("Registry updated avec succes.", "success");
         }
 
         setDialogMode(null);
         setSelectedRegistry(null);
         await invalidate();
       } catch (submitError) {
-        addToast(getApiErrorMessage(submitError), 'error');
+        addToast(getApiErrorMessage(submitError), "error");
       } finally {
         setIsSubmitting(false);
       }
@@ -177,11 +194,11 @@ export default function RegistrySettingsPage() {
 
     try {
       await platformConfigService.deleteRegistryConfig(deleteId);
-      addToast('Registry deleted avec succes.', 'success');
+      addToast("Registry deleted avec succes.", "success");
       setDeleteId(null);
       await invalidate();
     } catch (deleteError) {
-      addToast(getApiErrorMessage(deleteError), 'error');
+      addToast(getApiErrorMessage(deleteError), "error");
     }
   }, [addToast, deleteId, invalidate]);
 
@@ -191,10 +208,10 @@ export default function RegistrySettingsPage() {
 
       try {
         const result = await platformConfigService.testRegistryConnection(id);
-        addToast(result.message, result.ok ? 'success' : 'error');
+        addToast(result.message, result.ok ? "success" : "error");
         await invalidate();
       } catch (testError) {
-        addToast(getApiErrorMessage(testError), 'error');
+        addToast(getApiErrorMessage(testError), "error");
       } finally {
         setTestingId(null);
       }
@@ -208,10 +225,10 @@ export default function RegistrySettingsPage() {
 
       try {
         await platformConfigService.setDefaultRegistryConfig(id);
-        addToast('Default registry defini.', 'success');
+        addToast("Default registry defini.", "success");
         await invalidate();
       } catch (setDefaultError) {
-        addToast(getApiErrorMessage(setDefaultError), 'error');
+        addToast(getApiErrorMessage(setDefaultError), "error");
       } finally {
         setSettingDefaultId(null);
       }
@@ -242,7 +259,10 @@ export default function RegistrySettingsPage() {
         description="Manage your container registries (Docker Hub, ECR, GCR, etc.)."
         actions={
           dialogMode === null ? (
-            <Button icon={<Plus size={14} />} onClick={() => setDialogMode('create')}>
+            <Button
+              icon={<Plus size={14} />}
+              onClick={() => setDialogMode("create")}
+            >
               Add registry
             </Button>
           ) : null
@@ -259,8 +279,8 @@ export default function RegistrySettingsPage() {
         {toasts.map((toast) => (
           <Alert
             key={toast.id}
-            tone={toast.tone === 'success' ? 'success' : 'error'}
-            title={toast.tone === 'success' ? 'Success' : 'Error'}
+            tone={toast.tone === "success" ? "success" : "error"}
+            title={toast.tone === "success" ? "Success" : "Error"}
           >
             {toast.message}
           </Alert>
@@ -269,14 +289,22 @@ export default function RegistrySettingsPage() {
 
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" />
+          <Loader2
+            size={24}
+            className="animate-spin text-[var(--text-secondary)]"
+          />
         </div>
       )}
 
       {!loading && registries.length === 0 && dialogMode === null && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
-          <p className="mb-4 text-[var(--text-secondary)]">No registry configured</p>
-          <Button icon={<Plus size={14} />} onClick={() => setDialogMode('create')}>
+          <p className="mb-4 text-[var(--text-secondary)]">
+            No registry configured
+          </p>
+          <Button
+            icon={<Plus size={14} />}
+            onClick={() => setDialogMode("create")}
+          >
             Add registry
           </Button>
         </div>
@@ -300,7 +328,7 @@ export default function RegistrySettingsPage() {
                   Settings
                 </p>
                 <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
-                  {dialogMode === 'create' ? 'Add registry' : 'Edit registry'}
+                  {dialogMode === "create" ? "Add registry" : "Edit registry"}
                 </h3>
               </div>
               <button
@@ -347,7 +375,9 @@ export default function RegistrySettingsPage() {
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-[var(--text-primary)]">{registry.name}</h4>
+                    <h4 className="font-semibold text-[var(--text-primary)]">
+                      {registry.name}
+                    </h4>
                     <p className="text-sm text-[var(--text-secondary)]">
                       {REGISTRY_TYPE_LABELS[registry.type]}
                       {registry.isDefault && (
@@ -377,7 +407,7 @@ export default function RegistrySettingsPage() {
                   icon={<Pencil size={12} />}
                   onClick={() => {
                     setSelectedRegistry(registry);
-                    setDialogMode('edit');
+                    setDialogMode("edit");
                   }}
                 >
                   Edit

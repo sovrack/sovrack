@@ -1,25 +1,32 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/features/auth/api/use-auth';
-import type { UserRole } from '@/features/auth/types/auth';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/features/auth/api/use-auth";
+import type { UserRole } from "@/features/auth/types/auth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: UserRole;
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requiredRole,
+}: ProtectedRouteProps) {
   const router = useRouter();
   const { isAuthenticated, user, loading } = useAuth();
 
   useEffect(() => {
     if (!loading) {
       if (!isAuthenticated) {
-        router.replace('/login');
-      } else if (requiredRole && user?.role !== requiredRole && user?.role !== 'ADMIN') {
-        router.replace('/access-denied');
+        router.replace("/login");
+      } else if (
+        requiredRole &&
+        user?.role !== requiredRole &&
+        user?.role !== "ADMIN"
+      ) {
+        router.replace("/access-denied");
       }
     }
   }, [isAuthenticated, user, loading, requiredRole, router]);
@@ -39,7 +46,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return null;
   }
 
-  if (requiredRole && user?.role !== requiredRole && user?.role !== 'ADMIN') {
+  if (requiredRole && user?.role !== requiredRole && user?.role !== "ADMIN") {
     return null;
   }
 

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import clsx from 'clsx';
+import { useState } from "react";
+import clsx from "clsx";
 import {
   CheckCircle2,
   ChevronDown,
@@ -17,31 +17,32 @@ import {
   Trash2,
   Wifi,
   WifiOff,
-} from 'lucide-react';
-import type { GitlabProvider } from '@/features/platform';
-import { PROVIDER_META, ProviderLogo } from './provider-meta';
+} from "lucide-react";
+import type { GitlabProvider } from "@/features/platform";
+import { PROVIDER_META, ProviderLogo } from "./provider-meta";
 
 /* ─── Badge helpers ────────────────────────────────────────────────────── */
 
 function Chip({
   children,
-  color = 'default',
+  color = "default",
 }: {
   children: React.ReactNode;
-  color?: 'green' | 'amber' | 'red' | 'blue' | 'purple' | 'default';
+  color?: "green" | "amber" | "red" | "blue" | "purple" | "default";
 }) {
   const map = {
-    green: 'border-green-500/20 bg-green-500/10 text-green-400',
-    amber: 'border-amber-500/20 bg-amber-500/10 text-amber-300',
-    red: 'border-red-500/20 bg-red-500/10 text-red-400',
-    blue: 'border-blue-500/20 bg-blue-500/10 text-blue-400',
-    purple: 'border-indigo-500/20 bg-indigo-500/10 text-indigo-400',
-    default: 'border-[var(--border)] bg-[var(--hover)] text-[var(--text-secondary)]',
+    green: "border-green-500/20 bg-green-500/10 text-green-400",
+    amber: "border-amber-500/20 bg-amber-500/10 text-amber-300",
+    red: "border-red-500/20 bg-red-500/10 text-red-400",
+    blue: "border-blue-500/20 bg-blue-500/10 text-blue-400",
+    purple: "border-indigo-500/20 bg-indigo-500/10 text-indigo-400",
+    default:
+      "border-[var(--border)] bg-[var(--hover)] text-[var(--text-secondary)]",
   };
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
         map[color],
       )}
     >
@@ -59,15 +60,15 @@ function StatusSection({ provider }: { provider: GitlabProvider }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {/* Overall status */}
-      {provider.status === 'CONFIGURED' && (
+      {provider.status === "CONFIGURED" && (
         <Chip color="green">
           <CheckCircle2 size={9} /> Connected
         </Chip>
       )}
-      {provider.status === 'ACTION_REQUIRED' && (
+      {provider.status === "ACTION_REQUIRED" && (
         <Chip color="amber">Action Required</Chip>
       )}
-      {provider.status === 'NOT_CONFIGURED' && (
+      {provider.status === "NOT_CONFIGURED" && (
         <Chip color="default">Not Configured</Chip>
       )}
 
@@ -97,7 +98,9 @@ function StatusSection({ provider }: { provider: GitlabProvider }) {
 
       {/* Self-hosted */}
       {provider.providerUrl !==
-        PROVIDER_META[provider.providerType ?? 'GITLAB'].defaultUrl && (
+        PROVIDER_META[
+          (provider.providerType as import("./provider-meta").ProviderType) ?? "GITLAB"
+        ]?.defaultUrl && (
         <Chip color="default">Self-hosted</Chip>
       )}
     </div>
@@ -121,10 +124,10 @@ function CapabilitiesRow() {
 }
 
 function formatExpiry(value: string | null): string {
-  if (!value) return '';
+  if (!value) return "";
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  return `Expires ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  if (Number.isNaN(d.getTime())) return "";
+  return `Expires ${d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
 }
 
 /* ─── Main card ─────────────────────────────────────────────────────────── */
@@ -161,11 +164,15 @@ export function ProviderCard({
   const oauthingThis = runningOAuthId === provider.id;
   const defaultingThis = runningDefaultId === provider.id;
 
-  const providerType = provider.providerType ?? 'GITLAB';
-  const meta = PROVIDER_META[providerType];
+  const providerType =
+    (provider.providerType as import("./provider-meta").ProviderType | undefined) ??
+    "GITLAB";
+  const meta = PROVIDER_META[providerType] ?? PROVIDER_META.GITLAB;
   const defaultUrl = meta.defaultUrl;
   const isSelfHosted = provider.providerUrl !== defaultUrl;
-  const oauthReady = Boolean(provider.applicationId && provider.applicationSecretConfigured);
+  const oauthReady = Boolean(
+    provider.applicationId && provider.applicationSecretConfigured,
+  );
   const isOAuthExpired =
     provider.oauthTokenConfigured &&
     provider.oauthExpiresAt &&
@@ -176,8 +183,13 @@ export function ProviderCard({
       {/* ─── Top strip: logo + name + status + actions ─── */}
       <div className="flex items-start gap-4 p-5">
         {/* Logo */}
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${meta.borderColor} ${meta.bgColor}`}>
-          <ProviderLogo type={providerType} className={`h-6 w-6 ${meta.color}`} />
+        <div
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${meta.borderColor} ${meta.bgColor}`}
+        >
+          <ProviderLogo
+            type={providerType as import("./provider-meta").ProviderType}
+            className={`h-6 w-6 ${meta.color}`}
+          />
         </div>
 
         {/* Name + URL + status */}
@@ -186,7 +198,9 @@ export function ProviderCard({
             <h3 className="text-sm font-semibold text-[var(--text-primary)]">
               {provider.name}
             </h3>
-            <span className="text-xs text-[var(--text-muted)]">{meta.label}</span>
+            <span className="text-xs text-[var(--text-muted)]">
+              {meta.label}
+            </span>
           </div>
 
           <a
@@ -217,7 +231,7 @@ export function ProviderCard({
             >
               {testingThis ? (
                 <Loader2 size={13} className="animate-spin" />
-              ) : provider.status === 'CONFIGURED' ? (
+              ) : provider.status === "CONFIGURED" ? (
                 <Wifi size={13} />
               ) : (
                 <WifiOff size={13} />
@@ -233,9 +247,9 @@ export function ProviderCard({
                 title={
                   provider.oauthTokenConfigured
                     ? isOAuthExpired
-                      ? 'Re-connect OAuth'
-                      : 'Refresh OAuth'
-                    : 'Connect with OAuth'
+                      ? "Re-connect OAuth"
+                      : "Refresh OAuth"
+                    : "Connect with OAuth"
                 }
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-secondary)] transition hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-400 disabled:opacity-40"
               >
@@ -266,7 +280,10 @@ export function ProviderCard({
                   <div className="absolute right-0 top-9 z-20 min-w-[160px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)] py-1 shadow-lg">
                     <button
                       type="button"
-                      onClick={() => { setMenuOpen(false); onEdit(provider); }}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onEdit(provider);
+                      }}
                       className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                     >
                       <Pencil size={13} /> Edit
@@ -275,11 +292,18 @@ export function ProviderCard({
                     {!provider.isDefault && (
                       <button
                         type="button"
-                        onClick={() => { setMenuOpen(false); void onSetDefault(provider.id); }}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          void onSetDefault(provider.id);
+                        }}
                         disabled={defaultingThis}
                         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-40"
                       >
-                        {defaultingThis ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />}
+                        {defaultingThis ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Star size={13} />
+                        )}
                         Set as default
                       </button>
                     )}
@@ -288,7 +312,10 @@ export function ProviderCard({
 
                     <button
                       type="button"
-                      onClick={() => { setMenuOpen(false); onDelete(provider); }}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDelete(provider);
+                      }}
                       className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10"
                     >
                       <Trash2 size={13} /> Delete
@@ -304,12 +331,17 @@ export function ProviderCard({
       {/* ─── Auth methods summary row ─── */}
       <div className="border-t border-[var(--border)] px-5 py-3">
         <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--text-muted)]">
-          {providerType === 'GITLAB' && (
+          {providerType === "GITLAB" && (
             <span className="flex items-center gap-1.5">
-              <Shield size={11} className={provider.applicationId ? 'text-blue-400' : ''} />
+              <Shield
+                size={11}
+                className={provider.applicationId ? "text-blue-400" : ""}
+              />
               OAuth
               {provider.applicationId ? (
-                <span className="text-[var(--text-secondary)]">— app configured</span>
+                <span className="text-[var(--text-secondary)]">
+                  — app configured
+                </span>
               ) : (
                 <span className="opacity-50">— not configured</span>
               )}
@@ -320,13 +352,18 @@ export function ProviderCard({
                 <span className="text-red-400">· Expired</span>
               )}
               {provider.oauthExpiresAt && (
-                <span className="opacity-50">{formatExpiry(provider.oauthExpiresAt)}</span>
+                <span className="opacity-50">
+                  {formatExpiry(provider.oauthExpiresAt)}
+                </span>
               )}
             </span>
           )}
 
           <span className="flex items-center gap-1.5">
-            <Key size={11} className={provider.adminTokenConfigured ? 'text-green-400' : ''} />
+            <Key
+              size={11}
+              className={provider.adminTokenConfigured ? "text-green-400" : ""}
+            />
             PAT
             {provider.adminTokenConfigured ? (
               <span className="text-green-400">· Configured</span>
@@ -338,7 +375,9 @@ export function ProviderCard({
           {isSelfHosted && provider.internalUrl && (
             <span className="flex items-center gap-1.5">
               Internal URL:
-              <span className="font-mono text-[var(--text-secondary)]">{provider.internalUrl}</span>
+              <span className="font-mono text-[var(--text-secondary)]">
+                {provider.internalUrl}
+              </span>
             </span>
           )}
         </div>
@@ -387,8 +426,13 @@ export function ProviderCard({
             )}
 
             <div className="flex items-center gap-4 text-[10px] text-[var(--text-muted)]">
-              <span>ID: <span className="font-mono">{provider.id.slice(0, 8)}…</span></span>
-              <span>Added {new Date(provider.createdAt).toLocaleDateString()}</span>
+              <span>
+                ID:{" "}
+                <span className="font-mono">{provider.id.slice(0, 8)}…</span>
+              </span>
+              <span>
+                Added {new Date(provider.createdAt).toLocaleDateString()}
+              </span>
             </div>
           </div>
         )}

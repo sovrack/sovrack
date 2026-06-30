@@ -1,15 +1,15 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 import type {
   Team,
   CreateTeamPayload,
   UpdateTeamPayload,
   AddTeamMemberPayload,
-} from '@/features/teams/types/team';
+} from "@/features/teams/types/team";
 
 export const teamsService = {
   /** List all teams */
   async getAll(): Promise<Team[]> {
-    const res = await api.get<Team[]>('/teams');
+    const res = await api.get<Team[]>("/teams");
     return res.data;
   },
 
@@ -21,7 +21,7 @@ export const teamsService = {
 
   /** Create a new team */
   async create(payload: CreateTeamPayload): Promise<Team> {
-    const res = await api.post<Team>('/teams', payload);
+    const res = await api.post<Team>("/teams", payload);
     return res.data;
   },
 
@@ -37,7 +37,10 @@ export const teamsService = {
   },
 
   /** Add a member to a team */
-  async addMember(teamId: string, payload: AddTeamMemberPayload): Promise<Team> {
+  async addMember(
+    teamId: string,
+    payload: AddTeamMemberPayload,
+  ): Promise<Team> {
     const res = await api.post<Team>(`/teams/${teamId}/members`, payload);
     return res.data;
   },
@@ -49,7 +52,10 @@ export const teamsService = {
   },
 
   /** Add all team members to a project */
-  async addTeamToProject(projectId: string, teamId: string): Promise<{ message: string }> {
+  async addTeamToProject(
+    projectId: string,
+    teamId: string,
+  ): Promise<{ message: string }> {
     const res = await api.post<{ message: string }>(
       `/projects/${projectId}/teams/${teamId}`,
     );

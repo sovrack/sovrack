@@ -1,4 +1,4 @@
-import type { ServerCapability } from '@/features/servers/types/server';
+import type { ServerCapability } from "@/features/servers/types/server";
 
 type Props = {
   capabilities: ServerCapability[];
@@ -14,7 +14,9 @@ export function ServerCapabilitiesCard({ capabilities }: Props) {
         Detected server facts
       </h3>
       {capabilities.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--text-secondary)]">No capabilities detected yet.</p>
+        <p className="mt-4 text-sm text-[var(--text-secondary)]">
+          No capabilities detected yet.
+        </p>
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
           {capabilities.map((capability) => (
@@ -22,7 +24,9 @@ export function ServerCapabilitiesCard({ capabilities }: Props) {
               key={capability.id}
               className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-2"
             >
-              <p className="font-mono text-xs text-[var(--text-secondary)]">{capability.key}</p>
+              <p className="font-mono text-xs text-[var(--text-secondary)]">
+                {capability.key}
+              </p>
               <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
                 {capability.value}
               </p>

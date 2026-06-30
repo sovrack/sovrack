@@ -1,6 +1,6 @@
-import type { components } from '@/generated/api-contract';
+import type { components } from "@/generated/api-contract";
 
-type ApiSchema = components['schemas'];
+type ApiSchema = components["schemas"];
 
 export type ServiceEnvironment = {
   id: string;
@@ -25,17 +25,17 @@ export type ServiceEnvironment = {
 // Request payloads derived from the backend contract. `serviceId` is provided by
 // the URL (route param), not the request body, so it is omitted here.
 export type CreateServiceEnvironmentPayload = Omit<
-  ApiSchema['CreateServiceEnvironmentDto'],
-  'serviceId'
+  ApiSchema["CreateServiceEnvironmentDto"],
+  "serviceId"
 >;
 export type UpdateServiceEnvironmentPayload = Omit<
-  ApiSchema['UpdateServiceEnvironmentDto'],
-  'serviceId'
+  ApiSchema["UpdateServiceEnvironmentDto"],
+  "serviceId"
 >;
 
 export type ServiceLinkLastDeployment = {
   id: string;
-  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'CANCELED';
+  status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "CANCELED";
   branch: string | null;
   createdAt: string;
   finishedAt: string | null;

@@ -1,4 +1,4 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 import type {
   CreateServerPayload,
   CreateServerResult,
@@ -19,7 +19,7 @@ import type {
   StartServerPreparationPayload,
   UpdateServerPayload,
   VerifyServerResult,
-} from '@/features/servers/types/server';
+} from "@/features/servers/types/server";
 
 type PaginatedApiResponse<T> = {
   data: T[];
@@ -37,7 +37,7 @@ type ListParams = {
 function isPaginatedResponse<T>(
   value: unknown,
 ): value is PaginatedApiResponse<T> {
-  if (!value || typeof value !== 'object') {
+  if (!value || typeof value !== "object") {
     return false;
   }
 
@@ -48,9 +48,12 @@ export type PrepareServerPayload = StartServerPreparationPayload;
 
 export const serversService = {
   async getAll(params?: ListParams): Promise<Server[]> {
-    const res = await api.get<PaginatedApiResponse<Server> | Server[]>('/servers', {
-      params,
-    });
+    const res = await api.get<PaginatedApiResponse<Server> | Server[]>(
+      "/servers",
+      {
+        params,
+      },
+    );
 
     if (isPaginatedResponse<Server>(res.data)) {
       return res.data.data;
@@ -65,7 +68,7 @@ export const serversService = {
   },
 
   async create(payload: CreateServerPayload): Promise<CreateServerResult> {
-    const res = await api.post<CreateServerResult>('/servers', payload);
+    const res = await api.post<CreateServerResult>("/servers", payload);
     return res.data;
   },
 
@@ -79,7 +82,10 @@ export const serversService = {
   },
 
   async verify(id: string): Promise<VerifyServerResult> {
-    const res = await api.post<VerifyServerResult>(`/servers/${id}/validate-ssh`, {});
+    const res = await api.post<VerifyServerResult>(
+      `/servers/${id}/validate-ssh`,
+      {},
+    );
     return res.data;
   },
 
@@ -92,10 +98,13 @@ export const serversService = {
       const server = await this.verify(id);
       return {
         ok: Boolean(server.isVerified),
-        message: server.verificationError ?? 'Connection validated',
+        message: server.verificationError ?? "Connection validated",
       };
     } catch (err) {
-      return { ok: false, message: err instanceof Error ? err.message : 'Connection error' };
+      return {
+        ok: false,
+        message: err instanceof Error ? err.message : "Connection error",
+      };
     }
   },
 
@@ -104,7 +113,10 @@ export const serversService = {
     return res.data;
   },
 
-  async installTools(id: string, payload: InstallToolsPayload): Promise<Server> {
+  async installTools(
+    id: string,
+    payload: InstallToolsPayload,
+  ): Promise<Server> {
     const res = await api.post<Server>(`/servers/${id}/install`, payload);
     return res.data;
   },
@@ -113,7 +125,10 @@ export const serversService = {
     id: string,
     payload: PrepareServerPayload,
   ): Promise<ServerPreparation> {
-    const res = await api.post<ServerPreparation>(`/servers/${id}/preparations`, payload);
+    const res = await api.post<ServerPreparation>(
+      `/servers/${id}/preparations`,
+      payload,
+    );
     return res.data;
   },
 
@@ -132,7 +147,10 @@ export const serversService = {
     id: string,
     payload: RegisterRunnerPayload,
   ): Promise<Server> {
-    const res = await api.post<Server>(`/servers/${id}/register-runner`, payload);
+    const res = await api.post<Server>(
+      `/servers/${id}/register-runner`,
+      payload,
+    );
     return res.data;
   },
 
@@ -155,23 +173,29 @@ export const serversService = {
   },
 
   async cancelJob(id: string, jobId: string): Promise<ServerJob> {
-    const res = await api.post<ServerJob>(`/servers/${id}/jobs/${jobId}/cancel`);
+    const res = await api.post<ServerJob>(
+      `/servers/${id}/jobs/${jobId}/cancel`,
+    );
     return res.data;
   },
 
   async getPreparationOptions(): Promise<ServerPreparationOptionsResponse> {
     const res = await api.get<ServerPreparationOptionsResponse>(
-      '/server-preparation-options',
+      "/server-preparation-options",
     );
     return res.data;
   },
 
   async getPreparations(id: string): Promise<ServerPreparation[]> {
-    const res = await api.get<ServerPreparation[]>(`/servers/${id}/preparations`);
+    const res = await api.get<ServerPreparation[]>(
+      `/servers/${id}/preparations`,
+    );
     return res.data;
   },
 
-  async getPreparationReadiness(id: string): Promise<ServerPreparationReadiness> {
+  async getPreparationReadiness(
+    id: string,
+  ): Promise<ServerPreparationReadiness> {
     const res = await api.get<ServerPreparationReadiness>(
       `/servers/${id}/preparation-readiness`,
     );
@@ -187,13 +211,19 @@ export const serversService = {
     id: string,
     afterLine?: number,
   ): Promise<ServerPreparationLog[]> {
-    const res = await api.get<ServerPreparationLog[]>(`/preparations/${id}/logs`, {
-      params: afterLine ? { afterLine } : undefined,
-    });
+    const res = await api.get<ServerPreparationLog[]>(
+      `/preparations/${id}/logs`,
+      {
+        params: afterLine ? { afterLine } : undefined,
+      },
+    );
     return res.data;
   },
 
-  async retryPreparation(id: string, reason?: string): Promise<ServerPreparation> {
+  async retryPreparation(
+    id: string,
+    reason?: string,
+  ): Promise<ServerPreparation> {
     const res = await api.post<ServerPreparation>(`/preparations/${id}/retry`, {
       reason,
     });
@@ -206,7 +236,9 @@ export const serversService = {
   },
 
   async getCapabilities(id: string): Promise<ServerCapability[]> {
-    const res = await api.get<ServerCapability[]>(`/servers/${id}/capabilities`);
+    const res = await api.get<ServerCapability[]>(
+      `/servers/${id}/capabilities`,
+    );
     return res.data;
   },
 
@@ -225,7 +257,9 @@ export const serversService = {
   },
 
   async getAuditEvents(id: string): Promise<ServerAuditEvent[]> {
-    const res = await api.get<ServerAuditEvent[]>(`/servers/${id}/audit-events`);
+    const res = await api.get<ServerAuditEvent[]>(
+      `/servers/${id}/audit-events`,
+    );
     return res.data;
   },
 };

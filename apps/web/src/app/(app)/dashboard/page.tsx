@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowRight,
@@ -12,22 +12,22 @@ import {
   Rocket,
   Server,
   Zap,
-} from 'lucide-react';
-import { useAuth } from '@/features/auth/api/use-auth';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { dashboardService } from '@/features/dashboard/api/dashboard.service';
-import { deploymentsService } from '@/features/deployments/api/deployments.service';
-import { resolveDeploymentUrl } from '@/features/deployments/utils';
-import { DeploymentStatusBadge } from '@/features/deployments/components/deployment-status-badge';
-import { ActivityChart } from '@/features/dashboard/components/activity-chart';
-import { ServerHealthCard } from '@/features/dashboard/components/server-health-card';
-import { TopProjectsCard } from '@/features/dashboard/components/top-projects-card';
-import { PageHeader } from '@/shared/layout/page-header';
-import { Alert } from '@/shared/ui/alert';
-import { timeAgo } from '@/shared/lib/format-date';
+} from "lucide-react";
+import { useAuth } from "@/features/auth/api/use-auth";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { dashboardService } from "@/features/dashboard/api/dashboard.service";
+import { deploymentsService } from "@/features/deployments/api/deployments.service";
+import { resolveDeploymentUrl } from "@/features/deployments/utils";
+import { DeploymentStatusBadge } from "@/features/deployments/components/deployment-status-badge";
+import { ActivityChart } from "@/features/dashboard/components/activity-chart";
+import { ServerHealthCard } from "@/features/dashboard/components/server-health-card";
+import { TopProjectsCard } from "@/features/dashboard/components/top-projects-card";
+import { PageHeader } from "@/shared/layout/page-header";
+import { Alert } from "@/shared/ui/alert";
+import { timeAgo } from "@/shared/lib/format-date";
 
 function formatDuration(seconds: number | null): string {
-  if (seconds === null) return '—';
+  if (seconds === null) return "—";
   if (seconds < 60) return `${seconds}s`;
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -39,18 +39,24 @@ type KpiCardProps = {
   value: string | number;
   subtitle: string;
   icon?: React.ReactNode;
-  tone?: 'default' | 'success' | 'error' | 'warning';
+  tone?: "default" | "success" | "error" | "warning";
 };
 
-function KpiCard({ title, value, subtitle, icon, tone = 'default' }: KpiCardProps) {
+function KpiCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  tone = "default",
+}: KpiCardProps) {
   const valueColor =
-    tone === 'success'
-      ? 'text-emerald-400'
-      : tone === 'error'
-        ? 'text-red-400'
-        : tone === 'warning'
-          ? 'text-amber-400'
-          : 'text-[var(--text-primary)]';
+    tone === "success"
+      ? "text-emerald-400"
+      : tone === "error"
+        ? "text-red-400"
+        : tone === "warning"
+          ? "text-amber-400"
+          : "text-[var(--text-primary)]";
 
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-4">
@@ -70,7 +76,7 @@ export default function DashboardPage() {
   const { user, isAdmin } = useAuth();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['dashboard-stats-v2'],
+    queryKey: ["dashboard-stats-v2"],
     queryFn: () => dashboardService.getStats(),
     staleTime: 30_000,
     refetchInterval: 60_000,
@@ -78,7 +84,7 @@ export default function DashboardPage() {
 
   // Déploiements récents (tous statuts) — vue actionnable sur l'accueil.
   const { data: recentDeployments } = useQuery({
-    queryKey: ['dashboard-recent-deployments'],
+    queryKey: ["dashboard-recent-deployments"],
     queryFn: () => deploymentsService.getAll(),
     staleTime: 20_000,
     refetchInterval: 30_000,
@@ -89,18 +95,18 @@ export default function DashboardPage() {
   const kpis = data?.kpis;
   const successRateTone =
     kpis && kpis.successRate7d >= 80
-      ? 'success'
+      ? "success"
       : kpis && kpis.successRate7d >= 50
-        ? 'warning'
+        ? "warning"
         : kpis && kpis.deploymentsLast7d > 0
-          ? 'error'
-          : 'default';
+          ? "error"
+          : "default";
 
   return (
     <div className="space-y-5">
       <PageHeader
         eyebrow="Home"
-        title={`Welcome, ${user?.fullName ?? 'Admin'}`}
+        title={`Welcome, ${user?.fullName ?? "Admin"}`}
         description="Overview of your projects and deployment activity."
         actions={
           <div className="flex items-center gap-2">
@@ -126,10 +132,14 @@ export default function DashboardPage() {
           <Zap size={15} className="shrink-0 text-blue-400 animate-pulse" />
           <p className="text-sm text-[var(--text-secondary)]">
             <span className="font-semibold text-blue-400">
-              {kpis.runningCount} deployment{kpis.runningCount > 1 ? 's' : ''} running
-            </span>{' '}
-            —{' '}
-            <Link href="/deployments" className="underline hover:text-[var(--text-primary)]">
+              {kpis.runningCount} deployment{kpis.runningCount > 1 ? "s" : ""}{" "}
+              running
+            </span>{" "}
+            —{" "}
+            <Link
+              href="/deployments"
+              className="underline hover:text-[var(--text-primary)]"
+            >
               Monitor
             </Link>
           </p>
@@ -140,10 +150,12 @@ export default function DashboardPage() {
           <AlertTriangle size={15} className="mt-0.5 shrink-0 text-red-400" />
           <div className="text-sm text-[var(--text-secondary)]">
             <span className="font-semibold text-red-400">
-              {data.recentFailures.length} recent failure{data.recentFailures.length > 1 ? 's' : ''}
-            </span>{' '}
-            — {data.recentFailures[0].projectName} · {data.recentFailures[0].environmentName} ·{' '}
-            {timeAgo(data.recentFailures[0].createdAt)}{' '}
+              {data.recentFailures.length} recent failure
+              {data.recentFailures.length > 1 ? "s" : ""}
+            </span>{" "}
+            — {data.recentFailures[0].projectName} ·{" "}
+            {data.recentFailures[0].environmentName} ·{" "}
+            {timeAgo(data.recentFailures[0].createdAt)}{" "}
             <Link
               href={`/deployments?logs=${data.recentFailures[0].id}`}
               className="underline hover:text-[var(--text-primary)]"
@@ -158,18 +170,38 @@ export default function DashboardPage() {
       {isAdmin && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
-            { label: 'New project', icon: <Plus size={15} />, href: '/projects?dialog=create-project', primary: true },
-            { label: 'Deployments', icon: <Rocket size={15} />, href: '/deployments', primary: false },
-            { label: 'Projects', icon: <GitBranch size={15} />, href: '/projects', primary: false },
-            { label: 'Servers', icon: <Server size={15} />, href: '/admin/servers', primary: false },
+            {
+              label: "New project",
+              icon: <Plus size={15} />,
+              href: "/projects?dialog=create-project",
+              primary: true,
+            },
+            {
+              label: "Deployments",
+              icon: <Rocket size={15} />,
+              href: "/deployments",
+              primary: false,
+            },
+            {
+              label: "Projects",
+              icon: <GitBranch size={15} />,
+              href: "/projects",
+              primary: false,
+            },
+            {
+              label: "Servers",
+              icon: <Server size={15} />,
+              href: "/admin/servers",
+              primary: false,
+            },
           ].map((action) => (
             <Link
               key={action.label}
               href={action.href}
               className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition hover:opacity-90 ${
                 action.primary
-                  ? 'bg-[var(--text-primary)] text-[var(--bg-app)]'
-                  : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]'
+                  ? "bg-[var(--text-primary)] text-[var(--bg-app)]"
+                  : "border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]"
               }`}
             >
               {action.icon}
@@ -183,7 +215,10 @@ export default function DashboardPage() {
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-xl bg-[var(--hover)]" />
+            <div
+              key={i}
+              className="h-28 animate-pulse rounded-xl bg-[var(--hover)]"
+            />
           ))}
         </div>
       ) : kpis ? (
@@ -200,7 +235,7 @@ export default function DashboardPage() {
           />
           <KpiCard
             title="Success rate"
-            value={kpis.deploymentsLast7d > 0 ? `${kpis.successRate7d}%` : '—'}
+            value={kpis.deploymentsLast7d > 0 ? `${kpis.successRate7d}%` : "—"}
             subtitle="last 7 days"
             icon={<CheckCircle2 size={11} />}
             tone={successRateTone}
@@ -224,16 +259,33 @@ export default function DashboardPage() {
             </p>
             <ul className="space-y-2.5">
               {[
-                { label: 'Running', value: kpis.runningCount, color: 'bg-blue-400' },
-                { label: 'Failures (7d)', value: kpis.failedCount, color: 'bg-red-400' },
-                { label: 'Idle projects', value: kpis.idleProjectsCount, color: 'bg-zinc-500' },
+                {
+                  label: "Running",
+                  value: kpis.runningCount,
+                  color: "bg-blue-400",
+                },
+                {
+                  label: "Failures (7d)",
+                  value: kpis.failedCount,
+                  color: "bg-red-400",
+                },
+                {
+                  label: "Idle projects",
+                  value: kpis.idleProjectsCount,
+                  color: "bg-zinc-500",
+                },
               ].map((item) => (
-                <li key={item.label} className="flex items-center justify-between text-sm">
+                <li
+                  key={item.label}
+                  className="flex items-center justify-between text-sm"
+                >
                   <span className="flex items-center gap-2 text-[var(--text-secondary)]">
                     <span className={`h-2 w-2 rounded-full ${item.color}`} />
                     {item.label}
                   </span>
-                  <span className="font-semibold text-[var(--text-primary)]">{item.value}</span>
+                  <span className="font-semibold text-[var(--text-primary)]">
+                    {item.value}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -267,24 +319,50 @@ export default function DashboardPage() {
             <p className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
               <Rocket size={14} /> Recent deployments
             </p>
-            <Link href="/deployments" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view all →</Link>
+            <Link
+              href="/deployments"
+              className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            >
+              view all →
+            </Link>
           </div>
           <ul className="space-y-2">
             {recentDeployments.slice(0, 6).map((d) => {
               const url = resolveDeploymentUrl(d);
               return (
-                <li key={d.id} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 py-2 text-sm">
+                <li
+                  key={d.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
+                >
                   <span className="flex min-w-0 items-center gap-2">
                     <DeploymentStatusBadge status={d.status} />
-                    <span className="truncate font-semibold text-[var(--text-primary)]">{d.service?.name ?? d.project?.name ?? 'service'}</span>
-                    <span className="hidden text-[var(--text-secondary)] sm:inline">· {d.environment?.name}</span>
-                    <code className="hidden text-xs text-[var(--text-muted)] md:inline">{d.branch}</code>
+                    <span className="truncate font-semibold text-[var(--text-primary)]">
+                      {d.service?.name ?? d.project?.name ?? "service"}
+                    </span>
+                    <span className="hidden text-[var(--text-secondary)] sm:inline">
+                      · {d.environment?.name}
+                    </span>
+                    <code className="hidden text-xs text-[var(--text-muted)] md:inline">
+                      {d.branch}
+                    </code>
                   </span>
                   <span className="flex shrink-0 items-center gap-3">
-                    {url && d.status === 'SUCCESS' && (
-                      <a href={url} target="_blank" rel="noreferrer" className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]">open ↗</a>
+                    {url && d.status === "SUCCESS" && (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      >
+                        open ↗
+                      </a>
                     )}
-                    <Link href={`/deployments?logs=${d.id}`} className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]">view →</Link>
+                    <Link
+                      href={`/deployments?logs=${d.id}`}
+                      className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    >
+                      view →
+                    </Link>
                   </span>
                 </li>
               );
@@ -311,9 +389,13 @@ export default function DashboardPage() {
                     {f.projectName}
                   </span>
                   <span className="mx-1 text-[var(--text-secondary)]">·</span>
-                  <span className="text-[var(--text-secondary)]">{f.environmentName}</span>
+                  <span className="text-[var(--text-secondary)]">
+                    {f.environmentName}
+                  </span>
                   <span className="mx-1 text-[var(--text-secondary)]">·</span>
-                  <code className="text-xs text-[var(--text-secondary)]">{f.branch}</code>
+                  <code className="text-xs text-[var(--text-secondary)]">
+                    {f.branch}
+                  </code>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-[var(--text-secondary)]">

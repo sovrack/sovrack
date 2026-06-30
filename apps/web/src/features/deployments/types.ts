@@ -1,11 +1,11 @@
-import type { components } from '@/generated/api-contract';
+import type { components } from "@/generated/api-contract";
 
-type ApiSchema = components['schemas'];
-type DeploymentApi = ApiSchema['DeploymentDetailedResponseDto'];
-type DeploymentMutationApi = ApiSchema['DeploymentResponseDto'];
-type CreateDeploymentApiPayload = ApiSchema['CreateDeploymentDto'];
+type ApiSchema = components["schemas"];
+type DeploymentApi = ApiSchema["DeploymentDetailedResponseDto"];
+type DeploymentMutationApi = ApiSchema["DeploymentResponseDto"];
+type CreateDeploymentApiPayload = ApiSchema["CreateDeploymentDto"];
 
-export type EnvOrigin = 'service' | 'environment' | 'serviceEnvironment';
+export type EnvOrigin = "service" | "environment" | "serviceEnvironment";
 
 export type EnvPreviewVariable = {
   key: string;
@@ -39,7 +39,7 @@ export type Deployment = DeploymentApi & {
   serviceEnvId?: string | null;
   publicUrl?: string | null;
   service?: DeploymentServiceSummary | null;
-  environment?: DeploymentApi['environment'] & {
+  environment?: DeploymentApi["environment"] & {
     serviceTargets?: DeploymentServiceTarget[];
   };
   // Conteneur(s) RUNNING attaché(s) — non vide = ce déploiement SERT réellement
@@ -48,17 +48,17 @@ export type Deployment = DeploymentApi & {
 };
 
 export type DeploymentMutation = DeploymentMutationApi;
-export type DeploymentStatus = Deployment['status'];
-export type DeploymentStrategy = 'standard' | 'blue-green';
+export type DeploymentStatus = Deployment["status"];
+export type DeploymentStrategy = "standard" | "blue-green";
 
 export type BuildSource =
-  | 'DOCKERFILE_REGISTRY'
-  | 'DOCKERFILE_LOCAL'
-  | 'NIXPACKS_REGISTRY'
-  | 'NIXPACKS_LOCAL'
-  | 'DOCKER_COMPOSE'
-  | 'STATIC'
-  | 'EXTERNAL_IMAGE';
+  | "DOCKERFILE_REGISTRY"
+  | "DOCKERFILE_LOCAL"
+  | "NIXPACKS_REGISTRY"
+  | "NIXPACKS_LOCAL"
+  | "DOCKER_COMPOSE"
+  | "STATIC"
+  | "EXTERNAL_IMAGE";
 
 export type CreateDeploymentPayload = CreateDeploymentApiPayload & {
   serviceEnvId?: string;
@@ -67,7 +67,7 @@ export type CreateDeploymentPayload = CreateDeploymentApiPayload & {
   overrideImage?: string;
 };
 
-export type LogLevel = 'info' | 'error' | 'success';
+export type LogLevel = "info" | "error" | "success";
 
 export type LogLine = {
   timestamp: string;
@@ -118,12 +118,13 @@ export type DeployValidationResult = {
   missing: { binary: string; label: string; role: string }[];
   required: { binary: string; label: string; role: string }[];
   serverName: string;
+  serverId: string | null;
   buildSource: string;
 };
 
 export type SocketDeploymentEvent =
-  | { type: 'deployment:started'; payload: DeploymentStartedEvent }
-  | { type: 'deployment:log'; payload: DeploymentLogEvent }
-  | { type: 'deployment:status'; payload: DeploymentStatusEvent }
-  | { type: 'deployment:finished'; payload: DeploymentFinishedEvent }
-  | { type: 'deployment:joined'; payload: DeploymentJoinedEvent };
+  | { type: "deployment:started"; payload: DeploymentStartedEvent }
+  | { type: "deployment:log"; payload: DeploymentLogEvent }
+  | { type: "deployment:status"; payload: DeploymentStatusEvent }
+  | { type: "deployment:finished"; payload: DeploymentFinishedEvent }
+  | { type: "deployment:joined"; payload: DeploymentJoinedEvent };

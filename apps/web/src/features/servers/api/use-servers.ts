@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
 // Barrel — the server hooks were split into focused modules (CRUD, validation,
 // capabilities, preparation). This re-export preserves the original import path
 // `@/features/servers/api/use-servers` for existing consumers.
-export { serverKeys } from './server-query-keys';
+export { serverKeys } from "./server-query-keys";
 export {
   useServers,
   useServer,
   useCreateServer,
   useUpdateServer,
-} from './use-server-crud';
+} from "./use-server-crud";
 export {
   useValidateServerSsh,
   useDetectServerInfo,
   useServerValidationResults,
   useServerAuditEvents,
-} from './use-server-validation';
+} from "./use-server-validation";
 export {
   useServerCapabilities,
   useInstalledTools,
-} from './use-server-capabilities';
+} from "./use-server-capabilities";
 export {
   useServerPreparations,
   useStartServerPreparation,
@@ -29,4 +29,4 @@ export {
   usePreparationLogs,
   useRetryPreparation,
   useCancelPreparation,
-} from './use-server-preparation';
+} from "./use-server-preparation";

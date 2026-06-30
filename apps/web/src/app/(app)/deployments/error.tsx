@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { SectionError } from '@/shared/common/section-error';
+import { SectionError } from "@/shared/common/section-error";
 
 export default function DeploymentsError(props: {
   error: Error & { digest?: string };

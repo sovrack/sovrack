@@ -1,5 +1,5 @@
-import api from '@/shared/lib/api';
-import type { AuditLogPage } from '@/features/platform/types/audit-log';
+import api from "@/shared/lib/api";
+import type { AuditLogPage } from "@/features/platform/types/audit-log";
 
 type AuditLogsQuery = {
   page?: number;
@@ -8,7 +8,7 @@ type AuditLogsQuery = {
 
 export const auditLogsService = {
   async getAll(query: AuditLogsQuery = {}): Promise<AuditLogPage> {
-    const res = await api.get<AuditLogPage>('/admin/audit-logs', {
+    const res = await api.get<AuditLogPage>("/admin/audit-logs", {
       params: query,
     });
     return res.data;

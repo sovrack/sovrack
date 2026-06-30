@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { TrendingUp } from 'lucide-react';
-import type { TopProject } from '@/features/dashboard/types/dashboard';
-import { timeAgo } from '@/shared/lib/format-date';
+import Link from "next/link";
+import { TrendingUp } from "lucide-react";
+import type { TopProject } from "@/features/dashboard/types/dashboard";
+import { timeAgo } from "@/shared/lib/format-date";
 
 type Props = { projects: TopProject[] };
 
@@ -33,7 +33,8 @@ export function TopProjectsCard({ projects }: Props) {
                   {project.name}
                 </Link>
                 <span className="ml-2 shrink-0 text-xs font-semibold text-[var(--text-secondary)]">
-                  {project.deployCount} deploy{project.deployCount > 1 ? 's' : ''}
+                  {project.deployCount} deploy
+                  {project.deployCount > 1 ? "s" : ""}
                 </span>
               </div>
 
@@ -43,10 +44,10 @@ export function TopProjectsCard({ projects }: Props) {
                   <div
                     className={`h-full rounded-full transition-all ${
                       project.successRate >= 80
-                        ? 'bg-emerald-400'
+                        ? "bg-emerald-400"
                         : project.successRate >= 50
-                          ? 'bg-amber-400'
-                          : 'bg-red-400'
+                          ? "bg-amber-400"
+                          : "bg-red-400"
                     }`}
                     style={{ width: `${project.successRate}%` }}
                   />

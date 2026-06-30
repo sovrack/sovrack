@@ -1,9 +1,12 @@
-'use client';
+"use client";
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { projectsService } from '@/features/projects/api/projects.service';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import type { ProjectDetail, ProjectListItem } from '@/features/projects/types/project';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { projectsService } from "@/features/projects/api/projects.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import type {
+  ProjectDetail,
+  ProjectListItem,
+} from "@/features/projects/types/project";
 
 type UseProjectsReturn = {
   projects: ProjectListItem[];
@@ -15,7 +18,7 @@ type UseProjectsReturn = {
 export function useProjects(): UseProjectsReturn {
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['projects'],
+    queryKey: ["projects"],
     queryFn: () => projectsService.getAll(),
     refetchInterval: 30_000,
   });
@@ -25,7 +28,7 @@ export function useProjects(): UseProjectsReturn {
     loading: isLoading,
     error: error ? getApiErrorMessage(error) : null,
     refresh: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['projects'] });
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
       await refetch();
     },
   };
@@ -40,7 +43,7 @@ type UseProjectReturn = {
 
 export function useProject(id: string): UseProjectReturn {
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['project', id],
+    queryKey: ["project", id],
     queryFn: () => projectsService.getById(id),
     enabled: Boolean(id),
   });
@@ -49,6 +52,8 @@ export function useProject(id: string): UseProjectReturn {
     project: data ?? null,
     loading: isLoading,
     error: error ? getApiErrorMessage(error) : null,
-    refresh: async () => { await refetch(); },
+    refresh: async () => {
+      await refetch();
+    },
   };
 }

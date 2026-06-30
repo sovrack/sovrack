@@ -1,19 +1,19 @@
-import { clsx } from 'clsx';
+import { clsx } from "clsx";
 
 type SkeletonProps = {
   className?: string;
-  variant?: 'text' | 'card' | 'avatar' | 'button' | 'circle';
+  variant?: "text" | "card" | "avatar" | "button" | "circle";
 };
 
-export function Skeleton({ className, variant = 'text' }: SkeletonProps) {
-  const base = 'animate-pulse bg-[var(--border)] rounded-md';
+export function Skeleton({ className, variant = "text" }: SkeletonProps) {
+  const base = "animate-pulse bg-[var(--border)] rounded-md";
 
   const variants: Record<string, string> = {
-    text: 'h-4 w-full',
-    card: 'h-40 w-full rounded-xl',
-    avatar: 'h-10 w-10 rounded-full',
-    button: 'h-9 w-24 rounded-xl',
-    circle: 'h-14 w-14 rounded-full',
+    text: "h-4 w-full",
+    card: "h-40 w-full rounded-xl",
+    avatar: "h-10 w-10 rounded-full",
+    button: "h-9 w-24 rounded-xl",
+    circle: "h-14 w-14 rounded-full",
   };
 
   return <div className={clsx(base, variants[variant], className)} />;
@@ -41,7 +41,10 @@ export function SkeletonTable({ rows = 5 }: { rows?: number }) {
         <Skeleton className="h-4 w-1/4" />
       </div>
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="flex items-center gap-4 border-b border-[var(--border)] px-5 py-4 last:border-0">
+        <div
+          key={i}
+          className="flex items-center gap-4 border-b border-[var(--border)] px-5 py-4 last:border-0"
+        >
           <Skeleton variant="circle" className="h-8 w-8" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-2/5" />

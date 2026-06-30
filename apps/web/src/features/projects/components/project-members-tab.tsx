@@ -1,8 +1,8 @@
-import { AlertTriangle, Loader2, Plus, Trash2 } from 'lucide-react';
-import { AddMemberModal } from '@/features/projects/components/add-member-modal';
-import { MembersList } from '@/features/projects/components/members-list';
-import type { ProjectDetail } from '@/features/projects/types/project';
-import type { Team } from '@/features/teams';
+import { AlertTriangle, Loader2, Plus, Trash2 } from "lucide-react";
+import { AddMemberModal } from "@/features/projects/components/add-member-modal";
+import { MembersList } from "@/features/projects/components/members-list";
+import type { ProjectDetail } from "@/features/projects/types/project";
+import type { Team } from "@/features/teams";
 
 type ProjectMembersTabProps = {
   project: ProjectDetail;
@@ -17,7 +17,10 @@ type ProjectMembersTabProps = {
   addTeamLoading: boolean;
   addTeamSuccess: string | null;
   addTeamError: string | null;
-  onAddMember: (email: string, role: 'OWNER' | 'DEVELOPER' | 'VIEWER') => Promise<void>;
+  onAddMember: (
+    email: string,
+    role: "OWNER" | "DEVELOPER" | "VIEWER",
+  ) => Promise<void>;
   onRemoveMember: (userId: string) => Promise<void>;
   onAddTeam: () => Promise<void>;
   onDeleteProject?: () => void;
@@ -47,7 +50,8 @@ export function ProjectMembersTab({
     <div className="space-y-4">
       {isOwner && (
         <div className="flex justify-end">
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setAddMemberOpen(true)}
             className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90"
           >
@@ -78,15 +82,20 @@ export function ProjectMembersTab({
             </div>
             <div>
               <p className="text-sm font-semibold text-red-300">Danger Zone</p>
-              <p className="text-xs text-[var(--text-muted)]">Irreversible actions — proceed with caution</p>
+              <p className="text-xs text-[var(--text-muted)]">
+                Irreversible actions — proceed with caution
+              </p>
             </div>
           </div>
           <div className="px-5 py-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">Delete this project</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                  Delete this project
+                </p>
                 <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                  Removes all environments, deployments, configs and files permanently. This cannot be undone.
+                  Removes all environments, deployments, configs and files
+                  permanently. This cannot be undone.
                 </p>
               </div>
               <button
@@ -95,7 +104,11 @@ export function ProjectMembersTab({
                 disabled={deleteLoading}
                 className="flex shrink-0 items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
               >
-                {deleteLoading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                {deleteLoading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Trash2 size={14} />
+                )}
                 Delete project
               </button>
             </div>
@@ -105,7 +118,9 @@ export function ProjectMembersTab({
 
       {isAdmin && teams.length > 0 && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Add a team</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+            Add a team
+          </h3>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
             Ajoute tous les membres d&apos;une team au projet.
           </p>
@@ -130,7 +145,8 @@ export function ProjectMembersTab({
               <option value="">Select a team...</option>
               {teams.map((team) => (
                 <option key={team.id} value={team.id}>
-                  {team.name} ({team.members.length} membre{team.members.length !== 1 ? 's' : ''})
+                  {team.name} ({team.members.length} membre
+                  {team.members.length !== 1 ? "s" : ""})
                 </option>
               ))}
             </select>

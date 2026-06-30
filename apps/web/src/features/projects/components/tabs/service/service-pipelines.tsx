@@ -1,17 +1,25 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Clock, ExternalLink, GitBranch, Loader2, RefreshCw, XCircle } from 'lucide-react';
-import { projectsService } from '@/features/projects/api/projects.service';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { timeAgo } from '@/features/deployments/utils';
+import { useQuery } from "@tanstack/react-query";
+import {
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  GitBranch,
+  Loader2,
+  RefreshCw,
+  XCircle,
+} from "lucide-react";
+import { projectsService } from "@/features/projects/api/projects.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { timeAgo } from "@/features/deployments/utils";
 
 const STATUS_TONE: Record<string, string> = {
-  success: 'text-green-400 border-green-500/30 bg-green-500/10',
-  failed: 'text-red-400 border-red-500/30 bg-red-500/10',
-  running: 'text-blue-400 border-blue-500/30 bg-blue-500/10',
-  pending: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
-  canceled: 'text-zinc-400 border-zinc-500/30 bg-zinc-500/10',
+  success: "text-green-400 border-green-500/30 bg-green-500/10",
+  failed: "text-red-400 border-red-500/30 bg-red-500/10",
+  running: "text-blue-400 border-blue-500/30 bg-blue-500/10",
+  pending: "text-amber-400 border-amber-500/30 bg-amber-500/10",
+  canceled: "text-zinc-400 border-zinc-500/30 bg-zinc-500/10",
 };
 
 /**
@@ -19,9 +27,17 @@ const STATUS_TONE: Record<string, string> = {
  * GitHub Actions), filtré sur la branche du service. Chaque ligne ouvre le
  * pipeline chez le provider (web_url).
  */
-export function ServicePipelines({ projectId, serviceId, branch }: { projectId: string; serviceId?: string; branch?: string | null }) {
+export function ServicePipelines({
+  projectId,
+  serviceId,
+  branch,
+}: {
+  projectId: string;
+  serviceId?: string;
+  branch?: string | null;
+}) {
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['service-pipelines', projectId, serviceId ?? 'project'],
+    queryKey: ["service-pipelines", projectId, serviceId ?? "project"],
     // Au niveau service : dépôt propre au service ; sinon vue projet.
     queryFn: () =>
       serviceId
@@ -38,14 +54,20 @@ export function ServicePipelines({ projectId, serviceId, branch }: { projectId: 
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-[var(--text-primary)]">Pipelines (CI/CD)</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
+            Pipelines (CI/CD)
+          </p>
           <p className="text-xs text-[var(--text-secondary)]">
-            Historique CI du dépôt{branch ? ` (branche ${branch})` : ''}.
+            Historique CI du dépôt{branch ? ` (branche ${branch})` : ""}.
           </p>
         </div>
-        <button type="button" onClick={() => void refetch()} disabled={isFetching}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:text-[var(--text-primary)] disabled:opacity-40">
-          <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          disabled={isFetching}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:text-[var(--text-primary)] disabled:opacity-40"
+        >
+          <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} />
         </button>
       </div>
 
@@ -57,14 +79,17 @@ export function ServicePipelines({ projectId, serviceId, branch }: { projectId: 
 
       {isLoading && (
         <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-8 text-sm text-[var(--text-secondary)]">
-          <Loader2 size={14} className="animate-spin" /> Chargement des pipelines…
+          <Loader2 size={14} className="animate-spin" /> Chargement des
+          pipelines…
         </div>
       )}
 
       {!isLoading && !error && pipelines.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-14 text-center">
           <CheckCircle2 size={26} className="mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm font-semibold text-[var(--text-primary)]">Aucun pipeline</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
+            Aucun pipeline
+          </p>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
             Les pipelines CI apparaîtront ici dès que le dépôt en déclenche.
           </p>
@@ -74,16 +99,33 @@ export function ServicePipelines({ projectId, serviceId, branch }: { projectId: 
       {pipelines.length > 0 && (
         <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
           {pipelines.map((p, i) => (
-            <div key={p.id} className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 ${i !== 0 ? 'border-t border-[var(--border)]' : ''}`}>
-              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_TONE[p.status] ?? 'text-zinc-400 border-zinc-500/30 bg-zinc-500/10'}`}>
+            <div
+              key={p.id}
+              className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 ${i !== 0 ? "border-t border-[var(--border)]" : ""}`}
+            >
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_TONE[p.status] ?? "text-zinc-400 border-zinc-500/30 bg-zinc-500/10"}`}
+              >
                 {p.status}
               </span>
-              <span className="flex items-center gap-1 font-mono text-xs text-[var(--text-primary)]"><GitBranch size={11} /> {p.ref}</span>
-              {p.sha && <span className="font-mono text-xs text-[var(--text-muted)]">{p.sha.slice(0, 7)}</span>}
-              <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]"><Clock size={10} /> {timeAgo(p.created_at)}</span>
+              <span className="flex items-center gap-1 font-mono text-xs text-[var(--text-primary)]">
+                <GitBranch size={11} /> {p.ref}
+              </span>
+              {p.sha && (
+                <span className="font-mono text-xs text-[var(--text-muted)]">
+                  {p.sha.slice(0, 7)}
+                </span>
+              )}
+              <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                <Clock size={10} /> {timeAgo(p.created_at)}
+              </span>
               {p.web_url && (
-                <a href={p.web_url} target="_blank" rel="noreferrer"
-                  className="ml-auto flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
+                <a
+                  href={p.web_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ml-auto flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                >
                   Ouvrir <ExternalLink size={11} />
                 </a>
               )}

@@ -1,4 +1,4 @@
-import { Skeleton, SkeletonTable } from '@/shared/ui/skeleton';
+import { Skeleton, SkeletonTable } from "@/shared/ui/skeleton";
 
 export default function DeploymentsLoading() {
   return (

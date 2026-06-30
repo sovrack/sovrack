@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import type { CreateProjectPayload } from '@/features/projects/types/project';
-import type { UserListItem } from '@/features/users';
-import { Alert } from '@/shared/ui/alert';
-import { Button } from '@/shared/ui/button';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import type { CreateProjectPayload } from "@/features/projects/types/project";
+import type { UserListItem } from "@/features/users";
+import { Alert } from "@/shared/ui/alert";
+import { Button } from "@/shared/ui/button";
 
 type ProjectFormInitialValues = {
   name?: string;
@@ -37,25 +37,25 @@ type ProjectFormProps = {
 export function ProjectForm({
   initialValues,
   onSubmit,
-  submitLabel = 'Create Project',
+  submitLabel = "Create Project",
   loading = false,
   error,
   includeOwnerSelect = false,
   ownerOptions = [],
-  initialOwnerId = '',
-  cancelHref = '/projects',
+  initialOwnerId = "",
+  cancelHref = "/projects",
   onCancel,
   showDeployCap = false,
 }: ProjectFormProps) {
-  const [name, setName] = useState(initialValues?.name ?? '');
+  const [name, setName] = useState(initialValues?.name ?? "");
   const [description, setDescription] = useState(
-    initialValues?.description ?? '',
+    initialValues?.description ?? "",
   );
   const [ownerId, setOwnerId] = useState(initialOwnerId);
   const [maxConcurrentDeploys, setMaxConcurrentDeploys] = useState(
     initialValues?.maxConcurrentDeploys
       ? String(initialValues.maxConcurrentDeploys)
-      : '', // null / 0 / undefined → empty = unlimited
+      : "", // null / 0 / undefined → empty = unlimited
   );
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export function ProjectForm({
     if (showDeployCap) {
       const trimmed = maxConcurrentDeploys.trim();
       // Empty = unlimited (0, per the backend convention); else the positive cap.
-      payload.maxConcurrentDeploys = trimmed === '' ? 0 : Number(trimmed);
+      payload.maxConcurrentDeploys = trimmed === "" ? 0 : Number(trimmed);
     }
 
     await onSubmit(payload);
@@ -86,9 +86,7 @@ export function ProjectForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && (
-        <Alert tone="error">{error}</Alert>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--hover)]/70 p-4">
@@ -176,13 +174,13 @@ export function ProjectForm({
                 className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
               />
               <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                Caps simultaneous in-flight deployments so one project can&apos;t
-                monopolize the deploy workers. Leave empty for unlimited.
+                Caps simultaneous in-flight deployments so one project
+                can&apos;t monopolize the deploy workers. Leave empty for
+                unlimited.
               </p>
             </div>
           </div>
         )}
-
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[var(--border)] pt-4">

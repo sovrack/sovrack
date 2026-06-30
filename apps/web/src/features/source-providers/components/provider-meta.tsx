@@ -1,15 +1,9 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
-export type ProviderType = 'GITLAB' | 'GITHUB' | 'GITEA' | 'BITBUCKET';
+export type ProviderType = "GITLAB" | "GITHUB" | "BITBUCKET";
 
 export type ProviderCapability =
-  | 'OAuth'
-  | 'PAT'
-  | 'Groups'
-  | 'Registry'
-  | 'Webhooks'
-  | 'CICD'
-  | 'SelfHosted';
+  "OAuth" | "PAT" | "Groups" | "Registry" | "Webhooks" | "CICD" | "SelfHosted";
 
 export type ProviderMeta = {
   type: ProviderType;
@@ -26,55 +20,55 @@ export type ProviderMeta = {
 
 export const PROVIDER_META: Record<ProviderType, ProviderMeta> = {
   GITLAB: {
-    type: 'GITLAB',
-    label: 'GitLab',
-    tagline: 'DevSecOps platform',
-    defaultUrl: 'https://gitlab.com',
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-500/10',
-    borderColor: 'border-orange-500/20',
-    capabilities: ['OAuth', 'PAT', 'Groups', 'Registry', 'Webhooks', 'CICD', 'SelfHosted'],
+    type: "GITLAB",
+    label: "GitLab",
+    tagline: "DevSecOps platform",
+    defaultUrl: "https://gitlab.com",
+    color: "text-orange-400",
+    bgColor: "bg-orange-500/10",
+    borderColor: "border-orange-500/20",
+    capabilities: [
+      "OAuth",
+      "PAT",
+      "Groups",
+      "Registry",
+      "Webhooks",
+      "CICD",
+      "SelfHosted",
+    ],
     available: true,
   },
   GITHUB: {
-    type: 'GITHUB',
-    label: 'GitHub',
-    tagline: 'Code hosting platform',
-    defaultUrl: 'https://github.com',
-    color: 'text-zinc-300',
-    bgColor: 'bg-zinc-500/10',
-    borderColor: 'border-zinc-500/20',
-    capabilities: ['OAuth', 'PAT', 'Webhooks', 'CICD', 'SelfHosted'],
+    type: "GITHUB",
+    label: "GitHub",
+    tagline: "Code hosting platform",
+    defaultUrl: "https://github.com",
+    color: "text-zinc-300",
+    bgColor: "bg-zinc-500/10",
+    borderColor: "border-zinc-500/20",
+    capabilities: ["OAuth", "PAT", "Webhooks", "CICD", "SelfHosted"],
     available: true,
-  },
-  GITEA: {
-    type: 'GITEA',
-    label: 'Gitea',
-    tagline: 'Self-hosted Git service',
-    defaultUrl: 'https://gitea.io',
-    color: 'text-teal-400',
-    bgColor: 'bg-teal-500/10',
-    borderColor: 'border-teal-500/20',
-    capabilities: ['PAT', 'Webhooks', 'CICD', 'SelfHosted'],
-    available: true,
-    badge: 'Beta',
   },
   BITBUCKET: {
-    type: 'BITBUCKET',
-    label: 'Bitbucket',
-    tagline: 'Atlassian Git platform',
-    defaultUrl: 'https://bitbucket.org',
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-500/10',
-    borderColor: 'border-blue-500/20',
-    capabilities: ['OAuth', 'PAT', 'Webhooks', 'CICD'],
+    type: "BITBUCKET",
+    label: "Bitbucket",
+    tagline: "Atlassian Git platform",
+    defaultUrl: "https://bitbucket.org",
+    color: "text-blue-400",
+    bgColor: "bg-blue-500/10",
+    borderColor: "border-blue-500/20",
+    capabilities: ["OAuth", "PAT", "Webhooks", "CICD"],
     available: false,
   },
 };
 
 /* ─── SVG Logos ─────────────────────────────────────────────────────────── */
 
-export function GitLabLogo({ className = 'h-5 w-5' }: { className?: string }): ReactNode {
+export function GitLabLogo({
+  className = "h-5 w-5",
+}: {
+  className?: string;
+}): ReactNode {
   return (
     <svg viewBox="0 0 380 380" className={className} fill="none">
       <path
@@ -97,7 +91,11 @@ export function GitLabLogo({ className = 'h-5 w-5' }: { className?: string }): R
   );
 }
 
-export function GitHubLogo({ className = 'h-5 w-5' }: { className?: string }): ReactNode {
+export function GitHubLogo({
+  className = "h-5 w-5",
+}: {
+  className?: string;
+}): ReactNode {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor">
       <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
@@ -105,15 +103,11 @@ export function GitHubLogo({ className = 'h-5 w-5' }: { className?: string }): R
   );
 }
 
-export function GiteaLogo({ className = 'h-5 w-5' }: { className?: string }): ReactNode {
-  return (
-    <svg viewBox="0 0 640 640" className={className} fill="currentColor">
-      <path d="M321.2 0C143.9 0 0 143.9 0 321.2c0 177.2 143.9 321.2 321.2 321.2 177.2 0 321.2-143.9 321.2-321.2C642.3 143.9 498.4 0 321.2 0zm-8.2 504.7l-73.3-73.3 32.6-32.6 40.7 40.7 105.6-105.6 32.6 32.6-138.2 138.2z" />
-    </svg>
-  );
-}
-
-export function BitbucketLogo({ className = 'h-5 w-5' }: { className?: string }): ReactNode {
+export function BitbucketLogo({
+  className = "h-5 w-5",
+}: {
+  className?: string;
+}): ReactNode {
   return (
     <svg viewBox="0 0 32 32" className={className} fill="currentColor">
       <path d="M.778 1.213a.768.768 0 00-.768.892l4.263 26.139a1.04 1.04 0 001.027.876h21.431a.768.768 0 00.769-.646l4.263-26.37a.768.768 0 00-.768-.891zM19.52 21.644h-7.099l-1.921-10.025h10.82z" />
@@ -129,9 +123,11 @@ export function ProviderLogo({
   className?: string;
 }): ReactNode {
   switch (type) {
-    case 'GITLAB': return <GitLabLogo className={className} />;
-    case 'GITHUB': return <GitHubLogo className={className} />;
-    case 'GITEA':  return <GiteaLogo className={className} />;
-    case 'BITBUCKET': return <BitbucketLogo className={className} />;
+    case "GITLAB":
+      return <GitLabLogo className={className} />;
+    case "GITHUB":
+      return <GitHubLogo className={className} />;
+    case "BITBUCKET":
+      return <BitbucketLogo className={className} />;
   }
 }

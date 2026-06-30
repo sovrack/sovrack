@@ -1,7 +1,7 @@
-import type { components } from '@/generated/api-contract';
-import type { UserRole } from '@/features/auth';
+import type { components } from "@/generated/api-contract";
+import type { UserRole } from "@/features/auth";
 
-type ApiSchema = components['schemas'];
+type ApiSchema = components["schemas"];
 
 export type TeamMemberUser = {
   id: string;
@@ -31,6 +31,6 @@ export type Team = {
 };
 
 // Request payloads derived from the backend contract (single source of truth).
-export type CreateTeamPayload = ApiSchema['CreateTeamDto'];
-export type UpdateTeamPayload = ApiSchema['UpdateTeamDto'];
-export type AddTeamMemberPayload = ApiSchema['AddTeamMemberDto'];
+export type CreateTeamPayload = ApiSchema["CreateTeamDto"];
+export type UpdateTeamPayload = ApiSchema["UpdateTeamDto"];
+export type AddTeamMemberPayload = ApiSchema["AddTeamMemberDto"];

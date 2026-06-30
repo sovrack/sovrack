@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
-import { monitoringService, type ContainerInfo } from '@/features/monitoring';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { SectionCard } from '@/shared/layout/section-card';
+import { useCallback, useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { monitoringService, type ContainerInfo } from "@/features/monitoring";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { SectionCard } from "@/shared/layout/section-card";
 
 function Stat({ k, v }: { k: string; v: string }) {
   return (
@@ -20,7 +20,11 @@ function Stat({ k, v }: { k: string; v: string }) {
 }
 
 /** Onglet Monitoring du service : métriques conteneur temps réel (refresh 5s). */
-export function ServiceMonitoring({ deploymentId }: { deploymentId: string | null }) {
+export function ServiceMonitoring({
+  deploymentId,
+}: {
+  deploymentId: string | null;
+}) {
   const [info, setInfo] = useState<ContainerInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [live, setLive] = useState(true);
@@ -54,7 +58,7 @@ export function ServiceMonitoring({ deploymentId }: { deploymentId: string | nul
       </SectionCard>
     );
 
-  const running = info?.status === 'running';
+  const running = info?.status === "running";
   return (
     <SectionCard
       title="Container metrics"
@@ -65,12 +69,12 @@ export function ServiceMonitoring({ deploymentId }: { deploymentId: string | nul
           <button
             type="button"
             onClick={() => setLive((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${live ? 'border-green-500/30 bg-green-500/10 text-green-400' : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${live ? "border-green-500/30 bg-green-500/10 text-green-400" : "border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
           >
             <span
-              className={`h-1.5 w-1.5 rounded-full ${live ? 'animate-pulse bg-green-400' : 'bg-[var(--text-muted)]'}`}
+              className={`h-1.5 w-1.5 rounded-full ${live ? "animate-pulse bg-green-400" : "bg-[var(--text-muted)]"}`}
             />
-            {live ? 'Live' : 'En pause'}
+            {live ? "Live" : "En pause"}
           </button>
           <button
             type="button"
@@ -84,16 +88,16 @@ export function ServiceMonitoring({ deploymentId }: { deploymentId: string | nul
         {info && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Stat k="Status" v={info.status} />
-            <Stat k="CPU" v={info.stats?.cpuPercent ?? '—'} />
-            <Stat k="Memory" v={info.stats?.memPercent ?? '—'} />
-            <Stat k="Net I/O" v={info.stats?.netIO ?? '—'} />
+            <Stat k="CPU" v={info.stats?.cpuPercent ?? "—"} />
+            <Stat k="Memory" v={info.stats?.memPercent ?? "—"} />
+            <Stat k="Net I/O" v={info.stats?.netIO ?? "—"} />
           </div>
         )}
         {info && !info.stats && (
           <p className="text-xs text-[var(--text-muted)]">
             {running
-              ? 'Metrics are being collected…'
-              : 'Container not started — metrics unavailable.'}
+              ? "Metrics are being collected…"
+              : "Container not started — metrics unavailable."}
           </p>
         )}
       </div>

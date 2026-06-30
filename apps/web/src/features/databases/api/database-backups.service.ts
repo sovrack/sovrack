@@ -1,10 +1,10 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 
 export type DatabaseBackup = {
   id: string;
   serviceEnvironmentId: string;
-  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED';
-  trigger: 'MANUAL' | 'SCHEDULED';
+  status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED";
+  trigger: "MANUAL" | "SCHEDULED";
   storagePath: string | null;
   sizeBytes: number | null;
   error: string | null;

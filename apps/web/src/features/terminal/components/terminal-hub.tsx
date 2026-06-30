@@ -1,33 +1,33 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
-import Link from 'next/link';
+import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
 import {
   AlertCircle,
   Loader2,
   RefreshCw,
   Server,
   Terminal,
-} from 'lucide-react';
-import { useAuth } from '@/features/auth';
-import { PageHeader } from '@/shared/layout/page-header';
-import { SectionCard } from '@/shared/layout/section-card';
-import { Button } from '@/shared/ui/button';
-import { serversService } from '@/features/servers';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import type { Server as RemoteServer } from '@/features/servers';
+} from "lucide-react";
+import { useAuth } from "@/features/auth";
+import { PageHeader } from "@/shared/layout/page-header";
+import { SectionCard } from "@/shared/layout/section-card";
+import { Button } from "@/shared/ui/button";
+import { serversService } from "@/features/servers";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import type { Server as RemoteServer } from "@/features/servers";
 
 // xterm.js must be rendered client-side only
 const SshTerminal = dynamic(
-  () => import('./ssh-terminal').then((m) => m.SshTerminal),
+  () => import("./ssh-terminal").then((m) => m.SshTerminal),
   { ssr: false },
 );
 
 export function TerminalHub() {
   const { isAdmin } = useAuth();
   const [servers, setServers] = useState<RemoteServer[]>([]);
-  const [selectedServerId, setSelectedServerId] = useState('');
+  const [selectedServerId, setSelectedServerId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeServerId, setActiveServerId] = useState<string | null>(null);
@@ -92,7 +92,9 @@ export function TerminalHub() {
         actions={
           <Button
             variant="secondary"
-            icon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
+            icon={
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            }
             onClick={() => void load()}
             disabled={loading || !!activeServerId}
           >
@@ -115,12 +117,17 @@ export function TerminalHub() {
         >
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 size={20} className="animate-spin text-[var(--text-secondary)]" />
+              <Loader2
+                size={20}
+                className="animate-spin text-[var(--text-secondary)]"
+              />
             </div>
           ) : servers.length === 0 ? (
             <div className="rounded-xl border border-dashed border-[var(--border)] px-4 py-8 text-center">
               <Server className="mx-auto mb-2 h-8 w-8 text-[var(--text-secondary)]" />
-              <p className="text-sm text-[var(--text-secondary)]">No VPS configured.</p>
+              <p className="text-sm text-[var(--text-secondary)]">
+                No VPS configured.
+              </p>
               <Link
                 href="/admin/servers"
                 className="mt-3 inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
@@ -142,7 +149,7 @@ export function TerminalHub() {
                   {servers.map((s) => (
                     <option key={s.id} value={s.id} disabled={!s.isVerified}>
                       {s.name} ({s.username}@{s.host}:{s.port})
-                      {!s.isVerified ? ' — not verified' : ''}
+                      {!s.isVerified ? " — not verified" : ""}
                     </option>
                   ))}
                 </select>
@@ -151,10 +158,36 @@ export function TerminalHub() {
               {selected && (
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3 text-sm">
                   <div className="grid grid-cols-2 gap-2 font-mono text-xs text-[var(--text-secondary)]">
-                    <span>Host: <span className="text-[var(--text-primary)]">{selected.host}</span></span>
-                    <span>Port: <span className="text-[var(--text-primary)]">{selected.port}</span></span>
-                    <span>User: <span className="text-[var(--text-primary)]">{selected.username}</span></span>
-                    <span>Status: <span className={selected.isVerified ? 'text-green-400' : 'text-yellow-400'}>{selected.isVerified ? 'Verified' : 'Not verified'}</span></span>
+                    <span>
+                      Host:{" "}
+                      <span className="text-[var(--text-primary)]">
+                        {selected.host}
+                      </span>
+                    </span>
+                    <span>
+                      Port:{" "}
+                      <span className="text-[var(--text-primary)]">
+                        {selected.port}
+                      </span>
+                    </span>
+                    <span>
+                      User:{" "}
+                      <span className="text-[var(--text-primary)]">
+                        {selected.username}
+                      </span>
+                    </span>
+                    <span>
+                      Status:{" "}
+                      <span
+                        className={
+                          selected.isVerified
+                            ? "text-green-400"
+                            : "text-yellow-400"
+                        }
+                      >
+                        {selected.isVerified ? "Verified" : "Not verified"}
+                      </span>
+                    </span>
                   </div>
                 </div>
               )}
@@ -169,8 +202,11 @@ export function TerminalHub() {
 
               {selected && !selected.isVerified && (
                 <p className="text-xs text-yellow-400">
-                  This server is not validated yet. Validate it first in{' '}
-                  <Link href="/admin/servers" className="underline">Servers</Link>.
+                  This server is not validated yet. Validate it first in{" "}
+                  <Link href="/admin/servers" className="underline">
+                    Servers
+                  </Link>
+                  .
                 </p>
               )}
             </div>

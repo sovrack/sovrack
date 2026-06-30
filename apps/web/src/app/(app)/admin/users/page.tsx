@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useCallback, useMemo, useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useMemo, useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   Loader2,
@@ -13,32 +13,32 @@ import {
   Shield,
   Trash2,
   Users,
-} from 'lucide-react';
-import { PageHeader } from '@/shared/layout/page-header';
-import { SectionCard } from '@/shared/layout/section-card';
-import { Pagination } from '@/shared/ui/pagination';
-import { usePagination } from '@/shared/hooks/use-pagination';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { useToasts } from '@/shared/hooks/use-toasts';
-import { UserCreateDialog } from '@/features/users/components/user-create-dialog';
-import { TeamCreateDialog } from '@/features/teams';
-import { usersService } from '@/features/users/api/users.service';
-import { teamsService } from '@/features/teams/api/teams.service';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { useAuth } from '@/features/auth/api/use-auth';
-import { UserRow } from '@/features/users/components/user-row';
-import type { UserListItem } from '@/features/users/types/user';
-import type { Team } from '@/features/teams/types/team';
+} from "lucide-react";
+import { PageHeader } from "@/shared/layout/page-header";
+import { SectionCard } from "@/shared/layout/section-card";
+import { Pagination } from "@/shared/ui/pagination";
+import { usePagination } from "@/shared/hooks/use-pagination";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { useToasts } from "@/shared/hooks/use-toasts";
+import { UserCreateDialog } from "@/features/users/components/user-create-dialog";
+import { TeamCreateDialog } from "@/features/teams";
+import { usersService } from "@/features/users/api/users.service";
+import { teamsService } from "@/features/teams/api/teams.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { useAuth } from "@/features/auth/api/use-auth";
+import { UserRow } from "@/features/users/components/user-row";
+import type { UserListItem } from "@/features/users/types/user";
+import type { Team } from "@/features/teams/types/team";
 
-type RoleFilter = 'ALL' | 'ADMIN' | 'DEVELOPER';
+type RoleFilter = "ALL" | "ADMIN" | "DEVELOPER";
 
 export default function AdminUsersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, loading: authLoading, user: currentUser } = useAuth();
 
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null);
@@ -54,7 +54,7 @@ export default function AdminUsersPage() {
     isLoading: loadingUsers,
     error: usersQueryError,
   } = useQuery({
-    queryKey: ['admin-users'],
+    queryKey: ["admin-users"],
     queryFn: () => usersService.getAll(),
     enabled: !authLoading && isAdmin,
   });
@@ -64,31 +64,35 @@ export default function AdminUsersPage() {
     isLoading: loadingTeams,
     error: teamsQueryError,
   } = useQuery({
-    queryKey: ['admin-teams'],
+    queryKey: ["admin-teams"],
     queryFn: () => teamsService.getAll(),
     enabled: !authLoading && isAdmin,
   });
 
-  const usersError = usersQueryError ? getApiErrorMessage(usersQueryError) : null;
-  const teamsError = teamsQueryError ? getApiErrorMessage(teamsQueryError) : null;
+  const usersError = usersQueryError
+    ? getApiErrorMessage(usersQueryError)
+    : null;
+  const teamsError = teamsQueryError
+    ? getApiErrorMessage(teamsQueryError)
+    : null;
   const loading = loadingUsers || loadingTeams;
 
   const clearDialogQuery = useCallback(() => {
     const next = new URLSearchParams(searchParams.toString());
-    if (!next.has('dialog')) {
+    if (!next.has("dialog")) {
       return;
     }
 
-    next.delete('dialog');
+    next.delete("dialog");
     const query = next.toString();
-    router.replace(query ? `/admin/users?${query}` : '/admin/users');
+    router.replace(query ? `/admin/users?${query}` : "/admin/users");
   }, [router, searchParams]);
 
   useEffect(() => {
-    const dialog = searchParams.get('dialog');
-    if (dialog === 'create-user') {
+    const dialog = searchParams.get("dialog");
+    if (dialog === "create-user") {
       setCreateUserOpen(true);
-    } else if (dialog === 'create-team') {
+    } else if (dialog === "create-team") {
       setCreateTeamOpen(true);
     }
   }, [searchParams]);
@@ -104,25 +108,25 @@ export default function AdminUsersPage() {
   }, [clearDialogQuery]);
 
   const handleUserCreated = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    showToast('User created successfully', 'success');
+    await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    showToast("User created successfully", "success");
   }, [queryClient, showToast]);
 
   const handleTeamCreated = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['admin-teams'] });
-    showToast('Team created successfully', 'success');
+    await queryClient.invalidateQueries({ queryKey: ["admin-teams"] });
+    showToast("Team created successfully", "success");
   }, [queryClient, showToast]);
 
   // Redirection si non-admin
   if (!authLoading && !isAdmin) {
-    router.replace('/access-denied');
+    router.replace("/access-denied");
   }
 
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return users.filter((item) => {
-      const roleMatch = roleFilter === 'ALL' ? true : item.role === roleFilter;
+      const roleMatch = roleFilter === "ALL" ? true : item.role === roleFilter;
       const searchMatch =
         query.length === 0 ||
         item.fullName.toLowerCase().includes(query) ||
@@ -132,21 +136,31 @@ export default function AdminUsersPage() {
     });
   }, [users, search, roleFilter]);
 
-  const { page, totalPages, paged: pagedUsers, goToPage, reset: resetPage } = usePagination(filteredUsers, { pageSize: 20 });
+  const {
+    page,
+    totalPages,
+    paged: pagedUsers,
+    goToPage,
+    reset: resetPage,
+  } = usePagination(filteredUsers, { pageSize: 20 });
 
-  useEffect(() => { resetPage(); }, [search, roleFilter, resetPage]);
+  useEffect(() => {
+    resetPage();
+  }, [search, roleFilter, resetPage]);
 
   const handleToggleActive = async (userId: string) => {
     setTogglingId(userId);
     try {
       const updated = await usersService.toggleActive(userId);
-      await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       showToast(
-        updated.isActive ? 'User activated successfully' : 'User deactivated successfully',
-        'success',
+        updated.isActive
+          ? "User activated successfully"
+          : "User deactivated successfully",
+        "success",
       );
     } catch (toggleError) {
-      showToast(getApiErrorMessage(toggleError), 'error');
+      showToast(getApiErrorMessage(toggleError), "error");
     } finally {
       setTogglingId(null);
     }
@@ -154,7 +168,7 @@ export default function AdminUsersPage() {
 
   const handleDelete = (target: UserListItem) => {
     if (target.id === currentUser?.id) {
-      showToast('You cannot delete your own account', 'error');
+      showToast("You cannot delete your own account", "error");
       return;
     }
     setConfirmUser(target);
@@ -166,10 +180,10 @@ export default function AdminUsersPage() {
     setConfirmUser(null);
     try {
       await usersService.delete(confirmUser.id);
-      await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      showToast('User deleted successfully', 'success');
+      await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      showToast("User deleted successfully", "success");
     } catch (deleteError) {
-      showToast(getApiErrorMessage(deleteError), 'error');
+      showToast(getApiErrorMessage(deleteError), "error");
     } finally {
       setDeletingUserId(null);
     }
@@ -185,10 +199,10 @@ export default function AdminUsersPage() {
     setConfirmTeam(null);
     try {
       await teamsService.remove(confirmTeam.id);
-      await queryClient.invalidateQueries({ queryKey: ['admin-teams'] });
-      showToast('Team deleted successfully', 'success');
+      await queryClient.invalidateQueries({ queryKey: ["admin-teams"] });
+      showToast("Team deleted successfully", "success");
     } catch (deleteError) {
-      showToast(getApiErrorMessage(deleteError), 'error');
+      showToast(getApiErrorMessage(deleteError), "error");
     } finally {
       setDeletingTeamId(null);
     }
@@ -215,14 +229,16 @@ export default function AdminUsersPage() {
         description="Manage users and teams from a single page."
         actions={
           <>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setCreateUserOpen(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:bg-[var(--text-primary)]"
             >
               <Plus size={16} />
               Create user
             </button>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setCreateTeamOpen(true)}
               className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] shadow transition hover:bg-[var(--hover)]"
             >
@@ -236,7 +252,9 @@ export default function AdminUsersPage() {
       <SectionCard contentClassName="!p-6">
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-muted)]">Total utilisateurs</p>
+            <p className="text-xs font-medium text-[var(--text-muted)]">
+              Total utilisateurs
+            </p>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {users.length}
             </p>
@@ -247,7 +265,7 @@ export default function AdminUsersPage() {
               Admins
             </div>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
-              {users.filter((item) => item.role === 'ADMIN').length}
+              {users.filter((item) => item.role === "ADMIN").length}
             </p>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
@@ -258,19 +276,23 @@ export default function AdminUsersPage() {
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {
                 users.filter(
-                  (item) => item.role === 'DEVELOPER' && item.isActive,
+                  (item) => item.role === "DEVELOPER" && item.isActive,
                 ).length
               }
             </p>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-muted)]">Total teams</p>
+            <p className="text-xs font-medium text-[var(--text-muted)]">
+              Total teams
+            </p>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {teams.length}
             </p>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-muted)]">Team members</p>
+            <p className="text-xs font-medium text-[var(--text-muted)]">
+              Team members
+            </p>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {teams.reduce((total, team) => total + team.members.length, 0)}
             </p>
@@ -308,7 +330,9 @@ export default function AdminUsersPage() {
 
           <select
             value={roleFilter}
-            onChange={(event) => setRoleFilter(event.target.value as RoleFilter)}
+            onChange={(event) =>
+              setRoleFilter(event.target.value as RoleFilter)
+            }
             className="h-11 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100 bg-[var(--bg-card)]"
           >
             <option value="ALL">All roles</option>
@@ -378,7 +402,12 @@ export default function AdminUsersPage() {
             </table>
           </div>
         )}
-        <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} className="mt-4" />
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={goToPage}
+          className="mt-4"
+        />
       </SectionCard>
 
       <SectionCard title="Teams" contentClassName="!p-5 sm:!p-6">
@@ -402,7 +431,8 @@ export default function AdminUsersPage() {
             <p className="mt-2 text-sm text-[var(--text-secondary)]">
               Create your first team to organize your developers.
             </p>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setCreateTeamOpen(true)}
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)]"
             >
@@ -437,7 +467,9 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3 text-[var(--text-secondary)]">
                       {team.description ?? (
-                        <span className="italic text-[var(--text-secondary)]">—</span>
+                        <span className="italic text-[var(--text-secondary)]">
+                          —
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -455,7 +487,8 @@ export default function AdminUsersPage() {
                           <Pencil size={13} />
                           Manage
                         </Link>
-                        <button type="button"
+                        <button
+                          type="button"
                           onClick={() => void handleDeleteTeam(team)}
                           disabled={deletingTeamId === team.id}
                           className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
@@ -479,7 +512,7 @@ export default function AdminUsersPage() {
 
       <ConfirmDialog
         open={Boolean(confirmUser)}
-        title={`Delete l'utilisateur "${confirmUser?.fullName ?? ''}"`}
+        title={`Delete l'utilisateur "${confirmUser?.fullName ?? ""}"`}
         description="This action cannot be undone."
         confirmLabel="Delete"
         cancelLabel="Cancel"
@@ -490,7 +523,7 @@ export default function AdminUsersPage() {
 
       <ConfirmDialog
         open={Boolean(confirmTeam)}
-        title={`Delete team "${confirmTeam?.name ?? ''}"`}
+        title={`Delete team "${confirmTeam?.name ?? ""}"`}
         description="This action cannot be undone."
         confirmLabel="Delete"
         cancelLabel="Cancel"
@@ -516,9 +549,9 @@ export default function AdminUsersPage() {
           <div
             key={toast.id}
             className={`pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${
-              toast.tone === 'success'
-                ? 'bg-green-500/10 text-[var(--bg-app)]'
-                : 'bg-red-500/10 text-[var(--bg-app)]'
+              toast.tone === "success"
+                ? "bg-green-500/10 text-[var(--bg-app)]"
+                : "bg-red-500/10 text-[var(--bg-app)]"
             }`}
           >
             {toast.message}

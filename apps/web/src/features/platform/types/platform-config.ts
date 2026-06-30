@@ -1,6 +1,6 @@
-import type { components } from '@/generated/api-contract';
+import type { components } from "@/generated/api-contract";
 
-type ApiSchema = components['schemas'];
+type ApiSchema = components["schemas"];
 
 export type PlatformConfigItem = {
   id: string;
@@ -12,7 +12,7 @@ export type PlatformConfigItem = {
 };
 
 // Request payload derived from the backend contract.
-export type UpdatePlatformConfigPayload = ApiSchema['UpdatePlatformConfigDto'];
+export type UpdatePlatformConfigPayload = ApiSchema["UpdatePlatformConfigDto"];
 
 export type GitlabTestResult = {
   ok: boolean;
@@ -20,16 +20,14 @@ export type GitlabTestResult = {
 };
 
 export type GitProviderStatus =
-  | 'NOT_CONFIGURED'
-  | 'ACTION_REQUIRED'
-  | 'CONFIGURED';
+  "NOT_CONFIGURED" | "ACTION_REQUIRED" | "CONFIGURED";
 
-export type GitProviderType = 'GITLAB' | 'GITHUB' | 'GITEA';
+export type GitProviderType = "GITLAB" | "GITHUB" | "GITEA";
 
 export type GitlabProvider = {
   id: string;
   name: string;
-  type: 'GITLAB';
+  type: "GITLAB";
   providerType?: GitProviderType;
   // Canonical name matching the backend GitProviderConfig.providerUrl field.
   providerUrl: string;
@@ -70,11 +68,7 @@ export type GitlabOAuthStartResult = {
 };
 
 export type RegistryProviderType =
-  | 'DOCKER_HUB'
-  | 'DOCKER_REGISTRY'
-  | 'GITLAB'
-  | 'ECR'
-  | 'GCR';
+  "DOCKER_HUB" | "DOCKER_REGISTRY" | "GITLAB" | "ECR" | "GCR";
 
 export type RegistryConfig = {
   id: string;
@@ -91,8 +85,8 @@ export type RegistryConfig = {
 
 // Derived from the backend contract (the `type` enum is now carried by the
 // contract — RegistryProviderType Prisma enum — so it stays precise).
-export type CreateRegistryConfigPayload = ApiSchema['CreateRegistryConfigDto'];
-export type UpdateRegistryConfigPayload = ApiSchema['UpdateRegistryConfigDto'];
+export type CreateRegistryConfigPayload = ApiSchema["CreateRegistryConfigDto"];
+export type UpdateRegistryConfigPayload = ApiSchema["UpdateRegistryConfigDto"];
 
 export type RegistryTestResult = {
   ok: boolean;

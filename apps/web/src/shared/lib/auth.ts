@@ -1,8 +1,8 @@
-export const AUTH_TOKEN_STORAGE_KEY = 'devops_platform_token';
-export const AUTH_COOKIE_NAME = 'devops_platform_token';
+export const AUTH_TOKEN_STORAGE_KEY = "devops_platform_token";
+export const AUTH_COOKIE_NAME = "devops_platform_token";
 
 export const clearAuthStorage = (): void => {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 

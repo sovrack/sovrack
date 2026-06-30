@@ -1,19 +1,22 @@
-import { Badge } from '@/shared/ui/badge';
-import type { ServerAuditEvent } from '@/features/servers/types/server';
+import { Badge } from "@/shared/ui/badge";
+import type { ServerAuditEvent } from "@/features/servers/types/server";
 
 type Props = {
   events: ServerAuditEvent[];
 };
 
 function toneFromEvent(eventType: string) {
-  if (eventType.includes('FAIL') || eventType.includes('ERROR')) return 'error' as const;
-  if (eventType.includes('PREPARATION') || eventType.includes('VALIDATE')) return 'info' as const;
-  if (eventType.includes('CREATE') || eventType.includes('EDIT')) return 'success' as const;
-  return 'default' as const;
+  if (eventType.includes("FAIL") || eventType.includes("ERROR"))
+    return "error" as const;
+  if (eventType.includes("PREPARATION") || eventType.includes("VALIDATE"))
+    return "info" as const;
+  if (eventType.includes("CREATE") || eventType.includes("EDIT"))
+    return "success" as const;
+  return "default" as const;
 }
 
 function eventLabel(eventType: string): string {
-  return eventType.replace(/_/g, ' ');
+  return eventType.replace(/_/g, " ");
 }
 
 export function ServerAuditTimeline({ events }: Props) {
@@ -37,7 +40,9 @@ export function ServerAuditTimeline({ events }: Props) {
               className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-2.5"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone={toneFromEvent(event.eventType)}>{eventLabel(event.eventType)}</Badge>
+                <Badge tone={toneFromEvent(event.eventType)}>
+                  {eventLabel(event.eventType)}
+                </Badge>
                 <span className="text-xs text-[var(--text-secondary)]">
                   {new Date(event.createdAt).toLocaleString()}
                 </span>

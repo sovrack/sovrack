@@ -1,15 +1,15 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-const AUTH_COOKIE_NAME = 'devops_platform_token';
+const AUTH_COOKIE_NAME = "devops_platform_token";
 
-const PUBLIC_PATHS = ['/login'];
+const PUBLIC_PATHS = ["/login"];
 const LEGACY_LOGIN_ALIASES = [
-  '/auth/login',
-  '/auth/login/admin',
-  '/auth/login/developer',
-  '/login/admin',
-  '/login/developer',
+  "/auth/login",
+  "/auth/login/admin",
+  "/auth/login/developer",
+  "/login/admin",
+  "/login/developer",
 ];
 
 function isPublicPath(pathname: string): boolean {
@@ -19,17 +19,19 @@ function isPublicPath(pathname: string): boolean {
 }
 
 function parseJwtExpiration(token: string): number | null {
-  const parts = token.split('.');
+  const parts = token.split(".");
   if (parts.length !== 3) {
     return null;
   }
 
   try {
-    const payload = JSON.parse(
-      atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')),
-    ) as { exp?: unknown };
+    // Buffer.from with 'base64url' handles the URL-safe alphabet (- and _)
+    // and is available in all Node.js / Next.js Edge runtimes, unlike atob()
+    // which is absent in some Edge environments.
+    const decoded = Buffer.from(parts[1], "base64url").toString("utf-8");
+    const payload = JSON.parse(decoded) as { exp?: unknown };
 
-    if (typeof payload.exp !== 'number') {
+    if (typeof payload.exp !== "number") {
       return null;
     }
 
@@ -53,22 +55,22 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
 
   if (LEGACY_LOGIN_ALIASES.includes(pathname)) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (
-    pathname.startsWith('/backend-api') ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname === '/favicon.ico'
+    pathname.startsWith("/backend-api") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname === "/favicon.ico"
   ) {
     return NextResponse.next();
   }
 
   if (token && isTokenExpiredOrInvalid(token)) {
-    const loginUrl = new URL('/login', request.url);
+    const loginUrl = new URL("/login", request.url);
     if (!isPublicPath(pathname)) {
-      loginUrl.searchParams.set('next', pathname);
+      loginUrl.searchParams.set("next", pathname);
     }
 
     const response = NextResponse.redirect(loginUrl);
@@ -77,18 +79,18 @@ export function middleware(request: NextRequest) {
   }
 
   if (!token && !isPublicPath(pathname)) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('next', pathname);
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   if (token && isPublicPath(pathname)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!.*\\..*|_next).*)'],
+  matcher: ["/((?!.*\\..*|_next).*)"],
 };

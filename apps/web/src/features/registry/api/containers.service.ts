@@ -1,10 +1,17 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 
 export type ContainerRecord = {
   id: string;
   dockerId: string;
   name: string;
-  status: 'CREATED' | 'RUNNING' | 'PAUSED' | 'RESTARTING' | 'REMOVING' | 'EXITED' | 'DEAD';
+  status:
+    | "CREATED"
+    | "RUNNING"
+    | "PAUSED"
+    | "RESTARTING"
+    | "REMOVING"
+    | "EXITED"
+    | "DEAD";
   serviceId: string | null;
   serviceEnvId: string | null;
   serverId: string;
@@ -13,12 +20,16 @@ export type ContainerRecord = {
 
 export const containersService = {
   async listByService(serviceId: string): Promise<ContainerRecord[]> {
-    const res = await api.get<ContainerRecord[]>('/containers', { params: { serviceId } });
+    const res = await api.get<ContainerRecord[]>("/containers", {
+      params: { serviceId },
+    });
     return res.data;
   },
 
   async listByDeployment(deploymentId: string): Promise<ContainerRecord[]> {
-    const res = await api.get<ContainerRecord[]>('/containers', { params: { deploymentId } });
+    const res = await api.get<ContainerRecord[]>("/containers", {
+      params: { deploymentId },
+    });
     return res.data;
   },
 

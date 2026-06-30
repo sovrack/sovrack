@@ -1,32 +1,33 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { EnvVariablesPreview } from './env-variables-preview';
+import { useEffect, useMemo, useState } from "react";
+import { EnvVariablesPreview } from "./env-variables-preview";
 import {
-  AlertTriangle,
   CheckCircle2,
-  Layers,
   Loader2,
   Rocket,
-} from 'lucide-react';
-import Link from 'next/link';
-import { Modal } from '@/shared/ui/modal';
-import { Button } from '@/shared/ui/button';
-import { deploymentsService } from '@/features/deployments/api/deployments.service';
-import { environmentsService } from '@/features/projects';
-import { projectsService } from '@/features/projects';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import type { Environment } from '@/features/projects';
-import type { GitlabBranch } from '@/features/projects';
-import type { Service } from '@/features/projects';
-import type { BuildSource, DeployValidationResult } from '@/features/deployments/types';
-
-type ValidationIssue = {
-  type: 'no-source' | 'no-build-config' | 'no-environment' | 'no-branch';
-  message: string;
-  /** Lien direct vers l'endroit où corriger le problème (page service ou onglet env). */
-  href: string;
-};
+} from "lucide-react";
+import {
+  DeployValidationPanel,
+  DeployEnvironmentSelector,
+  DeployServiceSelector,
+  type ValidationIssue,
+} from "./deploy-dialog.parts";
+import { Modal } from "@/shared/ui/modal";
+import { Button } from "@/shared/ui/button";
+import { deploymentsService } from "@/features/deployments/api/deployments.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import {
+  useProjectEnvironments,
+  useProjectBranches,
+} from "@/features/projects";
+import { useToast } from "@/shared/contexts/toast-context";
+import type { Environment } from "@/features/projects";
+import type { Service } from "@/features/projects";
+import type {
+  BuildSource,
+  DeployValidationResult,
+} from "@/features/deployments/types";
 
 type Props = {
   projectId: string;
@@ -41,44 +42,74 @@ type Props = {
 
 /** Map a service's buildPack to the BuildSource the backend expects. */
 function resolveBuildSource(svc: Service | undefined): BuildSource {
-  if (!svc) return 'DOCKERFILE_LOCAL';
-  if (svc.sourceType === 'DOCKER_IMAGE') return 'EXTERNAL_IMAGE';
-  if (svc.type === 'DATABASE') return 'EXTERNAL_IMAGE';
+  if (!svc) return "DOCKERFILE_LOCAL";
+  if (svc.sourceType === "DOCKER_IMAGE") return "EXTERNAL_IMAGE";
+  if (svc.type === "DATABASE") return "EXTERNAL_IMAGE";
   switch (svc.buildPack) {
-    case 'NIXPACKS':       return 'NIXPACKS_LOCAL';
-    case 'STATIC':         return 'STATIC';
-    case 'DOCKER_COMPOSE': return 'DOCKER_COMPOSE';
-    default:               return 'DOCKERFILE_LOCAL';
+    case "NIXPACKS":
+      return "NIXPACKS_LOCAL";
+    case "STATIC":
+      return "STATIC";
+    case "DOCKER_COMPOSE":
+      return "DOCKER_COMPOSE";
+    default:
+      return "DOCKERFILE_LOCAL";
   }
 }
 
-export function DeployDialog({ projectId, open, onClose, onCreated, services = [], initialServiceId, initialEnvironmentId, initialBranch }: Props) {
-  const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [branches, setBranches] = useState<GitlabBranch[]>([]);
+export function DeployDialog({
+  projectId,
+  open,
+  onClose,
+  onCreated,
+  services = [],
+  initialServiceId,
+  initialEnvironmentId,
+  initialBranch,
+}: Props) {
+  const toast = useToast();
+
+  // F-1 fix: use React Query hooks — cache shared with parent page, no double fetch.
+  const envsQuery = useProjectEnvironments(projectId);
+  const branchesQuery = useProjectBranches(projectId, open);
+
+  const environments: Environment[] = useMemo(
+    () => envsQuery.data ?? [],
+    [envsQuery.data],
+  );
+  const branches = useMemo(
+    () => branchesQuery.data ?? [],
+    [branchesQuery.data],
+  );
+  const loading = envsQuery.isLoading || branchesQuery.isLoading;
+
   const [envIds, setEnvIds] = useState<string[]>([]);
-  const [branch, setBranch] = useState('');
-  const [selectedServiceId, setSelectedServiceId] = useState(initialServiceId ?? '');
+  const [branch, setBranch] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState(
+    initialServiceId ?? "",
+  );
 
   const selectedService = services.find((s) => s.id === selectedServiceId);
   const effectiveBuildSource: BuildSource = resolveBuildSource(selectedService);
 
   const toggleEnvId = (id: string) =>
-    setEnvIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
-  const [issues, setIssues] = useState<ValidationIssue[]>([]);
-  const [loading, setLoading] = useState(true);
+    setEnvIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const [validation, setValidation] = useState<DeployValidationResult | null>(null);
+  const [validation, setValidation] = useState<DeployValidationResult | null>(
+    null,
+  );
   const [validating, setValidating] = useState(false);
   const [validateError, setValidateError] = useState<string | null>(null);
 
-  const primaryEnvId = envIds[0] ?? '';
+  const primaryEnvId = envIds[0] ?? "";
   const currentEnv = environments.find((e) => e.id === primaryEnvId);
 
-  // Resolve the ServiceEnvironment to preview: the selected service's link in
-  // the primary environment (or the first link when no specific service chosen).
+  // Resolve the ServiceEnvironment to preview.
   const previewServiceEnvId = useMemo<string | null>(() => {
     const links = currentEnv?.serviceLinks ?? [];
     if (links.length === 0) return null;
@@ -88,71 +119,92 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
     return links[0]?.id ?? null;
   }, [currentEnv, selectedServiceId]);
 
+  // Initialise selections whenever the dialog opens or data loads.
   useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    setLoading(true); setError(null); setSuccess(false); setIssues([]);
-    setValidation(null); setValidateError(null);
+    if (!open || loading) return;
     if (initialServiceId) setSelectedServiceId(initialServiceId);
 
-    // Pre-fill branch : initialBranch explicite (ex: redeploy) > defaut du service
     if (initialBranch) {
       setBranch(initialBranch);
     } else if (initialServiceId && services.length > 0) {
       const svc = services.find((s) => s.id === initialServiceId);
       if (svc?.branch) setBranch(svc.branch);
+    } else {
+      const def = branches.find((b) => b.default);
+      setBranch(def?.name ?? branches[0]?.name ?? "main");
     }
 
-    // Resolve build readiness from the selected service directly — no longer
-    // gated on a project-level gitlabConfig. A service is "ready" when:
-    //   - GIT: has repoPath (or repoUrl) + buildPack
-    //   - DOCKER_IMAGE / DATABASE: always ready (image is pulled, no build)
-    const checkBuildReady = (svc: Service | undefined): { hasSource: boolean; hasBuildConfig: boolean } => {
-      if (!svc) return { hasSource: false, hasBuildConfig: false };
-      if (svc.type === 'DATABASE' || svc.sourceType === 'DOCKER_IMAGE') {
-        return { hasSource: true, hasBuildConfig: true };
-      }
-      const src = !!(svc.repoPath || svc.repoUrl);
-      const build = !!(svc.buildPack);
-      return { hasSource: src, hasBuildConfig: src && build };
-    };
+    if (
+      initialEnvironmentId &&
+      environments.some((e) => e.id === initialEnvironmentId)
+    ) {
+      setEnvIds([initialEnvironmentId]);
+    } else if (envIds.length === 0 && environments.length > 0) {
+      setEnvIds([environments[0].id]);
+    }
+    // Intentionally omit branches/services/environments/envIds from deps:
+    // this effect is a one-shot initialiser that must run only when the dialog
+    // opens or data first loads — not on every data change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, loading]);
 
-    Promise.all([
-      environmentsService.getAll(projectId),
-      projectsService.getBranches(projectId).catch(() => [] as GitlabBranch[]),
-    ])
-      .then(([envs, brs]) => {
-        if (cancelled) return;
-        setEnvironments(envs);
-        setBranches(brs);
+  // Reset state when dialog closes.
+  useEffect(() => {
+    if (!open) {
+      setError(null);
+      setSuccess(false);
+      setValidation(null);
+      setValidateError(null);
+      setEnvIds([]);
+    }
+  }, [open]);
 
-        const svc = services.find((s) => s.id === initialServiceId) ?? services[0];
-        const { hasSource: src, hasBuildConfig: buildReady } = checkBuildReady(svc);
+  // Derive validation issues from loaded data.
+  const checkBuildReady = (svc: Service | undefined) => {
+    if (!svc) return { hasSource: false, hasBuildConfig: false };
+    if (svc.type === "DATABASE" || svc.sourceType === "DOCKER_IMAGE") {
+      return { hasSource: true, hasBuildConfig: true };
+    }
+    const src = !!(svc.repoPath || svc.repoUrl);
+    return { hasSource: src, hasBuildConfig: src && !!svc.buildPack };
+  };
 
-        if (initialEnvironmentId && envs.some((e) => e.id === initialEnvironmentId)) {
-          setEnvIds([initialEnvironmentId]);
-        } else {
-          setEnvIds(envs.length > 0 ? [envs[0].id] : []);
-        }
-        const def = brs.find((b) => b.default);
-        setBranch(initialBranch ?? def?.name ?? brs[0]?.name ?? 'main');
-
-        // Le source ET le build pack se configurent dans la page du service
-        // (onglet General → ServiceConfigForm), PAS dans la liste des services.
-        const svcConfigHref = svc ? `/projects/${projectId}/services/${svc.id}` : `/projects/${projectId}`;
-        const detected: ValidationIssue[] = [];
-        if (services.length > 0 && !src) detected.push({ type: 'no-source', message: `${svc?.name ?? 'Service'}: no Git source configured.`, href: svcConfigHref });
-        if (services.length > 0 && !buildReady) detected.push({ type: 'no-build-config', message: `${svc?.name ?? 'Service'}: build pack not configured.`, href: svcConfigHref });
-        if (envs.length === 0) detected.push({ type: 'no-environment', message: 'No environment configured.', href: `/projects/${projectId}?tab=environments` });
-        setIssues(detected);
-      })
-      .catch((err) => setError(getApiErrorMessage(err)))
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [open, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const issues = useMemo<ValidationIssue[]>(() => {
+    if (loading) return [];
+    const svc = services.find((s) => s.id === selectedServiceId) ?? services[0];
+    const { hasSource: src, hasBuildConfig: buildReady } = checkBuildReady(svc);
+    const svcConfigHref = svc
+      ? `/projects/${projectId}/services/${svc.id}`
+      : `/projects/${projectId}`;
+    const detected: ValidationIssue[] = [];
+    if (services.length > 0 && !src)
+      detected.push({
+        type: "no-source",
+        message: `${svc?.name ?? "Service"}: no Git source configured.`,
+        href: svcConfigHref,
+      });
+    if (services.length > 0 && !buildReady)
+      detected.push({
+        type: "no-build-config",
+        message: `${svc?.name ?? "Service"}: build pack not configured.`,
+        href: svcConfigHref,
+      });
+    if (environments.length === 0)
+      detected.push({
+        type: "no-environment",
+        message: "No environment configured.",
+        href: `/projects/${projectId}?tab=environments`,
+      });
+    return detected;
+  }, [loading, services, selectedServiceId, environments, projectId]);
 
   useEffect(() => {
-    if (!open || loading || issues.some((i) => i.type === 'no-environment') || !primaryEnvId) {
+    if (
+      !open ||
+      loading ||
+      issues.some((i) => i.type === "no-environment") ||
+      !primaryEnvId
+    ) {
       setValidation(null);
       return;
     }
@@ -161,17 +213,33 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
     setValidating(true);
     setValidateError(null);
 
-    deploymentsService.validate(projectId, primaryEnvId, effectiveBuildSource)
-      .then((result) => { if (!cancelled) setValidation(result); })
-      .catch((err) => { if (!cancelled) setValidateError(getApiErrorMessage(err)); })
-      .finally(() => { if (!cancelled) setValidating(false); });
+    deploymentsService
+      .validate(projectId, primaryEnvId, effectiveBuildSource)
+      .then((result) => {
+        if (!cancelled) setValidation(result);
+      })
+      .catch((err) => {
+        if (!cancelled) setValidateError(getApiErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setValidating(false);
+      });
 
-    return () => { cancelled = true; };
-  }, [open, loading, primaryEnvId, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally omit effectiveBuildSource and issues from deps:
+    // re-validating on every derived-value change would trigger excessive API calls.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, loading, primaryEnvId, projectId]);
 
   const handleSubmit = async () => {
-    if (envIds.length === 0) { setError('Select at least one environment.'); return; }
-    setSubmitting(true); setError(null);
+    if (envIds.length === 0) {
+      setError("Select at least one environment.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
     try {
       const targets: { serviceEnvId: string; branch: string }[] = [];
       for (const eid of envIds) {
@@ -180,27 +248,55 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
         const links = env.serviceLinks ?? [];
         if (selectedServiceId) {
           const link = links.find((l) => l.serviceId === selectedServiceId);
-          if (link) targets.push({ serviceEnvId: link.id, branch: branch || link.service.branch || 'main' });
+          if (link)
+            targets.push({
+              serviceEnvId: link.id,
+              branch: branch || link.service.branch || "main",
+            });
         } else {
           for (const link of links) {
-            targets.push({ serviceEnvId: link.id, branch: branch || link.service.branch || 'main' });
+            targets.push({
+              serviceEnvId: link.id,
+              branch: branch || link.service.branch || "main",
+            });
           }
         }
       }
-      if (targets.length === 0) { setError('No deployable services found for selected environments.'); return; }
+      if (targets.length === 0) {
+        setError("No deployable services found for selected environments.");
+        return;
+      }
       const results = await Promise.allSettled(
-        targets.map((t) => deploymentsService.create({ serviceEnvId: t.serviceEnvId, branch: t.branch }))
+        targets.map((t) =>
+          deploymentsService.create({
+            serviceEnvId: t.serviceEnvId,
+            branch: t.branch,
+          }),
+        ),
       );
-      const failed = results.filter((r) => r.status === 'rejected');
+      const failed = results.filter((r) => r.status === "rejected");
       if (failed.length > 0) {
-        const reasons = failed.map((r) => getApiErrorMessage((r as PromiseRejectedResult).reason)).join('; ');
-        setError(failed.length === targets.length ? reasons : `Some deployments failed: ${reasons}`);
+        const reasons = failed
+          .map((r) => getApiErrorMessage((r as PromiseRejectedResult).reason))
+          .join("; ");
+        const msg =
+          failed.length === targets.length
+            ? reasons
+            : `Some deployments failed: ${reasons}`;
+        setError(msg);
+        toast(msg, "error");
       } else {
         setSuccess(true);
-        setTimeout(() => { onClose(); onCreated(); }, 800);
+        toast("Deployment launched successfully!", "success");
+        setTimeout(() => {
+          onClose();
+          onCreated();
+        }, 800);
       }
     } catch (err) {
-      setError(getApiErrorMessage(err));
+      const msg = getApiErrorMessage(err);
+      setError(msg);
+      toast(msg, "error");
     } finally {
       setSubmitting(false);
     }
@@ -210,7 +306,12 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
 
   const missing = validation?.missing ?? [];
   const ready = validation?.ready ?? true;
-  const canDeploy = !loading && !submitting && envIds.length > 0 && issues.length === 0 && (ready || missing.length === 0);
+  const canDeploy =
+    !loading &&
+    !submitting &&
+    envIds.length > 0 &&
+    issues.length === 0 &&
+    (ready || missing.length === 0);
 
   return (
     <Modal
@@ -225,7 +326,11 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
             Cancel
           </Button>
           {missing.length > 0 && (
-            <Button variant="secondary" onClick={() => void handleSubmit()} disabled={!canDeploy}>
+            <Button
+              variant="secondary"
+              onClick={() => void handleSubmit()}
+              disabled={!canDeploy}
+            >
               Deploy anyway
             </Button>
           )}
@@ -235,209 +340,111 @@ export function DeployDialog({ projectId, open, onClose, onCreated, services = [
             loading={submitting}
             icon={submitting ? undefined : <Rocket size={14} />}
           >
-            {submitting ? 'Deploying…' : envIds.length > 1 ? `Deploy to ${envIds.length} envs` : 'Deploy'}
+            {submitting
+              ? "Deploying…"
+              : envIds.length > 1
+                ? `Deploy to ${envIds.length} envs`
+                : "Deploy"}
           </Button>
         </>
       }
     >
-        <div className="space-y-4">
-          {/* Success */}
-          {success && (
-            <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400">
-              <CheckCircle2 size={16} /> Deployment launched! Redirecting to History…
+      <div className="space-y-4">
+        {/* Success */}
+        {success && (
+          <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+            <CheckCircle2 size={16} /> Deployment launched! Redirecting to
+            History…
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            {error}
+          </div>
+        )}
+
+        {/* ════════ DEPLOY FORM ════════ */}
+        <>
+          <DeployValidationPanel
+            issues={issues}
+            loading={loading}
+            envIds={envIds}
+            validation={validation}
+            validating={validating}
+            validateError={validateError}
+            onClose={onClose}
+          />
+
+          {!loading && (
+            <p className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-2.5 text-[11px] text-[var(--text-muted)]">
+              Chaque service se construit avec son propre build — modifiez-le
+              dans l&apos;onglet <strong>General</strong> du service.
+            </p>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <Loader2
+                size={20}
+                className="animate-spin text-[var(--text-muted)]"
+              />
             </div>
+          ) : (
+            <>
+              <DeployEnvironmentSelector
+                environments={environments}
+                envIds={envIds}
+                projectId={projectId}
+                onClose={onClose}
+                toggleEnvId={toggleEnvId}
+              />
+
+              {/* Service (for GROUP sources) */}
+              <DeployServiceSelector
+                services={services}
+                selectedServiceId={selectedServiceId}
+                setSelectedServiceId={setSelectedServiceId}
+                setBranch={setBranch}
+              />
+
+              {/* Branch */}
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                  Branch
+                </label>
+                {branches.length > 0 ? (
+                  <select
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3 font-mono text-sm text-[var(--text-primary)] outline-none"
+                  >
+                    {branches.map((b) => (
+                      <option key={b.name} value={b.name}>
+                        {b.name}
+                        {b.default ? " (default)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    placeholder="main"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3 font-mono text-sm text-[var(--text-primary)] outline-none"
+                  />
+                )}
+              </div>
+            </>
           )}
+        </>
 
-          {/* Error */}
-          {error && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</div>
-          )}
-
-          {/* ════════ DEPLOY FORM ════════ */}
-          <>
-              {/* Validation issues (source, build config, env) */}
-              {issues.length > 0 && !loading && (
-                <div className="space-y-2">
-                  {issues.map((issue, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle size={14} className="shrink-0 text-amber-400" />
-                        <span className="text-xs text-amber-300">{issue.message}</span>
-                      </div>
-                      <Link
-                        href={issue.href}
-                        onClick={onClose}
-                        className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/20 px-2.5 py-1 text-[10px] font-semibold text-amber-300 hover:bg-amber-500/30"
-                      >
-                        Configure →
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Tool validation (for primary selected env) */}
-              {!loading && envIds.length > 0 && (
-                <div className="space-y-2">
-                  {validating && (
-                    <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-xs text-blue-300">
-                      <Loader2 size={14} className="animate-spin" />
-                      Checking server tools…
-                    </div>
-                  )}
-                  {validateError && !validating && (
-                    <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-400">
-                      Validation error: {validateError}
-                    </div>
-                  )}
-                  {validation && !validating && missing.length > 0 && (
-                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
-                        <AlertTriangle size={14} />
-                        Missing tools on {validation.serverName}
-                      </div>
-                      <div className="mt-2 space-y-1.5">
-                        {validation.required.map((req) => {
-                          const isMissing = missing.some((m) => m.binary === req.binary);
-                          return (
-                            <div key={req.binary} className="flex items-center gap-2 text-xs">
-                              {isMissing ? (
-                                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500/20 text-[10px] text-red-400">✕</span>
-                              ) : (
-                                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-500/20 text-[10px] text-green-400">✓</span>
-                              )}
-                              <span className={isMissing ? 'text-red-300' : 'text-green-300'}>{req.label}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  {validation && !validating && missing.length === 0 && (
-                    <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-xs text-green-400">
-                      <CheckCircle2 size={14} />
-                      All required tools are installed on {validation.serverName}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {!loading && (
-                <p className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-2.5 text-[11px] text-[var(--text-muted)]">
-                  Chaque service se construit avec son propre build — modifiez-le dans l&apos;onglet <strong>General</strong> du service.
-                </p>
-              )}
-
-              {loading ? (
-                <div className="flex justify-center py-6"><Loader2 size={20} className="animate-spin text-[var(--text-muted)]" /></div>
-              ) : (
-                <>
-                  {/* Environment — multi-select */}
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                      Environment <span className="font-normal normal-case text-[var(--text-muted)]">(select one or more)</span>
-                    </label>
-                    {environments.length === 0 ? (
-                      <p className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-xs text-amber-300">
-                        No environments. Create one in{' '}
-                        <Link href={`/projects/${projectId}?tab=environments`} onClick={onClose}
-                          className="font-semibold underline">Environments</Link>.
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {environments.map((env) => {
-                          const selected = envIds.includes(env.id);
-                          return (
-                            <button
-                              key={env.id}
-                              type="button"
-                              onClick={() => toggleEnvId(env.id)}
-                              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition ${
-                                selected
-                                  ? 'border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]'
-                                  : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                              }`}
-                            >
-                              {selected ? <CheckCircle2 size={12} /> : <span className="h-3 w-3 rounded-full border border-current opacity-40" />}
-                              {env.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {envIds.length > 1 && (
-                      <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">
-                        {envIds.length} environments selected — one deployment per environment will be created.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Service (for GROUP sources) */}
-                  {services.length > 0 && (
-                    <div>
-                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                        Service
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => setSelectedServiceId('')}
-                          className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
-                            selectedServiceId === ''
-                              ? 'border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]'
-                              : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                          }`}>
-                          <Layers size={12} className="mr-1.5 inline" />
-                          All services
-                        </button>
-                        {services.map((svc) => (
-                          <button key={svc.id} type="button"
-                            onClick={() => {
-                              setSelectedServiceId(svc.id);
-                              setBranch(svc.branch ?? 'main');
-                            }}
-                            className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
-                              selectedServiceId === svc.id
-                                ? 'border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]'
-                                : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                            }`}>
-                            {svc.name}
-                            {selectedServiceId === svc.id && <CheckCircle2 size={12} className="ml-1.5 inline" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Branch */}
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Branch</label>
-                    {branches.length > 0 ? (
-                      <select
-                        value={branch}
-                        onChange={(e) => setBranch(e.target.value)}
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3 font-mono text-sm text-[var(--text-primary)] outline-none"
-                      >
-                        {branches.map((b) => (
-                          <option key={b.name} value={b.name}>{b.name}{b.default ? ' (default)' : ''}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={branch}
-                        onChange={(e) => setBranch(e.target.value)}
-                        placeholder="main"
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3 font-mono text-sm text-[var(--text-primary)] outline-none"
-                      />
-                    )}
-                  </div>
-                </>
-              )}
-          </>
-
-          {previewServiceEnvId ? (
-            <EnvVariablesPreview serviceEnvId={previewServiceEnvId} />
-          ) : null}
-        </div>
+        {previewServiceEnvId ? (
+          <EnvVariablesPreview serviceEnvId={previewServiceEnvId} />
+        ) : null}
+      </div>
     </Modal>
   );
 }

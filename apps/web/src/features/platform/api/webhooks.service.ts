@@ -1,4 +1,4 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 
 export type WebhookStatus = {
   configured: boolean;
@@ -21,7 +21,10 @@ export const webhooksService = {
     return res.data;
   },
 
-  async configure(projectId: string, serviceId: string): Promise<{ webhookUrl: string; isNew: boolean }> {
+  async configure(
+    projectId: string,
+    serviceId: string,
+  ): Promise<{ webhookUrl: string; isNew: boolean }> {
     const res = await api.post<{ webhookUrl: string; isNew: boolean }>(
       `/projects/${projectId}/webhook/configure?serviceId=${serviceId}`,
     );
@@ -29,10 +32,14 @@ export const webhooksService = {
   },
 
   async pause(projectId: string, serviceId: string): Promise<void> {
-    await api.post(`/projects/${projectId}/webhook/pause?serviceId=${serviceId}`);
+    await api.post(
+      `/projects/${projectId}/webhook/pause?serviceId=${serviceId}`,
+    );
   },
 
   async resume(projectId: string, serviceId: string): Promise<void> {
-    await api.post(`/projects/${projectId}/webhook/resume?serviceId=${serviceId}`);
+    await api.post(
+      `/projects/${projectId}/webhook/resume?serviceId=${serviceId}`,
+    );
   },
 };

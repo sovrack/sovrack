@@ -1,17 +1,23 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { AlertTriangle, Eye, EyeOff, Variable } from 'lucide-react';
-import { useEnvPreview } from '@/features/deployments/api/use-env-preview';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import type { EnvOrigin } from '@/features/deployments/types';
+import { useState } from "react";
+import { AlertTriangle, Eye, EyeOff, Variable } from "lucide-react";
+import { useEnvPreview } from "@/features/deployments/api/use-env-preview";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import type { EnvOrigin } from "@/features/deployments/types";
 
 const ORIGIN_META: Record<EnvOrigin, { label: string; className: string }> = {
-  service: { label: 'service', className: 'text-blue-300 border-blue-500/30 bg-blue-500/10' },
-  environment: { label: 'environment', className: 'text-teal-300 border-teal-500/30 bg-teal-500/10' },
+  service: {
+    label: "service",
+    className: "text-blue-300 border-blue-500/30 bg-blue-500/10",
+  },
+  environment: {
+    label: "environment",
+    className: "text-teal-300 border-teal-500/30 bg-teal-500/10",
+  },
   serviceEnvironment: {
-    label: 'serviceEnv',
-    className: 'text-indigo-300 border-indigo-500/30 bg-indigo-500/10',
+    label: "serviceEnv",
+    className: "text-indigo-300 border-indigo-500/30 bg-indigo-500/10",
   },
 };
 
@@ -20,7 +26,11 @@ const ORIGIN_META: Record<EnvOrigin, { label: string; className: string }> = {
  * ServiceEnvironment, before confirming a deploy. Secrets are masked with a
  * per-row toggle; resolution warnings (malformed JSON at a level) are surfaced.
  */
-export function EnvVariablesPreview({ serviceEnvId }: { serviceEnvId: string | null }) {
+export function EnvVariablesPreview({
+  serviceEnvId,
+}: {
+  serviceEnvId: string | null;
+}) {
   const query = useEnvPreview(serviceEnvId);
   const data = query.data ?? null;
   const loading = query.isLoading;
@@ -34,7 +44,11 @@ export function EnvVariablesPreview({ serviceEnvId }: { serviceEnvId: string | n
       <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
         <Variable size={13} />
         Injected variables
-        {data ? <span className="text-[var(--text-muted)]">({data.variables.length})</span> : null}
+        {data ? (
+          <span className="text-[var(--text-muted)]">
+            ({data.variables.length})
+          </span>
+        ) : null}
       </div>
 
       {loading ? (
@@ -52,7 +66,8 @@ export function EnvVariablesPreview({ serviceEnvId }: { serviceEnvId: string | n
       {data && data.warnings.length > 0 ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
           <AlertTriangle size={13} className="mr-1 inline" />
-          Some variables could not be resolved. Check the configuration before deploying.
+          Some variables could not be resolved. Check the configuration before
+          deploying.
           <ul className="mt-1 list-disc pl-5">
             {data.warnings.map((w) => (
               <li key={w}>{w}</li>
@@ -77,18 +92,23 @@ export function EnvVariablesPreview({ serviceEnvId }: { serviceEnvId: string | n
                 const show = revealed[v.key];
                 return (
                   <tr key={v.key} className="border-t border-[var(--border)]">
-                    <td className="px-3 py-1.5 font-mono text-[var(--text-primary)]">{v.key}</td>
+                    <td className="px-3 py-1.5 font-mono text-[var(--text-primary)]">
+                      {v.key}
+                    </td>
                     <td className="px-3 py-1.5 font-mono text-[var(--text-secondary)]">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate">
-                          {v.isSecret && !show ? '••••••••' : v.value}
+                          {v.isSecret && !show ? "••••••••" : v.value}
                         </span>
                         {v.isSecret ? (
                           <button
                             type="button"
-                            aria-label={show ? 'Masquer' : 'Afficher'}
+                            aria-label={show ? "Masquer" : "Afficher"}
                             onClick={() =>
-                              setRevealed((prev) => ({ ...prev, [v.key]: !prev[v.key] }))
+                              setRevealed((prev) => ({
+                                ...prev,
+                                [v.key]: !prev[v.key],
+                              }))
                             }
                             className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                           >
@@ -98,7 +118,9 @@ export function EnvVariablesPreview({ serviceEnvId }: { serviceEnvId: string | n
                       </div>
                     </td>
                     <td className="px-3 py-1.5">
-                      <span className={`rounded border px-1.5 py-0.5 text-[10px] ${origin.className}`}>
+                      <span
+                        className={`rounded border px-1.5 py-0.5 text-[10px] ${origin.className}`}
+                      >
                         {origin.label}
                       </span>
                     </td>

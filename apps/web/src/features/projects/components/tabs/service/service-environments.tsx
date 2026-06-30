@@ -1,16 +1,22 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ChevronDown, Layers, Loader2, Plus, Save, X } from 'lucide-react';
-import { environmentsService } from '@/features/projects/api/environments.service';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { SectionCard } from '@/shared/layout/section-card';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ChevronDown, Layers, Loader2, Plus, Save, X } from "lucide-react";
+import { environmentsService } from "@/features/projects/api/environments.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { SectionCard } from "@/shared/layout/section-card";
 
 /**
- * Onglet Variables/Environments d'un service : lier/délier le service à chaque
- * environnement (1 lien = 1 instance déployable) + éditer ses variables/secrets.
- * Extrait du god-page services/[serviceId]/page.tsx (P2).
+ * Onglet Environments d'un service : un service tourne dans TOUS les
+ * environnements du projet (le lien service↔env est auto-créé à la création du
+ * service et à la création d'un environnement). Il n'y a donc plus d'attach /
+ * detach : on liste tous les environnements et on édite les variables/secrets
+ * propres à chaque instance. Le choix de l'environnement se fait au déploiement.
+ *
+ * Filet de sécurité : pour un service hérité (créé avant l'auto-link) dont le
+ * lien manque sur un environnement, on crée le lien à la volée via l'upsert
+ * existant (`linkService`) au moment d'ouvrir ses variables.
  */
 export function ServiceEnvironments({
   projectId,
@@ -32,17 +38,22 @@ export function ServiceEnvironments({
   const linkFor = (envId: string) =>
     envLinks.find((l) => l.environmentId === envId) ?? null;
 
-  const toggle = async (envId: string) => {
+  // Ouvre/ferme l'éditeur de variables d'un environnement. Si le lien n'existe
+  // pas encore (service hérité), on le crée à la volée (upsert) puis on l'ouvre.
+  const openEnv = async (envId: string) => {
+    const link = linkFor(envId);
+    if (link) {
+      setOpenId((prev) => (prev === link.id ? null : link.id));
+      return;
+    }
     setBusyId(envId);
     setError(null);
     try {
-      const link = linkFor(envId);
-      if (link) {
-        await environmentsService.unlinkService(projectId, link.id);
-      } else {
-        await environmentsService.linkService(projectId, envId, serviceId);
-      }
+      await environmentsService.linkService(projectId, envId, serviceId);
+      const links = await environmentsService.getServiceLinks(projectId, envId);
+      const created = links.find((l) => l.serviceId === serviceId) ?? null;
       onChanged();
+      if (created) setOpenId(created.id);
     } catch (e) {
       setError(getApiErrorMessage(e));
     } finally {
@@ -53,25 +64,24 @@ export function ServiceEnvironments({
   return (
     <SectionCard
       title="Environments & variables"
-      description="This service runs in every linked environment (1 link = 1 deployable instance). Each instance has ITS OWN variables."
+      description="This service runs in every project environment. Each environment has ITS OWN variables — pick the target environment when you deploy."
     >
       {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
       {environments.length === 0 ? (
         <p className="text-sm text-[var(--text-muted)]">
-          No environment — create one in the project&apos;s{' '}
+          No environment — create one in the project&apos;s{" "}
           <Link
             href={`/projects/${projectId}?tab=environments`}
             className="underline hover:text-[var(--text-primary)]"
           >
             Environments
-          </Link>{' '}
+          </Link>{" "}
           tab.
         </p>
       ) : (
         <div className="space-y-2">
           {environments.map((env) => {
             const link = linkFor(env.id);
-            const linked = !!link;
             const busy = busyId === env.id;
             const isOpen = !!link && openId === link.id;
             return (
@@ -85,46 +95,25 @@ export function ServiceEnvironments({
                     <span className="font-medium text-[var(--text-primary)]">
                       {env.name}
                     </span>
-                    {linked && (
-                      <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">
-                        Linked
-                      </span>
-                    )}
                   </span>
-                  <div className="flex items-center gap-2">
-                    {linked && link && (
-                      <button
-                        type="button"
-                        onClick={() => setOpenId(isOpen ? null : link.id)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
-                      >
-                        <ChevronDown
-                          size={12}
-                          className={isOpen ? 'rotate-180 transition' : 'transition'}
-                        />{' '}
-                        Variables
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => void toggle(env.id)}
-                      disabled={busy}
-                      className={
-                        linked
-                          ? 'inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50'
-                          : 'inline-flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50'
-                      }
-                    >
-                      {busy ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : linked ? (
-                        <X size={12} />
-                      ) : (
-                        <Plus size={12} />
-                      )}
-                      {linked ? 'Detach' : 'Add to this environment'}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void openEnv(env.id)}
+                    disabled={busy}
+                    className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] disabled:opacity-50"
+                  >
+                    {busy ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <ChevronDown
+                        size={12}
+                        className={
+                          isOpen ? "rotate-180 transition" : "transition"
+                        }
+                      />
+                    )}{" "}
+                    Variables
+                  </button>
                 </div>
                 {isOpen && link && (
                   <EnvVarsEditor projectId={projectId} serviceEnvId={link.id} />
@@ -142,18 +131,18 @@ export function ServiceEnvironments({
 type KV = { key: string; value: string };
 function kvFromRaw(raw: unknown): KV[] {
   let obj: Record<string, unknown> = {};
-  if (typeof raw === 'string' && raw.trim()) {
+  if (typeof raw === "string" && raw.trim()) {
     try {
       obj = JSON.parse(raw) as Record<string, unknown>;
     } catch {
       /* ignore */
     }
-  } else if (raw && typeof raw === 'object') {
+  } else if (raw && typeof raw === "object") {
     obj = raw as Record<string, unknown>;
   }
   return Object.entries(obj).map(([key, value]) => ({
     key,
-    value: String(value ?? ''),
+    value: String(value ?? ""),
   }));
 }
 function kvToJson(rows: KV[]): string {
@@ -176,7 +165,7 @@ function KvRows({
   secret?: boolean;
 }) {
   const inputCls =
-    'rounded-md border border-[var(--border)] bg-[var(--bg-app)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]';
+    "rounded-md border border-[var(--border)] bg-[var(--bg-app)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]";
   return (
     <div className="space-y-1.5">
       {rows.map((r, i) => (
@@ -184,7 +173,11 @@ function KvRows({
           <input
             value={r.key}
             onChange={(e) =>
-              setRows(rows.map((x, j) => (j === i ? { ...x, key: e.target.value } : x)))
+              setRows(
+                rows.map((x, j) =>
+                  j === i ? { ...x, key: e.target.value } : x,
+                ),
+              )
             }
             placeholder="KEY"
             className={`${inputCls} w-1/3`}
@@ -192,10 +185,12 @@ function KvRows({
           <span className="text-[var(--text-muted)]">=</span>
           <input
             value={r.value}
-            type={secret ? 'password' : 'text'}
+            type={secret ? "password" : "text"}
             onChange={(e) =>
               setRows(
-                rows.map((x, j) => (j === i ? { ...x, value: e.target.value } : x)),
+                rows.map((x, j) =>
+                  j === i ? { ...x, value: e.target.value } : x,
+                ),
               )
             }
             placeholder="value"
@@ -212,7 +207,7 @@ function KvRows({
       ))}
       <button
         type="button"
-        onClick={() => setRows([...rows, { key: '', value: '' }])}
+        onClick={() => setRows([...rows, { key: "", value: "" }])}
         className="inline-flex items-center gap-1 rounded-md border border-dashed border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
       >
         <Plus size={11} /> Add a variable
@@ -231,7 +226,7 @@ function EnvVarsEditor({
   const [vars, setVars] = useState<KV[]>([]);
   const [secrets, setSecrets] = useState<KV[]>([]);
   const [autoDeploy, setAutoDeploy] = useState(false);
-  const [autoBranch, setAutoBranch] = useState('main');
+  const [autoBranch, setAutoBranch] = useState("main");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -244,7 +239,7 @@ function EnvVarsEditor({
         if (!alive) return;
         setVars(kvFromRaw(se.env as unknown));
         setAutoDeploy(!!se.autoDeploy);
-        setAutoBranch(se.autoBranch ?? 'main');
+        setAutoBranch(se.autoBranch ?? "main");
       })
       .catch(() => undefined)
       .finally(() => {
@@ -266,13 +261,17 @@ function EnvVarsEditor({
         autoBranch?: string;
       } = {
         autoDeploy,
-        autoBranch: autoBranch.trim() || 'main',
+        autoBranch: autoBranch.trim() || "main",
         env: kvToJson(vars),
       };
       const secretRows = secrets.filter((s) => s.key.trim());
       if (secretRows.length) payload.secretsEnv = kvToJson(secretRows);
-      await environmentsService.updateServiceLink(projectId, serviceEnvId, payload);
-      setMsg('Saved ✓');
+      await environmentsService.updateServiceLink(
+        projectId,
+        serviceEnvId,
+        payload,
+      );
+      setMsg("Saved ✓");
       setSecrets([]);
     } catch (e) {
       setMsg(getApiErrorMessage(e));
@@ -282,7 +281,7 @@ function EnvVarsEditor({
   };
 
   const lbl =
-    'mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]';
+    "mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
 
   return (
     <div className="space-y-3 border-t border-[var(--border)] bg-[var(--bg-app)]/40 px-3 py-3">
@@ -334,10 +333,14 @@ function EnvVarsEditor({
                 <Loader2 size={12} className="animate-spin" />
               ) : (
                 <Save size={12} />
-              )}{' '}
+              )}{" "}
               Save
             </button>
-            {msg && <span className="text-xs text-[var(--text-secondary)]">{msg}</span>}
+            {msg && (
+              <span className="text-xs text-[var(--text-secondary)]">
+                {msg}
+              </span>
+            )}
           </div>
         </>
       )}

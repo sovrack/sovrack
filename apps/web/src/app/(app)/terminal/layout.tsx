@@ -1,4 +1,4 @@
-import { ProtectedRoute } from '@/shared/common/protected-route';
+import { ProtectedRoute } from "@/shared/common/protected-route";
 
 export default function TerminalLayout({
   children,

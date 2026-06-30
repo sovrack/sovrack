@@ -1,9 +1,9 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import api, { getApiErrorMessage } from '@/shared/lib/api';
-import { clearAuthStorage } from '@/shared/lib/auth';
-import type { AuthUser } from '@/features/auth/types/auth';
-import type { LoginResponse } from '@/features/auth/types/auth';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import api, { getApiErrorMessage } from "@/shared/lib/api";
+import { clearAuthStorage } from "@/shared/lib/auth";
+import type { AuthUser } from "@/features/auth/types/auth";
+import type { LoginResponse } from "@/features/auth/types/auth";
 
 type AuthState = {
   user: AuthUser | null;
@@ -40,7 +40,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           loading: false,
           error: null,
           isAuthenticated: !!user,
-          isAdmin: user?.role === 'ADMIN',
+          isAdmin: user?.role === "ADMIN",
           initialized: true,
         }),
 
@@ -59,13 +59,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       refreshUser: async () => {
         set({ loading: true });
         try {
-          const response = await api.get<AuthUser>('/auth/me');
+          const response = await api.get<AuthUser>("/auth/me");
           set({
             user: response.data,
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.role === 'ADMIN',
+            isAdmin: response.data.role === "ADMIN",
             initialized: true,
           });
         } catch (error) {
@@ -85,7 +85,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         set({ loading: true, error: null });
 
         try {
-          const response = await api.post<LoginResponse>('/auth/login', {
+          const response = await api.post<LoginResponse>("/auth/login", {
             email,
             password,
           });
@@ -95,7 +95,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.user.role === 'ADMIN',
+            isAdmin: response.data.user.role === "ADMIN",
             initialized: true,
           });
         } catch (error) {
@@ -109,7 +109,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       logout: async () => {
         try {
-          await api.post('/auth/logout');
+          await api.post("/auth/logout");
         } catch {
           // Clear local auth state even if backend logout fails.
         } finally {
@@ -134,7 +134,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
     }),
     {
-      name: 'platform-auth',
+      name: "platform-auth",
       partialize: (state) => ({ user: state.user }),
     },
   ),

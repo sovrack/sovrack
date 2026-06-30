@@ -1,14 +1,15 @@
-'use client';
+"use client";
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { serversService } from '@/features/servers/api/servers.service';
-import { serverKeys } from './server-query-keys';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { serversService } from "@/features/servers/api/servers.service";
+import { serverKeys } from "./server-query-keys";
 
 export function useValidateServerSsh(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => serversService.verify(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: serverKeys.all }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: serverKeys.all }),
   });
 }
 
@@ -16,7 +17,8 @@ export function useDetectServerInfo(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => serversService.detect(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: serverKeys.all }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: serverKeys.all }),
   });
 }
 

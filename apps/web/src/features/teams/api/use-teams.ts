@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { teamsService } from '@/features/teams/api/teams.service';
-import { getApiErrorMessage } from '@/shared/lib/api';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { teamsService } from "@/features/teams/api/teams.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
 
 /** Clé de cache du détail d'une équipe. */
-export const teamKey = (id: string) => ['team', id] as const;
+export const teamKey = (id: string) => ["team", id] as const;
 
 /** Liste des équipes (React Query — cache + invalidation centralisés). */
 export function useTeams() {
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['teams'],
+    queryKey: ["teams"],
     queryFn: () => teamsService.getAll(),
   });
 
@@ -20,7 +20,7 @@ export function useTeams() {
     loading: isLoading,
     error: error ? getApiErrorMessage(error) : null,
     refresh: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['teams'] });
+      await queryClient.invalidateQueries({ queryKey: ["teams"] });
       await refetch();
     },
   };

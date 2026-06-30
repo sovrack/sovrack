@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { webhooksService } from '@/features/platform/api/webhooks.service';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { webhooksService } from "@/features/platform/api/webhooks.service";
 
 const webhookKey = (projectId: string, serviceId: string) =>
-  ['webhook', projectId, serviceId] as const;
+  ["webhook", projectId, serviceId] as const;
 
 /** État du webhook auto-deploy d'un service (configuré ? actif ?). */
 export function useWebhookStatus(projectId: string, serviceId: string) {
@@ -20,7 +20,10 @@ export function useConfigureWebhook(projectId: string, serviceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => webhooksService.configure(projectId, serviceId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: webhookKey(projectId, serviceId) }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: webhookKey(projectId, serviceId),
+      }),
   });
 }
 
@@ -32,6 +35,9 @@ export function useToggleWebhook(projectId: string, serviceId: string) {
       isActive
         ? webhooksService.pause(projectId, serviceId)
         : webhooksService.resume(projectId, serviceId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: webhookKey(projectId, serviceId) }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: webhookKey(projectId, serviceId),
+      }),
   });
 }

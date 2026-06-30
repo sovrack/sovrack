@@ -1,5 +1,5 @@
-import { Badge } from '@/shared/ui/badge';
-import type { ServerInstalledTool } from '@/features/servers/types/server';
+import { Badge } from "@/shared/ui/badge";
+import type { ServerInstalledTool } from "@/features/servers/types/server";
 
 type Props = {
   tools: ServerInstalledTool[];
@@ -15,7 +15,9 @@ export function InstalledToolsList({ tools }: Props) {
         Tool inventory
       </h3>
       {tools.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--text-secondary)]">No tools detected yet.</p>
+        <p className="mt-4 text-sm text-[var(--text-secondary)]">
+          No tools detected yet.
+        </p>
       ) : (
         <div className="mt-4 space-y-2">
           {tools.map((tool) => (
@@ -28,10 +30,10 @@ export function InstalledToolsList({ tools }: Props) {
                   {tool.displayName}
                 </p>
                 <p className="text-xs text-[var(--text-secondary)]">
-                  {tool.version || 'Version unknown'}
+                  {tool.version || "Version unknown"}
                 </p>
               </div>
-              <Badge tone={tool.status === 'INSTALLED' ? 'success' : 'default'}>
+              <Badge tone={tool.status === "INSTALLED" ? "success" : "default"}>
                 {tool.status}
               </Badge>
             </div>

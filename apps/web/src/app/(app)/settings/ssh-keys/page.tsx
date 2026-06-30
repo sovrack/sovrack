@@ -1,18 +1,26 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { Copy, Download, KeyRound, Loader2, Plus, Trash2, X } from 'lucide-react';
-import { PageHeader } from '@/shared/layout/page-header';
-import { Button } from '@/shared/ui/button';
-import { Alert } from '@/shared/ui/alert';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { sshKeysService } from '@/features/ssh-keys/api/ssh-keys.service';
-import { useSshKeys } from '@/features/ssh-keys/api/use-ssh-keys';
-import type { SshKey } from '@/features/ssh-keys/types/ssh-key';
+import { useEffect, useRef, useState } from "react";
+import {
+  Copy,
+  Download,
+  KeyRound,
+  Loader2,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
+import { PageHeader } from "@/shared/layout/page-header";
+import { Button } from "@/shared/ui/button";
+import { Alert } from "@/shared/ui/alert";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { sshKeysService } from "@/features/ssh-keys/api/ssh-keys.service";
+import { useSshKeys } from "@/features/ssh-keys/api/use-ssh-keys";
+import type { SshKey } from "@/features/ssh-keys/types/ssh-key";
 
-type KeyType = 'ed25519' | 'rsa';
+type KeyType = "ed25519" | "rsa";
 
-type GenerateState = 'idle' | 'generating' | 'done';
+type GenerateState = "idle" | "generating" | "done";
 
 type GeneratedKey = {
   privateKey: string;
@@ -25,9 +33,9 @@ function copyToClipboard(text: string) {
 }
 
 function downloadText(filename: string, content: string) {
-  const blob = new Blob([content], { type: 'text/plain' });
+  const blob = new Blob([content], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   a.click();
@@ -35,12 +43,12 @@ function downloadText(filename: string, content: string) {
 }
 
 async function generateKeyPair(type: KeyType): Promise<GeneratedKey> {
-  const res = await fetch('/api/generate-ssh-key', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const res = await fetch("/api/generate-ssh-key", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type }),
   });
-  if (!res.ok) throw new Error('Key generation failed');
+  if (!res.ok) throw new Error("Key generation failed");
   return res.json() as Promise<GeneratedKey>;
 }
 
@@ -51,22 +59,22 @@ type DialogProps = {
 };
 
 function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
-  const [name, setName] = useState('');
-  const [privateKey, setPrivateKey] = useState('');
-  const [publicKey, setPublicKey] = useState('');
-  const [keyType, setKeyType] = useState<KeyType>('ed25519');
-  const [genState, setGenState] = useState<GenerateState>('idle');
+  const [name, setName] = useState("");
+  const [privateKey, setPrivateKey] = useState("");
+  const [publicKey, setPublicKey] = useState("");
+  const [keyType, setKeyType] = useState<KeyType>("ed25519");
+  const [genState, setGenState] = useState<GenerateState>("idle");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
-      setName('');
-      setPrivateKey('');
-      setPublicKey('');
-      setKeyType('ed25519');
-      setGenState('idle');
+      setName("");
+      setPrivateKey("");
+      setPublicKey("");
+      setKeyType("ed25519");
+      setGenState("idle");
       setError(null);
       window.setTimeout(() => nameRef.current?.focus(), 50);
     }
@@ -75,7 +83,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
   if (!open) return null;
 
   const handleGenerate = async (type: KeyType) => {
-    setGenState('generating');
+    setGenState("generating");
     setKeyType(type);
     setError(null);
     try {
@@ -83,17 +91,26 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
       setPrivateKey(generated.privateKey);
       setPublicKey(generated.publicKey);
       setKeyType(generated.keyType);
-      setGenState('done');
+      setGenState("done");
     } catch {
-      setError('Failed to generate key pair. Paste keys manually.');
-      setGenState('idle');
+      setError("Failed to generate key pair. Paste keys manually.");
+      setGenState("idle");
     }
   };
 
   const handleSave = async () => {
-    if (!name.trim()) { setError('Name is required'); return; }
-    if (!privateKey.trim()) { setError('Private key is required'); return; }
-    if (!publicKey.trim()) { setError('Public key is required'); return; }
+    if (!name.trim()) {
+      setError("Name is required");
+      return;
+    }
+    if (!privateKey.trim()) {
+      setError("Private key is required");
+      return;
+    }
+    if (!publicKey.trim()) {
+      setError("Public key is required");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -122,7 +139,9 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
               Settings
             </p>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">Add SSH Key</h2>
+            <h2 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+              Add SSH Key
+            </h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
               Generate or paste an SSH key pair to use for deployments.
             </p>
@@ -140,7 +159,6 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
         <div className="space-y-4 px-6 py-4">
           {error && <Alert tone="error">{error}</Alert>}
 
-
           {/* Generate buttons */}
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
@@ -149,11 +167,11 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => void handleGenerate('ed25519')}
-                disabled={genState === 'generating'}
+                onClick={() => void handleGenerate("ed25519")}
+                disabled={genState === "generating"}
                 className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
               >
-                {genState === 'generating' && keyType === 'ed25519' ? (
+                {genState === "generating" && keyType === "ed25519" ? (
                   <Loader2 size={14} className="animate-spin" />
                 ) : (
                   <KeyRound size={14} />
@@ -162,11 +180,11 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
               </button>
               <button
                 type="button"
-                onClick={() => void handleGenerate('rsa')}
-                disabled={genState === 'generating'}
+                onClick={() => void handleGenerate("rsa")}
+                disabled={genState === "generating"}
                 className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
               >
-                {genState === 'generating' && keyType === 'rsa' ? (
+                {genState === "generating" && keyType === "rsa" ? (
                   <Loader2 size={14} className="animate-spin" />
                 ) : (
                   <KeyRound size={14} />
@@ -208,7 +226,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => downloadText('id_' + keyType, privateKey)}
+                    onClick={() => downloadText("id_" + keyType, privateKey)}
                     className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                   >
                     <Download size={11} /> Download
@@ -242,7 +260,9 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => downloadText('id_' + keyType + '.pub', publicKey)}
+                    onClick={() =>
+                      downloadText("id_" + keyType + ".pub", publicKey)
+                    }
                     className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                   >
                     <Download size={11} /> Download
@@ -262,10 +282,19 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
 
         {/* Footer */}
         <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={saving}
+          >
             Cancel
           </Button>
-          <Button type="button" onClick={() => void handleSave()} loading={saving}>
+          <Button
+            type="button"
+            onClick={() => void handleSave()}
+            loading={saving}
+          >
             Add SSH Key
           </Button>
         </div>
@@ -279,7 +308,12 @@ export default function SshKeysPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { sshKeys: keys, loading: isLoading, error: queryError, refresh } = useSshKeys();
+  const {
+    sshKeys: keys,
+    loading: isLoading,
+    error: queryError,
+    refresh,
+  } = useSshKeys();
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -326,7 +360,6 @@ export default function SshKeysPage() {
 
       {error && <Alert tone="error">{error}</Alert>}
 
-
       {keys.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-card)] py-16">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-app)]">
@@ -354,7 +387,9 @@ export default function SshKeysPage() {
                 <KeyRound className="h-5 w-5 text-[var(--text-secondary)]" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-[var(--text-primary)]">{key.name}</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                  {key.name}
+                </p>
                 <p className="mt-0.5 truncate font-mono text-xs text-[var(--text-secondary)]">
                   {key.publicKey.slice(0, 60)}…
                 </p>

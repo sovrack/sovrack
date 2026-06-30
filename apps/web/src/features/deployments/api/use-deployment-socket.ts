@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
-import { resolveWsBaseUrl } from '@/shared/lib/socket';
+import { useEffect, useRef, useState } from "react";
+import { io } from "socket.io-client";
+import { resolveWsBaseUrl } from "@/shared/lib/socket";
 import type {
   DeploymentErrorEvent,
   DeploymentFinishedEvent,
@@ -13,7 +13,7 @@ import type {
   DeploymentStatusEvent,
   LogLevel,
   LogLine,
-} from '@/features/deployments/types';
+} from "@/features/deployments/types";
 
 type UseDeploymentSocketOptions = {
   deploymentId: string;
@@ -28,7 +28,7 @@ type UseDeploymentSocketResult = {
   isConnected: boolean;
 };
 
-const ACTIVE_STATUSES: DeploymentStatus[] = ['PENDING', 'RUNNING'];
+const ACTIVE_STATUSES: DeploymentStatus[] = ["PENDING", "RUNNING"];
 
 function isActiveStatus(status: DeploymentStatus | null): boolean {
   if (!status) {
@@ -40,24 +40,24 @@ function isActiveStatus(status: DeploymentStatus | null): boolean {
 
 function isDeploymentStatus(value: string): value is DeploymentStatus {
   return (
-    value === 'PENDING' ||
-    value === 'RUNNING' ||
-    value === 'SUCCESS' ||
-    value === 'FAILED' ||
-    value === 'CANCELED'
+    value === "PENDING" ||
+    value === "RUNNING" ||
+    value === "SUCCESS" ||
+    value === "FAILED" ||
+    value === "CANCELED"
   );
 }
 
 function inferLogLevel(message: string): LogLevel {
   if (/error|fail|fatal|exception/i.test(message)) {
-    return 'error';
+    return "error";
   }
 
   if (/success|ok|done|completed|ready/i.test(message)) {
-    return 'success';
+    return "success";
   }
 
-  return 'info';
+  return "info";
 }
 
 function parseStaticLogs(rawLogs: string | null | undefined): LogLine[] {
@@ -66,7 +66,7 @@ function parseStaticLogs(rawLogs: string | null | undefined): LogLine[] {
   }
 
   return rawLogs
-    .split('\n')
+    .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .map((message) => ({
@@ -82,7 +82,9 @@ export function useDeploymentSocket({
   initialStatus = null,
   initialLogs = null,
 }: UseDeploymentSocketOptions): UseDeploymentSocketResult {
-  const [logs, setLogs] = useState<LogLine[]>(() => parseStaticLogs(initialLogs));
+  const [logs, setLogs] = useState<LogLine[]>(() =>
+    parseStaticLogs(initialLogs),
+  );
   const [status, setStatus] = useState<DeploymentStatus | null>(initialStatus);
   const [isConnected, setIsConnected] = useState(false);
   const previousDeploymentId = useRef<string | null>(null);
@@ -131,7 +133,7 @@ export function useDeploymentSocket({
     // the httpOnly auth cookie on the handshake.
     const deploymentSocket = io(`${wsBase}/deployments`, {
       autoConnect: false,
-      transports: ['websocket', 'polling'],
+      transports: ["websocket", "polling"],
       withCredentials: true,
       reconnection: true,
       reconnectionDelay: 1000,
@@ -141,7 +143,7 @@ export function useDeploymentSocket({
     const onConnect = () => {
       setIsConnected(true);
       hasJoinedRoom.current = false;
-      deploymentSocket.emit('join:deployment', { deploymentId });
+      deploymentSocket.emit("join:deployment", { deploymentId });
     };
 
     const onDisconnect = () => {
@@ -156,7 +158,7 @@ export function useDeploymentSocket({
       hasJoinedRoom.current = true;
       // After joining (initial connect OR reconnect), ask the gateway to
       // replay any buffered logs we may have missed during disconnection.
-      deploymentSocket.emit('deployment:request-replay', { deploymentId });
+      deploymentSocket.emit("deployment:request-replay", { deploymentId });
     };
 
     const onLogReplay = (payload: DeploymentLogReplayEvent) => {
@@ -215,7 +217,7 @@ export function useDeploymentSocket({
         {
           timestamp: new Date().toISOString(),
           message,
-          level: 'error',
+          level: "error",
         },
       ]);
     };
@@ -268,41 +270,44 @@ export function useDeploymentSocket({
         setStatus(payload.status);
       }
 
-      if (isDeploymentStatus(payload.status) && !isActiveStatus(payload.status)) {
-        deploymentSocket.off('deployment:log', onLog);
-        deploymentSocket.off('deployment:log-replay', onLogReplay);
-        deploymentSocket.off('deployment:status', onStatus);
-        deploymentSocket.off('deployment:finished', onFinished);
+      if (
+        isDeploymentStatus(payload.status) &&
+        !isActiveStatus(payload.status)
+      ) {
+        deploymentSocket.off("deployment:log", onLog);
+        deploymentSocket.off("deployment:log-replay", onLogReplay);
+        deploymentSocket.off("deployment:status", onStatus);
+        deploymentSocket.off("deployment:finished", onFinished);
         deploymentSocket.disconnect();
       }
     };
 
-    deploymentSocket.on('connect', onConnect);
-    deploymentSocket.on('disconnect', onDisconnect);
-    deploymentSocket.on('deployment:joined', onJoined);
-    deploymentSocket.on('deployment:error', onRoomError);
-    deploymentSocket.on('deployment:log', onLog);
-    deploymentSocket.on('deployment:log-replay', onLogReplay);
-    deploymentSocket.on('deployment:status', onStatus);
-    deploymentSocket.on('deployment:finished', onFinished);
+    deploymentSocket.on("connect", onConnect);
+    deploymentSocket.on("disconnect", onDisconnect);
+    deploymentSocket.on("deployment:joined", onJoined);
+    deploymentSocket.on("deployment:error", onRoomError);
+    deploymentSocket.on("deployment:log", onLog);
+    deploymentSocket.on("deployment:log-replay", onLogReplay);
+    deploymentSocket.on("deployment:status", onStatus);
+    deploymentSocket.on("deployment:finished", onFinished);
 
     if (!deploymentSocket.connected) {
       deploymentSocket.connect();
     } else {
       setIsConnected(true);
       hasJoinedRoom.current = false;
-      deploymentSocket.emit('join:deployment', { deploymentId });
+      deploymentSocket.emit("join:deployment", { deploymentId });
     }
 
     return () => {
-      deploymentSocket.off('connect', onConnect);
-      deploymentSocket.off('disconnect', onDisconnect);
-      deploymentSocket.off('deployment:joined', onJoined);
-      deploymentSocket.off('deployment:error', onRoomError);
-      deploymentSocket.off('deployment:log', onLog);
-      deploymentSocket.off('deployment:log-replay', onLogReplay);
-      deploymentSocket.off('deployment:status', onStatus);
-      deploymentSocket.off('deployment:finished', onFinished);
+      deploymentSocket.off("connect", onConnect);
+      deploymentSocket.off("disconnect", onDisconnect);
+      deploymentSocket.off("deployment:joined", onJoined);
+      deploymentSocket.off("deployment:error", onRoomError);
+      deploymentSocket.off("deployment:log", onLog);
+      deploymentSocket.off("deployment:log-replay", onLogReplay);
+      deploymentSocket.off("deployment:status", onStatus);
+      deploymentSocket.off("deployment:finished", onFinished);
       deploymentSocket.disconnect();
       setIsConnected(false);
       hasJoinedRoom.current = false;

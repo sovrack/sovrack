@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { AlertTriangle, Home, RotateCcw } from 'lucide-react';
+import React from "react";
+import { AlertTriangle, Home, RotateCcw } from "lucide-react";
 
 type ErrorBoundaryProps = {
   children: React.ReactNode;
@@ -20,30 +20,30 @@ export class ErrorBoundary extends React.Component<
     super(props);
     this.state = {
       hasError: false,
-      message: '',
+      message: "",
     };
   }
 
   public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return {
       hasError: true,
-      message: error.message || 'Une erreur inattendue est survenue.',
+      message: error.message || "Une erreur inattendue est survenue.",
     };
   }
 
   public componentDidCatch(error: Error): void {
     // Minimal client-side log to ease diagnostics.
     // The backend keeps the source of truth for API errors.
-    console.error('ErrorBoundary:', error);
+    console.error("ErrorBoundary:", error);
   }
 
   private handleRetry = () => {
-    this.setState({ hasError: false, message: '' });
+    this.setState({ hasError: false, message: "" });
     window.location.reload();
   };
 
   private handleGoDashboard = () => {
-    window.location.href = '/dashboard';
+    window.location.href = "/dashboard";
   };
 
   public render(): React.ReactNode {
@@ -62,7 +62,9 @@ export class ErrorBoundary extends React.Component<
               <h1 className="text-lg font-semibold text-[var(--text-primary)]">
                 Oups, une erreur est survenue
               </h1>
-              <p className="mt-1 text-sm text-[var(--text-secondary)]">{this.state.message}</p>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                {this.state.message}
+              </p>
             </div>
           </div>
 

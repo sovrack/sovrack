@@ -1,5 +1,5 @@
-export type DnsProviderType = 'CLOUDFLARE' | 'DIGITALOCEAN' | 'OVH' | 'MANUAL';
-export type DnsRecordType = 'A' | 'CNAME' | 'TXT';
+export type DnsProviderType = "CLOUDFLARE" | "DIGITALOCEAN" | "OVH" | "MANUAL";
+export type DnsRecordType = "A" | "CNAME" | "TXT";
 
 export type DnsProvider = {
   id: string;

@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useRef, type ReactNode } from "react";
+import { X } from "lucide-react";
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
+export type ModalSize = "sm" | "md" | "lg" | "xl";
 
 const sizeMap: Record<ModalSize, string> = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-2xl',
-  xl: 'max-w-4xl',
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-2xl",
+  xl: "max-w-4xl",
 };
 
 type ModalProps = {
@@ -42,7 +42,7 @@ export function Modal({
   title,
   description,
   icon,
-  size = 'md',
+  size = "md",
   footer,
   children,
   hideClose = false,
@@ -54,14 +54,14 @@ export function Modal({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && dismissable) onClose();
+      if (e.key === "Escape" && dismissable) onClose();
     };
-    window.addEventListener('keydown', onKey);
+    window.addEventListener("keydown", onKey);
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     ref.current?.focus();
     return () => {
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener("keydown", onKey);
       document.body.style.overflow = previousOverflow;
     };
   }, [open, dismissable, onClose]);
@@ -114,7 +114,9 @@ export function Modal({
           </div>
         )}
 
-        <div className={`flex-1 overflow-y-auto px-5 py-4 ${contentClassName ?? ''}`}>
+        <div
+          className={`flex-1 overflow-y-auto px-5 py-4 ${contentClassName ?? ""}`}
+        >
           {children}
         </div>
 

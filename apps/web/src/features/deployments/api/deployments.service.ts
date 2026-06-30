@@ -1,27 +1,29 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 import type {
   CreateDeploymentPayload,
   Deployment,
   DeploymentMutation,
   DeployValidationResult,
   EnvPreview,
-} from '@/features/deployments/types';
+} from "@/features/deployments/types";
 
 export const deploymentsService = {
   async previewEnv(serviceEnvId: string): Promise<EnvPreview> {
-    const res = await api.get<EnvPreview>('/deployments/preview-env', {
+    const res = await api.get<EnvPreview>("/deployments/preview-env", {
       params: { serviceEnvId },
     });
     return res.data;
   },
 
   async getAll(): Promise<Deployment[]> {
-    const res = await api.get<Deployment[]>('/deployments');
+    const res = await api.get<Deployment[]>("/deployments");
     return res.data;
   },
 
   async getByProject(projectId: string): Promise<Deployment[]> {
-    const res = await api.get<Deployment[]>(`/deployments/project/${projectId}`);
+    const res = await api.get<Deployment[]>(
+      `/deployments/project/${projectId}`,
+    );
     return res.data;
   },
 
@@ -37,7 +39,7 @@ export const deploymentsService = {
     buildSource,
     overrideImage,
   }: CreateDeploymentPayload): Promise<DeploymentMutation> {
-    const res = await api.post<DeploymentMutation>('/deployments', {
+    const res = await api.post<DeploymentMutation>("/deployments", {
       serviceEnvId,
       branch,
       strategy,
@@ -63,12 +65,19 @@ export const deploymentsService = {
     return res.data;
   },
 
-  async validate(projectId: string, environmentId: string, buildSource?: string): Promise<DeployValidationResult> {
-    const res = await api.post<DeployValidationResult>('/deployments/validate', {
-      projectId,
-      environmentId,
-      buildSource,
-    });
+  async validate(
+    projectId: string,
+    environmentId: string,
+    buildSource?: string,
+  ): Promise<DeployValidationResult> {
+    const res = await api.post<DeployValidationResult>(
+      "/deployments/validate",
+      {
+        projectId,
+        environmentId,
+        buildSource,
+      },
+    );
     return res.data;
   },
 
@@ -79,20 +88,31 @@ export const deploymentsService = {
   async searchLogs(
     id: string,
     q: string,
-    level: 'ALL' | 'INFO' | 'WARN' | 'ERROR' = 'ALL',
+    level: "ALL" | "INFO" | "WARN" | "ERROR" = "ALL",
   ): Promise<{
     total: number;
-    hits: { lineNumber: number; level: 'INFO' | 'WARN' | 'ERROR'; message: string }[];
+    hits: {
+      lineNumber: number;
+      level: "INFO" | "WARN" | "ERROR";
+      message: string;
+    }[];
   }> {
     const res = await api.get<{
       total: number;
-      hits: { lineNumber: number; level: 'INFO' | 'WARN' | 'ERROR'; message: string }[];
+      hits: {
+        lineNumber: number;
+        level: "INFO" | "WARN" | "ERROR";
+        message: string;
+      }[];
     }>(`/deployments/${id}/logs/search`, { params: { q, level } });
     return res.data;
   },
 
   async getContainerLogs(id: string, tail = 300): Promise<string> {
-    const res = await api.get<{ logs: string }>(`/deployments/${id}/container-logs`, { params: { tail } });
+    const res = await api.get<{ logs: string }>(
+      `/deployments/${id}/container-logs`,
+      { params: { tail } },
+    );
     return res.data.logs;
   },
 };

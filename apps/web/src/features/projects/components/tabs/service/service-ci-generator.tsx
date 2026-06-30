@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Check, Copy, FileCode2, Loader2, Wand2, XCircle } from 'lucide-react';
-import { buildService } from '@/features/source-providers';
-import { webhooksService } from '@/features/platform';
-import { getApiErrorMessage } from '@/shared/lib/api';
+import { useEffect, useState } from "react";
+import { Check, Copy, FileCode2, Loader2, Wand2, XCircle } from "lucide-react";
+import { buildService } from "@/features/source-providers";
+import { webhooksService } from "@/features/platform";
+import { getApiErrorMessage } from "@/shared/lib/api";
 
 type GenFile = { name: string; content: string };
 
@@ -53,13 +53,13 @@ export function ServiceCiGenerator({
       // GitHub → .github/workflows/deploy.yml).
       if (r.ciConfigContent)
         out.push({
-          name: r.ciConfigFilePath || '.gitlab-ci.yml',
+          name: r.ciConfigFilePath || ".gitlab-ci.yml",
           content: r.ciConfigContent,
         });
       if (r.dockerfileContent)
-        out.push({ name: 'Dockerfile', content: r.dockerfileContent });
+        out.push({ name: "Dockerfile", content: r.dockerfileContent });
       if (r.dockerignoreContent)
-        out.push({ name: '.dockerignore', content: r.dockerignoreContent });
+        out.push({ name: ".dockerignore", content: r.dockerignoreContent });
       setFiles(out);
     } catch (e) {
       setError(getApiErrorMessage(e));
@@ -86,8 +86,8 @@ export function ServiceCiGenerator({
             Standardized CI/CD config
           </p>
           <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-            Generates the <code className="font-mono">Dockerfile</code>, the{' '}
-            <code className="font-mono">.dockerignore</code> and the CI file to{' '}
+            Generates the <code className="font-mono">Dockerfile</code>, the{" "}
+            <code className="font-mono">.dockerignore</code> and the CI file to{" "}
             <span className="font-semibold">paste into your repo</span>. Preview
             only — nothing is written to the repo (zero conflict risk).
           </p>
@@ -102,7 +102,7 @@ export function ServiceCiGenerator({
             <Loader2 size={15} className="animate-spin" />
           ) : (
             <Wand2 size={15} />
-          )}{' '}
+          )}{" "}
           Generate
         </button>
       </div>
@@ -120,23 +120,26 @@ export function ServiceCiGenerator({
             <li>
               <span className="font-semibold text-[var(--text-primary)]">
                 1. Colle chaque fichier
-              </span>{' '}
+              </span>{" "}
               à l&apos;emplacement indiqué (le chemin est au-dessus de chaque
               bloc), à la racine de ton dépôt.
             </li>
             <li>
               <span className="font-semibold text-[var(--text-primary)]">
                 2. Ajoute 2 variables CI
-              </span>{' '}
-              dans ton dépôt Git (GitLab : Settings → CI/CD → Variables ;
-              GitHub : Settings → Secrets and variables → Actions) :
+              </span>{" "}
+              dans ton dépôt Git (GitLab : Settings → CI/CD → Variables ; GitHub
+              : Settings → Secrets and variables → Actions) :
               <div className="mt-1.5 space-y-1">
                 <VarLine
                   name="PLATFORM_DEPLOY_HOOK"
-                  value={webhookUrl ?? '(configure le webhook dans l’onglet Webhooks)'}
+                  value={
+                    webhookUrl ??
+                    "(configure le webhook dans l’onglet Webhooks)"
+                  }
                   copyable={Boolean(webhookUrl)}
-                  copied={copied === 'hook'}
-                  onCopy={() => webhookUrl && void copy('hook', webhookUrl)}
+                  copied={copied === "hook"}
+                  onCopy={() => webhookUrl && void copy("hook", webhookUrl)}
                 />
                 <VarLine
                   name="platform_DEPLOY_TOKEN"
@@ -148,7 +151,7 @@ export function ServiceCiGenerator({
             <li>
               <span className="font-semibold text-[var(--text-primary)]">
                 3. Push
-              </span>{' '}
+              </span>{" "}
               → la CI build l&apos;image puis déclenche le déploiement platform.
             </li>
           </ol>

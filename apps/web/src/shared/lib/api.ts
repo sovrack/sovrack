@@ -1,12 +1,10 @@
-import axios, {
-  AxiosError,
-} from 'axios';
-import { clearAuthStorage } from '@/shared/lib/auth';
+import axios, { AxiosError } from "axios";
+import { clearAuthStorage } from "@/shared/lib/auth";
 
-const API_BASE_URL = '/backend-api';
+const API_BASE_URL = "/backend-api";
 const API_TIMEOUT_MS = 10_000;
 
-export const AUTH_UNAUTHORIZED_EVENT = 'auth:unauthorized';
+export const AUTH_UNAUTHORIZED_EVENT = "auth:unauthorized";
 
 type UnauthorizedHandler = (() => void) | null;
 
@@ -27,7 +25,7 @@ export function registerUnauthorizedHandler(
 }
 
 function handleUnauthorized(): void {
-  if (typeof window === 'undefined' || isHandlingUnauthorized) {
+  if (typeof window === "undefined" || isHandlingUnauthorized) {
     return;
   }
 
@@ -40,7 +38,7 @@ function handleUnauthorized(): void {
 
   window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
 
-  if (!unauthorizedHandler && !window.location.pathname.startsWith('/login')) {
+  if (!unauthorizedHandler && !window.location.pathname.startsWith("/login")) {
     const nextPath = `${window.location.pathname}${window.location.search}`;
     window.location.href = `/login?next=${encodeURIComponent(nextPath)}`;
   }
@@ -56,18 +54,18 @@ export function getApiErrorMessage(error: unknown): string {
   const status = axiosError.response?.status;
 
   const isTimeout =
-    axiosError.code === 'ECONNABORTED' ||
-    axiosError.message.toLowerCase().includes('timeout');
+    axiosError.code === "ECONNABORTED" ||
+    axiosError.message.toLowerCase().includes("timeout");
 
   if (isTimeout) {
-    return 'The request is taking longer than expected. Check GitLab then retry in a few seconds.';
+    return "The request is taking longer than expected. Check GitLab then retry in a few seconds.";
   }
 
   if (Array.isArray(message)) {
-    return message.join(', ');
+    return message.join(", ");
   }
 
-  if (typeof message === 'string' && message.trim()) {
+  if (typeof message === "string" && message.trim()) {
     return message;
   }
 
@@ -76,30 +74,30 @@ export function getApiErrorMessage(error: unknown): string {
   }
 
   if (status === 401) {
-    return 'Authentification invalide. Reconnectez-vous.';
+    return "Authentification invalide. Reconnectez-vous.";
   }
 
   if (status === 403) {
-    return 'Access denied. Check your permissions.';
+    return "Access denied. Check your permissions.";
   }
 
   if (status === 404) {
-    return 'Ressource introuvable.';
+    return "Ressource introuvable.";
   }
 
   if (status === 409) {
-    return 'Conflict detected. Retry after refreshing.';
+    return "Conflict detected. Retry after refreshing.";
   }
 
   if (status === 422) {
-    return 'GitLab rejected the request (protected branch, invalid payload, or file conflict).';
+    return "GitLab rejected the request (protected branch, invalid payload, or file conflict).";
   }
 
   if (axiosError.message) {
     return axiosError.message;
   }
 
-  return 'Une erreur inattendue est survenue.';
+  return "Une erreur inattendue est survenue.";
 }
 
 const api = axios.create({
@@ -107,8 +105,8 @@ const api = axios.create({
   timeout: API_TIMEOUT_MS,
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
 });
 

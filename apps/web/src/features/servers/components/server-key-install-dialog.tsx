@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { Copy, KeyRound } from 'lucide-react';
-import { Alert } from '@/shared/ui/alert';
-import { Button } from '@/shared/ui/button';
-import { Modal } from '@/shared/ui/modal';
-import type { Server } from '@/features/servers/types/server';
+import { useEffect, useMemo, useState } from "react";
+import { Copy, KeyRound } from "lucide-react";
+import { Alert } from "@/shared/ui/alert";
+import { Button } from "@/shared/ui/button";
+import { Modal } from "@/shared/ui/modal";
+import type { Server } from "@/features/servers/types/server";
 
 type ServerKeyInstallDialogProps = {
   open: boolean;
@@ -28,24 +28,24 @@ export function ServerKeyInstallDialog({
   onClose,
   onSubmit,
 }: ServerKeyInstallDialogProps) {
-  const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [temporaryPassword, setTemporaryPassword] = useState("");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setTemporaryPassword('');
+    setTemporaryPassword("");
     setCopied(false);
   }, [open, server?.id]);
 
-  const publicKey = server?.sshPublicKey?.trim() ?? '';
+  const publicKey = server?.sshPublicKey?.trim() ?? "";
   const manualCommand = useMemo(() => {
-    if (!publicKey) return '';
+    if (!publicKey) return "";
     return `mkdir -p ~/.ssh && chmod 700 ~/.ssh && touch ~/.ssh/authorized_keys && grep -qxF '${shellEscape(publicKey)}' ~/.ssh/authorized_keys || echo '${shellEscape(publicKey)}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys`;
   }, [publicKey]);
 
   if (!server) return null;
 
-  const requiresPasswordInstall = server.connectionMode === 'ssh';
+  const requiresPasswordInstall = server.connectionMode === "ssh";
 
   const handleCopyPublicKey = async () => {
     if (!publicKey) return;
@@ -86,7 +86,11 @@ export function ServerKeyInstallDialog({
             type="submit"
             form="server-key-install-form"
             loading={loading}
-            disabled={!requiresPasswordInstall || !temporaryPassword.trim() || !publicKey.trim()}
+            disabled={
+              !requiresPasswordInstall ||
+              !temporaryPassword.trim() ||
+              !publicKey.trim()
+            }
             icon={loading ? undefined : <KeyRound size={14} />}
           >
             Install key
@@ -94,7 +98,11 @@ export function ServerKeyInstallDialog({
         </>
       }
     >
-      <form id="server-key-install-form" onSubmit={handleSubmit} className="space-y-4">
+      <form
+        id="server-key-install-form"
+        onSubmit={handleSubmit}
+        className="space-y-4"
+      >
         {error && <Alert tone="error">{error}</Alert>}
 
         <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
@@ -114,7 +122,7 @@ export function ServerKeyInstallDialog({
                 icon={<Copy size={12} />}
                 onClick={() => void handleCopyPublicKey()}
               >
-                {copied ? 'Copied' : 'Copy key'}
+                {copied ? "Copied" : "Copy key"}
               </Button>
             </>
           ) : (
@@ -137,7 +145,7 @@ export function ServerKeyInstallDialog({
               className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20"
             />
             <p className="mt-1 text-xs text-[var(--text-secondary)]">
-              Used once to append the platform public key in{' '}
+              Used once to append the platform public key in{" "}
               <code className="font-mono">~/.ssh/authorized_keys</code>.
             </p>
           </div>
@@ -148,7 +156,7 @@ export function ServerKeyInstallDialog({
             Manual installation command
           </p>
           <p className="mt-2 break-all rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 font-mono text-xs text-[var(--text-primary)]">
-            {manualCommand || 'Public key unavailable'}
+            {manualCommand || "Public key unavailable"}
           </p>
         </div>
       </form>

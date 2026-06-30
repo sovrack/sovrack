@@ -1,5 +1,5 @@
-import { Badge } from '@/shared/ui/badge';
-import type { ServerValidationResult } from '@/features/servers/types/server';
+import { Badge } from "@/shared/ui/badge";
+import type { ServerValidationResult } from "@/features/servers/types/server";
 
 type Props = {
   results: ServerValidationResult[];
@@ -19,8 +19,8 @@ export function ServerValidationCard({ results }: Props) {
             SSH readiness
           </h3>
         </div>
-        <Badge tone={latest?.sudoAvailable ? 'success' : 'warning'}>
-          {latest?.sudoAvailable ? 'sudo ready' : 'needs validation'}
+        <Badge tone={latest?.sudoAvailable ? "success" : "warning"}>
+          {latest?.sudoAvailable ? "sudo ready" : "needs validation"}
         </Badge>
       </div>
 
@@ -33,37 +33,38 @@ export function ServerValidationCard({ results }: Props) {
           <div>
             <dt className="text-[var(--text-secondary)]">SSH reachable</dt>
             <dd className="font-semibold text-[var(--text-primary)]">
-              {latest.sshReachable ? 'Yes' : 'No'}
+              {latest.sshReachable ? "Yes" : "No"}
             </dd>
           </div>
           <div>
             <dt className="text-[var(--text-secondary)]">Auth</dt>
             <dd className="font-semibold text-[var(--text-primary)]">
-              {latest.authSucceeded ? 'Succeeded' : 'Failed'}
+              {latest.authSucceeded ? "Succeeded" : "Failed"}
             </dd>
           </div>
           <div>
             <dt className="text-[var(--text-secondary)]">sudo -n true</dt>
             <dd className="font-semibold text-[var(--text-primary)]">
-              {latest.sudoAvailable ? 'Available' : 'Missing'}
+              {latest.sudoAvailable ? "Available" : "Missing"}
             </dd>
           </div>
           <div>
             <dt className="text-[var(--text-secondary)]">Python 3</dt>
             <dd className="font-semibold text-[var(--text-primary)]">
-              {latest.pythonAvailable ? 'Available' : 'Missing'}
+              {latest.pythonAvailable ? "Available" : "Missing"}
             </dd>
           </div>
           <div>
             <dt className="text-[var(--text-secondary)]">OS</dt>
             <dd className="font-semibold text-[var(--text-primary)]">
-              {[latest.osName, latest.osVersion].filter(Boolean).join(' ') || 'Unknown'}
+              {[latest.osName, latest.osVersion].filter(Boolean).join(" ") ||
+                "Unknown"}
             </dd>
           </div>
           <div>
             <dt className="text-[var(--text-secondary)]">Architecture</dt>
             <dd className="font-semibold text-[var(--text-primary)]">
-              {latest.architecture || 'Unknown'}
+              {latest.architecture || "Unknown"}
             </dd>
           </div>
         </dl>

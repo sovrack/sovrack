@@ -1,33 +1,39 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { GitBranch, Plus } from 'lucide-react';
-import { PageHeader } from '@/shared/layout/page-header';
-import { Button } from '@/shared/ui/button';
-import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { ProviderCard } from '@/features/source-providers/components/provider-card';
-import { AddProviderDialog } from '@/features/source-providers/components/add-provider-dialog';
-import { GitLabLogo } from '@/features/source-providers/components/provider-meta';
-import { useAuth } from '@/features/auth/api/use-auth';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { useToasts, type ToastItem } from '@/shared/hooks/use-toasts';
-import { useGitProviders, useReloadGitProviders } from '@/features/platform';
-import { platformConfigService } from '@/features/platform/api/platform-config.service';
+import { useEffect, useMemo, useState } from "react";
+import { GitBranch, Plus } from "lucide-react";
+import { PageHeader } from "@/shared/layout/page-header";
+import { Button } from "@/shared/ui/button";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { ProviderCard } from "@/features/source-providers/components/provider-card";
+import { AddProviderDialog } from "@/features/source-providers/components/add-provider-dialog";
+import { GitLabLogo } from "@/features/source-providers/components/provider-meta";
+import { useAuth } from "@/features/auth/api/use-auth";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { useToasts, type ToastItem } from "@/shared/hooks/use-toasts";
+import { useGitProviders, useReloadGitProviders } from "@/features/platform";
+import { platformConfigService } from "@/features/platform/api/platform-config.service";
 import type {
   CreateGitlabProviderPayload,
   GitlabProvider,
   UpdateGitlabProviderPayload,
-} from '@/features/platform/types/platform-config';
+} from "@/features/platform/types/platform-config";
 
 /* ─── Toast ─────────────────────────────────────────────────────────────── */
 
-function Toast({ item, onRemove }: { item: ToastItem; onRemove: (id: number) => void }) {
+function Toast({
+  item,
+  onRemove,
+}: {
+  item: ToastItem;
+  onRemove: (id: number) => void;
+}) {
   return (
     <div
       className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-sm transition-all ${
-        item.tone === 'success'
-          ? 'border-green-500/20 bg-green-500/10 text-green-300'
-          : 'border-red-500/20 bg-red-500/10 text-red-300'
+        item.tone === "success"
+          ? "border-green-500/20 bg-green-500/10 text-green-300"
+          : "border-red-500/20 bg-red-500/10 text-red-300"
       }`}
     >
       <span className="flex-1">{item.message}</span>
@@ -44,7 +50,13 @@ function Toast({ item, onRemove }: { item: ToastItem; onRemove: (id: number) => 
 
 /* ─── Empty state ────────────────────────────────────────────────────────── */
 
-function EmptyProviders({ isAdmin, onAdd }: { isAdmin: boolean; onAdd: () => void }) {
+function EmptyProviders({
+  isAdmin,
+  onAdd,
+}: {
+  isAdmin: boolean;
+  onAdd: () => void;
+}) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-app)] py-16 text-center">
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-orange-500/20 bg-orange-500/10">
@@ -54,8 +66,8 @@ function EmptyProviders({ isAdmin, onAdd }: { isAdmin: boolean; onAdd: () => voi
         No Git Providers Connected
       </h3>
       <p className="mt-1.5 max-w-sm text-sm text-[var(--text-secondary)]">
-        Connect a Git provider to import repositories, trigger pipelines, and enable
-        automatic deployments across your projects.
+        Connect a Git provider to import repositories, trigger pipelines, and
+        enable automatic deployments across your projects.
       </p>
       {isAdmin && (
         <Button className="mt-5" onClick={onAdd} icon={<Plus size={14} />}>
@@ -72,7 +84,10 @@ function SkeletonLoading() {
   return (
     <div className="space-y-4">
       {[1, 2].map((i) => (
-        <div key={i} className="h-40 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--hover)]" />
+        <div
+          key={i}
+          className="h-40 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--hover)]"
+        />
       ))}
     </div>
   );
@@ -85,16 +100,23 @@ export default function GitSettingsPage() {
 
   const providersQuery = useGitProviders();
   const reloadProviders = useReloadGitProviders();
-  const providers = useMemo(() => providersQuery.data ?? [], [providersQuery.data]);
+  const providers = useMemo(
+    () => providersQuery.data ?? [],
+    [providersQuery.data],
+  );
   const loading = providersQuery.isLoading;
   const [saving, setSaving] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const { toasts, showToast, dismiss: dismissToast } = useToasts(3000);
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
-  const [editingProvider, setEditingProvider] = useState<GitlabProvider | null>(null);
-  const [dialogProviderType, setDialogProviderType] = useState<'GITLAB' | 'GITHUB' | 'GITEA'>('GITLAB');
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
+  const [editingProvider, setEditingProvider] = useState<GitlabProvider | null>(
+    null,
+  );
+  const [dialogProviderType, setDialogProviderType] = useState<
+    "GITLAB" | "GITHUB" | "GITEA"
+  >("GITLAB");
 
   const [runningTestId, setRunningTestId] = useState<string | null>(null);
   const [runningOAuthId, setRunningOAuthId] = useState<string | null>(null);
@@ -104,38 +126,47 @@ export default function GitSettingsPage() {
   const [copiedRedirect, setCopiedRedirect] = useState(false);
 
   const fallbackRedirectUri = useMemo(() => {
-    if (typeof window === 'undefined') return '';
-    const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
-    return apiBase
-      ? `${apiBase}/providers/gitlab/callback`
-      : `${window.location.origin}/providers/gitlab/callback`;
+    if (typeof window === "undefined") return "";
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+    if (apiBase) return `${apiBase}/providers/gitlab/callback`;
+    // NEXT_PUBLIC_API_URL not set: derive backend origin from current hostname +
+    // default backend port 3001. This is only a UI hint — set NEXT_PUBLIC_API_URL
+    // in production so the correct URL is shown without guessing.
+    const backendOrigin = `${window.location.protocol}//${window.location.hostname}:3001`;
+    return `${backendOrigin}/providers/gitlab/callback`;
   }, []);
-
 
   // Handle OAuth callback query params
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    const oauth = params.get('oauth');
+    const oauth = params.get("oauth");
     if (!oauth) return;
 
-    const msg = params.get('oauth_message');
+    const msg = params.get("oauth_message");
     showToast(
-      msg || (oauth === 'success' ? 'OAuth connected successfully' : 'OAuth connection failed'),
-      oauth === 'success' ? 'success' : 'error',
+      msg ||
+        (oauth === "success"
+          ? "OAuth connected successfully"
+          : "OAuth connection failed"),
+      oauth === "success" ? "success" : "error",
     );
 
-    params.delete('oauth');
-    params.delete('oauth_message');
-    params.delete('provider_id');
+    params.delete("oauth");
+    params.delete("oauth_message");
+    params.delete("provider_id");
     const q = params.toString();
-    window.history.replaceState({}, '', `${window.location.pathname}${q ? `?${q}` : ''}`);
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}${q ? `?${q}` : ""}`,
+    );
     void reloadProviders();
   }, [reloadProviders, showToast]);
 
-  const openCreate = (type: 'GITLAB' | 'GITHUB' | 'GITEA' = 'GITLAB') => {
+  const openCreate = (type: "GITLAB" | "GITHUB" | "GITEA" = "GITLAB") => {
     setDialogProviderType(type);
-    setDialogMode('create');
+    setDialogMode("create");
     setEditingProvider(null);
     setDialogError(null);
     setCopiedRedirect(false);
@@ -143,7 +174,7 @@ export default function GitSettingsPage() {
   };
 
   const openEdit = (provider: GitlabProvider) => {
-    setDialogMode('edit');
+    setDialogMode("edit");
     setEditingProvider(provider);
     setDialogError(null);
     setCopiedRedirect(false);
@@ -155,35 +186,50 @@ export default function GitSettingsPage() {
     setDialogError(null);
   };
 
-  const isGithubProvider = (p: GitlabProvider) => p.providerType === 'GITHUB';
-  const isGiteaProvider = (p: GitlabProvider) => p.providerType === 'GITEA';
+  const isGithubProvider = (p: GitlabProvider) => p.providerType === "GITHUB";
+  const isGiteaProvider = (p: GitlabProvider) => p.providerType === "GITEA";
 
   const handleSave = async (
     payload: CreateGitlabProviderPayload | UpdateGitlabProviderPayload,
-    providerType?: 'GITLAB' | 'GITHUB' | 'GITEA',
+    providerType?: "GITLAB" | "GITHUB" | "GITEA",
   ) => {
     setSaving(true);
     setDialogError(null);
     const type = providerType ?? dialogProviderType;
     try {
-      if (dialogMode === 'create') {
-        if (type === 'GITHUB') {
-          await platformConfigService.createGithubProvider(payload as CreateGitlabProviderPayload);
-        } else if (type === 'GITEA') {
-          await platformConfigService.createGiteaProvider(payload as CreateGitlabProviderPayload);
+      if (dialogMode === "create") {
+        if (type === "GITHUB") {
+          await platformConfigService.createGithubProvider(
+            payload as CreateGitlabProviderPayload,
+          );
+        } else if (type === "GITEA") {
+          await platformConfigService.createGiteaProvider(
+            payload as CreateGitlabProviderPayload,
+          );
         } else {
-          await platformConfigService.createGitlabProvider(payload as CreateGitlabProviderPayload);
+          await platformConfigService.createGitlabProvider(
+            payload as CreateGitlabProviderPayload,
+          );
         }
-        showToast('Git provider connected successfully', 'success');
+        showToast("Git provider connected successfully", "success");
       } else if (editingProvider) {
         if (isGithubProvider(editingProvider)) {
-          await platformConfigService.updateGithubProvider(editingProvider.id, payload as UpdateGitlabProviderPayload);
+          await platformConfigService.updateGithubProvider(
+            editingProvider.id,
+            payload as UpdateGitlabProviderPayload,
+          );
         } else if (isGiteaProvider(editingProvider)) {
-          await platformConfigService.updateGiteaProvider(editingProvider.id, payload as UpdateGitlabProviderPayload);
+          await platformConfigService.updateGiteaProvider(
+            editingProvider.id,
+            payload as UpdateGitlabProviderPayload,
+          );
         } else {
-          await platformConfigService.updateGitlabProvider(editingProvider.id, payload as UpdateGitlabProviderPayload);
+          await platformConfigService.updateGitlabProvider(
+            editingProvider.id,
+            payload as UpdateGitlabProviderPayload,
+          );
         }
-        showToast('Provider updated', 'success');
+        showToast("Provider updated", "success");
       }
       await reloadProviders();
       closeDialog();
@@ -199,16 +245,17 @@ export default function GitSettingsPage() {
     try {
       const provider = providers.find((p) => p.id === id);
       if (provider && isGiteaProvider(provider)) {
-        showToast('Connection is tested at deploy time for Gitea', 'success');
+        showToast("Connection is tested at deploy time for Gitea", "success");
         return;
       }
-      const result = provider && isGithubProvider(provider)
-        ? await platformConfigService.testGithubProvider(id)
-        : await platformConfigService.testGitlabProvider(id);
-      showToast(result.message, result.ok ? 'success' : 'error');
+      const result =
+        provider && isGithubProvider(provider)
+          ? await platformConfigService.testGithubProvider(id)
+          : await platformConfigService.testGitlabProvider(id);
+      showToast(result.message, result.ok ? "success" : "error");
       await reloadProviders();
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
     } finally {
       setRunningTestId(null);
     }
@@ -217,7 +264,10 @@ export default function GitSettingsPage() {
   const handleOAuth = async (id: string) => {
     const provider = providers.find((p) => p.id === id);
     if (provider && isGithubProvider(provider)) {
-      showToast('OAuth GitHub non encore disponible — utilisez un PAT', 'error');
+      showToast(
+        "OAuth GitHub non encore disponible — utilisez un PAT",
+        "error",
+      );
       return;
     }
     setRunningOAuthId(id);
@@ -225,7 +275,7 @@ export default function GitSettingsPage() {
       const start = await platformConfigService.startGitlabOAuthForProvider(id);
       window.location.assign(start.authorizeUrl);
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
       setRunningOAuthId(null);
     }
   };
@@ -241,10 +291,10 @@ export default function GitSettingsPage() {
       } else {
         await platformConfigService.setDefaultGitlabProvider(id);
       }
-      showToast('Default provider updated', 'success');
+      showToast("Default provider updated", "success");
       await reloadProviders();
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
     } finally {
       setRunningDefaultId(null);
     }
@@ -261,11 +311,11 @@ export default function GitSettingsPage() {
       } else {
         await platformConfigService.deleteGitlabProvider(deleteTarget.id);
       }
-      showToast('Provider removed', 'success');
+      showToast("Provider removed", "success");
       setDeleteTarget(null);
       await reloadProviders();
     } catch (err) {
-      showToast(getApiErrorMessage(err), 'error');
+      showToast(getApiErrorMessage(err), "error");
     } finally {
       setDeleting(false);
     }
@@ -287,7 +337,10 @@ export default function GitSettingsPage() {
           description="Global reusable Git integrations. Projects reference these providers to import repositories, trigger builds, and deploy automatically."
           actions={
             isAdmin && (
-              <Button onClick={() => openCreate('GITLAB')} icon={<Plus size={14} />}>
+              <Button
+                onClick={() => openCreate("GITLAB")}
+                icon={<Plus size={14} />}
+              >
                 Add provider
               </Button>
             )
@@ -329,7 +382,6 @@ export default function GitSettingsPage() {
                 ))}
               </section>
             )}
-
           </>
         )}
       </div>
@@ -339,7 +391,11 @@ export default function GitSettingsPage() {
         open={dialogOpen}
         mode={dialogMode}
         existingProvider={editingProvider}
-        initialProviderType={editingProvider?.providerType ?? dialogProviderType}
+        initialProviderType={
+          ((editingProvider?.providerType ?? dialogProviderType) === "GITHUB"
+            ? "GITHUB"
+            : "GITLAB") as "GITLAB" | "GITHUB"
+        }
         fallbackRedirectUri={fallbackRedirectUri}
         saving={saving}
         error={dialogError}
@@ -352,9 +408,9 @@ export default function GitSettingsPage() {
       {/* Delete confirmation */}
       <ConfirmDialog
         open={Boolean(deleteTarget)}
-        title={`Remove "${deleteTarget?.name ?? ''}"?`}
+        title={`Remove "${deleteTarget?.name ?? ""}"?`}
         description="This will remove the provider from the platform. Projects already using it will lose access to pipelines and source operations."
-        confirmLabel={deleting ? 'Removing…' : 'Remove provider'}
+        confirmLabel={deleting ? "Removing…" : "Remove provider"}
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
@@ -363,11 +419,7 @@ export default function GitSettingsPage() {
       {toasts.length > 0 && (
         <div className="fixed bottom-5 right-5 z-50 space-y-2 w-80">
           {toasts.map((t) => (
-            <Toast
-              key={t.id}
-              item={t}
-              onRemove={dismissToast}
-            />
+            <Toast key={t.id} item={t} onRemove={dismissToast} />
           ))}
         </div>
       )}

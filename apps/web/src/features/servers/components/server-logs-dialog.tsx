@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ScrollText, X } from 'lucide-react';
+import { useState } from "react";
+import { ScrollText, X } from "lucide-react";
 import {
   useServerPreparations,
   useRetryPreparation,
   useCancelPreparation,
-} from '@/features/servers/api/use-server-preparation';
-import { ServerPreparationHistory } from '@/features/servers/components/server-preparation-history';
-import { ServerPreparationLogViewer } from '@/features/servers/components/server-preparation-log-viewer';
-import type { ServerPreparation } from '@/features/servers/types/server';
+} from "@/features/servers/api/use-server-preparation";
+import { ServerPreparationHistory } from "@/features/servers/components/server-preparation-history";
+import { ServerPreparationLogViewer } from "@/features/servers/components/server-preparation-log-viewer";
+import type { ServerPreparation } from "@/features/servers/types/server";
 
 /**
  * Dialog « Logs Ansible » d'un VPS : historique des préparations (verify/prepare)
@@ -28,7 +28,7 @@ export function ServerLogsDialog({
   onClose: () => void;
 }) {
   const [selected, setSelected] = useState<ServerPreparation | null>(null);
-  const preparationsQuery = useServerPreparations(serverId ?? '');
+  const preparationsQuery = useServerPreparations(serverId ?? "");
   const retryPreparation = useRetryPreparation();
   const cancelPreparation = useCancelPreparation();
 
@@ -41,10 +41,13 @@ export function ServerLogsDialog({
         <div className="relative z-10 flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
           <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-              <ScrollText size={15} /> Logs Ansible — {serverName ?? 'serveur'}
+              <ScrollText size={15} /> Logs Ansible — {serverName ?? "serveur"}
             </h2>
-            <button type="button" onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]"
+            >
               <X size={13} />
             </button>
           </div>
@@ -52,10 +55,21 @@ export function ServerLogsDialog({
             <ServerPreparationHistory
               preparations={preparationsQuery.data ?? []}
               onOpenLogs={setSelected}
-              retryingId={retryPreparation.isPending ? retryPreparation.variables?.id : null}
-              cancelingId={cancelPreparation.isPending ? cancelPreparation.variables ?? null : null}
+              retryingId={
+                retryPreparation.isPending
+                  ? retryPreparation.variables?.id
+                  : null
+              }
+              cancelingId={
+                cancelPreparation.isPending
+                  ? (cancelPreparation.variables ?? null)
+                  : null
+              }
               onRetry={(preparation) => {
-                retryPreparation.mutate({ id: preparation.id, reason: 'Retry depuis les logs serveur' });
+                retryPreparation.mutate({
+                  id: preparation.id,
+                  reason: "Retry depuis les logs serveur",
+                });
               }}
               onCancel={(preparation) => {
                 cancelPreparation.mutate(preparation.id);
@@ -65,7 +79,10 @@ export function ServerLogsDialog({
         </div>
       </div>
 
-      <ServerPreparationLogViewer preparation={selected} onClose={() => setSelected(null)} />
+      <ServerPreparationLogViewer
+        preparation={selected}
+        onClose={() => setSelected(null)}
+      />
     </>
   );
 }

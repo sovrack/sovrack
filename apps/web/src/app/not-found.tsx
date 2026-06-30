@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { Compass, Home } from 'lucide-react';
+import Link from "next/link";
+import { Compass, Home } from "lucide-react";
 
 /**
  * Page 404 personnalisée (remplace le 404 par défaut de Next). Rendue dans le

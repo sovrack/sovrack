@@ -17,7 +17,8 @@
     "check:frontend": "npm run check:architecture && npm run lint -- --max-warnings=0 && npx tsc --noEmit",
     "contract:export-openapi": "cd ../backend && npm run openapi:export",
     "contract:types": "openapi-typescript --default-non-nullable=false src/generated/api-contract.openapi.json -o src/generated/api-contract.ts",
-    "contract:generate": "npm run contract:export-openapi && npm run contract:types"
+    "contract:generate": "npm run contract:export-openapi && npm run contract:types",
+    "contract:generate:help": "echo 'contract:generate requires the backend repo at ../backend. In CI use contract:types only (reads committed openapi.json).'"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

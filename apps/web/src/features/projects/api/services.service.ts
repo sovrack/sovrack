@@ -1,11 +1,11 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 import type {
   Service,
   CreateServicePayload,
   UpdateServicePayload,
   DiscoveredRepo,
   ServiceTemplate,
-} from '@/features/projects/types/service';
+} from "@/features/projects/types/service";
 
 /**
  * Service-level API (M3 model). Targets `POST /projects/:projectId/services`
@@ -18,8 +18,14 @@ export const servicesService = {
     return res.data;
   },
 
-  async create(projectId: string, payload: CreateServicePayload): Promise<Service> {
-    const res = await api.post<Service>(`/projects/${projectId}/services`, payload);
+  async create(
+    projectId: string,
+    payload: CreateServicePayload,
+  ): Promise<Service> {
+    const res = await api.post<Service>(
+      `/projects/${projectId}/services`,
+      payload,
+    );
     return res.data;
   },
 
@@ -45,7 +51,12 @@ export const servicesService = {
    */
   async discoverGroup(
     projectId: string,
-    payload: { provider: 'GITLAB' | 'GITHUB'; groupPath: string; token: string; providerId?: string },
+    payload: {
+      provider: "GITLAB" | "GITHUB";
+      groupPath: string;
+      token: string;
+      providerId?: string;
+    },
   ): Promise<DiscoveredRepo[]> {
     const res = await api.post<DiscoveredRepo[]>(
       `/projects/${projectId}/services/discover-group`,

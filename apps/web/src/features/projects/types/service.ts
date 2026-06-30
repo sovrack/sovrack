@@ -1,18 +1,24 @@
-import type { components } from '@/generated/api-contract';
+import type { components } from "@/generated/api-contract";
 
-type ApiSchema = components['schemas'];
+type ApiSchema = components["schemas"];
 
 // Aligne sur l'enum backend (modele Railway) : la nature du service en 3 axes.
 // L'origine de l'artefact reste portee par SourceType (GIT/DOCKER_IMAGE/NONE).
-export type ServiceType = 'APPLICATION' | 'DATABASE' | 'MANAGED';
+export type ServiceType = "APPLICATION" | "DATABASE" | "MANAGED";
 
-export type SourceType = 'GIT' | 'DOCKER_IMAGE' | 'NONE';
+export type SourceType = "GIT" | "DOCKER_IMAGE" | "NONE";
 
-export type BuildPack = 'DOCKERFILE' | 'DOCKER_COMPOSE' | 'NIXPACKS' | 'BUILDPACK' | 'STATIC' | 'NONE';
+export type BuildPack =
+  | "DOCKERFILE"
+  | "DOCKER_COMPOSE"
+  | "NIXPACKS"
+  | "BUILDPACK"
+  | "STATIC"
+  | "NONE";
 
 /** Source connection sent alongside service creation (Git repo + token). */
 export type SourceConnectionPayload = {
-  provider: 'GITLAB' | 'GITHUB';
+  provider: "GITLAB" | "GITHUB";
   repoPath: string;
   token: string;
   branch?: string;
@@ -25,7 +31,8 @@ export type DiscoveredRepo = {
   defaultBranch: string;
 };
 
-export type ManagedServiceType = 'POSTGRES' | 'MYSQL' | 'REDIS' | 'MONGODB' | 'RABBITMQ';
+export type ManagedServiceType =
+  "POSTGRES" | "MYSQL" | "REDIS" | "MONGODB" | "RABBITMQ";
 
 /** One-click service template (multi-component bundle) exposed by the backend catalogue. */
 export type ServiceTemplate = {
@@ -77,8 +84,8 @@ export type Service = {
 // fields the contract can only type as `object` are overridden here with the
 // precise shapes the create form relies on. `source` keeps the local payload type.
 export type CreateServicePayload = Omit<
-  ApiSchema['CreateServiceDto'],
-  'buildArgs' | 'nixpacksConfig' | 'staticConfig' | 'source'
+  ApiSchema["CreateServiceDto"],
+  "buildArgs" | "nixpacksConfig" | "staticConfig" | "source"
 > & {
   buildArgs?: Record<string, string>;
   nixpacksConfig?: Record<string, unknown>;

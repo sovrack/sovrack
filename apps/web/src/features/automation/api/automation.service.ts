@@ -1,20 +1,20 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 import type {
   AutomationAction,
   AutomationRun,
   AutomationRunLog,
   AutomationRunsListResponse,
   CreateAutomationRunPayload,
-} from '@/features/automation/types/automation';
+} from "@/features/automation/types/automation";
 
 export const automationService = {
   async getActions(): Promise<AutomationAction[]> {
-    const res = await api.get<AutomationAction[]>('/automation/actions');
+    const res = await api.get<AutomationAction[]>("/automation/actions");
     return res.data;
   },
 
   async getRuns(page = 1, pageSize = 20): Promise<AutomationRunsListResponse> {
-    const res = await api.get<AutomationRunsListResponse>('/automation/runs', {
+    const res = await api.get<AutomationRunsListResponse>("/automation/runs", {
       params: { page, pageSize },
     });
     return res.data;
@@ -25,15 +25,21 @@ export const automationService = {
     return res.data;
   },
 
-  async getRunLogs(id: string, afterLine?: number): Promise<AutomationRunLog[]> {
-    const res = await api.get<AutomationRunLog[]>(`/automation/runs/${id}/logs`, {
-      params: afterLine ? { afterLine } : undefined,
-    });
+  async getRunLogs(
+    id: string,
+    afterLine?: number,
+  ): Promise<AutomationRunLog[]> {
+    const res = await api.get<AutomationRunLog[]>(
+      `/automation/runs/${id}/logs`,
+      {
+        params: afterLine ? { afterLine } : undefined,
+      },
+    );
     return res.data;
   },
 
   async startRun(payload: CreateAutomationRunPayload): Promise<AutomationRun> {
-    const res = await api.post<AutomationRun>('/automation/runs', payload);
+    const res = await api.post<AutomationRun>("/automation/runs", payload);
     return res.data;
   },
 

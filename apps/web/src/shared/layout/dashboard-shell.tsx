@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Sidebar } from '@/shared/layout/sidebar';
-import { TopNav } from '@/shared/layout/top-nav';
-import { useSidebar } from '@/shared/contexts/sidebar-context';
+import { Sidebar } from "@/shared/layout/sidebar";
+import { TopNav } from "@/shared/layout/top-nav";
+import { useSidebar } from "@/shared/contexts/sidebar-context";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { collapsed } = useSidebar();
@@ -12,7 +12,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div
         className="flex flex-1 flex-col transition-all duration-300 ease-in-out"
-        style={{ marginLeft: collapsed ? '80px' : '256px' }}
+        style={{ marginLeft: collapsed ? "80px" : "256px" }}
       >
         <TopNav />
         <main className="flex-1 px-4 py-5 md:px-6 md:py-6">

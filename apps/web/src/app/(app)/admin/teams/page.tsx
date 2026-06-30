@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Users2 } from 'lucide-react';
-import { PageHeader } from '@/shared/layout/page-header';
-import { SectionCard } from '@/shared/layout/section-card';
-import { Button } from '@/shared/ui/button';
-import { EmptyState } from '@/shared/ui/empty-state';
-import { TeamCreateDialog } from '@/features/teams';
-import { useTeams } from '@/features/teams/api/use-teams';
+import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Plus, Users2 } from "lucide-react";
+import { PageHeader } from "@/shared/layout/page-header";
+import { SectionCard } from "@/shared/layout/section-card";
+import { Button } from "@/shared/ui/button";
+import { EmptyState } from "@/shared/ui/empty-state";
+import { TeamCreateDialog } from "@/features/teams";
+import { useTeams } from "@/features/teams/api/use-teams";
 
 export default function AdminTeamsPage() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function AdminTeamsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('dialog') === 'create-team') {
+    if (searchParams.get("dialog") === "create-team") {
       setDialogOpen(true);
     }
   }, [searchParams]);
@@ -25,10 +25,12 @@ export default function AdminTeamsPage() {
   const closeDialog = useCallback(() => {
     setDialogOpen(false);
     const next = new URLSearchParams(searchParams.toString());
-    if (next.has('dialog')) {
-      next.delete('dialog');
+    if (next.has("dialog")) {
+      next.delete("dialog");
       const queryString = next.toString();
-      router.replace(queryString ? `/admin/teams?${queryString}` : '/admin/teams');
+      router.replace(
+        queryString ? `/admin/teams?${queryString}` : "/admin/teams",
+      );
     }
   }, [router, searchParams]);
 
@@ -59,14 +61,17 @@ export default function AdminTeamsPage() {
           title="No teams"
           description="Create your first team to group users and manage access in bulk."
           action={
-            <Button onClick={() => setDialogOpen(true)} icon={<Plus size={14} />}>
+            <Button
+              onClick={() => setDialogOpen(true)}
+              icon={<Plus size={14} />}
+            >
               Create team
             </Button>
           }
         />
       ) : (
         <SectionCard
-          title={`${teams.length} team${teams.length > 1 ? 's' : ''}`}
+          title={`${teams.length} team${teams.length > 1 ? "s" : ""}`}
           contentClassName="space-y-2"
         >
           {teams.map((team) => (
@@ -86,7 +91,8 @@ export default function AdminTeamsPage() {
                   )}
                 </div>
                 <span className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
-                  {team.members.length} membre{team.members.length > 1 ? 's' : ''}
+                  {team.members.length} membre
+                  {team.members.length > 1 ? "s" : ""}
                 </span>
               </div>
             </div>

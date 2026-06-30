@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { redirect } from "next/navigation";
 
 export default function AdminTeamsNewRedirectPage() {
-  redirect('/admin/teams?dialog=create-team');
+  redirect("/admin/teams?dialog=create-team");
 }

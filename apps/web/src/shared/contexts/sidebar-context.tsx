@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   createContext,
@@ -7,9 +7,9 @@ import {
   useMemo,
   useState,
   type ReactNode,
-} from 'react';
+} from "react";
 
-const SIDEBAR_COLLAPSED_KEY = 'deploy-automation-sidebar-collapsed';
+const SIDEBAR_COLLAPSED_KEY = "deploy-automation-sidebar-collapsed";
 
 type SidebarContextValue = {
   collapsed: boolean;
@@ -20,15 +20,17 @@ type SidebarContextValue = {
   closeMobileSidebar: () => void;
 };
 
-const SidebarContext = createContext<SidebarContextValue | undefined>(undefined);
+const SidebarContext = createContext<SidebarContextValue | undefined>(
+  undefined,
+);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return false;
     }
 
-    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
   });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -40,15 +42,15 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     };
 
     handleResize();
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
   }, [collapsed]);
 
   const value = useMemo<SidebarContextValue>(
@@ -72,7 +74,7 @@ export function useSidebar() {
   const context = useContext(SidebarContext);
 
   if (!context) {
-    throw new Error('useSidebar must be used within a SidebarProvider');
+    throw new Error("useSidebar must be used within a SidebarProvider");
   }
 
   return context;

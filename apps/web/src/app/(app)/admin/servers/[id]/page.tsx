@@ -1,24 +1,27 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { ArrowLeft, Loader2, Radar, Wrench, Zap } from 'lucide-react';
-import { PageHeader } from '@/shared/layout/page-header';
-import { SectionCard } from '@/shared/layout/section-card';
-import { Button } from '@/shared/ui/button';
+import { useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { ArrowLeft, Loader2, Radar, Wrench, Zap } from "lucide-react";
+import { PageHeader } from "@/shared/layout/page-header";
+import { SectionCard } from "@/shared/layout/section-card";
+import { Button } from "@/shared/ui/button";
 import {
   formatPreparationBlockingReason,
   ServerOverallStatusBadge,
   ServerWorkflowBadges,
-} from '@/features/servers/components/server-status-badges';
-import { ServerValidationCard } from '@/features/servers/components/server-validation-card';
-import { ServerCapabilitiesCard } from '@/features/servers/components/server-capabilities-card';
-import { InstalledToolsList } from '@/features/servers/components/installed-tools-list';
-import { ServerPreparationHistory } from '@/features/servers/components/server-preparation-history';
-import { ServerPreparationLogViewer } from '@/features/servers/components/server-preparation-log-viewer';
-import { ServerPrepareDialog, type PrepareOptions } from '@/features/servers/components/server-prepare-dialog';
-import { ServerAuditTimeline } from '@/features/servers/components/server-audit-timeline';
+} from "@/features/servers/components/server-status-badges";
+import { ServerValidationCard } from "@/features/servers/components/server-validation-card";
+import { ServerCapabilitiesCard } from "@/features/servers/components/server-capabilities-card";
+import { InstalledToolsList } from "@/features/servers/components/installed-tools-list";
+import { ServerPreparationHistory } from "@/features/servers/components/server-preparation-history";
+import { ServerPreparationLogViewer } from "@/features/servers/components/server-preparation-log-viewer";
+import {
+  ServerPrepareDialog,
+  type PrepareOptions,
+} from "@/features/servers/components/server-prepare-dialog";
+import { ServerAuditTimeline } from "@/features/servers/components/server-audit-timeline";
 import {
   useCancelPreparation,
   useDetectServerInfo,
@@ -32,17 +35,21 @@ import {
   useServerValidationResults,
   useStartServerPreparation,
   useValidateServerSsh,
-} from '@/features/servers/api/use-servers';
-import type { Server, ServerPreparation } from '@/features/servers/types/server';
+} from "@/features/servers/api/use-servers";
+import type {
+  Server,
+  ServerPreparation,
+} from "@/features/servers/types/server";
 
 export default function AdminServerDetailPage() {
   const params = useParams();
   const serverId = params.id as string;
   const [prepareOpen, setPrepareOpen] = useState(false);
   const [prepareOptions, setPrepareOptions] = useState<PrepareOptions>({
-    gitlabRunnerExecutor: 'docker',
+    gitlabRunnerExecutor: "docker",
   });
-  const [selectedPreparation, setSelectedPreparation] = useState<ServerPreparation | null>(null);
+  const [selectedPreparation, setSelectedPreparation] =
+    useState<ServerPreparation | null>(null);
 
   const serverQuery = useServer(serverId);
   const validationsQuery = useServerValidationResults(serverId);
@@ -77,12 +84,12 @@ export default function AdminServerDetailPage() {
     setPrepareOpen(false);
   };
 
-  const primaryAction: 'validate' | 'detect' | 'prepare' =
-    !server || !server.isVerified || server.status === 'VALIDATION_FAILED'
-      ? 'validate'
-      : !server.lastDetectedAt && server.status !== 'INFO_DETECTED'
-        ? 'detect'
-        : 'prepare';
+  const primaryAction: "validate" | "detect" | "prepare" =
+    !server || !server.isVerified || server.status === "VALIDATION_FAILED"
+      ? "validate"
+      : !server.lastDetectedAt && server.status !== "INFO_DETECTED"
+        ? "detect"
+        : "prepare";
 
   if (loading) {
     return (
@@ -96,7 +103,9 @@ export default function AdminServerDetailPage() {
     return (
       <div className="space-y-4">
         <Link href="/admin/servers">
-          <Button variant="secondary" icon={<ArrowLeft size={16} />}>Back</Button>
+          <Button variant="secondary" icon={<ArrowLeft size={16} />}>
+            Back
+          </Button>
         </Link>
         <SectionCard title="Server not found">
           <p className="text-sm text-[var(--text-secondary)]">
@@ -116,11 +125,13 @@ export default function AdminServerDetailPage() {
         actions={
           <>
             <Link href="/admin/servers">
-              <Button variant="secondary" icon={<ArrowLeft size={16} />}>Back</Button>
+              <Button variant="secondary" icon={<ArrowLeft size={16} />}>
+                Back
+              </Button>
             </Link>
 
             {/* Secondary: Re-validate (only when primary is not validate) */}
-            {primaryAction !== 'validate' && (
+            {primaryAction !== "validate" && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -133,7 +144,7 @@ export default function AdminServerDetailPage() {
             )}
 
             {/* Primary action — ONE clear button based on server state */}
-            {primaryAction === 'validate' && (
+            {primaryAction === "validate" && (
               <Button
                 icon={<Zap size={15} />}
                 loading={validateMutation.isPending}
@@ -142,7 +153,7 @@ export default function AdminServerDetailPage() {
                 Validate SSH
               </Button>
             )}
-            {primaryAction === 'detect' && (
+            {primaryAction === "detect" && (
               <Button
                 icon={<Radar size={15} />}
                 loading={detectMutation.isPending}
@@ -152,7 +163,7 @@ export default function AdminServerDetailPage() {
                 Detect Info
               </Button>
             )}
-            {primaryAction === 'prepare' && (
+            {primaryAction === "prepare" && (
               <Button
                 icon={<Wrench size={15} />}
                 onClick={() => setPrepareOpen(true)}
@@ -163,11 +174,12 @@ export default function AdminServerDetailPage() {
                 }
                 loading={startPreparation.isPending}
               >
-                {server.status === 'PREPARATION_FAILED'
-                  ? 'Retry Preparation'
-                  : server.status === 'PREPARED' || server.status === 'PARTIALLY_PREPARED'
-                    ? 'Re-prepare'
-                    : 'Prepare Server'}
+                {server.status === "PREPARATION_FAILED"
+                  ? "Retry Preparation"
+                  : server.status === "PREPARED" ||
+                      server.status === "PARTIALLY_PREPARED"
+                    ? "Re-prepare"
+                    : "Prepare Server"}
               </Button>
             )}
           </>
@@ -178,18 +190,22 @@ export default function AdminServerDetailPage() {
         <ServerOverallStatusBadge server={server} />
         <ServerWorkflowBadges server={server} />
         <p className="text-sm text-[var(--text-secondary)]">
-          Ansible remains installed and executed on the backend/control node. The VPS is only an SSH target, which centralizes security, maintenance, logs and audit.
+          Ansible remains installed and executed on the backend/control node.
+          The VPS is only an SSH target, which centralizes security,
+          maintenance, logs and audit.
         </p>
-        {readiness && !readiness.isReady && readiness.blockingReasons.length > 0 && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-            <p className="mb-1 font-semibold">Preparation blocked:</p>
-            <ul className="space-y-0.5 list-disc list-inside">
-              {readiness.blockingReasons.map((reason, i) => (
-                <li key={i}>{formatPreparationBlockingReason(reason)}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {readiness &&
+          !readiness.isReady &&
+          readiness.blockingReasons.length > 0 && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+              <p className="mb-1 font-semibold">Preparation blocked:</p>
+              <ul className="space-y-0.5 list-disc list-inside">
+                {readiness.blockingReasons.map((reason, i) => (
+                  <li key={i}>{formatPreparationBlockingReason(reason)}</li>
+                ))}
+              </ul>
+            </div>
+          )}
       </SectionCard>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -199,12 +215,19 @@ export default function AdminServerDetailPage() {
         <ServerPreparationHistory
           preparations={preparationsQuery.data ?? []}
           onOpenLogs={setSelectedPreparation}
-          retryingId={retryPreparation.isPending ? retryPreparation.variables?.id : null}
+          retryingId={
+            retryPreparation.isPending ? retryPreparation.variables?.id : null
+          }
           cancelingId={
-            cancelPreparation.isPending ? cancelPreparation.variables ?? null : null
+            cancelPreparation.isPending
+              ? (cancelPreparation.variables ?? null)
+              : null
           }
           onRetry={(preparation) => {
-            retryPreparation.mutate({ id: preparation.id, reason: 'Retry from server detail page' });
+            retryPreparation.mutate({
+              id: preparation.id,
+              reason: "Retry from server detail page",
+            });
           }}
           onCancel={(preparation) => {
             cancelPreparation.mutate(preparation.id);

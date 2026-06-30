@@ -1,6 +1,6 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 
-export type ComponentStatus = 'connected' | 'disconnected';
+export type ComponentStatus = "connected" | "disconnected";
 
 export type PlatformHealth = {
   status: string;
@@ -19,7 +19,7 @@ export type PlatformHealth = {
 
 export const healthService = {
   async get(): Promise<PlatformHealth> {
-    const res = await api.get<PlatformHealth>('/health');
+    const res = await api.get<PlatformHealth>("/health");
     return res.data;
   },
 };

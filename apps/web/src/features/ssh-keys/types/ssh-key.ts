@@ -1,6 +1,6 @@
-import type { components } from '@/generated/api-contract';
+import type { components } from "@/generated/api-contract";
 
-type ApiSchema = components['schemas'];
+type ApiSchema = components["schemas"];
 
 // Response shape stays manual (no SshKeyResponseDto in the contract).
 export type SshKey = {
@@ -12,4 +12,4 @@ export type SshKey = {
 };
 
 // Request payload derived from the backend contract.
-export type CreateSshKeyPayload = ApiSchema['CreateSshKeyDto'];
+export type CreateSshKeyPayload = ApiSchema["CreateSshKeyDto"];

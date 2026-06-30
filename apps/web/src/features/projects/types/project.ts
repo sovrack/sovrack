@@ -1,14 +1,14 @@
-import type { components } from '@/generated/api-contract';
-import type { UserRole } from '@/features/auth';
-import type { ServiceType } from './service';
+import type { components } from "@/generated/api-contract";
+import type { UserRole } from "@/features/auth";
+import type { ServiceType } from "./service";
 
-type ApiSchema = components['schemas'];
+type ApiSchema = components["schemas"];
 
-export type ProjectRole = 'OWNER' | 'DEVELOPER' | 'VIEWER';
+export type ProjectRole = "OWNER" | "DEVELOPER" | "VIEWER";
 
 export type { UserRole };
-export type GitlabGroupImportMode = 'ONE_APPLICATION' | 'SEPARATE_PROJECTS';
-export type GitlabSourceType = 'REPO' | 'GROUP';
+export type GitlabGroupImportMode = "ONE_APPLICATION" | "SEPARATE_PROJECTS";
+export type GitlabSourceType = "REPO" | "GROUP";
 
 export type GitlabConfig = {
   id: string;
@@ -44,17 +44,17 @@ export type GitlabProviderOption = {
   name: string;
   gitlabUrl: string;
   isDefault: boolean;
-  status: 'NOT_CONFIGURED' | 'ACTION_REQUIRED' | 'CONFIGURED';
+  status: "NOT_CONFIGURED" | "ACTION_REQUIRED" | "CONFIGURED";
 };
 
 // Provider-agnostic source provider (GitHub + GitLab) for the unified picker.
 export type SourceProviderOption = {
   id: string;
   name: string;
-  type: 'GITLAB' | 'GITHUB';
+  type: "GITLAB" | "GITHUB";
   url: string;
   isDefault: boolean;
-  status: 'NOT_CONFIGURED' | 'ACTION_REQUIRED' | 'CONFIGURED';
+  status: "NOT_CONFIGURED" | "ACTION_REQUIRED" | "CONFIGURED";
 };
 
 export type ProjectListItem = {
@@ -83,13 +83,17 @@ export type ProjectDetail = {
   members: ProjectMember[];
 };
 
-export type CreateProjectPayload = Omit<ApiSchema['CreateProjectDto'], 'gitlabGroupId'> & {
+export type CreateProjectPayload = Omit<
+  ApiSchema["CreateProjectDto"],
+  "gitlabGroupId"
+> & {
   gitlabGroupId?: number | string;
 };
 
-export type UpdateProjectPayload = Partial<CreateProjectPayload> & ApiSchema['UpdateProjectDto'];
+export type UpdateProjectPayload = Partial<CreateProjectPayload> &
+  ApiSchema["UpdateProjectDto"];
 
-export type AddMemberPayload = Omit<ApiSchema['AddMemberDto'], 'role'> & {
+export type AddMemberPayload = Omit<ApiSchema["AddMemberDto"], "role"> & {
   email: string;
   role: ProjectRole;
 };
@@ -108,7 +112,7 @@ export type ConnectGitlabPayload = {
 };
 
 export type ConnectSourcePayload = {
-  provider: 'GITLAB' | 'GITHUB';
+  provider: "GITLAB" | "GITHUB";
   repoPath?: string;
   groupPath?: string;
   token?: string;

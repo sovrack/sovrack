@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import clsx from 'clsx';
+import { useState } from "react";
+import clsx from "clsx";
 import {
   Check,
   CheckCircle2,
@@ -11,11 +11,17 @@ import {
   EyeOff,
   Key,
   Shield,
-} from 'lucide-react';
+} from "lucide-react";
 
 /* ─── Step indicator ────────────────────────────────────────────────────── */
 
-export function StepIndicator({ current, total }: { current: number; total: number }) {
+export function StepIndicator({
+  current,
+  total,
+}: {
+  current: number;
+  total: number;
+}) {
   return (
     <div className="flex items-center gap-0">
       {Array.from({ length: total }).map((_, i) => {
@@ -26,12 +32,12 @@ export function StepIndicator({ current, total }: { current: number; total: numb
           <div key={num} className="flex items-center">
             <div
               className={clsx(
-                'flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold transition-all',
+                "flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold transition-all",
                 active
-                  ? 'border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-app)]'
+                  ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-app)]"
                   : done
-                    ? 'border-green-500/40 bg-green-500/10 text-green-400'
-                    : 'border-[var(--border)] text-[var(--text-muted)]',
+                    ? "border-green-500/40 bg-green-500/10 text-green-400"
+                    : "border-[var(--border)] text-[var(--text-muted)]",
               )}
             >
               {done ? <Check size={12} /> : num}
@@ -39,8 +45,8 @@ export function StepIndicator({ current, total }: { current: number; total: numb
             {i < total - 1 && (
               <div
                 className={clsx(
-                  'mx-1 h-px w-8 transition-all',
-                  done ? 'bg-green-500/40' : 'bg-[var(--border)]',
+                  "mx-1 h-px w-8 transition-all",
+                  done ? "bg-green-500/40" : "bg-[var(--border)]",
                 )}
               />
             )}
@@ -80,7 +86,7 @@ export function TextInput({
   value,
   onChange,
   placeholder,
-  type = 'text',
+  type = "text",
   disabled,
   className,
 }: {
@@ -99,7 +105,7 @@ export function TextInput({
       placeholder={placeholder}
       disabled={disabled}
       className={clsx(
-        'w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] transition focus:border-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--text-secondary)]/10 disabled:opacity-60',
+        "w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] transition focus:border-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--text-secondary)]/10 disabled:opacity-60",
         className,
       )}
     />
@@ -123,10 +129,14 @@ export function SecretInput({
   return (
     <div className="relative">
       <input
-        type={show ? 'text' : 'password'}
+        type={show ? "text" : "password"}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={alreadySet ? `${label} already set — leave blank to keep` : (placeholder ?? '')}
+        placeholder={
+          alreadySet
+            ? `${label} already set — leave blank to keep`
+            : (placeholder ?? "")
+        }
         className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 pr-10 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] transition focus:border-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--text-secondary)]/10"
       />
       <button
@@ -158,23 +168,27 @@ export function Toggle({
       className="flex w-full items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-3 text-left transition hover:bg-[var(--hover)]"
     >
       <div>
-        <p className="text-sm font-medium text-[var(--text-primary)]">{label}</p>
-        {hint && <p className="mt-0.5 text-xs text-[var(--text-muted)]">{hint}</p>}
+        <p className="text-sm font-medium text-[var(--text-primary)]">
+          {label}
+        </p>
+        {hint && (
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{hint}</p>
+        )}
       </div>
       <div
         className={clsx(
-          'relative h-5 w-9 shrink-0 rounded-full border transition-all',
+          "relative h-5 w-9 shrink-0 rounded-full border transition-all",
           value
-            ? 'border-green-500/50 bg-green-500/20'
-            : 'border-[var(--border)] bg-[var(--hover)]',
+            ? "border-green-500/50 bg-green-500/20"
+            : "border-[var(--border)] bg-[var(--hover)]",
         )}
       >
         <div
           className={clsx(
-            'absolute top-0.5 h-4 w-4 rounded-full border transition-all',
+            "absolute top-0.5 h-4 w-4 rounded-full border transition-all",
             value
-              ? 'left-4 border-green-400 bg-green-400'
-              : 'left-0.5 border-[var(--border)] bg-[var(--text-muted)]',
+              ? "left-4 border-green-400 bg-green-400"
+              : "left-0.5 border-[var(--border)] bg-[var(--text-muted)]",
           )}
         />
       </div>
@@ -213,7 +227,7 @@ export function Collapsible({
 
 /* ─── Auth method selector ───────────────────────────────────────────────── */
 
-export type AuthChoice = 'oauth' | 'pat' | 'both';
+export type AuthChoice = "oauth" | "pat" | "both";
 
 export function AuthMethodCard({
   choice,
@@ -224,16 +238,19 @@ export function AuthMethodCard({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const map: Record<AuthChoice, { icon: React.ReactNode; title: string; desc: string }> = {
+  const map: Record<
+    AuthChoice,
+    { icon: React.ReactNode; title: string; desc: string }
+  > = {
     oauth: {
       icon: <Shield size={18} className="text-blue-400" />,
-      title: 'OAuth',
-      desc: 'Authorize via OAuth app. Users log in with their GitLab account.',
+      title: "OAuth",
+      desc: "Authorize via OAuth app. Users log in with their GitLab account.",
     },
     pat: {
       icon: <Key size={18} className="text-amber-400" />,
-      title: 'Personal Access Token',
-      desc: 'Use a GitLab PAT with api, read_repository, write_repository scopes.',
+      title: "Personal Access Token",
+      desc: "Use a GitLab PAT with api, read_repository, write_repository scopes.",
     },
     both: {
       icon: (
@@ -242,8 +259,8 @@ export function AuthMethodCard({
           <Key size={15} className="text-amber-400" />
         </span>
       ),
-      title: 'Both',
-      desc: 'Configure OAuth for user login and PAT for automated operations.',
+      title: "Both",
+      desc: "Configure OAuth for user login and PAT for automated operations.",
     },
   };
   const item = map[choice];
@@ -252,19 +269,24 @@ export function AuthMethodCard({
       type="button"
       onClick={onSelect}
       className={clsx(
-        'flex w-full items-start gap-3 rounded-xl border p-4 text-left transition',
+        "flex w-full items-start gap-3 rounded-xl border p-4 text-left transition",
         selected
-          ? 'border-[var(--text-primary)] bg-[var(--hover)]'
-          : 'border-[var(--border)] hover:border-[var(--text-secondary)] hover:bg-[var(--hover)]',
+          ? "border-[var(--text-primary)] bg-[var(--hover)]"
+          : "border-[var(--border)] hover:border-[var(--text-secondary)] hover:bg-[var(--hover)]",
       )}
     >
       <div className="mt-0.5 shrink-0">{item.icon}</div>
       <div>
-        <p className="text-sm font-semibold text-[var(--text-primary)]">{item.title}</p>
+        <p className="text-sm font-semibold text-[var(--text-primary)]">
+          {item.title}
+        </p>
         <p className="mt-0.5 text-xs text-[var(--text-muted)]">{item.desc}</p>
       </div>
       {selected && (
-        <CheckCircle2 size={16} className="ml-auto mt-0.5 shrink-0 text-green-400" />
+        <CheckCircle2
+          size={16}
+          className="ml-auto mt-0.5 shrink-0 text-green-400"
+        />
       )}
     </button>
   );

@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { servicesService } from '@/features/projects/api/services.service';
+import { useQuery } from "@tanstack/react-query";
+import { servicesService } from "@/features/projects/api/services.service";
+import { projectKeys } from "@/features/projects/api/project-query-keys";
 
 /**
  * Source de vérité React Query pour la liste des services d'un projet
@@ -10,7 +11,7 @@ import { servicesService } from '@/features/projects/api/services.service';
  */
 export function useProjectServices(projectId: string) {
   return useQuery({
-    queryKey: ['project', projectId, 'services'],
+    queryKey: projectKeys.services(projectId),
     queryFn: () => servicesService.getAll(projectId),
     enabled: Boolean(projectId),
   });

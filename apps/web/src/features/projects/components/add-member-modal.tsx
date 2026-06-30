@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { UserPlus } from 'lucide-react';
-import { Modal } from '@/shared/ui/modal';
-import { Button } from '@/shared/ui/button';
-import type { ProjectRole } from '@/features/projects/types/project';
+import { useState } from "react";
+import { UserPlus } from "lucide-react";
+import { Modal } from "@/shared/ui/modal";
+import { Button } from "@/shared/ui/button";
+import type { ProjectRole } from "@/features/projects/types/project";
 
 type AddMemberModalProps = {
   open: boolean;
@@ -13,8 +13,8 @@ type AddMemberModalProps = {
 };
 
 export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState<ProjectRole>('DEVELOPER');
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<ProjectRole>("DEVELOPER");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,11 +24,11 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
     setLoading(true);
     try {
       await onAdd(email.trim(), role);
-      setEmail('');
-      setRole('DEVELOPER');
+      setEmail("");
+      setRole("DEVELOPER");
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to add member');
+      setError(err instanceof Error ? err.message : "Failed to add member");
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,12 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
       }
       footer={
         <>
-          <Button variant="secondary" size="sm" onClick={onClose} disabled={loading}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onClose}
+            disabled={loading}
+          >
             Cancel
           </Button>
           <Button

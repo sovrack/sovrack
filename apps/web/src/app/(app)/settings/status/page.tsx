@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import Link from 'next/link';
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import {
   Activity,
   AlertTriangle,
@@ -15,22 +15,23 @@ import {
   Server,
   Wrench,
   XCircle,
-} from 'lucide-react';
-import { PageHeader } from '@/shared/layout/page-header';
-import { SectionCard } from '@/shared/layout/section-card';
-import { healthService } from '@/features/monitoring/api/health.service';
-import { monitoringService } from '@/features/monitoring/api/monitoring.service';
-import { getApiErrorMessage } from '@/shared/lib/api';
+} from "lucide-react";
+import { PageHeader } from "@/shared/layout/page-header";
+import { SectionCard } from "@/shared/layout/section-card";
+import { healthService } from "@/features/monitoring/api/health.service";
+import { monitoringService } from "@/features/monitoring/api/monitoring.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
 
-type Tone = 'ok' | 'warn' | 'down';
+type Tone = "ok" | "warn" | "down";
 
 function StatusPill({ tone, label }: { tone: Tone; label: string }) {
   const styles: Record<Tone, string> = {
-    ok: 'bg-green-500/10 text-green-400 border-green-500/20',
-    warn: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    down: 'bg-red-500/10 text-red-400 border-red-500/20',
+    ok: "bg-green-500/10 text-green-400 border-green-500/20",
+    warn: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    down: "bg-red-500/10 text-red-400 border-red-500/20",
   };
-  const Icon = tone === 'ok' ? CheckCircle2 : tone === 'warn' ? AlertTriangle : XCircle;
+  const Icon =
+    tone === "ok" ? CheckCircle2 : tone === "warn" ? AlertTriangle : XCircle;
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${styles[tone]}`}
@@ -59,9 +60,13 @@ function ComponentRow({
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="text-[var(--text-secondary)]">{icon}</span>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--text-primary)]">{name}</p>
+          <p className="text-sm font-medium text-[var(--text-primary)]">
+            {name}
+          </p>
           {detail && (
-            <p className="truncate text-xs text-[var(--text-muted)]">{detail}</p>
+            <p className="truncate text-xs text-[var(--text-muted)]">
+              {detail}
+            </p>
           )}
         </div>
       </div>
@@ -81,12 +86,12 @@ function formatUptime(seconds: number): string {
 
 export default function SystemStatusPage() {
   const health = useQuery({
-    queryKey: ['platform-health'],
+    queryKey: ["platform-health"],
     queryFn: () => healthService.get(),
     refetchInterval: 10_000,
   });
   const overview = useQuery({
-    queryKey: ['monitoring-overview-status'],
+    queryKey: ["monitoring-overview-status"],
     queryFn: () => monitoringService.getOverview(),
     refetchInterval: 15_000,
   });
@@ -95,7 +100,7 @@ export default function SystemStatusPage() {
   const o = overview.data;
 
   // The API is reachable iff the /health request itself succeeds.
-  const apiTone: Tone = health.isError ? 'down' : health.data ? 'ok' : 'warn';
+  const apiTone: Tone = health.isError ? "down" : health.data ? "ok" : "warn";
 
   return (
     <div className="space-y-6">
@@ -118,40 +123,46 @@ export default function SystemStatusPage() {
             <ComponentRow
               icon={<Activity size={16} />}
               name="Backend API"
-              detail={h ? `v${h.version} · uptime ${formatUptime(h.uptime)}` : undefined}
+              detail={
+                h
+                  ? `v${h.version} · uptime ${formatUptime(h.uptime)}`
+                  : undefined
+              }
               tone={apiTone}
-              label={apiTone === 'ok' ? 'Operational' : 'Unreachable'}
+              label={apiTone === "ok" ? "Operational" : "Unreachable"}
             />
             <ComponentRow
               icon={<Database size={16} />}
               name="Database (PostgreSQL)"
-              tone={h?.database === 'connected' ? 'ok' : 'down'}
-              label={h?.database === 'connected' ? 'Connected' : 'Disconnected'}
+              tone={h?.database === "connected" ? "ok" : "down"}
+              label={h?.database === "connected" ? "Connected" : "Disconnected"}
             />
             <ComponentRow
               icon={<RefreshCw size={16} />}
               name="Deployment queue (Redis)"
               detail="Required by BullMQ to process deployments"
-              tone={h?.redis === 'connected' ? 'ok' : 'down'}
-              label={h?.redis === 'connected' ? 'Connected' : 'Disconnected'}
+              tone={h?.redis === "connected" ? "ok" : "down"}
+              label={h?.redis === "connected" ? "Connected" : "Disconnected"}
             />
             <ComponentRow
               icon={<Globe size={16} />}
               name="Webhook configuration"
-              detail={h?.webhook.callbackUrl ?? 'WEBHOOK_BASE_URL not configured'}
+              detail={
+                h?.webhook.callbackUrl ?? "WEBHOOK_BASE_URL not configured"
+              }
               tone={
                 !h?.webhook.autoConfigure
-                  ? 'ok'
+                  ? "ok"
                   : h?.webhook.valid && h?.webhook.configured
-                    ? 'ok'
-                    : 'warn'
+                    ? "ok"
+                    : "warn"
               }
               label={
                 !h?.webhook.autoConfigure
-                  ? 'Manual'
+                  ? "Manual"
                   : h?.webhook.valid && h?.webhook.configured
-                    ? 'Configured'
-                    : 'Incomplete'
+                    ? "Configured"
+                    : "Incomplete"
               }
             />
           </div>
@@ -179,40 +190,40 @@ export default function SystemStatusPage() {
               detail={
                 o?.prometheus.configured
                   ? `${o.prometheus.upTargets}/${o.prometheus.totalTargets} targets up`
-                  : 'Not installed'
+                  : "Not installed"
               }
               tone={
                 !o?.prometheus.configured
-                  ? 'warn'
+                  ? "warn"
                   : o.prometheus.reachable
-                    ? 'ok'
-                    : 'down'
+                    ? "ok"
+                    : "down"
               }
               label={
                 !o?.prometheus.configured
-                  ? 'Not installed'
+                  ? "Not installed"
                   : o.prometheus.reachable
-                    ? 'Reachable'
-                    : 'Unreachable'
+                    ? "Reachable"
+                    : "Unreachable"
               }
             />
             <ComponentRow
               icon={<Gauge size={16} />}
               name="Grafana"
-              detail={o?.grafana.url ?? 'Not installed'}
+              detail={o?.grafana.url ?? "Not installed"}
               tone={
                 !o?.grafana.configured
-                  ? 'warn'
+                  ? "warn"
                   : o.grafana.reachable
-                    ? 'ok'
-                    : 'down'
+                    ? "ok"
+                    : "down"
               }
               label={
                 !o?.grafana.configured
-                  ? 'Not installed'
+                  ? "Not installed"
                   : o.grafana.reachable
-                    ? 'Reachable'
-                    : 'Unreachable'
+                    ? "Reachable"
+                    : "Unreachable"
               }
             />
             <ComponentRow
@@ -225,12 +236,12 @@ export default function SystemStatusPage() {
               }
               tone={
                 !o || o.totalMonitoredServers === 0
-                  ? 'warn'
+                  ? "warn"
                   : o.critical > 0
-                    ? 'down'
+                    ? "down"
                     : o.warning > 0
-                      ? 'warn'
-                      : 'ok'
+                      ? "warn"
+                      : "ok"
               }
               label={`${o?.totalMonitoredServers ?? 0} total`}
             />

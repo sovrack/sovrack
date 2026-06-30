@@ -1,16 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { io, type Socket } from 'socket.io-client';
-import { resolveWsBaseUrl } from '@/shared/lib/socket';
-import type { ServerPreparationLog } from '@/features/servers/types/server';
-
+import { useEffect } from "react";
+import { io, type Socket } from "socket.io-client";
+import { resolveWsBaseUrl } from "@/shared/lib/socket";
+import type { ServerPreparationLog } from "@/features/servers/types/server";
 
 type UsePreparationLogStreamOptions = {
   preparationId: string | null;
   onLog: (log: ServerPreparationLog) => void;
   onStatus?: (status: string) => void;
-  onFinished?: (payload: { status: string; errorMessage?: string | null }) => void;
+  onFinished?: (payload: {
+    status: string;
+    errorMessage?: string | null;
+  }) => void;
 };
 
 export function usePreparationLogStream({
@@ -27,20 +29,20 @@ export function usePreparationLogStream({
 
     const socket: Socket = io(`${wsBase}/server-preparations`, {
       autoConnect: true,
-      transports: ['websocket'],
+      transports: ["websocket"],
       withCredentials: true,
     });
 
-    socket.on('connect', () => {
-      socket.emit('join:preparation', { preparationId });
+    socket.on("connect", () => {
+      socket.emit("join:preparation", { preparationId });
     });
 
-    socket.on('preparation:log', (log: ServerPreparationLog) => onLog(log));
-    socket.on('preparation:status', (payload: { status: string }) => {
+    socket.on("preparation:log", (log: ServerPreparationLog) => onLog(log));
+    socket.on("preparation:status", (payload: { status: string }) => {
       onStatus?.(payload.status);
     });
     socket.on(
-      'preparation:finished',
+      "preparation:finished",
       (payload: { status: string; errorMessage?: string | null }) => {
         onFinished?.(payload);
       },

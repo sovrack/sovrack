@@ -1,9 +1,9 @@
-import type { components } from '@/generated/api-contract';
-import type { ServiceLink } from './service-environment';
+import type { components } from "@/generated/api-contract";
+import type { ServiceLink } from "./service-environment";
 
-type ApiSchema = components['schemas'];
+type ApiSchema = components["schemas"];
 
-export type EnvName = 'STAGING' | 'PRODUCTION' | 'TESTING' | 'PREVIEW';
+export type EnvName = "STAGING" | "PRODUCTION" | "TESTING" | "PREVIEW";
 
 // NOTE: the backend exposes no EnvironmentResponseDto in the OpenAPI contract,
 // so the response shape stays hand-written. Only the request payloads below are
@@ -20,5 +20,5 @@ export type Environment = {
 };
 
 // Derived from the backend contract (openapi-typescript).
-export type CreateEnvironmentPayload = ApiSchema['CreateEnvironmentDto'];
-export type UpdateEnvironmentPayload = ApiSchema['UpdateEnvironmentDto'];
+export type CreateEnvironmentPayload = ApiSchema["CreateEnvironmentDto"];
+export type UpdateEnvironmentPayload = ApiSchema["UpdateEnvironmentDto"];

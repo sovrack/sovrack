@@ -1,11 +1,17 @@
-'use client';
+"use client";
 
-import { useCallback, useMemo, useState } from 'react';
-import { X } from 'lucide-react';
-import { Button } from '@/shared/ui/button';
-import { usePreparationLogStream } from '@/features/servers/api/use-preparation-log-stream';
-import { usePreparation, usePreparationLogs } from '@/features/servers/api/use-servers';
-import type { ServerPreparation, ServerPreparationLog } from '@/features/servers/types/server';
+import { useCallback, useMemo, useState } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/shared/ui/button";
+import { usePreparationLogStream } from "@/features/servers/api/use-preparation-log-stream";
+import {
+  usePreparation,
+  usePreparationLogs,
+} from "@/features/servers/api/use-servers";
+import type {
+  ServerPreparation,
+  ServerPreparationLog,
+} from "@/features/servers/types/server";
 
 type Props = {
   preparation: ServerPreparation | null;
@@ -15,7 +21,9 @@ type Props = {
 export function ServerPreparationLogViewer({ preparation, onClose }: Props) {
   const [streamedLogs, setStreamedLogs] = useState<ServerPreparationLog[]>([]);
   const preparationQuery = usePreparation(preparation?.id ?? null);
-  const { data: persistedLogs = [] } = usePreparationLogs(preparation?.id ?? null);
+  const { data: persistedLogs = [] } = usePreparationLogs(
+    preparation?.id ?? null,
+  );
   const currentPreparation = preparationQuery.data ?? preparation;
 
   const handleLog = useCallback((log: ServerPreparationLog) => {
@@ -70,15 +78,18 @@ export function ServerPreparationLogViewer({ preparation, onClose }: Props) {
               <p
                 key={log.id}
                 className={
-                  log.level === 'ERROR'
-                    ? 'text-red-300'
-                    : log.level === 'WARNING'
-                      ? 'text-yellow-200'
-                      : 'text-zinc-100'
+                  log.level === "ERROR"
+                    ? "text-red-300"
+                    : log.level === "WARNING"
+                      ? "text-yellow-200"
+                      : "text-zinc-100"
                 }
               >
-                <span className="text-zinc-500">{String(log.lineNumber).padStart(4, '0')}</span>{' '}
-                <span className="text-zinc-500">[{log.source}]</span> {log.message}
+                <span className="text-zinc-500">
+                  {String(log.lineNumber).padStart(4, "0")}
+                </span>{" "}
+                <span className="text-zinc-500">[{log.source}]</span>{" "}
+                {log.message}
               </p>
             ))
           )}

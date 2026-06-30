@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -10,13 +10,16 @@ import {
   Download,
   Loader2,
   RotateCcw,
-} from 'lucide-react';
-import { databaseBackupsService, type DatabaseBackup } from '@/features/databases/api/database-backups.service';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { useConfirm } from '@/shared/contexts/confirm-context';
-import { timeAgo, formatBytes } from '@/shared/lib/format-date';
+} from "lucide-react";
+import {
+  databaseBackupsService,
+  type DatabaseBackup,
+} from "@/features/databases/api/database-backups.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { useConfirm } from "@/shared/contexts/confirm-context";
+import { timeAgo, formatBytes } from "@/shared/lib/format-date";
 
-const STATUS_ICON: Record<DatabaseBackup['status'], React.ReactNode> = {
+const STATUS_ICON: Record<DatabaseBackup["status"], React.ReactNode> = {
   SUCCESS: <CheckCircle2 size={12} className="text-green-400" />,
   FAILED: <AlertTriangle size={12} className="text-red-400" />,
   RUNNING: <Loader2 size={12} className="animate-spin text-blue-400" />,
@@ -29,13 +32,19 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
   const queryClient = useQueryClient();
   const confirm = useConfirm();
   const [restoreWarning, setRestoreWarning] = useState<string | null>(null);
-  const queryKey = ['database-backups', serviceEnvId];
+  const queryKey = ["database-backups", serviceEnvId];
 
-  const { data: backups, isLoading, error } = useQuery({
+  const {
+    data: backups,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey,
     queryFn: () => databaseBackupsService.list(serviceEnvId),
     refetchInterval: (query) =>
-      (query.state.data ?? []).some((b) => b.status === 'RUNNING' || b.status === 'PENDING')
+      (query.state.data ?? []).some(
+        (b) => b.status === "RUNNING" || b.status === "PENDING",
+      )
         ? 3_000
         : false,
   });
@@ -51,16 +60,18 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
     onSuccess: (res) => {
       void queryClient.invalidateQueries({ queryKey });
       // Non-fatal restore warnings surfaced inline (no native alert popup).
-      setRestoreWarning(res.warnings ? `Restored with warnings: ${res.warnings}` : null);
+      setRestoreWarning(
+        res.warnings ? `Restored with warnings: ${res.warnings}` : null,
+      );
     },
   });
 
   const onRestore = async (backupId: string) => {
     const ok = await confirm({
-      title: 'Restore this backup?',
-      description: 'This overwrites the current database content.',
-      confirmLabel: 'Restore',
-      variant: 'danger',
+      title: "Restore this backup?",
+      description: "This overwrites the current database content.",
+      confirmLabel: "Restore",
+      variant: "danger",
     });
     if (ok) {
       setRestoreWarning(null);
@@ -73,7 +84,7 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
       <div className="flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
           <Database size={12} />
-          Backups{serviceName ? ` · ${serviceName}` : ''}
+          Backups{serviceName ? ` · ${serviceName}` : ""}
         </p>
         <button
           type="button"
@@ -81,18 +92,28 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
           disabled={createBackup.isPending}
           className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--hover)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] transition hover:opacity-90 disabled:opacity-50"
         >
-          {createBackup.isPending ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
+          {createBackup.isPending ? (
+            <Loader2 size={11} className="animate-spin" />
+          ) : (
+            <Download size={11} />
+          )}
           Back up now
         </button>
       </div>
 
       {createBackup.error && (
-        <p className="mt-2 text-xs text-red-400">{getApiErrorMessage(createBackup.error)}</p>
+        <p className="mt-2 text-xs text-red-400">
+          {getApiErrorMessage(createBackup.error)}
+        </p>
       )}
       {restoreBackup.error && (
-        <p className="mt-2 text-xs text-red-400">{getApiErrorMessage(restoreBackup.error)}</p>
+        <p className="mt-2 text-xs text-red-400">
+          {getApiErrorMessage(restoreBackup.error)}
+        </p>
       )}
-      {error && <p className="mt-2 text-xs text-red-400">{getApiErrorMessage(error)}</p>}
+      {error && (
+        <p className="mt-2 text-xs text-red-400">{getApiErrorMessage(error)}</p>
+      )}
       {restoreWarning && (
         <p className="mt-2 text-xs text-amber-400">{restoreWarning}</p>
       )}
@@ -104,7 +125,10 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
           <li className="text-xs text-[var(--text-muted)]">No backups yet.</li>
         ) : (
           (backups ?? []).map((b) => (
-            <li key={b.id} className="flex items-center justify-between text-xs">
+            <li
+              key={b.id}
+              className="flex items-center justify-between text-xs"
+            >
               <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">
                 {STATUS_ICON[b.status]}
                 {timeAgo(b.createdAt)}
@@ -113,8 +137,10 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
                 </span>
               </span>
               <span className="flex items-center gap-2 text-[var(--text-muted)]">
-                {b.status === 'FAILED' ? (b.error?.slice(0, 40) ?? 'failed') : formatBytes(b.sizeBytes)}
-                {b.status === 'SUCCESS' && (
+                {b.status === "FAILED"
+                  ? (b.error?.slice(0, 40) ?? "failed")
+                  : formatBytes(b.sizeBytes)}
+                {b.status === "SUCCESS" && (
                   <button
                     type="button"
                     onClick={() => void onRestore(b.id)}
@@ -122,7 +148,8 @@ export function DatabaseBackupsPanel({ serviceEnvId, serviceName }: Props) {
                     title="Restore this backup into the database"
                     className="inline-flex items-center gap-1 rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)] transition hover:opacity-90 disabled:opacity-50"
                   >
-                    {restoreBackup.isPending && restoreBackup.variables === b.id ? (
+                    {restoreBackup.isPending &&
+                    restoreBackup.variables === b.id ? (
                       <Loader2 size={10} className="animate-spin" />
                     ) : (
                       <RotateCcw size={10} />

@@ -1,5 +1,5 @@
-import api from '@/shared/lib/api';
-import type { LokiSearchResult } from '@/features/monitoring/types/logs';
+import api from "@/shared/lib/api";
+import type { LokiSearchResult } from "@/features/monitoring/types/logs";
 
 export const logsService = {
   /**

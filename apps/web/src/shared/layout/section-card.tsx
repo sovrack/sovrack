@@ -1,5 +1,5 @@
-import clsx from 'clsx';
-import type { ReactNode } from 'react';
+import clsx from "clsx";
+import type { ReactNode } from "react";
 
 type SectionCardProps = {
   title?: string;
@@ -21,7 +21,7 @@ export function SectionCard({
   return (
     <section
       className={clsx(
-        'rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-sm',
+        "rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-sm",
         className,
       )}
     >
@@ -34,14 +34,18 @@ export function SectionCard({
               </h2>
             )}
             {description && (
-              <p className="mt-0.5 text-sm text-[var(--text-secondary)]">{description}</p>
+              <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+                {description}
+              </p>
             )}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
       )}
 
-      <div className={clsx('px-5 py-5 sm:px-6', contentClassName)}>{children}</div>
+      <div className={clsx("px-5 py-5 sm:px-6", contentClassName)}>
+        {children}
+      </div>
     </section>
   );
 }

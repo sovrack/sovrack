@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { Loader2, Pencil, Trash2, UserMinus, UserPlus } from 'lucide-react';
-import { formatDate } from '@/shared/lib/format-date';
-import type { UserListItem } from '@/features/users/types/user';
+import Link from "next/link";
+import { Loader2, Pencil, Trash2, UserMinus, UserPlus } from "lucide-react";
+import { formatDate } from "@/shared/lib/format-date";
+import type { UserListItem } from "@/features/users/types/user";
 
 /** Ligne du tableau utilisateurs (admin). Présentationnel — actions via callbacks. */
 export function UserRow({
@@ -34,11 +34,11 @@ export function UserRow({
         <span
           className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
             user.isActive
-              ? 'border border-green-500/20 bg-green-500/10 text-green-400'
-              : 'border border-zinc-500/20 bg-[var(--text-primary)]/10 text-[var(--text-muted)]'
+              ? "border border-green-500/20 bg-green-500/10 text-green-400"
+              : "border border-zinc-500/20 bg-[var(--text-primary)]/10 text-[var(--text-muted)]"
           }`}
         >
-          {user.isActive ? 'Actif' : 'Inactif'}
+          {user.isActive ? "Actif" : "Inactif"}
         </span>
       </td>
       <td className="px-4 py-3 text-[var(--text-secondary)]">
@@ -53,7 +53,8 @@ export function UserRow({
             <Pencil size={13} />
             Edit
           </Link>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => onToggleActive(user.id)}
             disabled={togglingId === user.id}
             className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
@@ -65,9 +66,10 @@ export function UserRow({
             ) : (
               <UserPlus size={13} />
             )}
-            {user.isActive ? 'Deactivate' : 'Activate'}
+            {user.isActive ? "Deactivate" : "Activate"}
           </button>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => onDelete(user)}
             disabled={deletingUserId === user.id}
             className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"

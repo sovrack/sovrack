@@ -1,4 +1,4 @@
-import api from '@/shared/lib/api';
+import api from "@/shared/lib/api";
 import type {
   ProjectDetail,
   ProjectListItem,
@@ -15,39 +15,11 @@ import type {
   SourceProviderOption,
   GitlabGroupRepositoriesResponse,
   ImportGitlabGroupPayload,
-} from '@/features/projects/types/project';
-
-/** Statut de la release courante d'une cellule (déploiement). */
-export type MatrixCellStatus =
-  | 'PENDING'
-  | 'RUNNING'
-  | 'SUCCESS'
-  | 'FAILED'
-  | 'CANCELED'
-  | null;
-
-/** Une cellule de la matrice = un ServiceEnvironment (service × env). */
-export interface ProjectMatrixCell {
-  serviceId: string;
-  environmentId: string;
-  serviceEnvId: string;
-  currentDeploymentId: string | null;
-  status: MatrixCellStatus;
-  /** Config désirée ≠ config déployée (generation > observedGeneration). */
-  outOfSync: boolean;
-  lastDeployedAt: string | null;
-}
-
-/** Matrice de déploiement d'un projet : services (lignes) × env (colonnes). */
-export interface ProjectMatrix {
-  services: { id: string; name: string; type: string }[];
-  environments: { id: string; name: string; isProtected: boolean }[];
-  cells: ProjectMatrixCell[];
-}
+} from "@/features/projects/types/project";
 
 export const projectsService = {
   async getAll(): Promise<ProjectListItem[]> {
-    const res = await api.get<ProjectListItem[]>('/projects');
+    const res = await api.get<ProjectListItem[]>("/projects");
     return res.data;
   },
 
@@ -56,13 +28,8 @@ export const projectsService = {
     return res.data;
   },
 
-  async getMatrix(id: string): Promise<ProjectMatrix> {
-    const res = await api.get<ProjectMatrix>(`/projects/${id}/matrix`);
-    return res.data;
-  },
-
   async create(payload: CreateProjectPayload): Promise<ProjectDetail> {
-    const res = await api.post<ProjectDetail>('/projects', payload);
+    const res = await api.post<ProjectDetail>("/projects", payload);
     return res.data;
   },
 
@@ -71,13 +38,16 @@ export const projectsService = {
     projects: ProjectDetail[];
   }> {
     const res = await api.post<{ mode: string; projects: ProjectDetail[] }>(
-      '/projects/import/gitlab-group',
+      "/projects/import/gitlab-group",
       payload,
     );
     return res.data;
   },
 
-  async update(id: string, payload: UpdateProjectPayload): Promise<ProjectDetail> {
+  async update(
+    id: string,
+    payload: UpdateProjectPayload,
+  ): Promise<ProjectDetail> {
     const res = await api.put<ProjectDetail>(`/projects/${id}`, payload);
     return res.data;
   },
@@ -86,7 +56,10 @@ export const projectsService = {
     await api.delete(`/projects/${id}`);
   },
 
-  async addMember(projectId: string, payload: AddMemberPayload): Promise<ProjectDetail> {
+  async addMember(
+    projectId: string,
+    payload: AddMemberPayload,
+  ): Promise<ProjectDetail> {
     const res = await api.post<ProjectDetail>(
       `/projects/${projectId}/members`,
       payload,
@@ -99,7 +72,10 @@ export const projectsService = {
   },
 
   /** API path still uses /gitlab/connect – will be updated when backend routes are generic */
-  async connectSourceConfig(projectId: string, payload: ConnectGitlabPayload): Promise<GitlabConfig> {
+  async connectSourceConfig(
+    projectId: string,
+    payload: ConnectGitlabPayload,
+  ): Promise<GitlabConfig> {
     const res = await api.post<GitlabConfig>(
       `/projects/${projectId}/gitlab/connect`,
       payload,
@@ -116,13 +92,13 @@ export const projectsService = {
     // Map the UI payload (which still carries legacy gitlab* fields) onto it.
     const repoPath =
       payload.repoPath ??
-      (payload.sourceType !== 'GROUP' && payload.gitlabId != null
+      (payload.sourceType !== "GROUP" && payload.gitlabId != null
         ? String(payload.gitlabId)
         : undefined);
     const groupPath =
       payload.gitlabGroupId != null
         ? String(payload.gitlabGroupId)
-        : payload.sourceType === 'GROUP' && payload.gitlabId != null
+        : payload.sourceType === "GROUP" && payload.gitlabId != null
           ? String(payload.gitlabId)
           : undefined;
     const token = payload.token ?? payload.gitlabToken ?? payload.githubToken;
@@ -131,7 +107,9 @@ export const projectsService = {
       ...(payload.providerId ? { providerId: payload.providerId } : {}),
       ...(repoPath ? { repoPath } : {}),
       ...(groupPath ? { groupPath } : {}),
-      ...(payload.defaultBranch ? { defaultBranch: payload.defaultBranch } : {}),
+      ...(payload.defaultBranch
+        ? { defaultBranch: payload.defaultBranch }
+        : {}),
       ...(token ? { token } : {}),
     };
     const res = await api.post(`/projects/${projectId}/source/connect`, body);
@@ -140,11 +118,16 @@ export const projectsService = {
 
   /** API path still uses /gitlab/config – will be updated when backend routes are generic */
   async getSourceConfig(projectId: string): Promise<GitlabConfig> {
-    const res = await api.get<GitlabConfig>(`/projects/${projectId}/gitlab/config`);
+    const res = await api.get<GitlabConfig>(
+      `/projects/${projectId}/gitlab/config`,
+    );
     return res.data;
   },
 
-  async getBranches(projectId: string, repoId?: number): Promise<GitlabBranch[]> {
+  async getBranches(
+    projectId: string,
+    repoId?: number,
+  ): Promise<GitlabBranch[]> {
     const res = await api.get<GitlabBranch[]>(
       `/projects/${projectId}/gitlab/branches`,
       {
@@ -163,14 +146,20 @@ export const projectsService = {
 
   // Pipelines du dépôt PROPRE au service (1 service = 1 repo) — évite de viser
   // un autre dépôt du projet.
-  async getServicePipelines(projectId: string, serviceId: string): Promise<GitlabPipeline[]> {
+  async getServicePipelines(
+    projectId: string,
+    serviceId: string,
+  ): Promise<GitlabPipeline[]> {
     const res = await api.get<GitlabPipeline[]>(
       `/projects/${projectId}/services/${serviceId}/gitlab/pipelines`,
     );
     return res.data;
   },
 
-  async triggerPipeline(projectId: string, branch: string): Promise<GitlabPipeline> {
+  async triggerPipeline(
+    projectId: string,
+    branch: string,
+  ): Promise<GitlabPipeline> {
     const res = await api.post<GitlabPipeline>(
       `/projects/${projectId}/gitlab/pipelines/trigger`,
       { branch },
@@ -179,7 +168,9 @@ export const projectsService = {
   },
 
   async getRepos(projectId: string): Promise<GitlabRepo[]> {
-    const res = await api.get<GitlabRepo[]>(`/projects/${projectId}/gitlab/repos`);
+    const res = await api.get<GitlabRepo[]>(
+      `/projects/${projectId}/gitlab/repos`,
+    );
     return res.data;
   },
 
@@ -194,7 +185,7 @@ export const projectsService = {
     visibility?: string;
     archived?: boolean;
   }): Promise<GitlabGroupRepositoriesResponse> {
-    const providerId = params.providerId || 'default';
+    const providerId = params.providerId || "default";
     const res = await api.get<GitlabGroupRepositoriesResponse>(
       `/gitlab/providers/${encodeURIComponent(providerId)}/groups/${encodeURIComponent(params.groupId)}/repositories`,
       {
@@ -206,7 +197,7 @@ export const projectsService = {
           search: params.search,
           visibility: params.visibility,
           archived:
-            typeof params.archived === 'boolean'
+            typeof params.archived === "boolean"
               ? String(params.archived)
               : undefined,
         },
@@ -221,7 +212,7 @@ export const projectsService = {
     gitlabUrl?: string;
     gitlabToken?: string;
   }): Promise<GitlabBranch[]> {
-    const providerId = params.providerId || 'default';
+    const providerId = params.providerId || "default";
     const res = await api.get<GitlabBranch[]>(
       `/gitlab/providers/${encodeURIComponent(providerId)}/projects/${encodeURIComponent(String(params.gitlabProjectId))}/branches`,
       {
@@ -235,12 +226,12 @@ export const projectsService = {
   },
 
   async getGitlabProviders(): Promise<GitlabProviderOption[]> {
-    const res = await api.get<GitlabProviderOption[]>('/gitlab/providers');
+    const res = await api.get<GitlabProviderOption[]>("/gitlab/providers");
     return res.data;
   },
 
   async getSourceProviders(): Promise<SourceProviderOption[]> {
-    const res = await api.get<SourceProviderOption[]>('/source/providers');
+    const res = await api.get<SourceProviderOption[]>("/source/providers");
     return res.data;
   },
 };

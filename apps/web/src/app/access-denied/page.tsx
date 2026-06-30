@@ -1,13 +1,18 @@
-import Link from 'next/link';
+import Link from "next/link";
 
 export default function AccessDeniedPage() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <section className="surface-card fade-up w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-8 text-center">
-        <p className="mono text-xs uppercase tracking-[0.2em] text-[var(--text-secondary)]">403</p>
-        <h1 className="mt-2 text-3xl font-semibold text-[var(--text-primary)]">Access Denied</h1>
+        <p className="mono text-xs uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+          403
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold text-[var(--text-primary)]">
+          Access Denied
+        </h1>
         <p className="mt-3 text-sm text-[var(--text-secondary)]">
-          You do not have permission to access this section. Contact an administrator if needed.
+          You do not have permission to access this section. Contact an
+          administrator if needed.
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Link

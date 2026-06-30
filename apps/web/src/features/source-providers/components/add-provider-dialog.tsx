@@ -1,22 +1,20 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import clsx from 'clsx';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  CheckCircle2,
-  X,
-} from 'lucide-react';
-import { Button } from '@/shared/ui/button';
+import { useEffect, useMemo, useState } from "react";
+import clsx from "clsx";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, X } from "lucide-react";
+import { Button } from "@/shared/ui/button";
 import type {
   CreateGitlabProviderPayload,
   GitlabProvider,
   UpdateGitlabProviderPayload,
-} from '@/features/platform';
-import { PROVIDER_META, ProviderLogo, type ProviderType } from './provider-meta';
-import { ProviderCredentialsStep } from './provider-credentials-step';
+} from "@/features/platform";
+import {
+  PROVIDER_META,
+  ProviderLogo,
+  type ProviderType,
+} from "./provider-meta";
+import { ProviderCredentialsStep } from "./provider-credentials-step";
 import {
   AuthMethodCard,
   Collapsible,
@@ -25,11 +23,11 @@ import {
   TextInput,
   Toggle,
   type AuthChoice,
-} from './provider-form-fields';
+} from "./provider-form-fields";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 
-type DialogMode = 'create' | 'edit';
+type DialogMode = "create" | "edit";
 
 export type ProviderFormData = {
   // Step 2 — Instance
@@ -55,12 +53,15 @@ export type AddProviderDialogProps = {
   open: boolean;
   mode: DialogMode;
   existingProvider?: GitlabProvider | null;
-  initialProviderType?: 'GITLAB' | 'GITHUB' | 'GITEA';
+  initialProviderType?: "GITLAB" | "GITHUB";
   fallbackRedirectUri: string;
   saving: boolean;
   error: string | null;
   copiedRedirect: boolean;
-  onSave: (payload: CreateGitlabProviderPayload | UpdateGitlabProviderPayload, providerType?: 'GITLAB' | 'GITHUB' | 'GITEA') => Promise<void>;
+  onSave: (
+    payload: CreateGitlabProviderPayload | UpdateGitlabProviderPayload,
+    providerType?: "GITLAB" | "GITHUB",
+  ) => Promise<void>;
   onClose: () => void;
   onCopyRedirectUri: (value: string) => void;
 };
@@ -71,7 +72,7 @@ export function AddProviderDialog({
   open,
   mode,
   existingProvider,
-  initialProviderType = 'GITLAB',
+  initialProviderType = "GITLAB",
   fallbackRedirectUri,
   saving,
   error,
@@ -80,23 +81,24 @@ export function AddProviderDialog({
   onClose,
   onCopyRedirectUri,
 }: AddProviderDialogProps) {
-  const isEdit = mode === 'edit';
+  const isEdit = mode === "edit";
 
   // In edit mode we skip step 1 (provider type already known)
   const [step, setStep] = useState(isEdit ? 2 : 1);
-  const [selectedType, setSelectedType] = useState<ProviderType>(initialProviderType);
-  const [authChoice, setAuthChoice] = useState<AuthChoice>('both');
+  const [selectedType, setSelectedType] =
+    useState<ProviderType>(initialProviderType);
+  const [authChoice, setAuthChoice] = useState<AuthChoice>("both");
 
   const [form, setForm] = useState<ProviderFormData>({
-    name: '',
-    providerUrl: 'https://gitlab.com',
-    internalUrl: '',
+    name: "",
+    providerUrl: "https://gitlab.com",
+    internalUrl: "",
     isDefault: false,
-    applicationId: '',
-    applicationSecret: '',
-    redirectUri: '',
-    groupNames: '',
-    adminToken: '',
+    applicationId: "",
+    applicationSecret: "",
+    redirectUri: "",
+    groupNames: "",
+    adminToken: "",
     applicationSecretConfigured: false,
     adminTokenConfigured: false,
     oauthTokenConfigured: false,
@@ -107,11 +109,7 @@ export function AddProviderDialog({
   useEffect(() => {
     if (!isEdit && step === 1) {
       const defaultUrl =
-        selectedType === 'GITHUB'
-          ? 'https://github.com'
-          : selectedType === 'GITEA'
-            ? ''
-            : 'https://gitlab.com';
+        selectedType === "GITHUB" ? "https://github.com" : "https://gitlab.com";
       setForm((prev) => ({ ...prev, providerUrl: defaultUrl }));
     }
   }, [selectedType, isEdit, step]);
@@ -125,21 +123,24 @@ export function AddProviderDialog({
         internalUrl: existingProvider.internalUrl,
         isDefault: existingProvider.isDefault,
         applicationId: existingProvider.applicationId,
-        applicationSecret: '',
+        applicationSecret: "",
         redirectUri: existingProvider.redirectUri || fallbackRedirectUri,
         groupNames: existingProvider.groupNames,
-        adminToken: '',
-        applicationSecretConfigured: existingProvider.applicationSecretConfigured,
+        adminToken: "",
+        applicationSecretConfigured:
+          existingProvider.applicationSecretConfigured,
         adminTokenConfigured: existingProvider.adminTokenConfigured,
         oauthTokenConfigured: existingProvider.oauthTokenConfigured,
         oauthExpiresAt: existingProvider.oauthExpiresAt,
       });
       // Infer authChoice from existing config
-      const hasOAuth = existingProvider.applicationId || existingProvider.applicationSecretConfigured;
+      const hasOAuth =
+        existingProvider.applicationId ||
+        existingProvider.applicationSecretConfigured;
       const hasPat = existingProvider.adminTokenConfigured;
-      if (hasOAuth && hasPat) setAuthChoice('both');
-      else if (hasOAuth) setAuthChoice('oauth');
-      else setAuthChoice('pat');
+      if (hasOAuth && hasPat) setAuthChoice("both");
+      else if (hasOAuth) setAuthChoice("oauth");
+      else setAuthChoice("pat");
       setStep(2);
     } else if (!isEdit) {
       setStep(1);
@@ -154,7 +155,10 @@ export function AddProviderDialog({
     }
   }, [open, isEdit]);
 
-  const set = <K extends keyof ProviderFormData>(k: K, v: ProviderFormData[K]) => {
+  const set = <K extends keyof ProviderFormData>(
+    k: K,
+    v: ProviderFormData[K],
+  ) => {
     setForm((prev) => ({ ...prev, [k]: v }));
   };
 
@@ -165,12 +169,13 @@ export function AddProviderDialog({
 
   const canProceed = useMemo(() => {
     if (step === 1) return PROVIDER_META[selectedType]?.available === true;
-    if (step === 2) return form.name.trim().length > 0 && form.providerUrl.trim().length > 0;
+    if (step === 2)
+      return form.name.trim().length > 0 && form.providerUrl.trim().length > 0;
     return true;
   }, [step, selectedType, form.name, form.providerUrl]);
 
-  const showOAuth = authChoice === 'oauth' || authChoice === 'both';
-  const showPAT = authChoice === 'pat' || authChoice === 'both';
+  const showOAuth = authChoice === "oauth" || authChoice === "both";
+  const showPAT = authChoice === "pat" || authChoice === "both";
 
   const handleSubmit = async () => {
     if (isEdit && existingProvider) {
@@ -183,7 +188,8 @@ export function AddProviderDialog({
         groupNames: form.groupNames.trim(),
         isDefault: form.isDefault,
       };
-      if (form.applicationSecret.trim()) payload.applicationSecret = form.applicationSecret.trim();
+      if (form.applicationSecret.trim())
+        payload.applicationSecret = form.applicationSecret.trim();
       if (form.adminToken.trim()) payload.adminToken = form.adminToken.trim();
       await onSave(payload);
     } else {
@@ -198,18 +204,17 @@ export function AddProviderDialog({
         adminToken: form.adminToken.trim(),
         isDefault: form.isDefault,
       };
-      await onSave(
-        payload,
-        selectedType === 'GITHUB' ? 'GITHUB' : selectedType === 'GITEA' ? 'GITEA' : 'GITLAB',
-      );
+      await onSave(payload, selectedType === "GITHUB" ? "GITHUB" : "GITLAB");
     }
   };
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   if (!open) return null;
@@ -231,12 +236,12 @@ export function AddProviderDialog({
         <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
           <div>
             <h2 className="text-base font-semibold text-[var(--text-primary)]">
-              {isEdit ? 'Edit Git Provider' : 'Connect Git Provider'}
+              {isEdit ? "Edit Git Provider" : "Connect Git Provider"}
             </h2>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               {isEdit
-                ? 'Update provider configuration and credentials'
-                : 'Add a global reusable Git integration for your projects'}
+                ? "Update provider configuration and credentials"
+                : "Add a global reusable Git integration for your projects"}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -253,7 +258,10 @@ export function AddProviderDialog({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5" style={{ maxHeight: '70vh' }}>
+        <div
+          className="flex-1 overflow-y-auto px-6 py-5 space-y-5"
+          style={{ maxHeight: "70vh" }}
+        >
           {/* Error */}
           {error && (
             <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
@@ -273,56 +281,66 @@ export function AddProviderDialog({
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                {(['GITLAB', 'GITHUB', 'GITEA'] as ProviderType[]).map((type) => {
-                  const meta = PROVIDER_META[type];
-                  const active = selectedType === type && meta.available;
-                  return (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => meta.available && setSelectedType(type)}
-                      disabled={!meta.available}
-                      className={clsx(
-                        'relative flex flex-col items-center gap-2.5 rounded-xl border p-4 text-center transition',
-                        active
-                          ? 'border-[var(--text-primary)] bg-[var(--hover)]'
-                          : meta.available
-                            ? 'border-[var(--border)] hover:border-[var(--text-secondary)] hover:bg-[var(--hover)]'
-                            : 'cursor-not-allowed border-[var(--border)] opacity-50',
-                      )}
-                    >
-                      <div
+              <div className="grid grid-cols-2 gap-3">
+                {(["GITLAB", "GITHUB"] as ProviderType[]).map(
+                  (type) => {
+                    const meta = PROVIDER_META[type];
+                    const active = selectedType === type && meta.available;
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => meta.available && setSelectedType(type)}
+                        disabled={!meta.available}
                         className={clsx(
-                          'flex h-10 w-10 items-center justify-center rounded-xl border',
-                          meta.bgColor,
-                          meta.borderColor,
+                          "relative flex flex-col items-center gap-2.5 rounded-xl border p-4 text-center transition",
+                          active
+                            ? "border-[var(--text-primary)] bg-[var(--hover)]"
+                            : meta.available
+                              ? "border-[var(--border)] hover:border-[var(--text-secondary)] hover:bg-[var(--hover)]"
+                              : "cursor-not-allowed border-[var(--border)] opacity-50",
                         )}
                       >
-                        <ProviderLogo type={type} className={clsx('h-5 w-5', meta.color)} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[var(--text-primary)]">
-                          {meta.label}
-                        </p>
-                        <p className="text-[10px] text-[var(--text-muted)]">{meta.tagline}</p>
-                      </div>
-                      {!meta.available && (
-                        <span className="absolute right-2 top-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-400">
-                          {meta.badge ?? 'Soon'}
-                        </span>
-                      )}
-                      {meta.available && meta.badge && !active && (
-                        <span className="absolute right-2 top-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-teal-400">
-                          {meta.badge}
-                        </span>
-                      )}
-                      {active && (
-                        <CheckCircle2 size={14} className="absolute right-2 top-2 text-green-400" />
-                      )}
-                    </button>
-                  );
-                })}
+                        <div
+                          className={clsx(
+                            "flex h-10 w-10 items-center justify-center rounded-xl border",
+                            meta.bgColor,
+                            meta.borderColor,
+                          )}
+                        >
+                          <ProviderLogo
+                            type={type}
+                            className={clsx("h-5 w-5", meta.color)}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-[var(--text-primary)]">
+                            {meta.label}
+                          </p>
+                          <p className="text-[10px] text-[var(--text-muted)]">
+                            {meta.tagline}
+                          </p>
+                        </div>
+                        {!meta.available && (
+                          <span className="absolute right-2 top-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-400">
+                            {meta.badge ?? "Soon"}
+                          </span>
+                        )}
+                        {meta.available && meta.badge && !active && (
+                          <span className="absolute right-2 top-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-teal-400">
+                            {meta.badge}
+                          </span>
+                        )}
+                        {active && (
+                          <CheckCircle2
+                            size={14}
+                            className="absolute right-2 top-2 text-green-400"
+                          />
+                        )}
+                      </button>
+                    );
+                  },
+                )}
               </div>
             </div>
           )}
@@ -342,24 +360,23 @@ export function AddProviderDialog({
               <Field label="Provider Name" required>
                 <TextInput
                   value={form.name}
-                  onChange={(v) => set('name', v)}
+                  onChange={(v) => set("name", v)}
                   placeholder="e.g. GitLab Cloud, Company GitLab"
                 />
               </Field>
 
               <Field
-                label={`${PROVIDER_META[selectedType]?.label ?? 'Git'} URL`}
+                label={`${PROVIDER_META[selectedType]?.label ?? "Git"} URL`}
                 required
                 hint={
-                  selectedType === 'GITHUB'
-                    ? 'Use https://github.com for GitHub.com, or your GitHub Enterprise URL.'
-                    : selectedType === 'GITEA'
-                      ? 'Enter your self-hosted Gitea instance URL, e.g. https://git.example.com.'
-                      : 'Use https://gitlab.com for the cloud version, or your self-hosted instance URL.'}
+                  selectedType === "GITHUB"
+                    ? "Use https://github.com for GitHub.com, or your GitHub Enterprise URL."
+                    : "Use https://gitlab.com for the cloud version, or your self-hosted instance URL."
+                }
               >
                 <TextInput
                   value={form.providerUrl}
-                  onChange={(v) => set('providerUrl', v)}
+                  onChange={(v) => set("providerUrl", v)}
                   placeholder="https://gitlab.com"
                 />
               </Field>
@@ -371,7 +388,7 @@ export function AddProviderDialog({
                 >
                   <TextInput
                     value={form.internalUrl}
-                    onChange={(v) => set('internalUrl', v)}
+                    onChange={(v) => set("internalUrl", v)}
                     placeholder="https://gitlab.internal.company.com"
                   />
                 </Field>
@@ -379,7 +396,7 @@ export function AddProviderDialog({
 
               <Toggle
                 value={form.isDefault}
-                onChange={(v) => set('isDefault', v)}
+                onChange={(v) => set("isDefault", v)}
                 label="Set as default provider"
                 hint="Projects will use this provider by default when connecting a repository."
               />
@@ -399,7 +416,7 @@ export function AddProviderDialog({
               </div>
 
               <div className="space-y-2">
-                {(['oauth', 'pat', 'both'] as AuthChoice[]).map((choice) => (
+                {(["oauth", "pat", "both"] as AuthChoice[]).map((choice) => (
                   <AuthMethodCard
                     key={choice}
                     choice={choice}
@@ -426,12 +443,12 @@ export function AddProviderDialog({
               groupNames={form.groupNames}
               adminToken={form.adminToken}
               adminTokenConfigured={form.adminTokenConfigured}
-              onRedirectUriChange={(v) => set('redirectUri', v)}
+              onRedirectUriChange={(v) => set("redirectUri", v)}
               onCopyRedirectUri={onCopyRedirectUri}
-              onApplicationIdChange={(v) => set('applicationId', v)}
-              onApplicationSecretChange={(v) => set('applicationSecret', v)}
-              onGroupNamesChange={(v) => set('groupNames', v)}
-              onAdminTokenChange={(v) => set('adminToken', v)}
+              onApplicationIdChange={(v) => set("applicationId", v)}
+              onApplicationSecretChange={(v) => set("applicationSecret", v)}
+              onGroupNamesChange={(v) => set("groupNames", v)}
+              onAdminTokenChange={(v) => set("adminToken", v)}
             />
           )}
         </div>
@@ -474,7 +491,7 @@ export function AddProviderDialog({
                   disabled={saving}
                   icon={saving ? undefined : <Check size={13} />}
                 >
-                  {isEdit ? 'Save Changes' : 'Add Provider'}
+                  {isEdit ? "Save Changes" : "Add Provider"}
                 </Button>
               )}
             </div>

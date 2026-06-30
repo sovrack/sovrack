@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_API_URL;
@@ -19,7 +19,7 @@ const SOCKET_URL =
  */
 export function resolveWsBaseUrl(): string | null {
   if (!SOCKET_URL) return null;
-  if (typeof window === 'undefined') return SOCKET_URL;
+  if (typeof window === "undefined") return SOCKET_URL;
   try {
     const url = new URL(SOCKET_URL);
     url.hostname = window.location.hostname;

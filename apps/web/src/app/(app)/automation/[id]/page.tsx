@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { use, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { use, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   ArrowLeft,
   CheckCircle,
@@ -9,54 +9,68 @@ import {
   Loader2,
   StopCircle,
   XCircle,
-} from 'lucide-react';
-import { PageHeader } from '@/shared/layout/page-header';
-import { SectionCard } from '@/shared/layout/section-card';
-import { Badge } from '@/shared/ui/badge';
-import { Button } from '@/shared/ui/button';
-import { LogTerminal } from '@/shared/common/log-terminal';
-import { getApiErrorMessage } from '@/shared/lib/api';
+} from "lucide-react";
+import { PageHeader } from "@/shared/layout/page-header";
+import { SectionCard } from "@/shared/layout/section-card";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { LogTerminal } from "@/shared/common/log-terminal";
+import { getApiErrorMessage } from "@/shared/lib/api";
 import {
   useAutomationRun,
   useAutomationRunLogs,
   useCancelAutomationRun,
-} from '@/features/automation/api/use-automation';
-import { useAutomationLogStream } from '@/features/automation/api/use-automation-log-stream';
-import type { AutomationRun, AutomationRunLog, AutomationRunStatus, AutomationTargetStatus } from '@/features/automation/types/automation';
+} from "@/features/automation/api/use-automation";
+import { useAutomationLogStream } from "@/features/automation/api/use-automation-log-stream";
+import type {
+  AutomationRun,
+  AutomationRunLog,
+  AutomationRunStatus,
+  AutomationTargetStatus,
+} from "@/features/automation/types/automation";
 
 type Props = { params: Promise<{ id: string }> };
 
-const ACTIVE_STATUSES: AutomationRunStatus[] = ['QUEUED', 'RUNNING'];
+const ACTIVE_STATUSES: AutomationRunStatus[] = ["QUEUED", "RUNNING"];
 
 function runStatusTone(status: AutomationRunStatus) {
-  if (status === 'SUCCEEDED') return 'success' as const;
-  if (status === 'PARTIAL' || status === 'TIMEOUT') return 'warning' as const;
-  if (status === 'FAILED' || status === 'CANCELED') return 'error' as const;
-  return 'info' as const;
+  if (status === "SUCCEEDED") return "success" as const;
+  if (status === "PARTIAL" || status === "TIMEOUT") return "warning" as const;
+  if (status === "FAILED" || status === "CANCELED") return "error" as const;
+  return "info" as const;
 }
 
 function targetStatusTone(status: AutomationTargetStatus) {
-  if (status === 'SUCCEEDED') return 'success' as const;
-  if (status === 'FAILED' || status === 'TIMEOUT') return 'error' as const;
-  if (status === 'SKIPPED') return 'default' as const;
-  if (status === 'RUNNING') return 'info' as const;
-  return 'default' as const;
+  if (status === "SUCCEEDED") return "success" as const;
+  if (status === "FAILED" || status === "TIMEOUT") return "error" as const;
+  if (status === "SKIPPED") return "default" as const;
+  if (status === "RUNNING") return "info" as const;
+  return "default" as const;
 }
 
 function targetStatusIcon(status: AutomationTargetStatus) {
-  if (status === 'SUCCEEDED') return <CheckCircle size={13} className="text-green-400" />;
-  if (status === 'FAILED' || status === 'TIMEOUT') return <XCircle size={13} className="text-red-400" />;
-  if (status === 'RUNNING') return <Loader2 size={13} className="animate-spin text-blue-400" />;
+  if (status === "SUCCEEDED")
+    return <CheckCircle size={13} className="text-green-400" />;
+  if (status === "FAILED" || status === "TIMEOUT")
+    return <XCircle size={13} className="text-red-400" />;
+  if (status === "RUNNING")
+    return <Loader2 size={13} className="animate-spin text-blue-400" />;
   return <Clock size={13} className="text-[var(--text-muted)]" />;
 }
 
 function formatDate(str: string | null | undefined): string {
-  if (!str) return '—';
-  return new Date(str).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  if (!str) return "—";
+  return new Date(str).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
-function duration(start: string | null | undefined, end: string | null | undefined): string {
-  if (!start) return '—';
+function duration(
+  start: string | null | undefined,
+  end: string | null | undefined,
+): string {
+  if (!start) return "—";
   const ms = new Date(end ?? Date.now()).getTime() - new Date(start).getTime();
   const s = Math.floor(ms / 1000);
   if (s < 60) return `${s}s`;
@@ -104,7 +118,7 @@ export default function AutomationRunDetailPage({ params }: Props) {
       displayedLogs.map((l) => ({
         timestamp: l.createdAt ?? new Date().toISOString(),
         message: `[${l.source}] ${l.message}`,
-        level: (l.level === 'ERROR' ? 'error' : 'info') as 'error' | 'info',
+        level: (l.level === "ERROR" ? "error" : "info") as "error" | "info",
       })),
     [displayedLogs],
   );
@@ -121,7 +135,10 @@ export default function AutomationRunDetailPage({ params }: Props) {
   if (runQuery.isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" />
+        <Loader2
+          size={24}
+          className="animate-spin text-[var(--text-secondary)]"
+        />
       </div>
     );
   }
@@ -130,10 +147,14 @@ export default function AutomationRunDetailPage({ params }: Props) {
     return (
       <div className="space-y-4">
         <Link href="/automation">
-          <Button variant="secondary" icon={<ArrowLeft size={16} />}>Back to Automation</Button>
+          <Button variant="secondary" icon={<ArrowLeft size={16} />}>
+            Back to Automation
+          </Button>
         </Link>
         <SectionCard title="Run not found">
-          <p className="text-sm text-[var(--text-secondary)]">This automation run may have been deleted.</p>
+          <p className="text-sm text-[var(--text-secondary)]">
+            This automation run may have been deleted.
+          </p>
         </SectionCard>
       </div>
     );
@@ -148,12 +169,20 @@ export default function AutomationRunDetailPage({ params }: Props) {
         actions={
           <>
             <Link href="/automation">
-              <Button variant="secondary" icon={<ArrowLeft size={16} />}>Back</Button>
+              <Button variant="secondary" icon={<ArrowLeft size={16} />}>
+                Back
+              </Button>
             </Link>
             {isActive && (
               <Button
                 variant="danger"
-                icon={cancelRun.isPending ? <Loader2 size={14} className="animate-spin" /> : <StopCircle size={14} />}
+                icon={
+                  cancelRun.isPending ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <StopCircle size={14} />
+                  )
+                }
                 loading={cancelRun.isPending}
                 onClick={() => void handleCancel(run)}
               >
@@ -174,41 +203,65 @@ export default function AutomationRunDetailPage({ params }: Props) {
       <SectionCard title="Run details" contentClassName="p-5">
         <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Status</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+              Status
+            </p>
             <div className="mt-1">
               <Badge tone={runStatusTone(run.status)}>{run.status}</Badge>
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Action</p>
-            <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">{run.actionKey}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+              Action
+            </p>
+            <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">
+              {run.actionKey}
+            </p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Started</p>
-            <p className="mt-1 text-sm text-[var(--text-primary)]">{formatDate(run.startedAt)}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+              Started
+            </p>
+            <p className="mt-1 text-sm text-[var(--text-primary)]">
+              {formatDate(run.startedAt)}
+            </p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Duration</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+              Duration
+            </p>
             <p className="mt-1 text-sm text-[var(--text-primary)]">
               {duration(run.startedAt, run.finishedAt)}
-              {isActive && <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-blue-400 animate-pulse" />}
+              {isActive && (
+                <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
+              )}
             </p>
           </div>
           {run.requestedBy && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Requested by</p>
-              <p className="mt-1 text-sm text-[var(--text-primary)]">{run.requestedBy.fullName}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                Requested by
+              </p>
+              <p className="mt-1 text-sm text-[var(--text-primary)]">
+                {run.requestedBy.fullName}
+              </p>
             </div>
           )}
           {run.summary && (
             <div className="col-span-2 sm:col-span-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Summary</p>
-              <p className="mt-1 text-sm text-[var(--text-primary)]">{run.summary}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                Summary
+              </p>
+              <p className="mt-1 text-sm text-[var(--text-primary)]">
+                {run.summary}
+              </p>
             </div>
           )}
           {run.errorMessage && (
             <div className="col-span-2 sm:col-span-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-red-400">Error</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-red-400">
+                Error
+              </p>
               <p className="mt-1 text-sm text-red-300">{run.errorMessage}</p>
             </div>
           )}
@@ -216,7 +269,10 @@ export default function AutomationRunDetailPage({ params }: Props) {
       </SectionCard>
 
       {/* Per-server results */}
-      <SectionCard title="Server targets" description="Result per target server.">
+      <SectionCard
+        title="Server targets"
+        description="Result per target server."
+      >
         <div className="space-y-2">
           {run.targets.map((target) => (
             <div
@@ -229,7 +285,9 @@ export default function AutomationRunDetailPage({ params }: Props) {
                   <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
                     {target.server.name}
                   </p>
-                  <p className="text-xs text-[var(--text-secondary)] font-mono">{target.server.host}</p>
+                  <p className="text-xs text-[var(--text-secondary)] font-mono">
+                    {target.server.host}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
@@ -243,7 +301,9 @@ export default function AutomationRunDetailPage({ params }: Props) {
                 </Badge>
               </div>
               {target.errorMessage && (
-                <p className="mt-1 text-xs text-red-400 col-span-2">{target.errorMessage}</p>
+                <p className="mt-1 text-xs text-red-400 col-span-2">
+                  {target.errorMessage}
+                </p>
               )}
             </div>
           ))}
@@ -253,10 +313,16 @@ export default function AutomationRunDetailPage({ params }: Props) {
       {/* Logs */}
       <SectionCard
         title="Execution Logs"
-        description={isActive ? 'Live logs streamed from Ansible control node.' : 'Logs from this automation run.'}
+        description={
+          isActive
+            ? "Live logs streamed from Ansible control node."
+            : "Logs from this automation run."
+        }
       >
         {logLines.length === 0 && !isActive ? (
-          <p className="text-sm text-[var(--text-secondary)]">No logs available.</p>
+          <p className="text-sm text-[var(--text-secondary)]">
+            No logs available.
+          </p>
         ) : (
           <LogTerminal logs={logLines} isLive={isActive} />
         )}

@@ -1,4 +1,4 @@
-export type MonitoringHealth = 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';
+export type MonitoringHealth = "HEALTHY" | "WARNING" | "CRITICAL" | "UNKNOWN";
 
 export type MonitoringOverview = {
   generatedAt: string;
@@ -108,17 +108,17 @@ export type MonitoringDeployments = {
 };
 
 export type MonitoringAlerts = {
-  source: 'alertmanager' | 'derived';
+  source: "alertmanager" | "derived";
   total: number;
   warning: number;
   critical: number;
   info: number;
   items: Array<{
     id: string;
-    severity: 'warning' | 'critical' | 'info';
-    status: 'firing' | 'resolved';
+    severity: "warning" | "critical" | "info";
+    status: "firing" | "resolved";
     summary: string;
-    source: 'alertmanager' | 'platform';
+    source: "alertmanager" | "platform";
     startsAt: string;
     serverId?: string;
     projectId?: string;

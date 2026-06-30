@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { z } from 'zod';
-import { Loader2, Save } from 'lucide-react';
-import { Alert } from '@/shared/ui/alert';
-import { Button } from '@/shared/ui/button';
-import { Modal } from '@/shared/ui/modal';
-import { getApiErrorMessage } from '@/shared/lib/api';
-import { teamsService } from '@/features/teams/api/teams.service';
-import type { Team } from '@/features/teams/types/team';
+import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
+import { Loader2, Save } from "lucide-react";
+import { Alert } from "@/shared/ui/alert";
+import { Button } from "@/shared/ui/button";
+import { Modal } from "@/shared/ui/modal";
+import { getApiErrorMessage } from "@/shared/lib/api";
+import { teamsService } from "@/features/teams/api/teams.service";
+import type { Team } from "@/features/teams/types/team";
 
 const createTeamSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
+  name: z.string().trim().min(1, "Name is required"),
   description: z.string().trim().optional(),
 });
 
@@ -25,8 +25,8 @@ type TeamCreateDialogProps = {
 };
 
 const DEFAULT_FORM: FormData = {
-  name: '',
-  description: '',
+  name: "",
+  description: "",
 };
 
 export function TeamCreateDialog({
@@ -65,7 +65,7 @@ export function TeamCreateDialog({
       const nextErrors: FormErrors = {};
       for (const issue of parsed.error.issues) {
         const field = issue.path[0];
-        if (typeof field === 'string' && !nextErrors[field as keyof FormData]) {
+        if (typeof field === "string" && !nextErrors[field as keyof FormData]) {
           nextErrors[field as keyof FormData] = issue.message;
         }
       }
@@ -101,8 +101,16 @@ export function TeamCreateDialog({
           <Button variant="secondary" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" form="team-create-form" disabled={submitting || !canSubmit}>
-            {submitting ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+          <Button
+            type="submit"
+            form="team-create-form"
+            disabled={submitting || !canSubmit}
+          >
+            {submitting ? (
+              <Loader2 size={15} className="animate-spin" />
+            ) : (
+              <Save size={15} />
+            )}
             Create
           </Button>
         </>
@@ -117,11 +125,13 @@ export function TeamCreateDialog({
           </label>
           <input
             value={form.name}
-            onChange={(event) => setField('name', event.target.value)}
+            onChange={(event) => setField("name", event.target.value)}
             placeholder="Frontend Team"
             className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
           />
-          {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
+          {errors.name && (
+            <p className="mt-1 text-xs text-red-600">{errors.name}</p>
+          )}
         </div>
 
         <div>
@@ -130,7 +140,7 @@ export function TeamCreateDialog({
           </label>
           <textarea
             value={form.description}
-            onChange={(event) => setField('description', event.target.value)}
+            onChange={(event) => setField("description", event.target.value)}
             placeholder="Optional team description..."
             rows={4}
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"

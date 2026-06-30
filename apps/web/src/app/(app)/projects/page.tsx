@@ -1,25 +1,19 @@
-'use client';
+"use client";
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  Plus,
-  Search,
-  FolderGit2,
-  Link2,
-  Workflow,
-} from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useProjects } from '@/features/projects/api/use-projects';
-import { usePagination } from '@/shared/hooks/use-pagination';
-import { Pagination } from '@/shared/ui/pagination';
-import { useAuth } from '@/features/auth/api/use-auth';
-import { ProjectCard } from '@/features/projects/components/project-card';
-import { ProjectsEmpty } from '@/features/projects/components/projects-empty';
-import { ProjectSetupWizard } from '@/features/projects/components/project-setup-wizard';
-import { PageHeader } from '@/shared/layout/page-header';
-import { SectionCard } from '@/shared/layout/section-card';
-import type { ProjectListItem } from '@/features/projects/types/project';
-import { Alert } from '@/shared/ui/alert';
+import { useRouter, useSearchParams } from "next/navigation";
+import { Plus, Search, FolderGit2, Link2, Workflow } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useProjects } from "@/features/projects/api/use-projects";
+import { usePagination } from "@/shared/hooks/use-pagination";
+import { Pagination } from "@/shared/ui/pagination";
+import { useAuth } from "@/features/auth/api/use-auth";
+import { ProjectCard } from "@/features/projects/components/project-card";
+import { ProjectsEmpty } from "@/features/projects/components/projects-empty";
+import { ProjectSetupWizard } from "@/features/projects/components/project-setup-wizard";
+import { PageHeader } from "@/shared/layout/page-header";
+import { SectionCard } from "@/shared/layout/section-card";
+import type { ProjectListItem } from "@/features/projects/types/project";
+import { Alert } from "@/shared/ui/alert";
 
 function isProjectGitlabConnected(project: ProjectListItem): boolean {
   const hasGitlabConfig = project.hasGitlabConfig ?? false;
@@ -31,34 +25,42 @@ export default function ProjectsPage() {
   const searchParams = useSearchParams();
   const { projects, loading, error, refresh } = useProjects();
   const { isAdmin } = useAuth();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const filtered = projects.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.description ?? '').toLowerCase().includes(search.toLowerCase()),
+      (p.description ?? "").toLowerCase().includes(search.toLowerCase()),
   );
 
-  const { page, totalPages, paged: pagedProjects, goToPage, reset: resetPage } = usePagination(filtered, { pageSize: 12 });
-
-  useEffect(() => { resetPage(); }, [search, resetPage]);
+  const {
+    page,
+    totalPages,
+    paged: pagedProjects,
+    goToPage,
+    reset: resetPage,
+  } = usePagination(filtered, { pageSize: 12 });
 
   useEffect(() => {
-    if (searchParams.get('dialog') === 'create-project') {
+    resetPage();
+  }, [search, resetPage]);
+
+  useEffect(() => {
+    if (searchParams.get("dialog") === "create-project") {
       setCreateDialogOpen(true);
     }
   }, [searchParams]);
 
   const clearDialogQuery = () => {
     const next = new URLSearchParams(searchParams.toString());
-    if (!next.has('dialog')) {
+    if (!next.has("dialog")) {
       return;
     }
 
-    next.delete('dialog');
+    next.delete("dialog");
     const query = next.toString();
-    router.replace(query ? `/projects?${query}` : '/projects');
+    router.replace(query ? `/projects?${query}` : "/projects");
   };
 
   const handleCloseCreateDialog = () => {
@@ -76,8 +78,7 @@ export default function ProjectsPage() {
   const gitlabConnectedCount = projects.filter(isProjectGitlabConnected).length;
   const readyForDeployCount = projects.filter(
     (project) =>
-      isProjectGitlabConnected(project) &&
-      (project.environmentCount ?? 0) > 0,
+      isProjectGitlabConnected(project) && (project.environmentCount ?? 0) > 0,
   ).length;
 
   return (
@@ -108,7 +109,9 @@ export default function ProjectsPage() {
       >
         <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-3">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-secondary)]">Total projects</p>
+            <p className="text-xs font-medium text-[var(--text-secondary)]">
+              Total projects
+            </p>
             <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
               {projects.length}
             </p>
@@ -186,12 +189,16 @@ export default function ProjectsPage() {
       )}
 
       {!loading && projects.length > 0 && filtered.length === 0 && (
-        <SectionCard contentClassName="!py-12 text-center" className="border-dashed">
+        <SectionCard
+          contentClassName="!py-12 text-center"
+          className="border-dashed"
+        >
           <p className="text-sm font-medium text-[var(--text-secondary)]">
             No projects match &quot;{search}&quot;
           </p>
-          <button type="button"
-            onClick={() => setSearch('')}
+          <button
+            type="button"
+            onClick={() => setSearch("")}
             className="mt-2 text-xs text-[var(--text-secondary)] hover:underline"
           >
             Clear search
@@ -204,7 +211,7 @@ export default function ProjectsPage() {
           <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
             <FolderGit2 size={14} className="text-[var(--text-secondary)]" />
             <span>
-              {filtered.length} project{filtered.length !== 1 ? 's' : ''} shown
+              {filtered.length} project{filtered.length !== 1 ? "s" : ""} shown
             </span>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -212,7 +219,11 @@ export default function ProjectsPage() {
               <ProjectCard key={project.id} project={project} />
             ))}
           </div>
-          <Pagination page={page} totalPages={totalPages} onPageChange={goToPage} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+          />
         </>
       )}
 

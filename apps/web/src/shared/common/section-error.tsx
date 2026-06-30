@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { useEffect } from "react";
+import { AlertTriangle, RotateCcw } from "lucide-react";
 
 /**
  * Reusable section-level error boundary UI (used by the various `error.tsx`).
@@ -11,7 +11,7 @@ import { AlertTriangle, RotateCcw } from 'lucide-react';
 export function SectionError({
   error,
   reset,
-  title = 'Something went wrong',
+  title = "Something went wrong",
 }: {
   error: Error & { digest?: string };
   reset: () => void;

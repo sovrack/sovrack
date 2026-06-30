@@ -1,6 +1,16 @@
-import { Eye, KeyRound, Loader2, Pencil, Radar, ScrollText, Trash2, Wrench, Zap } from 'lucide-react';
-import { Button } from '@/shared/ui/button';
-import type { Server } from '@/features/servers/types/server';
+import {
+  Eye,
+  KeyRound,
+  Loader2,
+  Pencil,
+  Radar,
+  ScrollText,
+  Trash2,
+  Wrench,
+  Zap,
+} from "lucide-react";
+import { Button } from "@/shared/ui/button";
+import type { Server } from "@/features/servers/types/server";
 
 type ServerActionsProps = {
   server: Server;
@@ -23,20 +33,20 @@ type ServerActionsProps = {
 
 function resolvePrimaryAction(server: Server) {
   const needsSshKeyInstall =
-    server.connectionMode === 'ssh' &&
-    server.onboardingStep === 'PENDING' &&
+    server.connectionMode === "ssh" &&
+    server.onboardingStep === "PENDING" &&
     !server.isVerified;
 
   if (needsSshKeyInstall) {
-    return 'install-key' as const;
+    return "install-key" as const;
   }
-  if (!server.isVerified || server.status === 'VALIDATION_FAILED') {
-    return 'validate' as const;
+  if (!server.isVerified || server.status === "VALIDATION_FAILED") {
+    return "validate" as const;
   }
-  if (!server.lastDetectedAt && server.status !== 'INFO_DETECTED') {
-    return 'detect' as const;
+  if (!server.lastDetectedAt && server.status !== "INFO_DETECTED") {
+    return "detect" as const;
   }
-  return 'prepare' as const;
+  return "prepare" as const;
 }
 
 export function ServerActions({
@@ -61,7 +71,7 @@ export function ServerActions({
 
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-      {primary === 'install-key' && (
+      {primary === "install-key" && (
         <Button
           variant="secondary"
           size="sm"
@@ -75,7 +85,7 @@ export function ServerActions({
         </Button>
       )}
 
-      {primary === 'validate' && (
+      {primary === "validate" && (
         <Button
           variant="secondary"
           size="sm"
@@ -88,7 +98,7 @@ export function ServerActions({
         </Button>
       )}
 
-      {primary === 'detect' && (
+      {primary === "detect" && (
         <Button
           variant="secondary"
           size="sm"
@@ -101,20 +111,21 @@ export function ServerActions({
         </Button>
       )}
 
-      {primary === 'prepare' && (
+      {primary === "prepare" && (
         <Button
           variant="secondary"
           size="sm"
           onClick={() => onOpenPrepare(server)}
-          disabled={isBusy || server.status === 'PREPARING'}
+          disabled={isBusy || server.status === "PREPARING"}
           loading={preparingId === server.id}
           icon={preparingId === server.id ? null : <Wrench size={13} />}
         >
-          {server.status === 'PREPARATION_FAILED'
-            ? 'Retry Preparation'
-            : server.status === 'PREPARED' || server.status === 'PARTIALLY_PREPARED'
-              ? 'Re-prepare'
-              : 'Prepare Server'}
+          {server.status === "PREPARATION_FAILED"
+            ? "Retry Preparation"
+            : server.status === "PREPARED" ||
+                server.status === "PARTIALLY_PREPARED"
+              ? "Re-prepare"
+              : "Prepare Server"}
         </Button>
       )}
 
@@ -149,7 +160,8 @@ export function ServerActions({
         Edit
       </Button>
 
-      <button type="button"
+      <button
+        type="button"
         onClick={() => onDelete(server)}
         disabled={isBusy}
         className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-500/20 text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"

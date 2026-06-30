@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { monitoringService } from '@/features/monitoring/api/monitoring.service';
-import { getApiErrorMessage } from '@/shared/lib/api';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { monitoringService } from "@/features/monitoring/api/monitoring.service";
+import { getApiErrorMessage } from "@/shared/lib/api";
 
 /** Vue d'ensemble du monitoring (métriques agrégées). */
 export function useMonitoringOverview() {
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['monitoring', 'overview'],
+    queryKey: ["monitoring", "overview"],
     queryFn: () => monitoringService.getOverview(),
   });
 
@@ -17,7 +17,9 @@ export function useMonitoringOverview() {
     loading: isLoading,
     error: error ? getApiErrorMessage(error) : null,
     refresh: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['monitoring', 'overview'] });
+      await queryClient.invalidateQueries({
+        queryKey: ["monitoring", "overview"],
+      });
       await refetch();
     },
   };
@@ -27,7 +29,7 @@ export function useMonitoringOverview() {
 export function useMonitoring() {
   const queryClient = useQueryClient();
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['monitoring', 'all'],
+    queryKey: ["monitoring", "all"],
     queryFn: async () => {
       const [overview, servers, alerts] = await Promise.all([
         monitoringService.getOverview(),
@@ -45,7 +47,7 @@ export function useMonitoring() {
     loading: isLoading,
     error: error ? getApiErrorMessage(error) : null,
     refresh: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['monitoring', 'all'] });
+      await queryClient.invalidateQueries({ queryKey: ["monitoring", "all"] });
       await refetch();
     },
   };
