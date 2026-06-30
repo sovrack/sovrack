@@ -22,12 +22,20 @@ services:
     volumes:
       - backend_pgdata:/var/lib/postgresql/data
     networks: [backend]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
   redis:
     image: redis:7-alpine
     container_name: platform_backend_redis
     restart: unless-stopped
-    command: ['redis-server', '--appendonly', 'yes']
+    command: ['redis-server', '--appendonly', 'yes', '--save', '900 1', '--save', '300 10']
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
@@ -36,6 +44,14 @@ services:
     volumes:
       - backend_redisdata:/data
     networks: [backend]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.3'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
 
   backend:
     build:
@@ -53,10 +69,18 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@database:5432/${DB_NAME:-devops_platform}
       REDIS_URL: redis://redis:6379
       ANSIBLE_PLAYBOOKS_PATH: /app/ansible/playbooks
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-development}
     ports:
       - '${PORT:-3001}:3001'
     networks: [backend]
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
 volumes:
   backend_pgdata:

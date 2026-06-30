@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
@@ -58,6 +59,8 @@ type EnvironmentWithRelations = Prisma.EnvironmentGetPayload<{
 
 @Injectable()
 export class EnvironmentsService {
+  private readonly logger = new Logger(EnvironmentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly serviceEnvsService: ServiceEnvironmentsService,
@@ -92,10 +95,21 @@ export class EnvironmentsService {
       include: environmentsInclude,
     });
 
-    // Optionnel : lier tous les services existants à ce nouvel environnement
-    // (fait via un endpoint séparé ou un flag dans le DTO)
+    // Invariant service↔env : on lie automatiquement tous les services actifs du
+    // projet à ce nouvel environnement (même symétrie qu'à la création d'un service
+    // dans ServicesService.create → linkServiceToAllEnvs). Non-bloquant : un échec
+    // de liaison ne doit pas empêcher la création de l'environnement.
+    await this.serviceEnvsService
+      .linkServiceToAllEnvsForEnvironment(env.id, projectId, userId, userRole)
+      .catch((err: unknown) => {
+        this.logger.warn(
+          `linkServiceToAllEnvsForEnvironment failed for env ${env.id} (non-fatal): ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      });
 
-    return env;
+    return this.findOne(projectId, env.id, userId, userRole);
   }
 
   async findAll(

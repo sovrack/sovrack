@@ -44,10 +44,10 @@ describe('DeploymentsQueryService', () => {
       prisma.serviceEnvironment.findUnique.mockResolvedValue({
         env: '{"PUBLIC":"1"}',
         secretsEnv: '{"TOKEN":"abc"}',
-        service: { env: null, secretsEnv: null },
-        environment: { env: null, secretsEnv: null },
+        service: { env: null, secretsEnv: null, projectId: 'proj-1' },
+        environment: { env: null, secretsEnv: null, projectId: 'proj-1' },
       });
-      const preview = await service.previewEnv('se1');
+      const preview = await service.previewEnv('se1', 'user-1', Role.ADMIN);
       const token = preview.variables.find((v) => v.key === 'TOKEN');
       const pub = preview.variables.find((v) => v.key === 'PUBLIC');
       expect(token?.isSecret).toBe(true);
@@ -57,9 +57,9 @@ describe('DeploymentsQueryService', () => {
 
     it('404s for an unknown service-environment', async () => {
       prisma.serviceEnvironment.findUnique.mockResolvedValue(null);
-      await expect(service.previewEnv('nope')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        service.previewEnv('nope', 'user-1', Role.ADMIN),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 

@@ -24,6 +24,7 @@ import { DeploymentEnvService } from './deployment-env.service';
 import { DeploymentPrelaunchService } from './deployment-prelaunch.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { buildContainerCreateSpec } from '../utils/container-create-spec.util';
+import { toJson } from '../../../shared/utils/prisma-json.util';
 import {
   getLogContext,
   runWithLogContext,
@@ -700,6 +701,6 @@ export class DockerDeployExecutorService {
         lastTransitionAt: now,
       });
     }
-    return conditions as unknown as Prisma.InputJsonValue;
+    return toJson(conditions);
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SslCertificateService } from './ssl-certificate.service';
 import { AnsibleRunnerService } from '../../../adapters/provisioning/ansible-runner.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 
 /**
  * Scheduled SSL certificate renewal service.
@@ -14,6 +15,7 @@ export class SslRenewalService {
   constructor(
     private readonly sslCertificateService: SslCertificateService,
     private readonly ansibleRunner: AnsibleRunnerService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -37,11 +39,17 @@ export class SslRenewalService {
           `Successfully renewed certificate for: ${cert.domainName}`,
         );
       } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
         this.logger.error(
-          `Failed to renew certificate for ${cert.domainName}: ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`,
+          `Failed to renew certificate for ${cert.domainName}: ${message}`,
         );
+        await this.notifications
+          .notifySslRenewalFailed({
+            domainName: cert.domainName,
+            error: message,
+          })
+          .catch(() => {});
       }
     }
   }
@@ -49,14 +57,20 @@ export class SslRenewalService {
   private async renewCertificate(domainName: string): Promise<void> {
     const playbookRoot = this.ansibleRunner.resolvePlaybooksRoot();
 
-    await this.ansibleRunner.runPlaybook(
-      [
-        `${playbookRoot}/ssl-renew.yml`,
-        '--extra-vars',
-        JSON.stringify({ domain_name: domainName }),
-      ],
-      { cwd: playbookRoot, extraEnv: {} },
-      { signal: new AbortController().signal, timeoutMs: 120_000 },
-    );
+    const renewAbort = new AbortController();
+    const renewTimeout = setTimeout(() => renewAbort.abort(), 120_000);
+    try {
+      await this.ansibleRunner.runPlaybook(
+        [
+          `${playbookRoot}/ssl-renew.yml`,
+          '--extra-vars',
+          JSON.stringify({ domain_name: domainName }),
+        ],
+        { cwd: playbookRoot, extraEnv: {} },
+        { signal: renewAbort.signal, timeoutMs: 120_000 },
+      );
+    } finally {
+      clearTimeout(renewTimeout);
+    }
   }
 }

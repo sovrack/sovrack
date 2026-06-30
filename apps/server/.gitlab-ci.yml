@@ -71,6 +71,7 @@ test:unit:
 
 test:e2e:
   stage: test
+  timeout: 15 minutes
   services:
     - name: postgres:16-alpine
       alias: postgres

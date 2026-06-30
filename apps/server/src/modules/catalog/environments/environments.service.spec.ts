@@ -32,10 +32,16 @@ describe('EnvironmentsService', () => {
         create: jest
           .fn()
           .mockImplementation(({ data }) =>
-            Promise.resolve({ id: 'e1', ...data }),
+            Promise.resolve({ id: 'e1', name: data.name ?? 'x', ...data }),
           ),
         findMany: jest.fn().mockResolvedValue([]),
-        findFirst: jest.fn().mockResolvedValue({ id: 'e1', projectId: 'p1' }),
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'e1',
+          projectId: 'p1',
+          name: 'x',
+          serviceLinks: [],
+          servers: [],
+        }),
         update: jest
           .fn()
           .mockImplementation(({ data }) =>
@@ -50,9 +56,14 @@ describe('EnvironmentsService', () => {
       },
     };
     crypto = { encrypt: jest.fn((v: string) => `enc:${v}`) };
+    const serviceEnvsService = {
+      linkServiceToAllEnvsForEnvironment: jest
+        .fn()
+        .mockResolvedValue(undefined),
+    } as unknown as ServiceEnvironmentsService;
     service = new EnvironmentsService(
       prisma as unknown as PrismaService,
-      {} as unknown as ServiceEnvironmentsService,
+      serviceEnvsService,
       crypto as unknown as CryptoService,
       new ProjectAccessService(prisma as unknown as PrismaService),
     );

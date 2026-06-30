@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { Server, ServerLogLevel, ServerStatus } from '@prisma/client';
+import {
+  SERVER_EVENTS,
+  type ServerSshValidatedPayload,
+} from '../shared/server-events.constants';
 
 type ValidationResultInput = {
   sshReachable: boolean;
@@ -18,7 +23,10 @@ type ValidationResultInput = {
 export class ServerVerificationService {
   private readonly logger = new Logger(ServerVerificationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async startVerification(serverId: string): Promise<Server> {
     this.logger.log(`[SSH] Starting SSH validation for server ${serverId}`);
@@ -87,6 +95,11 @@ export class ServerVerificationService {
       result.sudoAvailable ? ServerLogLevel.INFO : ServerLogLevel.WARNING,
       'SSH',
     );
+
+    if (fullyValidated) {
+      const payload: ServerSshValidatedPayload = { serverId };
+      this.eventEmitter.emit(SERVER_EVENTS.SSH_VALIDATED, payload);
+    }
 
     return updated;
   }

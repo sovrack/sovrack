@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { toJson } from '../../../shared/utils/prisma-json.util';
 
 /**
  * Forme UNIQUE et partagée du champ `Deployment.conditions` (style Kubernetes).
@@ -25,7 +26,7 @@ export interface DeploymentCondition {
 export function conditionsToJson(
   conditions: DeploymentCondition[],
 ): Prisma.InputJsonValue {
-  return conditions as unknown as Prisma.InputJsonValue;
+  return toJson(conditions);
 }
 
 /**

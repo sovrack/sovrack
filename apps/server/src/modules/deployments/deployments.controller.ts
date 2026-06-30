@@ -39,7 +39,7 @@ import { DeploymentsCreateService } from './core/deployments-create.service';
 import { DeploymentsQueryService } from './query/deployments-query.service';
 import { DeploymentsLifecycleService } from './core/deployments-lifecycle.service';
 import { DeploymentsRollbackService } from './core/deployments-rollback.service';
-import { DockerDeployExecutorService } from './core/docker-deploy-executor.service';
+import { DeploymentContainerInspectorService } from './query/deployment-container-inspector.service';
 import {
   DeploymentsLogSearchService,
   type LogLevelFilter,
@@ -60,7 +60,7 @@ export class DeploymentsController {
     private readonly queryService: DeploymentsQueryService,
     private readonly lifecycleService: DeploymentsLifecycleService,
     private readonly rollbackService: DeploymentsRollbackService,
-    private readonly dockerExecutor: DockerDeployExecutorService,
+    private readonly containerInspector: DeploymentContainerInspectorService,
     private readonly validationService: DeploymentsValidationService,
     private readonly logSearchService: DeploymentsLogSearchService,
   ) {}
@@ -160,12 +160,16 @@ export class DeploymentsController {
       'Resolved variables (origin + isSecret) and resolution warnings',
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Unauthorized access to project' })
   @ApiResponse({
     status: 404,
     description: 'Service-environment link not found',
   })
-  async previewEnv(@Query('serviceEnvId') serviceEnvId: string) {
-    return await this.queryService.previewEnv(serviceEnvId);
+  async previewEnv(
+    @Query('serviceEnvId') serviceEnvId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.queryService.previewEnv(serviceEnvId, user.id, user.role);
   }
 
   @Get(':id')
@@ -242,7 +246,7 @@ export class DeploymentsController {
     @GetUser() _user: JwtPayload,
   ) {
     const tailNum = tail ? parseInt(tail, 10) : 300;
-    return await this.dockerExecutor.getContainerLogs(id, tailNum);
+    return await this.containerInspector.getContainerLogs(id, tailNum);
   }
 
   @Get(':id/logs/search')

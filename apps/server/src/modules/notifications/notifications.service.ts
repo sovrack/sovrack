@@ -40,9 +40,34 @@ export type DockerConnectionRecoveredPayload = {
   endpoint: string;
 };
 
+/** Escapes HTML special characters to prevent injection in email bodies. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Config cache entry with a 60-second TTL to reduce DB round-trips. */
+type CacheEntry = { value: string | null; expiresAt: number };
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
+
+  /** In-memory config cache: key → { value, expiresAt }. TTL = 60 s. */
+  private readonly configCache = new Map<string, CacheEntry>();
+
+  /**
+   * Nodemailer transporter singleton keyed by a hash of the SMTP config.
+   * Recreated only when the config changes, not on every notification.
+   */
+  private transporterCache: {
+    key: string;
+    transporter: ReturnType<typeof nodemailer.createTransport>;
+  } | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -51,18 +76,61 @@ export class NotificationsService {
   ) {}
 
   private async getConfig(key: string): Promise<string | null> {
+    const now = Date.now();
+    const cached = this.configCache.get(key);
+    if (cached && now < cached.expiresAt) {
+      return cached.value;
+    }
+
     const record = await this.prisma.platformConfig.findUnique({
       where: { key },
     });
-    if (!record) return null;
-    if (record.isSecret) {
-      try {
-        return this.crypto.decrypt(record.value);
-      } catch {
-        return null;
+    let value: string | null = null;
+    if (record) {
+      if (record.isSecret) {
+        try {
+          value = this.crypto.decrypt(record.value);
+        } catch {
+          value = null;
+        }
+      } else {
+        value = record.value;
       }
     }
-    return record.value;
+
+    this.configCache.set(key, { value, expiresAt: now + 60_000 });
+    return value;
+  }
+
+  /**
+   * Returns a cached nodemailer transporter or creates a new one when the
+   * SMTP config has changed. Prevents opening a new TCP connection per email.
+   */
+  private async getTransporter(): Promise<ReturnType<
+    typeof nodemailer.createTransport
+  > | null> {
+    const [host, portStr, user, pass] = await Promise.all([
+      this.getConfig(SMTP_HOST_KEY),
+      this.getConfig(SMTP_PORT_KEY),
+      this.getConfig(SMTP_USER_KEY),
+      this.getConfig(SMTP_PASS_KEY),
+    ]);
+    if (!host) return null;
+
+    const port = portStr ? parseInt(portStr, 10) : 587;
+    const cacheKey = `${host}:${port}:${user ?? ''}:${pass ?? ''}`;
+    if (this.transporterCache?.key === cacheKey) {
+      return this.transporterCache.transporter;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      ...(user && pass ? { auth: { user, pass } } : {}),
+    });
+    this.transporterCache = { key: cacheKey, transporter };
+    return transporter;
   }
 
   async notifyDeploymentFinished(
@@ -159,6 +227,25 @@ export class NotificationsService {
     ]);
   }
 
+  /**
+   * B-9 fix: Fired by SslRenewalService when a certificate renewal fails.
+   * Alerts via the same Slack + email channels so the ops team can act before
+   * the certificate actually expires.
+   */
+  async notifySslRenewalFailed(payload: {
+    domainName: string;
+    error: string;
+  }): Promise<void> {
+    const text =
+      `🔒 SSL renewal failed for domain \`${payload.domainName}\`. ` +
+      `Error: ${payload.error}. ` +
+      `Manual renewal may be required before the certificate expires.`;
+    await Promise.allSettled([
+      this.sendSimpleSlack(text),
+      this.sendSimpleEmail('SSL Renewal Failed', text, payload.domainName),
+    ]);
+  }
+
   /** Minimal Slack post for non-deployment alerts (dead-letter, etc.). */
   private async sendSimpleSlack(text: string): Promise<void> {
     try {
@@ -181,25 +268,16 @@ export class NotificationsService {
     projectName: string,
   ): Promise<void> {
     try {
-      const [host, port, user, pass, from, to] = await Promise.all([
-        this.getConfig(SMTP_HOST_KEY),
-        this.getConfig(SMTP_PORT_KEY),
-        this.getConfig(SMTP_USER_KEY),
-        this.getConfig(SMTP_PASS_KEY),
+      const [transporter, from, to] = await Promise.all([
+        this.getTransporter(),
         this.getConfig(SMTP_FROM_KEY),
         this.getConfig(SMTP_TO_KEY),
       ]);
-      if (!host || !to) return;
-      const transporter = nodemailer.createTransport({
-        host,
-        port: port ? Number(port) : 587,
-        secure: false,
-        ...(user && pass ? { auth: { user, pass } } : {}),
-      });
+      if (!transporter || !to) return;
       await transporter.sendMail({
-        from: from ?? 'platform <noreply@platform.local>',
+        from: from ?? 'noreply@platform.local',
         to,
-        subject: `[platform] ${subject} — ${projectName}`,
+        subject: `[Platform] ${subject} — ${escapeHtml(projectName)}`,
         text,
       });
     } catch (error: unknown) {
@@ -280,24 +358,15 @@ export class NotificationsService {
     payload: DeploymentNotificationPayload,
   ): Promise<void> {
     try {
-      const [host, portStr, user, pass, from, to] = await Promise.all([
-        this.getConfig(SMTP_HOST_KEY),
-        this.getConfig(SMTP_PORT_KEY),
-        this.getConfig(SMTP_USER_KEY),
-        this.getConfig(SMTP_PASS_KEY),
+      const [transporter, from, to] = await Promise.all([
+        this.getTransporter(),
         this.getConfig(SMTP_FROM_KEY),
         this.getConfig(SMTP_TO_KEY),
       ]);
 
-      if (!host || !user || !pass || !to) return;
+      if (!transporter || !to) return;
 
-      const port = portStr ? parseInt(portStr, 10) : 587;
-      const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
-      });
+      const user = await this.getConfig(SMTP_USER_KEY);
 
       const emoji =
         payload.status === 'SUCCESS'
@@ -308,17 +377,22 @@ export class NotificationsService {
       const subject = `${emoji} Déploiement ${payload.status} — ${payload.projectName}`;
 
       const html = `
-        <h2>${emoji} Déploiement ${payload.status}</h2>
+        <h2>${emoji} Déploiement ${escapeHtml(payload.status)}</h2>
         <table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
-          <tr><td style="padding:6px 12px;font-weight:bold">Projet</td><td style="padding:6px 12px">${payload.projectName}</td></tr>
-          <tr><td style="padding:6px 12px;font-weight:bold">Environnement</td><td style="padding:6px 12px">${payload.environmentName}</td></tr>
-          <tr><td style="padding:6px 12px;font-weight:bold">Branche</td><td style="padding:6px 12px">${payload.branch}</td></tr>
-          <tr><td style="padding:6px 12px;font-weight:bold">Déclenché par</td><td style="padding:6px 12px">${payload.triggeredBy}</td></tr>
-          ${payload.pipelineUrl ? `<tr><td style="padding:6px 12px;font-weight:bold">Pipeline</td><td style="padding:6px 12px"><a href="${payload.pipelineUrl}">Voir sur GitLab</a></td></tr>` : ''}
+          <tr><td style="padding:6px 12px;font-weight:bold">Projet</td><td style="padding:6px 12px">${escapeHtml(payload.projectName)}</td></tr>
+          <tr><td style="padding:6px 12px;font-weight:bold">Environnement</td><td style="padding:6px 12px">${escapeHtml(payload.environmentName)}</td></tr>
+          <tr><td style="padding:6px 12px;font-weight:bold">Branche</td><td style="padding:6px 12px">${escapeHtml(payload.branch)}</td></tr>
+          <tr><td style="padding:6px 12px;font-weight:bold">Déclenché par</td><td style="padding:6px 12px">${escapeHtml(payload.triggeredBy)}</td></tr>
+          ${payload.pipelineUrl ? `<tr><td style="padding:6px 12px;font-weight:bold">Pipeline</td><td style="padding:6px 12px"><a href="${escapeHtml(payload.pipelineUrl)}">Voir sur GitLab</a></td></tr>` : ''}
         </table>
       `;
 
-      await transporter.sendMail({ from: from ?? user, to, subject, html });
+      await transporter.sendMail({
+        from: from ?? user ?? undefined,
+        to,
+        subject,
+        html,
+      });
       this.logger.log(
         `Email notification sent for ${payload.deploymentId} (${payload.status})`,
       );
@@ -480,46 +554,31 @@ export class NotificationsService {
     recovered: boolean,
   ): Promise<void> {
     try {
-      const [smtpHost, smtpPortStr, smtpUser, smtpPass, smtpFrom, smtpTo] =
-        await Promise.all([
-          this.getConfig(SMTP_HOST_KEY),
-          this.getConfig(SMTP_PORT_KEY),
-          this.getConfig(SMTP_USER_KEY),
-          this.getConfig(SMTP_PASS_KEY),
-          this.getConfig(SMTP_FROM_KEY),
-          this.getConfig(SMTP_TO_KEY),
-        ]);
-      if (!smtpHost || !smtpTo) return;
-      const port = smtpPortStr ? Number(smtpPortStr) : 587;
-      if (!Number.isInteger(port)) return;
-      const user = smtpUser ?? '';
-      const pass = smtpPass ?? '';
-      const from = smtpFrom ?? user;
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port,
-        secure: port === 465,
-        auth: user ? { user, pass } : undefined,
-      });
+      const [transporter, smtpFrom, smtpTo] = await Promise.all([
+        this.getTransporter(),
+        this.getConfig(SMTP_FROM_KEY),
+        this.getConfig(SMTP_TO_KEY),
+      ]);
+      if (!transporter || !smtpTo) return;
+      const smtpUser = await this.getConfig(SMTP_USER_KEY);
       const isDown = !recovered;
       const emoji = isDown ? '🔴' : '🟢';
       const verb = isDown ? 'INJOIGNABLE' : 'RÉCUPÉRÉ';
       const downPayload = payload as DockerConnectionDownPayload;
-      const subject = `${emoji} Docker ${verb} — ${downPayload.serverName ?? downPayload.serverId}`;
+      const serverLabel = escapeHtml(
+        downPayload.serverName ?? downPayload.serverId,
+      );
+      const subject = `${emoji} Docker ${verb} — ${serverLabel}`;
       const html = `
         <h2>${emoji} Connexion Docker ${verb}</h2>
         <table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
-          <tr><td style="padding:6px 12px;font-weight:bold">Serveur</td><td style="padding:6px 12px">${downPayload.serverName ?? downPayload.serverId}</td></tr>
-          <tr><td style="padding:6px 12px;font-weight:bold">Endpoint</td><td style="padding:6px 12px">${payload.endpoint}</td></tr>
-          ${isDown ? `<tr><td style="padding:6px 12px;font-weight:bold">Erreur</td><td style="padding:6px 12px"><code>${downPayload.lastError.slice(0, 1000).replace(/</g, '&lt;')}</code></td></tr>` : ''}
+          <tr><td style="padding:6px 12px;font-weight:bold">Serveur</td><td style="padding:6px 12px">${serverLabel}</td></tr>
+          <tr><td style="padding:6px 12px;font-weight:bold">Endpoint</td><td style="padding:6px 12px">${escapeHtml(payload.endpoint)}</td></tr>
+          ${isDown ? `<tr><td style="padding:6px 12px;font-weight:bold">Erreur</td><td style="padding:6px 12px"><code>${escapeHtml(downPayload.lastError.slice(0, 1000))}</code></td></tr>` : ''}
         </table>
       `;
-      await transporter.sendMail({
-        from: from ?? user,
-        to: smtpTo,
-        subject,
-        html,
-      });
+      const from = smtpFrom ?? smtpUser ?? 'noreply@platform.local';
+      await transporter.sendMail({ from, to: smtpTo, subject, html });
     } catch (err) {
       this.logger.warn(
         `Docker connection email notification failed: ${

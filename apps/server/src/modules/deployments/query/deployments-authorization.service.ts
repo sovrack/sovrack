@@ -121,6 +121,13 @@ export class DeploymentsAuthorizationService {
   ): Promise<ProjectRole | null> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
+      include: {
+        members: {
+          where: { userId },
+          select: { role: true },
+          take: 1,
+        },
+      },
     });
 
     if (!project) {
@@ -131,18 +138,7 @@ export class DeploymentsAuthorizationService {
       return null;
     }
 
-    const member = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-      select: {
-        role: true,
-      },
-    });
-
+    const member = project.members[0];
     if (!member) {
       throw new ForbiddenException('Accès non autorisé à ce projet');
     }

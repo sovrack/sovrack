@@ -279,28 +279,81 @@ export class ServiceEnvironmentsService {
     });
     const linkByEnv = new Map(existingLinks.map((l) => [l.environmentId, l]));
 
-    const results: ServiceEnvWithRelations[] = [];
-    for (const env of envs) {
+    const ops = envs.map((env) => {
       const existing = linkByEnv.get(env.id);
       if (!existing) {
-        results.push(
-          await this.prisma.serviceEnvironment.create({
-            data: { serviceId, environmentId: env.id },
-            include: serviceEnvInclude,
-          }),
-        );
-      } else if (existing.archivedAt !== null) {
-        // Réactive un lien précédemment archivé au lieu de le laisser de côté.
-        results.push(
-          await this.prisma.serviceEnvironment.update({
-            where: { id: existing.id },
-            data: { archivedAt: null },
-            include: serviceEnvInclude,
-          }),
-        );
+        return this.prisma.serviceEnvironment.create({
+          data: { serviceId, environmentId: env.id },
+          include: serviceEnvInclude,
+        });
       }
-    }
+      if (existing.archivedAt !== null) {
+        // Réactive un lien précédemment archivé au lieu de le laisser de côté.
+        return this.prisma.serviceEnvironment.update({
+          where: { id: existing.id },
+          data: { archivedAt: null },
+          include: serviceEnvInclude,
+        });
+      }
+      return null;
+    });
+
+    const results = await Promise.all(
+      ops.filter((op): op is NonNullable<typeof op> => op !== null),
+    );
     return results;
+  }
+
+  /**
+   * Symmetric of linkServiceToAllEnvs: called when a NEW ENVIRONMENT is created
+   * to link all existing active services of the project to it.
+   * Uses upsert (create-or-reactivate) — safe to call multiple times.
+   */
+  async linkServiceToAllEnvsForEnvironment(
+    environmentId: string,
+    projectId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
+
+    const services = await this.prisma.service.findMany({
+      where: { projectId, archivedAt: null },
+      select: { id: true },
+    });
+    if (services.length === 0) return;
+
+    const existingLinks = await this.prisma.serviceEnvironment.findMany({
+      where: {
+        environmentId,
+        serviceId: { in: services.map((s) => s.id) },
+      },
+      select: { id: true, serviceId: true, archivedAt: true },
+    });
+    const linkByService = new Map(existingLinks.map((l) => [l.serviceId, l]));
+
+    const ops = services.map((svc) => {
+      const existing = linkByService.get(svc.id);
+      if (!existing) {
+        return this.prisma.serviceEnvironment.create({
+          data: { serviceId: svc.id, environmentId },
+        });
+      }
+      if (existing.archivedAt !== null) {
+        return this.prisma.serviceEnvironment.update({
+          where: { id: existing.id },
+          data: { archivedAt: null },
+        });
+      }
+      return null;
+    });
+    await Promise.all(
+      ops.filter((op): op is NonNullable<typeof op> => op !== null),
+    );
   }
 
   private async ensureExists(projectId: string, id: string): Promise<void> {

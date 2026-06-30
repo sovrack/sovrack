@@ -37,6 +37,7 @@ import { DeploymentsValidationService } from './query/deployments-validation.ser
 import { DeploymentsLogSearchService } from './query/deployments-log-search.service';
 import { DeploymentsConfigResolver } from './query/deployments-config-resolver.service';
 import { DeploymentsProcessor } from './processors/deployments.processor';
+import { PipelineRunsCleanupService } from './health/pipeline-runs-cleanup.service';
 
 @Module({
   imports: [
@@ -80,11 +81,8 @@ import { DeploymentsProcessor } from './processors/deployments.processor';
     DeploymentsLogSearchService,
     DeploymentsConfigResolver,
     DeploymentsProcessor,
+    PipelineRunsCleanupService,
   ],
-  exports: [
-    DeploymentsQueryService,
-    DockerDeployExecutorService,
-    DeploymentsAuthorizationService,
-  ],
+  exports: [DeploymentsQueryService, DeploymentsAuthorizationService],
 })
 export class DeploymentsModule {}

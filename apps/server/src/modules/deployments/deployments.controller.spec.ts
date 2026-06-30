@@ -4,7 +4,7 @@ import { DeploymentsCreateService } from './core/deployments-create.service';
 import { DeploymentsQueryService } from './query/deployments-query.service';
 import { DeploymentsLifecycleService } from './core/deployments-lifecycle.service';
 import { DeploymentsRollbackService } from './core/deployments-rollback.service';
-import { DockerDeployExecutorService } from './core/docker-deploy-executor.service';
+import { DeploymentContainerInspectorService } from './query/deployment-container-inspector.service';
 import { DeploymentsLogSearchService } from './query/deployments-log-search.service';
 import { DeploymentsController } from './deployments.controller';
 
@@ -28,9 +28,9 @@ describe('DeploymentsController', () => {
     const rollbackService = {
       rollback: jest.fn().mockResolvedValue({ id: 'd2' }),
     } as unknown as DeploymentsRollbackService;
-    const dockerExecutor = {
+    const containerInspector = {
       getContainerLogs: jest.fn().mockResolvedValue('logs'),
-    } as unknown as DockerDeployExecutorService;
+    } as unknown as DeploymentContainerInspectorService;
     const validationService = {
       validate: jest.fn().mockResolvedValue({ ok: true }),
     } as unknown as DeploymentsValidationService;
@@ -42,7 +42,7 @@ describe('DeploymentsController', () => {
       queryService,
       lifecycleService,
       rollbackService,
-      dockerExecutor,
+      containerInspector,
       validationService,
       logSearchService,
     );
@@ -52,7 +52,7 @@ describe('DeploymentsController', () => {
       queryService,
       lifecycleService,
       rollbackService,
-      dockerExecutor,
+      containerInspector,
       validationService,
       logSearchService,
     };
@@ -86,7 +86,7 @@ describe('DeploymentsController', () => {
     const { ctrl, queryService } = build();
     await ctrl.findAll(user, { page: 1 } as never);
     await ctrl.findByProject('p1', user);
-    await ctrl.previewEnv('se1');
+    await ctrl.previewEnv('se1', user);
     await ctrl.findOne('d1', user);
     expect(queryService.findAll).toHaveBeenCalledWith('user-1', 'ADMIN', {
       page: 1,
@@ -96,7 +96,11 @@ describe('DeploymentsController', () => {
       'user-1',
       'ADMIN',
     );
-    expect(queryService.previewEnv).toHaveBeenCalledWith('se1');
+    expect(queryService.previewEnv).toHaveBeenCalledWith(
+      'se1',
+      'user-1',
+      'ADMIN',
+    );
     expect(queryService.findOne).toHaveBeenCalledWith('d1', 'user-1', 'ADMIN');
   });
 
@@ -124,11 +128,11 @@ describe('DeploymentsController', () => {
   });
 
   it('containerLogs parses the tail query (default 300)', async () => {
-    const { ctrl, dockerExecutor } = build();
+    const { ctrl, containerInspector } = build();
     await ctrl.containerLogs('d1', '50', user);
-    expect(dockerExecutor.getContainerLogs).toHaveBeenCalledWith('d1', 50);
+    expect(containerInspector.getContainerLogs).toHaveBeenCalledWith('d1', 50);
     await ctrl.containerLogs('d1', undefined, user);
-    expect(dockerExecutor.getContainerLogs).toHaveBeenCalledWith('d1', 300);
+    expect(containerInspector.getContainerLogs).toHaveBeenCalledWith('d1', 300);
   });
 
   it('searchLogs delegates with defaults for q and level', async () => {

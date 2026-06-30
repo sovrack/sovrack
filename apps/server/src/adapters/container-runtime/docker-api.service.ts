@@ -36,32 +36,67 @@ type DecryptedDockerTls = {
  *  - Structured JSON responses (no text parsing)
  *  - Single TLS handshake cached per server, not a new SSH process per call
  */
+
+/** Maximum number of Docker clients held simultaneously (one per server). */
+const CACHE_MAX_SIZE = 100;
+/** Clients older than this are evicted and rebuilt on next access (10 min). */
+const CACHE_TTL_MS = 10 * 60 * 1_000;
+
 @Injectable()
 export class DockerApiService {
   private readonly logger = new Logger(DockerApiService.name);
+
+  /**
+   * LRU-with-TTL cache keyed by `serverId:endpoint:updatedAtMs`.
+   * - Max 100 entries: prevents unbounded growth with many servers.
+   * - 10-minute TTL: forces periodic renewal so stale TLS material is never
+   *   used indefinitely (complements the key rotation via updatedAt).
+   * - Pure-Map LRU: entries are deleted from the front and re-inserted on
+   *   access (Map iteration order = insertion order in V8).
+   */
   private readonly clientCache = new Map<
     string,
-    { client: Docker; endpoint: string }
+    { client: Docker; endpoint: string; cachedAt: number }
   >();
 
   constructor(private readonly dockerConnections: DockerConnectionsService) {}
 
   async getClient(serverId: string): Promise<Docker> {
     const conn = await this.dockerConnections.findForServer(serverId);
-    // Include the connection's updatedAt in the cache key so a TLS cert/endpoint
-    // rotation (which bumps updatedAt) yields a NEW key → a fresh client is built
-    // with the new certs, and the stale one is never reused.
+    // Key includes updatedAt so a TLS cert/endpoint rotation yields a new key.
     const cacheKey = `${serverId}:${conn.endpoint}:${conn.updatedAt.getTime()}`;
-    const cached = this.clientCache.get(cacheKey);
-    if (cached) return cached.client;
+    const now = Date.now();
 
-    // Cache miss → drop any previous (now-stale) client(s) for this server
-    // before caching the fresh one, so a cert rotation never leaks orphans.
+    const cached = this.clientCache.get(cacheKey);
+    if (cached && now - cached.cachedAt < CACHE_TTL_MS) {
+      // LRU: re-insert to move to end (most-recently-used).
+      this.clientCache.delete(cacheKey);
+      this.clientCache.set(cacheKey, cached);
+      return cached.client;
+    }
+
+    // Cache miss or TTL expired → evict all entries for this server (cert
+    // rotation safety) then build a fresh client.
     this.invalidateCache(serverId);
 
     const tls = await this.dockerConnections.getDecryptedTls(serverId);
     const client = this.buildClient(conn.endpoint, tls);
-    this.clientCache.set(cacheKey, { client, endpoint: conn.endpoint });
+
+    // Evict the oldest entry when the cache is full (LRU eviction).
+    if (this.clientCache.size >= CACHE_MAX_SIZE) {
+      const oldestKey = this.clientCache.keys().next().value as
+        | string
+        | undefined;
+      if (oldestKey !== undefined) {
+        this.clientCache.delete(oldestKey);
+      }
+    }
+
+    this.clientCache.set(cacheKey, {
+      client,
+      endpoint: conn.endpoint,
+      cachedAt: now,
+    });
     this.logger.log(
       `Docker client initialized for server ${serverId} at ${conn.endpoint}`,
     );

@@ -1,3 +1,5 @@
+import type { BuildType } from '../detection/build-detection.types';
+
 export type BuildArtifactStatus = 'CREATED' | 'UPDATED' | 'SKIPPED' | 'FAILED';
 export type BuildPrepareStatus = 'SUCCESS' | 'PARTIAL_SUCCESS' | 'FAILED';
 
@@ -19,7 +21,7 @@ export type BuildPrepareResponse = {
   framework: string;
   packageManager: string;
   recommendedStrategy: string;
-  recommendedBuildType: string;
+  recommendedBuildType: BuildType;
   recommendedStartCommand: string;
   recommendedPort: number;
   reasons: string[];

@@ -1,10 +1,16 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { Prisma, Server, ServerStatus } from '@prisma/client';
+import { toJson } from '../../../../shared/utils/prisma-json.util';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { InstalledTool } from '../../../../adapters/server-capabilities/server-capabilities.types';
 import { ServersAuditService } from './servers-audit.service';
 import { ServerVerificationService } from './server-verification.service';
 import { ServersConnectionService } from './servers-connection.service';
+import {
+  SERVER_EVENTS,
+  type ServerSshValidatedPayload,
+} from '../shared/server-events.constants';
 
 type DetectionTool = {
   key: string;
@@ -84,12 +90,32 @@ const DETECTION_TOOLS: DetectionTool[] = [
 
 @Injectable()
 export class ServersDetectionService {
+  private readonly logger = new Logger(ServersDetectionService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly ssh: ServersConnectionService,
     private readonly verification: ServerVerificationService,
     private readonly audit: ServersAuditService,
   ) {}
+
+  @OnEvent(SERVER_EVENTS.SSH_VALIDATED)
+  async onSshValidated(payload: ServerSshValidatedPayload): Promise<void> {
+    this.logger.log(
+      `[AUTO-DETECT] SSH validated for ${payload.serverId} — triggering automatic detection`,
+    );
+    try {
+      const server = await this.prisma.server.findUnique({
+        where: { id: payload.serverId },
+      });
+      if (!server) return;
+      await this.detect(server);
+    } catch (err) {
+      this.logger.error(
+        `[AUTO-DETECT] Detection failed for ${payload.serverId}: ${String(err)}`,
+      );
+    }
+  }
 
   async detect(server: Server, actorId?: string): Promise<Server> {
     if (!server.isVerified) {
@@ -138,14 +164,24 @@ export class ServersDetectionService {
 
       const installed: Record<string, boolean> = {};
       const installedTools: InstalledTool[] = [];
-      for (const tool of DETECTION_TOOLS) {
-        const result = await connection.target.execCommand(tool.command);
-        const version = (result.stdout || result.stderr).trim().split('\n')[0];
-        const isInstalled = result.code === 0;
+      const toolResults = await Promise.all(
+        DETECTION_TOOLS.map(async (tool) => {
+          const result = await connection.target.execCommand(tool.command);
+          const version = (result.stdout || result.stderr)
+            .trim()
+            .split('\n')[0];
+          return {
+            tool,
+            isInstalled: result.code === 0,
+            version: version || null,
+          };
+        }),
+      );
+      for (const { tool, isInstalled, version } of toolResults) {
         installed[tool.key] = isInstalled;
         capabilities[tool.capabilityKey] = String(isInstalled);
         installedTools.push(
-          this.buildInstalledTool(tool, isInstalled, version || null),
+          this.buildInstalledTool(tool, isInstalled, version),
         );
       }
 
@@ -158,7 +194,7 @@ export class ServersDetectionService {
           // hasDocker/hasRunner are no longer stored — derived from capabilities
           // via serverHasDocker/serverHasRunner (single source of truth).
           capabilities: capabilities as Prisma.InputJsonValue,
-          installedTools: installedTools as unknown as Prisma.InputJsonValue,
+          installedTools: toJson(installedTools),
         },
       });
 

@@ -1,24 +1,38 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Job } from 'bullmq';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import { Job, Worker } from 'bullmq';
 import { createDeploymentsWorker } from '../../../shared/queue/queue.provider';
 import type { DeployJobData } from '../../../shared/queue/queue.service';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 
 @Injectable()
-export class DeploymentsProcessor implements OnModuleInit {
+export class DeploymentsProcessor implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DeploymentsProcessor.name);
+  private worker: Worker | null = null;
 
   constructor(private readonly executor: DockerDeployExecutorService) {}
 
   async onModuleInit(): Promise<void> {
-    const worker = createDeploymentsWorker(this.processJob.bind(this));
-    worker.on('completed', (job: Job) => {
+    this.worker = createDeploymentsWorker(this.processJob.bind(this));
+    this.worker.on('completed', (job: Job) => {
       this.logger.log(`Job ${job.id} (${job.name}) completed`);
     });
-    worker.on('failed', (job: Job | undefined, err: Error) => {
+    this.worker.on('failed', (job: Job | undefined, err: Error) => {
       this.logger.error(`Job ${job?.id} failed: ${err.message}`);
     });
     this.logger.log('Deployments worker started');
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.worker) {
+      await this.worker.close();
+      this.worker = null;
+      this.logger.log('Deployments worker closed gracefully');
+    }
   }
 
   private async processJob(job: Job): Promise<void> {

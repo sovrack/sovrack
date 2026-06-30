@@ -21,7 +21,12 @@ describe('AppController', () => {
 
   const buildModule = (
     prismaMock: { $queryRaw: jest.Mock },
-    queueMock?: { client: Promise<{ ping: jest.Mock }> },
+    queueMock?: {
+      client: Promise<{ ping: jest.Mock }>;
+      getWaitingCount?: jest.Mock;
+      getActiveCount?: jest.Mock;
+      getFailedCount?: jest.Mock;
+    },
   ): Promise<TestingModule> =>
     Test.createTestingModule({
       controllers: [AppController],
@@ -133,13 +138,17 @@ describe('AppController', () => {
       expect(ctrl.getLiveness().status).toBe('ok');
     });
 
-    it('readiness returns ready when DB + Redis are up', async () => {
+    it('readiness returns ready when DB + Redis + queue are up', async () => {
       const app = await buildModule(
         { $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]) },
         {
           client: Promise.resolve({
             ping: jest.fn().mockResolvedValue('PONG'),
           }),
+          // checkQueueStatus() interroge ces compteurs → présents = queue "connected".
+          getWaitingCount: jest.fn().mockResolvedValue(0),
+          getActiveCount: jest.fn().mockResolvedValue(0),
+          getFailedCount: jest.fn().mockResolvedValue(0),
         },
       );
       const ctrl = app.get<AppController>(AppController);

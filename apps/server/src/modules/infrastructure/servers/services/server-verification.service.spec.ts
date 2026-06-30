@@ -1,4 +1,5 @@
 import { ServerStatus } from '@prisma/client';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServerVerificationService } from './server-verification.service';
 
@@ -8,6 +9,7 @@ describe('ServerVerificationService', () => {
     serverValidationResult: { create: jest.Mock };
     serverLog: { create: jest.Mock };
   };
+  let eventEmitter: { emit: jest.Mock };
   let service: ServerVerificationService;
 
   beforeEach(() => {
@@ -22,7 +24,11 @@ describe('ServerVerificationService', () => {
       serverValidationResult: { create: jest.fn().mockResolvedValue({}) },
       serverLog: { create: jest.fn().mockResolvedValue({}) },
     };
-    service = new ServerVerificationService(prisma as unknown as PrismaService);
+    eventEmitter = { emit: jest.fn() };
+    service = new ServerVerificationService(
+      prisma as unknown as PrismaService,
+      eventEmitter as unknown as EventEmitter2,
+    );
   });
 
   it('startVerification moves the server to SSH_PENDING and logs', async () => {
@@ -41,6 +47,9 @@ describe('ServerVerificationService', () => {
     expect(res.status).toBe(ServerStatus.SSH_VALIDATED);
     expect(res.isVerified).toBe(true);
     expect(prisma.serverValidationResult.create).toHaveBeenCalled();
+    expect(eventEmitter.emit).toHaveBeenCalledWith('server.ssh.validated', {
+      serverId: 's1',
+    });
   });
 
   it('markSshValidated → VALIDATION_FAILED when sudo is missing', async () => {

@@ -1,10 +1,11 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { exec as execCb } from 'child_process';
+import { execFile as execFileCb } from 'child_process';
 import { writeFile, unlink } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { promisify } from 'util';
 import type { BuildSource } from '../../build/strategies/build-strategy.interface';
+import { resolveBuildSource } from '../utils/build-source.util';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import type { InstalledTool } from '../../../adapters/server-capabilities/server-capabilities.types';
 import { SshExecutorService } from '../../../adapters/ssh/ssh-executor.service';
@@ -13,7 +14,7 @@ import { ServerHostKeyService } from '../../../adapters/ssh/server-host-key.serv
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 
-const exec = promisify(execCb);
+const execFile = promisify(execFileCb);
 
 type ToolRequirement = {
   binary: string;
@@ -93,6 +94,7 @@ export type DeployValidationResult = {
     role: string;
   }[];
   serverName: string;
+  serverId: string | null;
   buildSource: string;
 };
 
@@ -163,6 +165,7 @@ export class DeploymentsValidationService {
           missing: [],
           required: [],
           serverName: '',
+          serverId: null,
           buildSource: 'EXTERNAL_IMAGE',
         };
       }
@@ -183,9 +186,34 @@ export class DeploymentsValidationService {
       throw new BadRequestException('Environnement non trouvé pour ce projet');
     }
 
-    const requirements = BUILD_SOURCE_TOOLS[buildSource] ?? [];
+    // B-3/B-7: Recalculate effective buildSource from DB (single source of truth).
+    let effectiveBuildSource = buildSource;
+    if (serviceEnvId) {
+      const svcEnvForMode = await this.prisma.serviceEnvironment.findUnique({
+        where: { id: serviceEnvId },
+        select: {
+          buildPack: true,
+          service: {
+            select: { buildPack: true, buildMode: true, sourceType: true },
+          },
+        },
+      });
+      if (svcEnvForMode) {
+        effectiveBuildSource = resolveBuildSource({
+          buildPack:
+            svcEnvForMode.buildPack ?? svcEnvForMode.service?.buildPack ?? null,
+          buildMode: svcEnvForMode.service?.buildMode ?? 'LOCAL',
+          sourceType: svcEnvForMode.service?.sourceType ?? 'GIT',
+        });
+      }
+    }
 
-    // Pre-flight: verify repo is accessible for local build sources
+    const requirements = BUILD_SOURCE_TOOLS[effectiveBuildSource] ?? [];
+
+    // Pre-flight: verify repo is accessible for local build sources.
+    // We resolve the serviceId from serviceEnvId so that checkRepoCloneable
+    // picks the correct Git provider when multiple services in the same project
+    // have different providers configured.
     const localBuildSources: BuildSource[] = [
       'NIXPACKS_LOCAL',
       'DOCKERFILE_LOCAL',
@@ -193,7 +221,15 @@ export class DeploymentsValidationService {
       'STATIC',
     ];
     if ((localBuildSources as string[]).includes(buildSource)) {
-      await this.checkRepoCloneable(projectId, undefined);
+      let resolvedServiceId: string | undefined;
+      if (serviceEnvId) {
+        const link = await this.prisma.serviceEnvironment.findUnique({
+          where: { id: serviceEnvId },
+          select: { serviceId: true },
+        });
+        resolvedServiceId = link?.serviceId ?? undefined;
+      }
+      await this.checkRepoCloneable(projectId, resolvedServiceId);
     }
 
     if (requirements.length === 0) {
@@ -201,36 +237,79 @@ export class DeploymentsValidationService {
         ready: true,
         missing: [],
         required: [],
-        serverName: '',
-        buildSource,
+        serverName: environment.servers[0]?.name ?? '',
+        serverId: environment.servers[0]?.id ?? null,
+        buildSource: effectiveBuildSource,
       };
     }
 
+    const server = environment.servers[0] ?? null;
+
+    if (!server) {
+      const required = requirements.map((r) => ({
+        binary: r.binary,
+        label: r.label,
+        role: r.role,
+      }));
+      return {
+        ready: false,
+        missing: required,
+        required,
+        serverName: '',
+        serverId: null,
+        buildSource: effectiveBuildSource,
+      };
+    }
+
+    // Verify the server has been fully prepared (tools installed) and check
+    // which of the required tools are confirmed installed vs missing.
+    const [confirmedTools, latestPrep] = await Promise.all([
+      this.getConfirmedToolsFromDb(server.id),
+      this.getLatestSuccessfulPreparation(server.id),
+    ]);
+
+    // If the server has never been successfully prepared, all tools are missing.
+    if (!latestPrep) {
+      const required = requirements.map((r) => ({
+        binary: r.binary,
+        label: r.label,
+        role: r.role,
+      }));
+      return {
+        ready: false,
+        missing: required,
+        required,
+        serverName: server.name,
+        serverId: server.id,
+        buildSource: effectiveBuildSource,
+      };
+    }
+
+    const missing = requirements
+      .filter((r) => !confirmedTools.has(r.binary))
+      .map((r) => ({ binary: r.binary, label: r.label, role: r.role }));
+
     return {
-      ready: true,
-      missing: [],
+      ready: missing.length === 0,
+      missing,
       required: requirements.map((r) => ({
         binary: r.binary,
         label: r.label,
         role: r.role,
       })),
-      serverName: '',
-      buildSource,
+      serverName: server.name,
+      serverId: server.id,
+      buildSource: effectiveBuildSource,
     };
   }
 
   private async getConfirmedToolsFromDb(
     serverId: string,
-    hasDocker: boolean,
   ): Promise<Set<string>> {
     const confirmed = new Set<string>();
 
-    // The hasDocker flag is updated by detection and after successful preparation
-    if (hasDocker) {
-      confirmed.add('docker');
-    }
-
-    // Check Server.installedTools JSON for other tools (e.g. nixpacks).
+    // Check Server.installedTools JSON — single source of truth for all tools
+    // including docker (written by the detection + preparation workflows).
     const server = await this.prisma.server.findUnique({
       where: { id: serverId },
       select: { installedTools: true },
@@ -284,8 +363,9 @@ export class DeploymentsValidationService {
         { mode: 0o500 },
       );
 
-      const { stderr } = await exec(
-        `git ls-remote --heads "${creds.repoUrl}"`,
+      const { stderr } = await execFile(
+        'git',
+        ['ls-remote', '--heads', creds.repoUrl],
         {
           timeout: 15_000,
           env: {

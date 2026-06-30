@@ -69,13 +69,22 @@ export class TeamsService {
   }
 
   async update(id: string, dto: UpdateTeamDto): Promise<TeamWithMembers> {
-    await this.findOne(id);
+    // Single query: verify the team exists AND check name uniqueness atomically.
+    // Avoids the previous pattern of findOne() + findUnique() (2 round-trips).
+    const team = await this.prisma.team.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!team) {
+      throw new NotFoundException('Équipe introuvable');
+    }
 
     if (dto.name) {
-      const existing = await this.prisma.team.findUnique({
-        where: { name: dto.name },
+      const nameConflict = await this.prisma.team.findFirst({
+        where: { name: dto.name, id: { not: id } },
+        select: { id: true },
       });
-      if (existing && existing.id !== id) {
+      if (nameConflict) {
         throw new ConflictException('Une équipe avec ce nom existe déjà');
       }
     }
@@ -156,16 +165,10 @@ export class TeamsService {
       throw new NotFoundException('Équipe introuvable');
     }
 
-    // Add all team members to the project (as DEVELOPER by default, skip if already present)
-    for (const member of team.members) {
-      const existing = await this.prisma.projectMember.findUnique({
-        where: { projectId_userId: { projectId, userId: member.userId } },
-      });
-      if (!existing) {
-        await this.prisma.projectMember.create({
-          data: { projectId, userId: member.userId },
-        });
-      }
-    }
+    // B-4 fix: bulk-insert all team members at once, skip existing rows atomically.
+    await this.prisma.projectMember.createMany({
+      data: team.members.map((m) => ({ projectId, userId: m.userId })),
+      skipDuplicates: true,
+    });
   }
 }

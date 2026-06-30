@@ -65,19 +65,31 @@ export class AppController {
     status: 'ready';
     database: ComponentStatus;
     redis: ComponentStatus;
+    queue: {
+      waiting: number;
+      active: number;
+      failed: number;
+      status: ComponentStatus;
+    };
   }> {
-    const [database, redis] = await Promise.all([
+    const [database, redis, queueStatus] = await Promise.all([
       this.checkDatabase(),
       this.checkRedis(),
+      this.checkQueueStatus(),
     ]);
-    if (database !== 'connected' || redis !== 'connected') {
+    if (
+      database !== 'connected' ||
+      redis !== 'connected' ||
+      queueStatus.status !== 'connected'
+    ) {
       throw new ServiceUnavailableException({
         status: 'not-ready',
         database,
         redis,
+        queue: queueStatus,
       });
     }
-    return { status: 'ready', database, redis };
+    return { status: 'ready', database, redis, queue: queueStatus };
   }
 
   @Get('health')
@@ -122,6 +134,33 @@ export class AppController {
       return pong === 'PONG' ? 'connected' : 'disconnected';
     } catch {
       return 'disconnected';
+    }
+  }
+
+  /** Check BullMQ queue status and health */
+  private async checkQueueStatus(): Promise<{
+    waiting: number;
+    active: number;
+    failed: number;
+    status: ComponentStatus;
+  }> {
+    if (!this.queue) {
+      return { waiting: 0, active: 0, failed: 0, status: 'disconnected' };
+    }
+    try {
+      const [waiting, active, failed] = await Promise.all([
+        this.queue.getWaitingCount(),
+        this.queue.getActiveCount(),
+        this.queue.getFailedCount(),
+      ]);
+      return {
+        waiting,
+        active,
+        failed,
+        status: 'connected',
+      };
+    } catch {
+      return { waiting: 0, active: 0, failed: 0, status: 'disconnected' };
     }
   }
 

@@ -6,8 +6,7 @@ import {
   conditionsToJson,
   staleDegradedCondition,
 } from '../utils/deployment-conditions.util';
-
-const STALE_THRESHOLD_MINUTES = 45;
+import { STALE_THRESHOLD_MINUTES } from '../utils/deployment-stale.constants';
 
 /**
  * Detects deployments that have been stuck in RUNNING/PENDING status

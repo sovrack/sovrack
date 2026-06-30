@@ -64,7 +64,7 @@ RUN arch=$(uname -m) && \
     esac && \
     curl -fsSL "https://github.com/railwayapp/nixpacks/releases/download/v${NIXPACKS_VERSION}/nixpacks-linux-${NIXPACKS_ARCH}.tar.gz" \
       | tar -xz -C /usr/local/bin nixpacks && \
-    chmod +x /usr/local/bin nixpacks && \
+    chmod +x /usr/local/bin/nixpacks && \
     nixpacks --version
 
 # Donner la possession à appuser

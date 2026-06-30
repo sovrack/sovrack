@@ -79,6 +79,7 @@ describe('DockerApiService', () => {
     ).clientCache.set(`srv_1:tcp://docker.example.com:2376:${updatedAtMs}`, {
       client: mockClient,
       endpoint: 'tcp://docker.example.com:2376',
+      cachedAt: Date.now(),
     });
   });
 

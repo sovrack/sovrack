@@ -97,21 +97,6 @@ export class ProjectsController {
     return await this.projectsService.findOne(id, user.id, user.role);
   }
 
-  @Get(':id/matrix')
-  @ApiOperation({
-    summary:
-      'Deployment matrix: services × environments grid (cells = live state)',
-  })
-  @ApiResponse({ status: 200, description: 'Matrix fetched' })
-  @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
-  @ApiResponse({
-    status: 403,
-    description: 'Unauthorized access to the project',
-  })
-  async getMatrix(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.projectsService.getMatrix(id, user.id, user.role);
-  }
-
   @Put(':id')
   @ApiOperation({ summary: 'Edit a project' })
   @ApiResponse({ status: 200, description: 'Project updated' })

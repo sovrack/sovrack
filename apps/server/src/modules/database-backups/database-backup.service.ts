@@ -58,15 +58,23 @@ export class DatabaseBackupService {
       select: { id: true, service: { select: { databaseType: true } } },
     });
 
-    for (const env of envs) {
+    // Run all backups in parallel so a slow dump (large DB) does not block
+    // the others and does not push past the next cron tick.
+    const eligible = envs.filter((env) => {
       const type = env.service.databaseType;
-      if (!type || !dumpSpec(type)) continue;
-      try {
-        await this.runBackup(env.id, BackupTrigger.SCHEDULED);
-      } catch (error) {
+      return type && dumpSpec(type);
+    });
+
+    const results = await Promise.allSettled(
+      eligible.map((env) => this.runBackup(env.id, BackupTrigger.SCHEDULED)),
+    );
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === 'rejected') {
         this.logger.warn(
-          `Scheduled backup failed for serviceEnv ${env.id}: ${
-            error instanceof Error ? error.message : 'unknown'
+          `Scheduled backup failed for serviceEnv ${eligible[i].id}: ${
+            result.reason instanceof Error ? result.reason.message : 'unknown'
           }`,
         );
       }

@@ -1,17 +1,25 @@
 import { BadRequestException } from '@nestjs/common';
 
 // Mock the repo-clone preflight's outbound calls (git + temp askpass file).
-const execMock = jest.fn(
+const execFileMock = jest.fn(
   (
-    _cmd: string,
+    _file: string,
+    _args: string[],
     _opts: unknown,
     cb: (e: Error | null, r: { stdout: string; stderr: string }) => void,
   ) => cb(null, { stdout: 'refs/heads/main', stderr: '' }),
 );
-jest.mock('child_process', () => ({ exec: execMock }));
+jest.mock('child_process', () => ({ execFile: execFileMock }));
 jest.mock('fs/promises', () => ({
   writeFile: jest.fn().mockResolvedValue(undefined),
   unlink: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@prisma/client', () => ({
+  PrismaClient: class {},
+  Role: { ADMIN: 'ADMIN', DEVELOPER: 'DEVELOPER' },
+}));
+jest.mock('../../../shared/database/prisma.service', () => ({
+  PrismaService: class {},
 }));
 
 import { PrismaService } from '../../../shared/database/prisma.service';
@@ -24,13 +32,15 @@ describe('DeploymentsValidationService.validate', () => {
   let prisma: {
     serviceEnvironment: { findUnique: jest.Mock };
     environment: { findFirst: jest.Mock };
+    server: { findUnique: jest.Mock };
+    serverRun: { findFirst: jest.Mock };
   };
   let auth: { getActor: jest.Mock; assertCanDeployProject: jest.Mock };
   let providers: { forProject: jest.Mock; forService: jest.Mock };
   let service: DeploymentsValidationService;
 
   beforeEach(() => {
-    execMock.mockClear();
+    execFileMock.mockClear();
     prisma = {
       serviceEnvironment: { findUnique: jest.fn().mockResolvedValue(null) },
       environment: {
@@ -38,6 +48,17 @@ describe('DeploymentsValidationService.validate', () => {
           id: 'env-1',
           servers: [{ id: 'srv-1', name: 'srv', host: '10.0.0.1' }],
         }),
+      },
+      server: {
+        findUnique: jest.fn().mockResolvedValue({
+          installedTools: [
+            { toolKey: 'docker', status: 'INSTALLED' },
+            { toolKey: 'nixpacks', status: 'INSTALLED' },
+          ],
+        }),
+      },
+      serverRun: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'run-1' }),
       },
     };
     auth = {
@@ -131,21 +152,40 @@ describe('DeploymentsValidationService.validate', () => {
     );
     expect(res.ready).toBe(true);
     expect(res.required.map((r) => r.binary)).toContain('docker');
-    expect(execMock).not.toHaveBeenCalled(); // registry source skips git preflight
+    expect(execFileMock).not.toHaveBeenCalled(); // registry source skips git preflight
   });
 
   it('runs the git preflight for local sources and passes when reachable', async () => {
     const res = await service.validate('p1', 'env-1', 'DOCKERFILE_LOCAL', 'u1');
     expect(res.ready).toBe(true);
-    expect(execMock).toHaveBeenCalled(); // local source clones-check the repo
+    expect(execFileMock).toHaveBeenCalled(); // local source clones-check the repo
   });
 
   it('fails a local source when the repo is unreachable', async () => {
-    execMock.mockImplementationOnce((_c, _o, cb) =>
+    execFileMock.mockImplementationOnce((_f, _a, _o, cb) =>
       cb(null, { stdout: '', stderr: 'fatal: Authentication failed' }),
     );
     await expect(
       service.validate('p1', 'env-1', 'DOCKERFILE_LOCAL', 'u1'),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('returns ready:false when the server has no successful preparation run', async () => {
+    prisma.serverRun.findFirst.mockResolvedValue(null);
+    const res = await service.validate(
+      'p1',
+      'env-1',
+      'DOCKERFILE_REGISTRY',
+      'u1',
+    );
+    expect(res.ready).toBe(false);
+    expect(res.missing.map((m) => m.binary)).toContain('docker');
+  });
+
+  it('returns ready:false when a required tool is not installed', async () => {
+    prisma.server.findUnique.mockResolvedValue({ installedTools: [] });
+    const res = await service.validate('p1', 'env-1', 'NIXPACKS_LOCAL', 'u1');
+    expect(res.ready).toBe(false);
+    expect(res.missing.length).toBeGreaterThan(0);
   });
 });

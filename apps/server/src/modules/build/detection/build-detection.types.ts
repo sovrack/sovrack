@@ -15,6 +15,24 @@ export type GitHubTreeItem = {
   url: string;
 };
 
+export type BuildType =
+  | 'nestjs'
+  | 'nextjs'
+  | 'react'
+  | 'nodejs'
+  | 'django'
+  | 'python'
+  | 'laravel'
+  | 'php'
+  | 'go'
+  | 'spring-boot'
+  | 'java'
+  | 'dockerized'
+  | 'static'
+  | 'postgres-service'
+  | 'redis-service'
+  | 'unknown';
+
 export type DetectResult = {
   type: string;
   confidence: DetectConfidence;
@@ -30,7 +48,7 @@ export type DetectResult = {
     | 'nixpacks'
     | 'static-build'
     | 'service-container';
-  recommendedBuildType: string;
+  recommendedBuildType: BuildType;
   recommendedStartCommand: string;
   recommendedPort: number;
   reasons: string[];

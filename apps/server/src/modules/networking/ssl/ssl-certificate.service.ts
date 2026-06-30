@@ -43,24 +43,31 @@ export class SslCertificateService {
 
     const playbookRoot = this.ansibleRunner.resolvePlaybooksRoot();
 
-    await this.ansibleRunner.runPlaybook(
-      [
-        `${playbookRoot}/ssl-certbot.yml`,
-        '--extra-vars',
-        JSON.stringify({
-          domain_name: request.domainName,
-          certbot_email: request.email,
-          app_port: request.applicationPort,
-          server_host: request.serverHost,
-        }),
-      ],
-      { cwd: playbookRoot, extraEnv: {} },
-      { signal: new AbortController().signal, timeoutMs: 120_000 },
-    );
+    const issueAbort = new AbortController();
+    const issueTimeout = setTimeout(() => issueAbort.abort(), 120_000);
+    try {
+      await this.ansibleRunner.runPlaybook(
+        [
+          `${playbookRoot}/ssl-certbot.yml`,
+          '--extra-vars',
+          JSON.stringify({
+            domain_name: request.domainName,
+            certbot_email: request.email,
+            app_port: request.applicationPort,
+            server_host: request.serverHost,
+          }),
+        ],
+        { cwd: playbookRoot, extraEnv: {} },
+        { signal: issueAbort.signal, timeoutMs: 120_000 },
+      );
+    } finally {
+      clearTimeout(issueTimeout);
+    }
 
     const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
-    const certificatePath = `/etc/letsencrypt/live/${request.domainName}/fullchain.pem`;
-    const keyPath = `/etc/letsencrypt/live/${request.domainName}/privkey.pem`;
+    const liveDir = `/etc/letsencrypt/live/${request.domainName}`;
+    const certificatePath = `${liveDir}/fullchain.pem`;
+    const keyPath = `${liveDir}/privkey.pem`;
 
     await this.prisma.sslCertificate.upsert({
       where: { domainName: request.domainName },
@@ -80,8 +87,8 @@ export class SslCertificateService {
 
     return {
       domain: request.domainName,
-      certificatePath: `/etc/letsencrypt/live/${request.domainName}/fullchain.pem`,
-      keyPath: `/etc/letsencrypt/live/${request.domainName}/privkey.pem`,
+      certificatePath,
+      keyPath,
       expiresAt,
       autoRenewal: true,
     };
@@ -92,15 +99,21 @@ export class SslCertificateService {
 
     const playbookRoot = this.ansibleRunner.resolvePlaybooksRoot();
 
-    await this.ansibleRunner.runPlaybook(
-      [
-        `${playbookRoot}/ssl-revoke.yml`,
-        '--extra-vars',
-        JSON.stringify({ domain_name: domainName }),
-      ],
-      { cwd: playbookRoot, extraEnv: {} },
-      { signal: new AbortController().signal, timeoutMs: 60_000 },
-    );
+    const revokeAbort = new AbortController();
+    const revokeTimeout = setTimeout(() => revokeAbort.abort(), 60_000);
+    try {
+      await this.ansibleRunner.runPlaybook(
+        [
+          `${playbookRoot}/ssl-revoke.yml`,
+          '--extra-vars',
+          JSON.stringify({ domain_name: domainName }),
+        ],
+        { cwd: playbookRoot, extraEnv: {} },
+        { signal: revokeAbort.signal, timeoutMs: 60_000 },
+      );
+    } finally {
+      clearTimeout(revokeTimeout);
+    }
   }
 
   async getExpiringCertificates(

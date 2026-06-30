@@ -32,6 +32,15 @@ export function createDeploymentsWorker(
 ): Worker {
   return new Worker(DEPLOYMENTS_QUEUE, processor, {
     connection: { url: requireRedisUrl() },
-    concurrency: 3,
+    concurrency: 5,
+    // BullMQ : stalledInterval / maxStalledCount sont des options RACINE du
+    // Worker (pas sous `settings`, qui est de type AdvancedOptions et ne les
+    // contient pas — d'où l'erreur TS2353 quand elles y étaient imbriquées).
+    stalledInterval: 30000,
+    maxStalledCount: 1,
+    limiter: {
+      max: 10,
+      duration: 60000,
+    },
   });
 }

@@ -89,19 +89,38 @@ export class DeploymentsQueryService {
    * with provenance and secrets masked. Backs the "Variables Preview" shown
    * before confirming a deploy. Uses the exact same resolver as the executor.
    */
-  async previewEnv(serviceEnvId: string): Promise<EnvPreview> {
+  async previewEnv(
+    serviceEnvId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<EnvPreview> {
     const serviceEnv = await this.prisma.serviceEnvironment.findUnique({
       where: { id: serviceEnvId },
       select: {
         env: true,
         secretsEnv: true,
-        service: { select: { env: true, secretsEnv: true } },
-        environment: { select: { env: true, secretsEnv: true } },
+        service: { select: { env: true, secretsEnv: true, projectId: true } },
+        environment: {
+          select: { env: true, secretsEnv: true, projectId: true },
+        },
       },
     });
     if (!serviceEnv) {
       throw new NotFoundException('Lien service-environnement non trouvé');
     }
+
+    const projectId =
+      serviceEnv.service?.projectId ?? serviceEnv.environment?.projectId;
+    if (!projectId) {
+      throw new NotFoundException(
+        'Projet introuvable pour ce lien service-env',
+      );
+    }
+    await this.authorizationService.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
 
     // secretsEnv is encrypted at rest — decrypt before resolving (decryptSafe
     // passes through legacy plaintext / null unchanged).
@@ -172,11 +191,13 @@ export class DeploymentsQueryService {
         ? undefined
         : { project: { members: { some: { userId } } } };
 
+    const MAX_UNPAGINATED = 200;
     if (!pagination?.page && !pagination?.limit) {
       return this.prisma.deployment.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         include: deploymentRelationsInclude,
+        take: MAX_UNPAGINATED,
       });
     }
 

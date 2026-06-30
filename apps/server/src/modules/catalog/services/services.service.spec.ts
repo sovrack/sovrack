@@ -105,7 +105,14 @@ describe('ServicesService — CRUD + templates', () => {
       projectAccess as unknown as ProjectAccessService,
       crypto as unknown as CryptoService,
     );
-    return { service, prisma, serviceEnvs, sourceProviders, projectAccess, crypto };
+    return {
+      service,
+      prisma,
+      serviceEnvs,
+      sourceProviders,
+      projectAccess,
+      crypto,
+    };
   }
 
   it('findAll checks access then returns the project services', async () => {

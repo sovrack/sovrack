@@ -3,6 +3,7 @@ import { PrismaModule } from '../../../shared/database/prisma.module';
 import { SshModule } from '../../../adapters/ssh/ssh.module';
 import { AnsibleModule } from '../../../adapters/provisioning/ansible.module';
 import { AppJwtModule } from '../../../shared/jwt/jwt.module';
+import { NotificationsModule } from '../../notifications/notifications.module';
 import { SslCertificateService } from './ssl-certificate.service';
 import { SslRenewalService } from './ssl-renewal.service';
 import { SslController } from './ssl.controller';
@@ -13,7 +14,13 @@ import { SslController } from './ssl.controller';
  * and scheduled auto-renewal.
  */
 @Module({
-  imports: [PrismaModule, SshModule, AnsibleModule, AppJwtModule],
+  imports: [
+    PrismaModule,
+    SshModule,
+    AnsibleModule,
+    AppJwtModule,
+    NotificationsModule,
+  ],
   controllers: [SslController],
   providers: [SslCertificateService, SslRenewalService],
   exports: [SslCertificateService],

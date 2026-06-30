@@ -28,6 +28,12 @@ import {
   conditionsToJson,
   staleDegradedCondition,
 } from '../utils/deployment-conditions.util';
+import { STALE_THRESHOLD_MINUTES } from '../utils/deployment-stale.constants';
+import {
+  buildAppSpecSnapshot,
+  buildDbSpecSnapshot,
+} from '../utils/spec-snapshot.util';
+import { toJson } from '../../../shared/utils/prisma-json.util';
 
 @Injectable()
 export class DeploymentsCreateService {
@@ -67,8 +73,9 @@ export class DeploymentsCreateService {
       SELECT pg_advisory_xact_lock(hashtext('deploy_env:' || ${serviceEnvId}))
     `;
 
-    // aligné build timeout (30 min) + cron 45 min : ne pas tuer un build long légitime
-    const staleTimeout = new Date(Date.now() - 45 * 60 * 1000);
+    const staleTimeout = new Date(
+      Date.now() - STALE_THRESHOLD_MINUTES * 60 * 1_000,
+    );
     await tx.deployment.updateMany({
       where: {
         serviceEnvId,
@@ -207,34 +214,20 @@ export class DeploymentsCreateService {
       );
 
       // Immutable Release : on gèle TOUTE la config (build + runtime) au moment
-      // du deploy (reproductibilité + audit). On capture la config EFFECTIVE,
-      // c.-à-d. override cellule (ServiceEnvironment) > défaut service — pour que
-      // le snapshot reflète exactement l'état désiré déployé. Lu par le reconciler ;
-      // sera la source unique de l'executor en P2 (rollback EXACT, bascule runtime).
-      // Étape additive, sans migration. NB: les secrets ne sont PAS gelés ici
-      // (chiffrés au repos, jamais en clair dans le snapshot).
-      const specSnapshot = {
-        capturedAt: new Date().toISOString(),
-        repoPath: service.repoPath ?? null,
+      // du deploy (reproductibilité + audit). Lu par le reconciler ; sera la source
+      // unique de l'executor en P2 (rollback EXACT, bascule runtime).
+      // NB: les secrets ne sont PAS gelés ici (chiffrés au repos, jamais en clair).
+      const specSnapshot = buildAppSpecSnapshot({
+        service,
+        serviceEnv,
         branch,
         buildSource,
         isLocalBuild,
         buildPack: this.configResolver.buildSourceToBuildPack(buildSource),
-        dockerfile: service.dockerfile ?? null,
-        rootDir: service.rootDir ?? null,
-        // Config runtime EFFECTIVE (override cellule > défaut service).
-        port: serviceEnv.port ?? service.port ?? null,
-        startCommand: serviceEnv.startCommand ?? service.startCommand ?? null,
-        healthcheckPath:
-          serviceEnv.healthcheckPath ?? service.healthcheckPath ?? null,
-        replicas: serviceEnv.replicas ?? service.replicas ?? 1,
-        cpuLimit: service.cpuLimit ?? null,
-        memLimitMb: service.memLimitMb ?? null,
-        buildArgs: service.buildArgs ?? null,
         strategy: dto.strategy === 'blue-green' ? 'BLUE_GREEN' : 'STANDARD',
         nixpacksConfig: resolvedNixpacksConfig ?? null,
         staticConfig: resolvedStaticConfig ?? null,
-      };
+      });
       const resolvedRefs = { serverId: server?.id ?? null };
 
       return tx.deployment.create({
@@ -252,8 +245,8 @@ export class DeploymentsCreateService {
               ? DeploymentStrategy.BLUE_GREEN
               : DeploymentStrategy.STANDARD,
           buildId: build.id,
-          specSnapshot: specSnapshot as unknown as Prisma.InputJsonValue,
-          resolvedRefs: resolvedRefs as unknown as Prisma.InputJsonValue,
+          specSnapshot: toJson(specSnapshot),
+          resolvedRefs: toJson(resolvedRefs),
           observedGeneration: serviceEnv.generation,
         },
       });
@@ -428,15 +421,11 @@ export class DeploymentsCreateService {
     const deployment = await this.prisma.$transaction(async (tx) => {
       await this.acquireDeploySlot(tx, serviceEnv.id, project);
 
-      const specSnapshot = {
-        capturedAt: new Date().toISOString(),
-        buildSource: 'EXTERNAL_IMAGE',
-        isLocalBuild: false,
-        strategy: 'STANDARD',
+      const specSnapshot = buildDbSpecSnapshot({
         databaseType: service.databaseType,
         databaseVersion: service.databaseVersion,
         databaseImage: dbConfig.image,
-      };
+      });
 
       return tx.deployment.create({
         data: {
@@ -450,10 +439,8 @@ export class DeploymentsCreateService {
           startedAt: new Date(),
           strategy: DeploymentStrategy.STANDARD,
           dockerImage: dbConfig.image,
-          specSnapshot: specSnapshot as unknown as Prisma.InputJsonValue,
-          resolvedRefs: {
-            serverId: server?.id ?? null,
-          } as unknown as Prisma.InputJsonValue,
+          specSnapshot: toJson(specSnapshot),
+          resolvedRefs: toJson({ serverId: server?.id ?? null }),
           observedGeneration: serviceEnv.generation,
         },
       });

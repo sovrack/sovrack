@@ -10,7 +10,6 @@ import { GitlabAdapter } from './adapters/gitlab/gitlab.adapter';
 import { GitlabClient } from './adapters/gitlab/gitlab.client';
 import { GitlabConnectionService } from './adapters/gitlab/gitlab-connection.service';
 import { GithubAdapter } from './adapters/github/github.adapter';
-import { GiteaAdapter } from './adapters/gitea/gitea.adapter';
 import { ConnectSourceDto } from './dto/connect-source.dto';
 import type {
   IGitProvider,
@@ -45,7 +44,6 @@ export class SourceProvidersService {
     private readonly gitlabApi: GitlabClient,
     private readonly gitlabConnection: GitlabConnectionService,
     private readonly github: GithubAdapter,
-    private readonly gitea: GiteaAdapter,
   ) {}
 
   /**
@@ -55,7 +53,7 @@ export class SourceProvidersService {
    * méthode (forType/listAvailable) ne change → principe Open/Closed.
    */
   private get registeredProviders(): IGitProvider[] {
-    return [this.gitlabCore, this.github, this.gitea];
+    return [this.gitlabCore, this.github];
   }
 
   /**
