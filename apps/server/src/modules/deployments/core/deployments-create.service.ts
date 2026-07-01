@@ -24,11 +24,7 @@ import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.ser
 import { BuildStrategyResolver } from '../../build/strategies/build-strategy.resolver';
 import { AuditService } from '../../audit/audit.service';
 import { QueueService } from '../../../shared/queue/queue.service';
-import {
-  conditionsToJson,
-  staleDegradedCondition,
-} from '../utils/deployment-conditions.util';
-import { STALE_THRESHOLD_MINUTES } from '../utils/deployment-stale.constants';
+import { acquireDeploySlot } from '../utils/deploy-slot.util';
 import {
   buildAppSpecSnapshot,
   buildDbSpecSnapshot,
@@ -51,80 +47,6 @@ export class DeploymentsCreateService {
     private readonly auditService: AuditService,
     private readonly queueService: QueueService,
   ) {}
-
-  /**
-   * Réserve un « slot » de déploiement pour ce service-env, dans une transaction :
-   *  1. verrou consultatif par service-env (anti double-déploiement concurrent) ;
-   *  2. reprise des déploiements bloqués (stale > 45 min) → FAILED ;
-   *  3. refus si un déploiement est déjà actif (PENDING/RUNNING) ;
-   *  4. plafond de concurrence par projet (multi-tenant fair-share).
-   *
-   * Mutualisé entre le chemin applicatif ET le chemin base de données. Avant,
-   * ce bloc était dupliqué et les deux copies avaient DIVERGÉ : la version DB
-   * n'appliquait pas le plafond (4) et écrivait `conditions` en objet (invisible
-   * dans l'UI qui attend un tableau).
-   */
-  private async acquireDeploySlot(
-    tx: Prisma.TransactionClient,
-    serviceEnvId: string,
-    project: { id: string; maxConcurrentDeploys: number | null },
-  ): Promise<void> {
-    await tx.$executeRaw`
-      SELECT pg_advisory_xact_lock(hashtext('deploy_env:' || ${serviceEnvId}))
-    `;
-
-    const staleTimeout = new Date(
-      Date.now() - STALE_THRESHOLD_MINUTES * 60 * 1_000,
-    );
-    await tx.deployment.updateMany({
-      where: {
-        serviceEnvId,
-        status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
-        startedAt: { lt: staleTimeout },
-      },
-      data: {
-        status: DeploymentStatus.FAILED,
-        finishedAt: new Date(),
-        conditions: conditionsToJson(
-          staleDegradedCondition(
-            'StaleRecovery',
-            'Déploiement récupéré après un crash du service.',
-          ),
-        ),
-      },
-    });
-
-    const active = await tx.deployment.findFirst({
-      where: {
-        serviceEnvId,
-        status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
-      },
-      select: { id: true, status: true },
-    });
-    if (active) {
-      throw new BadRequestException(
-        `Un déploiement est déjà en cours pour ce service sur cet environnement ` +
-          `(ID: ${active.id}, statut: ${active.status}).`,
-      );
-    }
-
-    // Multi-tenant fair-share : un projet ne peut pas saturer les workers.
-    const maxConcurrent = project.maxConcurrentDeploys;
-    if (maxConcurrent && maxConcurrent > 0) {
-      const inFlight = await tx.deployment.count({
-        where: {
-          projectId: project.id,
-          status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
-        },
-      });
-      if (inFlight >= maxConcurrent) {
-        throw new BadRequestException(
-          `Limite de déploiements simultanés atteinte pour ce projet ` +
-            `(${inFlight}/${maxConcurrent}). Réessayez quand un déploiement en cours sera terminé.`,
-        );
-      }
-    }
-  }
 
   async create(dto: CreateDeploymentDto, userId: string): Promise<Deployment> {
     const actor = await this.authorizationService.getActor(userId);

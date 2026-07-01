@@ -103,6 +103,30 @@ export class DeploymentsLifecycleService {
       data: { status: ContainerStatus.EXITED },
     });
 
+    // If this deployment was the "live" pointer, roll it back to the last
+    // SUCCESS so the reconciler doesn't auto-heal a deliberately canceled deploy.
+    if (canceled.serviceEnvId) {
+      const svcEnv = await this.prisma.serviceEnvironment.findUnique({
+        where: { id: canceled.serviceEnvId },
+        select: { currentDeploymentId: true },
+      });
+      if (svcEnv?.currentDeploymentId === canceled.id) {
+        const lastSuccess = await this.prisma.deployment.findFirst({
+          where: {
+            serviceEnvId: canceled.serviceEnvId,
+            status: DeploymentStatus.SUCCESS,
+            id: { not: canceled.id },
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true },
+        });
+        await this.prisma.serviceEnvironment.update({
+          where: { id: canceled.serviceEnvId },
+          data: { currentDeploymentId: lastSuccess?.id ?? null },
+        });
+      }
+    }
+
     this.gateway.emitStatus({
       deploymentId: canceled.id,
       status: canceled.status,

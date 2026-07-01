@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { Deployment, DeploymentStatus, Role } from '@prisma/client';
+import { Deployment, DeploymentStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
@@ -79,6 +79,12 @@ export class DeploymentsRollbackService {
       throw new BadRequestException('Image de rollback introuvable');
     }
 
+    if (previousSuccess.specSnapshot == null) {
+      this.logger.warn(
+        `[Rollback] Deployment ${previousSuccess.id} has no specSnapshot — runtime config will fall back to current live service config instead of the frozen config at deploy time.`,
+      );
+    }
+
     const actor = await this.authorizationService.getActor(userId);
 
     // Prefer imageSha (immutable digest) over dockerImage (mutable tag).
@@ -106,6 +112,9 @@ export class DeploymentsRollbackService {
         rolledBackAt: new Date(),
         previousDeploymentId: previousSuccess.id,
         startedAt: new Date(),
+        specSnapshot: (previousSuccess.specSnapshot ??
+          Prisma.JsonNull) as Prisma.InputJsonValue,
+        observedGeneration: previousSuccess.observedGeneration,
         logs:
           `Rollback depuis ${previousSuccess.id}` +
           (previousSuccess.imageSha

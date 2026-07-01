@@ -17,16 +17,40 @@ import {
   type AutoDeployTriggerEvent,
 } from '../events/deployment.events';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
+import { buildAppSpecSnapshot } from '../utils/spec-snapshot.util';
+import { resolveBuildSource } from '../utils/build-source.util';
+import { toJson } from '../../../shared/utils/prisma-json.util';
+import { acquireDeploySlot } from '../utils/deploy-slot.util';
 
 /** Shape of a serviceEnvironment row as selected in triggerAutoDeployIfConfigured. */
 type MatchingServiceEnv = Pick<
   ServiceEnvironment,
-  'id' | 'serviceId' | 'environmentId' | 'buildPack'
+  | 'id'
+  | 'serviceId'
+  | 'environmentId'
+  | 'buildPack'
+  | 'port'
+  | 'startCommand'
+  | 'healthcheckPath'
+  | 'replicas'
+  | 'generation'
 > & {
   service: {
     buildPack: BuildPack | null;
+    buildMode: string | null;
+    sourceType: string | null;
     nixpacksConfig: Prisma.JsonValue;
     staticConfig: Prisma.JsonValue;
+    repoPath: string | null;
+    dockerfile: string | null;
+    rootDir: string | null;
+    port: number | null;
+    startCommand: string | null;
+    healthcheckPath: string | null;
+    replicas: number;
+    cpuLimit: number | null;
+    memLimitMb: number | null;
+    buildArgs: Prisma.JsonValue;
   };
   environment: {
     id: string;
@@ -91,8 +115,29 @@ export class DeploymentsAutoTriggerService {
         serviceId: true,
         environmentId: true,
         buildPack: true,
+        port: true,
+        startCommand: true,
+        healthcheckPath: true,
+        replicas: true,
+        generation: true,
         service: {
-          select: { buildPack: true, nixpacksConfig: true, staticConfig: true },
+          select: {
+            buildPack: true,
+            buildMode: true,
+            sourceType: true,
+            nixpacksConfig: true,
+            staticConfig: true,
+            repoPath: true,
+            dockerfile: true,
+            rootDir: true,
+            port: true,
+            startCommand: true,
+            healthcheckPath: true,
+            replicas: true,
+            cpuLimit: true,
+            memLimitMb: true,
+            buildArgs: true,
+          },
         },
         environment: {
           select: {
@@ -170,41 +215,6 @@ export class DeploymentsAutoTriggerService {
         if (existing) return;
       }
 
-      // Concurrency guard: never start a second deploy for a service-env that
-      // already has one in flight (race on same container/host port).
-      const inFlight = await this.prisma.deployment.findFirst({
-        where: {
-          serviceEnvId: svcEnv.id,
-          status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
-        },
-        select: { id: true },
-      });
-      if (inFlight) {
-        this.logger.warn(
-          `Auto-deploy skipped for serviceEnv ${svcEnv.id}: deployment ${inFlight.id} already in flight.`,
-        );
-        return;
-      }
-
-      // Project-level concurrency guard.
-      const maxConcurrent = svcEnv.environment.project?.maxConcurrentDeploys;
-      if (maxConcurrent && maxConcurrent > 0) {
-        const projectInFlight = await this.prisma.deployment.count({
-          where: {
-            projectId,
-            status: {
-              in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING],
-            },
-          },
-        });
-        if (projectInFlight >= maxConcurrent) {
-          this.logger.warn(
-            `Auto-deploy skipped for serviceEnv ${svcEnv.id}: project concurrent deploy limit reached (${projectInFlight}/${maxConcurrent}).`,
-          );
-          return;
-        }
-      }
-
       // Resolve build config from ServiceEnvironment override or Service default.
       const resolvedBuildPack =
         svcEnv.buildPack ?? svcEnv.service.buildPack ?? BuildPack.DOCKERFILE;
@@ -218,7 +228,40 @@ export class DeploymentsAutoTriggerService {
         resolvedBuildPack === BuildPack.NIXPACKS ||
         resolvedBuildPack === BuildPack.BUILDPACK;
 
+      // Freeze the full spec at dispatch time so rollback/reconciler can use
+      // the exact config that was active when this deploy was triggered.
+      const buildSource = resolveBuildSource({
+        buildPack: resolvedBuildPack,
+        buildMode: svcEnv.service.buildMode,
+        sourceType: svcEnv.service.sourceType,
+      });
+      const specSnapshot = buildAppSpecSnapshot({
+        service: svcEnv.service,
+        serviceEnv: {
+          port: svcEnv.port,
+          startCommand: svcEnv.startCommand,
+          healthcheckPath: svcEnv.healthcheckPath,
+          replicas: svcEnv.replicas,
+        },
+        branch,
+        buildSource,
+        isLocalBuild,
+        buildPack: resolvedBuildPack,
+        strategy: 'STANDARD',
+        nixpacksConfig,
+        staticConfig,
+      });
+
+      const project = svcEnv.environment.project ?? {
+        id: projectId,
+        maxConcurrentDeploys: null,
+      };
+
       const deployment = await this.prisma.$transaction(async (tx) => {
+        // Atomic advisory lock + stale recovery + in-flight guard + project cap.
+        // Replaces the racy out-of-transaction guards that were here before.
+        await acquireDeploySlot(tx, svcEnv.id, project);
+
         const build = await this.buildsService.create(
           {
             projectId,
@@ -248,6 +291,8 @@ export class DeploymentsAutoTriggerService {
             status: DeploymentStatus.PENDING,
             startedAt: new Date(),
             buildId: build.id,
+            specSnapshot: toJson(specSnapshot),
+            observedGeneration: svcEnv.generation,
             ...(pipelineIdValue ? { externalPipelineId: pipelineIdValue } : {}),
             ...(dockerImage ? { dockerImage } : {}),
             logs: [

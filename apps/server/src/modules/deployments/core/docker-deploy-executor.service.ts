@@ -23,6 +23,7 @@ import { DeploymentLogEmitter } from './deployment-log-emitter.service';
 import { DeploymentEnvService } from './deployment-env.service';
 import { DeploymentPrelaunchService } from './deployment-prelaunch.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { buildContainerCreateSpec } from '../utils/container-create-spec.util';
 import { toJson } from '../../../shared/utils/prisma-json.util';
 import {
@@ -70,6 +71,7 @@ export class DockerDeployExecutorService {
     private readonly deploymentEnv: DeploymentEnvService,
     private readonly deployRouting: DeployRoutingService,
     private readonly containerLifecycle: ContainerLifecycleService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -589,6 +591,18 @@ export class DockerDeployExecutorService {
         finishedAt: finished.finishedAt,
       });
 
+      void this.notifications.notifyDeploymentFinished({
+        deploymentId: finished.id,
+        status: 'SUCCESS',
+        projectName: deployment.project.name,
+        environmentName:
+          deployment.serviceEnv?.environment?.name ??
+          deployment.environment?.name ??
+          '',
+        branch: deployment.branch ?? '',
+        triggeredBy: deployment.user?.email ?? 'auto',
+      }).catch(() => undefined);
+
       return finished;
     } catch (error) {
       // Automatic recovery: remove the half-deployed new container and bring
@@ -628,41 +642,21 @@ export class DockerDeployExecutorService {
         finishedAt: failed.finishedAt,
       });
 
+      void this.notifications.notifyDeploymentFinished({
+        deploymentId: failed.id,
+        status: 'FAILED',
+        projectName: deployment.project.name,
+        environmentName:
+          deployment.serviceEnv?.environment?.name ??
+          deployment.environment?.name ??
+          '',
+        branch: deployment.branch ?? '',
+        triggeredBy: deployment.user?.email ?? 'auto',
+      }).catch(() => undefined);
+
       if (error instanceof BadRequestException) throw error;
       throw new BadRequestException('Déploiement Docker échoué');
     }
-  }
-
-  // ─── Deploy phases (extracted from executeDeployInternal) ────────────────────
-
-  /** Run the optional pre-deploy command in a throwaway container; throw on failure. */
-  async getContainerLogs(deploymentId: string, tail = 300): Promise<string> {
-    const deployment = await this.prisma.deployment.findUnique({
-      where: { id: deploymentId },
-      select: { resolvedRefs: true },
-    });
-    if (!deployment) throw new BadRequestException('Déploiement non trouvé');
-    const refs = deployment.resolvedRefs as {
-      serverId?: string;
-      containerName?: string;
-    } | null;
-    if (!refs?.serverId) throw new BadRequestException('Aucun serveur cible');
-    const serverId = refs.serverId;
-    const containers = await this.docker.listContainers(serverId, true);
-    for (const c of containers) {
-      if (refs.containerName && c.Names?.includes(`/${refs.containerName}`)) {
-        const logs: string[] = [];
-        for await (const chunk of this.docker.streamContainerLogs(
-          serverId,
-          c.Id,
-          { follow: false, tail },
-        )) {
-          logs.push(chunk.line);
-        }
-        return logs.join('\n');
-      }
-    }
-    return '';
   }
 
   emitGatewayLog(

@@ -19,24 +19,54 @@ const BUILD_ID = 'build-1';
 const DEPLOYMENT_ID = 'deploy-1';
 const BRANCH = 'main';
 
-const makeSvcEnv = (overrides = {}) => ({
+const makeSvcEnv = (overrides: Record<string, unknown> = {}) => ({
   id: SVC_ENV_ID,
   serviceId: SVC_ID,
   environmentId: ENV_ID,
   buildPack: null,
+  // ServiceEnvironment-level overrides (null = inherit from service)
+  port: null,
+  startCommand: null,
+  healthcheckPath: null,
+  replicas: null,
+  generation: 1,
   service: {
     buildPack: BuildPack.DOCKERFILE,
+    buildMode: null,
+    sourceType: null,
     nixpacksConfig: null,
     staticConfig: null,
+    repoPath: null,
+    dockerfile: null,
+    rootDir: '/',
+    port: 3000,
+    startCommand: null,
+    healthcheckPath: null,
+    replicas: 1,
+    cpuLimit: null,
+    memLimitMb: null,
+    buildArgs: null,
   },
-  environment: { id: ENV_ID, isProtected: false, name: 'production' },
+  environment: {
+    id: ENV_ID,
+    isProtected: false,
+    name: 'production',
+    project: { id: PROJECT_ID, maxConcurrentDeploys: null },
+  },
   ...overrides,
 });
 
+/** Build a prisma mock that supports acquireDeploySlot (advisory lock + stale
+ * recovery + findFirst) inside the transaction via $executeRaw + updateMany. */
 const makePrisma = () => ({
   serviceEnvironment: { findMany: jest.fn(), findUnique: jest.fn() },
-  deployment: { findFirst: jest.fn(), create: jest.fn() },
+  deployment: {
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+  },
   $transaction: jest.fn(),
+  $executeRaw: jest.fn().mockResolvedValue(undefined),
 });
 
 const makeQueue = () => ({
@@ -93,6 +123,7 @@ describe('DeploymentsAutoTriggerService', () => {
 
     it('creates deployment and enqueues job for matching ServiceEnvironment', async () => {
       prisma.serviceEnvironment.findMany.mockResolvedValue([makeSvcEnv()]);
+      // No pipeline ID → dedup block skipped; acquireDeploySlot findFirst → null (no in-flight)
       prisma.deployment.findFirst.mockResolvedValue(null);
 
       const build = { id: BUILD_ID };
@@ -131,10 +162,40 @@ describe('DeploymentsAutoTriggerService', () => {
       );
     });
 
+    it('deployment create receives specSnapshot and observedGeneration', async () => {
+      prisma.serviceEnvironment.findMany.mockResolvedValue([
+        makeSvcEnv({ generation: 5 }),
+      ]);
+      prisma.deployment.findFirst.mockResolvedValue(null);
+      buildsService.create.mockResolvedValue({ id: BUILD_ID });
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
+      );
+      prisma.deployment.create.mockResolvedValue({
+        id: DEPLOYMENT_ID,
+        projectId: PROJECT_ID,
+        environmentId: ENV_ID,
+        status: DeploymentStatus.PENDING,
+        startedAt: new Date(),
+      });
+
+      await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
+
+      const createArgs = prisma.deployment.create.mock.calls[0][0].data as Record<string, unknown>;
+      expect(createArgs).toHaveProperty('specSnapshot');
+      expect(createArgs).toHaveProperty('observedGeneration', 5);
+      expect(createArgs.specSnapshot).toMatchObject({ branch: BRANCH });
+    });
+
     it('skips a protected environment (webhook/system cannot deploy there)', async () => {
       prisma.serviceEnvironment.findMany.mockResolvedValue([
         makeSvcEnv({
-          environment: { id: ENV_ID, isProtected: true, name: 'production' },
+          environment: {
+            id: ENV_ID,
+            isProtected: true,
+            name: 'production',
+            project: { id: PROJECT_ID, maxConcurrentDeploys: null },
+          },
         }),
       ]);
 
@@ -160,15 +221,19 @@ describe('DeploymentsAutoTriggerService', () => {
       expect(queue.enqueueDeploy).not.toHaveBeenCalled();
     });
 
-    it('skips when a deployment is already in flight for the service-env (concurrency guard)', async () => {
+    it('skips (logs error) when a deployment is already in flight for the service-env (concurrency guard inside tx)', async () => {
       prisma.serviceEnvironment.findMany.mockResolvedValue([makeSvcEnv()]);
-      // No pipeline ID → dedup block skipped; the in-flight guard findFirst
-      // returns an active deployment → the webhook must not start a second one.
-      prisma.deployment.findFirst.mockResolvedValue({ id: 'in-flight-deploy' });
+      // acquireDeploySlot: $executeRaw OK → updateMany (stale, 0 rows) → findFirst finds in-flight → throws
+      prisma.deployment.findFirst.mockResolvedValue({ id: 'in-flight-deploy', status: 'RUNNING' });
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
+      );
 
       await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
 
-      expect(prisma.$transaction).not.toHaveBeenCalled();
+      // Transaction is entered but throws internally via acquireDeploySlot;
+      // the outer catch logs the error — no job must be enqueued.
+      expect(prisma.$transaction).toHaveBeenCalled();
       expect(queue.enqueueDeploy).not.toHaveBeenCalled();
     });
 
@@ -177,8 +242,20 @@ describe('DeploymentsAutoTriggerService', () => {
         makeSvcEnv({
           service: {
             buildPack: BuildPack.NIXPACKS,
+            buildMode: null,
+            sourceType: null,
             nixpacksConfig: null,
             staticConfig: null,
+            repoPath: null,
+            dockerfile: null,
+            rootDir: '/',
+            port: 3000,
+            startCommand: null,
+            healthcheckPath: null,
+            replicas: 1,
+            cpuLimit: null,
+            memLimitMb: null,
+            buildArgs: null,
           },
         }),
       ]);
