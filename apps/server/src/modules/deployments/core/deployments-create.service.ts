@@ -27,6 +27,7 @@ import { QueueService } from '../../../shared/queue/queue.service';
 import { acquireDeploySlot } from '../utils/deploy-slot.util';
 import {
   buildAppSpecSnapshot,
+  buildComposeSpecSnapshot,
   buildDbSpecSnapshot,
 } from '../utils/spec-snapshot.util';
 import { toJson } from '../../../shared/utils/prisma-json.util';
@@ -118,7 +119,7 @@ export class DeploymentsCreateService {
     const server = environment.servers[0] ?? null;
 
     let deployment = await this.prisma.$transaction(async (tx) => {
-      await this.acquireDeploySlot(tx, serviceEnv.id, project);
+      await acquireDeploySlot(tx, serviceEnv.id, project);
 
       const build = await this.buildsService.create(
         {
@@ -139,17 +140,26 @@ export class DeploymentsCreateService {
       // du deploy (reproductibilité + audit). Lu par le reconciler ; sera la source
       // unique de l'executor en P2 (rollback EXACT, bascule runtime).
       // NB: les secrets ne sont PAS gelés ici (chiffrés au repos, jamais en clair).
-      const specSnapshot = buildAppSpecSnapshot({
-        service,
-        serviceEnv,
-        branch,
-        buildSource,
-        isLocalBuild,
-        buildPack: this.configResolver.buildSourceToBuildPack(buildSource),
-        strategy: dto.strategy === 'blue-green' ? 'BLUE_GREEN' : 'STANDARD',
-        nixpacksConfig: resolvedNixpacksConfig ?? null,
-        staticConfig: resolvedStaticConfig ?? null,
-      });
+      const specSnapshot =
+        buildSource === 'DOCKER_COMPOSE'
+          ? buildComposeSpecSnapshot({
+              composeServiceName: service.composeServiceName ?? null,
+              port: serviceEnv.port ?? service.port ?? null,
+              replicas: serviceEnv.replicas ?? service.replicas ?? 1,
+            })
+          : buildAppSpecSnapshot({
+              service,
+              serviceEnv,
+              branch,
+              buildSource,
+              isLocalBuild,
+              buildPack:
+                this.configResolver.buildSourceToBuildPack(buildSource),
+              strategy:
+                dto.strategy === 'blue-green' ? 'BLUE_GREEN' : 'STANDARD',
+              nixpacksConfig: resolvedNixpacksConfig ?? null,
+              staticConfig: resolvedStaticConfig ?? null,
+            });
       const resolvedRefs = { serverId: server?.id ?? null };
 
       return tx.deployment.create({
@@ -341,7 +351,7 @@ export class DeploymentsCreateService {
     const server = environment.servers[0] ?? null;
 
     const deployment = await this.prisma.$transaction(async (tx) => {
-      await this.acquireDeploySlot(tx, serviceEnv.id, project);
+      await acquireDeploySlot(tx, serviceEnv.id, project);
 
       const specSnapshot = buildDbSpecSnapshot({
         databaseType: service.databaseType,

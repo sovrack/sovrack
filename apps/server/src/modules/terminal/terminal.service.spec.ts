@@ -25,9 +25,7 @@ describe('TerminalService.openSession', () => {
     const prisma = {
       server: { findUnique: jest.fn().mockResolvedValue(server) },
       environment: {
-        findUnique: jest
-          .fn()
-          .mockResolvedValue({ projectId: 'proj1' }),
+        findUnique: jest.fn().mockResolvedValue({ projectId: 'proj1' }),
       },
       projectMember: {
         findUnique: jest.fn().mockResolvedValue({ role: 'OWNER' }),
@@ -90,7 +88,13 @@ describe('TerminalService.openSession', () => {
 
   it('opens the shell for a platform ADMIN and records the audit trail', async () => {
     const { svc, sshSessions, audit, handle } = make(validServer);
-    const res = await svc.openSession('srv1', 'admin', Role.ADMIN, opts, handlers);
+    const res = await svc.openSession(
+      'srv1',
+      'admin',
+      Role.ADMIN,
+      opts,
+      handlers,
+    );
     expect(audit.recordOpen).toHaveBeenCalledWith(
       'srv1',
       'admin',
@@ -125,7 +129,13 @@ describe('TerminalService.openSession', () => {
 
   it('allows a project OWNER to access a server linked to their environment', async () => {
     const { svc, sshSessions } = make(validServer);
-    const res = await svc.openSession('srv1', 'u1', Role.DEVELOPER, opts, handlers);
+    const res = await svc.openSession(
+      'srv1',
+      'u1',
+      Role.DEVELOPER,
+      opts,
+      handlers,
+    );
     expect(sshSessions.openShell).toHaveBeenCalled();
     expect(res).toBeDefined();
   });

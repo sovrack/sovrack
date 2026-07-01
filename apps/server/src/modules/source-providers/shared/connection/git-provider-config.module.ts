@@ -6,7 +6,6 @@ import { GitProviderConfigService } from './git-provider-config.service';
 import { GitProviderOauthService } from './git-provider-oauth.service';
 import { GitProviderLegacySyncService } from './git-provider-legacy-sync.service';
 import { GithubProviderService } from './github-provider.service';
-import { GiteaProviderService } from './gitea-provider.service';
 import { GitlabConnectionTesterService } from './gitlab-connection-tester.service';
 
 @Module({
@@ -16,7 +15,6 @@ import { GitlabConnectionTesterService } from './gitlab-connection-tester.servic
     GitProviderOauthService,
     GitProviderLegacySyncService,
     GithubProviderService,
-    GiteaProviderService,
     GitlabConnectionTesterService,
   ],
   exports: [GitProviderConfigService, GitProviderOauthService],

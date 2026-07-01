@@ -40,6 +40,12 @@ export interface ISshExecutor {
     command: string,
     failureMessage: string,
   ): Promise<void>;
+  /** Write `content` to `remotePath` on the remote host (mkdir -p + cat via stdin). */
+  putContent(
+    conn: SshConnection,
+    remotePath: string,
+    content: string,
+  ): Promise<void>;
   buildHostVerifier(
     expectedKeyBase64: string,
   ): (key: Buffer | string) => boolean;

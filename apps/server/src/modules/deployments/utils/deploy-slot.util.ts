@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { DeploymentStatus, Prisma } from '@prisma/client';
-import { conditionsToJson, staleDegradedCondition } from './deployment-conditions.util';
+import {
+  conditionsToJson,
+  staleDegradedCondition,
+} from './deployment-conditions.util';
 import { STALE_THRESHOLD_MINUTES } from './deployment-stale.constants';
 
 /**

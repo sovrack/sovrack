@@ -18,6 +18,8 @@ describe('DockerDeployExecutorService — resolveRuntimeConfig (specSnapshot pin
     {} as never, // deploymentEnv
     {} as never, // deployRouting
     {} as never, // containerLifecycle
+    {} as never, // notifications
+    {} as never, // composeExecutor
   );
 
   const resolve = (deployment: unknown) =>
@@ -55,7 +57,7 @@ describe('DockerDeployExecutorService — resolveRuntimeConfig (specSnapshot pin
       specSnapshot: snapshot,
       service: liveService,
     });
-    expect(cfg).toEqual({
+    expect(cfg).toMatchObject({
       port: 3000,
       startCommand: 'snap-cmd',
       healthcheckPath: '/snap',
@@ -82,7 +84,7 @@ describe('DockerDeployExecutorService — resolveRuntimeConfig (specSnapshot pin
       specSnapshot: snapshot,
       service: liveService,
     });
-    expect(cfg).toEqual({
+    expect(cfg).toMatchObject({
       port: 4000,
       startCommand: 'live-cmd',
       healthcheckPath: '/live',

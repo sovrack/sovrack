@@ -37,6 +37,8 @@ export const deploymentRelationsInclude = {
       repoPath: true,
       port: true,
       branch: true,
+      buildPack: true,
+      provider: { select: { providerUrl: true } },
     },
   },
   environment: {

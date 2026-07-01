@@ -77,6 +77,12 @@ export function resolveAllowedOrigins(): string[] {
     return Array.from(new Set(envOrigins));
   }
 
+  if ((process.env.NODE_ENV ?? 'development') === 'production') {
+    throw new Error(
+      'FRONTEND_URLS is empty in production. Set at least one allowed origin.',
+    );
+  }
+
   return localDevOrigins;
 }
 
@@ -186,4 +192,33 @@ export async function assertRequiredTables(
         `Run "npx prisma migrate deploy" then restart.`,
     );
   }
+}
+
+/**
+ * Version de assertRequiredTables avec retry exponentiel.
+ * Utile au démarrage : la base peut être en cours de migration.
+ */
+export async function assertRequiredTablesWithRetry(
+  prisma: PrismaService,
+  maxRetries = 5,
+  baseDelayMs = 2000,
+): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await assertRequiredTables(prisma);
+      return;
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxRetries) {
+        const delay = Math.min(baseDelayMs * Math.pow(2, attempt - 1), 30_000);
+        console.warn(
+          `[Bootstrap] DB tables check failed (attempt ${attempt}/${maxRetries}). ` +
+            `Retrying in ${delay}ms...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
 }

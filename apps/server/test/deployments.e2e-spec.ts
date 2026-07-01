@@ -4,7 +4,7 @@ import { DeploymentStatus } from '@prisma/client';
 import type { BuildSource } from '../src/modules/build/strategies/build-strategy.interface';
 
 import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/core/database/prisma.service';
+import { PrismaService } from '../src/shared/database/prisma.service';
 import { DeploymentsCreateService } from '../src/modules/deployments/core/deployments-create.service';
 import { DockerDeployExecutorService } from '../src/modules/deployments/core/docker-deploy-executor.service';
 import { DeploymentsProcessor } from '../src/modules/deployments/processors/deployments.processor';

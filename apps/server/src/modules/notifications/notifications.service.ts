@@ -203,6 +203,26 @@ export class NotificationsService {
   }
 
   /**
+   * Fired by the ReconcilerService when it detects a config drift (desired
+   * generation > deployed generation). The service keeps running but its config
+   * is stale — the admin must trigger a manual redeploy.
+   */
+  async notifyConfigDrift(payload: {
+    serviceEnvId: string;
+    desiredGeneration: number;
+    deployedGeneration: number;
+  }): Promise<void> {
+    const text =
+      `⚠️ Config drift détecté sur le service-environnement \`${payload.serviceEnvId}\`. ` +
+      `Génération désirée : ${payload.desiredGeneration}, déployée : ${payload.deployedGeneration}. ` +
+      `Un redéploiement manuel est nécessaire pour appliquer les changements de configuration.`;
+    await Promise.allSettled([
+      this.sendSimpleSlack(text),
+      this.sendSimpleEmail('Config drift', text, payload.serviceEnvId),
+    ]);
+  }
+
+  /**
    * Fired by WebhookRetryService when an event exhausts its retries and is
    * dead-lettered. Tells the admin the push will NOT auto-deploy and that a
    * manual replay is available in the UI.

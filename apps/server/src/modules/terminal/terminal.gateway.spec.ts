@@ -43,7 +43,10 @@ describe('TerminalGateway.handleConnect (authorization)', () => {
       throw new Error('invalid signature');
     });
     const c = client('bad-token');
-    await gw.handleConnect(c as never, { serverId: 'srv1', token: 'bad-token' });
+    await gw.handleConnect(c as never, {
+      serverId: 'srv1',
+      token: 'bad-token',
+    });
     expect(terminalService.openSession).not.toHaveBeenCalled();
     expect(c.emit).toHaveBeenCalledWith('terminal:error', 'Non autorisé');
   });

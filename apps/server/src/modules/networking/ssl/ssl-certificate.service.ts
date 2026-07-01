@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { ProjectAccessService } from '../../catalog/access/project-access.service';
 import { AnsibleRunnerService } from '../../../adapters/provisioning/ansible-runner.service';
 
 export type SslCertificateRequest = {
@@ -31,12 +33,34 @@ export class SslCertificateService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly projectAccess: ProjectAccessService,
     private readonly ansibleRunner: AnsibleRunnerService,
   ) {}
 
+  private async resolveProjectIdFromServer(serverId: string): Promise<string> {
+    const server = await this.prisma.server.findUnique({
+      where: { id: serverId },
+      select: { environment: { select: { projectId: true } } },
+    });
+    if (!server?.environment) {
+      throw new NotFoundException(
+        'Serveur introuvable ou non rattaché à un projet',
+      );
+    }
+    return server.environment.projectId;
+  }
+
   async issueAndConfigure(
     request: SslCertificateRequest,
+    userId: string,
+    userRole: Role,
   ): Promise<SslCertificateResult> {
+    const projectId = await this.resolveProjectIdFromServer(request.serverId);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
     this.logger.log(
       `Issuing SSL certificate for domain: ${request.domainName}`,
     );
@@ -94,8 +118,41 @@ export class SslCertificateService {
     };
   }
 
-  async revoke(domainName: string): Promise<void> {
+  async revoke(
+    domainName: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
     this.logger.log(`Revoking SSL certificate for domain: ${domainName}`);
+
+    const certificate = await this.prisma.sslCertificate.findUnique({
+      where: { domainName },
+      include: {
+        domain: {
+          select: {
+            projectId: true,
+            serviceEnv: {
+              include: { environment: { select: { projectId: true } } },
+            },
+          },
+        },
+      },
+    });
+    if (!certificate)
+      throw new NotFoundException(
+        'Aucun certificat SSL trouvé pour ce domaine',
+      );
+
+    const projectId =
+      certificate.domain.projectId ??
+      certificate.domain.serviceEnv?.environment.projectId;
+    if (projectId) {
+      await this.projectAccess.assertCanManageProject(
+        projectId,
+        userId,
+        userRole,
+      );
+    }
 
     const playbookRoot = this.ansibleRunner.resolvePlaybooksRoot();
 

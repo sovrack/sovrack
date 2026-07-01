@@ -144,7 +144,9 @@ export class TerminalService {
     if (!env) throw new NotFoundException('Environnement introuvable');
 
     const member = await this.prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId: env.projectId, userId: actorId } },
+      where: {
+        projectId_userId: { projectId: env.projectId, userId: actorId },
+      },
       select: { role: true },
     });
 

@@ -19,11 +19,6 @@ describe('SourceProvidersController', () => {
       setDefaultGithubProvider: jest.fn().mockResolvedValue({ id: 'h1' }),
       testGithubProvider: jest.fn().mockResolvedValue({ ok: true }),
       listGithubRepos: jest.fn().mockResolvedValue([]),
-      listGiteaProviders: jest.fn().mockResolvedValue([]),
-      createGiteaProvider: jest.fn().mockResolvedValue({ id: 't1' }),
-      updateGiteaProvider: jest.fn().mockResolvedValue({ id: 't1' }),
-      deleteGiteaProvider: jest.fn().mockResolvedValue(undefined),
-      setDefaultGiteaProvider: jest.fn().mockResolvedValue({ id: 't1' }),
     } as unknown as GitProviderConfigService;
     const oauth = {
       startGitlabOAuthForProvider: jest.fn().mockResolvedValue({ url: 'u' }),
@@ -80,17 +75,6 @@ describe('SourceProvidersController', () => {
     await ctrl.listGithubRepos('h1');
     expect(gitProviders.listGithubRepos).toHaveBeenCalledWith('h1');
     expect(gitProviders.testGithubProvider).toHaveBeenCalledWith('h1');
-  });
-
-  it('Gitea provider CRUD + default delegate', async () => {
-    const { ctrl, gitProviders } = build();
-    await ctrl.listGiteaProviders();
-    await ctrl.createGiteaProvider({ name: 'n', providerUrl: 'u' } as never);
-    await ctrl.updateGiteaProvider('t1', { name: 'm' } as never);
-    expect(await ctrl.deleteGiteaProvider('t1')).toEqual({ ok: true });
-    await ctrl.setDefaultGiteaProvider('t1');
-    expect(gitProviders.listGiteaProviders).toHaveBeenCalled();
-    expect(gitProviders.setDefaultGiteaProvider).toHaveBeenCalledWith('t1');
   });
 
   it('resolvePublicBaseUrl honours x-forwarded headers when present', async () => {

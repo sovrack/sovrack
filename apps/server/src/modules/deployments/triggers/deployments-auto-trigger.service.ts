@@ -17,7 +17,10 @@ import {
   type AutoDeployTriggerEvent,
 } from '../events/deployment.events';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
-import { buildAppSpecSnapshot } from '../utils/spec-snapshot.util';
+import {
+  buildAppSpecSnapshot,
+  buildComposeSpecSnapshot,
+} from '../utils/spec-snapshot.util';
 import { resolveBuildSource } from '../utils/build-source.util';
 import { toJson } from '../../../shared/utils/prisma-json.util';
 import { acquireDeploySlot } from '../utils/deploy-slot.util';
@@ -51,6 +54,7 @@ type MatchingServiceEnv = Pick<
     cpuLimit: number | null;
     memLimitMb: number | null;
     buildArgs: Prisma.JsonValue;
+    composeServiceName: string | null;
   };
   environment: {
     id: string;
@@ -137,6 +141,7 @@ export class DeploymentsAutoTriggerService {
             cpuLimit: true,
             memLimitMb: true,
             buildArgs: true,
+            composeServiceName: true,
           },
         },
         environment: {
@@ -235,22 +240,29 @@ export class DeploymentsAutoTriggerService {
         buildMode: svcEnv.service.buildMode,
         sourceType: svcEnv.service.sourceType,
       });
-      const specSnapshot = buildAppSpecSnapshot({
-        service: svcEnv.service,
-        serviceEnv: {
-          port: svcEnv.port,
-          startCommand: svcEnv.startCommand,
-          healthcheckPath: svcEnv.healthcheckPath,
-          replicas: svcEnv.replicas,
-        },
-        branch,
-        buildSource,
-        isLocalBuild,
-        buildPack: resolvedBuildPack,
-        strategy: 'STANDARD',
-        nixpacksConfig,
-        staticConfig,
-      });
+      const specSnapshot =
+        buildSource === 'DOCKER_COMPOSE'
+          ? buildComposeSpecSnapshot({
+              composeServiceName: svcEnv.service.composeServiceName ?? null,
+              port: svcEnv.port ?? svcEnv.service.port ?? null,
+              replicas: svcEnv.replicas ?? svcEnv.service.replicas ?? 1,
+            })
+          : buildAppSpecSnapshot({
+              service: svcEnv.service,
+              serviceEnv: {
+                port: svcEnv.port,
+                startCommand: svcEnv.startCommand,
+                healthcheckPath: svcEnv.healthcheckPath,
+                replicas: svcEnv.replicas,
+              },
+              branch,
+              buildSource,
+              isLocalBuild,
+              buildPack: resolvedBuildPack,
+              strategy: 'STANDARD',
+              nixpacksConfig,
+              staticConfig,
+            });
 
       const project = svcEnv.environment.project ?? {
         id: projectId,

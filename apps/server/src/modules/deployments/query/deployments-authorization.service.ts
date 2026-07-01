@@ -27,7 +27,11 @@ export class DeploymentsAuthorizationService {
     userId: string,
     userRole: Role,
   ): Promise<void> {
-    await this.projectAccess.assertCanAccessProject(projectId, userId, userRole);
+    await this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
   }
 
   async assertCanDeployProject(

@@ -1,5 +1,8 @@
+import { Role } from '@prisma/client';
 import { SslCertificateService } from './ssl-certificate.service';
 import { SslController } from './ssl.controller';
+
+const mockUser = { id: 'u1', email: 'test@test.com', role: Role.DEVELOPER };
 
 describe('SslController', () => {
   function build() {
@@ -14,13 +17,19 @@ describe('SslController', () => {
 
   it('issue / revoke / getExpiring delegate', () => {
     const { ctrl, sslCertificateService } = build();
-    ctrl.issue({ domainName: 'd.com' } as never);
-    ctrl.revoke('d.com');
+    ctrl.issue({ domainName: 'd.com' } as never, mockUser as never);
+    ctrl.revoke('d.com', mockUser as never);
     ctrl.getExpiring();
-    expect(sslCertificateService.issueAndConfigure).toHaveBeenCalledWith({
-      domainName: 'd.com',
-    });
-    expect(sslCertificateService.revoke).toHaveBeenCalledWith('d.com');
+    expect(sslCertificateService.issueAndConfigure).toHaveBeenCalledWith(
+      { domainName: 'd.com' },
+      'u1',
+      Role.DEVELOPER,
+    );
+    expect(sslCertificateService.revoke).toHaveBeenCalledWith(
+      'd.com',
+      'u1',
+      Role.DEVELOPER,
+    );
     expect(sslCertificateService.getExpiringCertificates).toHaveBeenCalledWith(
       30,
     );

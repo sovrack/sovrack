@@ -50,10 +50,6 @@ class UpdateGitlabProviderDto {
 type CreateGithubProviderDto = CreateGitlabProviderDto;
 type UpdateGithubProviderDto = UpdateGitlabProviderDto;
 
-// ─── Gitea DTO aliases (PAT-based, same shape) ─────────────────────────
-type CreateGiteaProviderDto = CreateGitlabProviderDto;
-type UpdateGiteaProviderDto = UpdateGitlabProviderDto;
-
 @ApiTags('Git Providers (Admin)')
 @ApiBearerAuth()
 @Controller('admin/platform-config')
@@ -179,42 +175,6 @@ export class SourceProvidersController {
   @ApiOperation({ summary: 'List GitHub repos accessible via this provider' })
   async listGithubRepos(@Param('id') id: string) {
     return this.gitProviders.listGithubRepos(id);
-  }
-
-  // ─── Gitea Providers ───────────────────────────────────────────────────
-
-  @Get('gitea/providers')
-  @ApiOperation({ summary: 'List Gitea providers' })
-  async listGiteaProviders() {
-    return this.gitProviders.listGiteaProviders();
-  }
-
-  @Post('gitea/providers')
-  @ApiOperation({ summary: 'Create a Gitea provider' })
-  async createGiteaProvider(@Body() dto: CreateGiteaProviderDto) {
-    return this.gitProviders.createGiteaProvider(dto);
-  }
-
-  @Put('gitea/providers/:id')
-  @ApiOperation({ summary: 'Update a Gitea provider' })
-  async updateGiteaProvider(
-    @Param('id') id: string,
-    @Body() dto: UpdateGiteaProviderDto,
-  ) {
-    return this.gitProviders.updateGiteaProvider(id, dto);
-  }
-
-  @Delete('gitea/providers/:id')
-  @ApiOperation({ summary: 'Delete a Gitea provider' })
-  async deleteGiteaProvider(@Param('id') id: string) {
-    await this.gitProviders.deleteGiteaProvider(id);
-    return { ok: true };
-  }
-
-  @Post('gitea/providers/:id/default')
-  @ApiOperation({ summary: 'Set a default Gitea provider' })
-  async setDefaultGiteaProvider(@Param('id') id: string) {
-    return this.gitProviders.setDefaultGiteaProvider(id);
   }
 
   private resolvePublicBaseUrl(req: Request): string {

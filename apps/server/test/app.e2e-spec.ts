@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppController } from '../src/app.controller';
-import { PrismaService } from '../src/core/database/prisma.service';
+import { PrismaService } from '../src/shared/database/prisma.service';
 import { PlatformService } from '../src/modules/platform/platform.service';
 
 describe('AppController (e2e)', () => {

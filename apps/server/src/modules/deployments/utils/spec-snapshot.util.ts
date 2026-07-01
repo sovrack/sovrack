@@ -82,6 +82,32 @@ export function buildAppSpecSnapshot(params: {
   };
 }
 
+export type ComposeSpecSnapshot = {
+  capturedAt: string;
+  buildSource: 'DOCKER_COMPOSE';
+  isLocalBuild: true;
+  strategy: 'STANDARD';
+  composeServiceName: string | null;
+  port: number | null;
+  replicas: number;
+};
+
+export function buildComposeSpecSnapshot(params: {
+  composeServiceName: string | null;
+  port: number | null;
+  replicas?: number;
+}): ComposeSpecSnapshot {
+  return {
+    capturedAt: new Date().toISOString(),
+    buildSource: 'DOCKER_COMPOSE',
+    isLocalBuild: true,
+    strategy: 'STANDARD',
+    composeServiceName: params.composeServiceName ?? null,
+    port: params.port ?? null,
+    replicas: params.replicas ?? 1,
+  };
+}
+
 export function buildDbSpecSnapshot(params: {
   databaseType: string | null;
   databaseVersion: string | null;

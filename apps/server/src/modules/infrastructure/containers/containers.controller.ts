@@ -5,75 +5,113 @@ import {
   Param,
   Post,
   Query,
-  Request,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { ContainersService } from './containers.service';
 import { ContainerListQueryDto } from './dto/container-query.dto';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
 
 @ApiTags('containers')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('containers')
 export class ContainersController {
-  constructor(
-    private readonly containersService: ContainersService,
-    private readonly docker: DockerApiService,
-  ) {}
+  constructor(private readonly containersService: ContainersService) {}
 
   @Get()
   @ApiOperation({ summary: 'List tracked containers' })
-  findAll(@Query() query: ContainerListQueryDto) {
-    return this.containersService.findAll(query);
+  findAll(@Query() query: ContainerListQueryDto, @GetUser() user: JwtPayload) {
+    return this.containersService.findAll(query, user.id, user.role);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a container by ID' })
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    await this.containersService.assertCanAccessContainer(
+      id,
+      user.id,
+      user.role,
+    );
     return this.containersService.findOne(id);
   }
 
   @Get(':id/inspect')
   @ApiOperation({ summary: 'Inspect a running container via Docker API' })
-  inspect(@Param('id') id: string) {
+  async inspect(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    await this.containersService.assertCanAccessContainer(
+      id,
+      user.id,
+      user.role,
+    );
     return this.containersService.inspect(id);
   }
 
   @Get(':id/stats')
   @ApiOperation({ summary: 'Get container resource stats' })
-  stats(@Param('id') id: string) {
+  async stats(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    await this.containersService.assertCanAccessContainer(
+      id,
+      user.id,
+      user.role,
+    );
     return this.containersService.getStats(id);
   }
 
   @Post(':id/start')
   @ApiOperation({ summary: 'Start a container' })
-  start(@Param('id') id: string) {
+  async start(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    await this.containersService.assertCanAccessContainer(
+      id,
+      user.id,
+      user.role,
+    );
     return this.containersService.start(id);
   }
 
   @Post(':id/stop')
   @ApiOperation({ summary: 'Stop a container' })
-  stop(@Param('id') id: string) {
+  async stop(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    await this.containersService.assertCanAccessContainer(
+      id,
+      user.id,
+      user.role,
+    );
     return this.containersService.stop(id);
   }
 
   @Post(':id/restart')
   @ApiOperation({ summary: 'Restart a container' })
-  restart(@Param('id') id: string) {
+  async restart(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    await this.containersService.assertCanAccessContainer(
+      id,
+      user.id,
+      user.role,
+    );
     return this.containersService.restart(id);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Remove a container' })
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    await this.containersService.assertCanAccessContainer(
+      id,
+      user.id,
+      user.role,
+    );
     return this.containersService.remove(id);
   }
 
   @Post('sync/:serverId')
   @ApiOperation({ summary: 'Sync containers from a Docker host' })
-  sync(@Param('serverId') serverId: string) {
+  async sync(@Param('serverId') serverId: string, @GetUser() user: JwtPayload) {
+    await this.containersService.assertCanAccessServerById(
+      serverId,
+      user.id,
+      user.role,
+    );
     return this.containersService.syncFromDocker(serverId);
   }
 }

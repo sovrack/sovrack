@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import {
+  BuildPack,
   ContainerStatus,
   Deployment,
   DeploymentStatus,
@@ -11,6 +12,7 @@ import { AuditService } from '../../audit/audit.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
 import { DeploymentsQueryService } from '../query/deployments-query.service';
+import { DockerComposeExecutorService } from './docker-compose-executor.service';
 
 @Injectable()
 export class DeploymentsLifecycleService {
@@ -23,6 +25,7 @@ export class DeploymentsLifecycleService {
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly queryService: DeploymentsQueryService,
     private readonly auditService: AuditService,
+    private readonly composeExecutor: DockerComposeExecutorService,
   ) {}
 
   async recoverInFlightDeploymentsAfterRestart(): Promise<number> {
@@ -72,21 +75,35 @@ export class DeploymentsLifecycleService {
     // Stop real Docker containers before updating DB status so the actual
     // container state matches what is recorded. Errors are logged but do not
     // prevent the DB update from completing.
-    const runningContainers = await this.prisma.container.findMany({
-      where: {
-        deploymentId: id,
-        status: { in: [ContainerStatus.RUNNING, ContainerStatus.CREATED] },
-      },
-      select: { id: true, dockerId: true, serverId: true },
-    });
-    for (const c of runningContainers) {
-      await this.docker
-        .stopContainer(c.serverId, c.dockerId)
+    //
+    // Compose stacks require `docker compose down` — individual stopContainer
+    // does not respect restart policies and leaves the stack running.
+    const buildPack = deployment.service?.buildPack ?? null;
+    if (buildPack === BuildPack.DOCKER_COMPOSE && deployment.serviceEnvId) {
+      await this.composeExecutor
+        .teardownComposeStack(deployment.serviceEnvId)
         .catch((err: unknown) => {
           this.logger.warn(
-            `Cancel: could not stop container ${c.dockerId}: ${err instanceof Error ? err.message : 'unknown'}`,
+            `Cancel: compose down failed for ${deployment.serviceEnvId}: ${err instanceof Error ? err.message : 'unknown'}`,
           );
         });
+    } else {
+      const runningContainers = await this.prisma.container.findMany({
+        where: {
+          deploymentId: id,
+          status: { in: [ContainerStatus.RUNNING, ContainerStatus.CREATED] },
+        },
+        select: { id: true, dockerId: true, serverId: true },
+      });
+      for (const c of runningContainers) {
+        await this.docker
+          .stopContainer(c.serverId, c.dockerId)
+          .catch((err: unknown) => {
+            this.logger.warn(
+              `Cancel: could not stop container ${c.dockerId}: ${err instanceof Error ? err.message : 'unknown'}`,
+            );
+          });
+      }
     }
 
     const canceled = await this.prisma.deployment.update({

@@ -465,8 +465,6 @@ model ServiceEnvironment {
   webhookEndpoints WebhookEndpoint[]
   dnsRecords       DnsRecord[]
   pipelineRuns     PipelineRun[]
-  databaseBackups  DatabaseBackup[]
-
   // Pointeur "release courante" : LE déploiement qui sert RÉELLEMENT cette cellule
   // (état désiré = ce qui doit tourner). Met fin à l'heuristique "dernier SUCCESS
   // deviné par date" (fausse après un rollback). Rollback = on DÉPLACE ce pointeur.
@@ -1259,51 +1257,6 @@ model Service {
   // (vérifié : aucun "drift") → cohabitation sans accroc.
   @@index([projectId])
   @@index([providerId])
-}
-
-enum BackupStatus {
-  PENDING
-  RUNNING
-  SUCCESS
-  FAILED
-}
-
-enum BackupTrigger {
-  MANUAL
-  SCHEDULED
-}
-
-/// Where a backup dump is stored. LOCAL = backend host filesystem (default),
-/// S3 = external S3-compatible object storage (durable, survives host loss).
-enum BackupStorageProvider {
-  LOCAL
-  S3
-}
-
-/// A point-in-time logical dump of a managed database ServiceEnvironment.
-/// Produced by running the engine's dump tool (pg_dump / mysqldump /
-/// mongodump) inside the running container via the Docker API.
-model DatabaseBackup {
-  id                   String             @id @default(uuid())
-  serviceEnvironmentId String
-  serviceEnvironment   ServiceEnvironment @relation(fields: [serviceEnvironmentId], references: [id], onDelete: Cascade)
-  status               BackupStatus       @default(PENDING)
-  trigger              BackupTrigger      @default(MANUAL)
-  /// Where the dump lives (LOCAL host path or S3 object key).
-  storageProvider      BackupStorageProvider @default(LOCAL)
-  /// Local absolute path OR S3 object key, depending on storageProvider.
-  storagePath          String?
-  /// Compressed size on disk/object store (bytes).
-  sizeBytes            Int?
-  /// SHA-256 of the stored (gzipped) dump — integrity check against silent corruption.
-  checksum             String?
-  error                String?            @db.Text
-  startedAt            DateTime?
-  finishedAt           DateTime?
-  createdAt            DateTime           @default(now())
-
-  @@index([serviceEnvironmentId, createdAt])
-  @@index([status])
 }
 
 // ============================================================================

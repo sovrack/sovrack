@@ -91,16 +91,27 @@ export class TraefikRouteService {
     server: SshServer,
     serviceEnvId: string,
     domain: string,
-    containerName: string,
+    containerNames: string | string[],
     servicePort: number,
   ): Promise<string> {
-    // 1. Rendre le conteneur joignable par Traefik (réseau partagé 'web').
+    const names = Array.isArray(containerNames)
+      ? containerNames
+      : [containerNames];
+
+    // 1. Connect every container to the shared Traefik network ('web').
     await this.docker.createNetwork(serverId, 'web').catch(() => undefined);
-    await this.docker.connectNetwork(serverId, 'web', containerName);
+    for (const cn of names) {
+      await this.docker
+        .connectNetwork(serverId, 'web', cn)
+        .catch(() => undefined);
+    }
 
     // 2. Config dynamique Traefik (base64 pour éviter tout souci de quoting —
-    //    la règle Host contient des backticks).
+    //    la règle Host contient des backticks). Multiple backends = round-robin.
     const safeId = serviceEnvId.replace(/[^a-zA-Z0-9_-]/g, '-');
+    const backendLines = names.map(
+      (cn) => `          - url: "http://${cn}:${String(servicePort)}"`,
+    );
     const yaml = [
       'http:',
       '  routers:',
@@ -121,7 +132,7 @@ export class TraefikRouteService {
       `    ${safeId}:`,
       '      loadBalancer:',
       '        servers:',
-      `          - url: "http://${containerName}:${String(servicePort)}"`,
+      ...backendLines,
       '',
     ].join('\n');
     const b64 = Buffer.from(yaml, 'utf8').toString('base64');

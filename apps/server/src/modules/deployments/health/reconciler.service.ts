@@ -84,7 +84,7 @@ const DEPLOYMENT_SELECT = {
   createdAt: true,
   containers: {
     orderBy: { createdAt: 'desc' },
-    take: 1,
+    take: 20,
     select: { id: true, dockerId: true, name: true },
   },
 } satisfies Prisma.DeploymentSelect;
@@ -151,8 +151,8 @@ export class ReconcilerService {
     // Source AUTORITAIRE du live = le pointeur "release courante" ; fallback sur
     // le dernier SUCCESS pour les cellules legacy (pointeur pas encore posé).
     const last = env.currentDeployment ?? env.deployments[0];
-    const container = last?.containers[0];
-    if (!last || !container) {
+    const containers = last?.containers ?? [];
+    if (!last || containers.length === 0) {
       return; // nothing deployed yet → nothing to reconcile
     }
 
@@ -181,23 +181,32 @@ export class ReconcilerService {
       return;
     }
 
-    const observed = await this.observeContainerState(
-      serverId,
-      container.dockerId,
+    // Check ALL replica containers. If any state is unknown (daemon down),
+    // skip to avoid acting blindly. If any is dead/missing, heal the whole
+    // deployment (creates N fresh containers from the frozen image).
+    const states = await Promise.all(
+      containers.map((c) => this.observeContainerState(serverId, c.dockerId)),
     );
 
-    // Can't determine the real state (daemon down) → don't act blindly.
-    if (observed.kind === 'unknown') {
+    if (states.some((s) => s.kind === 'unknown')) {
+      return; // daemon unreachable — don't act blindly
+    }
+
+    const downIdx = states.findIndex(
+      (s) => s.kind === 'dead' || s.kind === 'missing',
+    );
+    if (downIdx !== -1) {
+      await this.healContainer(
+        env,
+        last,
+        containers[downIdx],
+        serverId,
+        states[downIdx].status,
+      );
       return;
     }
 
-    // Runtime drift: container dead or gone → recreate from the frozen image.
-    if (observed.kind === 'dead' || observed.kind === 'missing') {
-      await this.healContainer(env, last, container, serverId, observed.status);
-      return;
-    }
-
-    // observed.kind === 'alive' → check CONFIG drift (desired vs deployed gen).
+    // All containers alive → check CONFIG drift (desired vs deployed gen).
     await this.detectConfigDrift(env, last);
   }
 
@@ -324,5 +333,13 @@ export class ReconcilerService {
         ),
       },
     });
+
+    await this.notifications
+      .notifyConfigDrift({
+        serviceEnvId: env.id,
+        desiredGeneration: desired,
+        deployedGeneration: observedGen,
+      })
+      .catch(() => undefined);
   }
 }

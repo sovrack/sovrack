@@ -642,17 +642,19 @@ export class DockerDeployExecutorService {
         finishedAt: finished.finishedAt,
       });
 
-      void this.notifications.notifyDeploymentFinished({
-        deploymentId: finished.id,
-        status: 'SUCCESS',
-        projectName: deployment.project.name,
-        environmentName:
-          deployment.serviceEnv?.environment?.name ??
-          deployment.environment?.name ??
-          '',
-        branch: deployment.branch ?? '',
-        triggeredBy: deployment.user?.email ?? 'auto',
-      }).catch(() => undefined);
+      void this.notifications
+        .notifyDeploymentFinished({
+          deploymentId: finished.id,
+          status: 'SUCCESS',
+          projectName: deployment.project.name,
+          environmentName:
+            deployment.serviceEnv?.environment?.name ??
+            deployment.environment?.name ??
+            '',
+          branch: deployment.branch ?? '',
+          triggeredBy: deployment.user?.email ?? 'auto',
+        })
+        .catch(() => undefined);
 
       return finished;
     } catch (error) {
@@ -688,7 +690,9 @@ export class DockerDeployExecutorService {
    * `newContainerIds` est passé par référence afin que le catch block d'executeDeployInternal
    * puisse nettoyer les conteneurs créés avant un échec partiel.
    */
-  private async launchReplicas(p: ReplicaLaunchParams): Promise<ReplicaLaunchResult> {
+  private async launchReplicas(
+    p: ReplicaLaunchParams,
+  ): Promise<ReplicaLaunchResult> {
     const replicaContainerNames: string[] = [];
     let logs = '';
 
@@ -732,7 +736,11 @@ export class DockerDeployExecutorService {
       p.newContainerIds.push(container.id);
       logs += `Réplique ${String(i + 1)}/${String(p.replicas)} créée : ${container.id.slice(0, 12)}\n`;
 
-      this.emitGatewayLog(p.deploymentId, `Démarrage réplique ${String(i + 1)}…`, 'info');
+      this.emitGatewayLog(
+        p.deploymentId,
+        `Démarrage réplique ${String(i + 1)}…`,
+        'info',
+      );
       await this.docker.startContainer(p.serverId, container.id);
       logs += `Réplique ${String(i + 1)} démarrée\n`;
 
@@ -774,7 +782,9 @@ export class DockerDeployExecutorService {
    */
   private async handleDeployFailure(p: FailureHandlerParams): Promise<never> {
     for (const cid of p.newContainerIds) {
-      await this.docker.removeContainer(p.serverId, cid, true).catch(() => undefined);
+      await this.docker
+        .removeContainer(p.serverId, cid, true)
+        .catch(() => undefined);
     }
     let recoveryLogs = '';
     if (p.stoppedOld.length > 0) {
@@ -784,7 +794,9 @@ export class DockerDeployExecutorService {
     }
 
     const message =
-      p.error instanceof Error ? p.error.message : 'Échec du déploiement Docker';
+      p.error instanceof Error
+        ? p.error.message
+        : 'Échec du déploiement Docker';
 
     const failed = await this.prisma.deployment.update({
       where: { id: p.deploymentId },

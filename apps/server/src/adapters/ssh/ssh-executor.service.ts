@@ -63,6 +63,26 @@ export class SshExecutorService implements ISshExecutor {
     return { stdout: result.stdout, stderr: result.stderr, code: result.code };
   }
 
+  async putContent(
+    conn: SshConnection,
+    remotePath: string,
+    content: string,
+  ): Promise<void> {
+    const sq = (s: string) => `'${s.replace(/'/g, "'\\''")}'`;
+    const dir = remotePath.substring(0, remotePath.lastIndexOf('/'));
+    if (dir) {
+      await conn.client.execCommand(`mkdir -p ${sq(dir)}`);
+    }
+    const result = await conn.client.execCommand(`cat > ${sq(remotePath)}`, {
+      stdin: content,
+    });
+    if (result.code !== 0) {
+      throw new Error(
+        `putContent to ${remotePath} failed (exit ${String(result.code)}): ${result.stderr || result.stdout || 'unknown error'}`,
+      );
+    }
+  }
+
   async execOrThrow(
     conn: SshConnection,
     command: string,

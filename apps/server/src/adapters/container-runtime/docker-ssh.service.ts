@@ -114,6 +114,75 @@ export class DockerSshService {
     );
   }
 
+  /** `docker compose up -d` with one or more compose files. */
+  async composeUp(
+    conn: SshConnection,
+    projectName: string,
+    composePaths: string[],
+  ): Promise<SshExecResult> {
+    const files = composePaths
+      .map((p) => `-f ${DockerSshService.sq(p)}`)
+      .join(' ');
+    return this.ssh.exec(
+      conn,
+      `docker compose ${files} -p ${DockerSshService.sq(projectName)} up -d --build --remove-orphans 2>&1`,
+    );
+  }
+
+  /** `docker compose down` — stops and removes all containers of a project. */
+  async composeDown(
+    conn: SshConnection,
+    projectName: string,
+  ): Promise<SshExecResult> {
+    return this.ssh.exec(
+      conn,
+      `docker compose -p ${DockerSshService.sq(projectName)} down 2>&1`,
+    );
+  }
+
+  /**
+   * `docker compose ps --format json` output varies by version:
+   *   - Compose ≤ 2.17: NDJSON — one JSON object per line
+   *   - Compose ≥ 2.23: may emit a JSON array on a single line
+   * Both formats are handled; unknown formats return [].
+   */
+  async composePs(
+    conn: SshConnection,
+    projectName: string,
+  ): Promise<Array<{ Name: string; State: string; ID: string }>> {
+    const r = await this.ssh.exec(
+      conn,
+      `docker compose -p ${DockerSshService.sq(projectName)} ps --format json 2>/dev/null || true`,
+    );
+    const raw = r.stdout.trim();
+    if (!raw) return [];
+
+    // NDJSON path: one JSON object per line
+    const lines = raw
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.startsWith('{'));
+    if (lines.length > 0) {
+      return lines.flatMap((l) => {
+        try {
+          return [JSON.parse(l) as { Name: string; State: string; ID: string }];
+        } catch {
+          return [];
+        }
+      });
+    }
+
+    // JSON array fallback (newer Compose versions)
+    try {
+      const arr = JSON.parse(raw) as unknown;
+      if (Array.isArray(arr))
+        return arr as Array<{ Name: string; State: string; ID: string }>;
+    } catch {
+      // unparseable — return empty
+    }
+    return [];
+  }
+
   /** Immutable image digest (sha256:…) via `docker inspect`, or null. */
   async imageDigest(
     conn: SshConnection,

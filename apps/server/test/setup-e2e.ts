@@ -4,9 +4,9 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { Role } from '@prisma/client';
 
 import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/core/database/prisma.service';
-import { JwtService } from '../src/core/jwt/jwt.service';
-import { AnsibleRunnerService } from '../src/core/provisioning/ansible-runner.service';
+import { PrismaService } from '../src/shared/database/prisma.service';
+import { JwtService } from '../src/shared/jwt/jwt.service';
+import { AnsibleRunnerService } from '../src/adapters/provisioning/ansible-runner.service';
 import { DeploymentsGateway } from '../src/modules/deployments/gateways/deployments.gateway';
 import { DeploymentsProcessor } from '../src/modules/deployments/processors/deployments.processor';
 import { DockerDeployExecutorService } from '../src/modules/deployments/core/docker-deploy-executor.service';

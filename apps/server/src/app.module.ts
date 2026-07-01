@@ -28,8 +28,6 @@ import {
 } from './modules/infrastructure';
 import { DomainsModule, ProxyModule, SslModule } from './modules/networking';
 import { MonitoringModule, DashboardModule } from './modules/observability';
-import { DatabaseBackupsModule } from './modules/database-backups';
-import { PreviewEnvironmentsModule } from './modules/preview-environments';
 // Contextes standalone — importés via leur porte publique (barrel index.ts)
 import {
   GitlabModule,
@@ -107,8 +105,6 @@ import { QueueModule } from './shared/queue/queue.module';
     ServicesModule,
     VolumesModule,
     SslModule,
-    DatabaseBackupsModule,
-    PreviewEnvironmentsModule,
   ],
   controllers: [AppController],
   // Guards globaux : rate-limit puis auth JWT (fail-secure — toute route exige

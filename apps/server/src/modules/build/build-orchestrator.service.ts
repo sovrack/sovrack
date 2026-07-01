@@ -52,23 +52,15 @@ export class BuildOrchestratorService {
   ): Promise<void> {
     await this.assertCanConfigureBuild(projectId, userId, userRole);
 
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) {
-      throw new NotFoundException('Projet non trouvé');
-    }
-
-    // Invariant : provider lié au SERVICE — résolution par service si dispo.
+    const prepared = await this.prepareServiceInternal(projectId, serviceId);
     const provider = serviceId
       ? await this.gitProvidersService.forService(serviceId)
       : await this.gitProvidersService.forProject(projectId);
     await provider.writeFiles(
       projectId,
       {
-        Dockerfile:
-          'FROM node:20\nWORKDIR /app\nCOPY . .\nRUN npm ci\nCMD ["node", "dist/main"]',
-        '.dockerignore': this.dockerignoreGenerator.generate(),
+        Dockerfile: prepared.dockerfileContent,
+        '.dockerignore': prepared.dockerignoreContent,
       },
       serviceId,
     );

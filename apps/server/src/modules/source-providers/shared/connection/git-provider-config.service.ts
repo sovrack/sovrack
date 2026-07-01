@@ -10,7 +10,6 @@ import { CryptoService } from '../../../../shared/crypto/crypto.service';
 import { GitProviderOauthService } from './git-provider-oauth.service';
 import { GitProviderLegacySyncService } from './git-provider-legacy-sync.service';
 import { GithubProviderService } from './github-provider.service';
-import { GiteaProviderService } from './gitea-provider.service';
 import { GitlabConnectionTesterService } from './gitlab-connection-tester.service';
 import { writeWithSingleDefault } from './provider-default-write.util';
 import {
@@ -85,7 +84,6 @@ export class GitProviderConfigService {
     private readonly oauth: GitProviderOauthService,
     private readonly legacySync: GitProviderLegacySyncService,
     private readonly github: GithubProviderService,
-    private readonly gitea: GiteaProviderService,
     private readonly tester: GitlabConnectionTesterService,
   ) {}
 
@@ -376,33 +374,6 @@ export class GitProviderConfigService {
     }[]
   > {
     return this.github.listRepos(id);
-  }
-
-  // ─── Gitea CRUD (delegated to GiteaProviderService) ────────────────────────
-
-  listGiteaProviders(): Promise<GitlabProviderPublic[]> {
-    return this.gitea.list();
-  }
-
-  createGiteaProvider(
-    input: UpsertGithubProviderInput,
-  ): Promise<GitlabProviderPublic> {
-    return this.gitea.create(input);
-  }
-
-  updateGiteaProvider(
-    id: string,
-    input: PatchGithubProviderInput,
-  ): Promise<GitlabProviderPublic> {
-    return this.gitea.update(id, input);
-  }
-
-  deleteGiteaProvider(id: string): Promise<void> {
-    return this.gitea.remove(id);
-  }
-
-  setDefaultGiteaProvider(id: string): Promise<GitlabProviderPublic> {
-    return this.gitea.setDefault(id);
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────

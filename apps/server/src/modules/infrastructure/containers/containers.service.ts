@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ContainerStatus } from '@prisma/client';
+import { ContainerStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { ProjectAccessService } from '../../catalog/access/project-access.service';
 import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
 
 @Injectable()
@@ -9,14 +10,81 @@ export class ContainersService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly projectAccess: ProjectAccessService,
     private readonly docker: DockerApiService,
   ) {}
 
-  async findAll(filters: {
-    serverId?: string;
-    serviceId?: string;
-    deploymentId?: string;
-  }) {
+  private async resolveProjectId(serverId: string): Promise<string> {
+    const server = await this.prisma.server.findUnique({
+      where: { id: serverId },
+      select: { environment: { select: { projectId: true } } },
+    });
+    if (!server?.environment) {
+      throw new NotFoundException(
+        'Serveur introuvable ou non rattaché à un projet',
+      );
+    }
+    return server.environment.projectId;
+  }
+
+  async assertCanAccessServerById(
+    serverId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    const projectId = await this.resolveProjectId(serverId);
+    await this.projectAccess.assertCanAccessProject(
+      projectId,
+      userId,
+      userRole,
+    );
+  }
+
+  private async assertCanManageServer(
+    serverId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    const projectId = await this.resolveProjectId(serverId);
+    await this.projectAccess.assertCanManageProject(
+      projectId,
+      userId,
+      userRole,
+    );
+  }
+
+  async assertCanAccessContainer(
+    containerId: string,
+    userId: string,
+    userRole: Role,
+  ): Promise<void> {
+    const container = await this.findOne(containerId);
+    const server = await this.prisma.server.findUnique({
+      where: { id: container.serverId },
+      select: { environment: { select: { projectId: true } } },
+    });
+    const projectId = server?.environment?.projectId;
+    if (projectId) {
+      await this.projectAccess.assertCanAccessProject(
+        projectId,
+        userId,
+        userRole,
+      );
+    }
+  }
+
+  async findAll(
+    filters: {
+      serverId?: string;
+      serviceId?: string;
+      deploymentId?: string;
+    },
+    userId: string,
+    userRole: Role,
+  ) {
+    if (filters.serverId) {
+      await this.assertCanAccessServerById(filters.serverId, userId, userRole);
+    }
     return this.prisma.container.findMany({
       where: {
         ...(filters.serverId && { serverId: filters.serverId }),

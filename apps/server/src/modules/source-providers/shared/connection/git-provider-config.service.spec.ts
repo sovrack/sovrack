@@ -91,7 +91,6 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
       {} as unknown as GitProviderOauthService,
       legacySync as unknown as GitProviderLegacySyncService,
       {} as never, // GithubProviderService (GitHub delegated; tested separately)
-      {} as never, // GiteaProviderService (Gitea delegated; tested separately)
       {} as never, // GitlabConnectionTesterService (connection test extracted)
     );
   });

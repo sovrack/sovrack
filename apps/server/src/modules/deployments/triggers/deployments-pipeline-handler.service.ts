@@ -226,7 +226,7 @@ export class DeploymentsPipelineHandlerService {
       branch: deployment.branch,
       triggeredBy: deployment.user?.fullName ?? 'Système',
       pipelineUrl: deployment.externalPipelineId
-        ? `${deployment.service?.repoPath ?? ''}/-/pipelines/${String(deployment.externalPipelineId)}`
+        ? `${deployment.service?.provider?.providerUrl ?? ''}/${deployment.service?.repoPath ?? ''}/-/pipelines/${String(deployment.externalPipelineId)}`
         : null,
     });
   }

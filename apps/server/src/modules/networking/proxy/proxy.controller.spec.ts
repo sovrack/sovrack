@@ -1,5 +1,8 @@
+import { Role } from '@prisma/client';
 import { ProxyService } from './proxy.service';
 import { ProxyController } from './proxy.controller';
+
+const mockUser = { id: 'u1', email: 'test@test.com', role: Role.DEVELOPER };
 
 describe('ProxyController', () => {
   function build() {
@@ -17,24 +20,46 @@ describe('ProxyController', () => {
 
   it('findAll forwards filters', () => {
     const { ctrl, proxyService } = build();
-    ctrl.findAll('s1', 'se1');
-    expect(proxyService.findAll).toHaveBeenCalledWith({
-      serverId: 's1',
-      serviceEnvId: 'se1',
-    });
+    ctrl.findAll('s1', 'se1', mockUser as never);
+    expect(proxyService.findAll).toHaveBeenCalledWith(
+      { serverId: 's1', serviceEnvId: 'se1' },
+      'u1',
+      Role.DEVELOPER,
+    );
   });
 
   it('CRUD + toggle endpoints delegate', () => {
     const { ctrl, proxyService } = build();
-    ctrl.findOne('r1');
-    ctrl.create({ domain: 'd' } as never);
-    ctrl.update('r1', { domain: 'd2' } as never);
-    ctrl.toggle('r1');
-    ctrl.remove('r1');
-    expect(proxyService.findOne).toHaveBeenCalledWith('r1');
-    expect(proxyService.create).toHaveBeenCalledWith({ domain: 'd' });
-    expect(proxyService.update).toHaveBeenCalledWith('r1', { domain: 'd2' });
-    expect(proxyService.toggleActive).toHaveBeenCalledWith('r1');
-    expect(proxyService.remove).toHaveBeenCalledWith('r1');
+    ctrl.findOne('r1', mockUser as never);
+    ctrl.create({ domain: 'd' } as never, mockUser as never);
+    ctrl.update('r1', { domain: 'd2' } as never, mockUser as never);
+    ctrl.toggle('r1', mockUser as never);
+    ctrl.remove('r1', mockUser as never);
+    expect(proxyService.findOne).toHaveBeenCalledWith(
+      'r1',
+      'u1',
+      Role.DEVELOPER,
+    );
+    expect(proxyService.create).toHaveBeenCalledWith(
+      { domain: 'd' },
+      'u1',
+      Role.DEVELOPER,
+    );
+    expect(proxyService.update).toHaveBeenCalledWith(
+      'r1',
+      { domain: 'd2' },
+      'u1',
+      Role.DEVELOPER,
+    );
+    expect(proxyService.toggleActive).toHaveBeenCalledWith(
+      'r1',
+      'u1',
+      Role.DEVELOPER,
+    );
+    expect(proxyService.remove).toHaveBeenCalledWith(
+      'r1',
+      'u1',
+      Role.DEVELOPER,
+    );
   });
 });

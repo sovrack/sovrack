@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
-import { ContainerStatus } from '@prisma/client';
+import { ContainerStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { ProjectAccessService } from '../../catalog/access/project-access.service';
 import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
 import { ContainersService } from './containers.service';
 
@@ -14,11 +15,17 @@ describe('ContainersService', () => {
       create: jest.Mock;
       delete: jest.Mock;
     };
+    server: { findUnique: jest.Mock };
   };
   let docker: Record<string, jest.Mock>;
+  let projectAccess: {
+    assertCanAccessProject: jest.Mock;
+    assertCanManageProject: jest.Mock;
+  };
   let svc: ContainersService;
 
   const container = { id: 'c1', serverId: 'srv1', dockerId: 'dock1' };
+  const mockUser = { id: 'u1', role: Role.DEVELOPER };
 
   beforeEach(() => {
     prisma = {
@@ -30,6 +37,11 @@ describe('ContainersService', () => {
         create: jest.fn().mockResolvedValue({}),
         delete: jest.fn().mockResolvedValue({}),
       },
+      server: {
+        findUnique: jest.fn().mockResolvedValue({
+          environment: { projectId: 'p1' },
+        }),
+      },
     };
     docker = {
       startContainer: jest.fn().mockResolvedValue(undefined),
@@ -40,8 +52,13 @@ describe('ContainersService', () => {
       getContainerStats: jest.fn().mockResolvedValue({}),
       listContainers: jest.fn().mockResolvedValue([]),
     };
+    projectAccess = {
+      assertCanAccessProject: jest.fn().mockResolvedValue(undefined),
+      assertCanManageProject: jest.fn().mockResolvedValue(undefined),
+    };
     svc = new ContainersService(
       prisma as unknown as PrismaService,
+      projectAccess as unknown as ProjectAccessService,
       docker as unknown as DockerApiService,
     );
   });
@@ -54,6 +71,21 @@ describe('ContainersService', () => {
       prisma.container.findUnique.mockResolvedValue(null);
       await expect(svc.findOne('ghost')).rejects.toBeInstanceOf(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('assertCanAccessContainer', () => {
+    it('resolves project from server and checks read access', async () => {
+      await svc.assertCanAccessContainer('c1', mockUser.id, mockUser.role);
+      expect(prisma.server.findUnique).toHaveBeenCalledWith({
+        where: { id: 'srv1' },
+        select: { environment: { select: { projectId: true } } },
+      });
+      expect(projectAccess.assertCanAccessProject).toHaveBeenCalledWith(
+        'p1',
+        'u1',
+        Role.DEVELOPER,
       );
     });
   });
@@ -113,8 +145,8 @@ describe('ContainersService', () => {
         { Id: 'dock2', Names: ['/db'], Image: 'pg', State: 'exited' },
       ]);
       prisma.container.findFirst
-        .mockResolvedValueOnce({ id: 'c1' }) // dock1 exists
-        .mockResolvedValueOnce(null); // dock2 new
+        .mockResolvedValueOnce({ id: 'c1' })
+        .mockResolvedValueOnce(null);
 
       const count = await svc.syncFromDocker('srv1');
       expect(count).toBe(2);

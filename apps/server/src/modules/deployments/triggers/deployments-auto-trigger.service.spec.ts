@@ -181,7 +181,8 @@ describe('DeploymentsAutoTriggerService', () => {
 
       await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
 
-      const createArgs = prisma.deployment.create.mock.calls[0][0].data as Record<string, unknown>;
+      const createArgs = prisma.deployment.create.mock.calls[0][0]
+        .data as Record<string, unknown>;
       expect(createArgs).toHaveProperty('specSnapshot');
       expect(createArgs).toHaveProperty('observedGeneration', 5);
       expect(createArgs.specSnapshot).toMatchObject({ branch: BRANCH });
@@ -224,7 +225,10 @@ describe('DeploymentsAutoTriggerService', () => {
     it('skips (logs error) when a deployment is already in flight for the service-env (concurrency guard inside tx)', async () => {
       prisma.serviceEnvironment.findMany.mockResolvedValue([makeSvcEnv()]);
       // acquireDeploySlot: $executeRaw OK → updateMany (stale, 0 rows) → findFirst finds in-flight → throws
-      prisma.deployment.findFirst.mockResolvedValue({ id: 'in-flight-deploy', status: 'RUNNING' });
+      prisma.deployment.findFirst.mockResolvedValue({
+        id: 'in-flight-deploy',
+        status: 'RUNNING',
+      });
       prisma.$transaction.mockImplementation(
         async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
       );

@@ -35,7 +35,10 @@ describe('ReconcilerService', () => {
   };
   let dockerApi: { inspectContainer: jest.Mock };
   let executor: { executeDeploy: jest.Mock };
-  let notifications: { notifyAutoHeal: jest.Mock };
+  let notifications: {
+    notifyAutoHeal: jest.Mock;
+    notifyConfigDrift: jest.Mock;
+  };
 
   beforeEach(() => {
     prisma = {
@@ -50,7 +53,10 @@ describe('ReconcilerService', () => {
     };
     dockerApi = { inspectContainer: jest.fn() };
     executor = { executeDeploy: jest.fn().mockResolvedValue(undefined) };
-    notifications = { notifyAutoHeal: jest.fn().mockResolvedValue(undefined) };
+    notifications = {
+      notifyAutoHeal: jest.fn().mockResolvedValue(undefined),
+      notifyConfigDrift: jest.fn().mockResolvedValue(undefined),
+    };
     service = new ReconcilerService(
       prisma as unknown as PrismaService,
       dockerApi as unknown as DockerApiService,

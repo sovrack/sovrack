@@ -1,4 +1,4 @@
-import { DockerApiService } from '../../src/core/container-runtime/docker-api.service';
+import { DockerApiService } from '../../src/adapters/container-runtime/docker-api.service';
 import { DockerDeployExecutorService } from '../../src/modules/deployments/core/docker-deploy-executor.service';
 import { DeploymentsHealthcheckService } from '../../src/modules/deployments/health/deployments-healthcheck.service';
 import { LocalBuildService } from '../../src/modules/deployments/core/local-build.service';

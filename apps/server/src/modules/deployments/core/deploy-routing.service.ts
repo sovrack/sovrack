@@ -86,7 +86,9 @@ export class DeployRoutingService {
     server: Server;
     serviceEnvId: string;
     traefikDomain: string;
-    containerName: string;
+    /** Single name (backwards compat) or all replica names for round-robin. */
+    containerName?: string;
+    containerNames?: string[];
     servicePort: number;
   }): Promise<string> {
     const {
@@ -95,9 +97,15 @@ export class DeployRoutingService {
       server,
       serviceEnvId,
       traefikDomain,
-      containerName,
       servicePort,
     } = params;
+    const names =
+      params.containerNames ??
+      (params.containerName ? [params.containerName] : []);
+
+    if (names.length === 0) {
+      return '[TRAEFIK] aucun conteneur à router — route ignorée\n';
+    }
 
     try {
       const routeLog = await this.traefik.applyRoute(
@@ -105,7 +113,7 @@ export class DeployRoutingService {
         server,
         serviceEnvId,
         traefikDomain,
-        containerName,
+        names,
         servicePort,
       );
       this.gateway.emitLog({
