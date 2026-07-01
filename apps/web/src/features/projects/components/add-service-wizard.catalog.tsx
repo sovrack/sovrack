@@ -14,10 +14,6 @@ export const KINDS: {
   label: string;
   hint: string;
   icon: React.ReactNode;
-  // Shown but not selectable: the deploy executor does not yet expand a
-  // docker-compose stack into multiple containers, so offering it would
-  // create services that never deploy. Re-enable once the compose executor lands.
-  disabled?: boolean;
   badge?: string;
 }[] = [
   {
@@ -41,10 +37,8 @@ export const KINDS: {
   {
     kind: "COMPOSE",
     label: "Docker Compose",
-    hint: "Multi-service stacks are under development — use multiple Application/Docker services for now",
+    hint: "Deploy a multi-service stack defined in a docker-compose.yml",
     icon: <Layers size={20} />,
-    disabled: true,
-    badge: "Coming soon",
   },
   {
     kind: "TEMPLATE",

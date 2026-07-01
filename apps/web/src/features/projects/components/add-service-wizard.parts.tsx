@@ -13,9 +13,7 @@ export function KindPicker({ onPick }: { onPick: (k: ServiceKind) => void }) {
           key={k.kind}
           type="button"
           onClick={() => onPick(k.kind)}
-          disabled={k.disabled}
-          title={k.disabled ? k.hint : undefined}
-          className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4 text-left transition enabled:hover:border-[var(--text-muted)] enabled:hover:bg-[var(--hover)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4 text-left transition hover:border-[var(--text-muted)] hover:bg-[var(--hover)]"
         >
           <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-secondary)]">
             {k.icon}

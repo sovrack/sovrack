@@ -31,6 +31,7 @@ export function DeployValidationPanel({
   onClose,
 }: DeployValidationPanelProps) {
   const missing = validation?.missing ?? [];
+  const isPrepared = validation?.prepared ?? false;
 
   return (
     <>
@@ -70,7 +71,43 @@ export function DeployValidationPanel({
               Validation error: {validateError}
             </div>
           )}
-          {validation && !validating && missing.length > 0 && (
+          {validation && !validating && !isPrepared && (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
+                  <AlertTriangle size={14} />
+                  Server not prepared yet on {validation.serverName}
+                </div>
+                {validation.serverId && (
+                  <Link
+                    href={`/admin/servers/${validation.serverId}`}
+                    onClick={onClose}
+                    className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/20 px-2.5 py-1 text-[10px] font-semibold text-amber-300 hover:bg-amber-500/30"
+                  >
+                    Install tools →
+                  </Link>
+                )}
+              </div>
+              <div className="mt-2 space-y-1.5">
+                {validation.required.map((req) => {
+                  const isMissing = missing.some((m) => m.binary === req.binary);
+                  return (
+                    <div key={req.binary} className="flex items-center gap-2 text-xs">
+                      {isMissing ? (
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500/20 text-[10px] text-red-400">✕</span>
+                      ) : (
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-500/20 text-[10px] text-green-400">✓</span>
+                      )}
+                      <span className={isMissing ? "text-red-300" : "text-green-300"}>
+                        {req.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {validation && !validating && isPrepared && missing.length > 0 && (
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
@@ -106,7 +143,7 @@ export function DeployValidationPanel({
               </div>
             </div>
           )}
-          {validation && !validating && missing.length === 0 && (
+          {validation && !validating && isPrepared && missing.length === 0 && (
             <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-xs text-green-400">
               <CheckCircle2 size={14} />
               All required tools are installed on {validation.serverName}
