@@ -1,23 +1,26 @@
-import { of } from 'rxjs';
-import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../../shared/database/prisma.service';
-import { CryptoService } from '../../shared/crypto/crypto.service';
+import { NotificationsConfigService } from './notifications-config.service';
+import { NotificationsSmtpService } from './notifications-smtp.service';
+import { NotificationsSlackService } from './notifications-slack.service';
 import {
   NotificationsService,
   type DeploymentNotificationPayload,
 } from './notifications.service';
 
-type ConfigMap = Record<string, { value: string; isSecret: boolean }>;
-
-describe('NotificationsService', () => {
-  let prisma: {
-    platformConfig: { findUnique: jest.Mock };
-    project: { findUnique: jest.Mock };
-  };
-  let http: { post: jest.Mock };
-  let crypto: { decrypt: jest.Mock };
+describe('NotificationsService (dispatcher)', () => {
   let service: NotificationsService;
-  let config: ConfigMap;
+  let config: { get: jest.Mock };
+  let smtp: {
+    sendDeploymentEmail: jest.Mock;
+    sendSimpleEmail: jest.Mock;
+    sendDockerConnectionEmail: jest.Mock;
+  };
+  let slack: {
+    sendDeploymentSlack: jest.Mock;
+    sendSimpleSlack: jest.Mock;
+    sendDockerConnectionSlack: jest.Mock;
+  };
+  let prisma: { project: { findUnique: jest.Mock } };
 
   const payload: DeploymentNotificationPayload = {
     deploymentId: 'd1',
@@ -29,122 +32,132 @@ describe('NotificationsService', () => {
   };
 
   beforeEach(() => {
-    config = {};
+    config = { get: jest.fn().mockResolvedValue(null) };
+    smtp = {
+      sendDeploymentEmail: jest.fn().mockResolvedValue(undefined),
+      sendSimpleEmail: jest.fn().mockResolvedValue(undefined),
+      sendDockerConnectionEmail: jest.fn().mockResolvedValue(undefined),
+    };
+    slack = {
+      sendDeploymentSlack: jest.fn().mockResolvedValue(undefined),
+      sendSimpleSlack: jest.fn().mockResolvedValue(undefined),
+      sendDockerConnectionSlack: jest.fn().mockResolvedValue(undefined),
+    };
     prisma = {
-      platformConfig: {
-        findUnique: jest.fn(({ where: { key } }: { where: { key: string } }) =>
-          Promise.resolve(config[key] ? { key, ...config[key] } : null),
-        ),
-      },
       project: { findUnique: jest.fn().mockResolvedValue({ name: 'P' }) },
     };
-    http = { post: jest.fn().mockReturnValue(of({ data: {} })) };
-    crypto = { decrypt: jest.fn((v: string) => `dec:${v}`) };
+
     service = new NotificationsService(
+      config as unknown as NotificationsConfigService,
+      smtp as unknown as NotificationsSmtpService,
+      slack as unknown as NotificationsSlackService,
       prisma as unknown as PrismaService,
-      http as unknown as HttpService,
-      crypto as unknown as CryptoService,
     );
   });
 
-  describe('getConfig', () => {
-    const get = (key: string) =>
-      (
-        service as unknown as {
-          getConfig: (k: string) => Promise<string | null>;
-        }
-      ).getConfig(key);
-
-    it('returns plaintext for a non-secret value', async () => {
-      config.X = { value: 'plain', isSecret: false };
-      await expect(get('X')).resolves.toBe('plain');
-    });
-
-    it('decrypts a secret value', async () => {
-      config.X = { value: 'enc', isSecret: true };
-      await expect(get('X')).resolves.toBe('dec:enc');
-    });
-
-    it('returns null when the key is missing', async () => {
-      await expect(get('NOPE')).resolves.toBeNull();
-    });
-
-    it('returns null when decryption throws', async () => {
-      config.X = { value: 'bad', isSecret: true };
-      crypto.decrypt.mockImplementation(() => {
-        throw new Error('bad key');
-      });
-      await expect(get('X')).resolves.toBeNull();
-    });
-  });
-
   describe('notifyDeploymentFinished gating', () => {
-    it('skips SUCCESS notifications when NOTIFY_ON_SUCCESS=false', async () => {
-      config.NOTIFY_ON_SUCCESS = { value: 'false', isSecret: false };
-      const slack = jest.spyOn(
-        service as unknown as { sendSlackNotification: () => Promise<void> },
-        'sendSlackNotification',
+    it('skips SUCCESS when NOTIFY_ON_SUCCESS=false', async () => {
+      config.get.mockImplementation((k: string) =>
+        Promise.resolve(k === 'NOTIFY_ON_SUCCESS' ? 'false' : null),
       );
       await service.notifyDeploymentFinished({ ...payload, status: 'SUCCESS' });
-      expect(slack).not.toHaveBeenCalled();
+      expect(slack.sendDeploymentSlack).not.toHaveBeenCalled();
+      expect(smtp.sendDeploymentEmail).not.toHaveBeenCalled();
     });
 
-    it('skips FAILED notifications when NOTIFY_ON_FAILURE=false', async () => {
-      config.NOTIFY_ON_FAILURE = { value: 'false', isSecret: false };
-      const slack = jest.spyOn(
-        service as unknown as { sendSlackNotification: () => Promise<void> },
-        'sendSlackNotification',
+    it('skips FAILED when NOTIFY_ON_FAILURE=false', async () => {
+      config.get.mockImplementation((k: string) =>
+        Promise.resolve(k === 'NOTIFY_ON_FAILURE' ? 'false' : null),
       );
       await service.notifyDeploymentFinished({ ...payload, status: 'FAILED' });
-      expect(slack).not.toHaveBeenCalled();
+      expect(slack.sendDeploymentSlack).not.toHaveBeenCalled();
     });
 
-    it('attempts to notify on SUCCESS by default (notifications enabled)', async () => {
-      const slack = jest.spyOn(
-        service as unknown as { sendSlackNotification: () => Promise<void> },
-        'sendSlackNotification',
-      );
+    it('dispatches both channels for SUCCESS by default', async () => {
       await service.notifyDeploymentFinished({ ...payload, status: 'SUCCESS' });
-      expect(slack).toHaveBeenCalled();
+      expect(slack.sendDeploymentSlack).toHaveBeenCalledWith(payload);
+      expect(smtp.sendDeploymentEmail).toHaveBeenCalledWith(payload);
     });
   });
 
-  describe('channel no-ops & resilience', () => {
-    it('does not POST to Slack when no webhook is configured', async () => {
+  describe('event dispatchers', () => {
+    it('notifyAutoHeal dispatches slack + email', async () => {
       await service.notifyAutoHeal({
         serviceEnvId: 'se1',
         containerName: 'c1',
         reason: 'exited',
       });
-      expect(http.post).not.toHaveBeenCalled();
+      expect(slack.sendSimpleSlack).toHaveBeenCalledWith(
+        expect.stringContaining('Auto-heal'),
+      );
+      expect(smtp.sendSimpleEmail).toHaveBeenCalled();
     });
 
-    it('POSTs to Slack when a webhook is configured', async () => {
-      config.SLACK_WEBHOOK_URL = { value: 'https://hooks/x', isSecret: false };
-      await service.notifyAutoHeal({
+    it('notifyConfigDrift dispatches both channels', async () => {
+      await service.notifyConfigDrift({
         serviceEnvId: 'se1',
-        containerName: 'c1',
-        reason: 'exited',
+        desiredGeneration: 2,
+        deployedGeneration: 1,
       });
-      expect(http.post).toHaveBeenCalledWith(
-        'https://hooks/x',
-        expect.objectContaining({ text: expect.stringContaining('Auto-heal') }),
-        expect.anything(),
+      expect(slack.sendSimpleSlack).toHaveBeenCalledWith(
+        expect.stringContaining('Config drift'),
       );
     });
 
-    it('never throws when a Slack post fails', async () => {
-      config.SLACK_WEBHOOK_URL = { value: 'https://hooks/x', isSecret: false };
-      http.post.mockImplementation(() => {
-        throw new Error('network down');
+    it('notifyWebhookDeadLetter resolves project name from DB', async () => {
+      const event = {
+        id: 'ev1',
+        externalDeliveryId: null,
+        attempts: 3,
+      } as never;
+      const endpoint = { id: 'ep1', projectId: 'proj1' };
+      await service.notifyWebhookDeadLetter(event, endpoint);
+      expect(prisma.project.findUnique).toHaveBeenCalledWith({
+        where: { id: 'proj1' },
+        select: { name: true },
       });
-      await expect(
-        service.notifyAutoHeal({
-          serviceEnvId: 'se1',
-          containerName: 'c1',
-          reason: 'exited',
-        }),
-      ).resolves.toBeUndefined();
+      expect(slack.sendSimpleSlack).toHaveBeenCalledWith(
+        expect.stringContaining('P'),
+      );
+    });
+
+    it('notifyDockerConnectionDown forwards to slack + smtp', async () => {
+      const p = {
+        serverId: 's1',
+        endpoint: 'tcp://x:2376',
+        lastError: 'refused',
+        failedSince: new Date(),
+      };
+      await service.notifyDockerConnectionDown(p);
+      expect(slack.sendDockerConnectionSlack).toHaveBeenCalledWith(p, false);
+      expect(smtp.sendDockerConnectionEmail).toHaveBeenCalledWith(p, false);
+    });
+
+    it('notifyDockerConnectionRecovered passes recovered=true', async () => {
+      const p = { serverId: 's1', endpoint: 'tcp://x:2376' };
+      await service.notifyDockerConnectionRecovered(p);
+      expect(slack.sendDockerConnectionSlack).toHaveBeenCalledWith(p, true);
+    });
+
+    it('notifySslRenewalFailed includes domain in message', async () => {
+      await service.notifySslRenewalFailed({
+        domainName: 'example.com',
+        error: 'timeout',
+      });
+      expect(slack.sendSimpleSlack).toHaveBeenCalledWith(
+        expect.stringContaining('example.com'),
+      );
+    });
+  });
+
+  describe('settings delegation', () => {
+    it('getSettings delegates to configService', async () => {
+      const mockSettings = { slackWebhookUrl: '' } as never;
+      (config as unknown as { getSettings: jest.Mock }).getSettings = jest
+        .fn()
+        .mockResolvedValue(mockSettings);
+      const result = await service.getSettings();
+      expect(result).toBe(mockSettings);
     });
   });
 });
