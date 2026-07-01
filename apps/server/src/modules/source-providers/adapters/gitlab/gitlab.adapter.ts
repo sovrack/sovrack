@@ -526,25 +526,35 @@ export class GitlabAdapter implements IGitProvider {
     }));
   }
 
-  async resolveRegistryCredentials(
-    projectId: string,
-  ): Promise<RegistryCredentials> {
+  /** Loads a GitlabResolvedConfig for the first service in the project that has
+   * a provider. Throws NotFoundException when no provider config exists. */
+  private async loadResolvedConfig(projectId: string): Promise<{
+    config: GitlabResolvedConfig;
+    svc: { repoPath: string | null; name: string | null };
+  }> {
     const svc = await this.prisma.service.findFirst({
       where: { projectId, providerId: { not: null } },
+      select: {
+        providerId: true,
+        sourceType: true,
+        branch: true,
+        repoPath: true,
+        name: true,
+      },
     });
-    if (!svc?.providerId) {
+    if (!svc?.providerId)
       throw new NotFoundException(
         `Aucune config GitLab pour le projet ${projectId}`,
       );
-    }
+
     const gitProviderConfig = await this.prisma.gitProviderConfig.findUnique({
       where: { id: svc.providerId },
     });
-    if (!gitProviderConfig) {
+    if (!gitProviderConfig)
       throw new NotFoundException(
         `Aucune config GitLab pour le projet ${projectId}`,
       );
-    }
+
     const config: GitlabResolvedConfig = {
       ...gitProviderConfig,
       projectId,
@@ -564,6 +574,13 @@ export class GitlabAdapter implements IGitProvider {
       registryUrl: null,
       providerId: gitProviderConfig.id,
     };
+    return { config, svc };
+  }
+
+  async resolveRegistryCredentials(
+    projectId: string,
+  ): Promise<RegistryCredentials> {
+    const { config } = await this.loadResolvedConfig(projectId);
     return this.resolveRegistryCredentialsFromConfig(config);
   }
 
@@ -571,41 +588,7 @@ export class GitlabAdapter implements IGitProvider {
     projectId: string,
     preferredRepoId?: number | string,
   ): Promise<string> {
-    const svc = await this.prisma.service.findFirst({
-      where: { projectId, providerId: { not: null } },
-    });
-    if (!svc?.providerId) {
-      throw new NotFoundException(
-        `Aucune config GitLab pour le projet ${projectId}`,
-      );
-    }
-    const gitProviderConfig = await this.prisma.gitProviderConfig.findUnique({
-      where: { id: svc.providerId },
-    });
-    if (!gitProviderConfig) {
-      throw new NotFoundException(
-        `Aucune config GitLab pour le projet ${projectId}`,
-      );
-    }
-    const config: GitlabResolvedConfig = {
-      ...gitProviderConfig,
-      projectId,
-      providerUrl: gitProviderConfig.providerUrl,
-      providerToken:
-        gitProviderConfig.adminToken ||
-        gitProviderConfig.oauthAccessToken ||
-        '',
-      sourceType: svc.sourceType,
-      defaultBranch: svc.branch,
-      externalId: null,
-      repoPathNamespace: null,
-      externalGroupId: null,
-      deployTokenUsername: null,
-      deployTokenValue: null,
-      webhookSecret: null,
-      registryUrl: null,
-      providerId: gitProviderConfig.id,
-    };
+    const { config } = await this.loadResolvedConfig(projectId);
     return this.resolveRepositoryPathFromConfig(
       config,
       config.defaultBranch ?? '',
@@ -657,46 +640,21 @@ export class GitlabAdapter implements IGitProvider {
     branch: string,
     serviceId?: string,
   ): Promise<string> {
-    const svc = await this.prisma.service.findFirst({
-      where: { projectId, providerId: { not: null } },
-    });
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       select: { name: true },
     });
     const slug = sanitizeDockerTag(project?.name ?? projectId);
-
     const tag = sanitizeDockerTag(branch);
 
-    if (!svc?.providerId) {
+    let resolvedConfig: Awaited<ReturnType<typeof this.loadResolvedConfig>>;
+    try {
+      resolvedConfig = await this.loadResolvedConfig(projectId);
+    } catch {
       return `${slug}:${tag}`;
     }
-    const gitProviderConfig = await this.prisma.gitProviderConfig.findUnique({
-      where: { id: svc.providerId },
-    });
-    if (!gitProviderConfig) return `${slug}:${tag}`;
+    const { config, svc } = resolvedConfig;
 
-    const config: GitlabResolvedConfig = {
-      ...gitProviderConfig,
-      projectId,
-      providerUrl: gitProviderConfig.providerUrl,
-      providerToken:
-        gitProviderConfig.adminToken ||
-        gitProviderConfig.oauthAccessToken ||
-        '',
-      sourceType: svc.sourceType,
-      defaultBranch: svc.branch,
-      externalId: null,
-      repoPathNamespace: null,
-      externalGroupId: null,
-      deployTokenUsername: null,
-      deployTokenValue: null,
-      webhookSecret: null,
-      registryUrl: null,
-      providerId: gitProviderConfig.id,
-    };
-
-    let preferredRepoId: number | undefined;
     let projectSlug = slug;
     if (serviceId) {
       const svcDetail = await this.prisma.service.findUnique({
@@ -708,13 +666,13 @@ export class GitlabAdapter implements IGitProvider {
     }
 
     const registryHost = this.credential.resolveRegistryHost(
-      gitProviderConfig.providerUrl,
-      gitProviderConfig.providerUrl,
+      config.providerUrl,
+      config.providerUrl,
     );
     const repoPath = await this.resolveRepositoryPathFromConfig(
       config,
       projectSlug,
-      preferredRepoId,
+      undefined,
     );
     const finalPath =
       this.credential.isPlaceholderPath(config, repoPath) && svc?.repoPath
