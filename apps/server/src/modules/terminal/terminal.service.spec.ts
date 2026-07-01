@@ -1,4 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { TerminalService } from './terminal.service';
 
 describe('TerminalService.openSession', () => {
@@ -9,9 +10,28 @@ describe('TerminalService.openSession', () => {
     onError: jest.fn(),
   };
 
+  const validServer = {
+    id: 'srv1',
+    host: 'h',
+    port: 22,
+    username: 'u',
+    sshKey: 'key',
+    isVerified: true,
+    isActive: true,
+    environmentId: 'env1',
+  };
+
   function make(server: unknown) {
     const prisma = {
       server: { findUnique: jest.fn().mockResolvedValue(server) },
+      environment: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ projectId: 'proj1' }),
+      },
+      projectMember: {
+        findUnique: jest.fn().mockResolvedValue({ role: 'OWNER' }),
+      },
     };
     const crypto = {
       decrypt: jest.fn((v: string) => v),
@@ -40,28 +60,20 @@ describe('TerminalService.openSession', () => {
     return { svc, prisma, sshSessions, audit, handle };
   }
 
-  const validServer = {
-    id: 'srv1',
-    host: 'h',
-    port: 22,
-    username: 'u',
-    sshKey: 'key',
-    isVerified: true,
-    isActive: true,
-  };
+  // ── Server validation ──────────────────────────────────────────────────────
 
   it('throws NotFound when the server does not exist', async () => {
     const { svc, sshSessions } = make(null);
     await expect(
-      svc.openSession('ghost', 'admin', opts, handlers),
+      svc.openSession('ghost', 'admin', Role.ADMIN, opts, handlers),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(sshSessions.openShell).not.toHaveBeenCalled();
   });
 
-  it('refuses an unverified server (no SSH session)', async () => {
+  it('refuses an unverified server', async () => {
     const { svc, sshSessions } = make({ ...validServer, isVerified: false });
     await expect(
-      svc.openSession('srv1', 'admin', opts, handlers),
+      svc.openSession('srv1', 'admin', Role.ADMIN, opts, handlers),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(sshSessions.openShell).not.toHaveBeenCalled();
   });
@@ -69,14 +81,16 @@ describe('TerminalService.openSession', () => {
   it('refuses a deactivated server', async () => {
     const { svc, sshSessions } = make({ ...validServer, isActive: false });
     await expect(
-      svc.openSession('srv1', 'admin', opts, handlers),
+      svc.openSession('srv1', 'admin', Role.ADMIN, opts, handlers),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(sshSessions.openShell).not.toHaveBeenCalled();
   });
 
-  it('opens the shell and records the audit trail on a valid server', async () => {
+  // ── ADMIN access ───────────────────────────────────────────────────────────
+
+  it('opens the shell for a platform ADMIN and records the audit trail', async () => {
     const { svc, sshSessions, audit, handle } = make(validServer);
-    const res = await svc.openSession('srv1', 'admin', opts, handlers);
+    const res = await svc.openSession('srv1', 'admin', Role.ADMIN, opts, handlers);
     expect(audit.recordOpen).toHaveBeenCalledWith(
       'srv1',
       'admin',
@@ -86,16 +100,64 @@ describe('TerminalService.openSession', () => {
     expect(res).toBe(handle);
   });
 
+  it('ADMIN bypasses ownership check even for a server without environmentId', async () => {
+    const { svc, sshSessions } = make({ ...validServer, environmentId: null });
+    await expect(
+      svc.openSession('srv1', 'admin', Role.ADMIN, opts, handlers),
+    ).resolves.toBeDefined();
+    expect(sshSessions.openShell).toHaveBeenCalled();
+  });
+
   it('records an audit error and rethrows when the SSH shell fails', async () => {
     const { svc, sshSessions, audit } = make(validServer);
     sshSessions.openShell.mockRejectedValueOnce(new Error('boom'));
     await expect(
-      svc.openSession('srv1', 'admin', opts, handlers),
+      svc.openSession('srv1', 'admin', Role.ADMIN, opts, handlers),
     ).rejects.toThrow('boom');
     expect(audit.recordError).toHaveBeenCalledWith(
       'srv1',
       'admin',
       expect.objectContaining({ message: 'boom' }),
     );
+  });
+
+  // ── Project OWNER access ───────────────────────────────────────────────────
+
+  it('allows a project OWNER to access a server linked to their environment', async () => {
+    const { svc, sshSessions } = make(validServer);
+    const res = await svc.openSession('srv1', 'u1', Role.DEVELOPER, opts, handlers);
+    expect(sshSessions.openShell).toHaveBeenCalled();
+    expect(res).toBeDefined();
+  });
+
+  it('blocks a non-ADMIN user on a server with no environmentId', async () => {
+    const { svc } = make({ ...validServer, environmentId: null });
+    await expect(
+      svc.openSession('srv1', 'u1', Role.DEVELOPER, opts, handlers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('blocks a project DEVELOPER (OWNER-only for terminal)', async () => {
+    const { svc, prisma } = make(validServer);
+    prisma.projectMember.findUnique.mockResolvedValue({ role: 'DEVELOPER' });
+    await expect(
+      svc.openSession('srv1', 'u1', Role.DEVELOPER, opts, handlers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('blocks a user who is not a member of the project at all', async () => {
+    const { svc, prisma } = make(validServer);
+    prisma.projectMember.findUnique.mockResolvedValue(null);
+    await expect(
+      svc.openSession('srv1', 'u1', Role.DEVELOPER, opts, handlers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('throws NotFound when the server environment cannot be resolved', async () => {
+    const { svc, prisma } = make(validServer);
+    prisma.environment.findUnique.mockResolvedValue(null);
+    await expect(
+      svc.openSession('srv1', 'u1', Role.DEVELOPER, opts, handlers),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { ServerHostKeyService } from '../../adapters/ssh/server-host-key.service';
 import { ServersCryptoService } from '../../adapters/ssh/servers-crypto.service';
@@ -38,6 +39,7 @@ export class TerminalService {
   async openSession(
     serverId: string,
     actorId: string,
+    actorRole: Role,
     opts: SshSessionOptions,
     handlers: SshSessionHandlers,
   ): Promise<{
@@ -61,6 +63,12 @@ export class TerminalService {
 
     if (!server.isActive) {
       throw new ForbiddenException('Ce serveur est désactivé.');
+    }
+
+    // ADMIN : accès global à tous les serveurs.
+    // Tout autre rôle : doit être OWNER du projet lié au serveur.
+    if (actorRole !== Role.ADMIN) {
+      await this.assertOwnerAccess(server.environmentId ?? null, actorId);
     }
 
     const privateKey = this.crypto.normalizePrivateKeyFormat(
@@ -112,6 +120,38 @@ export class TerminalService {
       this.logger.error(message);
       await this.audit.recordError(serverId, actorId, { message });
       throw error;
+    }
+  }
+
+  /**
+   * Vérifie que l'utilisateur est OWNER du projet associé au serveur.
+   * Un serveur sans environmentId (pas encore lié à un projet) est réservé aux ADMINs.
+   */
+  private async assertOwnerAccess(
+    environmentId: string | null,
+    actorId: string,
+  ): Promise<void> {
+    if (!environmentId) {
+      throw new ForbiddenException(
+        "Ce serveur n'est pas encore lié à un environnement de projet. Accès réservé aux ADMIN.",
+      );
+    }
+
+    const env = await this.prisma.environment.findUnique({
+      where: { id: environmentId },
+      select: { projectId: true },
+    });
+    if (!env) throw new NotFoundException('Environnement introuvable');
+
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId: env.projectId, userId: actorId } },
+      select: { role: true },
+    });
+
+    if (member?.role !== ProjectRole.OWNER) {
+      throw new ForbiddenException(
+        'Terminal SSH réservé aux OWNER du projet ou ADMIN de la plateforme.',
+      );
     }
   }
 

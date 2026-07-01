@@ -9,6 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
+import { Role } from '@prisma/client';
 import {
   AUTH_COOKIE_NAME_DEFAULT,
   extractTokenFromCookieHeader,
@@ -58,8 +59,8 @@ export class TerminalGateway implements OnGatewayDisconnect {
   ) {
     try {
       const token = this.resolveToken(client, body.token);
-      const actorId = token ? this.verifyToken(token) : null;
-      if (!actorId) {
+      const actor = token ? this.verifyToken(token) : null;
+      if (!actor) {
         client.emit('terminal:error', 'Non autorisé');
         return;
       }
@@ -71,7 +72,8 @@ export class TerminalGateway implements OnGatewayDisconnect {
 
       const session = await this.terminalService.openSession(
         body.serverId,
-        actorId,
+        actor.id,
+        actor.role as Role,
         { cols, rows },
         {
           onData: (data) => client.emit('terminal:data', data),
@@ -119,12 +121,11 @@ export class TerminalGateway implements OnGatewayDisconnect {
     }
   }
 
-  private verifyToken(token: string): string | null {
+  private verifyToken(token: string): { id: string; role: string } | null {
     try {
       const secret = this.configService.get<string>('JWT_SECRET') ?? '';
       const payload = this.jwtService.verify<JwtPayload>(token, { secret });
-      if (payload.role !== 'ADMIN') return null;
-      return payload.sub;
+      return { id: payload.sub, role: payload.role };
     } catch {
       return null;
     }

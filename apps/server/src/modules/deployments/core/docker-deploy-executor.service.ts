@@ -26,6 +26,7 @@ import { DeploymentEventsPublisher } from '../events/deployment-events.publisher
 import { NotificationsService } from '../../notifications/notifications.service';
 import { buildContainerCreateSpec } from '../utils/container-create-spec.util';
 import { toJson } from '../../../shared/utils/prisma-json.util';
+import { DockerComposeExecutorService } from './docker-compose-executor.service';
 import {
   getLogContext,
   runWithLogContext,
@@ -40,6 +41,7 @@ interface RuntimeSpecSnapshot {
   healthcheckPath?: string | null;
   cpuLimit?: number | null;
   memLimitMb?: number | null;
+  replicas?: number | null;
 }
 
 /** Runtime config actually applied to the container. */
@@ -49,6 +51,55 @@ interface ResolvedRuntimeConfig {
   healthcheckPath: string | null;
   cpuLimit: number | null;
   memLimitMb: number | null;
+  replicas: number;
+}
+
+/** Params for the N-replica launch loop, extracted from executeDeployInternal. */
+interface ReplicaLaunchParams {
+  serverId: string;
+  server: { host: string };
+  deploymentId: string;
+  serviceId: string | null | undefined;
+  serviceEnvId: string | null | undefined;
+  serviceType: ServiceType | null | undefined;
+  containerName: string;
+  serviceAlias: string;
+  replicas: number;
+  imageRef: string;
+  runtime: ResolvedRuntimeConfig;
+  envVars: string[];
+  servicePort: number;
+  publishPort: number;
+  useTraefik: boolean;
+  platformLabels: Record<string, string>;
+  dbVolumeName: string | null | undefined;
+  dbVolumePath: string | null | undefined;
+  appBinds: string[];
+  projectNetwork: string;
+  stopTimeout: number;
+  /** Pass-by-reference: populated during the loop so the catch block can clean
+   *  up containers created before a mid-loop failure. */
+  newContainerIds: string[];
+}
+
+interface ReplicaLaunchResult {
+  replicaContainerNames: string[];
+  logs: string;
+}
+
+/** Params for the failure handler, extracted from the catch block. */
+interface FailureHandlerParams {
+  serverId: string;
+  deploymentId: string;
+  priorLogs: string | null;
+  commandLogs: string;
+  newContainerIds: string[];
+  stoppedOld: Array<{ id: string; name: string }>;
+  projectName: string;
+  environmentName: string;
+  branch: string;
+  triggeredBy: string;
+  error: unknown;
 }
 
 @Injectable()
@@ -72,6 +123,7 @@ export class DockerDeployExecutorService {
     private readonly deployRouting: DeployRoutingService,
     private readonly containerLifecycle: ContainerLifecycleService,
     private readonly notifications: NotificationsService,
+    private readonly composeExecutor: DockerComposeExecutorService,
   ) {}
 
   /**
@@ -97,6 +149,7 @@ export class DockerDeployExecutorService {
       healthcheckPath: string | null;
       cpuLimit: number | null;
       memLimitMb: number | null;
+      replicas?: number | null;
     } | null;
   }): ResolvedRuntimeConfig {
     const usePinned =
@@ -115,6 +168,7 @@ export class DockerDeployExecutorService {
         snap?.healthcheckPath ?? service?.healthcheckPath ?? null,
       cpuLimit: snap?.cpuLimit ?? service?.cpuLimit ?? null,
       memLimitMb: snap?.memLimitMb ?? service?.memLimitMb ?? null,
+      replicas: snap?.replicas ?? service?.replicas ?? 1,
     };
   }
 
@@ -175,6 +229,7 @@ export class DockerDeployExecutorService {
             healthcheckPath: true,
             cpuLimit: true,
             memLimitMb: true,
+            replicas: true,
             preDeployCommand: true,
             preDeployTimeout: true,
             shutdownTimeout: true,
@@ -219,6 +274,12 @@ export class DockerDeployExecutorService {
     });
 
     if (!deployment) throw new BadRequestException('Déploiement non trouvé');
+
+    // Docker Compose deployments follow a completely different path (SSH + compose CLI).
+    if (deployment.service?.buildPack === 'DOCKER_COMPOSE') {
+      return this.composeExecutor.executeDeploy(deploymentId);
+    }
+
     // serviceEnvId is nullable in the schema only to preserve history when a
     // ServiceEnvironment is archived (onDelete: SetNull). Every live path sets
     // it; a null here is a malformed/legacy row that cannot bind to a cell —
@@ -341,7 +402,7 @@ export class DockerDeployExecutorService {
     // Tracked across try/catch so a failed deploy can roll the service back to
     // the previous container(s) it had to stop (see the catch block).
     let stoppedOld: Array<{ id: string; name: string }> = [];
-    let newContainerId: string | null = null;
+    const newContainerIds: string[] = [];
 
     try {
       const isLocalBuild = !!deployment.build?.isLocalBuild;
@@ -433,10 +494,30 @@ export class DockerDeployExecutorService {
         .filter((v): v is { name: string; mountPath: string } => !!v.mountPath)
         .map((v) => `${v.name}:${v.mountPath}`);
 
-      this.emitGatewayLog(deployment.id, 'Création du conteneur...', 'info');
+      const replicas = runtime.replicas;
+
+      // Guard: multiple replicas of APPLICATION services require Traefik.
+      // WORKER/CRON never publish a host port, so they can scale freely.
+      if (
+        replicas > 1 &&
+        !useTraefik &&
+        deployment.service?.type === ServiceType.APPLICATION
+      ) {
+        throw new BadRequestException(
+          'Les répliques (>1) pour un service APPLICATION nécessitent Traefik. ' +
+            'Sans Traefik, le port hôte ne peut pas être partagé entre N conteneurs. ' +
+            'Configurez un domaine ou activez Traefik pour ce service.',
+        );
+      }
+
+      this.emitGatewayLog(
+        deployment.id,
+        replicas > 1
+          ? `Création de ${String(replicas)} répliques...`
+          : 'Création du conteneur...',
+        'info',
+      );
       const stopTimeout = deployment.service?.shutdownTimeout ?? 30;
-      // Labels Docker → exposés par cAdvisor (container_label_platform_*) pour
-      // filtrer le monitoring par projet / service / environnement / déploiement.
       const platformLabels = buildplatformLabels({
         projectId: deployment.project.id,
         projectName: deployment.project.name,
@@ -450,64 +531,32 @@ export class DockerDeployExecutorService {
         deploymentId: deployment.id,
       });
 
-      const container = await this.docker.createContainer(
-        serverId,
-        buildContainerCreateSpec({
-          imageRef,
+      const { replicaContainerNames, logs: replicaLogs } =
+        await this.launchReplicas({
+          serverId,
+          server,
+          deploymentId: deployment.id,
+          serviceId: deployment.service?.id,
+          serviceEnvId: deployment.serviceEnv?.id,
+          serviceType: deployment.service?.type,
           containerName,
-          labels: platformLabels,
+          serviceAlias,
+          replicas,
+          imageRef,
+          runtime,
           envVars,
           servicePort,
           publishPort,
           useTraefik,
-          serviceType: deployment.service?.type,
-          startCommand: runtime.startCommand,
+          platformLabels,
+          dbVolumeName,
+          dbVolumePath,
+          appBinds,
+          projectNetwork,
           stopTimeout,
-          binds: [
-            ...(dbVolumeName && dbVolumePath
-              ? [`${dbVolumeName}:${dbVolumePath}`]
-              : []),
-            ...appBinds,
-          ],
-          networkMode: projectNetwork,
-          networkAlias: serviceAlias,
-          resourceLimits: {
-            cpuLimit: runtime.cpuLimit,
-            memLimitMb: runtime.memLimitMb,
-          },
-        }),
-      );
-      newContainerId = container.id;
-      commandLogs += `Conteneur créé : ${container.id.slice(0, 12)}\n`;
-
-      this.emitGatewayLog(deployment.id, 'Démarrage du conteneur...', 'info');
-      await this.docker.startContainer(serverId, container.id);
-      commandLogs += 'Conteneur démarré\n';
-
-      await this.prisma.container.create({
-        data: {
-          dockerId: container.id,
-          name: containerName,
-          imageRef,
-          status: ContainerStatus.RUNNING,
-          deploymentId: deployment.id,
-          serverId,
-          serviceId: deployment.service?.id ?? null,
-          serviceEnvId: deployment.serviceEnv?.id ?? null,
-          lastSeenAt: new Date(),
-        },
-      });
-      commandLogs += 'Enregistrement du conteneur en base de données\n';
-
-      commandLogs += await this.prelaunch.runHealthGate({
-        serverId,
-        containerId: container.id,
-        serverHost: server.host,
-        publishPort,
-        useTraefik,
-        healthcheckPath: runtime.healthcheckPath,
-        deploymentId: deployment.id,
-      });
+          newContainerIds,
+        });
+      commandLogs += replicaLogs;
 
       if (useTraefik && traefikDomain && traefikServiceEnvId) {
         commandLogs += await this.deployRouting.applyRoute({
@@ -516,16 +565,18 @@ export class DockerDeployExecutorService {
           server,
           serviceEnvId: traefikServiceEnvId,
           traefikDomain,
-          containerName,
+          containerNames: replicaContainerNames,
           servicePort,
         });
       }
 
       if (blueGreen) {
+        // For blue-green, cut over using the first (primary) replica's ID.
+        const greenDockerId = newContainerIds[0] ?? '';
         commandLogs += await this.deployRouting.cutoverBlueGreen({
           serviceEnvId: deployment.serviceEnv?.id ?? null,
           serverId,
-          greenDockerId: container.id,
+          greenDockerId,
           publishPort,
         });
       }
@@ -605,46 +656,13 @@ export class DockerDeployExecutorService {
 
       return finished;
     } catch (error) {
-      // Automatic recovery: remove the half-deployed new container and bring
-      // back any previous container(s) we had to stop, so a FAILED deploy never
-      // leaves the service down (Dokploy-style auto-rollback on failure).
-      if (newContainerId) {
-        await this.docker
-          .removeContainer(serverId, newContainerId, true)
-          .catch(() => undefined);
-      }
-      if (stoppedOld.length > 0) {
-        commandLogs += await this.containerLifecycle
-          .restartContainers(serverId, stoppedOld, deployment.id)
-          .catch(() => '');
-      }
-
-      const message =
-        error instanceof Error ? error.message : 'Échec du déploiement Docker';
-
-      const failed = await this.prisma.deployment.update({
-        where: { id: deployment.id },
-        data: {
-          status: DeploymentStatus.FAILED,
-          conditions: this.buildConditions('Degraded', 'DeployFailed', message),
-          finishedAt: new Date(),
-          logs: `${deployment.logs ?? ''}\n${commandLogs}\n${message}`.trim(),
-        },
-      });
-
-      this.gateway.emitStatus({
-        deploymentId: failed.id,
-        status: failed.status,
-      });
-      this.gateway.emitFinished({
-        deploymentId: failed.id,
-        status: failed.status,
-        finishedAt: failed.finishedAt,
-      });
-
-      void this.notifications.notifyDeploymentFinished({
-        deploymentId: failed.id,
-        status: 'FAILED',
+      return this.handleDeployFailure({
+        serverId,
+        deploymentId: deployment.id,
+        priorLogs: deployment.logs,
+        commandLogs,
+        newContainerIds,
+        stoppedOld,
         projectName: deployment.project.name,
         environmentName:
           deployment.serviceEnv?.environment?.name ??
@@ -652,10 +670,8 @@ export class DockerDeployExecutorService {
           '',
         branch: deployment.branch ?? '',
         triggeredBy: deployment.user?.email ?? 'auto',
-      }).catch(() => undefined);
-
-      if (error instanceof BadRequestException) throw error;
-      throw new BadRequestException('Déploiement Docker échoué');
+        error,
+      });
     }
   }
 
@@ -665,6 +681,141 @@ export class DockerDeployExecutorService {
     fallbackLevel: 'info' | 'error',
   ): void {
     this.logEmitter.emit(deploymentId, rawMessage, fallbackLevel);
+  }
+
+  /**
+   * Crée et démarre N répliques, enregistre chacune en base, vérifie le health.
+   * `newContainerIds` est passé par référence afin que le catch block d'executeDeployInternal
+   * puisse nettoyer les conteneurs créés avant un échec partiel.
+   */
+  private async launchReplicas(p: ReplicaLaunchParams): Promise<ReplicaLaunchResult> {
+    const replicaContainerNames: string[] = [];
+    let logs = '';
+
+    for (let i = 0; i < p.replicas; i++) {
+      const replicaName =
+        p.replicas === 1
+          ? p.containerName
+          : `${p.containerName}-${String(i + 1)}`;
+      const replicaAlias =
+        p.replicas === 1
+          ? p.serviceAlias
+          : `${p.serviceAlias}-${String(i + 1)}`;
+
+      const container = await this.docker.createContainer(
+        p.serverId,
+        buildContainerCreateSpec({
+          imageRef: p.imageRef,
+          containerName: replicaName,
+          labels: p.platformLabels,
+          envVars: p.envVars,
+          servicePort: p.servicePort,
+          publishPort: p.publishPort,
+          useTraefik: p.useTraefik,
+          serviceType: p.serviceType ?? undefined,
+          startCommand: p.runtime.startCommand,
+          stopTimeout: p.stopTimeout,
+          binds: [
+            ...(p.dbVolumeName && p.dbVolumePath
+              ? [`${p.dbVolumeName}:${p.dbVolumePath}`]
+              : []),
+            ...p.appBinds,
+          ],
+          networkMode: p.projectNetwork,
+          networkAlias: replicaAlias,
+          resourceLimits: {
+            cpuLimit: p.runtime.cpuLimit,
+            memLimitMb: p.runtime.memLimitMb,
+          },
+        }),
+      );
+      p.newContainerIds.push(container.id);
+      logs += `Réplique ${String(i + 1)}/${String(p.replicas)} créée : ${container.id.slice(0, 12)}\n`;
+
+      this.emitGatewayLog(p.deploymentId, `Démarrage réplique ${String(i + 1)}…`, 'info');
+      await this.docker.startContainer(p.serverId, container.id);
+      logs += `Réplique ${String(i + 1)} démarrée\n`;
+
+      await this.prisma.container.create({
+        data: {
+          dockerId: container.id,
+          name: replicaName,
+          imageRef: p.imageRef,
+          status: ContainerStatus.RUNNING,
+          deploymentId: p.deploymentId,
+          serverId: p.serverId,
+          serviceId: p.serviceId ?? null,
+          serviceEnvId: p.serviceEnvId ?? null,
+          lastSeenAt: new Date(),
+        },
+      });
+
+      logs += await this.prelaunch.runHealthGate({
+        serverId: p.serverId,
+        containerId: container.id,
+        serverHost: p.server.host,
+        publishPort: p.publishPort,
+        useTraefik: p.useTraefik,
+        healthcheckPath: p.runtime.healthcheckPath,
+        deploymentId: p.deploymentId,
+      });
+
+      replicaContainerNames.push(replicaName);
+    }
+    logs += `${String(p.replicas)} réplique(s) enregistrée(s) en base.\n`;
+
+    return { replicaContainerNames, logs };
+  }
+
+  /**
+   * Récupération automatique après échec : supprime les conteneurs à moitié
+   * déployés, redémarre les anciens, marque le déploiement FAILED et émet les
+   * événements WebSocket + notification.
+   */
+  private async handleDeployFailure(p: FailureHandlerParams): Promise<never> {
+    for (const cid of p.newContainerIds) {
+      await this.docker.removeContainer(p.serverId, cid, true).catch(() => undefined);
+    }
+    let recoveryLogs = '';
+    if (p.stoppedOld.length > 0) {
+      recoveryLogs = await this.containerLifecycle
+        .restartContainers(p.serverId, p.stoppedOld, p.deploymentId)
+        .catch(() => '');
+    }
+
+    const message =
+      p.error instanceof Error ? p.error.message : 'Échec du déploiement Docker';
+
+    const failed = await this.prisma.deployment.update({
+      where: { id: p.deploymentId },
+      data: {
+        status: DeploymentStatus.FAILED,
+        conditions: this.buildConditions('Degraded', 'DeployFailed', message),
+        finishedAt: new Date(),
+        logs: `${p.priorLogs ?? ''}\n${p.commandLogs}${recoveryLogs}\n${message}`.trim(),
+      },
+    });
+
+    this.gateway.emitStatus({ deploymentId: failed.id, status: failed.status });
+    this.gateway.emitFinished({
+      deploymentId: failed.id,
+      status: failed.status,
+      finishedAt: failed.finishedAt,
+    });
+
+    void this.notifications
+      .notifyDeploymentFinished({
+        deploymentId: failed.id,
+        status: 'FAILED',
+        projectName: p.projectName,
+        environmentName: p.environmentName,
+        branch: p.branch,
+        triggeredBy: p.triggeredBy,
+      })
+      .catch(() => undefined);
+
+    if (p.error instanceof BadRequestException) throw p.error;
+    throw new BadRequestException('Déploiement Docker échoué');
   }
 
   /**

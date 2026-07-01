@@ -5,10 +5,14 @@ import {
 } from '@nestjs/common';
 import { ProjectRole, Role, type User } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { ProjectAccessService } from '../../catalog/access/project-access.service';
 
 @Injectable()
 export class DeploymentsAuthorizationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly projectAccess: ProjectAccessService,
+  ) {}
 
   async getActor(userId: string): Promise<User> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -23,7 +27,7 @@ export class DeploymentsAuthorizationService {
     userId: string,
     userRole: Role,
   ): Promise<void> {
-    await this.resolveProjectMemberRole(projectId, userId, userRole);
+    await this.projectAccess.assertCanAccessProject(projectId, userId, userRole);
   }
 
   async assertCanDeployProject(

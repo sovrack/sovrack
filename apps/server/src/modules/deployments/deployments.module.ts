@@ -7,7 +7,9 @@ import { NotificationsModule } from '../notifications';
 import { PrismaModule } from '../../shared/database/prisma.module';
 import { AuditModule } from '../audit';
 import { ServersModule } from '../infrastructure';
+import { ProjectAccessModule } from '../catalog/access/project-access.module';
 import { DockerDeployExecutorService } from './core/docker-deploy-executor.service';
+import { DockerComposeExecutorService } from './core/docker-compose-executor.service';
 import { ImageResolverService } from './core/image-resolver.service';
 import { DeploymentLogEmitter } from './core/deployment-log-emitter.service';
 import { DeploymentEnvService } from './core/deployment-env.service';
@@ -50,6 +52,7 @@ import { PipelineRunsCleanupService } from './health/pipeline-runs-cleanup.servi
     ConfigModule,
     AppJwtModule,
     AuditModule,
+    ProjectAccessModule,
   ],
   controllers: [DeploymentsController],
   providers: [
@@ -62,6 +65,7 @@ import { PipelineRunsCleanupService } from './health/pipeline-runs-cleanup.servi
     DeploymentsGateway,
     DeploymentEventsPublisher,
     DockerDeployExecutorService,
+    DockerComposeExecutorService,
     ImageResolverService,
     DeploymentLogEmitter,
     DeploymentEnvService,

@@ -16,6 +16,8 @@ describe('DeploymentsAuthorizationService', () => {
   };
   let svc: DeploymentsAuthorizationService;
 
+  let projectAccess: { assertCanAccessProject: jest.Mock };
+
   beforeEach(() => {
     prisma = {
       user: { findUnique: jest.fn() },
@@ -25,8 +27,12 @@ describe('DeploymentsAuthorizationService', () => {
       projectMember: { findUnique: jest.fn() },
       environment: { findUnique: jest.fn() },
     };
+    projectAccess = {
+      assertCanAccessProject: jest.fn().mockResolvedValue(undefined),
+    };
     svc = new DeploymentsAuthorizationService(
       prisma as unknown as PrismaService,
+      projectAccess as never,
     );
   });
 
