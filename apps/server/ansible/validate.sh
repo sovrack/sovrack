@@ -7,9 +7,9 @@ OK=true
 echo "=== Ansible Validation ==="
 echo ""
 
-# 1. Syntax check all playbooks
+# 1. Syntax check all playbooks, including the main entrypoint site.yml
 echo "--- Syntax check ---"
-for pb in playbooks/*.yml; do
+for pb in site.yml playbooks/*.yml; do
   [ -f "$pb" ] || continue
   echo -n "  $pb ... "
   if ansible-playbook --syntax-check "$pb" >/dev/null 2>&1; then
@@ -32,9 +32,9 @@ fi
 # 3. Check referenced roles exist
 echo ""
 echo "--- Role coverage ---"
-for pb in playbooks/*.yml; do
+for pb in site.yml playbooks/*.yml; do
   [ -f "$pb" ] || continue
-  for role in $(grep -oP 'include_role:\s*\n\s+name:\s+\K\w+' "$pb" 2>/dev/null || true); do
+  for role in $(grep -oP '^\s*-\s*role:\s*\K\w+' "$pb" 2>/dev/null || true); do
     if [ ! -d "roles/$role" ]; then
       echo "  WARNING: $pb references role '$role' but roles/$role/ does not exist"
     fi

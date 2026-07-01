@@ -164,20 +164,12 @@ export class ServersDetectionService {
 
       const installed: Record<string, boolean> = {};
       const installedTools: InstalledTool[] = [];
-      const toolResults = await Promise.all(
-        DETECTION_TOOLS.map(async (tool) => {
-          const result = await connection.target.execCommand(tool.command);
-          const version = (result.stdout || result.stderr)
-            .trim()
-            .split('\n')[0];
-          return {
-            tool,
-            isInstalled: result.code === 0,
-            version: version || null,
-          };
-        }),
-      );
-      for (const { tool, isInstalled, version } of toolResults) {
+      for (const tool of DETECTION_TOOLS) {
+        const result = await connection.target.execCommand(tool.command);
+        const version = (result.stdout || result.stderr)
+          .trim()
+          .split('\n')[0];
+        const isInstalled = result.code === 0;
         installed[tool.key] = isInstalled;
         capabilities[tool.capabilityKey] = String(isInstalled);
         installedTools.push(

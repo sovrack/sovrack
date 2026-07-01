@@ -69,7 +69,7 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@database:5432/${DB_NAME:-devops_platform}
       REDIS_URL: redis://redis:6379
       ANSIBLE_PLAYBOOKS_PATH: /app/ansible/playbooks
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: production
     ports:
       - '${PORT:-3001}:3001'
     networks: [backend]

@@ -83,6 +83,7 @@ const BUILD_SOURCE_TOOLS: Record<BuildSource, ToolRequirement[]> = {
 
 export type DeployValidationResult = {
   ready: boolean;
+  prepared: boolean;
   missing: {
     binary: string;
     label: string;
@@ -162,6 +163,7 @@ export class DeploymentsValidationService {
         }
         return {
           ready: true,
+          prepared: true,
           missing: [],
           required: [],
           serverName: '',
@@ -235,6 +237,7 @@ export class DeploymentsValidationService {
     if (requirements.length === 0) {
       return {
         ready: true,
+        prepared: true,
         missing: [],
         required: [],
         serverName: environment.servers[0]?.name ?? '',
@@ -253,6 +256,7 @@ export class DeploymentsValidationService {
       }));
       return {
         ready: false,
+        prepared: false,
         missing: required,
         required,
         serverName: '',
@@ -277,6 +281,7 @@ export class DeploymentsValidationService {
       }));
       return {
         ready: false,
+        prepared: false,
         missing: required,
         required,
         serverName: server.name,
@@ -291,6 +296,7 @@ export class DeploymentsValidationService {
 
     return {
       ready: missing.length === 0,
+      prepared: true,
       missing,
       required: requirements.map((r) => ({
         binary: r.binary,

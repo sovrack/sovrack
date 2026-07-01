@@ -32,6 +32,23 @@ npm run prisma:migrate:deploy
 npm run start:dev
 ```
 
+## Delivery
+
+The repository now includes a GitLab release path in addition to validation.
+
+- `deploy:production` syncs the repository to a remote host over SSH and runs `docker compose up -d --build` there.
+- `verify:production` checks the public health endpoint after deployment.
+
+Required GitLab CI variables:
+
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_PRIVATE_KEY`
+- `DEPLOY_BASE_URL`
+- `DEPLOY_PATH` is optional and defaults to `/opt/deploy-automation/backend`
+
+The remote host must already have Docker Compose available and a valid `.env` file for the backend.
+
 ## Main Commands
 
 ```bash

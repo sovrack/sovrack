@@ -139,8 +139,9 @@ async function bootstrap() {
 
   // Swagger — exposé hors production uniquement (évite de divulguer la
   // cartographie complète de l'API à un attaquant en prod).
-  // En production, Swagger est exposé sous /api/docs et protégé par une
-  // vérification basique : présence du header X-Swagger-Key = SWAGGER_API_KEY.
+  // En production, Swagger reste disponible mais n'est servi qu'après
+  // authentification simple afin que les assets UI et le JSON de doc restent
+  // accessibles au navigateur une fois l'accès validé.
   const swaggerEnabled =
     (process.env.NODE_ENV ?? 'development') !== 'production';
   if (swaggerEnabled) {
@@ -148,19 +149,58 @@ async function bootstrap() {
     SwaggerModule.setup('api', app, document);
   } else if (process.env.SWAGGER_API_KEY) {
     const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
+
+    const isSwaggerPath = (url: string): boolean => {
+      const path = url.split('?')[0] ?? url;
+      return (
+        path === '/api/docs' ||
+        path.startsWith('/api/docs/') ||
+        path === '/api/docs-json' ||
+        path === '/api/docs-yaml'
+      );
+    };
+
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      if (!isSwaggerPath(req.originalUrl)) {
+        next();
+        return;
+      }
+
+      const directKey = req.headers['x-swagger-key'];
+      if (typeof directKey === 'string' && directKey === process.env.SWAGGER_API_KEY) {
+        next();
+        return;
+      }
+
+      const authorization = req.headers.authorization;
+      if (typeof authorization === 'string' && authorization.startsWith('Basic ')) {
+        const encoded = authorization.slice('Basic '.length).trim();
+        try {
+          const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+          const separatorIndex = decoded.indexOf(':');
+          const password =
+            separatorIndex >= 0 ? decoded.slice(separatorIndex + 1) : decoded;
+          if (password === process.env.SWAGGER_API_KEY) {
+            next();
+            return;
+          }
+        } catch {
+          // fall through to 401
+        }
+      }
+
+      res.setHeader('WWW-Authenticate', 'Basic realm="Swagger UI"');
+      res.status(401).json({
+        statusCode: 401,
+        message: 'Authenticate to access API documentation.',
+      });
+    });
+
     SwaggerModule.setup('api/docs', app, document, {
       swaggerOptions: { supportedSubmitMethods: [] },
     });
-    app.use('/api/docs', (req: Request, res: Response, next: NextFunction) => {
-      const key = req.headers['x-swagger-key'] as string | undefined;
-      if (key === process.env.SWAGGER_API_KEY) return next();
-      res.status(401).json({
-        statusCode: 401,
-        message: 'Set X-Swagger-Key header to access API documentation.',
-      });
-    });
     logger.log(
-      'Swagger UI (protected) -> /api/docs (set X-Swagger-Key header)',
+      'Swagger UI (protected) -> /api/docs (X-Swagger-Key or Basic auth)',
       'Bootstrap',
     );
   }
