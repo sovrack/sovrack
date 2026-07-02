@@ -45,6 +45,15 @@ lint:
     - npm run lint
     - npm run format:check
 
+arch:check:
+  stage: validate
+  # Gate des frontières de modules (dependency-cruiser) — existait localement
+  # depuis plusieurs sprints mais n'était jamais exécutée en CI, donc jamais
+  # réellement bloquante pour une régression de dépendance circulaire/couche.
+  script:
+    - npm ci
+    - npm run arch:check
+
 test:unit:
   stage: test
   services:

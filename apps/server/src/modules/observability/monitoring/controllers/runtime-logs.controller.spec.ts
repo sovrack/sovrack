@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
-import { RuntimeLogsService } from '../services/runtime-logs.service';
+import { MonitoringRuntimeLogsService } from '../services/monitoring-runtime-logs.service';
 import { RuntimeLogsController } from './runtime-logs.controller';
 
 describe('RuntimeLogsController', () => {
@@ -9,7 +9,7 @@ describe('RuntimeLogsController', () => {
   function build() {
     const runtimeLogs = {
       searchServiceLogs: jest.fn().mockResolvedValue({ lines: [] }),
-    } as unknown as RuntimeLogsService;
+    } as unknown as MonitoringRuntimeLogsService;
     const ctrl = new RuntimeLogsController(runtimeLogs);
     return { ctrl, runtimeLogs };
   }

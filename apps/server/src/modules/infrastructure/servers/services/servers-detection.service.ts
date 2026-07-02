@@ -5,7 +5,7 @@ import { toJson } from '../../../../shared/utils/prisma-json.util';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { InstalledTool } from '../../../../adapters/server-capabilities/server-capabilities.types';
 import { ServersAuditService } from './servers-audit.service';
-import { ServerVerificationService } from './server-verification.service';
+import { ServersVerificationService } from './servers-verification.service';
 import { ServersConnectionService } from './servers-connection.service';
 import {
   SERVER_EVENTS,
@@ -95,7 +95,7 @@ export class ServersDetectionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ssh: ServersConnectionService,
-    private readonly verification: ServerVerificationService,
+    private readonly verification: ServersVerificationService,
     private readonly audit: ServersAuditService,
   ) {}
 

@@ -68,6 +68,8 @@ const envSchema = z.object({
   DEPLOYMENT_ANSIBLE_TIMEOUT_MS: z.string().default('900000'),
   AUTOMATION_TARGET_TIMEOUT_MS: z.string().optional(),
   TERMINAL_SSH_INACTIVITY_TIMEOUT_MS: z.string().optional(),
+  DOCKER_BUILD_TIMEOUT_MS: z.string().default('900000'), // 15 min
+  DOCKER_PULL_TIMEOUT_MS: z.string().default('300000'), // 5 min
 });
 
 export function validateEnv(

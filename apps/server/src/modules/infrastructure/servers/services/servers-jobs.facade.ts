@@ -17,7 +17,7 @@ import { ServersConnectionService } from './servers-connection.service';
 import { ServersDetectionService } from './servers-detection.service';
 import { ServerPreparationService } from '../../preparation/services/infra-preparation.service';
 import { ServersAuditService } from './servers-audit.service';
-import { ServerVerificationService } from './server-verification.service';
+import { ServersVerificationService } from './servers-verification.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';
 import { PrepareServerDto } from '../dto/prepare-server.dto';
 import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
@@ -45,7 +45,7 @@ export class ServersJobsFacade {
     private readonly detection: ServersDetectionService,
     private readonly preparation: ServerPreparationService,
     private readonly audit: ServersAuditService,
-    private readonly verification: ServerVerificationService,
+    private readonly verification: ServersVerificationService,
   ) {}
 
   /**

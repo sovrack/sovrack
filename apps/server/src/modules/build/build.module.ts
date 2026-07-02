@@ -4,6 +4,7 @@ import { PrismaModule } from '../../shared/database/prisma.module';
 import { CryptoModule } from '../../shared/crypto/crypto.module';
 import { SourceProvidersModule } from '../source-providers';
 import { PlatformModule } from '../platform';
+import { WebhooksModule } from '../webhooks/webhooks.module';
 import { BuildController } from './build.controller';
 import { BuildDetectorService } from './detection/build-detector.service';
 import { RepositoryFileFetcherService } from './detection/repository-file-fetcher.service';
@@ -27,6 +28,9 @@ import { BuildStrategyResolver } from './strategies/build-strategy.resolver';
     SourceProvidersModule,
     PlatformModule,
     NixpacksModule,
+    // For BuildController.reconcileWebhooks (legacy notice) — see
+    // WebhookManagementService.reconcileWebhooksNotice.
+    WebhooksModule,
   ],
   controllers: [BuildController],
   providers: [

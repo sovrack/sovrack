@@ -4,7 +4,7 @@ import { SshModule } from '../../../adapters/ssh/ssh.module';
 import { AnsibleModule } from '../../../adapters/provisioning/ansible.module';
 import { AppJwtModule } from '../../../shared/jwt/jwt.module';
 import { NotificationsModule } from '../../notifications/notifications.module';
-import { ProjectAccessModule } from '../../catalog/access/project-access.module';
+import { ProjectAccessModule } from '../../catalog/authorization/project-access.module';
 import { SslCertificateService } from './ssl-certificate.service';
 import { SslRenewalService } from './ssl-renewal.service';
 import { SslController } from './ssl.controller';

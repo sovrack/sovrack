@@ -1,6 +1,7 @@
 import { Role } from '@prisma/client';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { ServicesService } from './services.service';
+import { ServiceTemplatesFactoryService } from './service-templates-factory.service';
 import { ServicesController } from './services.controller';
 
 describe('ServicesController', () => {
@@ -11,14 +12,16 @@ describe('ServicesController', () => {
       findAll: jest.fn().mockResolvedValue([]),
       create: jest.fn().mockResolvedValue({ id: 's1' }),
       discoverGroup: jest.fn().mockResolvedValue({ repos: [] }),
-      listTemplates: jest.fn().mockReturnValue([]),
-      createFromTemplate: jest.fn().mockResolvedValue([{ id: 's1' }]),
       findOne: jest.fn().mockResolvedValue({ id: 's1' }),
       update: jest.fn().mockResolvedValue({ id: 's1' }),
       remove: jest.fn().mockResolvedValue(undefined),
     } as unknown as ServicesService;
-    const ctrl = new ServicesController(servicesService);
-    return { ctrl, servicesService };
+    const templatesFactory = {
+      listTemplates: jest.fn().mockReturnValue([]),
+      createFromTemplate: jest.fn().mockResolvedValue([{ id: 's1' }]),
+    } as unknown as ServiceTemplatesFactoryService;
+    const ctrl = new ServicesController(servicesService, templatesFactory);
+    return { ctrl, servicesService, templatesFactory };
   }
 
   it('findAll / create / discoverGroup delegate with project scope', async () => {
@@ -45,12 +48,12 @@ describe('ServicesController', () => {
     );
   });
 
-  it('listTemplates / createFromTemplate delegate', async () => {
-    const { ctrl, servicesService } = build();
+  it('listTemplates / createFromTemplate delegate to ServiceTemplatesFactoryService', async () => {
+    const { ctrl, templatesFactory } = build();
     ctrl.listTemplates();
     await ctrl.createFromTemplate('p1', 't1', { name: 'stack' } as never, user);
-    expect(servicesService.listTemplates).toHaveBeenCalled();
-    expect(servicesService.createFromTemplate).toHaveBeenCalledWith(
+    expect(templatesFactory.listTemplates).toHaveBeenCalled();
+    expect(templatesFactory.createFromTemplate).toHaveBeenCalledWith(
       'p1',
       't1',
       'stack',

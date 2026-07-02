@@ -4,14 +4,9 @@ import { SourceType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { CryptoService } from '../../../../shared/crypto/crypto.service';
 import type { GitlabResolvedConfig } from './gitlab.types';
+import type { GitlabPipelineItem } from '../../contracts/gitlab-pipeline.types';
 
-export type GitlabPipelineItem = {
-  id: number;
-  status: string;
-  ref: string;
-  sha: string;
-  web_url: string;
-};
+export type { GitlabPipelineItem } from '../../contracts/gitlab-pipeline.types';
 
 export type GitlabBranchItem = Record<string, unknown>;
 

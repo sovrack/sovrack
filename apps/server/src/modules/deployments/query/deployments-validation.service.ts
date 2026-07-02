@@ -13,6 +13,8 @@ import { ServersCryptoService } from '../../../adapters/ssh/servers-crypto.servi
 import { ServerHostKeyService } from '../../../adapters/ssh/server-host-key.service';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
+import { DeploymentPreflightService } from '../core/deployment-preflight.service';
+import { buildSafeSpawnEnv } from '../../../shared/utils/safe-spawn-env.util';
 
 const execFile = promisify(execFileCb);
 
@@ -97,6 +99,13 @@ export type DeployValidationResult = {
   serverName: string;
   serverId: string | null;
   buildSource: string;
+  /**
+   * Set when serviceEnvId is provided and DeploymentPreflightService rejects
+   * the deploy (server state, build content, secrets format, registry
+   * credentials…) — the exact reason a real POST /deployments would fail.
+   * Independent of missing/required, which report tool-installation status.
+   */
+  reason?: string;
 };
 
 @Injectable()
@@ -110,6 +119,7 @@ export class DeploymentsValidationService {
     private readonly serverHostKeyService: ServerHostKeyService,
     private readonly ssh: SshExecutorService,
     private readonly gitProvidersService: SourceProvidersService,
+    private readonly preflight: DeploymentPreflightService,
   ) {}
 
   async validate(
@@ -126,49 +136,45 @@ export class DeploymentsValidationService {
       actor.role,
     );
 
-    // DATABASE services: skip source/repo validation, validate database fields
+    // Garde de pré-vol centralisée (voir AUDIT_VALIDATION_DEPLOIEMENT.md) —
+    // les mêmes 8 vérifications bloquantes que POST /deployments, mais
+    // capturées ici en rapport informatif plutôt qu'en erreur HTTP : cet
+    // endpoint reste consultatif (le frontend l'appelle avant de proposer le
+    // bouton "Deploy", il ne doit jamais lui-même faire échouer la requête).
+    // Seulement possible quand serviceEnvId est fourni — assertDeployable a
+    // besoin d'une ligne ServiceEnvironment concrète (service+environnement+
+    // secrets) ; l'appel générique projet+environnement (sans service choisi
+    // encore) reste couvert par la logique d'outillage ci-dessous.
+    let preflightReason: string | undefined;
+    let isDatabaseService = false;
     if (serviceEnvId) {
       const serviceEnv = await this.prisma.serviceEnvironment.findUnique({
         where: { id: serviceEnvId },
-        include: {
-          service: {
-            select: {
-              type: true,
-              databaseType: true,
-              databaseCredentials: true,
-            },
-          },
-        },
+        select: { service: { select: { type: true } } },
       });
-      if (serviceEnv?.service.type === 'DATABASE') {
-        const svc = serviceEnv.service;
-        if (!svc.databaseType) {
-          throw new BadRequestException(
-            'databaseType est requis pour un service DATABASE',
-          );
-        }
-        if (svc.databaseCredentials) {
-          const creds: unknown =
-            typeof svc.databaseCredentials === 'string'
-              ? JSON.parse(svc.databaseCredentials)
-              : svc.databaseCredentials;
-          if (typeof creds === 'object' && creds !== null) {
-            const c = creds as Record<string, unknown>;
-            if (!c.user || !c.password || !c.dbName) {
-              throw new BadRequestException(
-                'databaseCredentials doit contenir user, password et dbName',
-              );
-            }
-          }
-        }
+      isDatabaseService = serviceEnv?.service.type === 'DATABASE';
+
+      try {
+        await this.preflight.assertDeployable({ serviceEnvId });
+      } catch (err) {
+        preflightReason =
+          err instanceof Error ? err.message : 'Pré-vol du déploiement échoué';
+      }
+
+      // Un service DATABASE n'a ni build ni dépôt Git — assertDeployable a
+      // déjà validé serveur/circuit-breaker/databaseType/databaseCredentials/
+      // secretsEnv (même raccourci qu'avant, désormais centralisé). Rien à
+      // ajouter côté outillage (image vendor fixe, pas de binaire à installer).
+      if (isDatabaseService) {
         return {
-          ready: true,
-          prepared: true,
+          ready: preflightReason === undefined,
+          prepared: preflightReason === undefined,
           missing: [],
           required: [],
           serverName: '',
           serverId: null,
           buildSource: 'EXTERNAL_IMAGE',
+          reason: preflightReason,
         };
       }
     }
@@ -213,36 +219,35 @@ export class DeploymentsValidationService {
     const requirements = BUILD_SOURCE_TOOLS[effectiveBuildSource] ?? [];
 
     // Pre-flight: verify repo is accessible for local build sources.
-    // We resolve the serviceId from serviceEnvId so that checkRepoCloneable
-    // picks the correct Git provider when multiple services in the same project
-    // have different providers configured.
+    // When serviceEnvId is known, assertDeployable() above already ran this
+    // exact check (with the branch-aware fix — see checkRepoCloneable) as
+    // part of the centralized 8-point guard; running it again here would
+    // just double the outbound git call for the same answer. Only the
+    // project-level fallback (no serviceEnvId yet — nothing concrete to pass
+    // to assertDeployable) still needs its own check.
     const localBuildSources: BuildSource[] = [
       'NIXPACKS_LOCAL',
       'DOCKERFILE_LOCAL',
       'DOCKER_COMPOSE',
       'STATIC',
     ];
-    if ((localBuildSources as string[]).includes(buildSource)) {
-      let resolvedServiceId: string | undefined;
-      if (serviceEnvId) {
-        const link = await this.prisma.serviceEnvironment.findUnique({
-          where: { id: serviceEnvId },
-          select: { serviceId: true },
-        });
-        resolvedServiceId = link?.serviceId ?? undefined;
-      }
-      await this.checkRepoCloneable(projectId, resolvedServiceId);
+    if (
+      !serviceEnvId &&
+      (localBuildSources as string[]).includes(buildSource)
+    ) {
+      await this.checkRepoCloneable(projectId);
     }
 
     if (requirements.length === 0) {
       return {
-        ready: true,
+        ready: preflightReason === undefined,
         prepared: true,
         missing: [],
         required: [],
         serverName: environment.servers[0]?.name ?? '',
         serverId: environment.servers[0]?.id ?? null,
         buildSource: effectiveBuildSource,
+        reason: preflightReason,
       };
     }
 
@@ -262,6 +267,7 @@ export class DeploymentsValidationService {
         serverName: '',
         serverId: null,
         buildSource: effectiveBuildSource,
+        reason: preflightReason,
       };
     }
 
@@ -287,6 +293,7 @@ export class DeploymentsValidationService {
         serverName: server.name,
         serverId: server.id,
         buildSource: effectiveBuildSource,
+        reason: preflightReason,
       };
     }
 
@@ -295,7 +302,7 @@ export class DeploymentsValidationService {
       .map((r) => ({ binary: r.binary, label: r.label, role: r.role }));
 
     return {
-      ready: missing.length === 0,
+      ready: missing.length === 0 && preflightReason === undefined,
       prepared: true,
       missing,
       required: requirements.map((r) => ({
@@ -306,6 +313,7 @@ export class DeploymentsValidationService {
       serverName: server.name,
       serverId: server.id,
       buildSource: effectiveBuildSource,
+      reason: preflightReason,
     };
   }
 
@@ -331,17 +339,21 @@ export class DeploymentsValidationService {
     return confirmed;
   }
 
-  private async checkRepoCloneable(
-    projectId: string,
-    serviceId?: string,
-  ): Promise<void> {
+  /**
+   * Fallback réservé au cas générique projet+environnement SANS serviceEnvId
+   * (le frontend l'utilise avant que l'utilisateur ait choisi un service
+   * précis — voir deploy-dialog.tsx). Dès qu'un serviceEnvId est connu,
+   * assertDeployable() couvre ce même point (accessibilité + BRANCHE précise,
+   * voir checkRepoCloneable dans utils/repo-cloneable.util.ts) et ce fallback
+   * n'est plus appelé. Ce fallback ne vérifie QUE l'accessibilité du dépôt
+   * (pas de branche précise à comparer sans service choisi) — comportement
+   * historique inchangé pour ce cas précis.
+   */
+  private async checkRepoCloneable(projectId: string): Promise<void> {
     let askpassPath: string | null = null;
     try {
-      // Invariant : provider lié au SERVICE — résolution par service si dispo.
-      const provider = serviceId
-        ? await this.gitProvidersService.forService(serviceId)
-        : await this.gitProvidersService.forProject(projectId);
-      const creds = await provider.resolveGitCredentials(projectId, serviceId);
+      const provider = await this.gitProvidersService.forProject(projectId);
+      const creds = await provider.resolveGitCredentials(projectId, undefined);
 
       let host = '';
       try {
@@ -374,13 +386,12 @@ export class DeploymentsValidationService {
         ['ls-remote', '--heads', creds.repoUrl],
         {
           timeout: 15_000,
-          env: {
-            ...process.env,
+          env: buildSafeSpawnEnv({
             GIT_TERMINAL_PROMPT: '0',
             GIT_ASKPASS: askpassPath,
             GIT_ASKPASS_USER: authUser,
             GIT_ASKPASS_PASS: creds.token,
-          },
+          }),
         },
       );
 

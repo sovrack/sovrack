@@ -10,6 +10,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
 import { QueueService } from '../../../shared/queue/queue.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
+import { DeploymentPreflightService } from '../core/deployment-preflight.service';
 
 const PROJECT_ID = 'project-1';
 const SVC_ENV_ID = 'svcenv-1';
@@ -81,18 +82,24 @@ const makeGateway = () => ({
   emitFinished: jest.fn(),
 });
 
+const makePreflight = () => ({
+  assertDeployable: jest.fn().mockResolvedValue(undefined),
+});
+
 describe('DeploymentsAutoTriggerService', () => {
   let service: DeploymentsAutoTriggerService;
   let prisma: ReturnType<typeof makePrisma>;
   let queue: ReturnType<typeof makeQueue>;
   let gateway: ReturnType<typeof makeGateway>;
   let buildsService: ReturnType<typeof makeBuilds>;
+  let preflight: ReturnType<typeof makePreflight>;
 
   beforeEach(async () => {
     prisma = makePrisma();
     queue = makeQueue();
     gateway = makeGateway();
     buildsService = makeBuilds();
+    preflight = makePreflight();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -101,6 +108,7 @@ describe('DeploymentsAutoTriggerService', () => {
         { provide: QueueService, useValue: queue },
         { provide: DeploymentEventsPublisher, useValue: gateway },
         { provide: BuildLifecycleService, useValue: buildsService },
+        { provide: DeploymentPreflightService, useValue: preflight },
       ],
     }).compile();
 
@@ -310,6 +318,84 @@ describe('DeploymentsAutoTriggerService', () => {
       };
       buildsService.create.mockResolvedValue({ id: BUILD_ID });
       prisma.deployment.create.mockResolvedValue(deployment2);
+
+      await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
+
+      expect(queue.enqueueDeploy).toHaveBeenCalledTimes(1);
+      expect(queue.enqueueDeploy).toHaveBeenCalledWith('deploy-2', undefined);
+    });
+
+    it('calls the preflight guard with serviceEnvId/branch/overrideImage before any write', async () => {
+      prisma.serviceEnvironment.findMany.mockResolvedValue([makeSvcEnv()]);
+      prisma.deployment.findFirst.mockResolvedValue(null);
+      buildsService.create.mockResolvedValue({ id: BUILD_ID });
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
+      );
+      prisma.deployment.create.mockResolvedValue({
+        id: DEPLOYMENT_ID,
+        projectId: PROJECT_ID,
+        environmentId: ENV_ID,
+        status: DeploymentStatus.PENDING,
+        startedAt: new Date(),
+      });
+
+      await service.triggerAutoDeployIfConfigured(
+        PROJECT_ID,
+        BRANCH,
+        'registry.example.com/img:tag',
+      );
+
+      expect(preflight.assertDeployable).toHaveBeenCalledWith({
+        serviceEnvId: SVC_ENV_ID,
+        branch: BRANCH,
+        overrideImage: 'registry.example.com/img:tag',
+      });
+    });
+
+    it('rejects (logs, no throw) without creating a deployment when the preflight fails — does not fail the webhook', async () => {
+      prisma.serviceEnvironment.findMany.mockResolvedValue([makeSvcEnv()]);
+      preflight.assertDeployable.mockRejectedValue(
+        new Error('Aucun Dockerfile trouvé sur la branche « main »'),
+      );
+
+      await expect(
+        service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH),
+      ).resolves.toBeUndefined();
+
+      expect(prisma.deployment.findFirst).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(buildsService.create).not.toHaveBeenCalled();
+      expect(queue.enqueueDeploy).not.toHaveBeenCalled();
+      expect(service['logger'].warn).toHaveBeenCalledWith(
+        expect.stringContaining('[PREFLIGHT REJECTED]'),
+      );
+    });
+
+    it('a preflight rejection for one ServiceEnvironment does not block the others', async () => {
+      const svcEnv2 = makeSvcEnv({ id: 'svcenv-2', environmentId: 'env-2' });
+      prisma.serviceEnvironment.findMany.mockResolvedValue([
+        makeSvcEnv(),
+        svcEnv2,
+      ]);
+      preflight.assertDeployable.mockImplementation(
+        (input: { serviceEnvId: string }) =>
+          input.serviceEnvId === SVC_ENV_ID
+            ? Promise.reject(new Error('not ready'))
+            : Promise.resolve(undefined),
+      );
+      prisma.deployment.findFirst.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
+      );
+      buildsService.create.mockResolvedValue({ id: BUILD_ID });
+      prisma.deployment.create.mockResolvedValue({
+        id: 'deploy-2',
+        projectId: PROJECT_ID,
+        environmentId: 'env-2',
+        status: DeploymentStatus.PENDING,
+        startedAt: new Date(),
+      });
 
       await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
 

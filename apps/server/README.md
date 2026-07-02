@@ -63,4 +63,9 @@ npx prisma validate
 - Session auth uses JWT in HttpOnly cookie.
 - Ansible executes only on control node/backend.
 - VPS targets remain SSH agentless.
+- Exception: the `postgres`, `redis` and `traefik` Ansible roles install the Python Docker
+  SDK (`pip`) on the target VPS, required by the idempotent `community.docker.docker_container`
+  module (see `ansible/roles/docker_sdk`). This is a targeted, documented exception to the
+  "no persistent Ansible agent" principle above, not a contradiction of it — no daemon is
+  installed, only a Python library used by Ansible during the SSH-driven run.
 - `CONFIG_SECRET` must be stable across restarts to decrypt stored secrets.

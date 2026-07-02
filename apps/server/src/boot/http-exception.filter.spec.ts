@@ -3,7 +3,7 @@ import {
   BadRequestException,
   HttpException,
 } from '@nestjs/common';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../shared/logger/logger.service';
 import { AllExceptionsFilter } from './http-exception.filter';
 
 function makeHost(): {

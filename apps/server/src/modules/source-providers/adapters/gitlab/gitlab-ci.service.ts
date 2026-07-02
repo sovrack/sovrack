@@ -1,17 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { GitProviderType, Role } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
+import { activeWhere } from '../../../../shared/database/prisma-active.helper';
 import { GitlabClient, GitlabPipelineItem } from './gitlab.client';
 import { GitlabAuthorizationService } from './gitlab-authorization.service';
 import { GitlabProjectConfigService } from './gitlab-project-config.service';
-import { GitlabWebhookHandler } from './gitlab-webhook.handler';
+import { GitlabPipelinePersistenceService } from './gitlab-pipeline-persistence.service';
 
 @Injectable()
 export class GitlabCiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly apiService: GitlabClient,
-    private readonly webhookService: GitlabWebhookHandler,
+    private readonly pipelinePersistence: GitlabPipelinePersistenceService,
     private readonly projectConfig: GitlabProjectConfigService,
     private readonly auth: GitlabAuthorizationService,
   ) {}
@@ -48,11 +49,11 @@ export class GitlabCiService {
     await this.auth.assertCanAccessProject(projectId, userId, userRole);
 
     const services = await this.prisma.service.findMany({
-      where: {
+      where: activeWhere({
         projectId,
         providerId: { not: null },
         repoPath: { not: null },
-      },
+      }),
       select: { repoPath: true },
     });
 
@@ -82,7 +83,7 @@ export class GitlabCiService {
           if (seen.has(pipeline.id)) continue;
           seen.add(pipeline.id);
           merged.push(pipeline);
-          await this.webhookService.upsertPipeline(projectId, pipeline);
+          await this.pipelinePersistence.upsertPipeline(projectId, pipeline);
         }
       } catch {
         // Dépôt indisponible (droits/inexistant) → on l'ignore et on continue.
@@ -147,7 +148,7 @@ export class GitlabCiService {
     }
 
     for (const pipeline of pipelines) {
-      await this.webhookService.upsertPipeline(projectId, pipeline);
+      await this.pipelinePersistence.upsertPipeline(projectId, pipeline);
     }
 
     return pipelines;
@@ -175,7 +176,7 @@ export class GitlabCiService {
       (url) => this.projectConfig.normalizeUrl(url),
     );
 
-    await this.webhookService.upsertPipeline(projectId, pipeline);
+    await this.pipelinePersistence.upsertPipeline(projectId, pipeline);
     return pipeline;
   }
 }

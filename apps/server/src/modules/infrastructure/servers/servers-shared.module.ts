@@ -5,6 +5,7 @@ import { InfrastructureModule } from '../preparation/infrastructure.module';
 import { InfrastructureCoreModule } from '../core/infrastructure-core.module';
 import { AuditModule } from '../../audit';
 import { ServersCoreService } from './services';
+import { ServersCrudService } from './services/servers-crud.service';
 import { ServersJobsFacade } from './services/servers-jobs.facade';
 import { ServersReadersFacade } from './services/servers-readers.facade';
 
@@ -24,7 +25,12 @@ import { ServersReadersFacade } from './services/servers-readers.facade';
     InfrastructureModule,
     AuditModule,
   ],
-  providers: [ServersJobsFacade, ServersReadersFacade, ServersCoreService],
+  providers: [
+    ServersJobsFacade,
+    ServersReadersFacade,
+    ServersCrudService,
+    ServersCoreService,
+  ],
   exports: [ServersCoreService, InfrastructureCoreModule],
 })
 export class ServersSharedModule {}

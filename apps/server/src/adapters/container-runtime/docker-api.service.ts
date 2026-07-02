@@ -1,6 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PassThrough } from 'stream';
 import Docker from 'dockerode';
+import { ConfigService } from '@nestjs/config';
+import { CircuitState } from '@prisma/client';
 import { DockerConnectionsService } from './docker-connections.service';
 
 // dockerode's buildImage/pull typings don't line up cleanly with our context /
@@ -59,10 +65,85 @@ export class DockerApiService {
     { client: Docker; endpoint: string; cachedAt: number }
   >();
 
-  constructor(private readonly dockerConnections: DockerConnectionsService) {}
+  constructor(
+    private readonly dockerConnections: DockerConnectionsService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  /** Résout un timeout configurable par variable d'environnement, avec repli. */
+  private getTimeoutMs(
+    envVar: 'DOCKER_BUILD_TIMEOUT_MS' | 'DOCKER_PULL_TIMEOUT_MS',
+    fallbackMs: number,
+  ): number {
+    const raw = this.configService.get<string>(envVar);
+    const parsed = raw !== undefined ? Number(raw) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs;
+  }
+
+  /**
+   * Fait courser `run()` contre un délai : si `timeoutMs` s'écoule avant que
+   * `run()` ne se résolve, la promesse retournée rejette avec un message
+   * explicite (au lieu de laisser l'appel Docker pendre indéfiniment), et le
+   * `AbortController` fourni à `run()` est signalé (best-effort pour libérer
+   * le flux HTTP sous-jacent si l'appelant peut le fermer).
+   */
+  private async withTimeout<T>(
+    label: string,
+    timeoutMs: number,
+    run: (controller: AbortController) => Promise<T>,
+  ): Promise<T> {
+    const controller = new AbortController();
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(
+          new Error(
+            `Docker ${label} a dépassé le délai de ${timeoutMs}ms — abandon.`,
+          ),
+        );
+      }, timeoutMs);
+    });
+    try {
+      return await Promise.race([run(controller), timeout]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Capture les erreurs réseau (connexion perdue avec le daemon Docker) et les
+   * re-lève avec un message explicite et exploitable côté appelant, plutôt que
+   * de laisser remonter l'erreur brute de dockerode. Les erreurs non-réseau
+   * (ex: 404 déjà géré par `isNotFound`) continuent de se comporter comme avant.
+   */
+  private async withNetworkErrorHandling<T>(
+    operation: string,
+    serverId: string,
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await fn();
+    } catch (error) {
+      throw wrapIfNetworkError(error, operation, serverId);
+    }
+  }
 
   async getClient(serverId: string): Promise<Docker> {
     const conn = await this.dockerConnections.findForServer(serverId);
+
+    // Circuit ouvert (health-check a détecté 3+ échecs consécutifs) → on
+    // échoue vite plutôt que de tenter une connexion TCP+TLS qui attendrait
+    // le timeout réseau complet. Le health-check lui-même ne passe jamais par
+    // getClient() (il sonde via DockerConnectionsService.probeReachability()
+    // directement), donc ce garde-fou ne bloque jamais sa propre reprise
+    // CLOSED→HALF_OPEN→CLOSED.
+    if (conn.circuitState === CircuitState.OPEN) {
+      throw new ServiceUnavailableException(
+        `Serveur Docker injoignable (circuit ouvert) pour le serveur ${serverId}, réessayez plus tard.`,
+      );
+    }
+
     // Key includes updatedAt so a TLS cert/endpoint rotation yields a new key.
     const cacheKey = `${serverId}:${conn.endpoint}:${conn.updatedAt.getTime()}`;
     const now = Date.now();
@@ -120,8 +201,10 @@ export class DockerApiService {
     serverId: string,
     containerName: string,
   ): Promise<Docker.ContainerInspectInfo> {
-    const client = await this.getClient(serverId);
-    return client.getContainer(containerName).inspect();
+    return this.withNetworkErrorHandling('inspectContainer', serverId, async () => {
+      const client = await this.getClient(serverId);
+      return client.getContainer(containerName).inspect();
+    });
   }
 
   async *streamContainerLogs(
@@ -129,27 +212,36 @@ export class DockerApiService {
     containerName: string,
     options: { follow?: boolean; tail?: number; since?: number } = {},
   ): AsyncIterable<{ stream: 'stdout' | 'stderr'; line: string }> {
-    const client = await this.getClient(serverId);
-    const container = client.getContainer(containerName);
-    const follow = options.follow ?? true;
-    const stream = (await (follow
-      ? container.logs({
-          follow: true,
-          stdout: true,
-          stderr: true,
-          tail: options.tail ?? 100,
-          ...(options.since !== undefined ? { since: options.since } : {}),
-        })
-      : container.logs({
-          follow: false,
-          stdout: true,
-          stderr: true,
-          tail: options.tail ?? 100,
-          ...(options.since !== undefined ? { since: options.since } : {}),
-        }))) as unknown as AsyncIterable<Buffer>;
+    let stream: AsyncIterable<Buffer>;
+    try {
+      const client = await this.getClient(serverId);
+      const container = client.getContainer(containerName);
+      const follow = options.follow ?? true;
+      stream = (await (follow
+        ? container.logs({
+            follow: true,
+            stdout: true,
+            stderr: true,
+            tail: options.tail ?? 100,
+            ...(options.since !== undefined ? { since: options.since } : {}),
+          })
+        : container.logs({
+            follow: false,
+            stdout: true,
+            stderr: true,
+            tail: options.tail ?? 100,
+            ...(options.since !== undefined ? { since: options.since } : {}),
+          }))) as unknown as AsyncIterable<Buffer>;
+    } catch (error) {
+      throw wrapIfNetworkError(error, 'streamContainerLogs', serverId);
+    }
 
-    for await (const chunk of stream) {
-      yield* parseDockerStreamChunk(chunk);
+    try {
+      for await (const chunk of stream) {
+        yield* parseDockerStreamChunk(chunk);
+      }
+    } catch (error) {
+      throw wrapIfNetworkError(error, 'streamContainerLogs', serverId);
     }
   }
 
@@ -157,33 +249,41 @@ export class DockerApiService {
     serverId: string,
     containerName: string,
   ): Promise<unknown> {
-    const client = await this.getClient(serverId);
-    return client.getContainer(containerName).stats({ stream: false });
+    return this.withNetworkErrorHandling('getContainerStats', serverId, async () => {
+      const client = await this.getClient(serverId);
+      return client.getContainer(containerName).stats({ stream: false });
+    });
   }
 
   async listContainers(
     serverId: string,
     all = false,
   ): Promise<Docker.ContainerInfo[]> {
-    const client = await this.getClient(serverId);
-    return client.listContainers({ all });
+    return this.withNetworkErrorHandling('listContainers', serverId, async () => {
+      const client = await this.getClient(serverId);
+      return client.listContainers({ all });
+    });
   }
 
   async createContainer(
     serverId: string,
     spec: Docker.ContainerCreateOptions,
   ): Promise<Docker.Container> {
-    const client = await this.getClient(serverId);
-    const container = await client.createContainer(spec);
-    this.logger.log(
-      `Container created: ${spec.Image} → ${container.id.slice(0, 12)}`,
-    );
-    return container;
+    return this.withNetworkErrorHandling('createContainer', serverId, async () => {
+      const client = await this.getClient(serverId);
+      const container = await client.createContainer(spec);
+      this.logger.log(
+        `Container created: ${spec.Image} → ${container.id.slice(0, 12)}`,
+      );
+      return container;
+    });
   }
 
   async startContainer(serverId: string, containerName: string): Promise<void> {
-    const client = await this.getClient(serverId);
-    await client.getContainer(containerName).start();
+    await this.withNetworkErrorHandling('startContainer', serverId, async () => {
+      const client = await this.getClient(serverId);
+      await client.getContainer(containerName).start();
+    });
   }
 
   /**
@@ -216,8 +316,10 @@ export class DockerApiService {
     containerName: string,
     timeoutSec = 10,
   ): Promise<void> {
-    const client = await this.getClient(serverId);
-    await client.getContainer(containerName).stop({ t: timeoutSec });
+    await this.withNetworkErrorHandling('stopContainer', serverId, async () => {
+      const client = await this.getClient(serverId);
+      await client.getContainer(containerName).stop({ t: timeoutSec });
+    });
   }
 
   async restartContainer(
@@ -225,8 +327,10 @@ export class DockerApiService {
     containerName: string,
     timeoutSec = 10,
   ): Promise<void> {
-    const client = await this.getClient(serverId);
-    await client.getContainer(containerName).restart({ t: timeoutSec });
+    await this.withNetworkErrorHandling('restartContainer', serverId, async () => {
+      const client = await this.getClient(serverId);
+      await client.getContainer(containerName).restart({ t: timeoutSec });
+    });
   }
 
   async removeContainer(
@@ -234,8 +338,10 @@ export class DockerApiService {
     containerName: string,
     force = false,
   ): Promise<void> {
-    const client = await this.getClient(serverId);
-    await client.getContainer(containerName).remove({ force });
+    await this.withNetworkErrorHandling('removeContainer', serverId, async () => {
+      const client = await this.getClient(serverId);
+      await client.getContainer(containerName).remove({ force });
+    });
   }
 
   /**
@@ -248,36 +354,38 @@ export class DockerApiService {
     containerName: string,
     cmd: string[],
   ): Promise<{ stdout: Buffer; stderr: string; exitCode: number }> {
-    const client = await this.getClient(serverId);
-    const container = client.getContainer(containerName);
-    const exec = await container.exec({
-      Cmd: cmd,
-      AttachStdout: true,
-      AttachStderr: true,
+    return this.withNetworkErrorHandling('execCapture', serverId, async () => {
+      const client = await this.getClient(serverId);
+      const container = client.getContainer(containerName);
+      const exec = await container.exec({
+        Cmd: cmd,
+        AttachStdout: true,
+        AttachStderr: true,
+      });
+      const stream = await exec.start({});
+
+      const stdoutChunks: Buffer[] = [];
+      const stderrChunks: Buffer[] = [];
+      const out = new PassThrough();
+      const err = new PassThrough();
+      out.on('data', (c: Buffer) => stdoutChunks.push(c));
+      err.on('data', (c: Buffer) => stderrChunks.push(c));
+      client.modem.demuxStream(stream, out, err);
+
+      await new Promise<void>((resolve, reject) => {
+        stream.on('end', resolve);
+        stream.on('error', reject);
+      });
+      out.end();
+      err.end();
+
+      const info = await exec.inspect();
+      return {
+        stdout: Buffer.concat(stdoutChunks),
+        stderr: Buffer.concat(stderrChunks).toString('utf-8'),
+        exitCode: info.ExitCode ?? 0,
+      };
     });
-    const stream = await exec.start({});
-
-    const stdoutChunks: Buffer[] = [];
-    const stderrChunks: Buffer[] = [];
-    const out = new PassThrough();
-    const err = new PassThrough();
-    out.on('data', (c: Buffer) => stdoutChunks.push(c));
-    err.on('data', (c: Buffer) => stderrChunks.push(c));
-    client.modem.demuxStream(stream, out, err);
-
-    await new Promise<void>((resolve, reject) => {
-      stream.on('end', resolve);
-      stream.on('error', reject);
-    });
-    out.end();
-    err.end();
-
-    const info = await exec.inspect();
-    return {
-      stdout: Buffer.concat(stdoutChunks),
-      stderr: Buffer.concat(stderrChunks).toString('utf-8'),
-      exitCode: info.ExitCode ?? 0,
-    };
   }
 
   /**
@@ -291,41 +399,43 @@ export class DockerApiService {
     cmd: string[],
     input: Buffer,
   ): Promise<{ stdout: Buffer; stderr: string; exitCode: number }> {
-    const client = await this.getClient(serverId);
-    const container = client.getContainer(containerName);
-    const exec = await container.exec({
-      Cmd: cmd,
-      AttachStdin: true,
-      AttachStdout: true,
-      AttachStderr: true,
+    return this.withNetworkErrorHandling('execWithInput', serverId, async () => {
+      const client = await this.getClient(serverId);
+      const container = client.getContainer(containerName);
+      const exec = await container.exec({
+        Cmd: cmd,
+        AttachStdin: true,
+        AttachStdout: true,
+        AttachStderr: true,
+      });
+      const stream = await exec.start({ hijack: true, stdin: true });
+
+      const stdoutChunks: Buffer[] = [];
+      const stderrChunks: Buffer[] = [];
+      const out = new PassThrough();
+      const err = new PassThrough();
+      out.on('data', (c: Buffer) => stdoutChunks.push(c));
+      err.on('data', (c: Buffer) => stderrChunks.push(c));
+      client.modem.demuxStream(stream, out, err);
+
+      // Write the dump to STDIN, then close it so the command reads EOF and exits.
+      stream.write(input);
+      stream.end();
+
+      await new Promise<void>((resolve, reject) => {
+        stream.on('end', resolve);
+        stream.on('error', reject);
+      });
+      out.end();
+      err.end();
+
+      const info = await exec.inspect();
+      return {
+        stdout: Buffer.concat(stdoutChunks),
+        stderr: Buffer.concat(stderrChunks).toString('utf-8'),
+        exitCode: info.ExitCode ?? 0,
+      };
     });
-    const stream = await exec.start({ hijack: true, stdin: true });
-
-    const stdoutChunks: Buffer[] = [];
-    const stderrChunks: Buffer[] = [];
-    const out = new PassThrough();
-    const err = new PassThrough();
-    out.on('data', (c: Buffer) => stdoutChunks.push(c));
-    err.on('data', (c: Buffer) => stderrChunks.push(c));
-    client.modem.demuxStream(stream, out, err);
-
-    // Write the dump to STDIN, then close it so the command reads EOF and exits.
-    stream.write(input);
-    stream.end();
-
-    await new Promise<void>((resolve, reject) => {
-      stream.on('end', resolve);
-      stream.on('error', reject);
-    });
-    out.end();
-    err.end();
-
-    const info = await exec.inspect();
-    return {
-      stdout: Buffer.concat(stdoutChunks),
-      stderr: Buffer.concat(stderrChunks).toString('utf-8'),
-      exitCode: info.ExitCode ?? 0,
-    };
   }
 
   async buildImage(
@@ -333,25 +443,41 @@ export class DockerApiService {
     context: { src: string[]; dockerfile: string } | string,
     opts: { tag?: string; remote?: string } = {},
   ): Promise<string> {
-    const client = await this.getClient(serverId);
-    const stream = await (client as unknown as DockerStreamApi).buildImage(
-      context,
-      {
-        t: opts.tag,
-        remote: opts.remote,
-        dockerfile:
-          typeof context === 'object' ? context.dockerfile : undefined,
+    const timeoutMs = this.getTimeoutMs('DOCKER_BUILD_TIMEOUT_MS', 900_000);
+    const result = await this.withTimeout(
+      `buildImage (serveur ${serverId})`,
+      timeoutMs,
+      async (controller) => {
+        const client = await this.getClient(serverId);
+        const stream = await (client as unknown as DockerStreamApi).buildImage(
+          context,
+          {
+            t: opts.tag,
+            remote: opts.remote,
+            dockerfile:
+              typeof context === 'object' ? context.dockerfile : undefined,
+          },
+        );
+        const onAbort = () => {
+          (stream as unknown as { destroy?: () => void }).destroy?.();
+        };
+        controller.signal.addEventListener('abort', onAbort);
+        try {
+          return await new Promise<string>((resolve, reject) => {
+            client.modem.followProgress(stream, (err, res) => {
+              if (err) return reject(err);
+              const events = (res ?? []) as Array<{ aux?: { ID?: string } }>;
+              const last =
+                events.length > 0 ? events[events.length - 1] : undefined;
+              const imageId = last?.aux?.ID ?? opts.tag ?? 'unknown';
+              resolve(imageId);
+            });
+          });
+        } finally {
+          controller.signal.removeEventListener('abort', onAbort);
+        }
       },
     );
-    const result = await new Promise<string>((resolve, reject) => {
-      client.modem.followProgress(stream, (err, res) => {
-        if (err) return reject(err);
-        const events = (res ?? []) as Array<{ aux?: { ID?: string } }>;
-        const last = events.length > 0 ? events[events.length - 1] : undefined;
-        const imageId = last?.aux?.ID ?? opts.tag ?? 'unknown';
-        resolve(imageId);
-      });
-    });
     this.logger.log(`Image built: ${result}`);
     return result;
   }
@@ -361,19 +487,35 @@ export class DockerApiService {
     imageRef: string,
     auth?: { username: string; password: string; serveraddress?: string },
   ): Promise<void> {
-    const client = await this.getClient(serverId);
-    const stream = await (client as unknown as DockerStreamApi).pull(imageRef, {
-      authconfig: auth,
-    });
-    await new Promise<void>((resolve, reject) => {
-      client.modem.followProgress(
-        stream as unknown as NodeJS.ReadableStream,
-        (err) => {
-          if (err) return reject(err);
-          resolve();
-        },
-      );
-    });
+    const timeoutMs = this.getTimeoutMs('DOCKER_PULL_TIMEOUT_MS', 300_000);
+    await this.withTimeout(
+      `pullImage ${imageRef} (serveur ${serverId})`,
+      timeoutMs,
+      async (controller) => {
+        const client = await this.getClient(serverId);
+        const stream = await (client as unknown as DockerStreamApi).pull(
+          imageRef,
+          { authconfig: auth },
+        );
+        const onAbort = () => {
+          (stream as unknown as { destroy?: () => void }).destroy?.();
+        };
+        controller.signal.addEventListener('abort', onAbort);
+        try {
+          await new Promise<void>((resolve, reject) => {
+            client.modem.followProgress(
+              stream as unknown as NodeJS.ReadableStream,
+              (err) => {
+                if (err) return reject(err);
+                resolve();
+              },
+            );
+          });
+        } finally {
+          controller.signal.removeEventListener('abort', onAbort);
+        }
+      },
+    );
     this.logger.log(`Image pulled: ${imageRef}`);
   }
 
@@ -395,16 +537,20 @@ export class DockerApiService {
   }
 
   async createVolume(serverId: string, name: string): Promise<void> {
-    const client = await this.getClient(serverId);
-    await client.createVolume({ Name: name });
-    this.logger.log(`Volume created: ${name}`);
+    await this.withNetworkErrorHandling('createVolume', serverId, async () => {
+      const client = await this.getClient(serverId);
+      await client.createVolume({ Name: name });
+      this.logger.log(`Volume created: ${name}`);
+    });
   }
 
   async removeVolume(serverId: string, name: string): Promise<void> {
-    const client = await this.getClient(serverId);
-    const volume = client.getVolume(name);
-    await volume.remove();
-    this.logger.log(`Volume removed: ${name}`);
+    await this.withNetworkErrorHandling('removeVolume', serverId, async () => {
+      const client = await this.getClient(serverId);
+      const volume = client.getVolume(name);
+      await volume.remove();
+      this.logger.log(`Volume removed: ${name}`);
+    });
   }
 
   /**
@@ -475,6 +621,46 @@ function isNotFound(error: unknown): boolean {
   const message = (error as { message?: string }).message;
   if (typeof message !== 'string') return false;
   return /not found|no such image|image not found/i.test(message);
+}
+
+const NETWORK_ERROR_CODES = new Set([
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'ECONNRESET',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'EPIPE',
+  'EAI_AGAIN',
+]);
+
+/** Détecte une perte de connexion réseau vers le daemon Docker (pas un 404/409 applicatif). */
+function isNetworkError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const code = (error as { code?: string }).code;
+  if (code && NETWORK_ERROR_CODES.has(code)) return true;
+  const message = (error as { message?: string }).message;
+  if (typeof message !== 'string') return false;
+  return /ECONNREFUSED|ETIMEDOUT|ECONNRESET|socket hang up|EHOSTUNREACH|ENETUNREACH/i.test(
+    message,
+  );
+}
+
+/**
+ * Si `error` est une erreur réseau, retourne une nouvelle Error avec un
+ * message explicite et exploitable côté appelant ; sinon retourne `error`
+ * tel quel (les erreurs non-réseau, ex: 404 déjà géré par `isNotFound`,
+ * gardent leur comportement d'origine).
+ */
+function wrapIfNetworkError(
+  error: unknown,
+  operation: string,
+  serverId: string,
+): unknown {
+  if (!isNetworkError(error)) return error;
+  const message = error instanceof Error ? error.message : String(error);
+  return new Error(
+    `Connexion au daemon Docker perdue pendant ${operation} (serveur ${serverId}): ${message}`,
+  );
 }
 
 function* parseDockerStreamChunk(

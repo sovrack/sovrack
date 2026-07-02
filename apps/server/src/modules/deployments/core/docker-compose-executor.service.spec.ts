@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ContainerStatus, DeploymentStatus } from '@prisma/client';
 import { DockerComposeExecutorService } from './docker-compose-executor.service';
 
@@ -60,6 +60,7 @@ describe('DockerComposeExecutorService', () => {
     server: { findUnique: jest.Mock };
     container: { create: jest.Mock; updateMany: jest.Mock };
     serviceEnvironment: { findUnique: jest.Mock; update: jest.Mock };
+    $transaction: jest.Mock;
   };
   let ssh: { putContent: jest.Mock };
   let sshPool: { acquire: jest.Mock };
@@ -108,6 +109,10 @@ describe('DockerComposeExecutorService', () => {
         findUnique: jest.fn().mockResolvedValue({ currentDeploymentId: null }),
         update: jest.fn().mockResolvedValue({ id: SVC_ENV_ID }),
       },
+      // $transaction est mocké pour exécuter le callback avec ce même mock en
+      // guise de `tx` — suffisant en test unitaire, l'atomicité réelle est
+      // garantie par Prisma en production, pas testable via ce mock.
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
 
     ssh = { putContent: jest.fn().mockResolvedValue(undefined) };
@@ -291,11 +296,13 @@ describe('DockerComposeExecutorService', () => {
       );
     });
 
-    it('calls compose down and marks FAILED when deployment is not found', async () => {
+    it('throws NotFoundException when deployment is not found', async () => {
       prisma.deployment.findUnique.mockResolvedValue(null);
 
+      // Ressource manquante = 404, pas une requête mal formée (400) — corrigé
+      // suite à l'audit (le code lançait auparavant BadRequestException ici).
       await expect(service.executeDeploy(DEPLOYMENT_ID)).rejects.toBeInstanceOf(
-        BadRequestException,
+        NotFoundException,
       );
     });
 

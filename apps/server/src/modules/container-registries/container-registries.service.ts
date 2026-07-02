@@ -6,7 +6,7 @@ import {
 import { RegistryProviderType, type RegistryConfig } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { CryptoService } from '../../shared/crypto/crypto.service';
-import { RegistryConnectionTesterService } from './registry-connection-tester.service';
+import { RegistryConnectionTestService } from './registry-connection-test.service';
 
 export type RegistryConfigPublic = {
   id: string;
@@ -44,7 +44,7 @@ export class ContainerRegistriesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
-    private readonly connectionTester: RegistryConnectionTesterService,
+    private readonly connectionTester: RegistryConnectionTestService,
   ) {}
 
   async listRegistryConfigs(): Promise<RegistryConfigPublic[]> {

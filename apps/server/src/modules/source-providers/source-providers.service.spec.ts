@@ -139,8 +139,14 @@ describe('SourceProvidersService (factory)', () => {
         id: string;
       };
       expect(provider.id).toBe('github-impl');
+      // archivedAt: null ajouté (activeWhere) : un service archivé ne doit
+      // plus pouvoir dicter la résolution du provider Git du projet.
       expect(prisma.service.findFirst).toHaveBeenCalledWith({
-        where: { projectId: 'proj_1', providerId: { not: null } },
+        where: {
+          projectId: 'proj_1',
+          providerId: { not: null },
+          archivedAt: null,
+        },
         select: { providerId: true },
       });
     });

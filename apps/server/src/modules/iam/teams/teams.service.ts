@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -34,6 +35,8 @@ type TeamWithMembers = Prisma.TeamGetPayload<{
 
 @Injectable()
 export class TeamsService {
+  private readonly logger = new Logger(TeamsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<TeamWithMembers[]> {
@@ -62,10 +65,12 @@ export class TeamsService {
       throw new ConflictException('Une équipe avec ce nom existe déjà');
     }
 
-    return this.prisma.team.create({
+    const team = await this.prisma.team.create({
       data: { name: dto.name, description: dto.description },
       include: teamWithMembersInclude,
     });
+    this.logger.log(`Team "${team.name}" (${team.id}) created`);
+    return team;
   }
 
   async update(id: string, dto: UpdateTeamDto): Promise<TeamWithMembers> {
@@ -98,10 +103,12 @@ export class TeamsService {
 
   async remove(id: string): Promise<TeamWithMembers> {
     await this.findOne(id);
-    return this.prisma.team.delete({
+    const team = await this.prisma.team.delete({
       where: { id },
       include: teamWithMembersInclude,
     });
+    this.logger.warn(`Team "${team.name}" (${id}) deleted`);
+    return team;
   }
 
   async addMember(id: string, dto: AddTeamMemberDto): Promise<TeamWithMembers> {
@@ -126,6 +133,7 @@ export class TeamsService {
     await this.prisma.teamMember.create({
       data: { teamId: id, userId: dto.userId },
     });
+    this.logger.log(`User ${dto.userId} added to team ${id}`);
 
     return this.findOne(id);
   }
@@ -145,6 +153,7 @@ export class TeamsService {
     await this.prisma.teamMember.delete({
       where: { teamId_userId: { teamId: id, userId } },
     });
+    this.logger.log(`User ${userId} removed from team ${id}`);
 
     return this.findOne(id);
   }

@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { ProjectAccessService } from '../../catalog/access/project-access.service';
+import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
 import { AnsibleRunnerService } from '../../../adapters/provisioning/ansible-runner.service';
 
 export type SslCertificateRequest = {

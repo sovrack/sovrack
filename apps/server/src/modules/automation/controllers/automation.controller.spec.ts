@@ -37,12 +37,15 @@ describe('AutomationController', () => {
     expect(automationService.deleteRun).toHaveBeenCalledWith('r1');
   });
 
-  it('getRuns parses pagination with defaults', () => {
+  it('getRuns forwards the validated pagination DTO as-is', () => {
     const { ctrl, automationService } = build();
-    ctrl.getRuns('2', '50');
-    ctrl.getRuns(undefined, undefined);
-    expect(automationService.getRuns).toHaveBeenNthCalledWith(1, 2, 50);
-    expect(automationService.getRuns).toHaveBeenNthCalledWith(2, 1, 20);
+    ctrl.getRuns({ page: 2, pageSize: 50 });
+    ctrl.getRuns({});
+    expect(automationService.getRuns).toHaveBeenNthCalledWith(1, {
+      page: 2,
+      pageSize: 50,
+    });
+    expect(automationService.getRuns).toHaveBeenNthCalledWith(2, {});
   });
 
   it('getRunLogs parses afterLine and ignores invalid values', () => {

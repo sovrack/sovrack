@@ -7,9 +7,11 @@ import { NotificationsModule } from '../notifications';
 import { PrismaModule } from '../../shared/database/prisma.module';
 import { AuditModule } from '../audit';
 import { ServersModule } from '../infrastructure';
-import { ProjectAccessModule } from '../catalog/access/project-access.module';
+import { ProjectAccessModule } from '../catalog/authorization/project-access.module';
 import { DockerDeployExecutorService } from './core/docker-deploy-executor.service';
 import { DockerComposeExecutorService } from './core/docker-compose-executor.service';
+import { ReplicaLauncherService } from './core/replica-launcher.service';
+import { DeployFailureRecoveryService } from './core/deploy-failure-recovery.service';
 import { ImageResolverService } from './core/image-resolver.service';
 import { DeploymentLogEmitter } from './core/deployment-log-emitter.service';
 import { DeploymentEnvService } from './core/deployment-env.service';
@@ -27,6 +29,7 @@ import { DeploymentEventsPublisher } from './events/deployment-events.publisher'
 import { DeploymentsQueryService } from './query/deployments-query.service';
 import { AppJwtModule } from '../../shared/jwt/jwt.module';
 import { DeploymentsCreateService } from './core/deployments-create.service';
+import { DeploymentPreflightService } from './core/deployment-preflight.service';
 import { DeploymentsLifecycleService } from './core/deployments-lifecycle.service';
 import { DeploymentsRollbackService } from './core/deployments-rollback.service';
 import { DeploymentsPipelineHandlerService } from './triggers/deployments-pipeline-handler.service';
@@ -57,6 +60,7 @@ import { PipelineRunsCleanupService } from './health/pipeline-runs-cleanup.servi
   controllers: [DeploymentsController],
   providers: [
     DeploymentsCreateService,
+    DeploymentPreflightService,
     DeploymentsLifecycleService,
     DeploymentsRollbackService,
     DeploymentsPipelineHandlerService,
@@ -66,6 +70,8 @@ import { PipelineRunsCleanupService } from './health/pipeline-runs-cleanup.servi
     DeploymentEventsPublisher,
     DockerDeployExecutorService,
     DockerComposeExecutorService,
+    ReplicaLauncherService,
+    DeployFailureRecoveryService,
     ImageResolverService,
     DeploymentLogEmitter,
     DeploymentEnvService,

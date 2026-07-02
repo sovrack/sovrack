@@ -24,6 +24,7 @@ import {
 import { resolveBuildSource } from '../utils/build-source.util';
 import { toJson } from '../../../shared/utils/prisma-json.util';
 import { acquireDeploySlot } from '../utils/deploy-slot.util';
+import { DeploymentPreflightService } from '../core/deployment-preflight.service';
 
 /** Shape of a serviceEnvironment row as selected in triggerAutoDeployIfConfigured. */
 type MatchingServiceEnv = Pick<
@@ -84,6 +85,7 @@ export class DeploymentsAutoTriggerService {
     private readonly queueService: QueueService,
     private readonly gateway: DeploymentEventsPublisher,
     private readonly buildsService: BuildLifecycleService,
+    private readonly preflight: DeploymentPreflightService,
   ) {}
 
   @OnEvent(DEPLOYMENT_AUTO_DEPLOY_TRIGGER)
@@ -200,6 +202,29 @@ export class DeploymentsAutoTriggerService {
         this.logger.warn(
           `Auto-deploy skipped: environment "${svcEnv.environment.name}" is protected — ` +
             `webhook/pipeline triggers cannot deploy to it (ADMIN/OWNER manual deploy required).`,
+        );
+        return;
+      }
+
+      // Garde de pré-vol bloquante (voir AUDIT_VALIDATION_DEPLOIEMENT.md) —
+      // même garde que le chemin API (DeploymentsCreateService), avant toute
+      // écriture. Un webhook externe n'a personne à qui montrer une erreur
+      // HTTP : on journalise clairement et on abandonne SANS créer de ligne
+      // Deployment/Build — le déploiement n'a jamais dû démarrer, il ne doit
+      // donc pas polluer l'historique comme s'il avait été tenté. Le
+      // try/catch englobant (plus bas) empêche déjà toute exception ici
+      // d'interrompre le traitement des AUTRES service-env de ce webhook
+      // (Promise.allSettled) ou la réponse HTTP du webhook lui-même.
+      try {
+        await this.preflight.assertDeployable({
+          serviceEnvId: svcEnv.id,
+          branch,
+          overrideImage: dockerImage,
+        });
+      } catch (err) {
+        this.logger.warn(
+          `[PREFLIGHT REJECTED] Auto-deploy refusé pour serviceEnv ${svcEnv.id} ` +
+            `(branche ${branch}) : ${err instanceof Error ? err.message : 'raison inconnue'}`,
         );
         return;
       }

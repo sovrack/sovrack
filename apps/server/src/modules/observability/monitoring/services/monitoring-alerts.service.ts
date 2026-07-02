@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DeploymentStatus, ServerStatus } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
+import { activeWhere } from '../../../../shared/database/prisma-active.helper';
 import { AUTOMATION_ACTIONS } from '../../../automation';
 
 type AlertItem = {
@@ -29,7 +30,7 @@ export class MonitoringAlertsService {
       (action) => action.category === 'monitoring',
     );
     const servers = await this.prisma.server.findMany({
-      where: { isActive: true },
+      where: activeWhere({ isActive: true }),
       orderBy: { name: 'asc' },
       select: {
         id: true,
@@ -50,12 +51,12 @@ export class MonitoringAlertsService {
 
   async getDerivedAlerts() {
     const servers = await this.prisma.server.findMany({
-      where: {
+      where: activeWhere({
         OR: [
           { status: ServerStatus.UNREACHABLE },
           { status: ServerStatus.PREPARATION_FAILED },
         ],
-      },
+      }),
       select: {
         id: true,
         name: true,

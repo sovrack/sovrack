@@ -17,16 +17,11 @@ import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { ACTIVE_FILTER } from '../../../shared/database/prisma-active.helper';
 import { normalizeRepoPath } from '../../../shared/utils/repo-path.util';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
-import { ProjectAccessService } from '../access/project-access.service';
+import { ProjectAccessService } from '../authorization/project-access.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { DiscoverGroupDto } from './dto/discover-group.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
-import {
-  findServiceTemplate,
-  resolveServiceTemplateComponents,
-  SERVICE_TEMPLATES,
-} from './templates/service-templates.catalogue';
 
 const serviceInclude = {
   envLinks: {
@@ -82,14 +77,16 @@ export class ServicesService {
     serviceId: string,
     userId: string,
     userRole: Role,
+    tx?: Prisma.TransactionClient,
   ): Promise<ServiceWithRelations> {
     await this.projectAccess.assertCanAccessProject(
       projectId,
       userId,
       userRole,
     );
+    const client = tx ?? this.prisma;
 
-    const service = await this.prisma.service.findFirst({
+    const service = await client.service.findFirst({
       where: { id: serviceId, projectId, ...ACTIVE_FILTER },
       omit: { archivedAt: true, secretsEnv: true },
       include: serviceInclude,
@@ -122,99 +119,23 @@ export class ServicesService {
     );
   }
 
-  listTemplates() {
-    return SERVICE_TEMPLATES.map(({ id, name, description, components }) => ({
-      id,
-      name,
-      description,
-      services: components.map((c) => ({
-        nameSuffix: c.nameSuffix,
-        type: c.type,
-        databaseType: c.databaseType,
-      })),
-    }));
-  }
-
-  /**
-   * Creates every component of a one-click template as its own Service.
-   * Components needing each other (e.g. pgAdmin reaching Postgres) rely on
-   * the existing project-network auto-wiring, not on anything done here. If
-   * a component fails to create, the previously created ones are rolled
-   * back (hard-deleted — they have no deployment/build history yet) so the
-   * template creation is all-or-nothing.
-   */
-  async createFromTemplate(
-    projectId: string,
-    templateId: string,
-    baseName: string,
-    userId: string,
-    userRole: Role,
-  ) {
-    await this.projectAccess.assertCanManageProject(
-      projectId,
-      userId,
-      userRole,
-    );
-
-    const template = findServiceTemplate(templateId);
-    if (!template) {
-      throw new NotFoundException(`Template "${templateId}" introuvable`);
-    }
-
-    const components = resolveServiceTemplateComponents(template, baseName);
-    const created: Awaited<ReturnType<typeof this.create>>[] = [];
-
-    for (const component of components) {
-      try {
-        const service = await this.create(
-          projectId,
-          {
-            name: component.name,
-            type: component.type,
-            sourceType: component.sourceType,
-            repoPath: component.repoPath,
-            buildPack: component.buildPack,
-            port: component.port,
-            databaseType: component.databaseType,
-            databaseVersion: component.databaseVersion,
-            env: component.env,
-          } as CreateServiceDto,
-          userId,
-          userRole,
-        );
-        created.push(service);
-      } catch (err) {
-        for (const rollback of created) {
-          await this.prisma.service
-            .delete({ where: { id: rollback.id } })
-            .catch((cleanupErr: unknown) =>
-              this.logger.warn(
-                `Rollback cleanup failed for service ${rollback.id}: ${String(cleanupErr)}`,
-              ),
-            );
-        }
-        throw err;
-      }
-    }
-
-    return created;
-  }
-
   async create(
     projectId: string,
     dto: CreateServiceDto,
     userId: string,
     userRole: Role,
+    tx?: Prisma.TransactionClient,
   ) {
     await this.projectAccess.assertCanManageProject(
       projectId,
       userId,
       userRole,
     );
+    const client = tx ?? this.prisma;
 
     let service: Awaited<ReturnType<typeof this.prisma.service.create>>;
     try {
-      service = await this.prisma.service.create({
+      service = await client.service.create({
         data: {
           projectId,
           name: dto.name.trim(),
@@ -273,6 +194,7 @@ export class ServicesService {
       service.id,
       userId,
       userRole,
+      tx,
     );
 
     // Connecter la source si fournie (non-bloquant : le service est créé même si
@@ -296,7 +218,7 @@ export class ServicesService {
       }
     }
 
-    return this.findOne(projectId, service.id, userId, userRole);
+    return this.findOne(projectId, service.id, userId, userRole, tx);
   }
 
   async update(

@@ -1,5 +1,5 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { Role, SourceType } from '@prisma/client';
+import { NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { GitlabAdapter } from './gitlab.adapter';
 
 /**
@@ -14,9 +14,7 @@ describe('GitlabAdapter (response mapping)', () => {
   beforeEach(() => {
     ci = { getPipelines: jest.fn() };
     adapter = new GitlabAdapter(
-      {} as never, // prisma
       {} as never, // apiService
-      {} as never, // crypto
       {} as never, // registry
       ci as never, // ci
       {} as never, // fileService
@@ -25,6 +23,8 @@ describe('GitlabAdapter (response mapping)', () => {
       {} as never, // connection
       {} as never, // credential
       {} as never, // projectConfig
+      {} as never, // onboarding
+      {} as never, // imageRefService
     );
   });
 
@@ -71,60 +71,20 @@ describe('GitlabAdapter (response mapping)', () => {
 
 // ─── Additional coverage ─────────────────────────────────────────────────────
 
-function makeFullAdapter(opts: {
-  apiMocks?: Record<string, jest.Mock>;
-  projectFound?: boolean;
-  gitProviderConfigFound?: boolean;
-  branches?: { name: string; default: boolean; commit: { id: string } }[];
-  groupRepos?: { path_with_namespace: string; default_branch: string }[];
-} = {}) {
-  const prisma = {
-    project: {
-      findUnique: jest.fn().mockResolvedValue(opts.projectFound !== false ? { name: 'my-proj' } : null),
-    },
-    service: {
-      findFirst: jest.fn().mockResolvedValue(
-        opts.projectFound !== false ? { providerId: 'prov1', sourceType: SourceType.GIT, branch: 'main', repoPath: 'org/app', name: 'app' } : null,
-      ),
-      findUnique: jest.fn().mockResolvedValue({ name: 'app' }),
-    },
-    gitProviderConfig: {
-      findUnique: jest.fn().mockResolvedValue(
-        opts.gitProviderConfigFound !== false
-          ? { id: 'prov1', providerUrl: 'https://gitlab.example.com', adminToken: 'enc-tok', oauthAccessToken: null }
-          : null,
-      ),
-    },
-    serviceEnvironment: { findFirst: jest.fn().mockResolvedValue(null) },
-    environment: { findFirst: jest.fn().mockResolvedValue({ id: 'env1' }) },
-  };
-
+function makeFullAdapter() {
   const apiService = {
-    getProjectByConnection: jest.fn().mockResolvedValue({ path_with_namespace: 'org/app' }),
-    listProjectBranchesByConnection: jest.fn().mockResolvedValue(
-      opts.branches ?? [{ name: 'main', default: true, commit: { id: 'sha1' } }],
-    ),
-    getGroupByConnection: jest.fn().mockResolvedValue({}),
-    listGroupRepositoriesByConnection: jest.fn().mockResolvedValue(
-      opts.groupRepos ?? [{ path_with_namespace: 'org/repo', default_branch: 'main' }],
-    ),
+    getBranches: jest.fn().mockResolvedValue([
+      { name: 'main', default: true, commit: { id: 'sha1' } },
+    ]),
+    getRepos: jest.fn().mockResolvedValue([
+      { id: 1, name: 'app', path_with_namespace: 'org/app', web_url: 'https://gl.io/org/app', default_branch: 'main' },
+    ]),
+    fetchGroupRepositories: jest.fn().mockResolvedValue([]),
     listGroupRepositoriesPageByConnection: jest.fn().mockResolvedValue({
       items: [{ path_with_namespace: 'org/repo', default_branch: 'dev', web_url: 'https://gl.io/org/repo', last_activity_at: '2026-01-01' }],
       totalCount: 1,
       nextPage: null,
     }),
-    getBranches: jest.fn().mockResolvedValue(
-      opts.branches ?? [{ name: 'main', default: true, commit: { id: 'sha1' } }],
-    ),
-    getRepos: jest.fn().mockResolvedValue([{ id: 1, name: 'app', path_with_namespace: 'org/app', web_url: 'https://gl.io/org/app', default_branch: 'main' }]),
-    fetchGroupRepositories: jest.fn().mockResolvedValue([]),
-    resolveRepositoryPath: jest.fn().mockResolvedValue('registry.gl.io/org/app'),
-    ...opts.apiMocks,
-  };
-
-  const cryptoService = {
-    encrypt: jest.fn().mockImplementation((v: string) => `enc-${v}`),
-    decrypt: jest.fn().mockImplementation((v: string) => `dec-${v}`),
   };
 
   const registry = { listGitlabProvidersForProjects: jest.fn().mockResolvedValue([]) };
@@ -146,7 +106,6 @@ function makeFullAdapter(opts: {
   };
 
   const auth = {
-    assertCanManageProject: jest.fn().mockResolvedValue(undefined),
     assertCanAccessProject: jest.fn().mockResolvedValue(undefined),
   };
 
@@ -163,22 +122,31 @@ function makeFullAdapter(opts: {
 
   const credential = {
     resolveRegistryCredentialsFromConfig: jest.fn().mockReturnValue({ username: 'user', password: 'tok' }),
-    resolveRegistryHost: jest.fn().mockReturnValue('registry.gl.io'),
-    isPlaceholderPath: jest.fn().mockReturnValue(false),
-    extractPathFromUrl: jest.fn().mockReturnValue(null),
   };
 
   const projectConfig = {
-    getProjectConfig: jest.fn().mockResolvedValue({ id: 'prov1', sourceType: SourceType.REGISTRY, providerUrl: 'https://gl.io' }),
+    getProjectConfig: jest.fn().mockResolvedValue({ id: 'prov1', sourceType: 'REGISTRY', providerUrl: 'https://gl.io' }),
     resolveRepoIdForAction: jest.fn().mockResolvedValue(123),
     assertRepoSource: jest.fn().mockReturnValue(123),
   };
 
+  const onboarding = {
+    connectProject: jest.fn().mockResolvedValue({ id: 'prov1' }),
+    verifyConnectionInput: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const imageRefService = {
+    loadResolvedConfig: jest.fn().mockResolvedValue({
+      config: { providerUrl: 'https://gl.io', defaultBranch: 'main' },
+      svc: { repoPath: 'org/app', name: 'app' },
+    }),
+    resolveRepositoryPathFromConfig: jest.fn().mockResolvedValue('org/app'),
+    resolveDockerImageRef: jest.fn().mockResolvedValue('registry.gl.io/org/app:main'),
+  };
+
   return {
     adapter: new GitlabAdapter(
-      prisma as never,
       apiService as never,
-      cryptoService as never,
       registry as never,
       ci as never,
       fileService as never,
@@ -187,34 +155,27 @@ function makeFullAdapter(opts: {
       connection as never,
       credential as never,
       projectConfig as never,
+      onboarding as never,
+      imageRefService as never,
     ),
-    prisma, apiService, ci, fileService, webhookConfigurator, auth, connection, credential, registry, projectConfig,
+    apiService, ci, fileService, webhookConfigurator, auth, connection, credential, registry, projectConfig,
+    onboarding, imageRefService,
   };
 }
 
-describe('GitlabAdapter — verifyConnectionInput', () => {
-  it('throws when branch is not found in repo', async () => {
-    const { adapter } = makeFullAdapter({ branches: [{ name: 'dev', default: true, commit: { id: 'sha' } }] });
-    await expect(adapter.verifyConnectionInput({ repoPath: 'org/app', defaultBranch: 'nonexistent' } as never))
-      .rejects.toThrow(BadRequestException);
+describe('GitlabAdapter — connectProject / verifyConnectionInput (delegation)', () => {
+  it('connectProject delegates to GitlabOnboardingService with the same arguments', async () => {
+    const { adapter, onboarding } = makeFullAdapter();
+    const dto = { repoPath: 'org/app' } as never;
+    await adapter.connectProject('p1', dto, 'u1', Role.ADMIN);
+    expect(onboarding.connectProject).toHaveBeenCalledWith('p1', dto, 'u1', Role.ADMIN);
   });
 
-  it('succeeds when branch exists', async () => {
-    const { adapter } = makeFullAdapter();
-    await expect(adapter.verifyConnectionInput({ repoPath: 'org/app', defaultBranch: 'main' } as never))
-      .resolves.not.toThrow();
-  });
-
-  it('throws when group has no repositories', async () => {
-    const { adapter } = makeFullAdapter({ groupRepos: [] });
-    await expect(adapter.verifyConnectionInput({ groupPath: 'my-group' } as never))
-      .rejects.toThrow(BadRequestException);
-  });
-
-  it('succeeds for group with repositories', async () => {
-    const { adapter } = makeFullAdapter();
-    await expect(adapter.verifyConnectionInput({ groupPath: 'my-group' } as never))
-      .resolves.not.toThrow();
+  it('verifyConnectionInput delegates to GitlabOnboardingService', async () => {
+    const { adapter, onboarding } = makeFullAdapter();
+    const dto = { repoPath: 'org/app', defaultBranch: 'main' } as never;
+    await adapter.verifyConnectionInput(dto);
+    expect(onboarding.verifyConnectionInput).toHaveBeenCalledWith(dto);
   });
 });
 
@@ -238,18 +199,25 @@ describe('GitlabAdapter — listGroupRepositoriesByProvider', () => {
   });
 });
 
-describe('GitlabAdapter — resolveDockerImageRef', () => {
-  it('falls back to slug:tag when no provider config exists', async () => {
-    const { adapter } = makeFullAdapter({ projectFound: false });
-    const result = await adapter.resolveDockerImageRef('p1', 'main');
-    expect(result).toContain(':main');
+describe('GitlabAdapter — resolveDockerImageRef (delegation)', () => {
+  it('delegates to GitlabImageRefService with the same arguments', async () => {
+    const { adapter, imageRefService } = makeFullAdapter();
+    const result = await adapter.resolveDockerImageRef('p1', 'main', 'svc1');
+    expect(imageRefService.resolveDockerImageRef).toHaveBeenCalledWith('p1', 'main', 'svc1');
+    expect(result).toBe('registry.gl.io/org/app:main');
   });
+});
 
-  it('builds full registry image ref when config exists', async () => {
-    const { adapter } = makeFullAdapter();
-    const result = await adapter.resolveDockerImageRef('p1', 'main');
-    expect(result).toContain('registry.gl.io/');
-    expect(result).toContain(':main');
+describe('GitlabAdapter — resolveRepositoryPathFromConfig (delegation)', () => {
+  it('delegates to GitlabImageRefService with the same arguments', async () => {
+    const { adapter, imageRefService } = makeFullAdapter();
+    const config = { providerUrl: 'https://gl.io' } as never;
+    await adapter.resolveRepositoryPathFromConfig(config, 'fallback-slug', 7);
+    expect(imageRefService.resolveRepositoryPathFromConfig).toHaveBeenCalledWith(
+      config,
+      'fallback-slug',
+      7,
+    );
   });
 });
 
@@ -280,14 +248,29 @@ describe('GitlabAdapter — delegation methods', () => {
     expect(webhookConfigurator.configureWebhook).toHaveBeenCalled();
   });
 
-  it('resolveRegistryCredentials calls loadResolvedConfig then credential service', async () => {
-    const { adapter, credential } = makeFullAdapter();
+  it('resolveRegistryCredentials calls imageRefService.loadResolvedConfig then credential service', async () => {
+    const { adapter, imageRefService, credential } = makeFullAdapter();
     await adapter.resolveRegistryCredentials('p1');
+    expect(imageRefService.loadResolvedConfig).toHaveBeenCalledWith('p1');
     expect(credential.resolveRegistryCredentialsFromConfig).toHaveBeenCalled();
   });
 
-  it('resolveRegistryCredentials throws NotFoundException when no provider found', async () => {
-    const { adapter } = makeFullAdapter({ projectFound: false });
+  it('resolveRegistryCredentials propagates NotFoundException when no provider found', async () => {
+    const { adapter, imageRefService } = makeFullAdapter();
+    imageRefService.loadResolvedConfig.mockRejectedValueOnce(
+      new NotFoundException('Aucune config GitLab pour le projet p1'),
+    );
     await expect(adapter.resolveRegistryCredentials('p1')).rejects.toThrow(NotFoundException);
+  });
+
+  it('resolveRepositoryPath calls imageRefService.loadResolvedConfig then resolveRepositoryPathFromConfig', async () => {
+    const { adapter, imageRefService } = makeFullAdapter();
+    await adapter.resolveRepositoryPath('p1', 7);
+    expect(imageRefService.loadResolvedConfig).toHaveBeenCalledWith('p1');
+    expect(imageRefService.resolveRepositoryPathFromConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ providerUrl: 'https://gl.io' }),
+      'main',
+      7,
+    );
   });
 });

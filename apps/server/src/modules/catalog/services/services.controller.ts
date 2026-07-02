@@ -22,13 +22,17 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { DiscoverGroupDto } from './dto/discover-group.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { ServicesService } from './services.service';
+import { ServiceTemplatesFactoryService } from './service-templates-factory.service';
 
 @ApiTags('Services')
 @ApiBearerAuth()
 @Controller('projects/:projectId/services')
 @UseGuards(JwtAuthGuard)
 export class ServicesController {
-  constructor(private readonly servicesService: ServicesService) {}
+  constructor(
+    private readonly servicesService: ServicesService,
+    private readonly templatesFactory: ServiceTemplatesFactoryService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: "Lister les services d'un projet" })
@@ -76,7 +80,7 @@ export class ServicesController {
   @Get('templates')
   @ApiOperation({ summary: 'List one-click service templates' })
   listTemplates() {
-    return this.servicesService.listTemplates();
+    return this.templatesFactory.listTemplates();
   }
 
   @Post('templates/:templateId')
@@ -88,7 +92,7 @@ export class ServicesController {
     @Body() dto: CreateFromTemplateDto,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.servicesService.createFromTemplate(
+    return await this.templatesFactory.createFromTemplate(
       projectId,
       templateId,
       dto.name,

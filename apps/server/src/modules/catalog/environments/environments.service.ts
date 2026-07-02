@@ -9,7 +9,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { ACTIVE_FILTER } from '../../../shared/database/prisma-active.helper';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
-import { ProjectAccessService } from '../access/project-access.service';
+import { ProjectAccessService } from '../authorization/project-access.service';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { UpdateEnvironmentDto } from './dto/update-environment.dto';
 
@@ -53,8 +53,12 @@ const environmentsInclude = {
   },
 } satisfies Prisma.EnvironmentInclude;
 
+// secretsEnv is omitted from every read: like Service/ServiceEnvironment, the
+// encrypted environment secrets are never returned to the client. They are
+// only decrypted at deploy time (deployment-env.service → crypto.decryptSafe).
 type EnvironmentWithRelations = Prisma.EnvironmentGetPayload<{
   include: typeof environmentsInclude;
+  omit: { secretsEnv: true };
 }>;
 
 @Injectable()
@@ -87,9 +91,11 @@ export class EnvironmentsService {
         env: dto.env,
         // Secrets de l'environnement chiffrés au repos (AES-256-GCM), comme
         // ServiceEnvironment.secretsEnv. Déchiffrés au déploiement (decryptSafe).
+        // encryptOptional : une chaîne vide efface le secret (null) au lieu de
+        // chiffrer une chaîne vide — même sémantique que ServicesService.create.
         secretsEnv:
           dto.secretsEnv !== undefined
-            ? this.crypto.encrypt(dto.secretsEnv)
+            ? this.crypto.encryptOptional(dto.secretsEnv)
             : undefined,
       },
       include: environmentsInclude,
@@ -126,6 +132,7 @@ export class EnvironmentsService {
     return await this.prisma.environment.findMany({
       where: { projectId, ...ACTIVE_FILTER },
       orderBy: { createdAt: 'asc' },
+      omit: { secretsEnv: true },
       include: environmentsInclude,
     });
   }
@@ -144,6 +151,7 @@ export class EnvironmentsService {
 
     const env = await this.prisma.environment.findFirst({
       where: { id: envId, projectId, ...ACTIVE_FILTER },
+      omit: { secretsEnv: true },
       include: environmentsInclude,
     });
 
@@ -173,10 +181,13 @@ export class EnvironmentsService {
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
         ...(dto.env !== undefined ? { env: dto.env } : {}),
+        // '' clears the secret (encryptOptional → null) instead of encrypting
+        // an empty string — same semantics as ServicesService.update.
         ...(dto.secretsEnv !== undefined
-          ? { secretsEnv: this.crypto.encrypt(dto.secretsEnv) }
+          ? { secretsEnv: this.crypto.encryptOptional(dto.secretsEnv) }
           : {}),
       },
+      omit: { secretsEnv: true },
       include: environmentsInclude,
     });
   }
@@ -258,6 +269,7 @@ export class EnvironmentsService {
       data: {
         servers: { connect: { id: serverId } },
       },
+      omit: { secretsEnv: true },
       include: environmentsInclude,
     });
   }
@@ -281,6 +293,7 @@ export class EnvironmentsService {
       data: {
         servers: { disconnect: { id: serverId } },
       },
+      omit: { secretsEnv: true },
       include: environmentsInclude,
     });
   }
@@ -315,6 +328,7 @@ export class EnvironmentsService {
       // Reactivate a previously archived link instead of leaving it invisible
       // (parity with ServiceEnvironmentsService.link).
       update: { archivedAt: null },
+      omit: { secretsEnv: true },
       include: {
         service: { select: { id: true, name: true, type: true } },
         environment: { select: { id: true, name: true } },

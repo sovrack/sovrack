@@ -2,7 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersDetectionService } from './servers-detection.service';
-import { ServerVerificationService } from './server-verification.service';
+import { ServersVerificationService } from './servers-verification.service';
 import { ServerPreparationService } from '../../preparation/services/infra-preparation.service';
 import { AuditService } from '../../../audit/audit.service';
 import { ServersReadersFacade } from './servers-readers.facade';
@@ -37,7 +37,7 @@ describe('ServersReadersFacade', () => {
       listValidationResults: jest.fn().mockResolvedValue([]),
       resetStatus: jest.fn().mockResolvedValue(undefined),
       getRecentLogs: jest.fn().mockResolvedValue([]),
-    } as unknown as ServerVerificationService;
+    } as unknown as ServersVerificationService;
     const preparation = {
       listPreparations: jest.fn().mockResolvedValue([]),
       getPreparationReadiness: jest.fn().mockResolvedValue({ isReady: true }),

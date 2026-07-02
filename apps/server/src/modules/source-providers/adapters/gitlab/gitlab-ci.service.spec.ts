@@ -42,7 +42,7 @@ function build(overrides: {
       return Promise.resolve(v ?? []);
     }),
   };
-  const webhookService = {
+  const pipelinePersistence = {
     upsertPipeline: jest.fn().mockResolvedValue(undefined),
   };
   const projectConfig = {
@@ -55,7 +55,7 @@ function build(overrides: {
   const svc = new GitlabCiService(
     prisma as never,
     apiService as never,
-    webhookService as never,
+    pipelinePersistence as never,
     projectConfig as never,
     auth as never,
   );

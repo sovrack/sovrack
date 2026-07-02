@@ -4,6 +4,7 @@ import { BuildDetectorService } from './detection/build-detector.service';
 import { BuildOrchestratorService } from './build-orchestrator.service';
 import { BuildSetupService } from './lifecycle/build-setup.service';
 import { BuildLifecycleService } from './lifecycle/build-lifecycle.service';
+import { WebhookManagementService } from '../webhooks/webhook-management.service';
 import { BuildController } from './build.controller';
 
 describe('BuildController', () => {
@@ -19,7 +20,6 @@ describe('BuildController', () => {
       updateBuildConfig: jest.fn().mockResolvedValue(undefined),
       getTemplates: jest.fn().mockResolvedValue([]),
       generateAll: jest.fn().mockResolvedValue([]),
-      reconcileWebhooks: jest.fn().mockResolvedValue({ ok: true }),
       getBuildStatus: jest.fn().mockResolvedValue({ ready: true }),
       extractComposeFile: jest.fn().mockResolvedValue({ content: 'x' }),
       getAvailableEngines: jest.fn().mockResolvedValue(['DOCKERFILE']),
@@ -31,13 +31,24 @@ describe('BuildController', () => {
       listForProject: jest.fn().mockResolvedValue([]),
       findOne: jest.fn().mockResolvedValue({ id: 'b1' }),
     } as unknown as BuildLifecycleService;
+    const webhookManagement = {
+      reconcileWebhooksNotice: jest.fn().mockResolvedValue({ results: [] }),
+    } as unknown as WebhookManagementService;
     const ctrl = new BuildController(
       buildService,
       setupService,
       detector,
       buildsService,
+      webhookManagement,
     );
-    return { ctrl, buildService, setupService, detector, buildsService };
+    return {
+      ctrl,
+      buildService,
+      setupService,
+      detector,
+      buildsService,
+      webhookManagement,
+    };
   }
 
   it('generateBuildFiles forwards overwrite flags', async () => {
@@ -97,11 +108,10 @@ describe('BuildController', () => {
     expect(res).toEqual({ message: 'Fichiers poussés avec succès' });
   });
 
-  it('templates / generateAll / reconcileWebhooks / engines delegate', async () => {
+  it('templates / generateAll / engines delegate', async () => {
     const { ctrl, setupService } = build();
     await ctrl.getTemplates('p1', user);
     await ctrl.generateAll('p1', user);
-    await ctrl.reconcileWebhooks('p1', user);
     await ctrl.getAvailableEngines();
     expect(setupService.getTemplates).toHaveBeenCalledWith(
       'p1',
@@ -113,12 +123,23 @@ describe('BuildController', () => {
       'user-1',
       Role.ADMIN,
     );
-    expect(setupService.reconcileWebhooks).toHaveBeenCalledWith(
+    expect(setupService.getAvailableEngines).toHaveBeenCalled();
+  });
+
+  // A10: reconcileWebhooks now delegates to WebhookManagementService (moved
+  // out of BuildSetupService) — the controller itself asserts access first,
+  // same pattern as getBuildStatus/extractComposeFile below.
+  it('reconcileWebhooks asserts access then delegates to WebhookManagementService', async () => {
+    const { ctrl, buildService, webhookManagement } = build();
+    await ctrl.reconcileWebhooks('p1', user);
+    expect(buildService.assertCanConfigureBuild).toHaveBeenCalledWith(
       'p1',
       'user-1',
       Role.ADMIN,
     );
-    expect(setupService.getAvailableEngines).toHaveBeenCalled();
+    expect(webhookManagement.reconcileWebhooksNotice).toHaveBeenCalledWith(
+      'p1',
+    );
   });
 
   it('getBuildStatus / extractComposeFile assert access first', async () => {

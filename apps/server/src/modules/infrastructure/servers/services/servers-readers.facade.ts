@@ -3,7 +3,7 @@ import { Prisma, ServerInfraRole } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersDetectionService } from './servers-detection.service';
-import { ServerVerificationService } from './server-verification.service';
+import { ServersVerificationService } from './servers-verification.service';
 import { ServerPreparationService } from '../../preparation/services/infra-preparation.service';
 import { AuditService } from '../../../audit/audit.service';
 import { toPublicServer } from '../shared/server-public.util';
@@ -15,7 +15,7 @@ export class ServersReadersFacade {
     private readonly prisma: PrismaService,
     private readonly audit: ServersAuditService,
     private readonly detection: ServersDetectionService,
-    private readonly verification: ServerVerificationService,
+    private readonly verification: ServersVerificationService,
     private readonly preparation: ServerPreparationService,
     private readonly auditService: AuditService,
   ) {}

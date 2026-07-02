@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GitProviderType, PipelineRunStatus } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
-import { GitlabPipelineItem } from './gitlab.client';
+import { GitlabPipelinePersistenceService } from '../../../source-providers/adapters/gitlab/gitlab-pipeline-persistence.service';
 import {
   DEPLOYMENT_PIPELINE_UPDATED,
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
@@ -13,7 +13,7 @@ import {
   IWebhookHandler,
   WebhookEndpointContext,
   WebhookHandleResult,
-} from '../../../webhooks/interfaces/webhook-handler.interface';
+} from '../../interfaces/webhook-handler.interface';
 
 export type GitlabWebhookPayload = {
   object_kind?: string;
@@ -56,6 +56,7 @@ export class GitlabWebhookHandler implements IWebhookHandler {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly pipelinePersistence: GitlabPipelinePersistenceService,
   ) {}
 
   /**
@@ -139,16 +140,17 @@ export class GitlabWebhookHandler implements IWebhookHandler {
       payload.object_attributes?.url ??
       '';
 
-    const pipelineSnapshot = await this.upsertPipelineWithPreviousStatus(
-      endpoint.projectId,
-      {
-        id: pipelineId,
-        status: webhookStatus,
-        ref,
-        sha,
-        web_url: webUrl,
-      },
-    );
+    const pipelineSnapshot =
+      await this.pipelinePersistence.upsertPipelineWithPreviousStatus(
+        endpoint.projectId,
+        {
+          id: pipelineId,
+          status: webhookStatus,
+          ref,
+          sha,
+          web_url: webUrl,
+        },
+      );
 
     const transitionedToSuccess =
       pipelineSnapshot.currentStatus === PipelineRunStatus.SUCCESS &&
@@ -338,80 +340,4 @@ export class GitlabWebhookHandler implements IWebhookHandler {
     }
   }
 
-  // ─── Pipeline persistence (also used by GitlabCiService) ─────────────────
-
-  async upsertPipeline(
-    projectId: string,
-    pipeline: GitlabPipelineItem,
-  ): Promise<void> {
-    await this.prisma.pipelineRun.upsert({
-      where: {
-        externalId_provider: {
-          externalId: BigInt(pipeline.id),
-          provider: GitProviderType.GITLAB,
-        },
-      },
-      update: {
-        status: this.mapPipelineStatus(pipeline.status),
-        branch: pipeline.ref,
-        commitSha: pipeline.sha ?? null,
-        webUrl: pipeline.web_url ?? null,
-      },
-      create: {
-        projectId,
-        externalId: BigInt(pipeline.id),
-        provider: GitProviderType.GITLAB,
-        status: this.mapPipelineStatus(pipeline.status),
-        branch: pipeline.ref,
-        commitSha: pipeline.sha ?? null,
-        webUrl: pipeline.web_url ?? null,
-      },
-    });
-  }
-
-  async upsertPipelineWithPreviousStatus(
-    projectId: string,
-    pipeline: GitlabPipelineItem,
-  ): Promise<{
-    previousStatus: PipelineRunStatus | null;
-    currentStatus: PipelineRunStatus;
-  }> {
-    const currentStatus = this.mapPipelineStatus(pipeline.status);
-    const existing = await this.prisma.pipelineRun.findUnique({
-      where: {
-        externalId_provider: {
-          externalId: BigInt(pipeline.id),
-          provider: GitProviderType.GITLAB,
-        },
-      },
-      select: {
-        status: true,
-      },
-    });
-
-    await this.upsertPipeline(projectId, pipeline);
-
-    return {
-      previousStatus: existing?.status ?? null,
-      currentStatus,
-    };
-  }
-
-  mapPipelineStatus(status?: string): PipelineRunStatus {
-    switch ((status ?? '').toLowerCase()) {
-      case 'pending':
-        return PipelineRunStatus.PENDING;
-      case 'running':
-        return PipelineRunStatus.RUNNING;
-      case 'success':
-        return PipelineRunStatus.SUCCESS;
-      case 'failed':
-        return PipelineRunStatus.FAILED;
-      case 'canceled':
-      case 'cancelled':
-        return PipelineRunStatus.CANCELED;
-      default:
-        return PipelineRunStatus.PENDING;
-    }
-  }
 }

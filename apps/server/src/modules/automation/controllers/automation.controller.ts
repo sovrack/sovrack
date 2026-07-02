@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../shared/guards/roles.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateAutomationRunDto } from '../dto/create-automation-run.dto';
+import { AutomationPaginationDto } from '../dto/automation-pagination.dto';
 import { AutomationService } from '../services/automation.service';
 
 @ApiTags('Automation')
@@ -32,11 +33,8 @@ export class AutomationController {
   }
 
   @Get('automation/runs')
-  getRuns(@Query('page') page?: string, @Query('pageSize') pageSize?: string) {
-    return this.automationService.getRuns(
-      page ? parseInt(page, 10) : 1,
-      pageSize ? parseInt(pageSize, 10) : 20,
-    );
+  getRuns(@Query() pagination: AutomationPaginationDto) {
+    return this.automationService.getRuns(pagination);
   }
 
   @Get('automation/runs/:id')

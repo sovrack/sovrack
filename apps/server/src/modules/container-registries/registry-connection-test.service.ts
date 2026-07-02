@@ -12,7 +12,7 @@ import { CryptoService } from '../../shared/crypto/crypto.service';
  * isoler la logique réseau du CRUD.
  */
 @Injectable()
-export class RegistryConnectionTesterService {
+export class RegistryConnectionTestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly http: HttpService,

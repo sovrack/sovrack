@@ -5,7 +5,7 @@ import { AuditModule } from '../../audit';
 import {
   ServersAuditService,
   ServersDetectionService,
-  ServerVerificationService,
+  ServersVerificationService,
   ServersJobsService,
   ServersConnectionService,
 } from '../servers/services';
@@ -25,14 +25,14 @@ import {
   providers: [
     ServersConnectionService,
     ServersJobsService,
-    ServerVerificationService,
+    ServersVerificationService,
     ServersDetectionService,
     ServersAuditService,
   ],
   exports: [
     ServersConnectionService,
     ServersJobsService,
-    ServerVerificationService,
+    ServersVerificationService,
     ServersDetectionService,
     ServersAuditService,
   ],

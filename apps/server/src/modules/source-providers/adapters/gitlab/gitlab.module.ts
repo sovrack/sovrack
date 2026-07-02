@@ -15,7 +15,9 @@ import { GitlabCredentialService } from './gitlab-credential.service';
 import { GitlabFileService } from './gitlab-file.service';
 import { GitlabWebhookConfiguratorService } from './gitlab-webhook-configurator.service';
 import { GitlabOAuthController } from './gitlab-oauth.controller';
-import { GitlabWebhookHandler } from './gitlab-webhook.handler';
+import { GitlabOnboardingService } from './gitlab-onboarding.service';
+import { GitlabImageRefService } from './gitlab-image-ref.service';
+import { GitlabPipelinePersistenceService } from './gitlab-pipeline-persistence.service';
 
 @Module({
   imports: [
@@ -34,17 +36,21 @@ import { GitlabWebhookHandler } from './gitlab-webhook.handler';
     GitlabAdapter,
     GitlabCiService,
     GitlabClient,
-    GitlabWebhookHandler,
     GitlabFileService,
     GitlabWebhookConfiguratorService,
+    GitlabOnboardingService,
+    GitlabImageRefService,
+    // Exporté : consommé par GitlabWebhookHandler (webhooks/adapters/gitlab/),
+    // sans dépendance inverse — voir EXPLORATION_GIT_BUILD_WEBHOOKS.md Sujet 3.
+    GitlabPipelinePersistenceService,
   ],
   exports: [
     GitlabAdapter,
     GitlabClient,
     GitlabConnectionService,
-    GitlabWebhookHandler,
     GitlabFileService,
     GitlabWebhookConfiguratorService,
+    GitlabPipelinePersistenceService,
   ],
 })
 export class GitlabModule {}

@@ -2,13 +2,9 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../shared/database/prisma.module';
 import { PlatformModule } from '../platform';
 import { NotificationsModule } from '../notifications';
-import {
-  GitlabModule,
-  GithubModule,
-  SourceProvidersModule,
-} from '../source-providers';
-import { GitlabWebhookHandler } from '../source-providers/adapters/gitlab/gitlab-webhook.handler';
-import { GithubWebhookHandler } from '../source-providers/adapters/github/github-webhook.handler';
+import { SourceProvidersModule } from '../source-providers';
+import { GitlabWebhookHandler } from './adapters/gitlab/gitlab-webhook.handler';
+import { GithubWebhookHandler } from './adapters/github/github-webhook.handler';
 import { WebhooksService } from './webhooks.service';
 import { WebhookEventsService } from './webhook-events.service';
 import { WebhookRetryService } from './services/webhook-retry.service';
@@ -31,18 +27,19 @@ import {
  *   WebhooksService              endpoint + event persistence (identity + audit)
  *   WebhookManagementService     provider-side registration lifecycle
  *
- * Provider reception logic stays in each source provider module
- * (GitlabWebhookHandler, GithubWebhookHandler) and is plugged in here via
- * the WEBHOOK_HANDLER registry. Adding a provider = add one line to the
- * factory below — no new route, no new controller.
+ * Provider reception logic now lives locally in adapters/ (GitlabWebhookHandler,
+ * GithubWebhookHandler) and is plugged in here via the WEBHOOK_HANDLER
+ * registry. Adding a provider = add one line to the factory below — no new
+ * route, no new controller. Only SourceProvidersModule is imported (for
+ * WebhookManagementService, which registers webhooks on the provider side
+ * through the IGitProvider abstraction) — the outbound *-webhook-configurator
+ * services stay in source-providers/ to avoid a circular module dependency.
  */
 @Module({
   imports: [
     PrismaModule,
     PlatformModule,
     NotificationsModule,
-    GitlabModule,
-    GithubModule,
     SourceProvidersModule,
   ],
   controllers: [
@@ -55,6 +52,8 @@ import {
     WebhookEventsService,
     WebhookRetryService,
     WebhookManagementService,
+    GitlabWebhookHandler,
+    GithubWebhookHandler,
     {
       provide: WEBHOOK_HANDLER,
       useFactory: (
@@ -64,6 +63,8 @@ import {
       inject: [GitlabWebhookHandler, GithubWebhookHandler],
     },
   ],
-  exports: [WebhooksService],
+  // WebhookManagementService exported for BuildModule (legacy
+  // reconcile-webhooks endpoint notice, see webhook-management.service.ts).
+  exports: [WebhooksService, WebhookManagementService],
 })
 export class WebhooksModule {}

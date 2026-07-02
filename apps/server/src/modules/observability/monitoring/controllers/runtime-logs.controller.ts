@@ -3,14 +3,14 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { GetUser } from '../../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
-import { RuntimeLogsService } from '../services/runtime-logs.service';
+import { MonitoringRuntimeLogsService } from '../services/monitoring-runtime-logs.service';
 
 @ApiTags('Observability')
 @ApiBearerAuth()
 @Controller('runtime-logs')
 @UseGuards(JwtAuthGuard)
 export class RuntimeLogsController {
-  constructor(private readonly runtimeLogs: RuntimeLogsService) {}
+  constructor(private readonly runtimeLogs: MonitoringRuntimeLogsService) {}
 
   @Get('service/:serviceEnvId')
   @ApiOperation({

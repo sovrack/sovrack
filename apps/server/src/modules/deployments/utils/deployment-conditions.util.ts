@@ -11,7 +11,16 @@ import { toJson } from '../../../shared/utils/prisma-json.util';
  * deployments-create) rendait la condition INVISIBLE dans l'UI
  * (`{...}.length === undefined`). Ce util force la forme tableau partout.
  */
-export type DeploymentConditionType = 'Ready' | 'Progressing' | 'Degraded';
+// 'EnvWarning' : condition non-bloquante posée par dockerDeploySuccessConditions
+// quand une variable d'env/secret n'a pas pu être résolue — comportement
+// préexistant de DockerDeployExecutorService, conservé tel quel (le champ
+// n'était pas typé auparavant, d'où l'ajout ici plutôt qu'une coercition
+// silencieuse vers 'Progressing').
+export type DeploymentConditionType =
+  | 'Ready'
+  | 'Progressing'
+  | 'Degraded'
+  | 'EnvWarning';
 export type DeploymentConditionStatus = 'True' | 'False' | 'Unknown';
 
 export interface DeploymentCondition {
@@ -47,6 +56,73 @@ export function staleDegradedCondition(
       lastTransitionAt: new Date().toISOString(),
     },
   ];
+}
+
+/**
+ * Condition « Progressing » posée quand un déploiement Docker démarre son
+ * exécution (transition vers RUNNING). Extrait de DockerDeployExecutorService
+ * — voir EXPLORATION_BACKEND_DEPENDANCES.md section 3.
+ */
+export function dockerDeployProgressingCondition(
+  message: string,
+): DeploymentCondition[] {
+  return [
+    {
+      type: 'Progressing',
+      status: 'True',
+      reason: 'DockerDeploy',
+      message,
+      lastTransitionAt: new Date().toISOString(),
+    },
+  ];
+}
+
+/** Condition « Degraded » posée quand un déploiement Docker échoue. */
+export function dockerDeployFailedCondition(
+  message: string,
+): DeploymentCondition[] {
+  return [
+    {
+      type: 'Degraded',
+      status: 'False',
+      reason: 'DeployFailed',
+      message,
+      lastTransitionAt: new Date().toISOString(),
+    },
+  ];
+}
+
+/**
+ * Conditions « Ready » (+ « EnvWarning » non-bloquante si des variables
+ * n'ont pas pu être résolues) pour un déploiement Docker réussi.
+ */
+export function dockerDeploySuccessConditions(
+  envWarnings: string[],
+): DeploymentCondition[] {
+  const now = new Date().toISOString();
+  const conditions: DeploymentCondition[] = [
+    {
+      type: 'Ready',
+      status: 'True',
+      reason: 'DeploySucceeded',
+      message: 'Déploiement Docker réussi.',
+      lastTransitionAt: now,
+    },
+  ];
+  if (envWarnings.length > 0) {
+    conditions.push({
+      type: 'EnvWarning',
+      status: 'True',
+      reason: 'EnvUnresolved',
+      message:
+        `Variables d'environnement non résolues: ${envWarnings.join('; ')}`.slice(
+          0,
+          1000,
+        ),
+      lastTransitionAt: now,
+    });
+  }
+  return conditions;
 }
 
 /** Condition posée quand le réconciliateur recrée un conteneur mort/disparu. */

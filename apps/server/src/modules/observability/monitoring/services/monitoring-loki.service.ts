@@ -44,7 +44,7 @@ const SERVICE_ENV_LABEL = 'platform_service_env';
 
 /**
  * Recherche de logs runtime HISTORIQUES via Loki (stockage centralisé), par
- * opposition au tail live de RuntimeLogsService (N dernières lignes via l'API
+ * opposition au tail live de MonitoringRuntimeLogsService (N dernières lignes via l'API
  * Docker). Filtre par instance service×env grâce aux labels `platform.*` déjà
  * posés au déploiement. Dégradation gracieuse : si MONITORING_LOKI_URL est
  * absente, `configured=false` et l'UI bascule sur le tail live.

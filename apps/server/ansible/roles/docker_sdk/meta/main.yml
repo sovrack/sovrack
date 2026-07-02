@@ -1,0 +1,5 @@
+---
+dependencies: []
+galaxy_info:
+  role_name: docker_sdk
+  description: Python Docker SDK (pip) — prerequisite for roles using community.docker.docker_container (postgres, redis, traefik).

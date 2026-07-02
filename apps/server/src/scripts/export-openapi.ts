@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from '../app.module';
-import { buildSwaggerConfig } from '../shared/config/swagger';
+import { buildSwaggerConfig } from '../boot/swagger';
 
 async function exportOpenApi() {
   const app = await NestFactory.create(AppModule, { logger: false });

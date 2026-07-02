@@ -34,7 +34,7 @@ type SearchOptions = {
  * pipeline; a persistent store can be layered later if volume requires it.
  */
 @Injectable()
-export class RuntimeLogsService {
+export class MonitoringRuntimeLogsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly docker: DockerApiService,

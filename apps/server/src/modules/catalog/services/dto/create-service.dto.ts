@@ -13,12 +13,15 @@ import { Type } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
+  IsJSON,
   IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
   IsString,
+  Max,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -122,6 +125,7 @@ export class CreateServiceDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(65535)
   port?: number;
 
   @ApiPropertyOptional({ example: 'npm run start:prod' })
@@ -199,8 +203,15 @@ export class CreateServiceDto {
       'returned in clear — responses expose only secretsEnvKeys.',
     example: '{"API_KEY":"s3cr3t"}',
   })
-  @IsOptional()
-  @IsString({ message: 'secretsEnv doit être une chaîne JSON' })
+  // ValidateIf (plutôt que IsOptional) car '' est une valeur légitime ici
+  // (services.service.ts l'écrit tel quel — "aucun secret" — voir le write
+  // path dto.secretsEnv !== undefined) ; IsJSON seul rejetterait '' comme
+  // JSON invalide, ce qui casserait ce cas déjà supporté aujourd'hui.
+  @ValidateIf(
+    (o: CreateServiceDto) =>
+      o.secretsEnv !== undefined && o.secretsEnv !== null && o.secretsEnv !== '',
+  )
+  @IsJSON({ message: 'secretsEnv doit être un JSON valide' })
   secretsEnv?: string;
 
   @ApiPropertyOptional({ example: '/health' })

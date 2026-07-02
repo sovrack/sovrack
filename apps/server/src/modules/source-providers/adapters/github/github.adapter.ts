@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Role, GitProviderType, ServiceType, SourceType } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
+import { activeWhere } from '../../../../shared/database/prisma-active.helper';
 import { CryptoService } from '../../../../shared/crypto/crypto.service';
 import { sanitizeDockerTag } from '../../../../shared/utils/docker-tag.util';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
@@ -195,7 +196,7 @@ export class GithubAdapter implements IGitProvider {
     defaultBranch: string;
   }> {
     const svc = await this.prisma.service.findFirst({
-      where: { projectId, providerId: { not: null } },
+      where: activeWhere({ projectId, providerId: { not: null } }),
       select: { providerId: true, repoPath: true, branch: true },
     });
     if (!svc?.providerId) {
@@ -309,7 +310,7 @@ export class GithubAdapter implements IGitProvider {
     _serviceId?: string,
   ): Promise<string> {
     const svc = await this.prisma.service.findFirst({
-      where: { projectId, providerId: { not: null } },
+      where: activeWhere({ projectId, providerId: { not: null } }),
       select: { repoPath: true, providerId: true },
     });
     const project = await this.prisma.project.findUnique({
@@ -364,7 +365,10 @@ export class GithubAdapter implements IGitProvider {
 
     // Upsert a service at project level (M3)
     const existingSvc = await this.prisma.service.findFirst({
-      where: { projectId, providerId: dto.providerId ?? undefined },
+      where: activeWhere({
+        projectId,
+        providerId: dto.providerId ?? undefined,
+      }),
     });
 
     const svc = await this.prisma.service.upsert({

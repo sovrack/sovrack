@@ -9,7 +9,7 @@ import type {
   DeploymentNotificationPayload,
   DockerConnectionDownPayload,
   DockerConnectionRecoveredPayload,
-} from './notifications.service';
+} from './notifications-payloads.types';
 
 @Injectable()
 export class NotificationsSlackService {

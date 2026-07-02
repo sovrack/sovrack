@@ -11,7 +11,7 @@ import { MonitoringStatsService } from './services/monitoring-stats.service';
 import { MonitoringPrometheusService } from './services/monitoring-prometheus.service';
 import { MonitoringLokiService } from './services/monitoring-loki.service';
 import { MonitoringAlertsService } from './services/monitoring-alerts.service';
-import { RuntimeLogsService } from './services/runtime-logs.service';
+import { MonitoringRuntimeLogsService } from './services/monitoring-runtime-logs.service';
 
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { RuntimeLogsService } from './services/runtime-logs.service';
     MonitoringPrometheusService,
     MonitoringLokiService,
     MonitoringAlertsService,
-    RuntimeLogsService,
+    MonitoringRuntimeLogsService,
   ],
   exports: [
     MonitoringService,

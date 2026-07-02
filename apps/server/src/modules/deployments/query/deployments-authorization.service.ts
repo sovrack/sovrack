@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ProjectRole, Role, type User } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { ProjectAccessService } from '../../catalog/access/project-access.service';
+import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
 
 @Injectable()
 export class DeploymentsAuthorizationService {

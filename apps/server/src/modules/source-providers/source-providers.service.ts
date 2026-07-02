@@ -6,6 +6,7 @@ import {
 import { GitProviderType } from '@prisma/client';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
+import { activeWhere } from '../../shared/database/prisma-active.helper';
 import { GitlabAdapter } from './adapters/gitlab/gitlab.adapter';
 import { GitlabClient } from './adapters/gitlab/gitlab.client';
 import { GitlabConnectionService } from './adapters/gitlab/gitlab-connection.service';
@@ -100,7 +101,7 @@ export class SourceProvidersService {
    */
   async forProject(projectId: string): Promise<IGitProvider> {
     const svc = await this.prisma.service.findFirst({
-      where: { projectId, providerId: { not: null } },
+      where: activeWhere({ projectId, providerId: { not: null } }),
       select: { providerId: true },
     });
     if (!svc?.providerId) {

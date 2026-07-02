@@ -7,7 +7,7 @@ import { ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { ProjectsService } from './projects.service';
-import { ProjectAccessService } from '../access/project-access.service';
+import { ProjectAccessService } from '../authorization/project-access.service';
 
 describe('ProjectsService', () => {
   let prisma: {

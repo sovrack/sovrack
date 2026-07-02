@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { RegistryProviderType } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
@@ -41,10 +41,22 @@ export class RegistryAuthService {
           (r) => r.type === RegistryProviderType.DOCKER_HUB && r.isDefault,
         ) ?? registries.find((r) => r.type === RegistryProviderType.DOCKER_HUB);
     }
-    if (!match || !match.password || !match.username) return undefined;
+    // Aucun registre connu pour cet host : ambigu (image publique jamais
+    // configurée, ou simplement pas encore répertoriée) — on ne peut pas
+    // distinguer les deux, donc pas d'échec ici (comportement inchangé).
+    if (!match) return undefined;
 
     const password = this.crypto.decryptSafe(match.password);
-    if (!password) return undefined;
+    if (!match.username || !password) {
+      // Un RegistryConfig EXISTE pour cet host mais ses identifiants sont
+      // incomplets : ce n'est plus ambigu — c'est une configuration connue
+      // et cassée. Échouer clairement plutôt que de tenter un pull anonyme
+      // qui échouerait plus tard côté démon Docker avec un message générique
+      // (voir AUDIT_VALIDATION_DEPLOIEMENT.md, Point 7).
+      throw new BadRequestException(
+        `La configuration du registre « ${match.name} » (${host ?? 'docker.io'}) est incomplète (identifiants manquants). Complétez-la avant de déployer.`,
+      );
+    }
     this.logger.log(
       `Registry auth résolu pour ${imageRef} via registre ${match.type} (${host ?? 'docker.io'})`,
     );

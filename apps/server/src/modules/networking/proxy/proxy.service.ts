@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { ProjectAccessService } from '../../catalog/access/project-access.service';
+import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
 import { CreateProxyRuleDto, UpdateProxyRuleDto } from './dto/proxy-rule.dto';
 
 @Injectable()

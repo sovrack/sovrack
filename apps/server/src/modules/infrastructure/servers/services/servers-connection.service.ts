@@ -13,7 +13,7 @@ import { SshExecutorService } from '../../../../adapters/ssh/ssh-executor.servic
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
 import { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.service';
 import { ServerHostKeyService } from '../../../../adapters/ssh/server-host-key.service';
-import { ServerVerificationService } from './server-verification.service';
+import { ServersVerificationService } from './servers-verification.service';
 import { ServerExecutionOptions } from '../shared/servers.types';
 import {
   assertNotAborted as assertJobNotAborted,
@@ -42,7 +42,7 @@ export class ServersConnectionService {
     private readonly prisma: PrismaService,
     private readonly crypto: ServersCryptoService,
     private readonly hostKeys: ServerHostKeyService,
-    private readonly verification: ServerVerificationService,
+    private readonly verification: ServersVerificationService,
     private readonly configService: ConfigService,
     private readonly sshExecutor: SshExecutorService,
   ) {}

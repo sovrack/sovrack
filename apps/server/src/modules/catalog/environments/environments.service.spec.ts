@@ -4,7 +4,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
 import { EnvironmentsService } from './environments.service';
-import { ProjectAccessService } from '../access/project-access.service';
+import { ProjectAccessService } from '../authorization/project-access.service';
 
 describe('EnvironmentsService', () => {
   let prisma: {
@@ -21,7 +21,7 @@ describe('EnvironmentsService', () => {
     service: { findFirst: jest.Mock };
     serviceEnvironment: { upsert: jest.Mock };
   };
-  let crypto: { encrypt: jest.Mock };
+  let crypto: { encryptOptional: jest.Mock };
   let service: EnvironmentsService;
 
   beforeEach(() => {
@@ -55,7 +55,9 @@ describe('EnvironmentsService', () => {
         upsert: jest.fn().mockResolvedValue({ id: 'se1' }),
       },
     };
-    crypto = { encrypt: jest.fn((v: string) => `enc:${v}`) };
+    crypto = {
+      encryptOptional: jest.fn((v?: string | null) => (v ? `enc:${v}` : null)),
+    };
     const serviceEnvsService = {
       linkServiceToAllEnvsForEnvironment: jest
         .fn()
@@ -76,7 +78,35 @@ describe('EnvironmentsService', () => {
       'admin',
       Role.ADMIN,
     );
-    expect(crypto.encrypt).toHaveBeenCalledWith('S=2');
+    expect(crypto.encryptOptional).toHaveBeenCalledWith('S=2');
+  });
+
+  // A9 harmonization (see EXPLORATION_BACKEND_DEPENDANCES.md): environments
+  // now use encryptOptional like ServicesService, so an explicit '' clears
+  // the secret (→ null) instead of persisting an encrypted empty string.
+  it('clears secretsEnv (→ null) when an empty string is submitted', async () => {
+    await service.create(
+      'p1',
+      { name: 'prod', secretsEnv: '' } as never,
+      'admin',
+      Role.ADMIN,
+    );
+    expect(crypto.encryptOptional).toHaveBeenCalledWith('');
+    expect(prisma.environment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ secretsEnv: null }),
+      }),
+    );
+  });
+
+  // A3 (clôture finale): linkService's upsert was the one A9 write path missing
+  // omit: { secretsEnv: true } — every other read/write in this service already
+  // had it. Assert the fix directly rather than trusting the return value.
+  it('never returns raw secretsEnv from linkService (omit applied)', async () => {
+    await service.linkService('p1', 'e1', 'svc1', 'admin', Role.ADMIN);
+    expect(prisma.serviceEnvironment.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ omit: { secretsEnv: true } }),
+    );
   });
 
   it('forbids a non-member from reading project envs', async () => {

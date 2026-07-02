@@ -1,6 +1,10 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import {
-  ContainerStatus,
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import {
   Deployment,
   DeploymentStatus,
   DeploymentStrategy,
@@ -15,7 +19,6 @@ import {
 } from '../../../shared/utils/container-spec.util';
 import { getDatabaseContainerConfig } from '../../../shared/utils/database-spec.util';
 import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
-import { TraefikRouteService } from './traefik-route.service';
 import { DeployRoutingService } from './deploy-routing.service';
 import { ContainerLifecycleService } from './container-lifecycle.service';
 import { ImageResolverService } from './image-resolver.service';
@@ -24,9 +27,18 @@ import { DeploymentEnvService } from './deployment-env.service';
 import { DeploymentPrelaunchService } from './deployment-prelaunch.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { NotificationsService } from '../../notifications/notifications.service';
-import { buildContainerCreateSpec } from '../utils/container-create-spec.util';
-import { toJson } from '../../../shared/utils/prisma-json.util';
+import { BLUE_GREEN_PORT_OFFSET } from '../utils/blue-green.constants';
 import { DockerComposeExecutorService } from './docker-compose-executor.service';
+import {
+  ReplicaLauncherService,
+  type ResolvedRuntimeConfig,
+} from './replica-launcher.service';
+import { DeployFailureRecoveryService } from './deploy-failure-recovery.service';
+import {
+  conditionsToJson,
+  dockerDeployProgressingCondition,
+  dockerDeploySuccessConditions,
+} from '../utils/deployment-conditions.util';
 import {
   getLogContext,
   runWithLogContext,
@@ -44,71 +56,13 @@ interface RuntimeSpecSnapshot {
   replicas?: number | null;
 }
 
-/** Runtime config actually applied to the container. */
-interface ResolvedRuntimeConfig {
-  port: number;
-  startCommand: string | null;
-  healthcheckPath: string | null;
-  cpuLimit: number | null;
-  memLimitMb: number | null;
-  replicas: number;
-}
-
-/** Params for the N-replica launch loop, extracted from executeDeployInternal. */
-interface ReplicaLaunchParams {
-  serverId: string;
-  server: { host: string };
-  deploymentId: string;
-  serviceId: string | null | undefined;
-  serviceEnvId: string | null | undefined;
-  serviceType: ServiceType | null | undefined;
-  containerName: string;
-  serviceAlias: string;
-  replicas: number;
-  imageRef: string;
-  runtime: ResolvedRuntimeConfig;
-  envVars: string[];
-  servicePort: number;
-  publishPort: number;
-  useTraefik: boolean;
-  platformLabels: Record<string, string>;
-  dbVolumeName: string | null | undefined;
-  dbVolumePath: string | null | undefined;
-  appBinds: string[];
-  projectNetwork: string;
-  stopTimeout: number;
-  /** Pass-by-reference: populated during the loop so the catch block can clean
-   *  up containers created before a mid-loop failure. */
-  newContainerIds: string[];
-}
-
-interface ReplicaLaunchResult {
-  replicaContainerNames: string[];
-  logs: string;
-}
-
-/** Params for the failure handler, extracted from the catch block. */
-interface FailureHandlerParams {
-  serverId: string;
-  deploymentId: string;
-  priorLogs: string | null;
-  commandLogs: string;
-  newContainerIds: string[];
-  stoppedOld: Array<{ id: string; name: string }>;
-  projectName: string;
-  environmentName: string;
-  branch: string;
-  triggeredBy: string;
-  error: unknown;
-}
-
 @Injectable()
 export class DockerDeployExecutorService {
   private readonly logger = new Logger(DockerDeployExecutorService.name);
 
   // Blue-green: the green container publishes on canonical+offset so it can run
-  // alongside the live (blue) container until it is verified healthy.
-  private static readonly BLUE_GREEN_PORT_OFFSET = 1;
+  // alongside the live (blue) container until it is verified healthy. Offset
+  // shared with DeploymentPreflightService (see blue-green.constants.ts).
   private static readonly BLUE_GREEN_DRAIN_MS = 3000;
 
   constructor(
@@ -116,7 +70,6 @@ export class DockerDeployExecutorService {
     private readonly docker: DockerApiService,
     private readonly gateway: DeploymentEventsPublisher,
     private readonly prelaunch: DeploymentPrelaunchService,
-    private readonly traefik: TraefikRouteService,
     private readonly imageResolver: ImageResolverService,
     private readonly logEmitter: DeploymentLogEmitter,
     private readonly deploymentEnv: DeploymentEnvService,
@@ -124,6 +77,8 @@ export class DockerDeployExecutorService {
     private readonly containerLifecycle: ContainerLifecycleService,
     private readonly notifications: NotificationsService,
     private readonly composeExecutor: DockerComposeExecutorService,
+    private readonly replicaLauncher: ReplicaLauncherService,
+    private readonly failureRecovery: DeployFailureRecoveryService,
   ) {}
 
   /**
@@ -138,6 +93,11 @@ export class DockerDeployExecutorService {
    *
    * Env vars are deliberately NOT taken from the snapshot: secrets must never be
    * stored there, so env always comes from live config (resolveDeploymentEnv).
+   *
+   * NB: la précédence snapshot→service→défaut 3000 est un point de
+   * synchronisation avec DeploymentPreflightService (voir
+   * EXPLORATION_BACKEND_DEPENDANCES.md section 3) — ne pas modifier sans
+   * mettre à jour le pré-vol en parallèle.
    */
   private resolveRuntimeConfig(deployment: {
     isRollback: boolean;
@@ -170,22 +130,6 @@ export class DockerDeployExecutorService {
       memLimitMb: snap?.memLimitMb ?? service?.memLimitMb ?? null,
       replicas: snap?.replicas ?? service?.replicas ?? 1,
     };
-  }
-
-  private buildConditions(
-    type: 'Progressing' | 'Ready' | 'Degraded',
-    reason: string,
-    message: string,
-  ): Prisma.InputJsonValue {
-    return [
-      {
-        type,
-        status: type === 'Degraded' ? 'False' : 'True',
-        reason,
-        message,
-        lastTransitionAt: new Date().toISOString(),
-      },
-    ];
   }
 
   async executeDeploy(
@@ -273,7 +217,7 @@ export class DockerDeployExecutorService {
       },
     });
 
-    if (!deployment) throw new BadRequestException('Déploiement non trouvé');
+    if (!deployment) throw new NotFoundException('Déploiement non trouvé');
 
     // Docker Compose deployments follow a completely different path (SSH + compose CLI).
     if (deployment.service?.buildPack === 'DOCKER_COMPOSE') {
@@ -375,7 +319,7 @@ export class DockerDeployExecutorService {
       deployment.service?.type !== ServiceType.DATABASE &&
       !useTraefik;
     const publishPort = blueGreen
-      ? servicePort + DockerDeployExecutorService.BLUE_GREEN_PORT_OFFSET
+      ? servicePort + BLUE_GREEN_PORT_OFFSET
       : servicePort;
     if (blueGreen) {
       this.emitGatewayLog(
@@ -390,10 +334,8 @@ export class DockerDeployExecutorService {
       where: { id: deployment.id },
       data: {
         status: DeploymentStatus.RUNNING,
-        conditions: this.buildConditions(
-          'Progressing',
-          'DockerDeploy',
-          'Déploiement Docker en cours.',
+        conditions: conditionsToJson(
+          dockerDeployProgressingCondition('Déploiement Docker en cours.'),
         ),
         logs: `${deployment.logs ?? ''}\nDéploiement Docker en cours...`.trim(),
       },
@@ -433,6 +375,10 @@ export class DockerDeployExecutorService {
         Boolean(overrideImage),
       );
 
+      // NB: cette règle est dupliquée volontairement dans
+      // DeploymentPreflightService (Point 9) — voir
+      // EXPLORATION_BACKEND_DEPENDANCES.md section 3. Ne pas changer d'un
+      // côté sans l'autre.
       const publishesHostPort =
         !useTraefik &&
         deployment.service?.type !== 'WORKER' &&
@@ -447,6 +393,9 @@ export class DockerDeployExecutorService {
       // the old one first to free the port, but we remember it so a FAILED
       // deploy brings it back (automatic recovery — never leave the service down).
       const canOverlap = useTraefik || blueGreen;
+      // NB: DeploymentPreflightService appelle la MÊME méthode en pré-flight
+      // (défense en profondeur voulue, voir Point 9 du sprint de validation
+      // pré-déploiement) — ne pas retirer ce garde-fou ici.
       commandLogs += await this.containerLifecycle.assertNoForeignPortConflict(
         serverId,
         containerPrefix,
@@ -532,7 +481,7 @@ export class DockerDeployExecutorService {
       });
 
       const { replicaContainerNames, logs: replicaLogs } =
-        await this.launchReplicas({
+        await this.replicaLauncher.launchReplicas({
           serverId,
           server,
           deploymentId: deployment.id,
@@ -609,28 +558,37 @@ export class DockerDeployExecutorService {
       // le disque du VPS se remplisse au fil des déploiements. Non bloquant.
       void this.docker.pruneDanglingImages(serverId);
 
-      const finished = await this.prisma.deployment.update({
-        where: { id: deployment.id },
-        data: {
-          status: DeploymentStatus.SUCCESS,
-          dockerImage: imageRef,
-          imageSha: imageDigest ?? deployment.imageSha,
-          conditions: this.buildSuccessConditions(envResolution.warnings),
-          finishedAt: new Date(),
-          logs: `${deployment.logs ?? ''}\n${commandLogs}`.trim(),
-        },
-      });
-
       // Pointeur "release courante" (L3) : ce déploiement devient LE live de sa
       // cellule. Source unique du "live" (fin de l'heuristique "dernier SUCCESS
       // deviné par date") — couvre déploiement normal, rollback ET pipeline CI,
-      // qui passent tous par ici. Rollback = ce pointeur se déplace atomiquement.
-      if (finished.serviceEnvId) {
-        await this.prisma.serviceEnvironment.update({
-          where: { id: finished.serviceEnvId },
-          data: { currentDeploymentId: finished.id },
+      // qui passent tous par ici. Le passage à SUCCESS et le déplacement du
+      // pointeur sont dans la même transaction : soit les deux écritures
+      // réussissent, soit aucune n'est appliquée (pas d'état intermédiaire où
+      // le déploiement serait SUCCESS sans que le pointeur ait bougé).
+      const finished = await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.deployment.update({
+          where: { id: deployment.id },
+          data: {
+            status: DeploymentStatus.SUCCESS,
+            dockerImage: imageRef,
+            imageSha: imageDigest ?? deployment.imageSha,
+            conditions: conditionsToJson(
+              dockerDeploySuccessConditions(envResolution.warnings),
+            ),
+            finishedAt: new Date(),
+            logs: `${deployment.logs ?? ''}\n${commandLogs}`.trim(),
+          },
         });
-      }
+
+        if (updated.serviceEnvId) {
+          await tx.serviceEnvironment.update({
+            where: { id: updated.serviceEnvId },
+            data: { currentDeploymentId: updated.id },
+          });
+        }
+
+        return updated;
+      });
 
       this.gateway.emitStatus({
         deploymentId: finished.id,
@@ -658,7 +616,7 @@ export class DockerDeployExecutorService {
 
       return finished;
     } catch (error) {
-      return this.handleDeployFailure({
+      return this.failureRecovery.handleDeployFailure({
         serverId,
         deploymentId: deployment.id,
         priorLogs: deployment.logs,
@@ -677,187 +635,11 @@ export class DockerDeployExecutorService {
     }
   }
 
-  emitGatewayLog(
+  private emitGatewayLog(
     deploymentId: string,
     rawMessage: string,
     fallbackLevel: 'info' | 'error',
   ): void {
     this.logEmitter.emit(deploymentId, rawMessage, fallbackLevel);
-  }
-
-  /**
-   * Crée et démarre N répliques, enregistre chacune en base, vérifie le health.
-   * `newContainerIds` est passé par référence afin que le catch block d'executeDeployInternal
-   * puisse nettoyer les conteneurs créés avant un échec partiel.
-   */
-  private async launchReplicas(
-    p: ReplicaLaunchParams,
-  ): Promise<ReplicaLaunchResult> {
-    const replicaContainerNames: string[] = [];
-    let logs = '';
-
-    for (let i = 0; i < p.replicas; i++) {
-      const replicaName =
-        p.replicas === 1
-          ? p.containerName
-          : `${p.containerName}-${String(i + 1)}`;
-      const replicaAlias =
-        p.replicas === 1
-          ? p.serviceAlias
-          : `${p.serviceAlias}-${String(i + 1)}`;
-
-      const container = await this.docker.createContainer(
-        p.serverId,
-        buildContainerCreateSpec({
-          imageRef: p.imageRef,
-          containerName: replicaName,
-          labels: p.platformLabels,
-          envVars: p.envVars,
-          servicePort: p.servicePort,
-          publishPort: p.publishPort,
-          useTraefik: p.useTraefik,
-          serviceType: p.serviceType ?? undefined,
-          startCommand: p.runtime.startCommand,
-          stopTimeout: p.stopTimeout,
-          binds: [
-            ...(p.dbVolumeName && p.dbVolumePath
-              ? [`${p.dbVolumeName}:${p.dbVolumePath}`]
-              : []),
-            ...p.appBinds,
-          ],
-          networkMode: p.projectNetwork,
-          networkAlias: replicaAlias,
-          resourceLimits: {
-            cpuLimit: p.runtime.cpuLimit,
-            memLimitMb: p.runtime.memLimitMb,
-          },
-        }),
-      );
-      p.newContainerIds.push(container.id);
-      logs += `Réplique ${String(i + 1)}/${String(p.replicas)} créée : ${container.id.slice(0, 12)}\n`;
-
-      this.emitGatewayLog(
-        p.deploymentId,
-        `Démarrage réplique ${String(i + 1)}…`,
-        'info',
-      );
-      await this.docker.startContainer(p.serverId, container.id);
-      logs += `Réplique ${String(i + 1)} démarrée\n`;
-
-      await this.prisma.container.create({
-        data: {
-          dockerId: container.id,
-          name: replicaName,
-          imageRef: p.imageRef,
-          status: ContainerStatus.RUNNING,
-          deploymentId: p.deploymentId,
-          serverId: p.serverId,
-          serviceId: p.serviceId ?? null,
-          serviceEnvId: p.serviceEnvId ?? null,
-          lastSeenAt: new Date(),
-        },
-      });
-
-      logs += await this.prelaunch.runHealthGate({
-        serverId: p.serverId,
-        containerId: container.id,
-        serverHost: p.server.host,
-        publishPort: p.publishPort,
-        useTraefik: p.useTraefik,
-        healthcheckPath: p.runtime.healthcheckPath,
-        deploymentId: p.deploymentId,
-      });
-
-      replicaContainerNames.push(replicaName);
-    }
-    logs += `${String(p.replicas)} réplique(s) enregistrée(s) en base.\n`;
-
-    return { replicaContainerNames, logs };
-  }
-
-  /**
-   * Récupération automatique après échec : supprime les conteneurs à moitié
-   * déployés, redémarre les anciens, marque le déploiement FAILED et émet les
-   * événements WebSocket + notification.
-   */
-  private async handleDeployFailure(p: FailureHandlerParams): Promise<never> {
-    for (const cid of p.newContainerIds) {
-      await this.docker
-        .removeContainer(p.serverId, cid, true)
-        .catch(() => undefined);
-    }
-    let recoveryLogs = '';
-    if (p.stoppedOld.length > 0) {
-      recoveryLogs = await this.containerLifecycle
-        .restartContainers(p.serverId, p.stoppedOld, p.deploymentId)
-        .catch(() => '');
-    }
-
-    const message =
-      p.error instanceof Error
-        ? p.error.message
-        : 'Échec du déploiement Docker';
-
-    const failed = await this.prisma.deployment.update({
-      where: { id: p.deploymentId },
-      data: {
-        status: DeploymentStatus.FAILED,
-        conditions: this.buildConditions('Degraded', 'DeployFailed', message),
-        finishedAt: new Date(),
-        logs: `${p.priorLogs ?? ''}\n${p.commandLogs}${recoveryLogs}\n${message}`.trim(),
-      },
-    });
-
-    this.gateway.emitStatus({ deploymentId: failed.id, status: failed.status });
-    this.gateway.emitFinished({
-      deploymentId: failed.id,
-      status: failed.status,
-      finishedAt: failed.finishedAt,
-    });
-
-    void this.notifications
-      .notifyDeploymentFinished({
-        deploymentId: failed.id,
-        status: 'FAILED',
-        projectName: p.projectName,
-        environmentName: p.environmentName,
-        branch: p.branch,
-        triggeredBy: p.triggeredBy,
-      })
-      .catch(() => undefined);
-
-    if (p.error instanceof BadRequestException) throw p.error;
-    throw new BadRequestException('Déploiement Docker échoué');
-  }
-
-  /**
-   * Ready condition for a successful deploy, plus a non-blocking EnvWarning
-   * condition when some env/secret level could not be resolved.
-   */
-  private buildSuccessConditions(envWarnings: string[]): Prisma.InputJsonValue {
-    const now = new Date().toISOString();
-    const conditions: Array<Record<string, string>> = [
-      {
-        type: 'Ready',
-        status: 'True',
-        reason: 'DeploySucceeded',
-        message: 'Déploiement Docker réussi.',
-        lastTransitionAt: now,
-      },
-    ];
-    if (envWarnings.length > 0) {
-      conditions.push({
-        type: 'EnvWarning',
-        status: 'True',
-        reason: 'EnvUnresolved',
-        message:
-          `Variables d'environnement non résolues: ${envWarnings.join('; ')}`.slice(
-            0,
-            1000,
-          ),
-        lastTransitionAt: now,
-      });
-    }
-    return toJson(conditions);
   }
 }

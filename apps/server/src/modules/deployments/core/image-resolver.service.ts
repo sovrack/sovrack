@@ -122,10 +122,14 @@ export class ImageResolverService {
     );
     // Images privées : on résout les identifiants du registre dont le host
     // correspond à l'image (Docker Hub / GitLab / GHCR…) et on les passe au
-    // pull. Sans registre correspondant → pull anonyme (images publiques).
-    const pullAuth = await this.registryAuth
-      .resolveAuthForImage(imageRef)
-      .catch(() => undefined);
+    // pull. Sans registre correspondant → pull anonyme (images publiques) :
+    // resolveAuthForImage renvoie undefined pour ce cas légitime, il n'y a
+    // rien à catch. Un registre CONNU mais mal configuré lève désormais une
+    // BadRequestException explicite (voir RegistryAuthService) — ne plus
+    // l'avaler en pull anonyme silencieux (le pré-vol l'attrape déjà avant
+    // création du déploiement ; ce garde-fou reste actif si ce point est
+    // atteint malgré tout, en défense en profondeur).
+    const pullAuth = await this.registryAuth.resolveAuthForImage(imageRef);
     await this.docker.pullImage(serverId, imageRef, pullAuth);
     return `Image pullée : ${imageRef}${pullAuth ? ' (authentifié)' : ''}\n`;
   }

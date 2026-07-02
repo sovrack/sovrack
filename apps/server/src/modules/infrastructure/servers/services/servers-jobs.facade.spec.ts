@@ -6,7 +6,7 @@ import { ServersConnectionService } from './servers-connection.service';
 import { ServersDetectionService } from './servers-detection.service';
 import { ServerPreparationService } from '../../preparation/services/infra-preparation.service';
 import { ServersAuditService } from './servers-audit.service';
-import { ServerVerificationService } from './server-verification.service';
+import { ServersVerificationService } from './servers-verification.service';
 import { ServersJobsFacade } from './servers-jobs.facade';
 
 describe('ServersJobsFacade', () => {
@@ -42,7 +42,7 @@ describe('ServersJobsFacade', () => {
     } as unknown as ServersAuditService;
     const verification = {
       startVerification: jest.fn().mockResolvedValue(undefined),
-    } as unknown as ServerVerificationService;
+    } as unknown as ServersVerificationService;
     const facade = new ServersJobsFacade(
       prisma,
       jobs,

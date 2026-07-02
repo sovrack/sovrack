@@ -6,6 +6,7 @@ import { DeploymentsAuthorizationService } from '../query/deployments-authorizat
 import { DeploymentsQueryService } from '../query/deployments-query.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { DockerDeployExecutorService } from './docker-deploy-executor.service';
+import { DeploymentPreflightService } from './deployment-preflight.service';
 
 @Injectable()
 export class DeploymentsRollbackService {
@@ -18,6 +19,7 @@ export class DeploymentsRollbackService {
     private readonly gateway: DeploymentEventsPublisher,
     private readonly deployExecutor: DockerDeployExecutorService,
     private readonly auditService: AuditService,
+    private readonly preflight: DeploymentPreflightService,
   ) {}
 
   async rollback(
@@ -85,6 +87,14 @@ export class DeploymentsRollbackService {
       );
     }
 
+    // Minimal server guard (C1) — before relaunching an already-known-working
+    // image, make sure the target server is still active/verified/prepared
+    // and its Docker circuit breaker is closed. Not the full preflight (no
+    // Dockerfile/secrets checks — meaningless for redeploying a frozen image).
+    await this.preflight.assertServerReady(
+      await this.resolveTargetServerId(previousSuccess),
+    );
+
     const actor = await this.authorizationService.getActor(userId);
 
     // Prefer imageSha (immutable digest) over dockerImage (mutable tag).
@@ -148,6 +158,38 @@ export class DeploymentsRollbackService {
     return await this.deployExecutor.executeDeploy(
       rollbackDeployment.id,
       rollbackImageRef,
+    );
+  }
+
+  /**
+   * Resolve the server a past deployment ran on. Prefers `resolvedRefs`
+   * (frozen at deploy time — same field ReconcilerService reads for
+   * auto-heal), falling back to the live serviceEnvironment/environment
+   * binding for older rows created before resolvedRefs existed.
+   */
+  private async resolveTargetServerId(
+    deployment: Deployment,
+  ): Promise<string> {
+    const fromSnapshot = (
+      deployment.resolvedRefs as { serverId?: string } | null
+    )?.serverId;
+    if (fromSnapshot) return fromSnapshot;
+
+    if (deployment.serviceEnvId) {
+      const serviceEnv = await this.prisma.serviceEnvironment.findUnique({
+        where: { id: deployment.serviceEnvId },
+        select: {
+          server: { select: { id: true } },
+          environment: { select: { servers: { select: { id: true } } } },
+        },
+      });
+      const serverId =
+        serviceEnv?.server?.id ?? serviceEnv?.environment.servers[0]?.id;
+      if (serverId) return serverId;
+    }
+
+    throw new BadRequestException(
+      'Impossible de déterminer le serveur cible de ce déploiement (aucun serveur résolu).',
     );
   }
 }

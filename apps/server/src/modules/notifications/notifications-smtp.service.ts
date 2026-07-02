@@ -8,7 +8,7 @@ import type {
   DeploymentNotificationPayload,
   DockerConnectionDownPayload,
   DockerConnectionRecoveredPayload,
-} from './notifications.service';
+} from './notifications-payloads.types';
 
 function escapeHtml(str: string): string {
   return str

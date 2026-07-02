@@ -6,6 +6,7 @@ import {
   SourceType,
   BuildPack,
   GitProviderType,
+  ServerStatus,
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
@@ -61,6 +62,30 @@ export async function createTestFixtures(prisma: PrismaClient) {
           installedAt: new Date().toISOString(),
         },
       ],
+      // status + capabilities are what DeploymentPreflightService checks
+      // before allowing a deployment to be created (server truly deployable,
+      // not just "linked") — a fixture server left at the default NEW status
+      // is correctly rejected by the preflight, same as it should be for a
+      // real never-prepared server. installedTools above is a SEPARATE field
+      // (read by DeploymentsValidationService's tool-detection), unrelated to
+      // capabilities (read by serverHasDocker()) — both are populated here.
+      status: ServerStatus.PREPARED,
+      capabilities: { 'docker.installed': 'true' },
+    },
+  });
+
+  // The preflight's circuit-breaker check reads DockerConnection.circuitState
+  // via a real (unmocked) DockerConnectionsService — a server with no
+  // DockerConnection row is correctly treated as "never prepared". The TLS
+  // fields are never decrypted by this check, so plain placeholders are fine.
+  await prisma.dockerConnection.create({
+    data: {
+      serverId,
+      endpoint: 'tcp://10.0.0.1:2376',
+      tlsCaCert: 'e2e-ca',
+      tlsClientCert: 'e2e-cert',
+      tlsClientKey: 'e2e-key',
+      isReachable: true,
     },
   });
 

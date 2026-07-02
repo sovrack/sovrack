@@ -6,7 +6,11 @@ import { PlatformService } from '../platform/platform.service';
 import { WebhookManagementService } from './webhook-management.service';
 
 describe('WebhookManagementService — status & toggle', () => {
-  let prisma: { webhookEndpoint: { findFirst: jest.Mock; update: jest.Mock } };
+  let prisma: {
+    webhookEndpoint: { findFirst: jest.Mock; update: jest.Mock };
+    project: { findUnique: jest.Mock };
+    service: { findMany: jest.Mock };
+  };
   let platform: { buildWebhookUrl: jest.Mock };
   let service: WebhookManagementService;
 
@@ -15,6 +19,12 @@ describe('WebhookManagementService — status & toggle', () => {
       webhookEndpoint: {
         findFirst: jest.fn().mockResolvedValue(null),
         update: jest.fn().mockResolvedValue({}),
+      },
+      project: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'p1', name: 'proj' }),
+      },
+      service: {
+        findMany: jest.fn().mockResolvedValue([]),
       },
     };
     platform = {
@@ -78,5 +88,69 @@ describe('WebhookManagementService — status & toggle', () => {
     await expect(service.setActive('p1', true)).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+});
+
+// Moved from BuildSetupService.reconcileWebhooks (see A10 in the
+// Sprints 4+5+6 mission) — legacy per-service redirect notice.
+describe('WebhookManagementService.reconcileWebhooksNotice', () => {
+  function harness(opts: {
+    project?: { id: string; name: string } | null;
+    services?: { id: string; name: string }[];
+  } = {}) {
+    const prisma = {
+      project: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue(
+            opts.project === undefined
+              ? { id: 'p1', name: 'proj' }
+              : opts.project,
+          ),
+      },
+      service: {
+        findMany: jest.fn().mockResolvedValue(opts.services ?? []),
+      },
+    };
+    const service = new WebhookManagementService(
+      prisma as unknown as PrismaService,
+      {} as unknown as WebhooksService,
+      {} as unknown as SourceProvidersService,
+      {} as unknown as PlatformService,
+    );
+    return { service, prisma };
+  }
+
+  it('404s when the project does not exist', async () => {
+    const { service } = harness({ project: null });
+    await expect(
+      service.reconcileWebhooksNotice('nope'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('returns one redirect notice per active service', async () => {
+    const { service } = harness({
+      services: [
+        { id: 's1', name: 'api' },
+        { id: 's2', name: 'worker' },
+      ],
+    });
+    const { results } = await service.reconcileWebhooksNotice('p1');
+    expect(results).toHaveLength(2);
+    expect(results[0]).toMatchObject({
+      serviceId: 's1',
+      serviceName: 'api',
+      status: 'SUCCESS',
+      dockerfileStatus: 'SKIPPED',
+    });
+    expect(results[0].message).toContain('/webhook/configure');
+  });
+
+  it('falls back to a single project-level entry when there are no services', async () => {
+    const { service } = harness({ services: [] });
+    const { results } = await service.reconcileWebhooksNotice('p1');
+    expect(results).toEqual([
+      expect.objectContaining({ serviceId: 'p1', serviceName: 'proj' }),
+    ]);
   });
 });

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { type PlatformConfig } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
@@ -17,6 +17,8 @@ type PlatformConfigPublic = Omit<PlatformConfig, 'value'> & { value: string };
  */
 @Injectable()
 export class PlatformService {
+  private readonly logger = new Logger(PlatformService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
@@ -104,6 +106,10 @@ export class PlatformService {
       update: { value: valueToPersist, isSecret: nextIsSecret },
       create: { key, value: valueToPersist, isSecret: nextIsSecret },
     });
+
+    this.logger.log(
+      `Platform config "${key}" updated (isSecret: ${String(nextIsSecret)})`,
+    );
 
     return this.toPublic(saved);
   }

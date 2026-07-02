@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -25,6 +26,8 @@ type UpdateActor = {
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly passwordHasher: PasswordHasher,
@@ -67,6 +70,7 @@ export class UsersService {
         role: dto.role ?? Role.DEVELOPER,
       },
     });
+    this.logger.log(`User ${user.email} (${user.id}) created with role ${user.role}`);
 
     return this.removePassword(user);
   }
@@ -197,6 +201,15 @@ export class UsersService {
       return this.removePassword(user);
     }
 
+    if (data.role !== undefined || data.isActive !== undefined) {
+      this.logger.warn(
+        `User ${id} updated by ${actor?.id ?? 'system'}: role=${String(data.role ?? user.role)}, isActive=${String(data.isActive ?? user.isActive)}`,
+      );
+    }
+    if (wantsPasswordChange) {
+      this.logger.log(`User ${id} changed their password via profile update`);
+    }
+
     const updatedUser = await this.prisma.user.update({ where: { id }, data });
     return this.removePassword(updatedUser);
   }
@@ -230,6 +243,7 @@ export class UsersService {
       where: { id: userId },
       data: { password: hashedPassword },
     });
+    this.logger.log(`User ${userId} changed their password`);
 
     return this.removePassword(updatedUser);
   }
@@ -241,6 +255,7 @@ export class UsersService {
     await this.ensureUserExists(id);
 
     const deletedUser = await this.prisma.user.delete({ where: { id } });
+    this.logger.warn(`User ${deletedUser.email} (${id}) deleted`);
     return this.removePassword(deletedUser);
   }
 
@@ -257,6 +272,9 @@ export class UsersService {
       where: { id },
       data: { isActive: !user.isActive },
     });
+    this.logger.warn(
+      `User ${user.email} (${id}) ${updatedUser.isActive ? 'activated' : 'deactivated'}`,
+    );
 
     return this.removePassword(updatedUser);
   }

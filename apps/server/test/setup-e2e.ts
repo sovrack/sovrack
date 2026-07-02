@@ -1,3 +1,21 @@
+// DeploymentPreflightService's repo+branch check (checkRepoCloneable) shells
+// out to the real `git` binary via child_process.execFile for local build
+// sources. Partial-mock only execFile (jest.requireActual for everything
+// else) so Prisma Client's own platform-detection code — which needs the
+// real child_process module at import time — keeps working.
+const execFileMock = jest.fn(
+  (
+    _file: string,
+    _args: string[],
+    _opts: unknown,
+    cb: (e: Error | null, r: { stdout: string; stderr: string }) => void,
+  ) => cb(null, { stdout: 'e2eaaaa\trefs/heads/main', stderr: '' }),
+);
+jest.mock('child_process', () => ({
+  ...jest.requireActual('child_process'),
+  execFile: execFileMock,
+}));
+
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';

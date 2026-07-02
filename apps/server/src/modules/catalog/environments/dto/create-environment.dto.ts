@@ -1,10 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsJSON,
   IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateEnvironmentDto {
@@ -29,7 +31,14 @@ export class CreateEnvironmentDto {
     description: 'Secrets JSON (chiffrés au repos)',
     example: '{"DB_PASSWORD":"..."}',
   })
-  @IsOptional()
-  @IsString({ message: 'secretsEnv doit être une chaîne JSON' })
+  // ValidateIf (plutôt que IsOptional) car '' est une valeur légitime ici
+  // (environments.service.ts l'écrit tel quel — "aucun secret" — write path
+  // dto.secretsEnv !== undefined) ; IsJSON seul rejetterait '' comme JSON
+  // invalide, ce qui casserait ce cas déjà supporté aujourd'hui.
+  @ValidateIf(
+    (o: CreateEnvironmentDto) =>
+      o.secretsEnv !== undefined && o.secretsEnv !== null && o.secretsEnv !== '',
+  )
+  @IsJSON({ message: 'secretsEnv doit être un JSON valide' })
   secretsEnv?: string;
 }

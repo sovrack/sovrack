@@ -1,5 +1,9 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DockerApiService } from './docker-api.service';
 import { DockerConnectionsService } from './docker-connections.service';
 
@@ -24,9 +28,12 @@ describe('DockerApiService', () => {
     findForServer: jest.Mock;
     getDecryptedTls: jest.Mock;
   };
+  let configService: { get: jest.Mock };
   let mockClient: {
     getImage: jest.Mock;
     getContainer: jest.Mock;
+    pull: jest.Mock;
+    modem: { followProgress: jest.Mock };
   };
   let mockImage: { inspect: jest.Mock };
   let mockContainer: {
@@ -45,7 +52,10 @@ describe('DockerApiService', () => {
     mockClient = {
       getImage: jest.fn().mockReturnValue(mockImage),
       getContainer: jest.fn().mockReturnValue(mockContainer),
+      pull: jest.fn(),
+      modem: { followProgress: jest.fn() },
     };
+    configService = { get: jest.fn().mockReturnValue(undefined) };
     dockerConnections.findForServer.mockResolvedValue({
       id: 'conn_1',
       endpoint: 'tcp://docker.example.com:2376',
@@ -65,6 +75,7 @@ describe('DockerApiService', () => {
       providers: [
         DockerApiService,
         { provide: DockerConnectionsService, useValue: dockerConnections },
+        { provide: ConfigService, useValue: configService },
       ],
     }).compile();
 
@@ -117,6 +128,24 @@ describe('DockerApiService', () => {
         NotFoundException,
       );
     });
+
+    it('fails fast with ServiceUnavailableException when the circuit is OPEN', async () => {
+      dockerConnections.findForServer.mockResolvedValueOnce({
+        id: 'conn_1',
+        endpoint: 'tcp://docker.example.com:2376',
+        tlsCaCert: 'enc-ca',
+        tlsClientCert: 'enc-cert',
+        tlsClientKey: 'enc-key',
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+        circuitState: 'OPEN',
+      });
+      service.invalidateCache('srv_1');
+      await expect(service.getClient('srv_1')).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+      // Ne doit même pas tenter de résoudre le matériel TLS.
+      expect(dockerConnections.getDecryptedTls).not.toHaveBeenCalled();
+    });
   });
 
   describe('inspectImage (digest capture)', () => {
@@ -160,6 +189,19 @@ describe('DockerApiService', () => {
       expect(mockClient.getContainer).toHaveBeenCalledWith('my-app');
       expect(result.State.Status).toBe('running');
       expect(result.State.Health?.Status).toBe('healthy');
+    });
+
+    it('wraps a network error with an explicit, exploitable message', async () => {
+      mockContainer.inspect.mockRejectedValue(
+        Object.assign(new Error('connect ECONNREFUSED 10.0.0.1:2376'), {
+          code: 'ECONNREFUSED',
+        }),
+      );
+      await expect(
+        service.inspectContainer('srv_1', 'my-app'),
+      ).rejects.toThrow(
+        /Connexion au daemon Docker perdue pendant inspectContainer \(serveur srv_1\)/,
+      );
     });
   });
 
@@ -253,6 +295,29 @@ describe('DockerApiService', () => {
         service as unknown as { clientCache: Map<string, unknown> }
       ).clientCache;
       expect(cache.has('srv_1:tcp://docker.example.com:2376')).toBe(false);
+    });
+  });
+
+  describe('pullImage (configurable timeout)', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('rejects with an explicit error when the pull exceeds DOCKER_PULL_TIMEOUT_MS', async () => {
+      jest.useFakeTimers();
+      configService.get.mockImplementation((key: string) =>
+        key === 'DOCKER_PULL_TIMEOUT_MS' ? '50' : undefined,
+      );
+      mockClient.pull.mockResolvedValue({ destroy: jest.fn() });
+      // followProgress never invokes its callback → only the timeout settles.
+      mockClient.modem.followProgress.mockImplementation(() => undefined);
+
+      const pending = service.pullImage('srv_1', 'app:latest');
+      // Attach a rejection handler immediately so Jest doesn't flag the
+      // still-pending promise as an unhandled rejection while we advance timers.
+      const assertion = expect(pending).rejects.toThrow(/dépassé le délai/);
+      await jest.advanceTimersByTimeAsync(50);
+      await assertion;
     });
   });
 });

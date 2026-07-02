@@ -1,160 +1,197 @@
-import { BadRequestException } from '@nestjs/common';
-import { ServerStatus } from '@prisma/client';
-import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersCoreService } from './servers-core.service';
 
-const serverRow = (over: Record<string, unknown> = {}) => ({
-  id: 's1',
-  name: 'srv',
-  host: '10.0.0.1',
-  port: 22,
-  username: 'root',
-  sshKey: 'enc',
-  sshPublicKey: 'ssh-rsa pub',
-  connectionMode: 'SSH_KEY',
-  status: ServerStatus.NEW,
-  isActive: true,
-  isVerified: false,
-  archivedAt: null,
-  environmentId: null,
-  installedTools: [],
-  capabilities: {},
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  ...over,
-});
-
-describe('ServersCoreService', () => {
-  let prisma: {
-    server: {
-      create: jest.Mock;
-      findUnique: jest.Mock;
-      findMany: jest.Mock;
-      count: jest.Mock;
-      update: jest.Mock;
-    };
-    environment: { findUnique: jest.Mock };
-    container: { updateMany: jest.Mock };
-    sshKey: { findUnique: jest.Mock };
-    serverRun: { findMany: jest.Mock };
-    $transaction: jest.Mock;
-  };
-  let crypto: {
-    resolveSshMaterial: jest.Mock;
-    encrypt: jest.Mock;
-    decrypt: jest.Mock;
-  };
-  let ssh: { mapConnectionMode: jest.Mock };
-  let audit: { record: jest.Mock };
-  let auditService: { record: jest.Mock };
+// ServersCoreService is now a pure facade (CRUD logic extracted into
+// ServersCrudService — see servers-crud.service.spec.ts for that coverage
+// and EXPLORATION_BACKEND_DEPENDANCES.md section 1 for the rationale). This
+// spec only verifies each public method delegates to the right sub-service
+// with the right arguments — the facade contract the 4 controllers rely on.
+describe('ServersCoreService (facade)', () => {
+  let crud: { create: jest.Mock; findAll: jest.Mock; findOne: jest.Mock; update: jest.Mock; remove: jest.Mock };
+  let jobsFacade: Record<string, jest.Mock>;
+  let readersFacade: Record<string, jest.Mock>;
   let service: ServersCoreService;
 
   beforeEach(() => {
-    prisma = {
-      server: {
-        create: jest
-          .fn()
-          .mockImplementation(({ data }) => Promise.resolve(serverRow(data))),
-        findUnique: jest.fn().mockResolvedValue(serverRow()),
-        findMany: jest.fn().mockResolvedValue([]),
-        count: jest.fn().mockResolvedValue(0),
-        update: jest.fn().mockResolvedValue(serverRow()),
-      },
-      environment: {
-        findUnique: jest.fn().mockResolvedValue({ name: 'prod' }),
-      },
-      container: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
-      sshKey: { findUnique: jest.fn().mockResolvedValue(null) },
-      serverRun: { findMany: jest.fn().mockResolvedValue([]) },
-      $transaction: jest.fn().mockResolvedValue([]),
+    crud = {
+      create: jest.fn().mockResolvedValue({ id: 's1' }),
+      findAll: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn().mockResolvedValue({ id: 's1' }),
+      update: jest.fn().mockResolvedValue({ id: 's1' }),
+      remove: jest.fn().mockResolvedValue(undefined),
     };
-    crypto = {
-      resolveSshMaterial: jest
-        .fn()
-        .mockReturnValue({ privateKey: 'priv', publicKey: 'pub' }),
-      encrypt: jest.fn((v: string) => `enc:${v}`),
-      decrypt: jest.fn((v: string) => `dec:${v}`),
+    jobsFacade = {
+      listJobs: jest.fn().mockResolvedValue([]),
+      cancelJob: jest.fn().mockResolvedValue(undefined),
+      retryJob: jest.fn().mockResolvedValue({ id: 's1' }),
+      verifyServer: jest.fn().mockResolvedValue({ id: 's1' }),
+      installTools: jest.fn().mockResolvedValue({ id: 's1' }),
+      prepareServer: jest.fn().mockResolvedValue({ id: 's1' }),
+      startPreparation: jest.fn().mockResolvedValue({ id: 's1' }),
+      detectServer: jest.fn().mockResolvedValue({ id: 's1' }),
+      registerRunner: jest.fn().mockResolvedValue({ id: 's1' }),
+      installPublicKey: jest.fn().mockResolvedValue({ success: true }),
+      pingServer: jest.fn().mockResolvedValue({ ok: true }),
+      toErrorMessage: jest.fn().mockReturnValue('err'),
     };
-    ssh = { mapConnectionMode: jest.fn().mockReturnValue('SSH_KEY') };
-    audit = { record: jest.fn().mockResolvedValue(undefined) };
-    auditService = { record: jest.fn().mockResolvedValue(undefined) };
+    readersFacade = {
+      listAuditEvents: jest.fn().mockResolvedValue([]),
+      listCapabilities: jest.fn().mockResolvedValue([]),
+      listInstalledTools: jest.fn().mockResolvedValue([]),
+      listValidationResults: jest.fn().mockResolvedValue([]),
+      listPreparations: jest.fn().mockResolvedValue([]),
+      getPreparationReadiness: jest.fn().mockResolvedValue({}),
+      getPreparationOptions: jest.fn().mockReturnValue({}),
+      getPreparation: jest.fn().mockResolvedValue({}),
+      getPreparationLogs: jest.fn().mockResolvedValue([]),
+      retryPreparation: jest.fn().mockResolvedValue({}),
+      cancelPreparation: jest.fn().mockResolvedValue({}),
+      resetVerificationStatus: jest.fn().mockResolvedValue({}),
+      getRecentVerificationLogs: jest.fn().mockResolvedValue([]),
+      setServerInfraRole: jest.fn().mockResolvedValue({ id: 's1' }),
+      listInfraEnvironments: jest.fn().mockResolvedValue([]),
+      listEnvironmentsForServer: jest.fn().mockResolvedValue([]),
+    };
 
     service = new ServersCoreService(
-      prisma as unknown as PrismaService,
-      crypto as never,
-      ssh as never,
-      {} as never,
-      {} as never,
-      audit as never,
-      auditService as never,
+      crud as never,
+      jobsFacade as never,
+      readersFacade as never,
     );
   });
 
-  it('creates a server with an encrypted SSH key and audits it (status NEW)', async () => {
-    const res = await service.create(
-      { name: 'srv', host: '10.0.0.1', sshKey: 'raw-key' } as never,
-      'admin',
-    );
-    expect(crypto.encrypt).toHaveBeenCalledWith('priv');
-    expect(prisma.server.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          status: ServerStatus.NEW,
-          sshKey: 'enc:priv',
-        }),
-      }),
-    );
-    expect(auditService.record).toHaveBeenCalledWith(
-      'admin',
-      'SERVER_CREATE',
-      'Server',
-      res.id,
-      expect.anything(),
-    );
-  });
+  it('delegates CRUD methods to ServersCrudService', async () => {
+    await service.create({ name: 'srv' } as never, 'admin');
+    expect(crud.create).toHaveBeenCalledWith({ name: 'srv' }, 'admin');
 
-  it('rejects creation referencing a missing stored SSH key', async () => {
-    prisma.sshKey.findUnique.mockResolvedValue(null);
-    await expect(
-      service.create(
-        { name: 'srv', host: 'h', sshKeyId: 'ghost' } as never,
-        'admin',
-      ),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
+    await service.findAll();
+    expect(crud.findAll).toHaveBeenCalledWith(undefined);
 
-  it('decrypts a referenced stored SSH key before use', async () => {
-    prisma.sshKey.findUnique.mockResolvedValue({
-      encryptedPrivateKey: 'stored-enc',
-    });
-    await service.create(
-      { name: 'srv', host: 'h', sshKeyId: 'k1' } as never,
-      'admin',
-    );
-    expect(crypto.decrypt).toHaveBeenCalledWith('stored-enc');
-  });
+    await service.findOne('s1');
+    expect(crud.findOne).toHaveBeenCalledWith('s1');
 
-  it('blocks removing the LAST server of an environment (anti-orphaning)', async () => {
-    prisma.server.findUnique.mockResolvedValue(
-      serverRow({ environmentId: 'env1' }),
-    );
-    prisma.server.count.mockResolvedValue(0); // no other active server
-    await expect(service.remove('s1', 'admin')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-  });
+    await service.update('s1', { name: 'x' } as never, 'admin');
+    expect(crud.update).toHaveBeenCalledWith('s1', { name: 'x' }, 'admin');
 
-  it('soft-deletes (archives) a server when removal is allowed', async () => {
-    prisma.server.findUnique.mockResolvedValue(
-      serverRow({ environmentId: 'env1' }),
-    );
-    prisma.server.count.mockResolvedValue(1); // a backup server exists
     await service.remove('s1', 'admin');
-    expect(prisma.$transaction).toHaveBeenCalled();
-    expect(auditService.record).toHaveBeenCalledWith(
+    expect(crud.remove).toHaveBeenCalledWith('s1', 'admin');
+  });
+
+  it('delegates jobs/verification/preparation/detection methods to ServersJobsFacade', async () => {
+    await service.listJobs('s1');
+    expect(jobsFacade.listJobs).toHaveBeenCalledWith('s1', undefined);
+
+    await service.cancelJob('s1', 'j1');
+    expect(jobsFacade.cancelJob).toHaveBeenCalledWith('s1', 'j1');
+
+    await service.retryJob('s1', 'j1');
+    expect(jobsFacade.retryJob).toHaveBeenCalledWith('s1', 'j1');
+
+    await service.verifyServer('s1', 'admin');
+    expect(jobsFacade.verifyServer).toHaveBeenCalledWith('s1', 'admin');
+
+    await service.installTools('s1');
+    expect(jobsFacade.installTools).toHaveBeenCalledWith('s1', undefined);
+
+    await service.prepareServer('s1');
+    expect(jobsFacade.prepareServer).toHaveBeenCalledWith(
+      's1',
+      undefined,
+      undefined,
+    );
+
+    await service.startPreparation('s1');
+    expect(jobsFacade.startPreparation).toHaveBeenCalledWith(
+      's1',
+      undefined,
+      undefined,
+    );
+
+    await service.detectServer('s1');
+    expect(jobsFacade.detectServer).toHaveBeenCalledWith('s1', undefined);
+
+    await service.registerRunner('s1', 'https://gitlab.example.com', 'tok');
+    expect(jobsFacade.registerRunner).toHaveBeenCalledWith(
+      's1',
+      'https://gitlab.example.com',
+      'tok',
+    );
+
+    await service.installPublicKey('s1', 'pw');
+    expect(jobsFacade.installPublicKey).toHaveBeenCalledWith(
+      's1',
+      'pw',
+      undefined,
+    );
+
+    await service.pingServer('s1', 'admin');
+    expect(jobsFacade.pingServer).toHaveBeenCalledWith('s1', 'admin');
+
+    service.toErrorMessage(new Error('boom'));
+    expect(jobsFacade.toErrorMessage).toHaveBeenCalled();
+  });
+
+  it('delegates audit/capabilities/preparation-history/infra-role methods to ServersReadersFacade', async () => {
+    await service.listAuditEvents('s1');
+    expect(readersFacade.listAuditEvents).toHaveBeenCalledWith('s1');
+
+    await service.listCapabilities('s1');
+    expect(readersFacade.listCapabilities).toHaveBeenCalledWith('s1');
+
+    await service.listInstalledTools('s1');
+    expect(readersFacade.listInstalledTools).toHaveBeenCalledWith('s1');
+
+    await service.listValidationResults('s1');
+    expect(readersFacade.listValidationResults).toHaveBeenCalledWith('s1');
+
+    await service.listPreparations('s1');
+    expect(readersFacade.listPreparations).toHaveBeenCalledWith('s1');
+
+    await service.getPreparationReadiness('s1');
+    expect(readersFacade.getPreparationReadiness).toHaveBeenCalledWith('s1');
+
+    service.getPreparationOptions();
+    expect(readersFacade.getPreparationOptions).toHaveBeenCalled();
+
+    await service.getPreparation('s1');
+    expect(readersFacade.getPreparation).toHaveBeenCalledWith('s1');
+
+    await service.getPreparationLogs('s1', 10);
+    expect(readersFacade.getPreparationLogs).toHaveBeenCalledWith('s1', 10);
+
+    await service.retryPreparation('s1', {} as never, 'admin');
+    expect(readersFacade.retryPreparation).toHaveBeenCalledWith(
+      's1',
+      {},
       'admin',
-      'SERVER_DELETE',
-      'Server',
+    );
+
+    await service.cancelPreparation('s1', 'admin');
+    expect(readersFacade.cancelPreparation).toHaveBeenCalledWith(
+      's1',
+      'admin',
+    );
+
+    await service.resetVerificationStatus('s1');
+    expect(readersFacade.resetVerificationStatus).toHaveBeenCalledWith('s1');
+
+    await service.getRecentVerificationLogs('s1', 5);
+    expect(readersFacade.getRecentVerificationLogs).toHaveBeenCalledWith(
+      's1',
+      5,
+    );
+
+    await service.setServerInfraRole('s1', 'PRODUCTION' as never, 'admin');
+    expect(readersFacade.setServerInfraRole).toHaveBeenCalledWith(
+      's1',
+      'PRODUCTION',
+      'admin',
+    );
+
+    await service.listInfraEnvironments();
+    expect(readersFacade.listInfraEnvironments).toHaveBeenCalled();
+
+    await service.listEnvironmentsForServer('s1');
+    expect(readersFacade.listEnvironmentsForServer).toHaveBeenCalledWith(
       's1',
     );
   });

@@ -12,7 +12,7 @@ import {
   IWebhookHandler,
   WebhookEndpointContext,
   WebhookHandleResult,
-} from '../../../webhooks/interfaces/webhook-handler.interface';
+} from '../../interfaces/webhook-handler.interface';
 
 type GithubPushPayload = {
   ref?: string;

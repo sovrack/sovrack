@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { BuildPack, ManagedServiceType, Prisma } from '@prisma/client';
 import type { BuildSource } from '../../build/strategies/build-strategy.interface';
 import { CreateDeploymentDto } from '../dto/create-deployment.dto';
@@ -94,7 +94,7 @@ export class DeploymentsConfigResolver {
       // (sourceType DOCKER_IMAGE stocke la référence d'image dans repoPath).
       const image = dto.overrideImage ?? service?.repoPath;
       if (!image)
-        throw new Error(
+        throw new BadRequestException(
           'Image externe introuvable (overrideImage ou repoPath requis)',
         );
       return image;

@@ -29,7 +29,7 @@ import {
 } from '../../servers/shared/server-preparation-options';
 import { ServersAuditService } from '../../servers/services/servers-audit.service';
 import { ServerPreparationGateway } from '../gateways/server-preparation.gateway';
-import { ServerVerificationService } from '../../servers/services/server-verification.service';
+import { ServersVerificationService } from '../../servers/services/servers-verification.service';
 import { ServersJobsService } from '../../servers/services/servers-jobs.service';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
 import {
@@ -58,7 +58,7 @@ export class ServerPreparationService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobs: ServersJobsService,
-    private readonly verification: ServerVerificationService,
+    private readonly verification: ServersVerificationService,
     private readonly audit: ServersAuditService,
     private readonly gateway: ServerPreparationGateway,
     private readonly state: ServerPreparationStateService,

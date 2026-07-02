@@ -6,7 +6,7 @@ import {
 import { Prisma, Role, ServiceType } from '@prisma/client';
 import { ServicesService } from './services.service';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { ProjectAccessService } from '../access/project-access.service';
+import { ProjectAccessService } from '../authorization/project-access.service';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
@@ -64,7 +64,7 @@ describe('ServicesService — soft-delete name collision', () => {
   });
 });
 
-describe('ServicesService — CRUD + templates', () => {
+describe('ServicesService — CRUD', () => {
   const projectId = 'project-1';
   const userId = 'user-1';
 
@@ -81,6 +81,10 @@ describe('ServicesService — CRUD + templates', () => {
       serviceEnvironment: {
         updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
+      // $transaction est mocké pour exécuter le callback avec ce même mock en
+      // guise de `tx` — suffisant en test unitaire, l'atomicité réelle (tout
+      // ou rien) est garantie par Prisma en production, pas testable ici.
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     const serviceEnvs = {
       linkServiceToAllEnvs: jest.fn().mockResolvedValue(undefined),
@@ -171,16 +175,6 @@ describe('ServicesService — CRUD + templates', () => {
     );
   });
 
-  it('listTemplates exposes every catalogue template with its components', () => {
-    const { service } = harness();
-    const templates = service.listTemplates();
-    expect(templates.length).toBeGreaterThan(0);
-    for (const t of templates) {
-      expect(t.id).toBeTruthy();
-      expect(Array.isArray(t.services)).toBe(true);
-    }
-  });
-
   it('create links the service to all envs and returns the loaded service', async () => {
     const { service, prisma, serviceEnvs } = harness();
     prisma.service.create.mockResolvedValue({ id: 's1' });
@@ -193,11 +187,16 @@ describe('ServicesService — CRUD + templates', () => {
       Role.ADMIN,
     );
 
+    // 5e argument = tx Prisma optionnel (undefined ici : create() n'est pas
+    // appelé depuis une transaction explicite dans ce test) — propagé tel
+    // quel par create() pour que linkServiceToAllEnvs participe à la même
+    // transaction quand create() est appelé depuis createFromTemplate().
     expect(serviceEnvs.linkServiceToAllEnvs).toHaveBeenCalledWith(
       projectId,
       's1',
       userId,
       Role.ADMIN,
+      undefined,
     );
     expect(result.id).toBe('s1');
   });
@@ -280,39 +279,6 @@ describe('ServicesService — CRUD + templates', () => {
       where: { serviceId: 's1' },
       data: { generation: { increment: 1 } },
     });
-  });
-
-  it('createFromTemplate throws NotFoundException for an unknown template', async () => {
-    const { service } = harness();
-    await expect(
-      service.createFromTemplate(projectId, 'nope', 'base', userId, Role.ADMIN),
-    ).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('createFromTemplate rolls back already-created components when one fails', async () => {
-    const { service, prisma } = harness();
-    // 1st component created, 2nd hits a unique violation → ConflictException.
-    prisma.service.create
-      .mockResolvedValueOnce({ id: 'c1' })
-      .mockRejectedValueOnce(
-        new Prisma.PrismaClientKnownRequestError('dup', {
-          code: 'P2002',
-          clientVersion: '6.0.0',
-        }),
-      );
-    prisma.service.findFirst.mockResolvedValue({ id: 'c1', name: 'x' });
-
-    await expect(
-      service.createFromTemplate(
-        projectId,
-        'postgres-pgadmin',
-        'stack',
-        userId,
-        Role.ADMIN,
-      ),
-    ).rejects.toBeInstanceOf(ConflictException);
-
-    expect(prisma.service.delete).toHaveBeenCalledWith({ where: { id: 'c1' } });
   });
 
   it('propagates the access guard rejection without touching the DB', async () => {

@@ -21,6 +21,7 @@ import { BuildLifecycleService } from './lifecycle/build-lifecycle.service';
 import { CreateBuildConfigDto } from './dto/create-build-config.dto';
 import { BuildStatus } from '@prisma/client';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { WebhookManagementService } from '../webhooks/webhook-management.service';
 
 @ApiTags('Build')
 @ApiBearerAuth()
@@ -32,6 +33,7 @@ export class BuildController {
     private readonly setupService: BuildSetupService,
     private readonly detector: BuildDetectorService,
     private readonly buildsService: BuildLifecycleService,
+    private readonly webhookManagement: WebhookManagementService,
   ) {}
 
   @Post('generate')
@@ -109,7 +111,10 @@ export class BuildController {
   }
 
   /**
-   * Reconfigure GitLab webhooks for all services (or single REPO source).
+   * Legacy endpoint kept for frontend compatibility: webhook configuration
+   * for a project's services is now owned by webhooks/ (see
+   * POST /projects/:projectId/webhook/configure) — this only returns a
+   * per-service redirect notice.
    */
   @Post('reconcile-webhooks')
   @Roles(Role.ADMIN, Role.DEVELOPER)
@@ -117,7 +122,8 @@ export class BuildController {
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.setupService.reconcileWebhooks(id, user.id, user.role);
+    await this.buildService.assertCanConfigureBuild(id, user.id, user.role);
+    return await this.webhookManagement.reconcileWebhooksNotice(id);
   }
 
   /**

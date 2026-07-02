@@ -12,7 +12,7 @@ import {
   PaginatedResult,
   paginate,
 } from '../../../shared/http/pagination.dto';
-import { ProjectAccessService } from '../access/project-access.service';
+import { ProjectAccessService } from '../authorization/project-access.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 

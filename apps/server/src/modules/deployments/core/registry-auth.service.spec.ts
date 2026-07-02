@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { RegistryProviderType } from '@prisma/client';
 import { RegistryAuthService } from './registry-auth.service';
 import { PrismaService } from '../../../shared/database/prisma.service';
@@ -66,5 +67,25 @@ describe('RegistryAuthService.resolveAuthForImage', () => {
   it('returns undefined when no registries are configured (public pull)', async () => {
     const svc = make([]);
     expect(await svc.resolveAuthForImage('nginx:alpine')).toBeUndefined();
+  });
+
+  // AUDIT_VALIDATION_DEPLOIEMENT.md Point 7 : un RegistryConfig connu pour cet
+  // host mais aux identifiants incomplets ne doit plus retomber silencieusement
+  // sur un pull anonyme (qui échouerait plus tard avec un message Docker brut) —
+  // c'est une configuration cassée, pas une image publique ambiguë.
+  it('throws when a matching registry has incomplete credentials', async () => {
+    const svc = make([
+      {
+        name: 'custom-registry',
+        type: RegistryProviderType.GITLAB,
+        username: null,
+        password: null,
+        registryUrl: 'https://registry.gitlab.com',
+        isDefault: true,
+      },
+    ]);
+    await expect(
+      svc.resolveAuthForImage('registry.gitlab.com/grp/app:latest'),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

@@ -137,8 +137,13 @@ describe('DashboardService.getStats', () => {
     expect(prisma.environment.count).toHaveBeenCalledWith({
       where: { projectId: { in: ['p1'] } },
     });
+    // archivedAt: null ajouté (activeWhere) : un serveur archivé ne doit plus
+    // gonfler le total ni apparaître dans la répartition de santé du dashboard.
     expect(prisma.server.count).toHaveBeenCalledWith({
-      where: { environment: { projectId: { in: ['p1'] } } },
+      where: {
+        environment: { projectId: { in: ['p1'] } },
+        archivedAt: null,
+      },
     });
   });
 });

@@ -5,7 +5,7 @@ import { HttpService } from '@nestjs/axios';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { CryptoService } from '../../shared/crypto/crypto.service';
 import { ContainerRegistriesService } from './container-registries.service';
-import { RegistryConnectionTesterService } from './registry-connection-tester.service';
+import { RegistryConnectionTestService } from './registry-connection-test.service';
 
 const row = (over: Record<string, unknown> = {}) => ({
   id: 'r1',
@@ -66,7 +66,7 @@ describe('ContainerRegistriesService', () => {
       encryptOptional: jest.fn((v?: string) => (v ? `enc:${v}` : null)),
       decrypt: jest.fn((v: string) => v.replace(/^enc:/, '')),
     };
-    const connectionTester = new RegistryConnectionTesterService(
+    const connectionTester = new RegistryConnectionTestService(
       prisma as unknown as PrismaService,
       http as unknown as HttpService,
       crypto as unknown as CryptoService,

@@ -14,9 +14,29 @@ jest.mock('fs/promises', () => ({
   writeFile: jest.fn().mockResolvedValue(undefined),
   unlink: jest.fn().mockResolvedValue(undefined),
 }));
+// deployment-preflight.service.ts is now imported transitively (for its
+// type/DI token) — its top-level enum usage needs these on the mocked client
+// even though the preflight itself is stubbed below, never constructed here.
 jest.mock('@prisma/client', () => ({
   PrismaClient: class {},
   Role: { ADMIN: 'ADMIN', DEVELOPER: 'DEVELOPER' },
+  BuildPack: { NIXPACKS: 'NIXPACKS', BUILDPACK: 'BUILDPACK', DOCKERFILE: 'DOCKERFILE', DOCKER_COMPOSE: 'DOCKER_COMPOSE', STATIC: 'STATIC', NONE: 'NONE' },
+  CircuitState: { CLOSED: 'CLOSED', OPEN: 'OPEN', HALF_OPEN: 'HALF_OPEN' },
+  ServerStatus: {
+    NEW: 'NEW',
+    SSH_PENDING: 'SSH_PENDING',
+    SSH_VALIDATED: 'SSH_VALIDATED',
+    VALIDATION_FAILED: 'VALIDATION_FAILED',
+    INFO_DETECTED: 'INFO_DETECTED',
+    PREPARATION_PENDING: 'PREPARATION_PENDING',
+    PREPARING: 'PREPARING',
+    PREPARED: 'PREPARED',
+    PARTIALLY_PREPARED: 'PARTIALLY_PREPARED',
+    PREPARATION_FAILED: 'PREPARATION_FAILED',
+    UNREACHABLE: 'UNREACHABLE',
+    DISABLED: 'DISABLED',
+  },
+  ServiceType: { APPLICATION: 'APPLICATION', DATABASE: 'DATABASE', WORKER: 'WORKER', CRON: 'CRON' },
 }));
 jest.mock('../../../shared/database/prisma.service', () => ({
   PrismaService: class {},
@@ -26,6 +46,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { SshExecutorService } from '../../../adapters/ssh/ssh-executor.service';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
+import { DeploymentPreflightService } from '../core/deployment-preflight.service';
 import { DeploymentsValidationService } from './deployments-validation.service';
 
 describe('DeploymentsValidationService.validate', () => {
@@ -37,6 +58,7 @@ describe('DeploymentsValidationService.validate', () => {
   };
   let auth: { getActor: jest.Mock; assertCanDeployProject: jest.Mock };
   let providers: { forProject: jest.Mock; forService: jest.Mock };
+  let preflight: { assertDeployable: jest.Mock };
   let service: DeploymentsValidationService;
 
   beforeEach(() => {
@@ -74,6 +96,9 @@ describe('DeploymentsValidationService.validate', () => {
       }),
       forService: jest.fn(),
     };
+    preflight = {
+      assertDeployable: jest.fn().mockResolvedValue(undefined),
+    };
     service = new DeploymentsValidationService(
       prisma as unknown as PrismaService,
       auth as unknown as DeploymentsAuthorizationService,
@@ -81,6 +106,7 @@ describe('DeploymentsValidationService.validate', () => {
       {} as never,
       {} as unknown as SshExecutorService,
       providers as unknown as SourceProvidersService,
+      preflight as unknown as DeploymentPreflightService,
     );
   });
 
@@ -91,39 +117,40 @@ describe('DeploymentsValidationService.validate', () => {
     ).rejects.toThrow('forbidden');
   });
 
-  it('rejects a DATABASE service without databaseType', async () => {
+  // databaseType/databaseCredentials validation used to be duplicated inline
+  // here; it now lives solely in DeploymentPreflightService.assertDeployable
+  // (see deployment-preflight.service.spec.ts for the exhaustive cases) —
+  // this service only reports whatever the preflight decides. These 3 tests
+  // now verify the DELEGATION (validate() reflects assertDeployable's
+  // outcome for a DATABASE service), not the field-validation rules
+  // themselves anymore.
+  it('reflects a DATABASE service rejection from the preflight (e.g. missing databaseType)', async () => {
     prisma.serviceEnvironment.findUnique.mockResolvedValue({
-      service: {
-        type: 'DATABASE',
-        databaseType: null,
-        databaseCredentials: null,
-      },
+      service: { type: 'DATABASE' },
     });
+    preflight.assertDeployable.mockRejectedValue(
+      new BadRequestException('databaseType est requis pour un service DATABASE'),
+    );
     await expect(
       service.validate('p1', 'env-1', 'EXTERNAL_IMAGE', 'u1', 'se-1'),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).resolves.toMatchObject({ ready: false, reason: expect.stringContaining('databaseType') });
   });
 
-  it('rejects a DATABASE service with incomplete credentials', async () => {
+  it('reflects a DATABASE service rejection from the preflight (e.g. incomplete credentials)', async () => {
     prisma.serviceEnvironment.findUnique.mockResolvedValue({
-      service: {
-        type: 'DATABASE',
-        databaseType: 'POSTGRES',
-        databaseCredentials: { user: 'u' }, // missing password + dbName
-      },
+      service: { type: 'DATABASE' },
     });
-    await expect(
-      service.validate('p1', 'env-1', 'EXTERNAL_IMAGE', 'u1', 'se-1'),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    preflight.assertDeployable.mockRejectedValue(
+      new BadRequestException('databaseCredentials doit contenir user, password et dbName'),
+    );
+    const res = await service.validate('p1', 'env-1', 'EXTERNAL_IMAGE', 'u1', 'se-1');
+    expect(res.ready).toBe(false);
+    expect(res.reason).toContain('databaseCredentials');
   });
 
-  it('accepts a valid DATABASE service (ready, EXTERNAL_IMAGE)', async () => {
+  it('accepts a valid DATABASE service (ready, EXTERNAL_IMAGE) and delegates to the preflight', async () => {
     prisma.serviceEnvironment.findUnique.mockResolvedValue({
-      service: {
-        type: 'DATABASE',
-        databaseType: 'POSTGRES',
-        databaseCredentials: { user: 'u', password: 'p', dbName: 'd' },
-      },
+      service: { type: 'DATABASE' },
     });
     const res = await service.validate(
       'p1',
@@ -134,6 +161,9 @@ describe('DeploymentsValidationService.validate', () => {
     );
     expect(res.ready).toBe(true);
     expect(res.buildSource).toBe('EXTERNAL_IMAGE');
+    expect(preflight.assertDeployable).toHaveBeenCalledWith({
+      serviceEnvId: 'se-1',
+    });
   });
 
   it('throws when the environment is not found', async () => {
@@ -180,6 +210,42 @@ describe('DeploymentsValidationService.validate', () => {
     );
     expect(res.ready).toBe(false);
     expect(res.missing.map((m) => m.binary)).toContain('docker');
+  });
+
+  it('runs the preflight for a non-DATABASE service too when serviceEnvId is given, and passes it through', async () => {
+    const res = await service.validate(
+      'p1',
+      'env-1',
+      'DOCKERFILE_REGISTRY',
+      'u1',
+      'se-1',
+    );
+    expect(preflight.assertDeployable).toHaveBeenCalledWith({
+      serviceEnvId: 'se-1',
+    });
+    expect(res.ready).toBe(true);
+  });
+
+  it('reports ready:false with the preflight reason even when all tools are installed', async () => {
+    preflight.assertDeployable.mockRejectedValue(
+      new BadRequestException("Aucun Dockerfile trouvé sur la branche « main »"),
+    );
+    const res = await service.validate(
+      'p1',
+      'env-1',
+      'DOCKERFILE_REGISTRY',
+      'u1',
+      'se-1',
+    );
+    expect(res.ready).toBe(false);
+    expect(res.reason).toContain('Dockerfile');
+    // Tool detection is independent info and still runs/reports correctly.
+    expect(res.required.map((r) => r.binary)).toContain('docker');
+  });
+
+  it('does not run the legacy repo-cloneable fallback when serviceEnvId is given (assertDeployable already covers it)', async () => {
+    await service.validate('p1', 'env-1', 'DOCKERFILE_LOCAL', 'u1', 'se-1');
+    expect(execFileMock).not.toHaveBeenCalled();
   });
 
   it('returns ready:false when a required tool is not installed', async () => {

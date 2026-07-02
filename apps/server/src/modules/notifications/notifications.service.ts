@@ -1,39 +1,27 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { WebhookEvent } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { NotificationsConfigService } from './notifications-config.service';
 import { NotificationsSmtpService } from './notifications-smtp.service';
 import { NotificationsSlackService } from './notifications-slack.service';
 import type { NotificationsSettings } from './notifications-config.service';
+import type {
+  DeploymentNotificationPayload,
+  DockerConnectionDownPayload,
+  DockerConnectionRecoveredPayload,
+} from './notifications-payloads.types';
 
 export type { NotificationsSettings };
-
-export type DeploymentNotificationPayload = {
-  deploymentId: string;
-  status: 'SUCCESS' | 'FAILED' | 'CANCELED';
-  projectName: string;
-  environmentName: string;
-  branch: string;
-  triggeredBy: string;
-  pipelineUrl?: string | null;
-};
-
-export type DockerConnectionDownPayload = {
-  serverId: string;
-  serverName?: string;
-  endpoint: string;
-  lastError: string;
-  failedSince: Date;
-};
-
-export type DockerConnectionRecoveredPayload = {
-  serverId: string;
-  serverName?: string;
-  endpoint: string;
-};
+export type {
+  DeploymentNotificationPayload,
+  DockerConnectionDownPayload,
+  DockerConnectionRecoveredPayload,
+} from './notifications-payloads.types';
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
     private readonly configService: NotificationsConfigService,
     private readonly smtp: NotificationsSmtpService,
@@ -115,7 +103,12 @@ export class NotificationsService {
   ): Promise<void> {
     const project = await this.prisma.project
       .findUnique({ where: { id: endpoint.projectId }, select: { name: true } })
-      .catch(() => null);
+      .catch((err: unknown) => {
+        this.logger.warn(
+          `Failed to resolve project name for dead-letter notification (project ${endpoint.projectId}): ${err instanceof Error ? err.message : 'unknown error'}`,
+        );
+        return null;
+      });
     const projectName = project?.name ?? endpoint.projectId;
     const deliveryId = event.externalDeliveryId ?? event.id;
     const text =

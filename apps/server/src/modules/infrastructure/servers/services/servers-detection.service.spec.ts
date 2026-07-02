@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { Server, ServerStatus } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from './servers-audit.service';
-import { ServerVerificationService } from './server-verification.service';
+import { ServersVerificationService } from './servers-verification.service';
 import { ServersConnectionService } from './servers-connection.service';
 import { ServersDetectionService } from './servers-detection.service';
 
@@ -39,7 +39,7 @@ describe('ServersDetectionService', () => {
     service = new ServersDetectionService(
       prisma as unknown as PrismaService,
       ssh as unknown as ServersConnectionService,
-      verification as unknown as ServerVerificationService,
+      verification as unknown as ServersVerificationService,
       audit as unknown as ServersAuditService,
     );
   });

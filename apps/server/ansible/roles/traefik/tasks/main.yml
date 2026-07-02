@@ -1,6 +1,9 @@
 ---
-# Pré-requis : Docker installé (rôle docker). Piloté via la CLI docker (pas de
-# dépendance au SDK Python docker côté cible). Exécuté en become (root).
+# Pré-requis : Docker installé (rôle docker). Piloté via community.docker.
+# docker_container (module idempotent : ne recrée le conteneur que si sa
+# config a changé). Nécessite le SDK Python Docker côté cible, délégué au
+# rôle commun docker_sdk (mutualisé avec postgres et redis). Exécuté en
+# become (root).
 
 - name: "traefik | Réseau Docker partagé '{{ traefik_network }}'"
   ansible.builtin.command: "docker network create {{ traefik_network }}"
@@ -29,25 +32,31 @@
     group: root
     mode: '0600' # Traefik refuse acme.json si trop permissif
 
-- name: "traefik | (Re)créer le conteneur Traefik (provider fichier + Let's Encrypt)"
-  ansible.builtin.shell:
-    cmd: |
-      set -e
-      docker rm -f traefik >/dev/null 2>&1 || true
-      docker run -d --name traefik --restart unless-stopped \
-        --network {{ traefik_network }} \
-        -p {{ traefik_http_port }}:80 -p {{ traefik_https_port }}:443 \
-        -v {{ traefik_dynamic_dir }}:/dynamic:ro \
-        -v {{ traefik_data_dir }}/acme.json:/acme.json \
-        {{ traefik_image }} \
-        --providers.file.directory=/dynamic \
-        --providers.file.watch=true \
-        --entrypoints.web.address=:80 \
-        --entrypoints.websecure.address=:443 \
-        --entrypoints.web.http.redirections.entrypoint.to=websecure \
-        --entrypoints.web.http.redirections.entrypoint.scheme=https \
-        --certificatesresolvers.le.acme.email={{ traefik_letsencrypt_email }} \
-        --certificatesresolvers.le.acme.storage=/acme.json \
-        --certificatesresolvers.le.acme.httpchallenge=true \
-        --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
-  changed_when: true
+- name: "traefik | Prérequis SDK Python Docker"
+  ansible.builtin.include_role:
+    name: docker_sdk
+
+- name: "traefik | Conteneur Traefik (idempotent, provider fichier + Let's Encrypt)"
+  community.docker.docker_container:
+    name: traefik
+    image: "{{ traefik_image }}"
+    state: started
+    restart_policy: unless-stopped
+    network_mode: "{{ traefik_network }}"
+    published_ports:
+      - "{{ traefik_http_port }}:80"
+      - "{{ traefik_https_port }}:443"
+    volumes:
+      - "{{ traefik_dynamic_dir }}:/dynamic:ro"
+      - "{{ traefik_data_dir }}/acme.json:/acme.json"
+    command:
+      - "--providers.file.directory=/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.le.acme.email={{ traefik_letsencrypt_email }}"
+      - "--certificatesresolvers.le.acme.storage=/acme.json"
+      - "--certificatesresolvers.le.acme.httpchallenge=true"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"

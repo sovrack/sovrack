@@ -106,43 +106,52 @@ export class DeploymentsLifecycleService {
       }
     }
 
-    const canceled = await this.prisma.deployment.update({
-      where: { id },
-      data: {
-        status: DeploymentStatus.CANCELED,
-        finishedAt: new Date(),
-        logs: `${deployment.logs ?? ''}\nDéploiement annulé par l'utilisateur`.trim(),
-      },
-    });
-
-    await this.prisma.container.updateMany({
-      where: { deploymentId: id },
-      data: { status: ContainerStatus.EXITED },
-    });
-
-    // If this deployment was the "live" pointer, roll it back to the last
-    // SUCCESS so the reconciler doesn't auto-heal a deliberately canceled deploy.
-    if (canceled.serviceEnvId) {
-      const svcEnv = await this.prisma.serviceEnvironment.findUnique({
-        where: { id: canceled.serviceEnvId },
-        select: { currentDeploymentId: true },
+    // Passage à CANCELED, extinction des containers, et éventuel retour du
+    // pointeur currentDeploymentId sur le dernier SUCCESS sont regroupés dans
+    // une seule transaction : soit tout est appliqué, soit rien ne l'est
+    // (pas d'état intermédiaire où le déploiement serait CANCELED sans que le
+    // pointeur ait été recalculé).
+    const canceled = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.deployment.update({
+        where: { id },
+        data: {
+          status: DeploymentStatus.CANCELED,
+          finishedAt: new Date(),
+          logs: `${deployment.logs ?? ''}\nDéploiement annulé par l'utilisateur`.trim(),
+        },
       });
-      if (svcEnv?.currentDeploymentId === canceled.id) {
-        const lastSuccess = await this.prisma.deployment.findFirst({
-          where: {
-            serviceEnvId: canceled.serviceEnvId,
-            status: DeploymentStatus.SUCCESS,
-            id: { not: canceled.id },
-          },
-          orderBy: { createdAt: 'desc' },
-          select: { id: true },
+
+      await tx.container.updateMany({
+        where: { deploymentId: id },
+        data: { status: ContainerStatus.EXITED },
+      });
+
+      // If this deployment was the "live" pointer, roll it back to the last
+      // SUCCESS so the reconciler doesn't auto-heal a deliberately canceled deploy.
+      if (updated.serviceEnvId) {
+        const svcEnv = await tx.serviceEnvironment.findUnique({
+          where: { id: updated.serviceEnvId },
+          select: { currentDeploymentId: true },
         });
-        await this.prisma.serviceEnvironment.update({
-          where: { id: canceled.serviceEnvId },
-          data: { currentDeploymentId: lastSuccess?.id ?? null },
-        });
+        if (svcEnv?.currentDeploymentId === updated.id) {
+          const lastSuccess = await tx.deployment.findFirst({
+            where: {
+              serviceEnvId: updated.serviceEnvId,
+              status: DeploymentStatus.SUCCESS,
+              id: { not: updated.id },
+            },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true },
+          });
+          await tx.serviceEnvironment.update({
+            where: { id: updated.serviceEnvId },
+            data: { currentDeploymentId: lastSuccess?.id ?? null },
+          });
+        }
       }
-    }
+
+      return updated;
+    });
 
     this.gateway.emitStatus({
       deploymentId: canceled.id,

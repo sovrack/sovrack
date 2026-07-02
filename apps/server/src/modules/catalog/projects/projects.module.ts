@@ -7,7 +7,7 @@ import { EnvironmentsModule } from '../environments/environments.module';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
 import { ProjectImportService } from './services/project-import.service';
-import { ProjectAccessModule } from '../access/project-access.module';
+import { ProjectAccessModule } from '../authorization/project-access.module';
 import { ProjectMembersService } from './services/project-members.service';
 
 /**

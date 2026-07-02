@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DeploymentStatus, Prisma, Role, ServerStatus } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { activeWhere } from '../../../shared/database/prisma-active.helper';
 
 export type DayActivity = {
   date: string;
@@ -78,10 +79,12 @@ export class DashboardService {
       ? { projectId: projectIn }
       : {};
     // Servers are platform infra: scope to those attached to the caller's
-    // projects' environments (admins see all).
-    const serverScope: Prisma.ServerWhereInput = projectIn
-      ? { environment: { projectId: projectIn } }
-      : {};
+    // projects' environments (admins see all). Archived servers are excluded
+    // from every dashboard count/list (activeWhere) — an archived VPS should
+    // not inflate "total servers" nor show up in health breakdowns.
+    const serverScope: Prisma.ServerWhereInput = activeWhere(
+      projectIn ? { environment: { projectId: projectIn } } : {},
+    );
 
     const [
       totalProjects,

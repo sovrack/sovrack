@@ -7,7 +7,7 @@ import { ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { ServiceEnvironmentsService } from './service-environments.service';
-import { ProjectAccessService } from '../access/project-access.service';
+import { ProjectAccessService } from '../authorization/project-access.service';
 
 describe('ServiceEnvironmentsService', () => {
   let prisma: {
@@ -23,7 +23,7 @@ describe('ServiceEnvironmentsService', () => {
     };
     domain: { count: jest.Mock };
   };
-  let crypto: { encrypt: jest.Mock };
+  let crypto: { encryptOptional: jest.Mock };
   let service: ServiceEnvironmentsService;
 
   const dto = { serviceId: 'svc1', environmentId: 'env1' };
@@ -55,7 +55,9 @@ describe('ServiceEnvironmentsService', () => {
       },
       domain: { count: jest.fn().mockResolvedValue(0) },
     };
-    crypto = { encrypt: jest.fn((v: string) => `enc:${v}`) };
+    crypto = {
+      encryptOptional: jest.fn((v?: string | null) => (v ? `enc:${v}` : null)),
+    };
     service = new ServiceEnvironmentsService(
       prisma as unknown as PrismaService,
       crypto as unknown as CryptoService,
@@ -70,8 +72,26 @@ describe('ServiceEnvironmentsService', () => {
       'admin',
       Role.ADMIN,
     );
-    expect(crypto.encrypt).toHaveBeenCalledWith('K=v');
+    expect(crypto.encryptOptional).toHaveBeenCalledWith('K=v');
     expect(prisma.serviceEnvironment.create).toHaveBeenCalled();
+  });
+
+  // A9 harmonization (see EXPLORATION_BACKEND_DEPENDANCES.md): overrides now
+  // use encryptOptional like ServicesService, so an explicit '' clears the
+  // secret (→ null) instead of persisting an encrypted empty string.
+  it('clears secretsEnv (→ null) when an empty string is submitted', async () => {
+    await service.link(
+      'p1',
+      { ...dto, secretsEnv: '' } as never,
+      'admin',
+      Role.ADMIN,
+    );
+    expect(crypto.encryptOptional).toHaveBeenCalledWith('');
+    expect(prisma.serviceEnvironment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ secretsEnv: null }),
+      }),
+    );
   });
 
   it('rejects linking when the service is not in the project', async () => {

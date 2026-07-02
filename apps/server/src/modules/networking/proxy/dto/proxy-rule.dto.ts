@@ -10,11 +10,13 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { IsDomainName } from '../../shared/domain-name.validator';
 
 export class CreateProxyRuleDto {
   @ApiProperty({ example: 'app.example.com' })
   @IsString()
   @IsNotEmpty()
+  @IsDomainName()
   domain: string;
 
   @ApiProperty({ example: 3000 })

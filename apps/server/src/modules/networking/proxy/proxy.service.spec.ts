@@ -1,6 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
-import { ProjectAccessService } from '../../catalog/access/project-access.service';
+import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { ProxyService } from './proxy.service';
 

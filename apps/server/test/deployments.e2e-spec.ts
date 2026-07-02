@@ -1,3 +1,22 @@
+// DeploymentPreflightService's repo+branch check (checkRepoCloneable) shells
+// out to the real `git` binary via child_process.execFile. Partial-mock only
+// execFile (jest.requireActual for everything else) so Prisma Client's own
+// platform-detection code — which needs the real child_process module at
+// import time — keeps working; a full jest.mock('child_process') here would
+// break `import { AppModule }` below.
+const execFileMock = jest.fn(
+  (
+    _file: string,
+    _args: string[],
+    _opts: unknown,
+    cb: (e: Error | null, r: { stdout: string; stderr: string }) => void,
+  ) => cb(null, { stdout: 'e2eaaaa\trefs/heads/main', stderr: '' }),
+);
+jest.mock('child_process', () => ({
+  ...jest.requireActual('child_process'),
+  execFile: execFileMock,
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DeploymentStatus } from '@prisma/client';
@@ -12,10 +31,12 @@ import { GitlabAdapter } from '../src/modules/source-providers/adapters/gitlab/g
 import { DeploymentsGateway } from '../src/modules/deployments/gateways/deployments.gateway';
 import { BuildImageService } from '../src/modules/build/lifecycle/build-image.service';
 import { CreateDeploymentDto } from '../src/modules/deployments/dto/create-deployment.dto';
+import { DockerApiService } from '../src/adapters/container-runtime/docker-api.service';
 
 import { createTestFixtures, TestFixtures } from './utils/test-fixtures';
 import {
   mockDockerDeployExecutorService,
+  mockDockerApiService,
   mockGitlabService,
 } from './utils/mocks';
 
@@ -64,6 +85,14 @@ describe('DeploymentsCreateService (e2e)', () => {
     })
       .overrideProvider(DockerDeployExecutorService)
       .useValue(dockerExecMock)
+      // DockerDeployExecutorService is fully mocked above (this spec tests
+      // create()'s dispatch logic, not actual container execution), but
+      // DeploymentPreflightService now calls ContainerLifecycleService →
+      // DockerApiService.listContainers() for real (port-conflict check,
+      // point 9) BEFORE the executor is ever reached — stub it the same way
+      // setup-e2e.ts already does for the other e2e specs.
+      .overrideProvider(DockerApiService)
+      .useValue(mockDockerApiService().useValue)
       .overrideProvider(GitlabAdapter)
       .useValue(mockGitlabService().useValue)
       .overrideProvider(BuildImageService)

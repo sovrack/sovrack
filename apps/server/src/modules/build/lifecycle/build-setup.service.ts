@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { activeWhere } from '../../../shared/database/prisma-active.helper';
 import { BuildOrchestratorService } from '../build-orchestrator.service';
 import { CreateBuildConfigDto } from '../dto/create-build-config.dto';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
@@ -79,7 +80,9 @@ export class BuildSetupService {
       throw new NotFoundException('Projet non trouvé');
     }
 
-    const where = serviceId ? { id: serviceId, projectId } : { projectId };
+    const where = activeWhere(
+      serviceId ? { id: serviceId, projectId } : { projectId },
+    );
     const services = await this.prisma.service.findMany({
       where,
       select: { id: true },
@@ -134,7 +137,7 @@ export class BuildSetupService {
     }
 
     const services = await this.prisma.service.findMany({
-      where: { projectId },
+      where: activeWhere({ projectId }),
       select: { id: true, name: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -189,60 +192,6 @@ export class BuildSetupService {
     return { results };
   }
 
-  async reconcileWebhooks(
-    projectId: string,
-    userId: string,
-    userRole: Role,
-  ): Promise<{ results: BuildPrepareServiceResult[] }> {
-    await this.buildService.assertCanConfigureBuild(
-      projectId,
-      userId,
-      userRole,
-    );
-
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      select: { id: true, name: true },
-    });
-
-    if (!project) {
-      throw new NotFoundException('Projet non trouvé');
-    }
-
-    const services = await this.prisma.service.findMany({
-      where: { projectId },
-      select: { id: true, name: true },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    const targets =
-      services.length > 0
-        ? services.map((service) => ({
-            serviceId: service.id,
-            serviceName: service.name,
-          }))
-        : [
-            {
-              serviceId: project.id,
-              serviceName: project.name,
-            },
-          ];
-
-    const results: BuildPrepareServiceResult[] = targets.map((target) => ({
-      serviceId: target.serviceId,
-      serviceName: target.serviceName,
-      status: 'SUCCESS' as const,
-      message:
-        'La configuration webhook est désormais gérée via POST /projects/:projectId/webhook/configure.',
-      dockerfileStatus: 'SKIPPED' as const,
-      dockerignoreStatus: 'SKIPPED' as const,
-      ciStatus: 'SKIPPED' as const,
-      pipelineUrl: null,
-    }));
-
-    return { results };
-  }
-
   async getBuildStatus(projectId: string): Promise<{
     projectDockerfileReady: boolean;
     projectCiReady: boolean;
@@ -277,7 +226,7 @@ export class BuildSetupService {
         },
       }),
       this.prisma.service.findMany({
-        where: { projectId },
+        where: activeWhere({ projectId }),
         orderBy: { createdAt: 'asc' },
       }),
     ]);

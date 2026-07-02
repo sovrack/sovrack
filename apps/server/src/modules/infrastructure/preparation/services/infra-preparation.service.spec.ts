@@ -11,7 +11,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from '../../servers/services/servers-audit.service';
-import { ServerVerificationService } from '../../servers/services/server-verification.service';
+import { ServersVerificationService } from '../../servers/services/servers-verification.service';
 import { ServersJobsService } from '../../servers/services/servers-jobs.service';
 import { ServerPreparationGateway } from '../gateways/server-preparation.gateway';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
@@ -83,7 +83,7 @@ function makeSvc(opts: {
     latestValidationResult: jest.fn().mockResolvedValue(
       'validation' in opts ? opts.validation : defaultValidation,
     ),
-  } as unknown as ServerVerificationService;
+  } as unknown as ServersVerificationService;
 
   const audit = {
     record: jest.fn().mockResolvedValue(undefined),

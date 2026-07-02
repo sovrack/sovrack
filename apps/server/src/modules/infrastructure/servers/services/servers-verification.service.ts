@@ -20,8 +20,8 @@ type ValidationResultInput = {
 };
 
 @Injectable()
-export class ServerVerificationService {
-  private readonly logger = new Logger(ServerVerificationService.name);
+export class ServersVerificationService {
+  private readonly logger = new Logger(ServersVerificationService.name);
 
   constructor(
     private readonly prisma: PrismaService,

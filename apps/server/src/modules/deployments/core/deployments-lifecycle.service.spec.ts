@@ -24,6 +24,7 @@ describe('DeploymentsLifecycleService', () => {
     };
     container: { findMany: jest.Mock; updateMany: jest.Mock };
     serviceEnvironment: { findUnique: jest.Mock; update: jest.Mock };
+    $transaction: jest.Mock;
   };
   let docker: { stopContainer: jest.Mock };
   let gateway: { emitStatus: jest.Mock };
@@ -61,6 +62,10 @@ describe('DeploymentsLifecycleService', () => {
         findUnique: jest.fn().mockResolvedValue({ currentDeploymentId: null }),
         update: jest.fn().mockResolvedValue({}),
       },
+      // $transaction est mocké pour exécuter le callback avec ce même mock en
+      // guise de `tx` — suffisant en test unitaire, l'atomicité réelle est
+      // garantie par Prisma en production, pas testable via ce mock.
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     docker = { stopContainer: jest.fn().mockResolvedValue(undefined) };
     gateway = { emitStatus: jest.fn() };

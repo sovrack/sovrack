@@ -16,6 +16,9 @@ const baseDeployment = {
   imageSha: null,
   isRollback: false,
   specSnapshot: null,
+  // C1: resolveTargetServerId reads this first (same field ReconcilerService
+  // uses for auto-heal) to feed DeploymentPreflightService.assertServerReady.
+  resolvedRefs: { serverId: 'srv-1' },
   observedGeneration: 1,
   startedAt: new Date(),
   finishedAt: new Date(),
@@ -65,11 +68,15 @@ function makeSvc(opts: {
     record: jest.fn().mockResolvedValue(undefined),
   } as never;
 
+  const preflight = {
+    assertServerReady: jest.fn().mockResolvedValue(undefined),
+  } as never;
+
   return {
     svc: new DeploymentsRollbackService(
-      prisma, authorizationService, queryService, gateway, deployExecutor, auditService,
+      prisma, authorizationService, queryService, gateway, deployExecutor, auditService, preflight,
     ),
-    prisma, authorizationService, queryService, gateway, deployExecutor, auditService,
+    prisma, authorizationService, queryService, gateway, deployExecutor, auditService, preflight,
   };
 }
 
@@ -142,6 +149,26 @@ describe('DeploymentsRollbackService', () => {
       const { svc } = makeSvc({ previousSuccess: null });
       await expect(svc.rollback('dep1', 'user1', Role.ADMIN, 'dep-target'))
         .rejects.toThrow('introuvable');
+    });
+
+    // C1 (Sprints 4+5+6 mission): minimal server guard before relaunching a
+    // known-working image.
+    it('asserts server readiness for the resolved target server before redeploying', async () => {
+      const { svc, preflight, deployExecutor } = makeSvc();
+      await svc.rollback('dep1', 'user1', Role.ADMIN);
+      expect(preflight.assertServerReady).toHaveBeenCalledWith('srv-1');
+      expect(deployExecutor.executeDeploy).toHaveBeenCalled();
+    });
+
+    it('does not create a rollback deployment when the target server is not ready', async () => {
+      const { svc, prisma, preflight } = makeSvc();
+      (preflight.assertServerReady as jest.Mock).mockRejectedValue(
+        new BadRequestException('Le serveur « srv-1 » est désactivé.'),
+      );
+      await expect(svc.rollback('dep1', 'user1', Role.ADMIN)).rejects.toThrow(
+        /désactivé/,
+      );
+      expect(prisma.deployment.create).not.toHaveBeenCalled();
     });
   });
 });

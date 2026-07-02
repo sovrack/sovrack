@@ -5,8 +5,9 @@ import {
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { activeWhere } from '../../../shared/database/prisma-active.helper';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
-import { ProjectAccessService } from '../access/project-access.service';
+import { ProjectAccessService } from '../authorization/project-access.service';
 import { CreateServiceEnvironmentDto } from './dto/create-service-environment.dto';
 import { UpdateServiceEnvironmentDto } from './dto/update-service-environment.dto';
 
@@ -27,8 +28,12 @@ const serviceEnvInclude = {
   },
 } satisfies Prisma.ServiceEnvironmentInclude;
 
+// secretsEnv is omitted from every read: like Environment/Service, the
+// encrypted override secrets are never returned to the client. They are only
+// decrypted at deploy time (deployment-env.service → crypto.decryptSafe).
 export type ServiceEnvWithRelations = Prisma.ServiceEnvironmentGetPayload<{
   include: typeof serviceEnvInclude;
+  omit: { secretsEnv: true };
 }>;
 
 @Injectable()
@@ -52,7 +57,7 @@ export class ServiceEnvironmentsService {
     );
 
     const service = await this.prisma.service.findFirst({
-      where: { id: dto.serviceId, projectId },
+      where: activeWhere({ id: dto.serviceId, projectId }),
     });
     if (!service) {
       throw new NotFoundException('Service non trouvé dans ce projet');
@@ -89,9 +94,11 @@ export class ServiceEnvironmentsService {
       buildPack: dto.buildPack,
       env: dto.env,
       // Encrypt secrets at rest; undefined leaves the stored value untouched.
+      // '' clears the secret (encryptOptional → null) instead of encrypting
+      // an empty string — same semantics as ServicesService.
       secretsEnv:
         dto.secretsEnv !== undefined
-          ? this.crypto.encrypt(dto.secretsEnv)
+          ? this.crypto.encryptOptional(dto.secretsEnv)
           : undefined,
     };
 
@@ -102,6 +109,7 @@ export class ServiceEnvironmentsService {
       return this.prisma.serviceEnvironment.update({
         where: { id: existing.id },
         data: { ...overrides, archivedAt: null },
+        omit: { secretsEnv: true },
         include: serviceEnvInclude,
       });
     }
@@ -112,6 +120,7 @@ export class ServiceEnvironmentsService {
         environmentId: dto.environmentId,
         ...overrides,
       },
+      omit: { secretsEnv: true },
       include: serviceEnvInclude,
     });
   }
@@ -130,6 +139,7 @@ export class ServiceEnvironmentsService {
 
     return this.prisma.serviceEnvironment.findMany({
       where: { serviceId, service: { projectId }, archivedAt: null },
+      omit: { secretsEnv: true },
       include: serviceEnvInclude,
       orderBy: { environment: { name: 'asc' } },
     });
@@ -149,6 +159,7 @@ export class ServiceEnvironmentsService {
 
     return this.prisma.serviceEnvironment.findMany({
       where: { environmentId, environment: { projectId }, archivedAt: null },
+      omit: { secretsEnv: true },
       include: serviceEnvInclude,
       orderBy: { service: { name: 'asc' } },
     });
@@ -168,6 +179,7 @@ export class ServiceEnvironmentsService {
 
     const link = await this.prisma.serviceEnvironment.findFirst({
       where: { id, service: { projectId } },
+      omit: { secretsEnv: true },
       include: serviceEnvInclude,
     });
 
@@ -211,13 +223,15 @@ export class ServiceEnvironmentsService {
         ...(dto.env !== undefined ? { env: dto.env } : {}),
         ...(dto.autoDeploy !== undefined ? { autoDeploy: dto.autoDeploy } : {}),
         ...(dto.autoBranch !== undefined ? { autoBranch: dto.autoBranch } : {}),
-        // Encrypt secrets at rest before persisting.
+        // Encrypt secrets at rest before persisting. '' clears the secret
+        // (encryptOptional → null) instead of encrypting an empty string.
         ...(dto.secretsEnv !== undefined
-          ? { secretsEnv: this.crypto.encrypt(dto.secretsEnv) }
+          ? { secretsEnv: this.crypto.encryptOptional(dto.secretsEnv) }
           : {}),
         // Tout changement d'override = nouvelle génération désirée.
         generation: { increment: 1 },
       },
+      omit: { secretsEnv: true },
       include: serviceEnvInclude,
     });
   }
@@ -258,22 +272,24 @@ export class ServiceEnvironmentsService {
     serviceId: string,
     userId: string,
     userRole: Role,
+    tx?: Prisma.TransactionClient,
   ): Promise<ServiceEnvWithRelations[]> {
     await this.projectAccess.assertCanManageProject(
       projectId,
       userId,
       userRole,
     );
+    const client = tx ?? this.prisma;
 
     // Active environments only — never link a new service to an archived env.
-    const envs = await this.prisma.environment.findMany({
+    const envs = await client.environment.findMany({
       where: { projectId, archivedAt: null },
       select: { id: true },
     });
     if (envs.length === 0) return [];
 
     // Single read of existing links instead of one findUnique per env (no N+1).
-    const existingLinks = await this.prisma.serviceEnvironment.findMany({
+    const existingLinks = await client.serviceEnvironment.findMany({
       where: { serviceId, environmentId: { in: envs.map((e) => e.id) } },
       select: { id: true, environmentId: true, archivedAt: true },
     });
@@ -282,16 +298,18 @@ export class ServiceEnvironmentsService {
     const ops = envs.map((env) => {
       const existing = linkByEnv.get(env.id);
       if (!existing) {
-        return this.prisma.serviceEnvironment.create({
+        return client.serviceEnvironment.create({
           data: { serviceId, environmentId: env.id },
+          omit: { secretsEnv: true },
           include: serviceEnvInclude,
         });
       }
       if (existing.archivedAt !== null) {
         // Réactive un lien précédemment archivé au lieu de le laisser de côté.
-        return this.prisma.serviceEnvironment.update({
+        return client.serviceEnvironment.update({
           where: { id: existing.id },
           data: { archivedAt: null },
+          omit: { secretsEnv: true },
           include: serviceEnvInclude,
         });
       }
@@ -322,7 +340,7 @@ export class ServiceEnvironmentsService {
     );
 
     const services = await this.prisma.service.findMany({
-      where: { projectId, archivedAt: null },
+      where: activeWhere({ projectId }),
       select: { id: true },
     });
     if (services.length === 0) return;

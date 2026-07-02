@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { AnsibleRunnerService } from '../../../adapters/provisioning/ansible-runner.service';
-import { ProjectAccessService } from '../../catalog/access/project-access.service';
+import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { SslCertificateService, SslCertificateRequest } from './ssl-certificate.service';
 

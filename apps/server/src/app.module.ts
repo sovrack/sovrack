@@ -44,7 +44,7 @@ import { ContainerRegistriesModule } from './modules/container-registries';
 // shared/ (technique pur) + adapters/ (I/O : docker, ssh, ansible)
 import { PrismaModule } from './shared/database/prisma.module';
 import { LoggerModule } from './shared/logger/logger.module';
-import { validateEnv } from './shared/config/env.validation';
+import { validateEnv } from './boot/env.validation';
 import { CryptoModule } from './shared/crypto/crypto.module';
 import { AnsibleModule } from './adapters/provisioning/ansible.module';
 import { DockerModule } from './adapters/container-runtime/docker.module';

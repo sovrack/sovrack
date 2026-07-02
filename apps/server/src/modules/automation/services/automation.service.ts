@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -10,8 +11,10 @@ import {
   ServerRunStepStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { activeWhere } from '../../../shared/database/prisma-active.helper';
 import { ServerRunsService } from '../../infrastructure/server-runs/server-runs.service';
 import { CreateAutomationRunDto } from '../dto/create-automation-run.dto';
+import { AutomationPaginationDto } from '../dto/automation-pagination.dto';
 import {
   AUTOMATION_ACTIONS,
   getAutomationAction,
@@ -51,6 +54,8 @@ type AutomationRunDetailRow = Prisma.ServerRunGetPayload<{
 
 @Injectable()
 export class AutomationService {
+  private readonly logger = new Logger(AutomationService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly runner: AutomationRunnerService,
@@ -61,7 +66,9 @@ export class AutomationService {
     return AUTOMATION_ACTIONS;
   }
 
-  async getRuns(page = 1, pageSize = 20) {
+  async getRuns(pagination?: AutomationPaginationDto) {
+    const page = pagination?.page ?? 1;
+    const pageSize = pagination?.pageSize ?? 20;
     const skip = (page - 1) * pageSize;
     const [items, total] = await Promise.all([
       this.prisma.serverRun.findMany({
@@ -119,7 +126,7 @@ export class AutomationService {
     }
 
     const servers = await this.prisma.server.findMany({
-      where: { id: { in: serverIds }, isActive: true },
+      where: activeWhere({ id: { in: serverIds }, isActive: true }),
       select: { id: true },
     });
 
@@ -164,6 +171,9 @@ export class AutomationService {
       })),
     });
 
+    this.logger.log(
+      `Automation run ${run.id} (${action.key}) started on ${String(serverIds.length)} server(s)`,
+    );
     this.runner.executeInBackground(run.id);
     return this.toAutomationRunShape(run);
   }
@@ -191,6 +201,7 @@ export class AutomationService {
       },
     });
     this.runner.cancel(id);
+    this.logger.warn(`Automation run ${id} canceled by administrator`);
 
     const canceledServerIds = run.steps
       .map((step) => step.serverId)
@@ -222,6 +233,7 @@ export class AutomationService {
     }
     // ServerRunStep and ServerRunLog cascade-delete with the run.
     await this.prisma.serverRun.delete({ where: { id } });
+    this.logger.log(`Automation run ${id} deleted`);
     return { deleted: true };
   }
 

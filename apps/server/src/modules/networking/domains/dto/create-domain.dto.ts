@@ -1,12 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
+import { IsDomainName } from '../../shared/domain-name.validator';
 
 export class CreateDomainDto {
   @ApiProperty({ example: 'example.com' })
   @IsString()
-  @Matches(/^[a-z0-9.-]+\.[a-z]{2,}$/i, {
-    message: 'Domaine invalide',
-  })
+  @IsDomainName()
   name!: string;
 
   @ApiPropertyOptional({ example: 'dns-provider-uuid' })

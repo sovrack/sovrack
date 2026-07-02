@@ -16,8 +16,8 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { CreateDeploymentDto } from '../dto/create-deployment.dto';
 import { DeploymentsConfigResolver } from '../query/deployments-config-resolver.service';
 import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
+import { DeploymentPreflightService } from './deployment-preflight.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
-import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 import type { PipelineItem } from '../../source-providers/contracts/git-provider.contract';
 import { BuildLifecycleService } from '../../build/lifecycle/build-lifecycle.service';
@@ -42,7 +42,7 @@ export class DeploymentsCreateService {
     private readonly gateway: DeploymentEventsPublisher,
     private readonly configResolver: DeploymentsConfigResolver,
     private readonly authorizationService: DeploymentsAuthorizationService,
-    private readonly dockerDeployExecutor: DockerDeployExecutorService,
+    private readonly preflight: DeploymentPreflightService,
     private readonly buildsService: BuildLifecycleService,
     private readonly buildStrategyResolver: BuildStrategyResolver,
     private readonly auditService: AuditService,
@@ -96,6 +96,16 @@ export class DeploymentsCreateService {
       actor.id,
       actor.role,
     );
+
+    // Garde de pré-vol bloquante (voir AUDIT_VALIDATION_DEPLOIEMENT.md) —
+    // s'exécute pour APPLICATION et DATABASE, avant toute écriture. Si elle
+    // lève, l'exception (BadRequestException/NotFoundException/
+    // ServiceUnavailableException) remonte telle quelle au contrôleur.
+    await this.preflight.assertDeployable({
+      serviceEnvId: serviceEnv.id,
+      branch: dto.branch,
+      overrideImage: dto.overrideImage,
+    });
 
     if (service.type === ServiceType.DATABASE) {
       return this.createDatabaseDeployment(

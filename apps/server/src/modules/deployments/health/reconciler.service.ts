@@ -5,6 +5,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
+import { DeploymentPreflightService } from '../core/deployment-preflight.service';
 import {
   conditionsToJson,
   containerCrashedCondition,
@@ -112,6 +113,7 @@ export class ReconcilerService {
     private readonly dockerApi: DockerApiService,
     private readonly deployExecutor: DockerDeployExecutorService,
     private readonly notifications: NotificationsService,
+    private readonly preflight: DeploymentPreflightService,
   ) {}
 
   @Cron('*/1 * * * *', { name: 'deployment-reconciler' })
@@ -248,6 +250,12 @@ export class ReconcilerService {
     this.logger.warn(
       `[Reconciler] Container ${container.name} is ${observedStatus} on server ${serverId} — auto-healing`,
     );
+
+    // Minimal server guard (C1) — don't attempt to auto-heal onto a server
+    // that's disabled/unverified/not-prepared or whose Docker circuit
+    // breaker is open. Propagates to reconcile()'s per-serviceEnv try/catch,
+    // which logs and moves on to the next candidate.
+    await this.preflight.assertServerReady(serverId);
 
     // Record the drift on the (previously SUCCESS) deployment.
     await this.prisma.deployment.update({

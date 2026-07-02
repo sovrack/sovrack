@@ -39,6 +39,7 @@ describe('ReconcilerService', () => {
     notifyAutoHeal: jest.Mock;
     notifyConfigDrift: jest.Mock;
   };
+  let preflight: { assertServerReady: jest.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -57,11 +58,13 @@ describe('ReconcilerService', () => {
       notifyAutoHeal: jest.fn().mockResolvedValue(undefined),
       notifyConfigDrift: jest.fn().mockResolvedValue(undefined),
     };
+    preflight = { assertServerReady: jest.fn().mockResolvedValue(undefined) };
     service = new ReconcilerService(
       prisma as unknown as PrismaService,
       dockerApi as unknown as DockerApiService,
       executor as unknown as DockerDeployExecutorService,
       notifications as unknown as NotificationsService,
+      preflight as never,
     );
   });
 
@@ -80,6 +83,7 @@ describe('ReconcilerService', () => {
       State: { Status: 'exited' },
     });
     await service.reconcile();
+    expect(preflight.assertServerReady).toHaveBeenCalledWith('srv1');
     expect(prisma.deployment.create).toHaveBeenCalledTimes(1);
     expect(prisma.deployment.create.mock.calls[0][0].data).toMatchObject({
       isAutoHealed: true,
@@ -88,6 +92,19 @@ describe('ReconcilerService', () => {
     });
     expect(executor.executeDeploy).toHaveBeenCalledWith('heal1', 'sha256:abc');
     expect(notifications.notifyAutoHeal).toHaveBeenCalledTimes(1);
+  });
+
+  // C1 (Sprints 4+5+6 mission): minimal server guard before auto-healing.
+  it('does not auto-heal onto a server that is not ready (guard rejects)', async () => {
+    dockerApi.inspectContainer.mockResolvedValue({
+      State: { Status: 'exited' },
+    });
+    preflight.assertServerReady.mockRejectedValue(
+      new Error('Le serveur « srv1 » est désactivé.'),
+    );
+    await expect(service.reconcile()).resolves.toBeUndefined();
+    expect(prisma.deployment.create).not.toHaveBeenCalled();
+    expect(executor.executeDeploy).not.toHaveBeenCalled();
   });
 
   it('skips when a deployment is already in flight', async () => {

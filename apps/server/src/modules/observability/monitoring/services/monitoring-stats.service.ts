@@ -5,6 +5,7 @@ import {
   ServerStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
+import { activeWhere } from '../../../../shared/database/prisma-active.helper';
 import type { MonitoringMetricSnapshot } from './monitoring-prometheus.service';
 import {
   serverHasDocker,
@@ -21,7 +22,7 @@ export class MonitoringStatsService {
     metricByHost: Map<string, MonitoringMetricSnapshot>,
   ) {
     const servers = await this.prisma.server.findMany({
-      where: { isActive: true },
+      where: activeWhere({ isActive: true }),
       orderBy: { name: 'asc' },
       take: 200,
     });

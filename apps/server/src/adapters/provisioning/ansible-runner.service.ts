@@ -11,38 +11,26 @@ import { chmod, mkdir, rm, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { redactSecrets } from '../../shared/security/redact';
+import { buildSafeSpawnEnv } from '../../shared/utils/safe-spawn-env.util';
+import type {
+  AnsibleRunInput,
+  AnsibleRunOptions,
+  AnsibleLogEvent,
+  AnsibleRunCallbacks,
+  IAnsibleRunner,
+} from './ports/ansible-runner.port';
 
-export type AnsibleRunInput = {
-  /** Short ID used in inventory host alias (first 8 chars of server id). */
-  serverId: string;
-  host: string;
-  port: number;
-  username: string;
-  /** Already-decrypted PEM private key. Never pass encrypted value. */
-  privateKey: string;
-  playbookPath: string;
-  extraVars: Record<string, unknown>;
-  strictHostKeyChecking?: string; // 'yes' | 'no' | 'accept-new' — default 'yes'
-  knownHostsPath?: string;
-};
-
-export type AnsibleRunOptions = {
-  signal: AbortSignal;
-  timeoutMs: number;
-};
-
-export type AnsibleLogEvent = {
-  level: 'info' | 'warning' | 'error';
-  source: 'stdout' | 'stderr';
-  message: string;
-};
-
-export type AnsibleRunCallbacks = {
-  onLog?: (event: AnsibleLogEvent) => void | Promise<void>;
-};
+// Types déplacés dans le port (leur contrat) ; ré-exportés ici pour la
+// rétrocompat des importeurs existants.
+export type {
+  AnsibleRunInput,
+  AnsibleRunOptions,
+  AnsibleLogEvent,
+  AnsibleRunCallbacks,
+} from './ports/ansible-runner.port';
 
 @Injectable()
-export class AnsibleRunnerService {
+export class AnsibleRunnerService implements IAnsibleRunner {
   private readonly logger = new Logger(AnsibleRunnerService.name);
 
   constructor(private readonly configService: ConfigService) {}
@@ -267,14 +255,13 @@ export class AnsibleRunnerService {
 
       proc = spawn(bin, args, {
         cwd,
-        env: {
-          ...process.env,
+        env: buildSafeSpawnEnv({
           ANSIBLE_HOST_KEY_CHECKING: 'True',
           ANSIBLE_TIMEOUT: '30',
           ANSIBLE_RETRY_FILES_ENABLED: 'False',
           ...(ansibleCfg ? { ANSIBLE_CONFIG: ansibleCfg } : {}),
           ...(context.extraEnv ?? {}),
-        },
+        }),
       });
 
       proc.stdout?.on('data', (d: Buffer) => emit('stdout', d.toString()));

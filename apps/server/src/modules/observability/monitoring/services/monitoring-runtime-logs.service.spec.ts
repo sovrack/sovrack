@@ -4,9 +4,9 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { DockerApiService } from '../../../../adapters/container-runtime/docker-api.service';
 import { MonitoringLokiService } from './monitoring-loki.service';
 import {
-  RuntimeLogsService,
+  MonitoringRuntimeLogsService,
   type RuntimeLogLine,
-} from './runtime-logs.service';
+} from './monitoring-runtime-logs.service';
 
 function makeDocker(lines: RuntimeLogLine[]) {
   return {
@@ -16,7 +16,7 @@ function makeDocker(lines: RuntimeLogLine[]) {
   };
 }
 
-describe('RuntimeLogsService', () => {
+describe('MonitoringRuntimeLogsService', () => {
   const lines: RuntimeLogLine[] = [
     { stream: 'stdout', line: 'server started on port 3000' },
     { stream: 'stderr', line: 'WARN deprecated config' },
@@ -50,7 +50,7 @@ describe('RuntimeLogsService', () => {
         entries: [],
       }),
     };
-    const service = new RuntimeLogsService(
+    const service = new MonitoringRuntimeLogsService(
       prisma as unknown as PrismaService,
       docker as unknown as DockerApiService,
       loki as unknown as MonitoringLokiService,

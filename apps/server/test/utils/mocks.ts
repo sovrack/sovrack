@@ -25,6 +25,8 @@ export function mockDockerDeployExecutorService(): {
 
 export type GitlabMockHandle = {
   triggerPipeline: jest.Mock;
+  readFile: jest.Mock;
+  resolveGitCredentials: jest.Mock;
   reset: () => void;
 };
 
@@ -42,6 +44,19 @@ export function mockGitlabService(): {
       webUrl: `https://gitlab.example.com/pipeline/${id}`,
     });
   });
+  // DeploymentPreflightService.assertDockerfileExists reads this via
+  // SourceProvidersService.forService() for DOCKERFILE_* build sources —
+  // default to "found" so pre-existing tests that aren't about the
+  // Dockerfile-existence gate keep exercising the orchestration they target.
+  const readFile = jest.fn().mockResolvedValue('FROM node:20');
+  // checkRepoCloneable (repo+branch pre-flight, for local build sources)
+  // reads this to build the `git ls-remote` command — the actual git call is
+  // stubbed at the child_process level in deployments.e2e-spec.ts, this only
+  // needs to return a plausible, non-empty credential shape.
+  const resolveGitCredentials = jest.fn().mockResolvedValue({
+    repoUrl: 'https://gitlab.example.com/e2e/repo.git',
+    token: 'e2e-token',
+  });
   return {
     provide: GitlabAdapter,
     useValue: {
@@ -49,7 +64,13 @@ export function mockGitlabService(): {
       // mock must expose it just like the real GitlabAdapter (readonly type).
       type: 'GITLAB',
       triggerPipeline,
-      reset: () => triggerPipeline.mockClear(),
+      readFile,
+      resolveGitCredentials,
+      reset: () => {
+        triggerPipeline.mockClear();
+        readFile.mockClear();
+        resolveGitCredentials.mockClear();
+      },
     } as unknown as GitlabMockHandle,
   };
 }
@@ -64,6 +85,7 @@ export type DockerApiMockHandle = {
   listContainers: jest.Mock;
   createContainer: jest.Mock;
   startContainer: jest.Mock;
+  stopContainer: jest.Mock;
   removeContainer: jest.Mock;
   inspectImage: jest.Mock;
   createVolume: jest.Mock;
@@ -87,6 +109,7 @@ export function mockDockerApiService(): {
     .fn()
     .mockResolvedValue({ id: 'container-e2e-0123456789ab' });
   const startContainer = jest.fn().mockResolvedValue(undefined);
+  const stopContainer = jest.fn().mockResolvedValue(undefined);
   const removeContainer = jest.fn().mockResolvedValue(undefined);
   const inspectImage = jest.fn().mockResolvedValue({
     Id: E2E_IMAGE_DIGEST,
@@ -109,6 +132,7 @@ export function mockDockerApiService(): {
       listContainers,
       createContainer,
       startContainer,
+      stopContainer,
       removeContainer,
       inspectImage,
       createVolume,
@@ -122,6 +146,7 @@ export function mockDockerApiService(): {
           listContainers,
           createContainer,
           startContainer,
+          stopContainer,
           removeContainer,
           inspectImage,
           createVolume,

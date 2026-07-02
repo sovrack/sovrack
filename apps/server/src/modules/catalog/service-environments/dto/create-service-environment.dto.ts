@@ -5,10 +5,12 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsJSON,
   IsNotEmpty,
   IsOptional,
   IsString,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateServiceEnvironmentDto {
@@ -75,8 +77,15 @@ export class CreateServiceEnvironmentDto {
       'Secret variables as JSON. Encrypted at rest; never returned by the API.',
     example: '{"DB_PASSWORD":"s3cr3t"}',
   })
-  @IsOptional()
-  @IsString()
+  // ValidateIf (plutôt que IsOptional) car '' est une valeur légitime ici
+  // (service-environments.service.ts l'écrit tel quel — "aucun secret" —
+  // write path dto.secretsEnv !== undefined) ; IsJSON seul rejetterait ''
+  // comme JSON invalide, ce qui casserait ce cas déjà supporté aujourd'hui.
+  @ValidateIf(
+    (o: CreateServiceEnvironmentDto) =>
+      o.secretsEnv !== undefined && o.secretsEnv !== null && o.secretsEnv !== '',
+  )
+  @IsJSON({ message: 'secretsEnv doit être un JSON valide' })
   secretsEnv?: string;
 
   @ApiPropertyOptional({

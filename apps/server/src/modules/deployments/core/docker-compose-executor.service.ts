@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { ContainerStatus, Deployment, DeploymentStatus } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
@@ -85,7 +86,7 @@ export class DockerComposeExecutorService {
       },
     });
 
-    if (!deployment) throw new BadRequestException('Déploiement non trouvé');
+    if (!deployment) throw new NotFoundException('Déploiement non trouvé');
     if (!deployment.serviceEnvId) {
       throw new BadRequestException(
         `Déploiement ${deployment.id} sans serviceEnvId — exécution impossible.`,
@@ -192,7 +193,7 @@ export class DockerComposeExecutorService {
         composePath,
       ]);
       if (upResult.code !== 0) {
-        throw new Error(
+        throw new BadRequestException(
           `docker compose up a échoué (exit ${String(upResult.code)}): ${upResult.stderr || upResult.stdout}`,
         );
       }
@@ -224,7 +225,7 @@ export class DockerComposeExecutorService {
       const unhealthy = composeServices.filter((s) => s.State !== 'running');
       if (composeServices.length === 0 || unhealthy.length > 0) {
         const names = unhealthy.map((s) => `${s.Name}(${s.State})`).join(', ');
-        throw new Error(
+        throw new BadRequestException(
           `Services compose non démarrés après ${String(COMPOSE_TIMEOUT_MS / 1000)}s: ${names || '(aucun service détecté)'}`,
         );
       }
@@ -273,42 +274,51 @@ export class DockerComposeExecutorService {
       }
 
       // ── SUCCESS ───────────────────────────────────────────────────────────
-      const finished = await this.prisma.deployment.update({
-        where: { id: deployment.id },
-        data: {
-          status: DeploymentStatus.SUCCESS,
-          conditions: toJson([
-            {
-              type: 'Ready',
-              status: 'True',
-              reason: 'ComposeDeploySucceeded',
-              message: 'Docker Compose déployé avec succès.',
-              lastTransitionAt: new Date().toISOString(),
-            },
-          ]),
-          finishedAt: new Date(),
-          logs: `${deployment.logs ?? ''}\n${commandLogs}`.trim(),
-        },
-      });
-
-      // Retire les containers de l'ancienne release (évite les fantômes RUNNING en UI).
-      const prevSvcEnv = await this.prisma.serviceEnvironment.findUnique({
-        where: { id: svcEnvId },
-        select: { currentDeploymentId: true },
-      });
-      const prevDeploymentId = prevSvcEnv?.currentDeploymentId;
-
-      await this.prisma.serviceEnvironment.update({
-        where: { id: svcEnvId },
-        data: { currentDeploymentId: finished.id },
-      });
-
-      if (prevDeploymentId && prevDeploymentId !== finished.id) {
-        await this.prisma.container.updateMany({
-          where: { deploymentId: prevDeploymentId },
-          data: { status: ContainerStatus.EXITED },
+      // Passage à SUCCESS, déplacement du pointeur currentDeploymentId, et
+      // extinction des containers de l'ancienne release sont regroupés dans
+      // une seule transaction : soit tout est appliqué, soit rien ne l'est
+      // (pas d'état intermédiaire où le déploiement serait SUCCESS sans que
+      // le pointeur ait bougé, ni de fantômes RUNNING en UI).
+      const finished = await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.deployment.update({
+          where: { id: deployment.id },
+          data: {
+            status: DeploymentStatus.SUCCESS,
+            conditions: toJson([
+              {
+                type: 'Ready',
+                status: 'True',
+                reason: 'ComposeDeploySucceeded',
+                message: 'Docker Compose déployé avec succès.',
+                lastTransitionAt: new Date().toISOString(),
+              },
+            ]),
+            finishedAt: new Date(),
+            logs: `${deployment.logs ?? ''}\n${commandLogs}`.trim(),
+          },
         });
-      }
+
+        // Retire les containers de l'ancienne release (évite les fantômes RUNNING en UI).
+        const prevSvcEnv = await tx.serviceEnvironment.findUnique({
+          where: { id: svcEnvId },
+          select: { currentDeploymentId: true },
+        });
+        const prevDeploymentId = prevSvcEnv?.currentDeploymentId;
+
+        await tx.serviceEnvironment.update({
+          where: { id: svcEnvId },
+          data: { currentDeploymentId: updated.id },
+        });
+
+        if (prevDeploymentId && prevDeploymentId !== updated.id) {
+          await tx.container.updateMany({
+            where: { deploymentId: prevDeploymentId },
+            data: { status: ContainerStatus.EXITED },
+          });
+        }
+
+        return updated;
+      });
 
       this.gateway.emitStatus({
         deploymentId: finished.id,

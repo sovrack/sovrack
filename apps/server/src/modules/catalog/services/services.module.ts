@@ -4,7 +4,8 @@ import { ServiceEnvironmentsModule } from '../service-environments/service-envir
 import { SourceProvidersModule } from '../../source-providers';
 import { ServicesController } from './services.controller';
 import { ServicesService } from './services.service';
-import { ProjectAccessModule } from '../access/project-access.module';
+import { ServiceTemplatesFactoryService } from './service-templates-factory.service';
+import { ProjectAccessModule } from '../authorization/project-access.module';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { ProjectAccessModule } from '../access/project-access.module';
     ProjectAccessModule,
   ],
   controllers: [ServicesController],
-  providers: [ServicesService],
+  providers: [ServicesService, ServiceTemplatesFactoryService],
   exports: [ServicesService],
 })
 export class ServicesModule {}

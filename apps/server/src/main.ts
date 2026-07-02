@@ -6,11 +6,11 @@ import helmet from 'helmet';
 import compression from 'compression';
 import type { Application, NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
-import { AllExceptionsFilter } from './shared/filters/http-exception.filter';
+import { AllExceptionsFilter } from './boot/http-exception.filter';
 import { LoggerService } from './shared/logger/logger.service';
-import { buildSwaggerConfig } from './shared/config/swagger';
+import { buildSwaggerConfig } from './boot/swagger';
 import { PrismaService } from './shared/database/prisma.service';
-import { BigIntSerializationInterceptor } from './shared/interceptors/bigint.interceptor';
+import { BigIntSerializationInterceptor } from './boot/bigint.interceptor';
 import { runWithLogContext } from './shared/logger/log-context';
 import {
   assertRequiredEnv,

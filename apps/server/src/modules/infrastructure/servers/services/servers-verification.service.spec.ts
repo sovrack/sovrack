@@ -1,16 +1,16 @@
 import { ServerStatus } from '@prisma/client';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../../shared/database/prisma.service';
-import { ServerVerificationService } from './server-verification.service';
+import { ServersVerificationService } from './servers-verification.service';
 
-describe('ServerVerificationService', () => {
+describe('ServersVerificationService', () => {
   let prisma: {
     server: { update: jest.Mock };
     serverValidationResult: { create: jest.Mock };
     serverLog: { create: jest.Mock };
   };
   let eventEmitter: { emit: jest.Mock };
-  let service: ServerVerificationService;
+  let service: ServersVerificationService;
 
   beforeEach(() => {
     prisma = {
@@ -25,7 +25,7 @@ describe('ServerVerificationService', () => {
       serverLog: { create: jest.fn().mockResolvedValue({}) },
     };
     eventEmitter = { emit: jest.fn() };
-    service = new ServerVerificationService(
+    service = new ServersVerificationService(
       prisma as unknown as PrismaService,
       eventEmitter as unknown as EventEmitter2,
     );
