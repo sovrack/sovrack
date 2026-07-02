@@ -8,3 +8,4 @@ dist
 .local
 *.log
 coverage
+ansible/out/
