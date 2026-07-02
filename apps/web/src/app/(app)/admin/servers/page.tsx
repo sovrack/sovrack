@@ -17,15 +17,15 @@ import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { PageHeader } from "@/shared/layout/page-header";
-import { ServerCard } from "@/features/servers/components/server-card";
-import { ServerDetailsDialog } from "@/features/servers/components/server-details-dialog";
-import { ServerLogsDialog } from "@/features/servers/components/server-logs-dialog";
-import { ServerKeyInstallDialog } from "@/features/servers/components/server-key-install-dialog";
-import { ServerPrepareDialog } from "@/features/servers/components/server-prepare-dialog";
+import { ServerCard } from "@/features/servers/components/cards/server-card";
+import { ServerDetailsDialog } from "@/features/servers/components/dialogs/server-details-dialog";
+import { ServerLogsDialog } from "@/features/servers/components/dialogs/server-logs-dialog";
+import { ServerKeyInstallDialog } from "@/features/servers/components/dialogs/server-key-install-dialog";
+import { ServerPrepareDialog } from "@/features/servers/components/dialogs/server-prepare-dialog";
 import {
   ServerUpsertDialog,
   type CreateServerOptions,
-} from "@/features/servers/components/server-upsert-dialog";
+} from "@/features/servers/components/dialogs/server-upsert-dialog";
 import { useServerActions } from "@/features/servers/api/use-server-actions";
 import { useInstalledTools } from "@/features/servers/api/use-servers";
 import { usePagination } from "@/shared/hooks/use-pagination";

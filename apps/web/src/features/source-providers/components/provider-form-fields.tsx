@@ -57,31 +57,6 @@ export function StepIndicator({
   );
 }
 
-/* ─── Field helpers ─────────────────────────────────────────────────────── */
-
-export function Field({
-  label,
-  hint,
-  required,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)]">
-        {label}
-        {required && <span className="text-red-400">*</span>}
-      </label>
-      {children}
-      {hint && <p className="text-xs text-[var(--text-muted)]">{hint}</p>}
-    </div>
-  );
-}
-
 export function TextInput({
   value,
   onChange,

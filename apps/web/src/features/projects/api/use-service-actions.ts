@@ -6,7 +6,7 @@ import { useConfirm } from "@/shared/contexts/confirm-context";
 import { useToast } from "@/shared/contexts/toast-context";
 import { servicesService } from "@/features/projects/api/services.service";
 import { deploymentsService } from "@/features/deployments";
-import { containersService } from "@/features/registry";
+import { containersService } from "@/features/platform";
 import { environmentsService } from "@/features/projects/api/environments.service";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import type { Service } from "@/features/projects/types/service";

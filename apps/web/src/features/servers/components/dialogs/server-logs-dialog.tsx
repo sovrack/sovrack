@@ -7,8 +7,8 @@ import {
   useRetryPreparation,
   useCancelPreparation,
 } from "@/features/servers/api/use-server-preparation";
-import { ServerPreparationHistory } from "@/features/servers/components/server-preparation-history";
-import { ServerPreparationLogViewer } from "@/features/servers/components/server-preparation-log-viewer";
+import { ServerPreparationHistory } from "@/features/servers/components/panels/server-preparation-history";
+import { ServerPreparationLogViewer } from "@/features/servers/components/panels/server-preparation-log-viewer";
 import type { ServerPreparation } from "@/features/servers/types/server";
 
 /**

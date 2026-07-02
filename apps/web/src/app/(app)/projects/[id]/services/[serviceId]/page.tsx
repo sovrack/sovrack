@@ -21,8 +21,8 @@ import { getApiErrorMessage } from "@/shared/lib/api";
 import { useProjectServices } from "@/features/projects/api/use-project-services";
 import { useProjectDeployments } from "@/features/projects/api/use-project-deployments";
 import { useProjectEnvironments } from "@/features/projects/api/use-project-environments";
-import { useServiceActions } from "@/features/projects/hooks/use-service-actions";
-import { DeployDialog } from "@/features/deployments/components/deploy-dialog";
+import { useServiceActions } from "@/features/projects/api/use-service-actions";
+import { DeployDialog } from "@/features/projects/components/deploy-dialog";
 import { ProjectDeploymentsTab } from "@/features/projects/components/project-deployments-tab";
 import { ServiceDeployBar } from "@/features/projects/components/tabs/service/service-deploy-bar";
 import { PageHeader } from "@/shared/layout/page-header";
@@ -38,9 +38,8 @@ import { ServiceMetricsChart } from "@/features/projects/components/tabs/service
 import { ServiceLogs } from "@/features/projects/components/tabs/service/service-logs";
 import { ServiceEnvironments } from "@/features/projects/components/tabs/service/service-environments";
 import { DeploymentLogsDialog } from "@/features/projects/components/tabs/runs/deployment-logs-dialog";
-import { DatabaseBackupsPanel } from "@/features/databases";
 import { resolveDeploymentUrl } from "@/features/deployments/utils";
-import { Field } from "@/shared/ui/field";
+import { KeyValueField } from "@/shared/ui/key-value-field";
 import type { Service } from "@/features/projects/types/service";
 import type { Deployment } from "@/features/deployments/types";
 
@@ -248,24 +247,10 @@ export default function ServiceDetailPage({
                 </div>
                 <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                   {service.port != null && (
-                    <Field k="Port" v={String(service.port)} />
+                    <KeyValueField k="Port" v={String(service.port)} />
                   )}
                 </dl>
               </SectionCard>
-
-              {/* Backups : à leur place — sur le service DATABASE, scopés à l'env
-                  sélectionné (avant : égarés dans l'onglet Environments du projet). */}
-              {(() => {
-                const dbLinkId = service.envLinks?.find(
-                  (l) => l.environmentId === effectiveEnvId,
-                )?.id;
-                return dbLinkId ? (
-                  <DatabaseBackupsPanel
-                    serviceEnvId={dbLinkId}
-                    serviceName={service.name}
-                  />
-                ) : null;
-              })()}
             </>
           ) : (
             <ServiceConfigForm

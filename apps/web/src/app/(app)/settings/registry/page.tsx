@@ -31,7 +31,7 @@ import {
   REGISTRY_TYPE_LABELS,
   type DialogMode,
   type RegistryFormState,
-} from "@/features/registry/components/registry-form";
+} from "@/features/platform/components/registry-form";
 
 function RegistryLogo({ type }: { type: RegistryProviderType }) {
   if (type === "DOCKER_HUB") {

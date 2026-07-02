@@ -1315,129 +1315,6 @@
         ]
       }
     },
-    "/admin/platform-config/gitea/providers": {
-      "get": {
-        "operationId": "SourceProvidersController_listGiteaProviders",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List Gitea providers",
-        "tags": [
-          "Git Providers (Admin)"
-        ]
-      },
-      "post": {
-        "operationId": "SourceProvidersController_createGiteaProvider",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create a Gitea provider",
-        "tags": [
-          "Git Providers (Admin)"
-        ]
-      }
-    },
-    "/admin/platform-config/gitea/providers/{id}": {
-      "put": {
-        "operationId": "SourceProvidersController_updateGiteaProvider",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a Gitea provider",
-        "tags": [
-          "Git Providers (Admin)"
-        ]
-      },
-      "delete": {
-        "operationId": "SourceProvidersController_deleteGiteaProvider",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete a Gitea provider",
-        "tags": [
-          "Git Providers (Admin)"
-        ]
-      }
-    },
-    "/admin/platform-config/gitea/providers/{id}/default": {
-      "post": {
-        "operationId": "SourceProvidersController_setDefaultGiteaProvider",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Set a default Gitea provider",
-        "tags": [
-          "Git Providers (Admin)"
-        ]
-      }
-    },
     "/source/providers": {
       "get": {
         "operationId": "SourceController_listProviders",
@@ -5039,6 +4916,9 @@
           "401": {
             "description": "Invalid or expired JWT token"
           },
+          "403": {
+            "description": "Unauthorized access to project"
+          },
           "404": {
             "description": "Service-environment link not found"
           }
@@ -5986,6 +5866,51 @@
         ]
       }
     },
+    "/monitoring/services/{serviceEnvId}/metrics/range": {
+      "get": {
+        "operationId": "MonitoringController_serviceMetricRange",
+        "parameters": [
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minutes",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "step",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Historical CPU/memory time-series for a service-environment (Prometheus range)",
+        "tags": [
+          "Monitoring"
+        ]
+      }
+    },
     "/monitoring/grafana/status": {
       "get": {
         "operationId": "MonitoringController_grafanaStatus",
@@ -6203,6 +6128,67 @@
         ]
       }
     },
+    "/runtime-logs/service/{serviceEnvId}/history": {
+      "get": {
+        "operationId": "RuntimeLogsController_searchPersistedLogs",
+        "parameters": [
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search the PERSISTED (Loki) logs of a service-environment over a time window",
+        "tags": [
+          "Observability"
+        ]
+      }
+    },
     "/containers": {
       "get": {
         "operationId": "ContainersController_findAll",
@@ -6240,6 +6226,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "List tracked containers",
         "tags": [
           "containers"
@@ -6264,6 +6255,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get a container by ID",
         "tags": [
           "containers"
@@ -6286,6 +6282,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Remove a container",
         "tags": [
           "containers"
@@ -6310,6 +6311,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Inspect a running container via Docker API",
         "tags": [
           "containers"
@@ -6334,6 +6340,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get container resource stats",
         "tags": [
           "containers"
@@ -6358,6 +6369,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Start a container",
         "tags": [
           "containers"
@@ -6382,6 +6398,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Stop a container",
         "tags": [
           "containers"
@@ -6406,6 +6427,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Restart a container",
         "tags": [
           "containers"
@@ -6430,6 +6456,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Sync containers from a Docker host",
         "tags": [
           "containers"
@@ -6963,29 +6994,17 @@
     "/proxy/rules": {
       "get": {
         "operationId": "ProxyController_findAll",
-        "parameters": [
-          {
-            "name": "serverId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceEnvId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "List proxy rules",
         "tags": [
           "proxy"
@@ -7009,6 +7028,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Create a proxy rule",
         "tags": [
           "proxy"
@@ -7033,6 +7057,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get a proxy rule by ID",
         "tags": [
           "proxy"
@@ -7065,6 +7094,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Update a proxy rule",
         "tags": [
           "proxy"
@@ -7087,6 +7121,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Delete a proxy rule",
         "tags": [
           "proxy"
@@ -7111,6 +7150,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Toggle rule active/inactive",
         "tags": [
           "proxy"
@@ -7602,194 +7646,6 @@
         ],
         "tags": [
           "SSL"
-        ]
-      }
-    },
-    "/service-environments/{serviceEnvId}/backups": {
-      "get": {
-        "operationId": "DatabaseBackupsController_list",
-        "parameters": [
-          {
-            "name": "serviceEnvId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List a database's backups",
-        "tags": [
-          "Database Backups"
-        ]
-      },
-      "post": {
-        "operationId": "DatabaseBackupsController_create",
-        "parameters": [
-          {
-            "name": "serviceEnvId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Trigger a manual backup",
-        "tags": [
-          "Database Backups"
-        ]
-      }
-    },
-    "/service-environments/{serviceEnvId}/backups/{backupId}/restore": {
-      "post": {
-        "operationId": "DatabaseBackupsController_restore",
-        "parameters": [
-          {
-            "name": "backupId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Restore a backup into the running database",
-        "tags": [
-          "Database Backups"
-        ]
-      }
-    },
-    "/projects/{projectId}/previews": {
-      "get": {
-        "operationId": "PreviewEnvironmentsController_list",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List active preview environments",
-        "tags": [
-          "Preview Environments"
-        ]
-      },
-      "post": {
-        "operationId": "PreviewEnvironmentsController_open",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OpenPreviewDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Ouvrir un environnement de preview pour une merge request",
-        "tags": [
-          "Preview Environments"
-        ]
-      }
-    },
-    "/projects/{projectId}/previews/{mergeRequestId}": {
-      "delete": {
-        "operationId": "PreviewEnvironmentsController_close",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "mergeRequestId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Close (destroy) a preview environment",
-        "tags": [
-          "Preview Environments"
         ]
       }
     }
@@ -8347,6 +8203,11 @@
             "type": "string",
             "example": "environment-uuid"
           },
+          "serverId": {
+            "type": "string",
+            "example": "server-uuid",
+            "description": "Serveur cible explicite de ce service-env (sinon : 1er serveur de l’environnement)."
+          },
           "branch": {
             "type": "string",
             "example": "develop"
@@ -8416,6 +8277,11 @@
           "environmentId": {
             "type": "string",
             "example": "environment-uuid"
+          },
+          "serverId": {
+            "type": "string",
+            "example": "server-uuid",
+            "description": "Serveur cible explicite de ce service-env (sinon : 1er serveur de l’environnement)."
           },
           "branch": {
             "type": "string",
@@ -10531,6 +10397,7 @@
               "security_hardening",
               "install_monitoring",
               "install_monitoring_stack",
+              "install_loki",
               "install_prometheus_grafana",
               "configure_swap",
               "enable_ssl",
@@ -10931,6 +10798,7 @@
           "port": {
             "type": "number",
             "minimum": 1,
+            "maximum": 65535,
             "example": 3000
           },
           "startCommand": {
@@ -10987,6 +10855,11 @@
           "env": {
             "type": "string",
             "example": "{\"NODE_ENV\":\"production\"}"
+          },
+          "secretsEnv": {
+            "type": "string",
+            "description": "Service-level default secrets as a JSON string (encrypted at rest, AES-256-GCM). Base layer of the secret hierarchy, overridden by Environment and ServiceEnvironment secrets at deploy time. Never returned in clear — responses expose only secretsEnvKeys.",
+            "example": "{\"API_KEY\":\"s3cr3t\"}"
           },
           "healthcheckPath": {
             "type": "string",
@@ -11144,6 +11017,7 @@
           "port": {
             "type": "number",
             "minimum": 1,
+            "maximum": 65535,
             "example": 3000
           },
           "startCommand": {
@@ -11200,6 +11074,11 @@
           "env": {
             "type": "string",
             "example": "{\"NODE_ENV\":\"production\"}"
+          },
+          "secretsEnv": {
+            "type": "string",
+            "description": "Service-level default secrets as a JSON string (encrypted at rest, AES-256-GCM). Base layer of the secret hierarchy, overridden by Environment and ServiceEnvironment secrets at deploy time. Never returned in clear — responses expose only secretsEnvKeys.",
+            "example": "{\"API_KEY\":\"s3cr3t\"}"
           },
           "healthcheckPath": {
             "type": "string",
@@ -11264,21 +11143,6 @@
             "example": 20
           }
         }
-      },
-      "OpenPreviewDto": {
-        "type": "object",
-        "properties": {
-          "mergeRequestId": {
-            "type": "string"
-          },
-          "branch": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "mergeRequestId",
-          "branch"
-        ]
       }
     }
   }

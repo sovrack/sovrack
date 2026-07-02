@@ -27,7 +27,7 @@ import { getApiErrorMessage } from "@/shared/lib/api";
 import { DeploymentStatusBadge } from "@/features/deployments/components/deployment-status-badge";
 import { DeploymentLogsDialog } from "@/features/projects/components/tabs/runs/deployment-logs-dialog";
 import { DeploymentContainerDialog } from "@/features/deployments/components/deployment-container-dialog";
-import { DeployDialog } from "@/features/deployments";
+import { DeployDialog } from "@/features/projects";
 import {
   resolveDeploymentUrl,
   timeAgo,

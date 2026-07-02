@@ -12,7 +12,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import clsx from "clsx";
-import { DeployDialog } from "@/features/deployments";
+import { DeployDialog } from "./deploy-dialog";
 import type { ProjectListItem } from "@/features/projects/types/project";
 
 type ProjectCardProps = {

@@ -11,6 +11,7 @@ export * from "./api/use-project-source";
 export * from "./api/use-projects";
 export * from "./components/add-member-modal";
 export * from "./components/add-service-wizard";
+export * from "./components/deploy-dialog";
 export * from "./components/members-list";
 export * from "./components/project-card";
 export * from "./components/project-deployments-tab";

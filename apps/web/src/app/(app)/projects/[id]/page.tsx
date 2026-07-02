@@ -23,7 +23,7 @@ import { ProjectEnvironmentsTab } from "@/features/projects/components/project-e
 import { ServicesList } from "@/features/projects/components/tabs/service/services-list";
 import { AddServiceWizard } from "@/features/projects/components/add-service-wizard";
 import { ProjectMembersTab } from "@/features/projects/components/project-members-tab";
-import { DeployDialog } from "@/features/deployments/components/deploy-dialog";
+import { DeployDialog } from "@/features/projects/components/deploy-dialog";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { projectsService } from "@/features/projects/api/projects.service";
 
@@ -248,7 +248,11 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           onAddMember={members.handleAddMember}
           onRemoveMember={members.handleRemoveMember}
           onAddTeam={members.handleAddTeam}
-          onDeleteProject={isOwner ? handleDelete : undefined}
+          /* Suppression de projet réservée ADMIN côté backend
+             (projects.controller.ts: @Roles(Role.ADMIN)) — un OWNER de
+             projet non-ADMIN ne doit pas voir ce bouton (il recevrait
+             systématiquement une 403 au clic). */
+          onDeleteProject={isAdmin ? handleDelete : undefined}
           deleteLoading={deleteLoading}
         />
       </Modal>

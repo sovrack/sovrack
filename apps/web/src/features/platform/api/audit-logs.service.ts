@@ -1,5 +1,9 @@
 import api from "@/shared/lib/api";
-import type { AuditLogPage } from "@/features/platform/types/audit-log";
+import type { AuditLogItem, AuditLogPage } from "@/features/platform/types/audit-log";
+import {
+  normalizeDataPagination,
+  type PaginatedResponse,
+} from "@/shared/types/pagination";
 
 type AuditLogsQuery = {
   page?: number;
@@ -7,10 +11,12 @@ type AuditLogsQuery = {
 };
 
 export const auditLogsService = {
-  async getAll(query: AuditLogsQuery = {}): Promise<AuditLogPage> {
+  async getAll(
+    query: AuditLogsQuery = {},
+  ): Promise<PaginatedResponse<AuditLogItem>> {
     const res = await api.get<AuditLogPage>("/admin/audit-logs", {
       params: query,
     });
-    return res.data;
+    return normalizeDataPagination(res.data);
   },
 };

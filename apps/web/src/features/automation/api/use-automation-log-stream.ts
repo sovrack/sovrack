@@ -17,9 +17,9 @@ type UseAutomationLogStreamOptions = {
 
 export function useAutomationLogStream({
   runId,
-  onLog,
-  onStatus,
-  onFinished,
+  onLog: onLogProp,
+  onStatus: onStatusProp,
+  onFinished: onFinishedProp,
 }: UseAutomationLogStreamOptions) {
   useEffect(() => {
     const wsBase = resolveWsBaseUrl();
@@ -33,23 +33,31 @@ export function useAutomationLogStream({
       withCredentials: true,
     });
 
-    socket.on("connect", () => {
+    const onConnect = () => {
       socket.emit("join:automation-run", { runId });
-    });
+    };
+    const onLog = (log: AutomationRunLog) => onLogProp(log);
+    const onStatus = (payload: { status: string }) => {
+      onStatusProp?.(payload.status);
+    };
+    const onFinished = (payload: {
+      status: string;
+      errorMessage?: string | null;
+    }) => {
+      onFinishedProp?.(payload);
+    };
 
-    socket.on("automation:log", (log: AutomationRunLog) => onLog(log));
-    socket.on("automation:status", (payload: { status: string }) => {
-      onStatus?.(payload.status);
-    });
-    socket.on(
-      "automation:finished",
-      (payload: { status: string; errorMessage?: string | null }) => {
-        onFinished?.(payload);
-      },
-    );
+    socket.on("connect", onConnect);
+    socket.on("automation:log", onLog);
+    socket.on("automation:status", onStatus);
+    socket.on("automation:finished", onFinished);
 
     return () => {
+      socket.off("connect", onConnect);
+      socket.off("automation:log", onLog);
+      socket.off("automation:status", onStatus);
+      socket.off("automation:finished", onFinished);
       socket.disconnect();
     };
-  }, [onFinished, onLog, onStatus, runId]);
+  }, [onFinishedProp, onLogProp, onStatusProp, runId]);
 }

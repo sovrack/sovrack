@@ -21,7 +21,7 @@ import {
   createValuesFromServer,
   type ServerFormValues,
   type ServerFormErrors,
-} from "./server-form.validation";
+} from "../forms/server-form.validation";
 
 type DialogMode = "create" | "edit";
 

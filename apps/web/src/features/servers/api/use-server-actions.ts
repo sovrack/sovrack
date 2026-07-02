@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useReducer, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/shared/contexts/toast-context";
 import { getApiErrorMessage } from "@/shared/lib/api";
@@ -23,27 +23,131 @@ import type {
   UpdateServerPayload,
 } from "@/features/servers/types/server";
 
+/* ─── State + reducer ──────────────────────────────────────────────────────
+ * The 12 pieces of local state (verifyingId, detectingId, preparingId,
+ * installingKeyId, deletingId, updatingId, creating, loadingJobsByServer,
+ * jobsByServer, retryingJobId, cancelingJobId, prepareDrafts) were
+ * previously 12 independent useState calls. Consolidated into one
+ * ServerActionsState + a reducer. The single-id fields (verifyingId etc.)
+ * deliberately stay individual nullable-id fields rather than a shared
+ * Record<id, action> map: they already behave as "one global slot per
+ * action type" in the original code (a second concurrent call on a
+ * different id silently overwrites the first), and merging them into a
+ * shared map would change that observable behavior. The hook's returned
+ * API is unchanged so all consumers (admin/servers/page.tsx and children)
+ * need no changes. */
+
+type ServerActionsState = {
+  verifyingId: string | null;
+  detectingId: string | null;
+  preparingId: string | null;
+  installingKeyId: string | null;
+  deletingId: string | null;
+  updatingId: string | null;
+  creating: boolean;
+  loadingJobsByServer: Record<string, boolean>;
+  jobsByServer: Record<string, ServerJob[]>;
+  retryingJobId: string | null;
+  cancelingJobId: string | null;
+  prepareDrafts: Record<string, PrepareServerPayload>;
+};
+
+const initialState: ServerActionsState = {
+  verifyingId: null,
+  detectingId: null,
+  preparingId: null,
+  installingKeyId: null,
+  deletingId: null,
+  updatingId: null,
+  creating: false,
+  loadingJobsByServer: {},
+  jobsByServer: {},
+  retryingJobId: null,
+  cancelingJobId: null,
+  prepareDrafts: {},
+};
+
+type SetFieldAction = {
+  [K in keyof ServerActionsState]: {
+    type: "SET_FIELD";
+    field: K;
+    value: ServerActionsState[K];
+  };
+}[keyof ServerActionsState];
+
+type ServerActionsReducerAction =
+  | SetFieldAction
+  | { type: "SET_LOADING_JOBS_FOR_SERVER"; serverId: string; loading: boolean }
+  | { type: "SET_JOBS_FOR_SERVER"; serverId: string; jobs: ServerJob[] }
+  | { type: "REMOVE_JOBS_FOR_SERVER"; serverId: string }
+  | { type: "SET_PREPARE_DRAFT"; serverId: string; draft: PrepareServerPayload }
+  | { type: "CLEAR_PREPARE_DRAFT"; serverId: string };
+
+function serverActionsReducer(
+  state: ServerActionsState,
+  action: ServerActionsReducerAction,
+): ServerActionsState {
+  switch (action.type) {
+    case "SET_FIELD":
+      return { ...state, [action.field]: action.value };
+    case "SET_LOADING_JOBS_FOR_SERVER":
+      return {
+        ...state,
+        loadingJobsByServer: {
+          ...state.loadingJobsByServer,
+          [action.serverId]: action.loading,
+        },
+      };
+    case "SET_JOBS_FOR_SERVER":
+      return {
+        ...state,
+        jobsByServer: { ...state.jobsByServer, [action.serverId]: action.jobs },
+      };
+    case "REMOVE_JOBS_FOR_SERVER": {
+      const next = { ...state.jobsByServer };
+      delete next[action.serverId];
+      return { ...state, jobsByServer: next };
+    }
+    case "SET_PREPARE_DRAFT":
+      return {
+        ...state,
+        prepareDrafts: { ...state.prepareDrafts, [action.serverId]: action.draft },
+      };
+    case "CLEAR_PREPARE_DRAFT": {
+      const next = { ...state.prepareDrafts };
+      delete next[action.serverId];
+      return { ...state, prepareDrafts: next };
+    }
+    default:
+      return state;
+  }
+}
+
 export function useServerActions() {
   const queryClient = useQueryClient();
+  const [state, dispatch] = useReducer(serverActionsReducer, initialState);
+  const {
+    verifyingId,
+    detectingId,
+    preparingId,
+    installingKeyId,
+    deletingId,
+    updatingId,
+    creating,
+    loadingJobsByServer,
+    jobsByServer,
+    retryingJobId,
+    cancelingJobId,
+    prepareDrafts,
+  } = state;
 
-  const [verifyingId, setVerifyingId] = useState<string | null>(null);
-  const [detectingId, setDetectingId] = useState<string | null>(null);
-  const [preparingId, setPreparingId] = useState<string | null>(null);
-  const [installingKeyId, setInstallingKeyId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [loadingJobsByServer, setLoadingJobsByServer] = useState<
-    Record<string, boolean>
-  >({});
-  const [jobsByServer, setJobsByServer] = useState<Record<string, ServerJob[]>>(
-    {},
+  const setField = useCallback(
+    <K extends keyof ServerActionsState>(field: K, value: ServerActionsState[K]) => {
+      dispatch({ type: "SET_FIELD", field, value } as SetFieldAction);
+    },
+    [],
   );
-  const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
-  const [cancelingJobId, setCancelingJobId] = useState<string | null>(null);
-  const [prepareDrafts, setPrepareDrafts] = useState<
-    Record<string, PrepareServerPayload>
-  >({});
+
   const showToast = useToast();
 
   /**
@@ -83,7 +187,7 @@ export function useServerActions() {
               ) {
                 showToast(`${formatJobType(prev.type)} failed`, "error");
               }
-              setJobsByServer((cur) => ({ ...cur, [serverId]: jobs }));
+              dispatch({ type: "SET_JOBS_FOR_SERVER", serverId, jobs });
             })
             .catch(() => {});
         }
@@ -115,14 +219,14 @@ export function useServerActions() {
   }, [queryClient]);
 
   const refreshJobs = async (serverId: string) => {
-    setLoadingJobsByServer((prev) => ({ ...prev, [serverId]: true }));
+    dispatch({ type: "SET_LOADING_JOBS_FOR_SERVER", serverId, loading: true });
     try {
       const jobs = await serversService.getJobs(serverId);
-      setJobsByServer((prev) => ({ ...prev, [serverId]: jobs }));
+      dispatch({ type: "SET_JOBS_FOR_SERVER", serverId, jobs });
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
     } finally {
-      setLoadingJobsByServer((prev) => ({ ...prev, [serverId]: false }));
+      dispatch({ type: "SET_LOADING_JOBS_FOR_SERVER", serverId, loading: false });
     }
   };
 
@@ -140,25 +244,19 @@ export function useServerActions() {
     value: boolean | string | string[],
   ) => {
     const current = getPrepareOptions(server);
-    setPrepareDrafts((prev) => ({
-      ...prev,
-      [server.id]: {
-        ...current,
-        [field]: value,
-      },
-    }));
-  };
-
-  const clearPrepareDraft = (serverId: string) => {
-    setPrepareDrafts((prev) => {
-      const next = { ...prev };
-      delete next[serverId];
-      return next;
+    dispatch({
+      type: "SET_PREPARE_DRAFT",
+      serverId: server.id,
+      draft: { ...current, [field]: value },
     });
   };
 
+  const clearPrepareDraft = (serverId: string) => {
+    dispatch({ type: "CLEAR_PREPARE_DRAFT", serverId });
+  };
+
   const handleCreate = async (payload: CreateServerPayload) => {
-    setCreating(true);
+    setField("creating", true);
     try {
       const created = await serversService.create(payload);
       await fetchServers();
@@ -168,12 +266,12 @@ export function useServerActions() {
       showToast(getApiErrorMessage(err), "error");
       throw err;
     } finally {
-      setCreating(false);
+      setField("creating", false);
     }
   };
 
   const handleUpdate = async (id: string, payload: UpdateServerPayload) => {
-    setUpdatingId(id);
+    setField("updatingId", id);
     try {
       await serversService.update(id, payload);
       await fetchServers();
@@ -182,12 +280,12 @@ export function useServerActions() {
       showToast(getApiErrorMessage(err), "error");
       throw err;
     } finally {
-      setUpdatingId(null);
+      setField("updatingId", null);
     }
   };
 
   const handleVerify = async (id: string) => {
-    setVerifyingId(id);
+    setField("verifyingId", id);
     try {
       await serversService.verify(id);
       showToast("SSH validation started", "success");
@@ -196,12 +294,12 @@ export function useServerActions() {
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
     } finally {
-      setVerifyingId(null);
+      setField("verifyingId", null);
     }
   };
 
   const handleDetect = async (id: string) => {
-    setDetectingId(id);
+    setField("detectingId", id);
     try {
       await serversService.detect(id);
       showToast("Server information detected", "success");
@@ -209,13 +307,13 @@ export function useServerActions() {
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
     } finally {
-      setDetectingId(null);
+      setField("detectingId", null);
     }
   };
 
   const handlePrepare = async (server: ServerType) => {
     const payload = getPrepareOptions(server);
-    setPreparingId(server.id);
+    setField("preparingId", server.id);
     try {
       await serversService.prepare(server.id, payload);
       showToast("Preparation started", "success");
@@ -225,12 +323,12 @@ export function useServerActions() {
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
     } finally {
-      setPreparingId(null);
+      setField("preparingId", null);
     }
   };
 
   const handleInstallKey = async (serverId: string, password: string) => {
-    setInstallingKeyId(serverId);
+    setField("installingKeyId", serverId);
     try {
       const result = await serversService.installKey(serverId, { password });
       await fetchServers();
@@ -240,31 +338,27 @@ export function useServerActions() {
       showToast(getApiErrorMessage(err), "error");
       throw err;
     } finally {
-      setInstallingKeyId(null);
+      setField("installingKeyId", null);
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    setDeletingId(id);
+    setField("deletingId", id);
     try {
       await serversService.remove(id);
       await fetchServers();
-      setJobsByServer((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
+      dispatch({ type: "REMOVE_JOBS_FOR_SERVER", serverId: id });
       showToast(`Server "${name}" deleted`, "success");
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
       throw err;
     } finally {
-      setDeletingId(null);
+      setField("deletingId", null);
     }
   };
 
   const handleRetryJob = async (serverId: string, jobId: string) => {
-    setRetryingJobId(jobId);
+    setField("retryingJobId", jobId);
     try {
       await serversService.retryJob(serverId, jobId);
       await fetchServers();
@@ -273,12 +367,12 @@ export function useServerActions() {
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
     } finally {
-      setRetryingJobId(null);
+      setField("retryingJobId", null);
     }
   };
 
   const handleCancelJob = async (serverId: string, jobId: string) => {
-    setCancelingJobId(jobId);
+    setField("cancelingJobId", jobId);
     try {
       await serversService.cancelJob(serverId, jobId);
       showToast("Job canceled — the server is available again", "success");
@@ -287,7 +381,7 @@ export function useServerActions() {
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
     } finally {
-      setCancelingJobId(null);
+      setField("cancelingJobId", null);
     }
   };
 

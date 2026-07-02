@@ -3,9 +3,12 @@
 // jamais depuis ses fichiers internes (frontière enforced en Phase 4).
 
 // Composants
+// NOTE: DeployDialog vit désormais dans features/projects/components/
+// (résolution du cycle projects<->deployments, voir mission Sprints 4+5+6 B9)
+// — il dépendait de projects/ (Environment, Service, hooks) mais aucun
+// fichier de deployments/ ne dépend de projects/, donc c'est lui qui bouge.
 export { DeploymentStatusBadge } from "./components/deployment-status-badge";
 export { DeploymentContainerDialog } from "./components/deployment-container-dialog";
-export { DeployDialog } from "./components/deploy-dialog";
 export { EnvVariablesPreview } from "./components/env-variables-preview";
 
 // Data layer (service + hooks React Query)

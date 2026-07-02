@@ -7,8 +7,8 @@ import { Modal } from "@/shared/ui/modal";
 import {
   ServerOverallStatusBadge,
   ServerWorkflowBadges,
-} from "@/features/servers/components/server-status-badges";
-import { ServerJobsPanel } from "@/features/servers/components/server-jobs-panel";
+} from "@/features/servers/components/shared/server-status-badges";
+import { ServerJobsPanel } from "@/features/servers/components/panels/server-jobs-panel";
 import type { Server, ServerJob } from "@/features/servers/types/server";
 
 type ServerDetailsDialogProps = {

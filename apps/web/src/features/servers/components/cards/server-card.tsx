@@ -1,7 +1,7 @@
 import { CheckCircle, Server } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
-import { ServerStatusBadge } from "@/features/servers/components/server-status-badges";
-import { ServerActions } from "@/features/servers/components/server-actions";
+import { ServerStatusBadge } from "@/features/servers/components/shared/server-status-badges";
+import { ServerActions } from "@/features/servers/components/shared/server-actions";
 import type { Server as ServerType } from "@/features/servers/types/server";
 
 type ServerCardProps = {

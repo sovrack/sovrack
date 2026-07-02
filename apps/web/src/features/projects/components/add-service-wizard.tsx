@@ -26,7 +26,7 @@ import {
   type AppMode,
   type Step,
 } from "./add-service-wizard.catalog";
-import { useAddServiceWizard } from "@/features/projects/hooks/use-add-service-wizard";
+import { useAddServiceWizard } from "@/features/projects/api/use-add-service-wizard";
 
 type Props = {
   projectId: string;

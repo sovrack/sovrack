@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { projectsService } from "@/features/projects/api/projects.service";
 import { getApiErrorMessage } from "@/shared/lib/api";
+import { FormField } from "@/shared/ui/form-field";
 import type { ProjectDetail } from "@/features/projects/types/project";
 
 /* ─── Step indicator ────────────────────────────────────────────────────── */
@@ -68,31 +69,6 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
-/* ─── Field helpers ─────────────────────────────────────────────────────── */
-
-function Field({
-  label,
-  hint,
-  required,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)]">
-        {label}
-        {required && <span className="text-red-400">*</span>}
-      </label>
-      {children}
-      {hint && <p className="text-[11px] text-[var(--text-muted)]">{hint}</p>}
-    </div>
-  );
-}
-
 function Input({
   value,
   onChange,
@@ -142,14 +118,14 @@ function Step1({
           — vous ajouterez vos applications et leurs sources Git ensuite.
         </p>
       </div>
-      <Field label="Nom du projet" required>
+      <FormField label="Nom du projet" required>
         <Input
           value={state.name}
           onChange={(v) => setState({ name: v })}
           placeholder="mon-projet-api"
         />
-      </Field>
-      <Field
+      </FormField>
+      <FormField
         label="Description"
         hint="Optional — helps your team understand the project's purpose."
       >
@@ -160,7 +136,7 @@ function Step1({
           rows={3}
           className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] transition focus:border-[var(--text-secondary)] resize-none"
         />
-      </Field>
+      </FormField>
 
       <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
         <p className="text-xs font-semibold text-blue-400">

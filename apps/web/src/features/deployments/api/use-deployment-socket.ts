@@ -11,9 +11,8 @@ import type {
   DeploymentLogReplayEvent,
   DeploymentStatus,
   DeploymentStatusEvent,
-  LogLevel,
-  LogLine,
 } from "@/features/deployments/types";
+import type { LogLevel, LogLine } from "@/shared/types/log-line";
 
 type UseDeploymentSocketOptions = {
   deploymentId: string;

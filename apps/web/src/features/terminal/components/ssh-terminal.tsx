@@ -14,7 +14,13 @@ type Props = {
   onClose?: () => void;
 };
 
-type ConnectionState = "idle" | "connecting" | "connected" | "error" | "closed";
+type ConnectionState =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "error"
+  | "closed";
 
 async function fetchWsToken(): Promise<string | null> {
   try {
@@ -112,6 +118,9 @@ export function SshTerminal({ serverId, onClose }: Props) {
         transports: ["websocket"],
         withCredentials: true,
         auth: { token: wsToken },
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
       });
 
       socketRef.current = socket;
@@ -119,6 +128,24 @@ export function SshTerminal({ serverId, onClose }: Props) {
       socket.on("connect", () => {
         const { cols, rows } = term;
         socket.emit("terminal:connect", { serverId, cols, rows });
+      });
+
+      // Événements de reconnexion (émis par le Manager socket.io, pas le
+      // socket lui-même) : affiche un état distinct "Reconnexion..." plutôt
+      // que de laisser l'utilisateur croire que le terminal est figé.
+      socket.io.on("reconnect_attempt", () => {
+        setState("reconnecting");
+        term.writeln("\r\n\x1b[33mReconnecting...\x1b[0m");
+      });
+
+      socket.io.on("reconnect", () => {
+        term.writeln("\r\n\x1b[32mReconnected.\x1b[0m");
+      });
+
+      socket.io.on("reconnect_failed", () => {
+        setState("error");
+        setErrorMsg("Reconnection failed");
+        term.writeln("\r\n\x1b[31m✗ Reconnection failed.\x1b[0m");
       });
 
       socket.on("terminal:ready", () => {
@@ -168,6 +195,12 @@ export function SshTerminal({ serverId, onClose }: Props) {
     return () => {
       cancelled = true;
       window.removeEventListener("resize", onResize);
+      // Retire tous les listeners (socket + Manager de reconnexion) avant de
+      // couper — évite l'accumulation de handlers si ce composant venait à
+      // être remonté (même pattern que le fix de fuite mémoire des flux
+      // automation/preparation).
+      socketRef.current?.removeAllListeners();
+      socketRef.current?.io.removeAllListeners();
       socketRef.current?.disconnect();
       socketRef.current = null;
       term.dispose();
@@ -183,7 +216,7 @@ export function SshTerminal({ serverId, onClose }: Props) {
             className={`h-2.5 w-2.5 rounded-full ${
               state === "connected"
                 ? "bg-green-400"
-                : state === "connecting"
+                : state === "connecting" || state === "reconnecting"
                   ? "animate-pulse bg-yellow-400"
                   : state === "error"
                     ? "bg-red-400"
@@ -195,9 +228,11 @@ export function SshTerminal({ serverId, onClose }: Props) {
               ? "Connected"
               : state === "connecting"
                 ? "Connecting..."
-                : state === "error"
-                  ? `Error${errorMsg ? `: ${errorMsg}` : ""}`
-                  : "Closed"}
+                : state === "reconnecting"
+                  ? "Reconnecting..."
+                  : state === "error"
+                    ? `Error${errorMsg ? `: ${errorMsg}` : ""}`
+                    : "Closed"}
           </span>
         </div>
         <button

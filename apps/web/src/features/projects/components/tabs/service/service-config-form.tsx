@@ -50,7 +50,6 @@ export function ServiceConfigForm({
   onSaved: () => void;
 }) {
   const [branch, setBranch] = useState(service.branch ?? "");
-  const [rootDir, setRootDir] = useState(service.rootDir ?? "/");
   const [buildPack, setBuildPack] = useState<BuildPack>(
     service.buildPack ?? "DOCKERFILE",
   );
@@ -138,7 +137,6 @@ export function ServiceConfigForm({
     try {
       const payload: UpdateServicePayload = {
         branch: branch.trim() || undefined,
-        rootDir: rootDir.trim() || undefined,
         buildPack,
         buildMode: buildMode as UpdateServicePayload["buildMode"],
         deployTrigger: deployTrigger as UpdateServicePayload["deployTrigger"],
@@ -263,18 +261,6 @@ export function ServiceConfigForm({
                 <option key={b} value={b} />
               ))}
             </datalist>
-          </div>
-          <div>
-            <label className={labelClass} htmlFor="svc-rootdir">
-              Root directory
-            </label>
-            <input
-              id="svc-rootdir"
-              className={`${inputClass} font-mono`}
-              value={rootDir}
-              placeholder="/"
-              onChange={(e) => setRootDir(e.target.value)}
-            />
           </div>
         </dl>
       </SectionCard>

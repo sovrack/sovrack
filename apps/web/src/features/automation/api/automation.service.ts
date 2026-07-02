@@ -6,6 +6,7 @@ import type {
   AutomationRunsListResponse,
   CreateAutomationRunPayload,
 } from "@/features/automation/types/automation";
+import type { PaginatedResponse } from "@/shared/types/pagination";
 
 export const automationService = {
   async getActions(): Promise<AutomationAction[]> {
@@ -13,11 +14,21 @@ export const automationService = {
     return res.data;
   },
 
-  async getRuns(page = 1, pageSize = 20): Promise<AutomationRunsListResponse> {
+  async getRuns(
+    page = 1,
+    pageSize = 20,
+  ): Promise<PaginatedResponse<AutomationRun>> {
     const res = await api.get<AutomationRunsListResponse>("/automation/runs", {
       params: { page, pageSize },
     });
-    return res.data;
+    const raw = res.data;
+    return {
+      items: raw.items,
+      page: raw.page,
+      pageSize: raw.pageSize,
+      total: raw.total,
+      totalPages: raw.pageSize > 0 ? Math.ceil(raw.total / raw.pageSize) : 1,
+    };
   },
 
   async getRun(id: string): Promise<AutomationRun> {

@@ -6,17 +6,6 @@ import { Rocket, GitBranch, Server, Shield, Zap } from "lucide-react";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { getApiErrorMessage } from "@/shared/lib/api";
 
-const TEST_CREDENTIALS = {
-  admin: {
-    email: process.env.NEXT_PUBLIC_TEST_ADMIN_EMAIL ?? "",
-    password: process.env.NEXT_PUBLIC_TEST_ADMIN_PASSWORD ?? "",
-  },
-  developer: {
-    email: process.env.NEXT_PUBLIC_TEST_DEV_EMAIL ?? "",
-    password: process.env.NEXT_PUBLIC_TEST_DEV_PASSWORD ?? "",
-  },
-} as const;
-
 const FEATURES = [
   {
     icon: Rocket,
@@ -52,14 +41,6 @@ export function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const fillTest = (role: "admin" | "developer") => {
-    const creds = TEST_CREDENTIALS[role];
-    if (!creds.email) return;
-    setError("");
-    setEmail(creds.email);
-    setPassword(creds.password);
-  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -144,33 +125,6 @@ export function LoginScreen() {
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
-
-          {(TEST_CREDENTIALS.admin.email ||
-            TEST_CREDENTIALS.developer.email) && (
-            <div className="mt-6 space-y-2">
-              <p className="text-center text-xs font-medium text-gray-400">
-                Quick access (dev only)
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => fillTest("admin")}
-                  className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
-                >
-                  Admin Test
-                </button>
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => fillTest("developer")}
-                  className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
-                >
-                  Developer Test
-                </button>
-              </div>
-            </div>
-          )}
 
           <p className="mt-6 text-center text-xs text-gray-400">
             NestJS 11 · Next.js 15 · Ansible · GitLab CI

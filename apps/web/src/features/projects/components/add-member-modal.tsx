@@ -75,10 +75,14 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
 
       <form id="add-member-form" onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+          <label
+            htmlFor="add-member-email"
+            className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]"
+          >
             Email <span className="text-red-400">*</span>
           </label>
           <input
+            id="add-member-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -90,10 +94,14 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+          <label
+            htmlFor="add-member-role"
+            className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]"
+          >
             Role
           </label>
           <select
+            id="add-member-role"
             value={role}
             onChange={(e) => setRole(e.target.value as ProjectRole)}
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)]/10 focus:ring-2 focus:ring-zinc-500/20"

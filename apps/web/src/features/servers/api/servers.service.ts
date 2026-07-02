@@ -20,35 +20,32 @@ import type {
   UpdateServerPayload,
   VerifyServerResult,
 } from "@/features/servers/types/server";
-
-type PaginatedApiResponse<T> = {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-};
+import type { RawDataPaginatedResponse } from "@/shared/types/pagination";
 
 type ListParams = {
   page?: number;
   limit?: number;
 };
 
+// getAll/getJobs deliberately discard pagination metadata and return a flat
+// array — no consumer needs page/total/limit for these lists today (unlike
+// automation/audit-logs, which unify via shared/types/pagination.ts's
+// PaginatedResponse<T>). This guard only recognizes the shared raw shape.
 function isPaginatedResponse<T>(
   value: unknown,
-): value is PaginatedApiResponse<T> {
+): value is RawDataPaginatedResponse<T> {
   if (!value || typeof value !== "object") {
     return false;
   }
 
-  return Array.isArray((value as PaginatedApiResponse<T>).data);
+  return Array.isArray((value as RawDataPaginatedResponse<T>).data);
 }
 
 export type PrepareServerPayload = StartServerPreparationPayload;
 
 export const serversService = {
   async getAll(params?: ListParams): Promise<Server[]> {
-    const res = await api.get<PaginatedApiResponse<Server> | Server[]>(
+    const res = await api.get<RawDataPaginatedResponse<Server> | Server[]>(
       "/servers",
       {
         params,
@@ -155,7 +152,7 @@ export const serversService = {
   },
 
   async getJobs(id: string, params?: ListParams): Promise<ServerJob[]> {
-    const res = await api.get<ServerJob[] | PaginatedApiResponse<ServerJob>>(
+    const res = await api.get<ServerJob[] | RawDataPaginatedResponse<ServerJob>>(
       `/servers/${id}/jobs`,
       { params },
     );

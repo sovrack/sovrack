@@ -11,17 +11,17 @@ import {
   formatPreparationBlockingReason,
   ServerOverallStatusBadge,
   ServerWorkflowBadges,
-} from "@/features/servers/components/server-status-badges";
-import { ServerValidationCard } from "@/features/servers/components/server-validation-card";
-import { ServerCapabilitiesCard } from "@/features/servers/components/server-capabilities-card";
-import { InstalledToolsList } from "@/features/servers/components/installed-tools-list";
-import { ServerPreparationHistory } from "@/features/servers/components/server-preparation-history";
-import { ServerPreparationLogViewer } from "@/features/servers/components/server-preparation-log-viewer";
+} from "@/features/servers/components/shared/server-status-badges";
+import { ServerValidationCard } from "@/features/servers/components/cards/server-validation-card";
+import { ServerCapabilitiesCard } from "@/features/servers/components/cards/server-capabilities-card";
+import { InstalledToolsList } from "@/features/servers/components/panels/installed-tools-list";
+import { ServerPreparationHistory } from "@/features/servers/components/panels/server-preparation-history";
+import { ServerPreparationLogViewer } from "@/features/servers/components/panels/server-preparation-log-viewer";
 import {
   ServerPrepareDialog,
   type PrepareOptions,
-} from "@/features/servers/components/server-prepare-dialog";
-import { ServerAuditTimeline } from "@/features/servers/components/server-audit-timeline";
+} from "@/features/servers/components/dialogs/server-prepare-dialog";
+import { ServerAuditTimeline } from "@/features/servers/components/panels/server-audit-timeline";
 import {
   useCancelPreparation,
   useDetectServerInfo,

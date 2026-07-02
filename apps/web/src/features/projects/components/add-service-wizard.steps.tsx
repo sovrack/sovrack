@@ -9,7 +9,7 @@ import {
   type AppMode,
 } from "./add-service-wizard.catalog";
 import type { ManagedServiceType, ServiceTemplate } from "@/features/projects/types/service";
-import type { UseAddServiceWizardReturn } from "@/features/projects/hooks/use-add-service-wizard";
+import type { UseAddServiceWizardReturn } from "@/features/projects/api/use-add-service-wizard";
 
 /* ─── Step 2: DATABASE ─────────────────────────────────────────────────── */
 

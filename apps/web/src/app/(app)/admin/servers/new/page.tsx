@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Copy, KeyRound, Loader2 } from "lucide-react";
 import { PageHeader } from "@/shared/layout/page-header";
 import { SectionCard } from "@/shared/layout/section-card";
-import { ServerForm } from "@/features/servers/components/server-form";
+import { ServerForm } from "@/features/servers/components/forms/server-form";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { serversService } from "@/features/servers/api/servers.service";
 import type {

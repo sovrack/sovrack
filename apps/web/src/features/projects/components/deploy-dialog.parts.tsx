@@ -2,7 +2,7 @@
 
 import { AlertTriangle, CheckCircle2, Layers, Loader2 } from "lucide-react";
 import Link from "next/link";
-import type { DeployValidationResult } from "@/features/deployments/types";
+import type { DeployValidationResult } from "@/features/deployments";
 import type { Environment, Service } from "@/features/projects";
 
 /* ─── ValidationIssue type (shared with deploy-dialog.tsx) ─────────────── */

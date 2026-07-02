@@ -2,12 +2,8 @@
 
 import { Check, Copy, Key, Shield } from "lucide-react";
 import type { ProviderType } from "./provider-meta";
-import {
-  Collapsible,
-  Field,
-  SecretInput,
-  TextInput,
-} from "./provider-form-fields";
+import { Collapsible, SecretInput, TextInput } from "./provider-form-fields";
+import { FormField } from "@/shared/ui/form-field";
 
 export type ProviderCredentialsStepProps = {
   providerType: ProviderType;
@@ -100,7 +96,7 @@ export function ProviderCredentialsStep({
             )}
           </div>
 
-          <Field
+          <FormField
             label="Redirect URI"
             hint="Copy this URL into your GitLab OAuth Application redirect URI field."
           >
@@ -122,17 +118,17 @@ export function ProviderCredentialsStep({
                 )}
               </button>
             </div>
-          </Field>
+          </FormField>
 
-          <Field label="Application ID">
+          <FormField label="Application ID">
             <TextInput
               value={applicationId}
               onChange={onApplicationIdChange}
               placeholder="GitLab Application ID"
             />
-          </Field>
+          </FormField>
 
-          <Field label="Application Secret">
+          <FormField label="Application Secret">
             <SecretInput
               value={applicationSecret}
               onChange={onApplicationSecretChange}
@@ -140,10 +136,10 @@ export function ProviderCredentialsStep({
               alreadySet={isEdit && applicationSecretConfigured}
               label="Application Secret"
             />
-          </Field>
+          </FormField>
 
           <Collapsible title="Group restrictions (optional)">
-            <Field
+            <FormField
               label="Allowed Groups"
               hint="Comma-separated GitLab group paths. Leave empty to allow all."
             >
@@ -152,7 +148,7 @@ export function ProviderCredentialsStep({
                 onChange={onGroupNamesChange}
                 placeholder="company, company/team"
               />
-            </Field>
+            </FormField>
           </Collapsible>
         </div>
       )}
@@ -197,7 +193,7 @@ export function ProviderCredentialsStep({
             </p>
           </div>
 
-          <Field label={tokenLabel}>
+          <FormField label={tokenLabel}>
             <SecretInput
               value={adminToken}
               onChange={onAdminTokenChange}
@@ -207,7 +203,7 @@ export function ProviderCredentialsStep({
               alreadySet={isEdit && adminTokenConfigured}
               label={tokenLabel}
             />
-          </Field>
+          </FormField>
         </div>
       )}
     </div>

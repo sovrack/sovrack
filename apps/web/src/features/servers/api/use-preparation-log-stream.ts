@@ -17,9 +17,9 @@ type UsePreparationLogStreamOptions = {
 
 export function usePreparationLogStream({
   preparationId,
-  onLog,
-  onStatus,
-  onFinished,
+  onLog: onLogProp,
+  onStatus: onStatusProp,
+  onFinished: onFinishedProp,
 }: UsePreparationLogStreamOptions) {
   useEffect(() => {
     const wsBase = resolveWsBaseUrl();
@@ -33,23 +33,31 @@ export function usePreparationLogStream({
       withCredentials: true,
     });
 
-    socket.on("connect", () => {
+    const onConnect = () => {
       socket.emit("join:preparation", { preparationId });
-    });
+    };
+    const onLog = (log: ServerPreparationLog) => onLogProp(log);
+    const onStatus = (payload: { status: string }) => {
+      onStatusProp?.(payload.status);
+    };
+    const onFinished = (payload: {
+      status: string;
+      errorMessage?: string | null;
+    }) => {
+      onFinishedProp?.(payload);
+    };
 
-    socket.on("preparation:log", (log: ServerPreparationLog) => onLog(log));
-    socket.on("preparation:status", (payload: { status: string }) => {
-      onStatus?.(payload.status);
-    });
-    socket.on(
-      "preparation:finished",
-      (payload: { status: string; errorMessage?: string | null }) => {
-        onFinished?.(payload);
-      },
-    );
+    socket.on("connect", onConnect);
+    socket.on("preparation:log", onLog);
+    socket.on("preparation:status", onStatus);
+    socket.on("preparation:finished", onFinished);
 
     return () => {
+      socket.off("connect", onConnect);
+      socket.off("preparation:log", onLog);
+      socket.off("preparation:status", onStatus);
+      socket.off("preparation:finished", onFinished);
       socket.disconnect();
     };
-  }, [onFinished, onLog, onStatus, preparationId]);
+  }, [onFinishedProp, onLogProp, onStatusProp, preparationId]);
 }

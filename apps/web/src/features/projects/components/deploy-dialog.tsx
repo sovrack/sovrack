@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { EnvVariablesPreview } from "./env-variables-preview";
 import {
   CheckCircle2,
   Loader2,
@@ -11,11 +10,11 @@ import {
   DeployValidationPanel,
   DeployEnvironmentSelector,
   DeployServiceSelector,
-  type ValidationIssue,
 } from "./deploy-dialog.parts";
 import { Modal } from "@/shared/ui/modal";
 import { Button } from "@/shared/ui/button";
-import { deploymentsService } from "@/features/deployments/api/deployments.service";
+import { deploymentsService, EnvVariablesPreview } from "@/features/deployments";
+import { useDeployValidation } from "@/features/projects/api/use-deploy-validation";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import {
   useProjectEnvironments,
@@ -24,10 +23,7 @@ import {
 import { useToast } from "@/shared/contexts/toast-context";
 import type { Environment } from "@/features/projects";
 import type { Service } from "@/features/projects";
-import type {
-  BuildSource,
-  DeployValidationResult,
-} from "@/features/deployments/types";
+import type { BuildSource } from "@/features/deployments";
 
 type Props = {
   projectId: string;
@@ -100,12 +96,6 @@ export function DeployDialog({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const [validation, setValidation] = useState<DeployValidationResult | null>(
-    null,
-  );
-  const [validating, setValidating] = useState(false);
-  const [validateError, setValidateError] = useState<string | null>(null);
-
   const primaryEnvId = envIds[0] ?? "";
   const currentEnv = environments.find((e) => e.id === primaryEnvId);
 
@@ -153,85 +143,22 @@ export function DeployDialog({
     if (!open) {
       setError(null);
       setSuccess(false);
-      setValidation(null);
-      setValidateError(null);
       setEnvIds([]);
     }
   }, [open]);
 
-  // Derive validation issues from loaded data.
-  const checkBuildReady = (svc: Service | undefined) => {
-    if (!svc) return { hasSource: false, hasBuildConfig: false };
-    if (svc.type === "DATABASE" || svc.sourceType === "DOCKER_IMAGE") {
-      return { hasSource: true, hasBuildConfig: true };
-    }
-    const src = !!(svc.repoPath || svc.repoUrl);
-    return { hasSource: src, hasBuildConfig: src && !!svc.buildPack };
-  };
-
-  const issues = useMemo<ValidationIssue[]>(() => {
-    if (loading) return [];
-    const svc = services.find((s) => s.id === selectedServiceId) ?? services[0];
-    const { hasSource: src, hasBuildConfig: buildReady } = checkBuildReady(svc);
-    const svcConfigHref = svc
-      ? `/projects/${projectId}/services/${svc.id}`
-      : `/projects/${projectId}`;
-    const detected: ValidationIssue[] = [];
-    if (services.length > 0 && !src)
-      detected.push({
-        type: "no-source",
-        message: `${svc?.name ?? "Service"}: no Git source configured.`,
-        href: svcConfigHref,
-      });
-    if (services.length > 0 && !buildReady)
-      detected.push({
-        type: "no-build-config",
-        message: `${svc?.name ?? "Service"}: build pack not configured.`,
-        href: svcConfigHref,
-      });
-    if (environments.length === 0)
-      detected.push({
-        type: "no-environment",
-        message: "No environment configured.",
-        href: `/projects/${projectId}?tab=environments`,
-      });
-    return detected;
-  }, [loading, services, selectedServiceId, environments, projectId]);
-
-  useEffect(() => {
-    if (
-      !open ||
-      loading ||
-      issues.some((i) => i.type === "no-environment") ||
-      !primaryEnvId
-    ) {
-      setValidation(null);
-      return;
-    }
-
-    let cancelled = false;
-    setValidating(true);
-    setValidateError(null);
-
-    deploymentsService
-      .validate(projectId, primaryEnvId, effectiveBuildSource)
-      .then((result) => {
-        if (!cancelled) setValidation(result);
-      })
-      .catch((err) => {
-        if (!cancelled) setValidateError(getApiErrorMessage(err));
-      })
-      .finally(() => {
-        if (!cancelled) setValidating(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // Intentionally omit effectiveBuildSource and issues from deps:
-    // re-validating on every derived-value change would trigger excessive API calls.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, loading, primaryEnvId, projectId]);
+  // Pre-submission validation (client-side issues + server-side check) —
+  // extracted into its own hook, see use-deploy-validation.ts.
+  const { issues, validation, validating, validateError } = useDeployValidation({
+    projectId,
+    open,
+    loading,
+    services,
+    selectedServiceId,
+    environments,
+    primaryEnvId,
+    effectiveBuildSource,
+  });
 
   const handleSubmit = async () => {
     if (envIds.length === 0) {

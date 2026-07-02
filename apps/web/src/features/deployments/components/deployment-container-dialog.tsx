@@ -14,7 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { monitoringService, type ContainerInfo } from "@/features/monitoring";
-import { containersService, type ContainerRecord } from "@/features/registry";
+import { containersService, type ContainerRecord } from "@/features/platform";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { CONTAINER_STATUS_COLOR } from "@/features/deployments/utils";
 

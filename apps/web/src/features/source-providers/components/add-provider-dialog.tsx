@@ -1,29 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import clsx from "clsx";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import type {
   CreateGitlabProviderPayload,
   GitlabProvider,
   UpdateGitlabProviderPayload,
 } from "@/features/platform";
-import {
-  PROVIDER_META,
-  ProviderLogo,
-  type ProviderType,
-} from "./provider-meta";
+import { PROVIDER_META, type ProviderType } from "./provider-meta";
 import { ProviderCredentialsStep } from "./provider-credentials-step";
+import { StepIndicator, type AuthChoice } from "./provider-form-fields";
 import {
-  AuthMethodCard,
-  Collapsible,
-  Field,
-  StepIndicator,
-  TextInput,
-  Toggle,
-  type AuthChoice,
-} from "./provider-form-fields";
+  ProviderTypeStep,
+  InstanceConfigStep,
+  AuthMethodStep,
+} from "./add-provider-dialog.steps";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 
@@ -271,161 +263,33 @@ export function AddProviderDialog({
 
           {/* ── STEP 1: Provider type ── */}
           {step === 1 && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-                  Select Provider
-                </p>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  Choose the Git platform for this integration.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {(["GITLAB", "GITHUB"] as ProviderType[]).map(
-                  (type) => {
-                    const meta = PROVIDER_META[type];
-                    const active = selectedType === type && meta.available;
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => meta.available && setSelectedType(type)}
-                        disabled={!meta.available}
-                        className={clsx(
-                          "relative flex flex-col items-center gap-2.5 rounded-xl border p-4 text-center transition",
-                          active
-                            ? "border-[var(--text-primary)] bg-[var(--hover)]"
-                            : meta.available
-                              ? "border-[var(--border)] hover:border-[var(--text-secondary)] hover:bg-[var(--hover)]"
-                              : "cursor-not-allowed border-[var(--border)] opacity-50",
-                        )}
-                      >
-                        <div
-                          className={clsx(
-                            "flex h-10 w-10 items-center justify-center rounded-xl border",
-                            meta.bgColor,
-                            meta.borderColor,
-                          )}
-                        >
-                          <ProviderLogo
-                            type={type}
-                            className={clsx("h-5 w-5", meta.color)}
-                          />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-[var(--text-primary)]">
-                            {meta.label}
-                          </p>
-                          <p className="text-[10px] text-[var(--text-muted)]">
-                            {meta.tagline}
-                          </p>
-                        </div>
-                        {!meta.available && (
-                          <span className="absolute right-2 top-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-400">
-                            {meta.badge ?? "Soon"}
-                          </span>
-                        )}
-                        {meta.available && meta.badge && !active && (
-                          <span className="absolute right-2 top-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-teal-400">
-                            {meta.badge}
-                          </span>
-                        )}
-                        {active && (
-                          <CheckCircle2
-                            size={14}
-                            className="absolute right-2 top-2 text-green-400"
-                          />
-                        )}
-                      </button>
-                    );
-                  },
-                )}
-              </div>
-            </div>
+            <ProviderTypeStep
+              selectedType={selectedType}
+              onSelectType={setSelectedType}
+            />
           )}
 
           {/* ── STEP 2: Instance configuration ── */}
           {step === 2 && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-                  Instance Configuration
-                </p>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  Configure the provider name and instance URL.
-                </p>
-              </div>
-
-              <Field label="Provider Name" required>
-                <TextInput
-                  value={form.name}
-                  onChange={(v) => set("name", v)}
-                  placeholder="e.g. GitLab Cloud, Company GitLab"
-                />
-              </Field>
-
-              <Field
-                label={`${PROVIDER_META[selectedType]?.label ?? "Git"} URL`}
-                required
-                hint={
-                  selectedType === "GITHUB"
-                    ? "Use https://github.com for GitHub.com, or your GitHub Enterprise URL."
-                    : "Use https://gitlab.com for the cloud version, or your self-hosted instance URL."
-                }
-              >
-                <TextInput
-                  value={form.providerUrl}
-                  onChange={(v) => set("providerUrl", v)}
-                  placeholder="https://gitlab.com"
-                />
-              </Field>
-
-              <Collapsible title="Advanced instance options">
-                <Field
-                  label="Internal URL"
-                  hint="Optional internal URL for Vaytek-to-GitLab communication (behind a firewall)."
-                >
-                  <TextInput
-                    value={form.internalUrl}
-                    onChange={(v) => set("internalUrl", v)}
-                    placeholder="https://gitlab.internal.company.com"
-                  />
-                </Field>
-              </Collapsible>
-
-              <Toggle
-                value={form.isDefault}
-                onChange={(v) => set("isDefault", v)}
-                label="Set as default provider"
-                hint="Projects will use this provider by default when connecting a repository."
-              />
-            </div>
+            <InstanceConfigStep
+              selectedType={selectedType}
+              name={form.name}
+              providerUrl={form.providerUrl}
+              internalUrl={form.internalUrl}
+              isDefault={form.isDefault}
+              onNameChange={(v) => set("name", v)}
+              onProviderUrlChange={(v) => set("providerUrl", v)}
+              onInternalUrlChange={(v) => set("internalUrl", v)}
+              onIsDefaultChange={(v) => set("isDefault", v)}
+            />
           )}
 
           {/* ── STEP 3: Auth method ── */}
           {step === 3 && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-                  Authentication Method
-                </p>
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  Choose how Vaytek authenticates with this provider.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                {(["oauth", "pat", "both"] as AuthChoice[]).map((choice) => (
-                  <AuthMethodCard
-                    key={choice}
-                    choice={choice}
-                    selected={authChoice === choice}
-                    onSelect={() => setAuthChoice(choice)}
-                  />
-                ))}
-              </div>
-            </div>
+            <AuthMethodStep
+              authChoice={authChoice}
+              onSelectAuthChoice={setAuthChoice}
+            />
           )}
 
           {/* ── STEP 4: Configure credentials ── */}

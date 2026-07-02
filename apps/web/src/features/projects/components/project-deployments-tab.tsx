@@ -16,7 +16,7 @@ import type {
 } from "@/features/deployments/types";
 import { deploymentsService } from "@/features/deployments";
 import { getApiErrorMessage } from "@/shared/lib/api";
-import { DeployDialog } from "@/features/deployments";
+import { DeployDialog } from "./deploy-dialog";
 import { useToast } from "@/shared/contexts/toast-context";
 import { DeploymentRow } from "./deployment-row";
 

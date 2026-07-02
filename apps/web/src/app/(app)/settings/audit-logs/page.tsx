@@ -43,7 +43,7 @@ export default function AuditLogsSettingsPage() {
     refetchOnWindowFocus: false,
   });
 
-  const rows = useMemo<AuditLogItem[]>(() => data?.data ?? [], [data]);
+  const rows = useMemo<AuditLogItem[]>(() => data?.items ?? [], [data]);
 
   if (!isAdmin) {
     return (

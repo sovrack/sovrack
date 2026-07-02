@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Check, Copy, Expand, Minimize2, TerminalSquare } from "lucide-react";
-import type { LogLine } from "@/features/deployments/types";
+import type { LogLine } from "@/shared/types/log-line";
 
 type LogTerminalProps = {
   logs: LogLine[];

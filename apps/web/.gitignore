@@ -7,6 +7,9 @@ dist
 .env.local
 .env.*.local
 
+# any local-override file (config, compose, etc.)
+*.local
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
