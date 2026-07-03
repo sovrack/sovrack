@@ -2057,6 +2057,417 @@
         ]
       }
     },
+    "/webhooks/incoming/{webhookToken}": {
+      "post": {
+        "operationId": "IncomingWebhookController_handle",
+        "parameters": [
+          {
+            "name": "webhookToken",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Webhooks (Incoming)"
+        ]
+      }
+    },
+    "/projects/{id}/webhooks/endpoints": {
+      "get": {
+        "operationId": "WebhookAuditController_listEndpoints",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{id}/webhooks/events": {
+      "get": {
+        "operationId": "WebhookAuditController_listEvents",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{id}/webhooks/events/{eventId}": {
+      "get": {
+        "operationId": "WebhookAuditController_getEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{id}/webhooks/events/{eventId}/replay": {
+      "post": {
+        "operationId": "WebhookAuditController_replayEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{id}/webhooks/endpoints/{endpointId}/enabled": {
+      "patch": {
+        "operationId": "WebhookAuditController_setEnabled",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endpointId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{projectId}/webhook/configure": {
+      "post": {
+        "operationId": "WebhookManagementController_configure",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{projectId}/webhook/status": {
+      "get": {
+        "operationId": "WebhookManagementController_status",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{projectId}/webhook/pause": {
+      "post": {
+        "operationId": "WebhookManagementController_pause",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{projectId}/webhook/resume": {
+      "post": {
+        "operationId": "WebhookManagementController_resume",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/notifications/settings": {
+      "get": {
+        "operationId": "NotificationsController_getSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the notification settings",
+        "tags": [
+          "Notifications"
+        ]
+      },
+      "put": {
+        "operationId": "NotificationsController_saveSettings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the notification settings",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
     "/projects": {
       "post": {
         "operationId": "ProjectsController_create",
@@ -2955,417 +3366,6 @@
         "summary": "Delete a service-environment link",
         "tags": [
           "ServiceEnvironments"
-        ]
-      }
-    },
-    "/webhooks/incoming/{webhookToken}": {
-      "post": {
-        "operationId": "IncomingWebhookController_handle",
-        "parameters": [
-          {
-            "name": "webhookToken",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Webhooks (Incoming)"
-        ]
-      }
-    },
-    "/projects/{id}/webhooks/endpoints": {
-      "get": {
-        "operationId": "WebhookAuditController_listEndpoints",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{id}/webhooks/events": {
-      "get": {
-        "operationId": "WebhookAuditController_listEvents",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{id}/webhooks/events/{eventId}": {
-      "get": {
-        "operationId": "WebhookAuditController_getEvent",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{id}/webhooks/events/{eventId}/replay": {
-      "post": {
-        "operationId": "WebhookAuditController_replayEvent",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{id}/webhooks/endpoints/{endpointId}/enabled": {
-      "patch": {
-        "operationId": "WebhookAuditController_setEnabled",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "endpointId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{projectId}/webhook/configure": {
-      "post": {
-        "operationId": "WebhookManagementController_configure",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceEnvId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{projectId}/webhook/status": {
-      "get": {
-        "operationId": "WebhookManagementController_status",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceEnvId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{projectId}/webhook/pause": {
-      "post": {
-        "operationId": "WebhookManagementController_pause",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceEnvId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{projectId}/webhook/resume": {
-      "post": {
-        "operationId": "WebhookManagementController_resume",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceEnvId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/notifications/settings": {
-      "get": {
-        "operationId": "NotificationsController_getSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get the notification settings",
-        "tags": [
-          "Notifications"
-        ]
-      },
-      "put": {
-        "operationId": "NotificationsController_saveSettings",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateNotificationSettingsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Save the notification settings",
-        "tags": [
-          "Notifications"
         ]
       }
     },
@@ -5546,18 +5546,23 @@
         "parameters": [
           {
             "name": "page",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
-              "type": "string"
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
             }
           },
           {
             "name": "pageSize",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
-              "type": "string"
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20,
+              "type": "number"
             }
           }
         ],
@@ -6217,6 +6222,15 @@
             "in": "query",
             "schema": {
               "example": "dep_xxx",
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceEnvId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "senv_xxx",
               "type": "string"
             }
           }
@@ -7986,6 +8000,38 @@
           "value"
         ]
       },
+      "UpdateNotificationSettingsDto": {
+        "type": "object",
+        "properties": {
+          "slackWebhookUrl": {
+            "type": "string"
+          },
+          "notifyOnSuccess": {
+            "type": "boolean"
+          },
+          "notifyOnFailure": {
+            "type": "boolean"
+          },
+          "smtpHost": {
+            "type": "string"
+          },
+          "smtpPort": {
+            "type": "number"
+          },
+          "smtpUser": {
+            "type": "string"
+          },
+          "smtpPass": {
+            "type": "string"
+          },
+          "smtpFrom": {
+            "type": "string"
+          },
+          "smtpTo": {
+            "type": "string"
+          }
+        }
+      },
       "CreateProjectDto": {
         "type": "object",
         "properties": {
@@ -8164,6 +8210,7 @@
           },
           "secretsEnv": {
             "type": "string",
+            "format": "json",
             "description": "Secrets JSON (chiffrés au repos)",
             "example": "{\"DB_PASSWORD\":\"...\"}"
           }
@@ -8187,6 +8234,7 @@
           },
           "secretsEnv": {
             "type": "string",
+            "format": "json",
             "description": "Secrets JSON (chiffrés au repos)",
             "example": "{\"DB_PASSWORD\":\"...\"}"
           }
@@ -8248,6 +8296,7 @@
           },
           "secretsEnv": {
             "type": "string",
+            "format": "json",
             "description": "Secret variables as JSON. Encrypted at rest; never returned by the API.",
             "example": "{\"DB_PASSWORD\":\"s3cr3t\"}"
           },
@@ -8323,6 +8372,7 @@
           },
           "secretsEnv": {
             "type": "string",
+            "format": "json",
             "description": "Secret variables as JSON. Encrypted at rest; never returned by the API.",
             "example": "{\"DB_PASSWORD\":\"s3cr3t\"}"
           },
@@ -8335,38 +8385,6 @@
             "type": "string",
             "description": "Branche déclenchant le déploiement auto.",
             "example": "main"
-          }
-        }
-      },
-      "UpdateNotificationSettingsDto": {
-        "type": "object",
-        "properties": {
-          "slackWebhookUrl": {
-            "type": "string"
-          },
-          "notifyOnSuccess": {
-            "type": "boolean"
-          },
-          "notifyOnFailure": {
-            "type": "boolean"
-          },
-          "smtpHost": {
-            "type": "string"
-          },
-          "smtpPort": {
-            "type": "number"
-          },
-          "smtpUser": {
-            "type": "string"
-          },
-          "smtpPass": {
-            "type": "string"
-          },
-          "smtpFrom": {
-            "type": "string"
-          },
-          "smtpTo": {
-            "type": "string"
           }
         }
       },
@@ -10480,7 +10498,6 @@
         "properties": {
           "name": {
             "type": "string",
-            "pattern": "^[a-z0-9.-]+\\.[a-z]{2,}$",
             "example": "example.com"
           },
           "providerId": {
@@ -10858,6 +10875,7 @@
           },
           "secretsEnv": {
             "type": "string",
+            "format": "json",
             "description": "Service-level default secrets as a JSON string (encrypted at rest, AES-256-GCM). Base layer of the secret hierarchy, overridden by Environment and ServiceEnvironment secrets at deploy time. Never returned in clear — responses expose only secretsEnvKeys.",
             "example": "{\"API_KEY\":\"s3cr3t\"}"
           },
@@ -11077,6 +11095,7 @@
           },
           "secretsEnv": {
             "type": "string",
+            "format": "json",
             "description": "Service-level default secrets as a JSON string (encrypted at rest, AES-256-GCM). Base layer of the secret hierarchy, overridden by Environment and ServiceEnvironment secrets at deploy time. Never returned in clear — responses expose only secretsEnvKeys.",
             "example": "{\"API_KEY\":\"s3cr3t\"}"
           },

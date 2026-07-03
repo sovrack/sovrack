@@ -33,6 +33,15 @@ export const containersService = {
     return res.data;
   },
 
+  // C1/C3: scoped to a single ServiceEnvironment, not the whole service across
+  // every environment — see VERIFICATION_ORGANISATION_FINALE.md §2.4/6.2.
+  async listByServiceEnv(serviceEnvId: string): Promise<ContainerRecord[]> {
+    const res = await api.get<ContainerRecord[]>("/containers", {
+      params: { serviceEnvId },
+    });
+    return res.data;
+  },
+
   async start(id: string): Promise<void> {
     await api.post(`/containers/${id}/start`);
   },

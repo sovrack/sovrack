@@ -79,7 +79,7 @@ export function useDeployValidation({
       detected.push({
         type: "no-environment",
         message: "No environment configured.",
-        href: `/projects/${projectId}?tab=environments`,
+        href: `/projects/${projectId}?openEnvironments=true`,
       });
     return detected;
   }, [loading, services, selectedServiceId, environments, projectId]);

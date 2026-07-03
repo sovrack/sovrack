@@ -10,6 +10,10 @@
 export { DeploymentStatusBadge } from "./components/deployment-status-badge";
 export { DeploymentContainerDialog } from "./components/deployment-container-dialog";
 export { EnvVariablesPreview } from "./components/env-variables-preview";
+// C4 (Sprints 4+5+6 clôture): shared by DeploymentContainerDialog (modal) and
+// projects' ServiceContainersTab (embedded tab) — same stats/ops/logs UI,
+// different chrome around it.
+export { ContainerOpsPanel } from "./components/container-ops-panel";
 
 // Data layer (service + hooks React Query)
 export { deploymentsService } from "./api/deployments.service";

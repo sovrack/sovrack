@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Layers,
@@ -34,6 +34,7 @@ type ProjectPageProps = {
 export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isAdmin } = useAuth();
   const { project, loading, error, refresh } = useProject(id);
 
@@ -43,6 +44,17 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const [deployOpen, setDeployOpen] = useState(false);
   const [envOpen, setEnvOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Deep-link entry point: other pages (e.g. the service page's environment
+  // selector) link here with ?openEnvironments=true to open this modal
+  // directly instead of requiring a manual click.
+  useEffect(() => {
+    if (searchParams.get("openEnvironments") === "true") {
+      setEnvOpen(true);
+      router.replace(`/projects/${id}`, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const members = useProjectMembers({
     projectId: id,

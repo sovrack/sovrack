@@ -2,10 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Layers, Loader2, Plus, Save, X } from "lucide-react";
+import { ChevronDown, Layers, Loader2, Save } from "lucide-react";
 import { environmentsService } from "@/features/projects/api/environments.service";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { SectionCard } from "@/shared/layout/section-card";
+import {
+  BUILD_PACKS,
+  EnvTextEditor,
+  KvRows,
+  kvFromRaw,
+  kvToEnvText,
+  kvToJson,
+  parseEnvText,
+  type KV,
+  type ServiceDefaults,
+} from "./service-environments.parts";
 
 /**
  * Onglet Environments d'un service : un service tourne dans TOUS les
@@ -71,7 +82,7 @@ export function ServiceEnvironments({
         <p className="text-sm text-[var(--text-muted)]">
           No environment — create one in the project&apos;s{" "}
           <Link
-            href={`/projects/${projectId}?tab=environments`}
+            href={`/projects/${projectId}?openEnvironments=true`}
             className="underline hover:text-[var(--text-primary)]"
           >
             Environments
@@ -127,95 +138,6 @@ export function ServiceEnvironments({
   );
 }
 
-/** Éditeur des variables d'UNE instance (ServiceEnvironment = service × env). */
-type KV = { key: string; value: string };
-function kvFromRaw(raw: unknown): KV[] {
-  let obj: Record<string, unknown> = {};
-  if (typeof raw === "string" && raw.trim()) {
-    try {
-      obj = JSON.parse(raw) as Record<string, unknown>;
-    } catch {
-      /* ignore */
-    }
-  } else if (raw && typeof raw === "object") {
-    obj = raw as Record<string, unknown>;
-  }
-  return Object.entries(obj).map(([key, value]) => ({
-    key,
-    value: String(value ?? ""),
-  }));
-}
-function kvToJson(rows: KV[]): string {
-  const o: Record<string, string> = {};
-  for (const r of rows) {
-    const k = r.key.trim();
-    if (k) o[k] = r.value;
-  }
-  return JSON.stringify(o);
-}
-
-/** Lignes KEY=value (ajouter/supprimer). `secret` masque les valeurs. */
-function KvRows({
-  rows,
-  setRows,
-  secret,
-}: {
-  rows: KV[];
-  setRows: (r: KV[]) => void;
-  secret?: boolean;
-}) {
-  const inputCls =
-    "rounded-md border border-[var(--border)] bg-[var(--bg-app)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]";
-  return (
-    <div className="space-y-1.5">
-      {rows.map((r, i) => (
-        <div key={i} className="flex items-center gap-1.5">
-          <input
-            value={r.key}
-            onChange={(e) =>
-              setRows(
-                rows.map((x, j) =>
-                  j === i ? { ...x, key: e.target.value } : x,
-                ),
-              )
-            }
-            placeholder="KEY"
-            className={`${inputCls} w-1/3`}
-          />
-          <span className="text-[var(--text-muted)]">=</span>
-          <input
-            value={r.value}
-            type={secret ? "password" : "text"}
-            onChange={(e) =>
-              setRows(
-                rows.map((x, j) =>
-                  j === i ? { ...x, value: e.target.value } : x,
-                ),
-              )
-            }
-            placeholder="value"
-            className={`${inputCls} flex-1`}
-          />
-          <button
-            type="button"
-            onClick={() => setRows(rows.filter((_, j) => j !== i))}
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-muted)] hover:text-red-400"
-          >
-            <X size={12} />
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={() => setRows([...rows, { key: "", value: "" }])}
-        className="inline-flex items-center gap-1 rounded-md border border-dashed border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
-      >
-        <Plus size={11} /> Add a variable
-      </button>
-    </div>
-  );
-}
-
 function EnvVarsEditor({
   projectId,
   serviceEnvId,
@@ -223,10 +145,20 @@ function EnvVarsEditor({
   projectId: string;
   serviceEnvId: string;
 }) {
-  const [vars, setVars] = useState<KV[]>([]);
+  const [varsText, setVarsText] = useState("");
   const [secrets, setSecrets] = useState<KV[]>([]);
   const [autoDeploy, setAutoDeploy] = useState(false);
   const [autoBranch, setAutoBranch] = useState("main");
+  // C6: the 5 per-environment overrides — empty string means "inherit from
+  // the parent Service" (shown via the placeholder below).
+  const [branch, setBranch] = useState("");
+  const [port, setPort] = useState("");
+  const [startCommand, setStartCommand] = useState("");
+  const [healthcheckPath, setHealthcheckPath] = useState("");
+  const [buildPack, setBuildPack] = useState("");
+  const [serviceDefaults, setServiceDefaults] = useState<ServiceDefaults | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -237,9 +169,21 @@ function EnvVarsEditor({
       .getServiceLink(projectId, serviceEnvId)
       .then((se) => {
         if (!alive) return;
-        setVars(kvFromRaw(se.env as unknown));
+        setVarsText(kvToEnvText(kvFromRaw(se.env as unknown)));
         setAutoDeploy(!!se.autoDeploy);
         setAutoBranch(se.autoBranch ?? "main");
+        setBranch(se.branch ?? "");
+        setPort(se.port != null ? String(se.port) : "");
+        setStartCommand(se.startCommand ?? "");
+        setHealthcheckPath(se.healthcheckPath ?? "");
+        setBuildPack(se.buildPack ?? "");
+        setServiceDefaults({
+          branch: se.service.branch ?? null,
+          port: se.service.port ?? null,
+          startCommand: se.service.startCommand ?? null,
+          healthcheckPath: se.service.healthcheckPath ?? null,
+          buildPack: se.service.buildPack ?? null,
+        });
       })
       .catch(() => undefined)
       .finally(() => {
@@ -251,18 +195,32 @@ function EnvVarsEditor({
   }, [projectId, serviceEnvId]);
 
   const save = async () => {
-    setSaving(true);
     setMsg(null);
+    if (port.trim() && !Number.isInteger(Number(port.trim()))) {
+      setMsg("Port must be a whole number.");
+      return;
+    }
+    setSaving(true);
     try {
       const payload: {
         env?: string;
         secretsEnv?: string;
         autoDeploy?: boolean;
         autoBranch?: string;
+        branch?: string | null;
+        port?: number | null;
+        startCommand?: string | null;
+        healthcheckPath?: string | null;
+        buildPack?: string | null;
       } = {
         autoDeploy,
         autoBranch: autoBranch.trim() || "main",
-        env: kvToJson(vars),
+        env: kvToJson(parseEnvText(varsText).valid),
+        branch: branch.trim() || null,
+        port: port.trim() ? Number(port.trim()) : null,
+        startCommand: startCommand.trim() || null,
+        healthcheckPath: healthcheckPath.trim() || null,
+        buildPack: buildPack || null,
       };
       const secretRows = secrets.filter((s) => s.key.trim());
       if (secretRows.length) payload.secretsEnv = kvToJson(secretRows);
@@ -282,6 +240,8 @@ function EnvVarsEditor({
 
   const lbl =
     "mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
+  const overrideInputCls =
+    "w-full rounded-md border border-[var(--border)] bg-[var(--bg-app)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]/60 focus:border-[var(--text-muted)]";
 
   return (
     <div className="space-y-3 border-t border-[var(--border)] bg-[var(--bg-app)]/40 px-3 py-3">
@@ -309,9 +269,96 @@ function EnvVarsEditor({
               />
             </span>
           </div>
+
           <div>
-            <label className={lbl}>Variables</label>
-            <KvRows rows={vars} setRows={setVars} />
+            <label className={lbl}>
+              Overrides for this environment
+              <span className="ml-1 normal-case text-[var(--text-muted)]/70">
+                (leave a field empty to use the service&apos;s own value)
+              </span>
+            </label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div>
+                <span className="mb-1 block text-[10px] text-[var(--text-muted)]">
+                  Branch
+                </span>
+                <input
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                  placeholder={serviceDefaults?.branch ?? "main"}
+                  className={overrideInputCls}
+                />
+              </div>
+              <div>
+                <span className="mb-1 block text-[10px] text-[var(--text-muted)]">
+                  Port
+                </span>
+                <input
+                  value={port}
+                  onChange={(e) => setPort(e.target.value)}
+                  placeholder={
+                    serviceDefaults?.port != null
+                      ? String(serviceDefaults.port)
+                      : "3000"
+                  }
+                  className={overrideInputCls}
+                />
+              </div>
+              <div>
+                <span className="mb-1 block text-[10px] text-[var(--text-muted)]">
+                  Start command
+                </span>
+                <input
+                  value={startCommand}
+                  onChange={(e) => setStartCommand(e.target.value)}
+                  placeholder={serviceDefaults?.startCommand ?? "—"}
+                  className={overrideInputCls}
+                />
+              </div>
+              <div>
+                <span className="mb-1 block text-[10px] text-[var(--text-muted)]">
+                  Healthcheck path
+                </span>
+                <input
+                  value={healthcheckPath}
+                  onChange={(e) => setHealthcheckPath(e.target.value)}
+                  placeholder={serviceDefaults?.healthcheckPath ?? "—"}
+                  className={overrideInputCls}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <span className="mb-1 block text-[10px] text-[var(--text-muted)]">
+                  Build pack
+                </span>
+                <select
+                  value={buildPack}
+                  onChange={(e) => setBuildPack(e.target.value)}
+                  className={overrideInputCls}
+                >
+                  <option value="">
+                    Use service default
+                    {serviceDefaults?.buildPack
+                      ? ` (${serviceDefaults.buildPack})`
+                      : ""}
+                  </option>
+                  {BUILD_PACKS.map((bp) => (
+                    <option key={bp} value={bp}>
+                      {bp}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className={lbl}>
+              Variables{" "}
+              <span className="normal-case text-[var(--text-muted)]/70">
+                (.env format — NAME=value, one per line)
+              </span>
+            </label>
+            <EnvTextEditor text={varsText} setText={setVarsText} />
           </div>
           <div>
             <label className={lbl}>

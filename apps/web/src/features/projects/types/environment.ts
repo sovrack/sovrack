@@ -1,5 +1,6 @@
 import type { components } from "@/generated/api-contract";
 import type { ServiceLink } from "./service-environment";
+import type { ServerStatus } from "@/features/servers";
 
 type ApiSchema = components["schemas"];
 
@@ -14,7 +15,7 @@ export type Environment = {
   projectId: string;
   env: string | null;
   serviceLinks?: ServiceLink[];
-  servers?: { id: string; name: string; host: string }[];
+  servers?: { id: string; name: string; host: string; status: ServerStatus }[];
   createdAt: string;
   updatedAt: string;
 };

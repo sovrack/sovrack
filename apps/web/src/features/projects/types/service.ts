@@ -74,7 +74,12 @@ export type Service = {
   databaseType: ManagedServiceType | null;
   databaseVersion: string | null;
   env: Record<string, string> | null;
-  envLinks?: { id: string; environmentId: string }[];
+  envLinks?: {
+    id: string;
+    environmentId: string;
+    serverId: string | null;
+    currentDeploymentId: string | null;
+  }[];
   createdAt: string;
   updatedAt: string;
 };

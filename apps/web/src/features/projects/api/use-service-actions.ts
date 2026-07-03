@@ -47,6 +47,10 @@ export function useServiceActions({
   const [redeploying, setRedeploying] = useState(false);
 
   const handleRedeploy = async () => {
+    // C3: selectedEnvId is now the page's URL-driven, user-controlled
+    // environment (via ServiceEnvironmentSelector) — no longer silently
+    // locked to the first environment. The `environments[0]` fallback below
+    // only matters if the caller ever passes an empty string.
     const envId = selectedEnvId || environments[0]?.id;
     if (!envId) {
       onDeployOpen();
@@ -78,13 +82,24 @@ export function useServiceActions({
   };
 
   const handleStop = async () => {
+    // C3: scope to the ServiceEnvironment the dropdown currently points at —
+    // previously this picked "any running container for the service" across
+    // every environment (e.g. could stop PRODUCTION while the user was
+    // looking at STAGING). See VERIFICATION_ORGANISATION_FINALE.md §2.4/6.2.
+    const link = service?.envLinks?.find(
+      (l) => l.environmentId === selectedEnvId,
+    );
+    if (!link) {
+      toast("Service not linked to the selected environment.", "error");
+      return;
+    }
     setStopping(true);
     try {
-      const containers = await containersService.listByService(serviceId);
+      const containers = await containersService.listByServiceEnv(link.id);
       const running =
         containers.find((c) => c.status === "RUNNING") ?? containers[0];
       if (!running) {
-        toast("No running container found for this service.", "error");
+        toast("No running container found for this environment.", "error");
         return;
       }
       await containersService.stop(running.id);

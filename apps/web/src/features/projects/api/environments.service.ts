@@ -144,7 +144,12 @@ export const environmentsService = {
   },
 
   // Config de CE service × CET environnement : variables (claires + secrètes
-  // chiffrées) + auto-deploy (push→deploy) + branche déclencheuse.
+  // chiffrées) + auto-deploy (push→deploy) + branche déclencheuse + les 5
+  // overrides par environnement (C6 — branch/port/startCommand/
+  // healthcheckPath/buildPack). Un champ omis laisse la valeur stockée
+  // inchangée ; un `null` explicite l'efface (repasse à null côté backend =
+  // "hérite du Service parent" — vérifié via
+  // update-service-environment.dto.spec.ts).
   async updateServiceLink(
     projectId: string,
     id: string,
@@ -153,6 +158,11 @@ export const environmentsService = {
       secretsEnv?: string;
       autoDeploy?: boolean;
       autoBranch?: string;
+      branch?: string | null;
+      port?: number | null;
+      startCommand?: string | null;
+      healthcheckPath?: string | null;
+      buildPack?: string | null;
     },
   ): Promise<void> {
     await api.put(`/projects/${projectId}/service-environments/${id}`, payload);

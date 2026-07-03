@@ -48,9 +48,6 @@ build:dev: ## Build for development
 build:prod: ## Build for production
 	NODE_ENV=production npm run build
 
-build:analyze: ## Build and analyze bundle size
-	npm run build:analyze
-
 # ─── Development ───────────────────────────────────────────────────────────
 
 dev:clean: ## Clean development (remove .next and restart)

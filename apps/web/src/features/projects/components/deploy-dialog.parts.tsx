@@ -178,7 +178,7 @@ export function DeployEnvironmentSelector({
         <p className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-xs text-amber-300">
           No environments. Create one in{" "}
           <Link
-            href={`/projects/${projectId}?tab=environments`}
+            href={`/projects/${projectId}?openEnvironments=true`}
             onClick={onClose}
             className="font-semibold underline"
           >

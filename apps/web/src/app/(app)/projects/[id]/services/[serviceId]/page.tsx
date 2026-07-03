@@ -1,10 +1,12 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Activity,
   ArrowLeft,
+  Box,
   Container as ContainerIcon,
   Database,
   FolderGit2,
@@ -37,6 +39,8 @@ import { ServiceMonitoring } from "@/features/projects/components/tabs/service/s
 import { ServiceMetricsChart } from "@/features/projects/components/tabs/service/service-metrics-chart";
 import { ServiceLogs } from "@/features/projects/components/tabs/service/service-logs";
 import { ServiceEnvironments } from "@/features/projects/components/tabs/service/service-environments";
+import { ServiceEnvironmentSelector } from "@/features/projects/components/tabs/service/service-environment-selector";
+import { ServiceContainersTab } from "@/features/projects/components/tabs/service/service-containers-tab";
 import { DeploymentLogsDialog } from "@/features/projects/components/tabs/runs/deployment-logs-dialog";
 import { resolveDeploymentUrl } from "@/features/deployments/utils";
 import { KeyValueField } from "@/shared/ui/key-value-field";
@@ -50,6 +54,7 @@ type Tab =
   | "domains"
   | "webhooks"
   | "deployments"
+  | "containers"
   | "monitoring"
   | "logs";
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
@@ -59,6 +64,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "domains", label: "Domains", icon: Globe },
   { id: "webhooks", label: "Webhooks", icon: Webhook },
   { id: "deployments", label: "Deployments", icon: Activity },
+  { id: "containers", label: "Containers", icon: Box },
   { id: "monitoring", label: "Monitoring", icon: ContainerIcon },
   { id: "logs", label: "Logs", icon: ScrollText },
 ];
@@ -69,10 +75,11 @@ export default function ServiceDetailPage({
   params: Promise<{ id: string; serviceId: string }>;
 }) {
   const { id: projectId, serviceId } = use(params);
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("general");
   const [deployOpen, setDeployOpen] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(false);
-  const [selectedEnvId, setSelectedEnvId] = useState<string>("");
   const [logsDialog, setLogsDialog] = useState<{
     id: string;
     status: Deployment["status"];
@@ -87,10 +94,7 @@ export default function ServiceDetailPage({
   const deployments: Deployment[] = (deploymentsQuery.deployments ?? []).filter(
     (d) => d.serviceId === serviceId,
   );
-  const environments = (environmentsQuery.data ?? []).map((e) => ({
-    id: e.id,
-    name: e.name,
-  }));
+  const environments = environmentsQuery.data ?? [];
   const loading =
     servicesQuery.isLoading ||
     deploymentsQuery.loading ||
@@ -108,15 +112,28 @@ export default function ServiceDetailPage({
     void environmentsQuery.refetch();
   };
 
-  useEffect(() => {
-    const first = environmentsQuery.data?.[0]?.id;
-    if (first) setSelectedEnvId((prev) => prev || first);
-  }, [environmentsQuery.data]);
+  // C2: environment selection lives in the URL (?env=<environmentId>), not in
+  // local state — it survives a refresh and can be shared by link. Falls back
+  // to the first environment when absent/stale (e.g. removed from the
+  // service), same default the old selectedEnvId state used to apply.
+  const envIdFromUrl = searchParams.get("env");
+  const effectiveEnvId =
+    (envIdFromUrl && environments.some((e) => e.id === envIdFromUrl)
+      ? envIdFromUrl
+      : environments[0]?.id) ?? "";
+
+  const setEffectiveEnvId = (environmentId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("env", environmentId);
+    router.replace(
+      `/projects/${projectId}/services/${serviceId}?${params.toString()}`,
+      { scroll: false },
+    );
+  };
 
   const lastDeployment = deployments[0] ?? null;
   const appUrl = lastDeployment ? resolveDeploymentUrl(lastDeployment) : null;
   const isDatabase = service?.type === "DATABASE";
-  const effectiveEnvId = selectedEnvId || environments[0]?.id;
 
   const {
     deleting,
@@ -130,7 +147,7 @@ export default function ServiceDetailPage({
     serviceId,
     service,
     environments,
-    selectedEnvId,
+    selectedEnvId: effectiveEnvId,
     lastDeployment,
     onDeployOpen: () => setDeployOpen(true),
     onReload: reload,
@@ -194,6 +211,14 @@ export default function ServiceDetailPage({
             </button>
           </div>
         }
+      />
+
+      <ServiceEnvironmentSelector
+        projectId={projectId}
+        envLinks={service.envLinks}
+        environments={environments}
+        selectedEnvId={effectiveEnvId}
+        onSelect={setEffectiveEnvId}
       />
 
       {!isDatabase && (
@@ -320,10 +345,32 @@ export default function ServiceDetailPage({
         />
       )}
 
+      {/* Containers : stats/actions/logs du conteneur de l'environnement sélectionné */}
+      {tab === "containers" && (
+        <ServiceContainersTab
+          serviceEnvId={
+            service.envLinks?.find((l) => l.environmentId === effectiveEnvId)
+              ?.id ?? null
+          }
+          currentDeploymentId={
+            service.envLinks?.find((l) => l.environmentId === effectiveEnvId)
+              ?.currentDeploymentId ?? null
+          }
+        />
+      )}
+
       {/* Monitoring : stats live + historique (courbes + marqueurs de déploiement) */}
       {tab === "monitoring" && (
         <div className="space-y-4">
-          <ServiceMonitoring deploymentId={lastDeployment?.id ?? null} />
+          {/* C5: both sub-blocks now follow the SAME ServiceEnvironment (the
+              one selected above) — "stats live" used to follow the service's
+              globally-last deployment across every environment instead. */}
+          <ServiceMonitoring
+            deploymentId={
+              service.envLinks?.find((l) => l.environmentId === effectiveEnvId)
+                ?.currentDeploymentId ?? null
+            }
+          />
           <ServiceMetricsChart
             serviceEnvId={
               service.envLinks?.find((l) => l.environmentId === effectiveEnvId)
@@ -354,7 +401,7 @@ export default function ServiceDetailPage({
         }}
         services={services}
         initialServiceId={serviceId}
-        initialEnvironmentId={selectedEnvId || undefined}
+        initialEnvironmentId={effectiveEnvId || undefined}
       />
 
       <ServiceTerminalDialog

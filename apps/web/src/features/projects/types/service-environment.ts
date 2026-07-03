@@ -9,10 +9,22 @@ export type ServiceEnvironment = {
   env: Record<string, string> | null;
   autoDeploy?: boolean;
   autoBranch?: string | null;
+  // C6: per-environment overrides — null/undefined means "use the parent
+  // Service's own value" (shown as a placeholder, see service-environments.tsx).
+  branch?: string | null;
+  port?: number | null;
+  startCommand?: string | null;
+  healthcheckPath?: string | null;
+  buildPack?: string | null;
   service: {
     id: string;
     name: string;
     type: string;
+    branch?: string | null;
+    port?: number | null;
+    startCommand?: string | null;
+    healthcheckPath?: string | null;
+    buildPack?: string | null;
   };
   environment: {
     id: string;
