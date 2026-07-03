@@ -55,14 +55,18 @@ ENV ANSIBLE_COLLECTIONS_PATH=/usr/share/ansible/collections
 # Nixpacks is a single static binary (~50MB) — no runtime deps, no Nix daemon required.
 # It auto-detects the language/framework and generates a Dockerfile.
 # See: https://github.com/railwayapp/nixpacks
+# NB: les assets GitHub de nixpacks sont nommés par triple Rust
+# (nixpacks-v<ver>-<arch>-unknown-linux-musl.tar.gz) — il n'existe PAS de
+# variante "nixpacks-linux-amd64.tar.gz" (l'ancien pattern 404ait toujours).
+# musl = adapté à Alpine. L'archive contient le binaire `nixpacks` à sa racine.
 ARG NIXPACKS_VERSION=1.30.0
 RUN arch=$(uname -m) && \
     case "$arch" in \
-      x86_64) NIXPACKS_ARCH="amd64" ;; \
-      aarch64) NIXPACKS_ARCH="arm64" ;; \
+      x86_64) NIXPACKS_ARCH="x86_64" ;; \
+      aarch64) NIXPACKS_ARCH="aarch64" ;; \
       *) echo "Unsupported arch: $arch" && exit 1 ;; \
     esac && \
-    curl -fsSL "https://github.com/railwayapp/nixpacks/releases/download/v${NIXPACKS_VERSION}/nixpacks-linux-${NIXPACKS_ARCH}.tar.gz" \
+    curl -fsSL "https://github.com/railwayapp/nixpacks/releases/download/v${NIXPACKS_VERSION}/nixpacks-v${NIXPACKS_VERSION}-${NIXPACKS_ARCH}-unknown-linux-musl.tar.gz" \
       | tar -xz -C /usr/local/bin nixpacks && \
     chmod +x /usr/local/bin/nixpacks && \
     nixpacks --version
