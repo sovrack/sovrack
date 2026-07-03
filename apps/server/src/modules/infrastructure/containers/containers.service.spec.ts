@@ -63,6 +63,55 @@ describe('ContainersService', () => {
     );
   });
 
+  describe('findAll', () => {
+    it('builds no where filter when no filters are given', async () => {
+      await svc.findAll({}, mockUser.id, mockUser.role);
+      expect(prisma.container.findMany).toHaveBeenCalledWith({
+        where: {},
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    it('filters by serviceEnvId (C1: senv-scoped container list)', async () => {
+      await svc.findAll({ serviceEnvId: 'senv1' }, mockUser.id, mockUser.role);
+      expect(prisma.container.findMany).toHaveBeenCalledWith({
+        where: { serviceEnvId: 'senv1' },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    it('combines all 4 filters when provided together', async () => {
+      await svc.findAll(
+        {
+          serverId: 'srv1',
+          serviceId: 'svc1',
+          deploymentId: 'dep1',
+          serviceEnvId: 'senv1',
+        },
+        mockUser.id,
+        mockUser.role,
+      );
+      expect(prisma.container.findMany).toHaveBeenCalledWith({
+        where: {
+          serverId: 'srv1',
+          serviceId: 'svc1',
+          deploymentId: 'dep1',
+          serviceEnvId: 'senv1',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    it('checks server access when serverId is provided', async () => {
+      await svc.findAll({ serverId: 'srv1' }, mockUser.id, mockUser.role);
+      expect(projectAccess.assertCanAccessProject).toHaveBeenCalledWith(
+        'p1',
+        mockUser.id,
+        mockUser.role,
+      );
+    });
+  });
+
   describe('findOne', () => {
     it('returns the container', async () => {
       expect(await svc.findOne('c1')).toBe(container);

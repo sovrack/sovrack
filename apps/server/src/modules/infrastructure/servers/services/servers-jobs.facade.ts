@@ -15,7 +15,7 @@ import { PaginationDto } from '../../../../shared/http/pagination.dto';
 import { ServersJobsService } from './servers-jobs.service';
 import { ServersConnectionService } from './servers-connection.service';
 import { ServersDetectionService } from './servers-detection.service';
-import { ServerPreparationService } from '../../preparation/services/infra-preparation.service';
+import { ServerPreparationService } from '../../onboarding/services/infra-preparation.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersVerificationService } from './servers-verification.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';

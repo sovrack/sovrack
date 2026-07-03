@@ -3,7 +3,7 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersDetectionService } from './servers-detection.service';
 import { ServersVerificationService } from './servers-verification.service';
-import { ServerPreparationService } from '../../preparation/services/infra-preparation.service';
+import { ServerPreparationService } from '../../onboarding/services/infra-preparation.service';
 import { AuditService } from '../../../audit/audit.service';
 import { ServersReadersFacade } from './servers-readers.facade';
 

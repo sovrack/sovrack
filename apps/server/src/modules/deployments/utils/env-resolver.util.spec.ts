@@ -1,9 +1,4 @@
-import {
-  EnvLevel,
-  resolveEnvDetailed,
-  resolveEnvVars,
-  toEnvStrings,
-} from './env-resolver.util';
+import { EnvLevel, resolveEnvDetailed } from './env-resolver.util';
 
 /**
  * Helper to build the 3-level input quickly. Any level can be omitted.
@@ -32,7 +27,7 @@ function levels(
   ];
 }
 
-describe('resolveEnvVars / resolveEnvDetailed', () => {
+describe('resolveEnvDetailed', () => {
   // Cas 1 : merge basique 3 niveaux, ServiceEnv gagne
   it('cas 1 — merges three levels, serviceEnvironment wins on collision', () => {
     const res = resolveEnvDetailed(
@@ -61,9 +56,9 @@ describe('resolveEnvVars / resolveEnvDetailed', () => {
 
   // Cas 3 : clé absente partout → absente du résultat
   it('cas 3 — absent key is absent from the result (no empty key)', () => {
-    const res = resolveEnvVars(levels({ env: '{"A":"1"}' }));
-    expect(res.vars).toEqual({ A: '1' });
-    expect(Object.keys(res.vars)).not.toContain('Z');
+    const res = resolveEnvDetailed(levels({ env: '{"A":"1"}' }));
+    expect(res.entries.map((e) => e.key)).toEqual(['A']);
+    expect(res.entries.find((e) => e.key === 'Z')).toBeUndefined();
   });
 
   // Cas 4 : JSON malformé au niveau Service → erreur loggée + niveau ignoré
@@ -134,10 +129,5 @@ describe('resolveEnvVars / resolveEnvDetailed', () => {
     const k = res.entries.find((e) => e.key === 'K');
     expect(k?.value).toBe('secret');
     expect(k?.isSecret).toBe(true);
-  });
-
-  it('toEnvStrings — produces KEY=VALUE pairs', () => {
-    const { vars } = resolveEnvVars(levels({ env: '{"A":"1","B":"2"}' }));
-    expect(toEnvStrings(vars).sort()).toEqual(['A=1', 'B=2']);
   });
 });

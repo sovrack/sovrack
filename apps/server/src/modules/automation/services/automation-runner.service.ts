@@ -9,7 +9,7 @@ import {
   ServerRunStepStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { ServerPreparationAnsibleService } from '../../infrastructure/preparation/services/server-preparation-ansible.service';
+import { ServerPreparationAnsibleService } from '../../infrastructure/onboarding/services/server-preparation-ansible.service';
 import { ServerRunsService } from '../../infrastructure/server-runs/server-runs.service';
 import type { PreparationRoleKey } from '../../infrastructure/servers/shared/server-preparation-options';
 import { AutomationGateway } from '../automation.gateway';

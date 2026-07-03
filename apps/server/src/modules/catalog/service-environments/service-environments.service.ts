@@ -21,6 +21,11 @@ const serviceEnvInclude = {
       branch: true,
       replicas: true,
       env: true,
+      // C6: exposed so the frontend can show "leave empty = use the
+      // service's own X" as a greyed-out placeholder for each override.
+      startCommand: true,
+      healthcheckPath: true,
+      buildPack: true,
     },
   },
   environment: {

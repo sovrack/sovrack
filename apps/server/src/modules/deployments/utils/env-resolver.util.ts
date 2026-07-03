@@ -51,11 +51,6 @@ export interface ResolvedEnvDetailed {
   warnings: string[];
 }
 
-export interface ResolvedEnv {
-  vars: Record<string, string>;
-  warnings: string[];
-}
-
 type Resolved = { value: string; origin: EnvOrigin; isSecret: boolean };
 
 /**
@@ -153,23 +148,4 @@ export function resolveEnvDetailed(levels: EnvLevel[]): ResolvedEnvDetailed {
   );
 
   return { entries, warnings };
-}
-
-/**
- * Flat `{ vars, warnings }` form used by the deploy executor.
- */
-export function resolveEnvVars(levels: EnvLevel[]): ResolvedEnv {
-  const detailed = resolveEnvDetailed(levels);
-  const vars: Record<string, string> = {};
-  for (const entry of detailed.entries) {
-    vars[entry.key] = entry.value;
-  }
-  return { vars, warnings: detailed.warnings };
-}
-
-/**
- * Convert a resolved var map to the `KEY=VALUE` array Docker expects.
- */
-export function toEnvStrings(vars: Record<string, string>): string[] {
-  return Object.entries(vars).map(([key, value]) => `${key}=${value}`);
 }

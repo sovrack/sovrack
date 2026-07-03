@@ -30,4 +30,9 @@ export class ContainerListQueryDto {
   @IsOptional()
   @IsString()
   deploymentId?: string;
+
+  @ApiPropertyOptional({ example: 'senv_xxx' })
+  @IsOptional()
+  @IsString()
+  serviceEnvId?: string;
 }

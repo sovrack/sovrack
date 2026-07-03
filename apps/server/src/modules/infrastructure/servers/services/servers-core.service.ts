@@ -5,7 +5,7 @@ import { UpdateServerDto } from '../dto/update-server.dto';
 import { InstallToolsDto } from '../dto/install-tools.dto';
 import { PrepareServerDto } from '../dto/prepare-server.dto';
 import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
-import { ServerPreparationService } from '../../preparation/services/infra-preparation.service';
+import { ServerPreparationService } from '../../onboarding/services/infra-preparation.service';
 import {
   CreateServerResult,
   ServerJobsListResult,

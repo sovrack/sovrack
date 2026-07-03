@@ -49,6 +49,9 @@ const environmentsInclude = {
       name: true,
       host: true,
       isVerified: true,
+      // C2 (page service): indicateur de santé par option du sélecteur
+      // d'environnement — status inclut déjà UNREACHABLE/DISABLED etc.
+      status: true,
     },
   },
 } satisfies Prisma.EnvironmentInclude;

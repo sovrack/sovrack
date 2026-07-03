@@ -78,6 +78,7 @@ export class ContainersService {
       serverId?: string;
       serviceId?: string;
       deploymentId?: string;
+      serviceEnvId?: string;
     },
     userId: string,
     userRole: Role,
@@ -90,6 +91,7 @@ export class ContainersService {
         ...(filters.serverId && { serverId: filters.serverId }),
         ...(filters.serviceId && { serviceId: filters.serviceId }),
         ...(filters.deploymentId && { deploymentId: filters.deploymentId }),
+        ...(filters.serviceEnvId && { serviceEnvId: filters.serviceEnvId }),
       },
       orderBy: { createdAt: 'desc' },
     });

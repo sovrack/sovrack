@@ -30,7 +30,7 @@ export type AnsibleRunCallbacks = {
 /**
  * Port (contrat) du primitif Ansible bas-niveau de la plateforme.
  *
- * Les consommateurs (infrastructure/preparation, networking/ssl…) dépendent
+ * Les consommateurs (infrastructure/onboarding, networking/ssl…) dépendent
  * de cette abstraction via le token {@link ANSIBLE_RUNNER}, jamais forcément
  * de l'implémentation concrète — même pattern que {@link ISshExecutor}
  * (ports/ssh-executor.port.ts) et {@link IDockerRuntime}

@@ -140,6 +140,67 @@ describe('ServiceEnvironmentsService', () => {
     );
   });
 
+  // C6: the 5 per-environment overrides must accept an explicit null to
+  // clear back to "inherit from the parent Service" — verified end to end
+  // here since it depends on IsOptional's null-vs-undefined distinction at
+  // the DTO layer, not just this service's own logic.
+  describe('update — the 5 override fields (C6)', () => {
+    it.each([
+      ['branch', 'develop'],
+      ['port', 4000],
+      ['startCommand', 'npm run start:staging'],
+      ['healthcheckPath', '/health'],
+      ['buildPack', 'NIXPACKS'],
+    ])('sets %s when a real value is submitted', async (field, value) => {
+      await service.update(
+        'p1',
+        'se1',
+        { [field]: value } as never,
+        'admin',
+        Role.ADMIN,
+      );
+      expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ [field]: value }),
+        }),
+      );
+    });
+
+    it.each(['branch', 'port', 'startCommand', 'healthcheckPath', 'buildPack'])(
+      'clears %s to null when explicitly submitted as null',
+      async (field) => {
+        await service.update(
+          'p1',
+          'se1',
+          { [field]: null } as never,
+          'admin',
+          Role.ADMIN,
+        );
+        expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ [field]: null }),
+          }),
+        );
+      },
+    );
+
+    it('leaves the 5 overrides untouched when omitted from the payload', async () => {
+      await service.update('p1', 'se1', { env: '{}' } as never, 'admin', Role.ADMIN);
+      const data = (prisma.serviceEnvironment.update.mock.calls[0][0] as {
+        data: Record<string, unknown>;
+      }).data;
+      for (const field of [
+        'branch',
+        'port',
+        'startCommand',
+        'healthcheckPath',
+        'buildPack',
+      ]) {
+        expect(field in data).toBe(false);
+      }
+    });
+  });
+
   it('blocks unlink while domains still point to the link', async () => {
     prisma.domain.count.mockResolvedValue(2);
     await expect(
