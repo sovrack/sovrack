@@ -34,8 +34,9 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-# next.config.ts needed at runtime for rewrites, env, etc.
-COPY next.config.ts ./
+# next.config.mjs needed at runtime for rewrites, env, etc. (.mjs, PAS .ts :
+# la config TS exigerait typescript dans l'image de prod → crash-loop au boot)
+COPY next.config.mjs ./
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public

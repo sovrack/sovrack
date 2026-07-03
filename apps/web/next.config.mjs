@@ -1,6 +1,11 @@
-import type { NextConfig } from 'next';
+// Config en .mjs (pas .ts) : `next start` charge la config AU RUNTIME — en
+// .ts il exige `typescript` dans l'image de prod (le runner fait
+// `npm ci --omit=dev`) et tente un auto-install au boot → crash-loop du
+// conteneur déployé. Découvert lors du déploiement réel complet.
+// JSDoc garde l'autocomplétion/typage en dev sans dépendance runtime.
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
   typescript: {
     tsconfigPath: './tsconfig.json',
