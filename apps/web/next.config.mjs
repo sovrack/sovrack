@@ -15,7 +15,17 @@ const nextConfig = {
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001',
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    // Le proxy /backend-api tourne CÔTÉ SERVEUR Next : en déploiement
+    // conteneurisé il doit joindre le backend par le réseau Docker interne
+    // (alias stable, ex. http://backend:3001) — pas par le domaine public
+    // (TLS self-signed/labo → undici rejette → « Internal Server Error » sur
+    // TOUS les appels API de l'app, dont le client utilise /backend-api).
+    // BACKEND_INTERNAL_URL est une variable RUNTIME du conteneur ; en dev
+    // local le fallback NEXT_PUBLIC_API_URL (http://localhost:3001) suffit.
+    const backendUrl =
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'http://localhost:3001';
 
     return [
       {
