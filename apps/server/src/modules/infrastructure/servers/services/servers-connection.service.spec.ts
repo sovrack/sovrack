@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { ServerConnectionMode } from '@prisma/client';
+import { createServer } from 'net';
 import { ServersConnectionService } from './servers-connection.service';
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
 
@@ -150,6 +151,43 @@ describe('ServersConnectionService', () => {
       const conn = await svc.openConnection(server, 'b64');
       expect(conn.target).toBe(mockClient);
       expect(typeof conn.dispose).toBe('function');
+    });
+  });
+
+  // A3: real TCP behavior, not mocked — pingReachable is a thin wrapper
+  // around Node's net.Socket, so the most meaningful test is against an
+  // actual local listener/closed port rather than a mock of `net` itself.
+  describe('pingReachable', () => {
+    it('resolves true when the port accepts a TCP connection', async () => {
+      const { svc } = makeSvc();
+      const server = createServer();
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+      const port = (server.address() as { port: number }).port;
+
+      try {
+        await expect(svc.pingReachable('127.0.0.1', port)).resolves.toBe(true);
+      } finally {
+        server.close();
+      }
+    });
+
+    it('resolves false when nothing is listening on the port', async () => {
+      const { svc } = makeSvc();
+      // Port 1 is a reserved/privileged port essentially never bound in a
+      // test environment — ECONNREFUSED is the expected, fast outcome.
+      await expect(svc.pingReachable('127.0.0.1', 1, 500)).resolves.toBe(
+        false,
+      );
+    });
+
+    it('resolves false (not hung) when the host does not respond before the timeout', async () => {
+      const { svc } = makeSvc();
+      // 10.255.255.1 is a non-routable address commonly used to simulate a
+      // silent drop — the timeout must fire well before Node's own default.
+      const start = Date.now();
+      const result = await svc.pingReachable('10.255.255.1', 22, 300);
+      expect(result).toBe(false);
+      expect(Date.now() - start).toBeLessThan(2000);
     });
   });
 

@@ -47,7 +47,7 @@ describe('ServersCrudService', () => {
     encrypt: jest.Mock;
     decrypt: jest.Mock;
   };
-  let ssh: { mapConnectionMode: jest.Mock };
+  let ssh: { mapConnectionMode: jest.Mock; pingReachable: jest.Mock };
   let jobsFacade: { loadActiveJobs: jest.Mock };
   let audit: { record: jest.Mock };
   let auditService: { record: jest.Mock };
@@ -79,7 +79,10 @@ describe('ServersCrudService', () => {
       encrypt: jest.fn((v: string) => `enc:${v}`),
       decrypt: jest.fn((v: string) => `dec:${v}`),
     };
-    ssh = { mapConnectionMode: jest.fn().mockReturnValue('SSH_KEY') };
+    ssh = {
+      mapConnectionMode: jest.fn().mockReturnValue('SSH_KEY'),
+      pingReachable: jest.fn().mockResolvedValue(true),
+    };
     jobsFacade = { loadActiveJobs: jest.fn().mockResolvedValue(new Map()) };
     audit = { record: jest.fn().mockResolvedValue(undefined) };
     auditService = { record: jest.fn().mockResolvedValue(undefined) };
@@ -136,6 +139,78 @@ describe('ServersCrudService', () => {
       'admin',
     );
     expect(crypto.decrypt).toHaveBeenCalledWith('stored-enc');
+  });
+
+  // A1 (edit server SSH credentials) — the previous update() path only called
+  // encrypt(normalizePrivateKeyFormat(dto.sshKey)), never re-deriving
+  // sshPublicKey — which would silently leave ServerKeyInstallDialog showing
+  // the OLD public key after a credential change (it reads Server.sshPublicKey).
+  it('update() with a raw sshKey re-derives and stores BOTH the private and public key', async () => {
+    await service.update('s1', { sshKey: 'new-raw-key' } as never, 'admin');
+    expect(crypto.resolveSshMaterial).toHaveBeenCalledWith('new-raw-key');
+    expect(prisma.server.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sshKey: 'enc:priv',
+          sshPublicKey: 'pub',
+          isVerified: false,
+          status: ServerStatus.NEW,
+        }),
+      }),
+    );
+  });
+
+  it('update() resolves sshKeyId the same way create() does (decrypt then re-derive)', async () => {
+    prisma.sshKey.findUnique.mockResolvedValue({
+      encryptedPrivateKey: 'stored-enc',
+    });
+    await service.update('s1', { sshKeyId: 'k1' } as never, 'admin');
+    expect(crypto.decrypt).toHaveBeenCalledWith('stored-enc');
+    expect(crypto.resolveSshMaterial).toHaveBeenCalledWith('dec:stored-enc');
+    expect(prisma.server.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ sshKey: 'enc:priv', sshPublicKey: 'pub' }),
+      }),
+    );
+  });
+
+  it('update() rejects a missing stored SSH key referenced by sshKeyId', async () => {
+    prisma.sshKey.findUnique.mockResolvedValue(null);
+    await expect(
+      service.update('s1', { sshKeyId: 'ghost' } as never, 'admin'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('update() without sshKey/sshKeyId never touches the stored credential (never overwrites with empty)', async () => {
+    await service.update('s1', { name: 'renamed' } as never, 'admin');
+    expect(crypto.resolveSshMaterial).not.toHaveBeenCalled();
+    const data = prisma.server.update.mock.calls[0][0].data;
+    expect(data).not.toHaveProperty('sshKey');
+    expect(data).not.toHaveProperty('sshPublicKey');
+    // A name-only change must not force re-verification either.
+    expect(data).not.toHaveProperty('isVerified');
+  });
+
+  // A3: reachability polling — pings every active server's host:port and
+  // returns a plain id → boolean map. Deliberately distinct from
+  // isVerified/status (no state mutation, no persistence, no server lookup
+  // by id — just the raw ping).
+  describe('pingAll', () => {
+    it('pings every active server and maps the result by id', async () => {
+      prisma.server.findMany.mockResolvedValue([
+        { id: 's1', host: 'h1', port: 22 },
+        { id: 's2', host: 'h2', port: 2222 },
+      ]);
+      ssh.pingReachable
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false);
+
+      const result = await service.pingAll();
+
+      expect(ssh.pingReachable).toHaveBeenNthCalledWith(1, 'h1', 22);
+      expect(ssh.pingReachable).toHaveBeenNthCalledWith(2, 'h2', 2222);
+      expect(result).toEqual({ s1: true, s2: false });
+    });
   });
 
   it('blocks removing the LAST server of an environment (anti-orphaning)', async () => {

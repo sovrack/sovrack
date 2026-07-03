@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Server, ServerConnectionMode, ServerStatus } from '@prisma/client';
 import { rm, writeFile } from 'fs/promises';
+import { Socket } from 'net';
 import { NodeSSH } from 'node-ssh';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { SshExecutorService } from '../../../../adapters/ssh/ssh-executor.service';
@@ -301,6 +302,38 @@ export class ServersConnectionService {
         ? 'Clé installée et accès sudo sans mot de passe prêt. Lancez la validation SSH puis la préparation du serveur.'
         : "Clé installée et test SSH réussi. Le compte SSH n'a pas sudo sans mot de passe: configurez sudoers avant la préparation du serveur.",
     };
+  }
+
+  /**
+   * A3: lightweight "is this server reachable right now" probe — a raw TCP
+   * connect-and-close to the SSH port, no authentication, no host-key
+   * pinning, no logging, no Server state mutation. Deliberately NOT
+   * verifyServerDirect (which opens an authenticated SSH session, runs
+   * sudo/os-release/python3 checks, writes verification logs, and persists
+   * status transitions) — that's far too heavy to poll every 30-60s from an
+   * open list page. Kept intentionally dependency-free (doesn't even need
+   * the server's SSH key) so it works for a server that isn't verified yet.
+   */
+  async pingReachable(
+    host: string,
+    port: number,
+    timeoutMs = 3000,
+  ): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      const socket = new Socket();
+      let settled = false;
+      const finish = (result: boolean) => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        resolve(result);
+      };
+      socket.setTimeout(timeoutMs);
+      socket.once('connect', () => finish(true));
+      socket.once('timeout', () => finish(false));
+      socket.once('error', () => finish(false));
+      socket.connect(port, host);
+    });
   }
 
   async openConnection(

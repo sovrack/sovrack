@@ -52,6 +52,14 @@ export class UpdateServerDto {
   })
   sshKey?: string;
 
+  @ApiPropertyOptional({
+    description:
+      'ID of an existing SshKey (Settings → SSH Keys) to switch this server to. Ignored if `sshKey` is also provided.',
+  })
+  @IsOptional()
+  @IsString()
+  sshKeyId?: string;
+
   @ApiPropertyOptional({ enum: ServerConnectionModeDto })
   @IsOptional()
   @IsEnum(ServerConnectionModeDto, {

@@ -159,6 +159,29 @@ export class ServersCrudService {
     );
   }
 
+  /**
+   * A3: reachability snapshot for every active server, polled by the list
+   * page every 30-60s — deliberately separate from isVerified/status
+   * (last-validation/preparation results, only updated on explicit user
+   * action) so the two can coexist without either overwriting the other.
+   */
+  async pingAll(): Promise<Record<string, boolean>> {
+    const servers = await this.prisma.server.findMany({
+      where: ACTIVE_FILTER,
+      select: { id: true, host: true, port: true },
+    });
+    const results = await Promise.all(
+      servers.map(async (server) => {
+        const reachable = await this.ssh.pingReachable(
+          server.host,
+          server.port,
+        );
+        return [server.id, reachable] as const;
+      }),
+    );
+    return Object.fromEntries(results);
+  }
+
   async findOne(id: string): Promise<ServerPublic> {
     const server = await this.getServerById(id);
     const activeJobs = await this.jobsFacade.loadActiveJobs([id]);
@@ -177,11 +200,31 @@ export class ServersCrudService {
         ? this.ssh.mapConnectionMode(dto.connectionMode)
         : existing.connectionMode;
 
+    // Same resolution as create(): an explicit raw `sshKey` wins over
+    // `sshKeyId` (a reference to an existing Settings → SSH Keys entry).
+    let resolvedSshKey: string | undefined = dto.sshKey;
+    if (dto.sshKeyId && !resolvedSshKey) {
+      const stored = await this.prisma.sshKey.findUnique({
+        where: { id: dto.sshKeyId },
+      });
+      if (!stored) {
+        throw new BadRequestException(`SSH key "${dto.sshKeyId}" introuvable`);
+      }
+      resolvedSshKey = this.crypto.decrypt(stored.encryptedPrivateKey);
+    }
+    // resolveSshMaterial (not just normalizePrivateKeyFormat) so the stored
+    // sshPublicKey is re-derived alongside the new private key — leaving it
+    // stale would silently break ServerKeyInstallDialog (it displays
+    // Server.sshPublicKey for the user to install on the remote host).
+    const sshMaterial = resolvedSshKey
+      ? this.crypto.resolveSshMaterial(resolvedSshKey)
+      : undefined;
+
     const resetVerification =
       dto.host !== undefined ||
       dto.port !== undefined ||
       dto.username !== undefined ||
-      dto.sshKey !== undefined ||
+      sshMaterial !== undefined ||
       dto.connectionMode !== undefined;
 
     const resetOnboardingStep = this.resolveOnboardingStep({
@@ -196,10 +239,9 @@ export class ServersCrudService {
       ...(dto.host !== undefined && { host: dto.host }),
       ...(dto.port !== undefined && { port: dto.port }),
       ...(dto.username !== undefined && { username: dto.username }),
-      ...(dto.sshKey !== undefined && {
-        sshKey: this.crypto.encrypt(
-          this.crypto.normalizePrivateKeyFormat(dto.sshKey),
-        ),
+      ...(sshMaterial !== undefined && {
+        sshKey: this.crypto.encrypt(sshMaterial.privateKey),
+        sshPublicKey: sshMaterial.publicKey,
       }),
       ...(dto.connectionMode !== undefined && {
         connectionMode: nextConnectionMode,

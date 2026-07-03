@@ -109,6 +109,30 @@ describe('EnvironmentsService', () => {
     );
   });
 
+  // Regression test for AUDIT_VERIFICATION_UI.md Task 2: `findAll` used to
+  // `include: { serviceLinks: { include: { service, deployments } } }` with
+  // no `select` directly on serviceLinks — Prisma then returns every scalar
+  // column of the underlying ServiceEnvironment row, including plaintext
+  // `env` and encrypted `secretsEnv`, on every environments-list load.
+  it('findAll requests serviceLinks via an explicit select excluding secretsEnv/env', async () => {
+    prisma.projectMember.findUnique.mockResolvedValue({
+      role: ProjectRole.DEVELOPER,
+    });
+
+    await service.findAll('p1', 'u2', Role.DEVELOPER);
+
+    const arg = prisma.environment.findMany.mock.calls[0][0];
+    const serviceLinks = arg.include.serviceLinks;
+    expect(serviceLinks.include).toBeUndefined();
+    expect(serviceLinks.select).not.toHaveProperty('secretsEnv');
+    expect(serviceLinks.select).not.toHaveProperty('env');
+    expect(serviceLinks.select).toMatchObject({
+      id: true,
+      serviceId: true,
+      environmentId: true,
+    });
+  });
+
   it('forbids a non-member from reading project envs', async () => {
     prisma.projectMember.findUnique.mockResolvedValue(null);
     await expect(

@@ -112,6 +112,18 @@ export class ServerManagementController {
     return await this.core.findAll(pagination);
   }
 
+  @Get('reachability')
+  @ApiOperation({
+    summary:
+      'A3: lightweight TCP reachability ping for every server (not the full SSH validation) — meant to be polled frequently by the list page.',
+  })
+  @ApiOkResponse({
+    description: 'Map of serverId → isReachable',
+  })
+  async pingAll() {
+    return await this.core.pingAll();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: "View a server's details" })
   @ApiOkResponse({ description: 'Server found', type: ServerResponseDto })

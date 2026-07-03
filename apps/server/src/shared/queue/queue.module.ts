@@ -11,6 +11,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 @Module({
   imports: [ScheduleModule.forRoot()],
   providers: [bullQueueProvider, QueueService, QueueMonitoringService],
-  exports: [QueueService, QueueMonitoringService],
+  // 'DEPLOYMENTS_QUEUE' must be exported too, not just the services built on
+  // top of it: @Global() only makes EXPORTED providers resolvable from other
+  // modules. Without this, AppController's @Optional() @Inject('DEPLOYMENTS_QUEUE')
+  // silently resolved to undefined and the /health Redis check always reported
+  // "disconnected" regardless of Redis' real state (AUDIT_VERIFICATION_UI.md Point 1).
+  exports: [QueueService, QueueMonitoringService, 'DEPLOYMENTS_QUEUE'],
 })
 export class QueueModule {}

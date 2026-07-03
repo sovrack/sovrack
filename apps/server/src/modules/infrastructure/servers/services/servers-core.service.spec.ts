@@ -6,7 +6,7 @@ import { ServersCoreService } from './servers-core.service';
 // spec only verifies each public method delegates to the right sub-service
 // with the right arguments — the facade contract the 4 controllers rely on.
 describe('ServersCoreService (facade)', () => {
-  let crud: { create: jest.Mock; findAll: jest.Mock; findOne: jest.Mock; update: jest.Mock; remove: jest.Mock };
+  let crud: { create: jest.Mock; findAll: jest.Mock; pingAll: jest.Mock; findOne: jest.Mock; update: jest.Mock; remove: jest.Mock };
   let jobsFacade: Record<string, jest.Mock>;
   let readersFacade: Record<string, jest.Mock>;
   let service: ServersCoreService;
@@ -15,6 +15,7 @@ describe('ServersCoreService (facade)', () => {
     crud = {
       create: jest.fn().mockResolvedValue({ id: 's1' }),
       findAll: jest.fn().mockResolvedValue([]),
+      pingAll: jest.fn().mockResolvedValue({ s1: true }),
       findOne: jest.fn().mockResolvedValue({ id: 's1' }),
       update: jest.fn().mockResolvedValue({ id: 's1' }),
       remove: jest.fn().mockResolvedValue(undefined),
@@ -74,6 +75,9 @@ describe('ServersCoreService (facade)', () => {
 
     await service.remove('s1', 'admin');
     expect(crud.remove).toHaveBeenCalledWith('s1', 'admin');
+
+    await service.pingAll();
+    expect(crud.pingAll).toHaveBeenCalled();
   });
 
   it('delegates jobs/verification/preparation/detection methods to ServersJobsFacade', async () => {

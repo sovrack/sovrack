@@ -106,6 +106,18 @@ export class ServerResponseDto {
   @ApiProperty()
   hasRunner!: boolean;
 
+  // A4: was already present in the real response (toPublicServer spreads
+  // every Server column except sshKey) but never declared here — the list
+  // page needs this to show real per-server tool badges (Docker/Postgres/
+  // Redis/etc.) instead of just the 2 hasDocker/hasRunner booleans.
+  @ApiPropertyOptional({
+    type: () => ServerInstalledToolDto,
+    isArray: true,
+    description:
+      'Tools detected on this server (Docker, Postgres, Redis, Nginx, etc.) — written by capability detection. No Traefik entry: it is not tracked as a per-server OS capability on this platform (it runs as a deployment-time reverse proxy, not an installed package).',
+  })
+  installedTools?: ServerInstalledToolDto[];
+
   @ApiPropertyOptional({
     type: String,
     description:
@@ -180,6 +192,14 @@ export class ServerJobResponseDto {
 
   @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description:
+      'For PREPARE_SERVER jobs: the id of the ServerRun (kind=PREPARATION) it triggered — fetch it for the step-by-step Ansible log. Null for job types that never ran Ansible (VERIFY/INSTALL_TOOLS/REGISTER_RUNNER).',
+  })
+  preparationId!: string | null;
 }
 
 export class PaginatedServerJobsResponseDto {

@@ -23,9 +23,19 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { DiscoverGroupDto } from './dto/discover-group.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 
+// envLinks: explicit `select` (not `include`) so a ServiceEnvironment's
+// sensitive fields (secretsEnv — encrypted, but never meant to leave the
+// backend perimeter unnecessarily — and env, plaintext vars) never leak
+// through this listing route. The frontend only ever reads these 4 scalar
+// fields off `service.envLinks[]` (see frontend Service type) — anything
+// else here would be dead weight AND a needless exposure surface.
 const serviceInclude = {
   envLinks: {
-    include: {
+    select: {
+      id: true,
+      environmentId: true,
+      serverId: true,
+      currentDeploymentId: true,
       environment: {
         select: { id: true, name: true },
       },

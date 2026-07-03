@@ -44,6 +44,10 @@ export class ServersCoreService {
     return this.crud.findAll(pagination);
   }
 
+  async pingAll(): Promise<Record<string, boolean>> {
+    return this.crud.pingAll();
+  }
+
   async findOne(id: string): Promise<ServerPublic> {
     return this.crud.findOne(id);
   }

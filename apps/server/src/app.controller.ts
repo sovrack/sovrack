@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Queue } from 'bullmq';
 import { PrismaService } from './shared/database/prisma.service';
 import { PlatformService } from './modules/platform/platform.service';
@@ -31,6 +32,14 @@ type HealthResponse = {
 
 @ApiTags('Health')
 @Public() // health/liveness/readiness probes — must be reachable without a JWT
+// The global ThrottlerGuard's Redis-backed storage (ThrottlerStorageRedisService)
+// itself calls Redis on every request; when Redis is down, ioredis' default
+// retry/backoff made that call — and therefore this whole controller,
+// including the "is Redis down?" probe itself — hang for a long time instead
+// of failing fast (AUDIT_VERIFICATION_UI.md Point 1, found while verifying the
+// Task 3 fix). Health/readiness probes must never depend on the very
+// dependency they're reporting on, so they're exempted from rate limiting.
+@SkipThrottle()
 @Controller()
 export class AppController {
   constructor(
@@ -122,15 +131,37 @@ export class AppController {
     }
   }
 
+  // Bounds any health-check probe against Redis: when Redis is actually down,
+  // ioredis' default retryStrategy keeps retrying forever instead of
+  // rejecting, so an un-bounded await here would hang the request until an
+  // unrelated upstream timeout kills it with a generic 500 — not the clean
+  // "disconnected" status a health check must always return promptly
+  // (AUDIT_VERIFICATION_UI.md Point 1, found while verifying the Task 3 fix).
+  private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('timeout')), ms);
+      promise.then(
+        (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        (err: unknown) => {
+          clearTimeout(timer);
+          reject(err);
+        },
+      );
+    });
+  }
+
   /** Ping Redis via the BullMQ queue's shared ioredis client (deploy worker). */
   private async checkRedis(): Promise<ComponentStatus> {
     if (!this.queue) return 'disconnected';
     try {
       // BullMQ types `client` minimally; the underlying ioredis client has ping().
-      const client = (await this.queue.client) as unknown as {
+      const client = (await this.withTimeout(this.queue.client, 2000)) as unknown as {
         ping: () => Promise<string>;
       };
-      const pong = await client.ping();
+      const pong = await this.withTimeout(client.ping(), 2000);
       return pong === 'PONG' ? 'connected' : 'disconnected';
     } catch {
       return 'disconnected';
@@ -148,11 +179,14 @@ export class AppController {
       return { waiting: 0, active: 0, failed: 0, status: 'disconnected' };
     }
     try {
-      const [waiting, active, failed] = await Promise.all([
-        this.queue.getWaitingCount(),
-        this.queue.getActiveCount(),
-        this.queue.getFailedCount(),
-      ]);
+      const [waiting, active, failed] = await this.withTimeout(
+        Promise.all([
+          this.queue.getWaitingCount(),
+          this.queue.getActiveCount(),
+          this.queue.getFailedCount(),
+        ]),
+        2000,
+      );
       return {
         waiting,
         active,

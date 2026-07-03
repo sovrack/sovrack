@@ -424,8 +424,14 @@ export class ServersJobsService implements OnModuleInit {
 
   toPublicJob(job: ServerJob): ServerJobPublic {
     const { payload, ...publicJob } = job;
-    void payload;
-    return publicJob;
+    const preparationId =
+      payload &&
+      typeof payload === 'object' &&
+      !Array.isArray(payload) &&
+      typeof (payload as Record<string, unknown>).preparationId === 'string'
+        ? ((payload as Record<string, unknown>).preparationId as string)
+        : null;
+    return { ...publicJob, preparationId };
   }
 
   private resolveDefaultJobTimeoutMs(): number {

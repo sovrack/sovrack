@@ -4,6 +4,20 @@ import { AppController } from './app.controller';
 import { PrismaService } from './shared/database/prisma.service';
 import { PlatformService } from './modules/platform/platform.service';
 
+// Regression test for AUDIT_VERIFICATION_UI.md Point 1: AppController is
+// exempted from the global ThrottlerGuard. Without this, the guard's
+// Redis-backed storage would itself call Redis on every request — including
+// the health probe reporting on whether Redis is reachable — and hang for a
+// long time (ioredis' default retry/backoff) instead of the controller ever
+// getting a chance to return a clean "disconnected" status.
+describe('AppController — exempt from rate limiting', () => {
+  it('carries the SkipThrottle metadata', () => {
+    expect(Reflect.getMetadata('THROTTLER:SKIPdefault', AppController)).toBe(
+      true,
+    );
+  });
+});
+
 describe('AppController', () => {
   const mockPlatformService = {
     resolveWebhookBaseUrl: jest.fn().mockResolvedValue('https://example.com'),
@@ -82,6 +96,30 @@ describe('AppController', () => {
       const result = await app.get<AppController>(AppController).getHealth();
       expect(result.redis).toBe('disconnected');
     });
+
+    // Regression test: when Redis is actually down, ioredis' default
+    // retryStrategy keeps retrying forever instead of rejecting, so
+    // `queue.client` never settles. Before the withTimeout() fix, this made
+    // /health hang indefinitely instead of promptly reporting "disconnected".
+    it('reports redis disconnected within a bounded time when the queue client never settles', async () => {
+      const neverSettles = new Promise<{ ping: jest.Mock }>(() => {
+        /* simulates ioredis retrying forever against a dead Redis */
+      });
+      const app = await buildModule(
+        { $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]) },
+        { client: neverSettles },
+      );
+      const ctrl = app.get<AppController>(AppController);
+
+      const start = Date.now();
+      const result = await ctrl.getHealth();
+      const elapsedMs = Date.now() - start;
+
+      expect(result.redis).toBe('disconnected');
+      // Generous upper bound (the internal timeout is 2s) — this only needs
+      // to prove it's bounded, not hanging forever.
+      expect(elapsedMs).toBeLessThan(5000);
+    }, 10000);
 
     it('expose le statut webhook configuré quand la base est joignable', async () => {
       const app = await buildModule({

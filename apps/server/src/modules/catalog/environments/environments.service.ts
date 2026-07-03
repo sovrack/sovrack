@@ -14,8 +14,18 @@ import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { UpdateEnvironmentDto } from './dto/update-environment.dto';
 
 const environmentsInclude = {
+  // Explicit `select` (not `include`) on serviceLinks itself — same fix as
+  // ServicesService.serviceInclude (AUDIT_VERIFICATION_UI.md Point 0/Task 2):
+  // an `include` with no `select` on the ServiceEnvironment relation returns
+  // ALL of its scalar columns, including `env` (plaintext) and `secretsEnv`
+  // (encrypted blob), neither of which the frontend reads off this list route
+  // (it fetches variables via the dedicated service-environments/env-preview
+  // endpoints instead).
   serviceLinks: {
-    include: {
+    select: {
+      id: true,
+      serviceId: true,
+      environmentId: true,
       service: {
         select: {
           id: true,

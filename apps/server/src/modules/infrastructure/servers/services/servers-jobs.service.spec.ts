@@ -140,6 +140,55 @@ describe('ServersJobsService', () => {
     ).toBe(true);
   });
 
+  // A2 (merge the separate "Logs" dialog into Job History): PREPARE_SERVER
+  // jobs store the ServerRun they triggered as `payload.preparationId` —
+  // toPublicJob must surface just that one field, never the raw payload
+  // (selectedOptions/resolvedRoles/retryOfPreparationId stay internal).
+  describe('toPublicJob', () => {
+    it('derives preparationId from payload for a PREPARE_SERVER job', () => {
+      const { service } = createService();
+      const job = {
+        id: 'job-1',
+        serverId: 'srv-1',
+        type: ServerJobType.PREPARE_SERVER,
+        status: ServerJobStatus.SUCCESS,
+        payload: {
+          preparationId: 'run-42',
+          selectedOptions: ['docker'],
+          resolvedRoles: ['docker'],
+          retryOfPreparationId: null,
+        },
+      } as never;
+      const result = service.toPublicJob(job);
+      expect(result.preparationId).toBe('run-42');
+      expect(result).not.toHaveProperty('payload');
+    });
+
+    it('returns null preparationId for job types with no payload (VERIFY, etc.)', () => {
+      const { service } = createService();
+      const job = {
+        id: 'job-2',
+        serverId: 'srv-1',
+        type: ServerJobType.VERIFY,
+        status: ServerJobStatus.SUCCESS,
+        payload: null,
+      } as never;
+      expect(service.toPublicJob(job).preparationId).toBeNull();
+    });
+
+    it('returns null preparationId when payload is present but has no preparationId key', () => {
+      const { service } = createService();
+      const job = {
+        id: 'job-3',
+        serverId: 'srv-1',
+        type: ServerJobType.INSTALL_TOOLS,
+        status: ServerJobStatus.SUCCESS,
+        payload: { someOtherField: true },
+      } as never;
+      expect(service.toPublicJob(job).preparationId).toBeNull();
+    });
+  });
+
   describe('createJobAtomic', () => {
     it('acquires the advisory lock and creates a job when none is active', async () => {
       const { service, tx } = createService();

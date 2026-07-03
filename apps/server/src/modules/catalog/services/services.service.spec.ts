@@ -151,6 +151,43 @@ describe('ServicesService — CRUD', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
+  // Regression test for the AUDIT_VERIFICATION_UI.md Point 0 finding: this
+  // listing route used to `include: { envLinks: { include: { environment... } } }`
+  // with NO select on envLinks itself — Prisma then returns every scalar
+  // column, including the encrypted `secretsEnv` blob and the plaintext
+  // `env`, on every service-list load. Asserting the exact `select` shape
+  // (not just "no secretsEnv key in the result") because the mocked Prisma
+  // client here doesn't apply real select/omit filtering — the guarantee
+  // has to come from the query shape we send it.
+  it('findAll requests envLinks via an explicit select excluding secretsEnv/env', async () => {
+    const { service, prisma } = harness();
+    prisma.service.findMany.mockResolvedValue([]);
+
+    await service.findAll(projectId, userId, Role.ADMIN);
+
+    const arg = prisma.service.findMany.mock.calls[0][0];
+    const envLinks = arg.include.envLinks;
+    expect(envLinks.include).toBeUndefined();
+    expect(envLinks.select).toEqual({
+      id: true,
+      environmentId: true,
+      serverId: true,
+      currentDeploymentId: true,
+      environment: { select: { id: true, name: true } },
+    });
+  });
+
+  it('findOne requests envLinks via the same restricted select', async () => {
+    const { service, prisma } = harness();
+    prisma.service.findFirst.mockResolvedValue({ id: 's1' });
+
+    await service.findOne(projectId, 's1', userId, Role.ADMIN);
+
+    const arg = prisma.service.findFirst.mock.calls[0][0];
+    expect(arg.include.envLinks.select).not.toHaveProperty('secretsEnv');
+    expect(arg.include.envLinks.select).not.toHaveProperty('env');
+  });
+
   it('discoverGroup delegates to the source providers service', async () => {
     const { service, sourceProviders } = harness();
 
