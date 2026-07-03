@@ -125,15 +125,21 @@ export default function GitSettingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [copiedRedirect, setCopiedRedirect] = useState(false);
 
+  // Must match GitProviderOauthService's own fallback exactly
+  // (`${callbackBaseUrl}/gitlab/callback` — backend/.../git-provider-oauth.service.ts,
+  // resolveGitlabProviderRedirectUri) — that's the real, working route
+  // (`@Controller('gitlab')` + `@Get('callback')`, confirmed live: 302).
+  // The previous `/providers/gitlab/callback` segment never existed on the
+  // backend (404, confirmed live) — see AUDIT_VERIFICATION_UI.md Point 2.
   const fallbackRedirectUri = useMemo(() => {
     if (typeof window === "undefined") return "";
     const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
-    if (apiBase) return `${apiBase}/providers/gitlab/callback`;
+    if (apiBase) return `${apiBase}/gitlab/callback`;
     // NEXT_PUBLIC_API_URL not set: derive backend origin from current hostname +
     // default backend port 3001. This is only a UI hint — set NEXT_PUBLIC_API_URL
     // in production so the correct URL is shown without guessing.
     const backendOrigin = `${window.location.protocol}//${window.location.hostname}:3001`;
-    return `${backendOrigin}/providers/gitlab/callback`;
+    return `${backendOrigin}/gitlab/callback`;
   }, []);
 
   // Handle OAuth callback query params

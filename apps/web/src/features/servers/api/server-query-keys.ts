@@ -17,6 +17,7 @@ export const serverKeys = {
   all: ["servers"] as const,
   adminList: () => [...serverKeys.all, "admin-list"] as const,
   list: () => [...serverKeys.all, "list"] as const,
+  reachability: () => [...serverKeys.all, "reachability"] as const,
   detail: (id: string) => [...serverKeys.all, "detail", id] as const,
   preparationOptions: () => [...serverKeys.all, "preparation-options"] as const,
   preparation: (id: string) => [...serverKeys.all, "preparation", id] as const,

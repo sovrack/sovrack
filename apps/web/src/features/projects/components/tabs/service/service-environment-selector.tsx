@@ -55,21 +55,21 @@ export function ServiceEnvironmentSelector({
 
   return (
     <div ref={ref} className="relative">
+      {/* Task 3 ("Correction rapide"): the trigger used to wrap the
+          environment name in a per-environment colored pill (ENV_BADGE),
+          which made it stand out as its own distinct colored element from
+          the rest of the (plain border+bg-card) header. It's now plain text,
+          matching Project/Delete exactly — only the dropdown list below
+          (opened on click) still color-codes each option for fast scanning. */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm transition hover:bg-[var(--hover)]"
+        className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:bg-[var(--hover)]"
       >
         <Layers size={14} className="text-[var(--text-muted)]" />
         {selectedEnv ? (
-          <span
-            className={clsx(
-              "rounded-full border px-2 py-0.5 text-xs font-bold uppercase",
-              ENV_BADGE[selectedEnv.name] ??
-                "border-zinc-500/20 bg-zinc-500/10 text-zinc-400",
-            )}
-          >
-            {selectedEnv.name}
+          <span>
+            Environment: <span className="font-medium">{selectedEnv.name}</span>
           </span>
         ) : (
           <span className="text-[var(--text-muted)]">Select environment</span>

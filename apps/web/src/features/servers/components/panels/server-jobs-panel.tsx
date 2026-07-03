@@ -1,5 +1,16 @@
-import { Loader2, RefreshCw, RotateCcw, XCircle } from "lucide-react";
-import type { ServerJob } from "@/features/servers/types/server";
+import { useState } from "react";
+import {
+  ChevronDown,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  ScrollText,
+  XCircle,
+} from "lucide-react";
+import type {
+  ServerJob,
+  ServerPreparation,
+} from "@/features/servers/types/server";
 
 type ServerJobsPanelProps = {
   serverId: string;
@@ -15,6 +26,11 @@ type ServerJobsPanelProps = {
   onRefreshJobs: (serverId: string) => Promise<void>;
   onRetryJob: (serverId: string, jobId: string) => Promise<void>;
   onCancelJob?: (serverId: string, jobId: string) => Promise<void>;
+  // A2: PREPARE_SERVER jobs link to the detailed ServerRun (step-by-step
+  // Ansible log) they triggered via job.preparationId — merges what the now
+  // -removed standalone "Logs" dialog showed directly into this list.
+  preparations: ServerPreparation[];
+  onViewPreparationLogs: (preparation: ServerPreparation) => void;
 };
 
 export function ServerJobsPanel({
@@ -31,7 +47,10 @@ export function ServerJobsPanel({
   onRefreshJobs,
   onRetryJob,
   onCancelJob,
+  preparations,
+  onViewPreparationLogs,
 }: ServerJobsPanelProps) {
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   return (
     <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--hover)] p-3 bg-[var(--bg-card)]">
       <div className="flex items-center justify-between gap-2">
@@ -102,73 +121,141 @@ export function ServerJobsPanel({
       })()}
 
       <div className="mt-2 space-y-2">
-        {jobs.slice(0, 5).map((job) => (
-          <div
-            key={job.id}
-            className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-2"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold text-[var(--text-primary)]">
-                  {formatJobType(job.type)}
-                </p>
-                <p className="text-[11px] text-[var(--text-secondary)]">
-                  {new Date(job.createdAt).toLocaleString()} · attempts{" "}
-                  {job.attempts}/{job.maxAttempts}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${getJobStatusClassName(
-                    job.status,
-                  )}`}
-                >
-                  {job.status.replace("_", " ")}
-                </span>
-                {canCancelJob?.(job) && onCancelJob && (
-                  <button
-                    type="button"
-                    onClick={() => void onCancelJob(serverId, job.id)}
-                    disabled={cancelingJobId === job.id}
-                    className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+        {jobs.slice(0, 5).map((job) => {
+          const isExpanded = expandedJobId === job.id;
+          const preparation = job.preparationId
+            ? (preparations.find((p) => p.id === job.preparationId) ?? null)
+            : null;
+          return (
+            <div
+              key={job.id}
+              className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-2"
+            >
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={`Toggle details for ${formatJobType(job.type)} job`}
+                onClick={() =>
+                  setExpandedJobId((prev) => (prev === job.id ? null : job.id))
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setExpandedJobId((prev) =>
+                      prev === job.id ? null : job.id,
+                    );
+                  }
+                }}
+                className="flex w-full cursor-pointer flex-wrap items-center justify-between gap-2 text-left"
+              >
+                <div className="flex items-center gap-1.5">
+                  <ChevronDown
+                    size={12}
+                    className={`shrink-0 text-[var(--text-secondary)] transition ${isExpanded ? "rotate-180" : ""}`}
+                  />
+                  <div>
+                    <p className="text-xs font-semibold text-[var(--text-primary)]">
+                      {formatJobType(job.type)}
+                    </p>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
+                      {new Date(job.createdAt).toLocaleString()} · attempts{" "}
+                      {job.attempts}/{job.maxAttempts}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${getJobStatusClassName(
+                      job.status,
+                    )}`}
                   >
-                    {cancelingJobId === job.id ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : (
-                      <XCircle size={11} />
-                    )}
-                    Cancel
-                  </button>
-                )}
-                {canRetryJob(job) && (
-                  <button
-                    type="button"
-                    onClick={() => void onRetryJob(serverId, job.id)}
-                    disabled={isBusy || retryingJobId === job.id}
-                    className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
-                  >
-                    {retryingJobId === job.id ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : (
-                      <RotateCcw size={11} />
-                    )}
-                    Retry
-                  </button>
-                )}
+                    {job.status.replace("_", " ")}
+                  </span>
+                  {canCancelJob?.(job) && onCancelJob && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void onCancelJob(serverId, job.id);
+                      }}
+                      disabled={cancelingJobId === job.id}
+                      className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+                    >
+                      {cancelingJobId === job.id ? (
+                        <Loader2 size={11} className="animate-spin" />
+                      ) : (
+                        <XCircle size={11} />
+                      )}
+                      Cancel
+                    </button>
+                  )}
+                  {canRetryJob(job) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void onRetryJob(serverId, job.id);
+                      }}
+                      disabled={isBusy || retryingJobId === job.id}
+                      className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
+                    >
+                      {retryingJobId === job.id ? (
+                        <Loader2 size={11} className="animate-spin" />
+                      ) : (
+                        <RotateCcw size={11} />
+                      )}
+                      Retry
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {!isExpanded && job.output && (
+                <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-secondary)]">
+                  {job.output}
+                </p>
+              )}
+              {!isExpanded && job.error && (
+                <p className="mt-1 line-clamp-2 text-[11px] text-red-400">
+                  {job.error}
+                </p>
+              )}
+
+              {isExpanded && (
+                <div className="mt-2 space-y-2 border-t border-[var(--border)] pt-2">
+                  {job.output && (
+                    <p className="whitespace-pre-wrap text-[11px] text-[var(--text-secondary)]">
+                      {job.output}
+                    </p>
+                  )}
+                  {job.error && (
+                    <p className="whitespace-pre-wrap text-[11px] text-red-400">
+                      {job.error}
+                    </p>
+                  )}
+                  {!job.output && !job.error && (
+                    <p className="text-[11px] text-[var(--text-secondary)]">
+                      No output recorded for this job.
+                    </p>
+                  )}
+                  {preparation && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewPreparationLogs(preparation);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--hover)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                    >
+                      <ScrollText size={11} />
+                      View step-by-step Ansible log
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-            {job.output && (
-              <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-secondary)]">
-                {job.output}
-              </p>
-            )}
-            {job.error && (
-              <p className="mt-1 line-clamp-2 text-[11px] text-red-400">
-                {job.error}
-              </p>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -1311,6 +1311,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/servers/reachability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A3: lightweight TCP reachability ping for every server (not the full SSH validation) — meant to be polled frequently by the list page. */
+        get: operations["ServerManagementController_pingAll"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/servers/{id}": {
         parameters: {
             query?: never;
@@ -3291,6 +3308,18 @@ export interface components {
              */
             autoBranch?: string;
         };
+        ServerInstalledToolDto: {
+            id: string;
+            serverId: string;
+            toolKey: string;
+            displayName: string;
+            version?: string | null;
+            installedBy?: string | null;
+            /** @enum {string} */
+            status: "INSTALLED" | "MISSING" | "FAILED" | "UNKNOWN";
+            /** Format: date-time */
+            installedAt?: string | null;
+        };
         ServerActiveJobDto: {
             id: string;
             /** @enum {string} */
@@ -3331,6 +3360,8 @@ export interface components {
             lastPreparedAt?: string | null;
             hasDocker: boolean;
             hasRunner: boolean;
+            /** @description Tools detected on this server (Docker, Postgres, Redis, Nginx, etc.) — written by capability detection. No Traefik entry: it is not tracked as a per-server OS capability on this platform (it runs as a deployment-time reverse proxy, not an installed package). */
+            installedTools?: components["schemas"]["ServerInstalledToolDto"][];
             /** @description Infrastructure role: NONE | STAGING | PRODUCTION | DATABASE | RUNNER | MONITORING */
             infraRole?: string;
             /** Format: date-time */
@@ -3368,6 +3399,8 @@ export interface components {
             lastPreparedAt?: string | null;
             hasDocker: boolean;
             hasRunner: boolean;
+            /** @description Tools detected on this server (Docker, Postgres, Redis, Nginx, etc.) — written by capability detection. No Traefik entry: it is not tracked as a per-server OS capability on this platform (it runs as a deployment-time reverse proxy, not an installed package). */
+            installedTools?: components["schemas"]["ServerInstalledToolDto"][];
             /** @description Infrastructure role: NONE | STAGING | PRODUCTION | DATABASE | RUNNER | MONITORING */
             infraRole?: string;
             /** Format: date-time */
@@ -3405,6 +3438,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description For PREPARE_SERVER jobs: the id of the ServerRun (kind=PREPARATION) it triggered — fetch it for the step-by-step Ansible log. Null for job types that never ran Ansible (VERIFY/INSTALL_TOOLS/REGISTER_RUNNER). */
+            preparationId?: string | null;
         };
         PaginatedServerJobsResponseDto: {
             data: components["schemas"]["ServerJobResponseDto"][];
@@ -3474,6 +3509,8 @@ export interface components {
              *     ...
              */
             sshKey?: string;
+            /** @description ID of an existing SshKey (Settings → SSH Keys) to switch this server to. Ignored if `sshKey` is also provided. */
+            sshKeyId?: string;
             /** @enum {string} */
             connectionMode?: "ssh";
             /** @example true */
@@ -3566,18 +3603,6 @@ export interface components {
             source: string;
             /** Format: date-time */
             detectedAt: string;
-        };
-        ServerInstalledToolDto: {
-            id: string;
-            serverId: string;
-            toolKey: string;
-            displayName: string;
-            version?: string | null;
-            installedBy?: string | null;
-            /** @enum {string} */
-            status: "INSTALLED" | "MISSING" | "FAILED" | "UNKNOWN";
-            /** Format: date-time */
-            installedAt?: string | null;
         };
         StartServerPreparationDto: {
             /**
@@ -6798,6 +6823,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CreateServerResponseDto"];
                 };
+            };
+        };
+    };
+    ServerManagementController_pingAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Map of serverId → isReachable */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

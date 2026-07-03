@@ -1,7 +1,7 @@
 import { CheckCircle, CircleDashed } from "lucide-react";
 import clsx from "clsx";
 import { Badge } from "@/shared/ui/badge";
-import type { Server, ServerStatus } from "@/features/servers/types/server";
+import type { Server } from "@/features/servers/types/server";
 
 type BadgeProps = { label: string; active: boolean };
 
@@ -139,6 +139,51 @@ export function ServerOverallStatusBadge({ server }: { server: Server }) {
   );
 }
 
+// A4: real per-server tool badges, driven by Server.installedTools (capability
+// detection) — not a generic/hardcoded pair like ServerWorkflowBadges'
+// Docker/Runner booleans below. Only tools actually detected as INSTALLED on
+// THIS server are shown; nothing is fabricated for tools this platform
+// doesn't track per-server (e.g. Traefik — it runs as a deployment-time
+// reverse proxy, not an OS package a server "has installed").
+const TOOL_DISPLAY_PRIORITY = [
+  "docker",
+  "postgres",
+  "redis",
+  "nginx",
+  "gitlab_runner",
+];
+
+export function ServerToolBadges({ server }: { server: Server }) {
+  const installed = (server.installedTools ?? []).filter(
+    (tool) => tool.status === "INSTALLED",
+  );
+  if (installed.length === 0) {
+    return (
+      <p className="text-[11px] text-[var(--text-secondary)]">
+        No tools detected yet — run Detect Info.
+      </p>
+    );
+  }
+  const sorted = [...installed].sort((a, b) => {
+    const ai = TOOL_DISPLAY_PRIORITY.indexOf(a.toolKey);
+    const bi = TOOL_DISPLAY_PRIORITY.indexOf(b.toolKey);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {sorted.map((tool) => (
+        <span
+          key={tool.toolKey}
+          title={tool.version ?? undefined}
+          className="inline-flex items-center gap-1 rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[11px] font-semibold text-green-400"
+        >
+          <CheckCircle size={11} /> {tool.displayName}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function ServerWorkflowBadges({ server }: { server: Server }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -150,20 +195,6 @@ export function ServerWorkflowBadges({ server }: { server: Server }) {
       </span>
     </div>
   );
-}
-
-export function ServerStatusBadge({ status }: { status: ServerStatus }) {
-  const label = status.replace(/_/g, " ");
-  if (status.includes("FAILED") || status === "UNREACHABLE") {
-    return <Badge tone="error">{label}</Badge>;
-  }
-  if (status === "PREPARED") {
-    return <Badge tone="success">{label}</Badge>;
-  }
-  if (status === "PREPARING" || status === "SSH_PENDING") {
-    return <Badge tone="info">{label}</Badge>;
-  }
-  return <Badge tone="default">{label}</Badge>;
 }
 
 export function formatPreparationBlockingReason(reason: string): string {

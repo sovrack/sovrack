@@ -9,10 +9,11 @@ import { getApiErrorMessage } from "@/shared/lib/api";
 type GenFile = { name: string; content: string };
 
 /**
- * Onglet CI/CD — génère (APERÇU) les fichiers standardisés du service :
- * Dockerfile + .dockerignore + fichier CI (.gitlab-ci.yml ou GitHub Actions),
- * à coller dans le dépôt. APERÇU UNIQUEMENT : rien n'est écrit dans le dépôt
- * (zéro risque de conflit/écrasement). Couvre « standardiser le CI/CD ».
+ * Onglet Standardisation (séparé du Pipeline — Task 2, "Correction rapide")
+ * — génère (APERÇU) les fichiers standardisés du service : Dockerfile +
+ * .dockerignore + fichier CI (.gitlab-ci.yml ou GitHub Actions), à coller
+ * dans le dépôt. APERÇU UNIQUEMENT : rien n'est écrit dans le dépôt (zéro
+ * risque de conflit/écrasement).
  */
 export function ServiceCiGenerator({
   projectId,

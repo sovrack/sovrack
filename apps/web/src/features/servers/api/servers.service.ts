@@ -59,6 +59,14 @@ export const serversService = {
     return res.data;
   },
 
+  // A3: lightweight TCP reachability ping for every active server — distinct
+  // from isVerified/status (last on-demand SSH validation result). Meant to
+  // be polled frequently (30-60s) by the list page.
+  async getReachability(): Promise<Record<string, boolean>> {
+    const res = await api.get<Record<string, boolean>>("/servers/reachability");
+    return res.data;
+  },
+
   async getById(id: string): Promise<Server> {
     const res = await api.get<Server>(`/servers/${id}`);
     return res.data;

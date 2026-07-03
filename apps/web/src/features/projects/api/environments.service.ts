@@ -10,7 +10,6 @@ type RawServiceLink = {
   id: string;
   serviceId: string;
   environmentId: string;
-  env: Record<string, string> | null;
   service: Record<string, unknown>;
   deployments?: Array<{
     id: string;
@@ -144,12 +143,12 @@ export const environmentsService = {
   },
 
   // Config de CE service × CET environnement : variables (claires + secrètes
-  // chiffrées) + auto-deploy (push→deploy) + branche déclencheuse + les 5
-  // overrides par environnement (C6 — branch/port/startCommand/
-  // healthcheckPath/buildPack). Un champ omis laisse la valeur stockée
-  // inchangée ; un `null` explicite l'efface (repasse à null côté backend =
-  // "hérite du Service parent" — vérifié via
-  // update-service-environment.dto.spec.ts).
+  // chiffrées) + auto-deploy (push→deploy) + branche déclencheuse. Le build
+  // (port/startCommand/healthcheckPath/buildPack) n'a plus de variation par
+  // environnement — c'est une propriété unique du Service, éditée dans son
+  // onglet Build/General (voir la mission "Correction rapide" qui a retiré
+  // ces 5 champs de ce formulaire). Un champ omis laisse la valeur stockée
+  // inchangée.
   async updateServiceLink(
     projectId: string,
     id: string,
@@ -158,11 +157,6 @@ export const environmentsService = {
       secretsEnv?: string;
       autoDeploy?: boolean;
       autoBranch?: string;
-      branch?: string | null;
-      port?: number | null;
-      startCommand?: string | null;
-      healthcheckPath?: string | null;
-      buildPack?: string | null;
     },
   ): Promise<void> {
     await api.put(`/projects/${projectId}/service-environments/${id}`, payload);

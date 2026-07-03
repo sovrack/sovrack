@@ -150,3 +150,90 @@ describe("AddProviderDialog — main flow", () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+// AUDIT_VERIFICATION_UI.md Point 2/Task 5: GitHub has no backend OAuth
+// callback route — offering "OAuth"/"Both" for it showed a redirect URI that
+// could never work. These lock in that the wizard now disables those choices
+// for GitHub instead of silently building a broken config.
+describe("AddProviderDialog — GitHub OAuth disabled (Task 5)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("disables OAuth and Both, forcing PAT, once GitHub is selected on step 1", () => {
+    render(<AddProviderDialog {...baseProps} onSave={vi.fn()} />);
+    fireEvent.click(screen.getByText("GitHub"));
+    goToStep2();
+    fireEvent.change(
+      screen.getByPlaceholderText("e.g. GitLab Cloud, Company GitLab"),
+      { target: { value: "My GitHub" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    expect(screen.getByText("Authentication Method")).toBeInTheDocument();
+    // Query each card by its exact title text then walk up to its <button> —
+    // avoids ambiguous accessible-name matches across the 3 cards' descriptions.
+    const oauthCard = screen.getByText("OAuth").closest("button");
+    const bothCard = screen.getByText("Both").closest("button");
+    const patCard = screen
+      .getByText("Personal Access Token")
+      .closest("button");
+    expect(oauthCard).toBeDisabled();
+    expect(bothCard).toBeDisabled();
+    expect(patCard).not.toBeDisabled();
+
+    // Proceeding to step 4 must never show the (broken) OAuth redirect URI
+    // field for GitHub — only the PAT field ("Personal Access Token" appears
+    // twice for GitHub — section header + field label, both intentional — so
+    // assert on the GitHub-specific placeholder instead of that text).
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.queryByText("Redirect URI")).not.toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("ghp_xxxxxxxxxxxxxxxxxxxx"),
+    ).toBeInTheDocument();
+  });
+
+  it("re-syncs selectedType and forces PAT when editing an existing GitHub provider with stale oauth/both config", () => {
+    // Mirrors the real DB state found during the audit: a GitHub provider
+    // that already has an applicationId + secret saved from before this fix
+    // (which would infer authChoice "both" from the old logic).
+    const existingGithub: GitlabProvider = {
+      id: "gh1",
+      name: "Existing GitHub",
+      // `type` is a legacy field fixed to the literal "GITLAB" — `providerType`
+      // is the real discriminator the production code reads (see
+      // settings/git/page.tsx's isGithubProvider / initialProviderType).
+      type: "GITLAB",
+      providerType: "GITHUB",
+      providerUrl: "https://github.com",
+      internalUrl: "",
+      redirectUri: "",
+      applicationId: "Ov23liGciQaVoWdoARrq",
+      applicationSecretConfigured: true,
+      groupNames: "",
+      adminTokenConfigured: true,
+      oauthTokenConfigured: false,
+      oauthExpiresAt: null,
+      status: "CONFIGURED",
+      isDefault: false,
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    };
+    render(
+      <AddProviderDialog
+        {...baseProps}
+        mode="edit"
+        existingProvider={existingGithub}
+        initialProviderType="GITHUB"
+        onSave={vi.fn()}
+      />,
+    );
+    // Edit mode starts on step 2 (instance) — advance to step 3 (auth method).
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByText("Authentication Method")).toBeInTheDocument();
+    expect(screen.getByText("OAuth").closest("button")).toBeDisabled();
+    // The PAT card must be the one actually selected, not oauth/both.
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.queryByText("Redirect URI")).not.toBeInTheDocument();
+  });
+});

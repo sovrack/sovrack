@@ -208,10 +208,14 @@ export function AuthMethodCard({
   choice,
   selected,
   onSelect,
+  disabled,
+  disabledReason,
 }: {
   choice: AuthChoice;
   selected: boolean;
   onSelect: () => void;
+  disabled?: boolean;
+  disabledReason?: string;
 }) {
   const map: Record<
     AuthChoice,
@@ -243,21 +247,32 @@ export function AuthMethodCard({
     <button
       type="button"
       onClick={onSelect}
+      disabled={disabled}
+      title={disabled ? disabledReason : undefined}
       className={clsx(
         "flex w-full items-start gap-3 rounded-xl border p-4 text-left transition",
-        selected
-          ? "border-[var(--text-primary)] bg-[var(--hover)]"
-          : "border-[var(--border)] hover:border-[var(--text-secondary)] hover:bg-[var(--hover)]",
+        disabled
+          ? "cursor-not-allowed border-[var(--border)] opacity-50"
+          : selected
+            ? "border-[var(--text-primary)] bg-[var(--hover)]"
+            : "border-[var(--border)] hover:border-[var(--text-secondary)] hover:bg-[var(--hover)]",
       )}
     >
       <div className="mt-0.5 shrink-0">{item.icon}</div>
       <div>
         <p className="text-sm font-semibold text-[var(--text-primary)]">
           {item.title}
+          {disabled && (
+            <span className="ml-2 rounded bg-[var(--hover)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+              Coming soon
+            </span>
+          )}
         </p>
-        <p className="mt-0.5 text-xs text-[var(--text-muted)]">{item.desc}</p>
+        <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+          {disabled && disabledReason ? disabledReason : item.desc}
+        </p>
       </div>
-      {selected && (
+      {selected && !disabled && (
         <CheckCircle2
           size={16}
           className="ml-auto mt-0.5 shrink-0 text-green-400"

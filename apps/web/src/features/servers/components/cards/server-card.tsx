@@ -1,11 +1,20 @@
-import { CheckCircle, Server } from "lucide-react";
+import { Server } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
-import { ServerStatusBadge } from "@/features/servers/components/shared/server-status-badges";
+import {
+  getServerOverallStatus,
+  ServerToolBadges,
+} from "@/features/servers/components/shared/server-status-badges";
 import { ServerActions } from "@/features/servers/components/shared/server-actions";
 import type { Server as ServerType } from "@/features/servers/types/server";
 
 type ServerCardProps = {
   server: ServerType;
+  // A3: live TCP reachability, refreshed automatically (~45s) while this
+  // page stays open. `undefined` = not checked yet. Deliberately a separate
+  // signal from isVerified/status (the last on-demand SSH validation
+  // result, only updated when the user explicitly re-validates) — the two
+  // coexist without either overwriting the other.
+  isReachable?: boolean;
   isBusy: boolean;
   verifyingId: string | null;
   detectingId: string | null;
@@ -19,13 +28,13 @@ type ServerCardProps = {
   onInstallKey: (server: ServerType) => void;
   onOpenPrepare: (server: ServerType) => void;
   onOpenDetails: (server: ServerType) => void;
-  onOpenLogs: (server: ServerType) => void;
   onEdit: (server: ServerType) => void;
   onDelete: (server: ServerType) => void;
 };
 
 export function ServerCard({
   server,
+  isReachable,
   isBusy,
   verifyingId,
   detectingId,
@@ -39,7 +48,6 @@ export function ServerCard({
   onInstallKey,
   onOpenPrepare,
   onOpenDetails,
-  onOpenLogs,
   onEdit,
   onDelete,
 }: ServerCardProps) {
@@ -53,8 +61,24 @@ export function ServerCard({
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.6fr),minmax(0,1fr),auto]">
         <div className="min-w-0">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--hover)]">
+            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--hover)]">
               <Server size={18} className="text-[var(--text-secondary)]" />
+              <span
+                title={
+                  isReachable === undefined
+                    ? "Reachability: checking…"
+                    : isReachable
+                      ? "Reachable (live TCP check)"
+                      : "Unreachable (live TCP check)"
+                }
+                className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--bg-card)] ${
+                  isReachable === undefined
+                    ? "bg-zinc-400"
+                    : isReachable
+                      ? "bg-green-500"
+                      : "bg-red-500"
+                }`}
+              />
             </div>
 
             <div className="min-w-0 flex-1">
@@ -62,12 +86,13 @@ export function ServerCard({
                 <h3 className="truncate text-sm font-semibold text-[var(--text-primary)]">
                   {server.name}
                 </h3>
-                {server.isVerified && (
-                  <Badge tone="success" size="sm">
-                    <CheckCircle size={10} /> SSH validated
-                  </Badge>
-                )}
-                <ServerStatusBadge status={server.status} />
+                {/* A4: replaces the old raw-enum badge ("INFO DETECTED") and
+                    the static "SSH validated" badge (superseded by the A3
+                    live reachability dot above) with a single clear,
+                    actionable preparation-level label. */}
+                <Badge tone={getServerOverallStatus(server).tone} dot>
+                  {getServerOverallStatus(server).label}
+                </Badge>
               </div>
 
               <p className="mt-1 break-all font-mono text-xs text-[var(--text-secondary)]">
@@ -86,6 +111,9 @@ export function ServerCard({
                   year: "numeric",
                 })}
               </p>
+              <div className="mt-2">
+                <ServerToolBadges server={server} />
+              </div>
             </div>
           </div>
         </div>
@@ -119,7 +147,6 @@ export function ServerCard({
             onInstallKey={onInstallKey}
             onOpenPrepare={onOpenPrepare}
             onOpenDetails={onOpenDetails}
-            onOpenLogs={onOpenLogs}
             onEdit={onEdit}
             onDelete={onDelete}
           />

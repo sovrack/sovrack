@@ -23,7 +23,7 @@ export * from "./components/tabs/runs/deployment-logs-dialog";
 export * from "./components/tabs/service/service-ci-generator";
 export * from "./components/tabs/service/service-config-form";
 export * from "./components/tabs/service/service-domains";
-export * from "./components/tabs/service/service-environments";
+export * from "./components/tabs/service/service-variables-tab";
 export * from "./components/tabs/service/service-metrics-chart";
 export * from "./components/tabs/service/service-monitoring";
 export * from "./components/tabs/service/service-pipelines";

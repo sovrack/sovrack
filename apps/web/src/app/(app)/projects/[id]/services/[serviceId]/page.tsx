@@ -7,12 +7,13 @@ import {
   Activity,
   ArrowLeft,
   Box,
+  Braces,
   Container as ContainerIcon,
   Database,
+  FileCode2,
   FolderGit2,
   GitPullRequestArrow,
   Globe,
-  Layers,
   Loader2,
   ScrollText,
   Settings2,
@@ -38,7 +39,7 @@ import { ServicePipelines } from "@/features/projects/components/tabs/service/se
 import { ServiceMonitoring } from "@/features/projects/components/tabs/service/service-monitoring";
 import { ServiceMetricsChart } from "@/features/projects/components/tabs/service/service-metrics-chart";
 import { ServiceLogs } from "@/features/projects/components/tabs/service/service-logs";
-import { ServiceEnvironments } from "@/features/projects/components/tabs/service/service-environments";
+import { ServiceVariablesTab } from "@/features/projects/components/tabs/service/service-variables-tab";
 import { ServiceEnvironmentSelector } from "@/features/projects/components/tabs/service/service-environment-selector";
 import { ServiceContainersTab } from "@/features/projects/components/tabs/service/service-containers-tab";
 import { DeploymentLogsDialog } from "@/features/projects/components/tabs/runs/deployment-logs-dialog";
@@ -49,8 +50,9 @@ import type { Deployment } from "@/features/deployments/types";
 
 type Tab =
   | "general"
-  | "cicd"
-  | "environments"
+  | "pipeline"
+  | "standardisation"
+  | "variables"
   | "domains"
   | "webhooks"
   | "deployments"
@@ -59,8 +61,9 @@ type Tab =
   | "logs";
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "general", label: "General", icon: Settings2 },
-  { id: "cicd", label: "CI/CD", icon: GitPullRequestArrow },
-  { id: "environments", label: "Environments", icon: Layers },
+  { id: "pipeline", label: "Pipeline", icon: GitPullRequestArrow },
+  { id: "standardisation", label: "Standardisation", icon: FileCode2 },
+  { id: "variables", label: "Variables", icon: Braces },
   { id: "domains", label: "Domains", icon: Globe },
   { id: "webhooks", label: "Webhooks", icon: Webhook },
   { id: "deployments", label: "Deployments", icon: Activity },
@@ -195,6 +198,13 @@ export default function ServiceDetailPage({
             >
               <ArrowLeft size={14} /> Project
             </Link>
+            <ServiceEnvironmentSelector
+              projectId={projectId}
+              envLinks={service.envLinks}
+              environments={environments}
+              selectedEnvId={effectiveEnvId}
+              onSelect={setEffectiveEnvId}
+            />
             <button
               type="button"
               onClick={() => void handleDelete()}
@@ -211,14 +221,6 @@ export default function ServiceDetailPage({
             </button>
           </div>
         }
-      />
-
-      <ServiceEnvironmentSelector
-        projectId={projectId}
-        envLinks={service.envLinks}
-        environments={environments}
-        selectedEnvId={effectiveEnvId}
-        onSelect={setEffectiveEnvId}
       />
 
       {!isDatabase && (
@@ -281,24 +283,31 @@ export default function ServiceDetailPage({
             <ServiceConfigForm
               projectId={projectId}
               service={service}
+              environmentId={effectiveEnvId}
+              serviceEnvId={
+                service.envLinks?.find(
+                  (l) => l.environmentId === effectiveEnvId,
+                )?.id ?? null
+              }
               onSaved={() => reload()}
             />
           )}
         </div>
       )}
 
-      {/* CI/CD — générateur (Dockerfile + .dockerignore + fichier CI) + runs pipeline */}
-      {tab === "cicd" && (
-        <div className="space-y-4">
-          {!isDatabase && (
-            <ServiceCiGenerator projectId={projectId} serviceId={serviceId} />
-          )}
-          <ServicePipelines
-            projectId={projectId}
-            serviceId={serviceId}
-            branch={service?.branch ?? null}
-          />
-        </div>
+      {/* Pipeline — historique des runs GitLab/GitHub pour ce service. */}
+      {tab === "pipeline" && (
+        <ServicePipelines
+          projectId={projectId}
+          serviceId={serviceId}
+          branch={service?.branch ?? null}
+        />
+      )}
+
+      {/* Standardisation — générateur d'aperçu (Dockerfile + .dockerignore +
+          fichier CI), séparé du Pipeline (Task 2, "Correction rapide"). */}
+      {tab === "standardisation" && !isDatabase && (
+        <ServiceCiGenerator projectId={projectId} serviceId={serviceId} />
       )}
 
       {/* Webhooks (onglet séparé — gère le webhook de déploiement) */}
@@ -306,14 +315,18 @@ export default function ServiceDetailPage({
         <ServiceWebhook projectId={projectId} serviceId={serviceId} />
       )}
 
-      {/* Environnements (liens service↔env + variables/secrets par env) */}
-      {tab === "environments" && (
-        <ServiceEnvironments
+      {/* B4: Variables — remplace l'ancien onglet "Environments" (liste
+          PRODUCTION/STAGING à déplier) par l'éditeur direct pour
+          l'environnement déjà sélectionné dans le header de la page. */}
+      {tab === "variables" && (
+        <ServiceVariablesTab
           projectId={projectId}
           serviceId={serviceId}
-          environments={environments}
-          envLinks={service.envLinks ?? []}
-          onChanged={() => reload()}
+          environmentId={effectiveEnvId}
+          serviceEnvId={
+            service.envLinks?.find((l) => l.environmentId === effectiveEnvId)
+              ?.id ?? null
+          }
         />
       )}
 

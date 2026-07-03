@@ -1,25 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
 import {
   Activity,
   AlertTriangle,
   CheckCircle2,
   Database,
-  ExternalLink,
-  Gauge,
   Globe,
   Loader2,
   RefreshCw,
-  Server,
-  Wrench,
   XCircle,
 } from "lucide-react";
 import { PageHeader } from "@/shared/layout/page-header";
 import { SectionCard } from "@/shared/layout/section-card";
 import { healthService } from "@/features/monitoring/api/health.service";
-import { monitoringService } from "@/features/monitoring/api/monitoring.service";
 import { getApiErrorMessage } from "@/shared/lib/api";
 
 type Tone = "ok" | "warn" | "down";
@@ -84,20 +78,21 @@ function formatUptime(seconds: number): string {
   return `${m}m`;
 }
 
+// C1: this page reports the health of the PRODUCT itself (backend API,
+// database, deployment queue, webhook config) — it deliberately does not
+// cover per-VPS observability (Prometheus/Grafana/monitored servers), which
+// is a client-server concern, not a platform-health one. That install flow
+// already lives at /automation (action "install_prometheus_grafana",
+// reachable from the main navigation) — nothing was lost by removing the
+// redundant shortcut that used to sit here.
 export default function SystemStatusPage() {
   const health = useQuery({
     queryKey: ["platform-health"],
     queryFn: () => healthService.get(),
     refetchInterval: 10_000,
   });
-  const overview = useQuery({
-    queryKey: ["monitoring-overview-status"],
-    queryFn: () => monitoringService.getOverview(),
-    refetchInterval: 15_000,
-  });
 
   const h = health.data;
-  const o = overview.data;
 
   // The API is reachable iff the /health request itself succeeds.
   const apiTone: Tone = health.isError ? "down" : health.data ? "ok" : "warn";
@@ -172,108 +167,6 @@ export default function SystemStatusPage() {
             {getApiErrorMessage(health.error)}
           </p>
         )}
-      </SectionCard>
-
-      <SectionCard
-        title="Observability stack"
-        description="Prometheus & Grafana (installed per-server) and monitored-server health."
-      >
-        {overview.isLoading ? (
-          <div className="flex items-center gap-2 py-6 text-sm text-[var(--text-secondary)]">
-            <Loader2 size={16} className="animate-spin" /> Loading…
-          </div>
-        ) : (
-          <div className="flex flex-col">
-            <ComponentRow
-              icon={<Gauge size={16} />}
-              name="Prometheus"
-              detail={
-                o?.prometheus.configured
-                  ? `${o.prometheus.upTargets}/${o.prometheus.totalTargets} targets up`
-                  : "Not installed"
-              }
-              tone={
-                !o?.prometheus.configured
-                  ? "warn"
-                  : o.prometheus.reachable
-                    ? "ok"
-                    : "down"
-              }
-              label={
-                !o?.prometheus.configured
-                  ? "Not installed"
-                  : o.prometheus.reachable
-                    ? "Reachable"
-                    : "Unreachable"
-              }
-            />
-            <ComponentRow
-              icon={<Gauge size={16} />}
-              name="Grafana"
-              detail={o?.grafana.url ?? "Not installed"}
-              tone={
-                !o?.grafana.configured
-                  ? "warn"
-                  : o.grafana.reachable
-                    ? "ok"
-                    : "down"
-              }
-              label={
-                !o?.grafana.configured
-                  ? "Not installed"
-                  : o.grafana.reachable
-                    ? "Reachable"
-                    : "Unreachable"
-              }
-            />
-            <ComponentRow
-              icon={<Server size={16} />}
-              name="Monitored servers"
-              detail={
-                o
-                  ? `${o.healthy} healthy · ${o.warning} warning · ${o.critical} critical · ${o.unknown} unknown`
-                  : undefined
-              }
-              tone={
-                !o || o.totalMonitoredServers === 0
-                  ? "warn"
-                  : o.critical > 0
-                    ? "down"
-                    : o.warning > 0
-                      ? "warn"
-                      : "ok"
-              }
-              label={`${o?.totalMonitoredServers ?? 0} total`}
-            />
-          </div>
-        )}
-        {overview.isError && (
-          <p className="mt-3 text-xs text-red-400">
-            {getApiErrorMessage(overview.error)}
-          </p>
-        )}
-
-        {/* Actions: open Grafana (deep dashboards) / install the stack. */}
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-4">
-          {o?.grafana.reachable && o.grafana.url ? (
-            <a
-              href={o.grafana.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-3 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
-            >
-              <ExternalLink size={14} /> Ouvrir Grafana
-            </a>
-          ) : null}
-          {!o?.prometheus.configured && (
-            <Link
-              href="/automation"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
-            >
-              <Wrench size={14} /> Installer le monitoring (Automation)
-            </Link>
-          )}
-        </div>
       </SectionCard>
     </div>
   );

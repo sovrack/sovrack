@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, Save } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, Save } from "lucide-react";
 import { servicesService } from "@/features/projects/api/services.service";
 import { projectsService } from "@/features/projects/api/projects.service";
+import { environmentsService } from "@/features/projects/api/environments.service";
+import { useResolvedServiceEnvId } from "@/features/projects/api/use-resolved-service-env-id";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { splitImageRef } from "@/features/deployments/utils";
 import { SectionCard } from "@/shared/layout/section-card";
 import { useProjectBranches } from "@/features/projects/api/use-project-branches";
+import { AutoDeployControl } from "./service-config-form.parts";
 import type {
   BuildPack,
   Service,
@@ -39,14 +42,29 @@ const labelClass =
  * "build contextuel"). Backed by the existing PUT /projects/:id/services/:id
  * endpoint — the Service model already carries all these fields, so no backend
  * change is required.
+ *
+ * Task 1 ("Correction rapide" mission): also hosts the "Auto-deploy on push"
+ * control, moved here from the old Variables tab. It is a DISTINCT setting
+ * from "Deployment trigger" below (confirmed by backend investigation, not a
+ * duplicate) — Deployment trigger (Service.deployTrigger) gates WHICH webhook
+ * event type (push vs CI pipeline success vs manual) is even allowed to start
+ * an auto-deploy attempt for this service; Auto-deploy on push
+ * (ServiceEnvironment.autoDeploy/autoBranch) then gates WHICH environment(s)
+ * actually deploy, and on which branch — a per-environment setting, still
+ * saved via the same environments-service endpoint as before, just relocated
+ * in the UI next to its Service-level counterpart.
  */
 export function ServiceConfigForm({
   projectId,
   service,
+  environmentId,
+  serviceEnvId,
   onSaved,
 }: {
   projectId: string;
   service: Service;
+  environmentId: string;
+  serviceEnvId: string | null;
   onSaved: () => void;
 }) {
   const [branch, setBranch] = useState(service.branch ?? "");
@@ -67,7 +85,14 @@ export function ServiceConfigForm({
     service.healthcheckPath ?? "",
   );
   const [dockerfile, setDockerfile] = useState(service.dockerfile ?? "");
-  const [providerId, setProviderId] = useState(service.providerId ?? "");
+  // B1: Provider + Repository path are locked forever once the service
+  // exists — no setter, no fallback-to-default. A prior version let the user
+  // click through a provider picker post-creation (silently inconsistent
+  // with the existing webhook, which stays registered against the ORIGINAL
+  // provider — see VERIFICATION_ORGANISATION_FINALE.md / AUDIT_VERIFICATION_UI.md
+  // Point 5) and defaulted an empty providerId to "the first provider" on
+  // load, which would have silently assigned one without any user action.
+  const providerId = service.providerId ?? "";
   // Dépôt figé (lecture seule) — pas de setter.
   const repoPath = service.repoPath ?? service.repoUrl ?? "";
   // Image externe (sourceType DOCKER_IMAGE) : la référence d'image:tag EST stockée
@@ -84,12 +109,56 @@ export function ServiceConfigForm({
   );
   const [registryTag, setRegistryTag] = useState(initialRegistryRef.tag);
   const [providers, setProviders] = useState<SourceProviderOption[]>([]);
+  const resolvedProvider = providers.find((p) => p.id === providerId) ?? null;
+  // B2: real repo URL, built from the provider's own base URL + the stored
+  // repoPath (e.g. "https://gitlab.com" + "group/api") — both GitLab and
+  // GitHub repo web pages resolve at exactly this path shape.
+  const repoWebUrl =
+    resolvedProvider && repoPath
+      ? `${resolvedProvider.url.replace(/\/+$/, "")}/${repoPath.replace(/^\/+/, "")}`
+      : null;
 
   // F-4 fix: use React Query for branches (shared cache, no memory leak).
   const branchesQuery = useProjectBranches(projectId);
   const branches = (branchesQuery.data ?? []).map((b) => b.name);
 
+  // Task 1: Auto-deploy on push is a ServiceEnvironment-level setting (see
+  // the doc comment above) — resolve the ServiceEnvironment for the
+  // currently-selected environment (same auto-link safety net the Variables
+  // tab uses) and load/save it independently of the Service-level fields.
+  const { resolvedServiceEnvId, linking } = useResolvedServiceEnvId(
+    projectId,
+    service.id,
+    environmentId,
+    serviceEnvId,
+  );
+  const [autoDeploy, setAutoDeploy] = useState(false);
+  const [autoBranch, setAutoBranch] = useState("main");
+  const [autoDeployLoading, setAutoDeployLoading] = useState(false);
+
+  useEffect(() => {
+    if (!resolvedServiceEnvId) return;
+    let alive = true;
+    setAutoDeployLoading(true);
+    environmentsService
+      .getServiceLink(projectId, resolvedServiceEnvId)
+      .then((se) => {
+        if (!alive) return;
+        setAutoDeploy(!!se.autoDeploy);
+        setAutoBranch(se.autoBranch ?? "main");
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (alive) setAutoDeployLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [projectId, resolvedServiceEnvId]);
+
   // F-4 fix: cleanup via AbortController so the setState after unmount is prevented.
+  // B1: only fetched to resolve providerId → display name; never used to
+  // change or default the service's own (locked) provider.
   useEffect(() => {
     const controller = new AbortController();
     projectsService
@@ -97,10 +166,6 @@ export function ServiceConfigForm({
       .then((list) => {
         if (controller.signal.aborted) return;
         setProviders(list);
-        setProviderId(
-          (prev) =>
-            prev || list.find((p) => p.isDefault)?.id || list[0]?.id || "",
-        );
       })
       .catch(() => {
         if (!controller.signal.aborted) setProviders([]);
@@ -146,17 +211,16 @@ export function ServiceConfigForm({
         ...(buildPack === "DOCKERFILE" && dockerfile.trim()
           ? { dockerfile }
           : {}),
-        ...(providerId ? { providerId } : {}),
-        // Image externe : repoPath = image[:tag] saisi ; sinon dépôt git figé.
-        ...(isExternalImage
-          ? image.trim()
-            ? {
-                repoPath: `${image.trim()}${tag.trim() ? `:${tag.trim()}` : ""}`,
-              }
-            : {}
-          : repoPath.trim()
-            ? { repoPath: repoPath.trim() }
-            : {}),
+        // B1: provider is locked forever — never sent, so it can never be
+        // changed via this form (see providerId declaration above). Repo
+        // path is ALSO locked for GIT-sourced services (nothing to send —
+        // it can't change here); for a DOCKER_IMAGE source it's still the
+        // legitimately-editable image:tag reference.
+        ...(isExternalImage && image.trim()
+          ? {
+              repoPath: `${image.trim()}${tag.trim() ? `:${tag.trim()}` : ""}`,
+            }
+          : {}),
         // Mode REGISTRY : image:tag à tirer (vide = dérivation auto par la CI).
         ...(isRegistryMode && !isExternalImage
           ? {
@@ -167,6 +231,16 @@ export function ServiceConfigForm({
           : {}),
       };
       await servicesService.update(projectId, service.id, payload);
+      // Task 1: saved independently via its own (ServiceEnvironment-level)
+      // endpoint — same call the old Variables tab made, just triggered from
+      // this form's Save button now that the control lives here.
+      if (resolvedServiceEnvId) {
+        await environmentsService.updateServiceLink(
+          projectId,
+          resolvedServiceEnvId,
+          { autoDeploy, autoBranch: autoBranch.trim() || "main" },
+        );
+      }
       setSaved(true);
       onSaved();
     } catch (e) {
@@ -182,23 +256,19 @@ export function ServiceConfigForm({
         title="Source"
         description="Where this service's code comes from — choose a provider and repository."
       >
-        {providers.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {providers.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setProviderId(p.id)}
-                className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
-                  providerId === p.id
-                    ? "border-[var(--text-primary)] bg-[var(--hover)] text-[var(--text-primary)]"
-                    : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"
-                }`}
-              >
-                {p.name} · {p.type}
-              </button>
-            ))}
-          </div>
+        {/* B1: informational only — the provider is fixed at creation and
+            never editable here (a clickable picker previously let it be
+            switched post-creation, silently drifting from the webhook
+            still registered against the original provider). */}
+        {providerId && (
+          <p className="mb-3 text-sm text-[var(--text-secondary)]">
+            Provider:{" "}
+            <span className="font-medium text-[var(--text-primary)]">
+              {resolvedProvider
+                ? `${resolvedProvider.name} · ${resolvedProvider.type}`
+                : providerId}
+            </span>
+          </p>
         )}
         <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
           {isExternalImage ? (
@@ -230,37 +300,78 @@ export function ServiceConfigForm({
             </>
           ) : (
             <div className="sm:col-span-2">
-              <label className={labelClass} htmlFor="svc-repopath">
-                Repository path
-              </label>
-              {/* Source figée : le dépôt s'établit à la création (changer de dépôt = autre service). */}
-              <input
-                id="svc-repopath"
-                className={`${inputClass} font-mono opacity-70`}
-                value={repoPath}
-                readOnly
+              <span className={labelClass}>Repository path</span>
+              {/* B1: plain informational text, not a form field — a
+                  readOnly <input> still visually suggests it might become
+                  editable. Source is fixed at creation (changer de dépôt =
+                  créer un autre service).
+                  B2: clickable through to the real repo page when the
+                  provider's base URL is known — built from provider.url +
+                  repoPath, no new backend data needed. */}
+              <div
+                className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 font-mono text-sm text-[var(--text-secondary)]"
                 title="The repository is fixed. To change it, create a new service."
-              />
+              >
+                {repoWebUrl ? (
+                  <a
+                    href={repoWebUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[var(--text-primary)] underline decoration-dotted hover:text-[var(--text-primary)]/80"
+                  >
+                    {repoPath} <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  repoPath || "—"
+                )}
+              </div>
             </div>
           )}
           <div>
             <label className={labelClass} htmlFor="svc-branch">
               Branch
             </label>
-            {/* Combobox : autocomplétion depuis les branches dispo + saisie libre (S2). */}
-            <input
-              id="svc-branch"
-              className={inputClass}
-              value={branch}
-              placeholder="main"
-              list="svc-branches"
-              onChange={(e) => setBranch(e.target.value)}
-            />
-            <datalist id="svc-branches">
-              {branches.map((b) => (
-                <option key={b} value={b} />
-              ))}
-            </datalist>
+            {/* Task 2 ("Correction rapide"): reuses DeployDialog's exact
+                branch-fetching mechanism (useProjectBranches) and its exact
+                select/fallback pattern — a datalist-based free-text combobox
+                previously sat here and, confirmed by manual test, never
+                surfaced real repo branches (e.g. "dev") as selectable
+                options. */}
+            {branchesQuery.isLoading ? (
+              <div className={`${inputClass} flex items-center gap-2 text-[var(--text-muted)]`}>
+                <Loader2 size={14} className="animate-spin" /> Loading
+                branches…
+              </div>
+            ) : branches.length > 0 ? (
+              <select
+                id="svc-branch"
+                className={inputClass}
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+              >
+                {/* The service's currently stored branch may not be in the
+                    fetched list (renamed/deleted upstream, or pagination) —
+                    keep it as a selectable option instead of silently
+                    switching the selection (and thus the saved value) to
+                    whichever branch happens to come first. */}
+                {branch && !branches.includes(branch) && (
+                  <option value={branch}>{branch} (current)</option>
+                )}
+                {branches.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id="svc-branch"
+                className={inputClass}
+                value={branch}
+                placeholder="main"
+                onChange={(e) => setBranch(e.target.value)}
+              />
+            )}
           </div>
         </dl>
       </SectionCard>
@@ -319,6 +430,18 @@ export function ServiceConfigForm({
               </option>
               <option value="MANUAL">Manual — deploy on demand only</option>
             </select>
+          </div>
+          <div>
+            <span className={labelClass}>Auto-deploy on push</span>
+            <AutoDeployControl
+              environmentId={environmentId}
+              autoDeploy={autoDeploy}
+              setAutoDeploy={setAutoDeploy}
+              autoBranch={autoBranch}
+              setAutoBranch={setAutoBranch}
+              disabled={linking || autoDeployLoading || !resolvedServiceEnvId}
+              isBusy={linking || autoDeployLoading}
+            />
           </div>
           <div>
             <label className={labelClass} htmlFor="svc-port">

@@ -22,12 +22,16 @@ import {
   User,
   XCircle,
 } from "lucide-react";
-import { deploymentsService } from "@/features/deployments/api/deployments.service";
+import {
+  deploymentsService,
+  useDeploymentSocket,
+} from "@/features/deployments";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { DeploymentStatusBadge } from "@/features/deployments/components/deployment-status-badge";
 import { DeploymentLogsDialog } from "@/features/projects/components/tabs/runs/deployment-logs-dialog";
 import { DeploymentContainerDialog } from "@/features/deployments/components/deployment-container-dialog";
 import { DeployDialog } from "@/features/projects";
+import { LogTerminal } from "@/shared/common/log-terminal";
 import {
   resolveDeploymentUrl,
   timeAgo,
@@ -69,6 +73,18 @@ export default function DeploymentDetailPage({
   const [acting, setActing] = useState<string | null>(null);
   const [actError, setActError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // D1: static "Journal" section reuses the exact same parsing/formatting the
+  // live "Logs live" dialog uses (useDeploymentSocket + LogTerminal) — enabled:
+  // false skips the Socket.IO connection entirely and just parses dep.logs,
+  // so the stored journal renders with the same per-line timestamp/color
+  // coding rather than a raw text blob.
+  const { logs: journalLogs } = useDeploymentSocket({
+    deploymentId: dep?.id ?? "",
+    enabled: false,
+    initialStatus: dep?.status,
+    initialLogs: dep?.logs,
+  });
 
   const refresh = async () => {
     await qc.invalidateQueries({ queryKey: ["deployment", id] });
@@ -407,9 +423,7 @@ export default function DeploymentDetailPage({
               Logs live →
             </button>
           </div>
-          <pre className="max-h-72 overflow-auto rounded-xl bg-zinc-950 p-3 font-mono text-[11px] leading-relaxed text-zinc-300 whitespace-pre-wrap">
-            {dep.logs}
-          </pre>
+          <LogTerminal logs={journalLogs} isLive={false} />
         </div>
       )}
 

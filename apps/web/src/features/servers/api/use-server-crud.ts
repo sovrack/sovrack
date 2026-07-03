@@ -25,6 +25,21 @@ export function useServer(id: string) {
   });
 }
 
+// A3: live reachability indicator for the servers list — a lightweight TCP
+// ping, refreshed automatically while the page stays open. Deliberately a
+// separate query from useServers()/isVerified (the last on-demand SSH
+// validation result): the two must coexist without either overwriting the
+// other's signal.
+export function useServersReachability() {
+  return useQuery({
+    queryKey: serverKeys.reachability(),
+    queryFn: () => serversService.getReachability(),
+    staleTime: 20_000,
+    refetchInterval: 45_000,
+    refetchIntervalInBackground: false,
+  });
+}
+
 export function useCreateServer() {
   const queryClient = useQueryClient();
   return useMutation({

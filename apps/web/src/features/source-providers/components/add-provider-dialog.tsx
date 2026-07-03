@@ -106,9 +106,31 @@ export function AddProviderDialog({
     }
   }, [selectedType, isEdit, step]);
 
+  // GitHub has no OAuth callback route yet (see AuthMethodStep) — force the
+  // choice down to "pat" whenever the user switches TO GitHub on step 1
+  // during create mode. Edit mode's own inference (below) handles GitHub
+  // directly instead of relying on this effect to clean up after it: two
+  // effects independently calling setAuthChoice on the same mount raced
+  // (the inference effect's unconditional setAuthChoice ran after this one
+  // and overwrote its correction), so GitHub-awareness has to live in the
+  // inference itself, not bolted on separately.
+  useEffect(() => {
+    if (!isEdit && selectedType === "GITHUB" && authChoice !== "pat") {
+      setAuthChoice("pat");
+    }
+  }, [isEdit, selectedType, authChoice]);
+
   // Populate form when editing
   useEffect(() => {
     if (isEdit && existingProvider) {
+      // Pre-existing gap this fix depends on: selectedType only had a useState
+      // initial value (never re-synced), so re-opening this same dialog
+      // instance for a DIFFERENT provider kept showing the PREVIOUS one's
+      // type — which would have made the GitHub-OAuth-disable logic below
+      // unreliable across a multi-edit session. Re-sync it explicitly here,
+      // in the same effect that already re-syncs everything else per open.
+      const isGithub = existingProvider.providerType === "GITHUB";
+      setSelectedType(isGithub ? "GITHUB" : "GITLAB");
       setForm({
         name: existingProvider.name,
         providerUrl: existingProvider.providerUrl,
@@ -125,20 +147,28 @@ export function AddProviderDialog({
         oauthTokenConfigured: existingProvider.oauthTokenConfigured,
         oauthExpiresAt: existingProvider.oauthExpiresAt,
       });
-      // Infer authChoice from existing config
-      const hasOAuth =
-        existingProvider.applicationId ||
-        existingProvider.applicationSecretConfigured;
-      const hasPat = existingProvider.adminTokenConfigured;
-      if (hasOAuth && hasPat) setAuthChoice("both");
-      else if (hasOAuth) setAuthChoice("oauth");
-      else setAuthChoice("pat");
+      // Infer authChoice from existing config. GitHub is PAT-only regardless
+      // of any applicationId/secret saved before this fix (AUDIT_VERIFICATION_UI.md
+      // Point 2 found a real provider in this exact state) — OAuth can never
+      // complete for it, so it must never be inferred as "oauth"/"both" here.
+      if (isGithub) {
+        setAuthChoice("pat");
+      } else {
+        const hasOAuth =
+          existingProvider.applicationId ||
+          existingProvider.applicationSecretConfigured;
+        const hasPat = existingProvider.adminTokenConfigured;
+        if (hasOAuth && hasPat) setAuthChoice("both");
+        else if (hasOAuth) setAuthChoice("oauth");
+        else setAuthChoice("pat");
+      }
       setStep(2);
     } else if (!isEdit) {
       setStep(1);
+      setSelectedType(initialProviderType);
       setForm((prev) => ({ ...prev, redirectUri: fallbackRedirectUri }));
     }
-  }, [isEdit, existingProvider, fallbackRedirectUri, open]);
+  }, [isEdit, existingProvider, initialProviderType, fallbackRedirectUri, open]);
 
   // Reset on close
   useEffect(() => {
@@ -287,6 +317,7 @@ export function AddProviderDialog({
           {/* ── STEP 3: Auth method ── */}
           {step === 3 && (
             <AuthMethodStep
+              providerType={selectedType}
               authChoice={authChoice}
               onSelectAuthChoice={setAuthChoice}
             />

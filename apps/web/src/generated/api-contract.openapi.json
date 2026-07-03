@@ -3463,6 +3463,26 @@
         ]
       }
     },
+    "/servers/reachability": {
+      "get": {
+        "operationId": "ServerManagementController_pingAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Map of serverId → isReachable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A3: lightweight TCP reachability ping for every server (not the full SSH validation) — meant to be polled frequently by the list page.",
+        "tags": [
+          "Servers Management"
+        ]
+      }
+    },
     "/servers/{id}": {
       "get": {
         "operationId": "ServerManagementController_findOne",
@@ -8388,6 +8408,52 @@
           }
         }
       },
+      "ServerInstalledToolDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "toolKey": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "installedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "enum": [
+              "INSTALLED",
+              "MISSING",
+              "FAILED",
+              "UNKNOWN"
+            ],
+            "type": "string"
+          },
+          "installedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "serverId",
+          "toolKey",
+          "displayName",
+          "status"
+        ]
+      },
       "ServerActiveJobDto": {
         "type": "object",
         "properties": {
@@ -8531,6 +8597,13 @@
           "hasRunner": {
             "type": "boolean"
           },
+          "installedTools": {
+            "description": "Tools detected on this server (Docker, Postgres, Redis, Nginx, etc.) — written by capability detection. No Traefik entry: it is not tracked as a per-server OS capability on this platform (it runs as a deployment-time reverse proxy, not an installed package).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServerInstalledToolDto"
+            }
+          },
           "infraRole": {
             "type": "string",
             "description": "Infrastructure role: NONE | STAGING | PRODUCTION | DATABASE | RUNNER | MONITORING"
@@ -8666,6 +8739,13 @@
           },
           "hasRunner": {
             "type": "boolean"
+          },
+          "installedTools": {
+            "description": "Tools detected on this server (Docker, Postgres, Redis, Nginx, etc.) — written by capability detection. No Traefik entry: it is not tracked as a per-server OS capability on this platform (it runs as a deployment-time reverse proxy, not an installed package).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ServerInstalledToolDto"
+            }
           },
           "infraRole": {
             "type": "string",
@@ -8803,6 +8883,11 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "preparationId": {
+            "type": "string",
+            "nullable": true,
+            "description": "For PREPARE_SERVER jobs: the id of the ServerRun (kind=PREPARATION) it triggered — fetch it for the step-by-step Ansible log. Null for job types that never ran Ansible (VERIFY/INSTALL_TOOLS/REGISTER_RUNNER)."
           }
         },
         "required": [
@@ -8966,6 +9051,10 @@
             "type": "string",
             "pattern": "PRIVATE KEY",
             "example": "-----BEGIN OPENSSH PRIVATE KEY-----\n..."
+          },
+          "sshKeyId": {
+            "type": "string",
+            "description": "ID of an existing SshKey (Settings → SSH Keys) to switch this server to. Ignored if `sshKey` is also provided."
           },
           "connectionMode": {
             "type": "string",
@@ -9281,52 +9370,6 @@
           "value",
           "source",
           "detectedAt"
-        ]
-      },
-      "ServerInstalledToolDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "serverId": {
-            "type": "string"
-          },
-          "toolKey": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "version": {
-            "type": "string",
-            "nullable": true
-          },
-          "installedBy": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "enum": [
-              "INSTALLED",
-              "MISSING",
-              "FAILED",
-              "UNKNOWN"
-            ],
-            "type": "string"
-          },
-          "installedAt": {
-            "type": "string",
-            "nullable": true,
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "serverId",
-          "toolKey",
-          "displayName",
-          "status"
         ]
       },
       "StartServerPreparationDto": {

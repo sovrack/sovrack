@@ -54,6 +54,28 @@ describe("ServiceEnvironmentSelector", () => {
     expect(screen.getByText("PRODUCTION")).toBeInTheDocument();
   });
 
+  // Task 3 ("Correction rapide"): the trigger previously wrapped the
+  // environment name in a per-environment colored pill (rounded-full +
+  // colored border/bg from ENV_BADGE), making it stand out as its own
+  // distinct colored element from the rest of the (plain) header. It's now
+  // plain "Environment: X" text — only the dropdown list's own options still
+  // color-code for scanability.
+  it("shows the environment as plain 'Environment: X' text, not a colored pill, on the trigger", () => {
+    render(
+      <ServiceEnvironmentSelector
+        projectId="p1"
+        envLinks={envLinks}
+        environments={environments}
+        selectedEnvId="env-prod"
+        onSelect={vi.fn()}
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: /production/i });
+    expect(trigger).toHaveTextContent("Environment: PRODUCTION");
+    const pill = trigger.querySelector(".rounded-full");
+    expect(pill).toBeNull();
+  });
+
   it("lists every linked environment with a health indicator when opened", () => {
     render(
       <ServiceEnvironmentSelector

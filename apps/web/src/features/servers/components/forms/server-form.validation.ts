@@ -148,6 +148,10 @@ export function buildUpdatePayload(
   if (parsed.username !== server.username) payload.username = parsed.username;
   if (parsed.description !== (server.description ?? ""))
     payload.description = parsed.description ?? "";
+  // A1: switch this server to a different existing SSH key (Settings → SSH
+  // Keys). Left empty (parsed.sshKeyId undefined) = keep the current
+  // credential untouched — never send an empty value that would overwrite it.
+  if (parsed.sshKeyId) payload.sshKeyId = parsed.sshKeyId;
 
   return payload;
 }

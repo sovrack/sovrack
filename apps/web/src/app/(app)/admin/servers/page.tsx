@@ -19,7 +19,6 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { PageHeader } from "@/shared/layout/page-header";
 import { ServerCard } from "@/features/servers/components/cards/server-card";
 import { ServerDetailsDialog } from "@/features/servers/components/dialogs/server-details-dialog";
-import { ServerLogsDialog } from "@/features/servers/components/dialogs/server-logs-dialog";
 import { ServerKeyInstallDialog } from "@/features/servers/components/dialogs/server-key-install-dialog";
 import { ServerPrepareDialog } from "@/features/servers/components/dialogs/server-prepare-dialog";
 import {
@@ -27,7 +26,10 @@ import {
   type CreateServerOptions,
 } from "@/features/servers/components/dialogs/server-upsert-dialog";
 import { useServerActions } from "@/features/servers/api/use-server-actions";
-import { useInstalledTools } from "@/features/servers/api/use-servers";
+import {
+  useInstalledTools,
+  useServersReachability,
+} from "@/features/servers/api/use-servers";
 import { usePagination } from "@/shared/hooks/use-pagination";
 import { Pagination } from "@/shared/ui/pagination";
 
@@ -72,6 +74,7 @@ const ROLE_META: Record<
 
 export default function AdminServersPage() {
   const servers = useServerActions();
+  const reachabilityQuery = useServersReachability();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -84,7 +87,6 @@ export default function AdminServersPage() {
   const [prepareServer, setPrepareServer] = useState<ServerType | null>(null);
   const prepareToolsQuery = useInstalledTools(prepareServer?.id ?? "");
   const [detailsServer, setDetailsServer] = useState<ServerType | null>(null);
-  const [logsServer, setLogsServer] = useState<ServerType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServerType | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -264,6 +266,7 @@ export default function AdminServersPage() {
                   <div className="p-4">
                     <ServerCard
                       server={server}
+                      isReachable={reachabilityQuery.data?.[server.id]}
                       isBusy={isBusy}
                       verifyingId={servers.verifyingId}
                       detectingId={servers.detectingId}
@@ -280,7 +283,6 @@ export default function AdminServersPage() {
                       }}
                       onOpenPrepare={setPrepareServer}
                       onOpenDetails={setDetailsServer}
-                      onOpenLogs={setLogsServer}
                       onEdit={(s) => {
                         setEditError(null);
                         setEditServer(s);
@@ -353,13 +355,6 @@ export default function AdminServersPage() {
         onRefreshJobs={servers.refreshJobs}
         onRetryJob={servers.handleRetryJob}
         onCancelJob={servers.handleCancelJob}
-      />
-
-      <ServerLogsDialog
-        open={Boolean(logsServer)}
-        serverId={logsServer?.id ?? null}
-        serverName={logsServer?.name}
-        onClose={() => setLogsServer(null)}
       />
 
       <ServerUpsertDialog

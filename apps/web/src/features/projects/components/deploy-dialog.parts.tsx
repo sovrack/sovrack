@@ -23,12 +23,16 @@ type DeployValidationPanelProps = {
   validating: boolean;
   validateError: string | null;
   onClose: () => void;
+  // D3: link to the concerned service's General/Source (build) config tab —
+  // lets the user jump straight there when `validation.reason` blocks deploy,
+  // instead of just reading the message and having to find the page manually.
+  serviceConfigHref?: string;
 };
 
 export function DeployValidationPanel({
   issues, loading, envIds,
   validation, validating, validateError,
-  onClose,
+  onClose, serviceConfigHref,
 }: DeployValidationPanelProps) {
   const missing = validation?.missing ?? [];
   const isPrepared = validation?.prepared ?? false;
@@ -69,6 +73,36 @@ export function DeployValidationPanel({
           {validateError && !validating && (
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-400">
               Validation error: {validateError}
+            </div>
+          )}
+          {/* The exact reason DeploymentPreflightService would reject this
+              deploy — Dockerfile missing, malformed secrets JSON, no registry
+              credentials, port conflict, etc. Independent of the tool-install
+              checks below: a fully prepared server can still fail here.
+              Previously computed by the backend but silently dropped by this
+              panel (AUDIT_VERIFICATION_UI.md Point 10) — the submit button
+              would just look normal until the real POST /deployments failed
+              with this exact same message. */}
+          {validation && !validating && validation.reason && (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-red-300">
+                  <AlertTriangle size={14} />
+                  This deployment will fail
+                </div>
+                {serviceConfigHref && (
+                  <Link
+                    href={serviceConfigHref}
+                    onClick={onClose}
+                    className="shrink-0 rounded-lg border border-red-500/30 bg-red-500/20 px-2.5 py-1 text-[10px] font-semibold text-red-300 hover:bg-red-500/30"
+                  >
+                    Configure →
+                  </Link>
+                )}
+              </div>
+              <p className="mt-1.5 text-xs text-red-300">
+                {validation.reason}
+              </p>
             </div>
           )}
           {validation && !validating && !isPrepared && (

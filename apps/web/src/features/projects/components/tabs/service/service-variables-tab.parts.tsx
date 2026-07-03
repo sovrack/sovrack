@@ -2,8 +2,8 @@
 
 import { Plus, X } from "lucide-react";
 
-// Extracted from service-environments.tsx (C7) to stay under the file-size
-// gate — these are the KEY=value editing primitives shared by EnvVarsEditor.
+// KEY=value editing primitives shared by EnvVarsEditor (service-variables-tab.tsx),
+// split out to stay under the file-size gate.
 
 export type KV = { key: string; value: string };
 
@@ -184,16 +184,3 @@ export function KvRows({
   );
 }
 
-// C6: the 4 build packs actually offered by the deploy engine — mirrors
-// ServiceConfigForm's BUILD_PACKS list exactly (BUILDPACK/DOCKER_COMPOSE are
-// deliberately excluded there — not implemented / single-container engine —
-// so the per-environment override must not offer them either).
-export const BUILD_PACKS = ["DOCKERFILE", "NIXPACKS", "STATIC", "NONE"] as const;
-
-export type ServiceDefaults = {
-  branch: string | null;
-  port: number | null;
-  startCommand: string | null;
-  healthcheckPath: string | null;
-  buildPack: string | null;
-};

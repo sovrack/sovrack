@@ -13,7 +13,7 @@ import { SectionCard } from "@/shared/layout/section-card";
 /**
  * Carte « Auto-deploy (Webhook) » d'un service. Webhook PAR SERVICE : un push
  * (pipeline réussi) sur le repo déclenche le déploiement ; la BRANCHE choisit
- * l'environnement (toggle Auto-deploy + branche dans l'onglet Environments).
+ * l'environnement (toggle Auto-deploy + branche dans l'onglet Variables).
  */
 export function ServiceWebhook({
   projectId,
@@ -167,8 +167,8 @@ export function ServiceWebhook({
           </div>
 
           <p className="text-xs text-[var(--text-muted)]">
-            Then enable <strong>Auto-deploy</strong> + the per-environment
-            branch in the <strong>Environments &amp; variables</strong> tab.
+            Then enable <strong>Auto-deploy</strong> + the trigger branch in
+            the <strong>Variables</strong> tab.
           </p>
         </div>
       )}

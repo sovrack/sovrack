@@ -87,6 +87,13 @@ export function DeployDialog({
 
   const selectedService = services.find((s) => s.id === selectedServiceId);
   const effectiveBuildSource: BuildSource = resolveBuildSource(selectedService);
+  // D3: the service actually being validated (mirrors useDeployValidation's
+  // own resolution) — used to link straight to its Build/Source config tab
+  // when the backend reports a blocking preflight `reason`.
+  const concernedService = selectedService ?? services[0];
+  const serviceConfigHref = concernedService
+    ? `/projects/${projectId}/services/${concernedService.id}`
+    : undefined;
 
   const toggleEnvId = (id: string) =>
     setEnvIds((prev) =>
@@ -238,6 +245,15 @@ export function DeployDialog({
     !submitting &&
     envIds.length > 0 &&
     issues.length === 0 &&
+    // `reason` (DeploymentPreflightService's precise rejection message) is a
+    // deterministic, non-overridable block — unlike missing tools below,
+    // there's no "Deploy anyway" for it: retrying without fixing the
+    // underlying issue would just fail again on the real POST /deployments.
+    // Before this fix, `(ready || missing.length === 0)` alone let a
+    // reason-only failure (missing=[] but ready=false) through unnoticed,
+    // since an empty `missing` array made the clause true regardless of
+    // `ready` (AUDIT_VERIFICATION_UI.md Point 10).
+    !validation?.reason &&
     (ready || missing.length === 0);
 
   return (
@@ -302,6 +318,7 @@ export function DeployDialog({
             validating={validating}
             validateError={validateError}
             onClose={onClose}
+            serviceConfigHref={serviceConfigHref}
           />
 
           {!loading && (

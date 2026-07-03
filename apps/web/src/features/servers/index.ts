@@ -18,7 +18,6 @@ export * from "./components/forms/server-form";
 export * from "./components/forms/server-form.validation";
 export * from "./components/panels/server-jobs-panel";
 export * from "./components/dialogs/server-key-install-dialog";
-export * from "./components/dialogs/server-logs-dialog";
 export * from "./components/panels/server-preparation-history";
 export * from "./components/panels/server-preparation-log-viewer";
 export * from "./components/dialogs/server-prepare-dialog";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Server as ServerIcon } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
@@ -9,7 +9,13 @@ import {
   ServerWorkflowBadges,
 } from "@/features/servers/components/shared/server-status-badges";
 import { ServerJobsPanel } from "@/features/servers/components/panels/server-jobs-panel";
-import type { Server, ServerJob } from "@/features/servers/types/server";
+import { ServerPreparationLogViewer } from "@/features/servers/components/panels/server-preparation-log-viewer";
+import { useServerPreparations } from "@/features/servers/api/use-server-preparation";
+import type {
+  Server,
+  ServerJob,
+  ServerPreparation,
+} from "@/features/servers/types/server";
 
 type ServerDetailsDialogProps = {
   open: boolean;
@@ -46,6 +52,14 @@ export function ServerDetailsDialog({
   onRetryJob,
   onCancelJob,
 }: ServerDetailsDialogProps) {
+  // A2: Job History rows for PREPARE_SERVER jobs link to the ServerRun they
+  // triggered (job.preparationId) — reuses the same preparations list/log
+  // viewer already used by the server detail page, instead of the removed
+  // standalone "Logs" dialog duplicating that same data.
+  const [selectedPreparation, setSelectedPreparation] =
+    useState<ServerPreparation | null>(null);
+  const preparationsQuery = useServerPreparations(open ? (server?.id ?? "") : "");
+
   useEffect(() => {
     if (!open || !server) {
       return;
@@ -139,8 +153,15 @@ export function ServerDetailsDialog({
           onRefreshJobs={onRefreshJobs}
           onRetryJob={onRetryJob}
           onCancelJob={onCancelJob}
+          preparations={preparationsQuery.data ?? []}
+          onViewPreparationLogs={setSelectedPreparation}
         />
       </div>
+
+      <ServerPreparationLogViewer
+        preparation={selectedPreparation}
+        onClose={() => setSelectedPreparation(null)}
+      />
     </Modal>
   );
 }

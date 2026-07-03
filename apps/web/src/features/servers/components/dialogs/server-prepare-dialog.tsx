@@ -18,6 +18,22 @@ export type PrepareOptions = StartServerPreparationPayload;
 
 type OptionGroup = "Core" | "Runtime" | "Security" | "Operations";
 
+// A5: the dropdown previously showed only the raw enum value (e.g. "WEB")
+// with zero description anywhere — a user could only discover what a profile
+// actually did by selecting it and visually diffing the checkbox grid below.
+// These are purely presentational (a short name + one-line intent); the
+// actual set of options each profile enables still comes entirely from the
+// backend's PREPARATION_PROFILE_DEFAULTS (via profileDefaults, already
+// fetched) — the dynamic summary below reads that real data, not this map.
+const PROFILE_TAGLINES: Partial<Record<string, string>> = {
+  BASIC: "Recommended baseline — hardening only, no runtime installed.",
+  WEB: "Basic + Nginx/Certbot, for a server hosting a web app.",
+  DATABASE: "Basic + PostgreSQL/Redis + backups, for a database server.",
+  RUNNER: "Basic + Docker + GitLab Runner, for a CI/CD runner.",
+  FULL: "Everything — web, database and runner tooling on one server.",
+  CUSTOM: "Nothing pre-selected — pick each option yourself below.",
+};
+
 type ServerPrepareDialogProps = {
   open: boolean;
   server: Server | null;
@@ -105,6 +121,18 @@ export function ServerPrepareDialog({
   const hasSelection = options.some((option) => isOptionEnabled(option.key));
   const groups: OptionGroup[] = ["Core", "Runtime", "Security", "Operations"];
 
+  // A5: what THIS profile enables by default, derived straight from the
+  // backend's real profileDefaults (already fetched) — not a hardcoded
+  // frontend list, so it can never drift from what preparation actually runs.
+  const profileEnabledLabels = options
+    .filter(
+      (option) =>
+        profileDefaultsForSelection[
+          option.key as keyof typeof profileDefaultsForSelection
+        ],
+    )
+    .map((option) => option.label);
+
   return (
     <Modal
       open={open}
@@ -154,9 +182,20 @@ export function ServerPrepareDialog({
               {profiles.map((profileItem) => (
                 <option key={profileItem} value={profileItem}>
                   {profileItem}
+                  {PROFILE_TAGLINES[profileItem]
+                    ? ` — ${PROFILE_TAGLINES[profileItem]}`
+                    : ""}
                 </option>
               ))}
             </select>
+            {/* A5: dynamic summary of what THIS profile actually enables by
+                default, computed from the real profileDefaults — not a
+                static description that could drift from the backend. */}
+            <p className="mt-1.5 text-xs text-[var(--text-secondary)]">
+              {profileEnabledLabels.length > 0
+                ? `Enables by default: ${profileEnabledLabels.join(", ")}.`
+                : "Nothing pre-selected — pick each option yourself below."}
+            </p>
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3 text-xs text-[var(--text-secondary)]">
             <p className="font-semibold text-[var(--text-primary)]">

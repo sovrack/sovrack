@@ -10,7 +10,7 @@ export type ServiceEnvironment = {
   autoDeploy?: boolean;
   autoBranch?: string | null;
   // C6: per-environment overrides — null/undefined means "use the parent
-  // Service's own value" (shown as a placeholder, see service-environments.tsx).
+  // Service's own value" (shown as a placeholder, see service-variables-tab.tsx).
   branch?: string | null;
   port?: number | null;
   startCommand?: string | null;
@@ -58,7 +58,6 @@ export type ServiceLink = {
   id: string;
   serviceId: string;
   environmentId: string;
-  env: Record<string, string> | null;
   service: {
     id: string;
     name: string;

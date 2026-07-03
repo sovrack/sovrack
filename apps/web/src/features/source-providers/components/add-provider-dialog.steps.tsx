@@ -180,14 +180,26 @@ export function InstanceConfigStep({
 /* ─── Step 3: auth method ───────────────────────────────────────────────── */
 
 type AuthMethodStepProps = {
+  providerType: ProviderType;
   authChoice: AuthChoice;
   onSelectAuthChoice: (choice: AuthChoice) => void;
 };
 
+// GitHub only has a PAT-based connection today — there is no backend OAuth
+// callback route for it (see AUDIT_VERIFICATION_UI.md Point 2: the wizard
+// used to offer "OAuth"/"Both" for GitHub anyway, showing a redirect URI that
+// could never work). Building the GitHub OAuth flow is a separate feature;
+// until then, "oauth" and "both" are disabled for this provider type.
+const OAUTH_DISABLED_REASON =
+  "GitHub OAuth isn't implemented yet — use a Personal Access Token.";
+
 export function AuthMethodStep({
+  providerType,
   authChoice,
   onSelectAuthChoice,
 }: AuthMethodStepProps) {
+  const oauthAvailable = providerType !== "GITHUB";
+
   return (
     <div className="space-y-4">
       <div>
@@ -200,14 +212,19 @@ export function AuthMethodStep({
       </div>
 
       <div className="space-y-2">
-        {(["oauth", "pat", "both"] as AuthChoice[]).map((choice) => (
-          <AuthMethodCard
-            key={choice}
-            choice={choice}
-            selected={authChoice === choice}
-            onSelect={() => onSelectAuthChoice(choice)}
-          />
-        ))}
+        {(["oauth", "pat", "both"] as AuthChoice[]).map((choice) => {
+          const disabled = !oauthAvailable && choice !== "pat";
+          return (
+            <AuthMethodCard
+              key={choice}
+              choice={choice}
+              selected={authChoice === choice}
+              onSelect={() => onSelectAuthChoice(choice)}
+              disabled={disabled}
+              disabledReason={disabled ? OAUTH_DISABLED_REASON : undefined}
+            />
+          );
+        })}
       </div>
     </div>
   );

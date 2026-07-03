@@ -2,9 +2,11 @@ import { describe, it, expect } from "vitest";
 import {
   validateServerForm,
   buildCreatePayload,
+  buildUpdatePayload,
   createDefaultValues,
   type ServerFormValues,
 } from "./server-form.validation";
+import type { Server } from "@/features/servers/types/server";
 
 const valid: ServerFormValues = {
   name: "prod-1",
@@ -90,5 +92,45 @@ describe("createDefaultValues", () => {
       port: "22",
       connectionMode: "ssh",
     });
+  });
+});
+
+describe("buildUpdatePayload", () => {
+  const existingServer = {
+    name: "prod-1",
+    host: "192.168.1.10",
+    port: 22,
+    username: "ubuntu",
+    description: "Primary VPS",
+  } as Server;
+
+  // A1: leaving the "SSH Key" selector on its default ("— Keep current SSH
+  // key —") must never send sshKeyId — it must never overwrite the server's
+  // current credential with an empty/absent value.
+  it("omits sshKeyId when the selector is left on its default (no key change)", () => {
+    const { parsed } = validateServerForm("edit", {
+      ...valid,
+      sshKeyId: "",
+    });
+    const payload = buildUpdatePayload(parsed!, existingServer);
+    expect(payload).not.toHaveProperty("sshKeyId");
+  });
+
+  it("includes sshKeyId only when the user actually picked a different key", () => {
+    const { parsed } = validateServerForm("edit", {
+      ...valid,
+      sshKeyId: "new-key-id",
+    });
+    const payload = buildUpdatePayload(parsed!, existingServer);
+    expect(payload.sshKeyId).toBe("new-key-id");
+  });
+
+  it("only includes fields that actually changed", () => {
+    const { parsed } = validateServerForm("edit", {
+      ...valid,
+      sshKeyId: "",
+    });
+    const payload = buildUpdatePayload(parsed!, existingServer);
+    expect(payload).toEqual({});
   });
 });
