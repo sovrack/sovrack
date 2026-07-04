@@ -2878,6 +2878,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{projectId}/services/{serviceId}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a DATABASE service credentials (dedicated, gated — not the listing route) */
+        get: operations["ServicesController_getCredentials"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/volumes": {
         parameters: {
             query?: never;
@@ -3617,6 +3634,11 @@ export interface components {
             docker?: boolean;
             /** @example true */
             dockerComposePlugin?: boolean;
+            /**
+             * @description Configure Docker daemon mTLS (port 2376) and auto-register the DockerConnection — required for the platform to deploy on this server.
+             * @example true
+             */
+            dockerTls?: boolean;
             /** @example true */
             nginx?: boolean;
             /** @example false */
@@ -4137,6 +4159,11 @@ export interface components {
             /** @example 16 */
             databaseVersion?: string;
             databaseCredentials?: Record<string, never>;
+            /**
+             * @description DATABASE services only. Host port to publish for external access. Null/omitted = not exposed externally (default) — only reachable from other services in the project via the internal Docker network.
+             * @example 5432
+             */
+            externalPort?: number;
             /** @example {"NODE_ENV":"production"} */
             env?: string;
             /**
@@ -4251,6 +4278,11 @@ export interface components {
             /** @example 16 */
             databaseVersion?: string;
             databaseCredentials?: Record<string, never>;
+            /**
+             * @description DATABASE services only. Host port to publish for external access. Null/omitted = not exposed externally (default) — only reachable from other services in the project via the internal Docker network.
+             * @example 5432
+             */
+            externalPort?: number;
             /** @example {"NODE_ENV":"production"} */
             env?: string;
             /**
@@ -5534,7 +5566,10 @@ export interface operations {
     };
     GitlabController_getBranches: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Scopes the resolved repo to this specific service (1 service = 1 repo). Without it, an arbitrary GIT service of the project is used — pass it whenever the caller knows which service it concerns (e.g. that service's Source tab, or a deploy dialog with a service selected). */
+                serviceId?: unknown;
+            };
             header?: never;
             path: {
                 id: string;
@@ -9498,6 +9533,26 @@ export interface operations {
         };
     };
     ServicesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ServicesController_getCredentials: {
         parameters: {
             query?: never;
             header?: never;

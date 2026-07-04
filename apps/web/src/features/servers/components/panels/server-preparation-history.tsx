@@ -31,14 +31,14 @@ export function ServerPreparationHistory({
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
-        Preparation
+        Setup
       </p>
       <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
         History and tasks
       </h3>
       {preparations.length === 0 ? (
         <p className="mt-4 text-sm text-[var(--text-secondary)]">
-          No preparation has run yet.
+          No setup has run yet.
         </p>
       ) : (
         <div className="mt-4 space-y-3">

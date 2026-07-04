@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   Loader2,
@@ -26,6 +27,11 @@ const SshTerminal = dynamic(
 
 export function TerminalHub() {
   const { isAdmin } = useAuth();
+  // Task 2 ("Sécurité database + UI" mission): the server table's "Enter
+  // Terminal" row action links here with ?serverId=<id> to preselect it,
+  // instead of always defaulting to the first verified server.
+  const searchParams = useSearchParams();
+  const preselectServerId = searchParams.get("serverId");
   const [servers, setServers] = useState<RemoteServer[]>([]);
   const [selectedServerId, setSelectedServerId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -42,14 +48,17 @@ export function TerminalHub() {
     try {
       const all = await serversService.getAll();
       setServers(all);
-      const first = all.find((s) => s.isVerified) ?? all[0];
+      const preselected = preselectServerId
+        ? all.find((s) => s.id === preselectServerId)
+        : undefined;
+      const first = preselected ?? all.find((s) => s.isVerified) ?? all[0];
       if (first) setSelectedServerId(first.id);
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [isAdmin, preselectServerId]);
 
   useEffect(() => {
     void load();

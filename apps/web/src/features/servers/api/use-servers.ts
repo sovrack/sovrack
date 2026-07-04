@@ -22,6 +22,7 @@ export {
   useInstalledTools,
 } from "./use-server-capabilities";
 export {
+  useDockerConnection,
   useServerPreparations,
   useStartServerPreparation,
   useServerPreparationOptions,

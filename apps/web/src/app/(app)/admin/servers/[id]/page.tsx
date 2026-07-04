@@ -25,6 +25,7 @@ import { ServerAuditTimeline } from "@/features/servers/components/panels/server
 import {
   useCancelPreparation,
   useDetectServerInfo,
+  useDockerConnection,
   useInstalledTools,
   usePreparationReadiness,
   useRetryPreparation,
@@ -58,6 +59,7 @@ export default function AdminServerDetailPage() {
   const preparationsQuery = useServerPreparations(serverId);
   const readinessQuery = usePreparationReadiness(serverId);
   const auditEventsQuery = useServerAuditEvents(serverId);
+  const dockerConnectionQuery = useDockerConnection(serverId);
   const validateMutation = useValidateServerSsh(serverId);
   const detectMutation = useDetectServerInfo(serverId);
   const startPreparation = useStartServerPreparation(serverId);
@@ -175,11 +177,11 @@ export default function AdminServerDetailPage() {
                 loading={startPreparation.isPending}
               >
                 {server.status === "PREPARATION_FAILED"
-                  ? "Retry Preparation"
+                  ? "Retry Setup"
                   : server.status === "PREPARED" ||
                       server.status === "PARTIALLY_PREPARED"
-                    ? "Re-prepare"
-                    : "Prepare Server"}
+                    ? "Re-run Setup"
+                    : "Setup Server"}
               </Button>
             )}
           </>
@@ -189,6 +191,30 @@ export default function AdminServerDetailPage() {
       <SectionCard contentClassName="space-y-3">
         <ServerOverallStatusBadge server={server} />
         <ServerWorkflowBadges server={server} />
+        {/* Mission docker_tls (T3): the platform's ability to DEPLOY on this
+            server (registered mTLS DockerConnection) is a distinct signal from
+            "Docker installed" — registered automatically by the "Docker TLS
+            Connection" Setup Server option, or manually via the API. */}
+        {dockerConnectionQuery.data ? (
+          <div className="inline-flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/10 px-3 py-1.5 text-xs font-semibold text-green-400">
+            Docker connection: Connected
+            <span className="font-normal text-green-400/80">
+              {dockerConnectionQuery.data.endpoint}
+              {dockerConnectionQuery.data.apiVersion
+                ? ` · API v${dockerConnectionQuery.data.apiVersion}`
+                : ""}
+              {dockerConnectionQuery.data.isReachable ? "" : " · unreachable"}
+            </span>
+          </div>
+        ) : dockerConnectionQuery.isLoading ? null : (
+          <div className="inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-600">
+            Docker connection: Not configured
+            <span className="font-normal">
+              — run Setup Server with “Docker TLS Connection” checked (required
+              for deployments)
+            </span>
+          </div>
+        )}
         <p className="text-sm text-[var(--text-secondary)]">
           Ansible remains installed and executed on the backend/control node.
           The VPS is only an SSH target, which centralizes security,
@@ -198,7 +224,7 @@ export default function AdminServerDetailPage() {
           !readiness.isReady &&
           readiness.blockingReasons.length > 0 && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-              <p className="mb-1 font-semibold">Preparation blocked:</p>
+              <p className="mb-1 font-semibold">Setup blocked:</p>
               <ul className="space-y-0.5 list-disc list-inside">
                 {readiness.blockingReasons.map((reason, i) => (
                   <li key={i}>{formatPreparationBlockingReason(reason)}</li>

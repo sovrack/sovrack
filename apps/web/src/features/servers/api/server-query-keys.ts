@@ -34,4 +34,6 @@ export const serverKeys = {
   preparationLogs: (id: string) =>
     [...serverKeys.all, "preparation-logs", id] as const,
   auditEvents: (id: string) => [...serverKeys.all, "audit-events", id] as const,
+  dockerConnection: (id: string) =>
+    [...serverKeys.all, "docker-connection", id] as const,
 };

@@ -11,6 +11,24 @@ import {
   serverKeys,
 } from "./server-query-keys";
 
+/**
+ * Docker TLS connection status of a server (null = not configured). Used by
+ * the server detail page to show "Connected" once the Setup Server flow (or a
+ * manual registration) has registered the connection.
+ */
+export function useDockerConnection(id: string) {
+  return useQuery({
+    queryKey: serverKeys.dockerConnection(id),
+    queryFn: () => serversService.getDockerConnection(id),
+    enabled: Boolean(id),
+    retry: false,
+    // Poll lightly only while unconfigured, so the badge flips to "Connected"
+    // by itself right after a Setup Server run registers the connection.
+    refetchInterval: (query) => (query.state.data ? false : 15_000),
+    refetchIntervalInBackground: false,
+  });
+}
+
 export function useServerPreparations(id: string) {
   return useQuery({
     queryKey: serverKeys.preparations(id),

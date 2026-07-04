@@ -43,6 +43,18 @@ function isPaginatedResponse<T>(
 
 export type PrepareServerPayload = StartServerPreparationPayload;
 
+/** Metadata of a server's Docker TLS connection (certs are write-only). */
+export type DockerConnectionInfo = {
+  id: string;
+  serverId: string;
+  endpoint: string;
+  apiVersion: string | null;
+  lastCheckedAt: string | null;
+  isReachable: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export const serversService = {
   async getAll(params?: ListParams): Promise<Server[]> {
     const res = await api.get<RawDataPaginatedResponse<Server> | Server[]>(
@@ -116,6 +128,31 @@ export const serversService = {
   async detect(id: string): Promise<Server> {
     const res = await api.post<Server>(`/servers/${id}/detect`, {});
     return res.data;
+  },
+
+  /**
+   * Docker TLS connection metadata for a server (endpoint, reachability,
+   * API version — certs are write-only and never returned). null = not
+   * configured yet (404). Registered automatically by the "Docker TLS
+   * Connection" Setup Server option, or manually via the same endpoint.
+   */
+  async getDockerConnection(id: string): Promise<DockerConnectionInfo | null> {
+    try {
+      const res = await api.get<DockerConnectionInfo>(
+        `/servers/${id}/docker-connection`,
+      );
+      return res.data;
+    } catch (err) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "response" in err &&
+        (err as { response?: { status?: number } }).response?.status === 404
+      ) {
+        return null;
+      }
+      throw err;
+    }
   },
 
   async installTools(

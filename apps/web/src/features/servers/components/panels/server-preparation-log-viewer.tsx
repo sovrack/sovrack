@@ -55,7 +55,7 @@ export function ServerPreparationLogViewer({ preparation, onClose }: Props) {
         <div className="flex items-start justify-between border-b border-[var(--border)] px-6 py-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
-              Preparation logs
+              Setup logs
             </p>
             <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
               {currentPreparation.status}

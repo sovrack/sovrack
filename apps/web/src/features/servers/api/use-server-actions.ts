@@ -316,7 +316,7 @@ export function useServerActions() {
     setField("preparingId", server.id);
     try {
       await serversService.prepare(server.id, payload);
-      showToast("Preparation started", "success");
+      showToast("Setup started", "success");
       await refreshJobs(server.id);
       await fetchServers();
       clearPrepareDraft(server.id);

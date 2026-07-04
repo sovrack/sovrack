@@ -8,7 +8,7 @@ import type { Server, ServerJob } from "@/features/servers/types/server";
 
 export function formatJobType(type: ServerJob["type"]): string {
   if (type === "INSTALL_TOOLS") return "Legacy setup";
-  if (type === "PREPARE_SERVER") return "Prepare Server";
+  if (type === "PREPARE_SERVER") return "Setup Server";
   if (type === "REGISTER_RUNNER") return "Register Runner";
   return "Validate SSH";
 }

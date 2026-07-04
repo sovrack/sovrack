@@ -52,24 +52,23 @@ export function getServerOverallStatus(
   if (server.status === "PREPARED") {
     return {
       label: "Server ready",
-      description: "Prepared from the control node with Ansible",
+      description: "Set up from the control node with Ansible",
       tone: "success",
     };
   }
 
   if (server.status === "PARTIALLY_PREPARED") {
     return {
-      label: "Preparation partial",
-      description: "Some preparation roles require attention",
+      label: "Setup partial",
+      description: "Some setup roles require attention",
       tone: "warning",
     };
   }
 
   if (server.status === "PREPARATION_FAILED") {
     return {
-      label: "Preparation failed",
-      description:
-        "Ansible preparation failed — view logs and retry preparation",
+      label: "Setup failed",
+      description: "Ansible setup failed — view logs and retry setup",
       tone: "error",
     };
   }
@@ -79,16 +78,16 @@ export function getServerOverallStatus(
     server.status === "PREPARATION_PENDING"
   ) {
     return {
-      label: "Preparation running",
-      description: "Preparation job is running or queued",
+      label: "Setup running",
+      description: "Setup job is running or queued",
       tone: "info",
     };
   }
 
   if (server.status === "INFO_DETECTED") {
     return {
-      label: "Preparation required",
-      description: "Detection completed — select options and run preparation",
+      label: "Setup required",
+      description: "Detection completed — select options and run setup",
       tone: "info",
     };
   }
@@ -96,7 +95,7 @@ export function getServerOverallStatus(
   if (server.status === "SSH_VALIDATED") {
     return {
       label: "Detection required",
-      description: "SSH validated — run Detect Info before preparation",
+      description: "SSH validated — run Detect Info before setup",
       tone: "info",
     };
   }
@@ -112,7 +111,7 @@ export function getServerOverallStatus(
   if (server.isVerified) {
     return {
       label: "Detection required",
-      description: "SSH validated — run Detect Info before preparation",
+      description: "SSH validated — run Detect Info before setup",
       tone: "info",
     };
   }
@@ -218,7 +217,7 @@ export function formatPreparationBlockingReason(reason: string): string {
     normalized.includes("already running") ||
     normalized.includes("deja en cours")
   ) {
-    return "Preparation already running";
+    return "Setup already running";
   }
   return reason;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Wrench } from "lucide-react";
+import { Wrench, Zap } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
@@ -41,6 +41,13 @@ type ServerPrepareDialogProps = {
   isBusy: boolean;
   preparingId: string | null;
   installedTools?: ServerInstalledTool[];
+  // "Sécurité database + UI" mission, Task 2: the server table now exposes
+  // exactly 5 row actions (Enter Terminal / Setup Server / Edit / View
+  // Details / Delete) — "Validate SSH" no longer has its own row button, so
+  // it's offered here instead, inline, exactly where the dialog already
+  // tells the user SSH validation is what's blocking Setup Server.
+  onVerify?: (server: Server) => Promise<void>;
+  verifyingId?: string | null;
   onClose: () => void;
   onFieldChange: (
     server: Server,
@@ -55,6 +62,7 @@ function resolveGroup(role: string | null): OptionGroup {
   if (
     [
       "docker",
+      "docker_tls",
       "nginx",
       "nodejs",
       "postgres",
@@ -76,6 +84,8 @@ export function ServerPrepareDialog({
   prepareOptions,
   isBusy,
   preparingId,
+  onVerify,
+  verifyingId,
   onClose,
   onFieldChange,
   onPrepare,
@@ -100,6 +110,12 @@ export function ServerPrepareDialog({
       : (readiness?.blockingReasons ?? []);
   const isReady =
     !readinessLoading && !readinessError && Boolean(readiness?.isReady);
+  const needsSshValidation = Boolean(
+    readiness?.checks &&
+      (!readiness.checks.sshValidated ||
+        !readiness.checks.sshReachable ||
+        !readiness.checks.authSucceeded),
+  );
 
   const profiles = optionsQuery.data?.profiles ?? [];
   const options = optionsQuery.data?.options ?? [];
@@ -139,7 +155,7 @@ export function ServerPrepareDialog({
       onClose={onClose}
       dismissable={!isBusy}
       size="xl"
-      title="Choose preparation options"
+      title="Choose setup options"
       description={`${server.username}@${server.host}:${server.port}`}
       footer={
         <>
@@ -152,7 +168,7 @@ export function ServerPrepareDialog({
             loading={preparingId === server.id}
             icon={preparingId === server.id ? undefined : <Wrench size={14} />}
           >
-            Run preparation
+            Run Setup
           </Button>
         </>
       }
@@ -210,13 +226,13 @@ export function ServerPrepareDialog({
 
         {optionsQuery.isLoading && (
           <div className="rounded-lg border border-[var(--border)] bg-[var(--hover)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-            Loading preparation options...
+            Loading setup options...
           </div>
         )}
 
         {optionsQuery.error && (
           <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            Unable to load preparation options from backend.
+            Unable to load setup options from backend.
           </div>
         )}
 
@@ -304,13 +320,28 @@ export function ServerPrepareDialog({
 
         {!hasSelection && (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
-            Select at least one preparation option.
+            Select at least one setup option.
           </div>
         )}
 
         {!isReady && (
           <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            <p className="font-semibold">Preparation blocked</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-semibold">Setup blocked</p>
+              {needsSshValidation && onVerify && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void onVerify(server)}
+                  loading={verifyingId === server.id}
+                  icon={
+                    verifyingId === server.id ? undefined : <Zap size={13} />
+                  }
+                >
+                  Validate SSH now
+                </Button>
+              )}
+            </div>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               {blockingReasons.map((reason) => (
                 <li key={reason}>{reason}</li>

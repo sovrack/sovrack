@@ -6,6 +6,7 @@ import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
 import {
   ServerOverallStatusBadge,
+  ServerToolBadges,
   ServerWorkflowBadges,
 } from "@/features/servers/components/shared/server-status-badges";
 import { ServerJobsPanel } from "@/features/servers/components/panels/server-jobs-panel";
@@ -98,6 +99,11 @@ export function ServerDetailsDialog({
             <div className="space-y-2">
               <ServerOverallStatusBadge server={server} />
               <ServerWorkflowBadges server={server} />
+              {/* Task 2 ("Sécurité database + UI" mission): installed-tool
+                  badges (Docker/Nginx/Nixpacks…) moved here from the server
+                  list (now a compact table) — this detail panel is their
+                  only home now. */}
+              <ServerToolBadges server={server} />
               <p className="text-xs text-[var(--text-secondary)]">
                 Ansible is executed from the platform control node. This VPS is
                 managed through SSH and does not need Ansible installed locally.
@@ -129,12 +135,12 @@ export function ServerDetailsDialog({
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
-              Last preparation
+              Last setup
             </p>
             <p className="mt-2 text-sm text-[var(--text-primary)]">
               {server.lastPreparedAt
                 ? new Date(server.lastPreparedAt).toLocaleString()
-                : "Not prepared yet"}
+                : "Not set up yet"}
             </p>
           </div>
         </div>

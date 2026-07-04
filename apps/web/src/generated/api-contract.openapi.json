@@ -1668,6 +1668,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "serviceId",
+            "required": false,
+            "in": "query",
+            "description": "Scopes the resolved repo to this specific service (1 service = 1 repo). Without it, an arbitrary GIT service of the project is used — pass it whenever the caller knows which service it concerns (e.g. that service's Source tab, or a deploy dialog with a service selected).",
+            "schema": {}
           }
         ],
         "responses": {
@@ -7484,6 +7491,43 @@
         ]
       }
     },
+    "/projects/{projectId}/services/{serviceId}/credentials": {
+      "get": {
+        "operationId": "ServicesController_getCredentials",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serviceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a DATABASE service credentials (dedicated, gated — not the listing route)",
+        "tags": [
+          "Services"
+        ]
+      }
+    },
     "/volumes": {
       "get": {
         "operationId": "VolumesController_findAll",
@@ -9400,6 +9444,11 @@
             "type": "boolean",
             "example": true
           },
+          "dockerTls": {
+            "type": "boolean",
+            "example": true,
+            "description": "Configure Docker daemon mTLS (port 2376) and auto-register the DockerConnection — required for the platform to deploy on this server."
+          },
           "nginx": {
             "type": "boolean",
             "example": true
@@ -10912,6 +10961,13 @@
           "databaseCredentials": {
             "type": "object"
           },
+          "externalPort": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 65535,
+            "example": 5432,
+            "description": "DATABASE services only. Host port to publish for external access. Null/omitted = not exposed externally (default) — only reachable from other services in the project via the internal Docker network."
+          },
           "env": {
             "type": "string",
             "example": "{\"NODE_ENV\":\"production\"}"
@@ -11131,6 +11187,13 @@
           },
           "databaseCredentials": {
             "type": "object"
+          },
+          "externalPort": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 65535,
+            "example": 5432,
+            "description": "DATABASE services only. Host port to publish for external access. Null/omitted = not exposed externally (default) — only reachable from other services in the project via the internal Docker network."
           },
           "env": {
             "type": "string",

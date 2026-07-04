@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -120,5 +120,93 @@ describe("ServerPrepareDialog — profile clarity (Task A5)", () => {
         screen.getByText("Enables by default: Docker, Nginx."),
       ).toBeInTheDocument(),
     );
+  });
+
+  // "Sécurité database + UI" mission, Task 2: the compact server table no
+  // longer has its own "Validate SSH" row action (only 5 fixed actions) —
+  // folded here instead, inline, exactly where the dialog already explains
+  // SSH validation is what's blocking Setup Server.
+  describe("inline 'Validate SSH now' (Task 2)", () => {
+    beforeEach(() => {
+      mocked.getPreparationOptions.mockResolvedValue({
+        controlNodeOnly: true,
+        message: "",
+        profiles: ["BASIC"],
+        options: [],
+        profileDefaults: { BASIC: {} },
+      } as never);
+    });
+
+    it("shows a 'Validate SSH now' button when SSH validation is the blocker, and calls onVerify", async () => {
+      mocked.getPreparationReadiness.mockResolvedValue({
+        isReady: false,
+        blockingReasons: ["La validation SSH doit réussir avant la préparation."],
+        checks: {
+          serverActive: true,
+          serverNotDisabled: true,
+          sshValidated: false,
+          sshReachable: false,
+          authSucceeded: false,
+          sudoAvailable: false,
+          noActivePreparation: true,
+        },
+      } as never);
+      const onVerify = vi.fn().mockResolvedValue(undefined);
+
+      render(
+        <ServerPrepareDialog
+          open
+          server={server}
+          prepareOptions={{}}
+          isBusy={false}
+          preparingId={null}
+          onVerify={onVerify}
+          verifyingId={null}
+          onClose={vi.fn()}
+          onFieldChange={vi.fn()}
+          onPrepare={vi.fn()}
+        />,
+        { wrapper: setup() },
+      );
+
+      const button = await screen.findByText("Validate SSH now");
+      button.click();
+      expect(onVerify).toHaveBeenCalledWith(server);
+    });
+
+    it("does not show the button when SSH is already validated (a different blocker applies)", async () => {
+      mocked.getPreparationReadiness.mockResolvedValue({
+        isReady: false,
+        blockingReasons: ["Une préparation serveur est déjà en cours pour ce VPS."],
+        checks: {
+          serverActive: true,
+          serverNotDisabled: true,
+          sshValidated: true,
+          sshReachable: true,
+          authSucceeded: true,
+          sudoAvailable: true,
+          noActivePreparation: false,
+        },
+      } as never);
+
+      render(
+        <ServerPrepareDialog
+          open
+          server={server}
+          prepareOptions={{}}
+          isBusy={false}
+          preparingId={null}
+          onVerify={vi.fn()}
+          verifyingId={null}
+          onClose={vi.fn()}
+          onFieldChange={vi.fn()}
+          onPrepare={vi.fn()}
+        />,
+        { wrapper: setup() },
+      );
+
+      await screen.findByText("Setup blocked");
+      expect(screen.queryByText("Validate SSH now")).not.toBeInTheDocument();
+    });
   });
 });

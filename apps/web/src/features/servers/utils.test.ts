@@ -18,7 +18,7 @@ describe("server-utils", () => {
         "Legacy setup",
       );
       expect(formatJobType("PREPARE_SERVER" as ServerJob["type"])).toBe(
-        "Prepare Server",
+        "Setup Server",
       );
       expect(formatJobType("REGISTER_RUNNER" as ServerJob["type"])).toBe(
         "Register Runner",

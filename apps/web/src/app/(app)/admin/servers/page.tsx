@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Activity,
-  Container,
-  GitMerge,
-  HelpCircle,
-  Plus,
-  Server,
-} from "lucide-react";
-import clsx from "clsx";
+import { Plus, Server } from "lucide-react";
 import type { Server as ServerType } from "@/features/servers/types/server";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { Alert } from "@/shared/ui/alert";
@@ -17,7 +9,7 @@ import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { PageHeader } from "@/shared/layout/page-header";
-import { ServerCard } from "@/features/servers/components/cards/server-card";
+import { ServersTable } from "@/features/servers/components/tables/servers-table";
 import { ServerDetailsDialog } from "@/features/servers/components/dialogs/server-details-dialog";
 import { ServerKeyInstallDialog } from "@/features/servers/components/dialogs/server-key-install-dialog";
 import { ServerPrepareDialog } from "@/features/servers/components/dialogs/server-prepare-dialog";
@@ -32,43 +24,6 @@ import {
 } from "@/features/servers/api/use-servers";
 import { usePagination } from "@/shared/hooks/use-pagination";
 import { Pagination } from "@/shared/ui/pagination";
-
-/* ─── Types ─────────────────────────────────────────────────────────────── */
-
-type ServerRole = "APP" | "CI_RUNNER" | "APP_CI" | "GENERAL";
-
-function deriveRole(s: ServerType): ServerRole {
-  if (s.hasDocker && s.hasRunner) return "APP_CI";
-  if (s.hasDocker) return "APP";
-  if (s.hasRunner) return "CI_RUNNER";
-  return "GENERAL";
-}
-
-const ROLE_META: Record<
-  ServerRole,
-  { label: string; color: string; icon: React.ReactNode }
-> = {
-  APP: {
-    label: "App Server",
-    color: "border-blue-500/20 bg-blue-500/10 text-blue-400",
-    icon: <Container size={10} />,
-  },
-  CI_RUNNER: {
-    label: "CI Runner",
-    color: "border-indigo-500/20 bg-indigo-500/10 text-indigo-400",
-    icon: <GitMerge size={10} />,
-  },
-  APP_CI: {
-    label: "App + CI",
-    color: "border-green-500/20 bg-green-500/10 text-green-400",
-    icon: <Activity size={10} />,
-  },
-  GENERAL: {
-    label: "General",
-    color: "border-[var(--border)] bg-[var(--hover)] text-[var(--text-muted)]",
-    icon: <HelpCircle size={10} />,
-  },
-};
 
 /* ─── Page ────────────────────────────────────────────────────────────────── */
 
@@ -238,74 +193,30 @@ export default function AdminServersPage() {
       )}
 
       {!servers.loading && servers.servers.length > 0 && (
-        <>
-          <div className="space-y-3">
-            {pagedServers.map((server) => {
-              const isBusy = getServerBusy(server);
-              return (
-                <div
-                  key={server.id}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] transition hover:shadow-sm"
-                >
-                  {/* Role badge strip */}
-                  {server.lastDetectedAt && (
-                    <div className="flex items-center justify-end border-b border-[var(--border)] px-5 py-2">
-                      <span
-                        className={clsx(
-                          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase",
-                          ROLE_META[deriveRole(server)].color,
-                        )}
-                      >
-                        {ROLE_META[deriveRole(server)].icon}
-                        {ROLE_META[deriveRole(server)].label}
-                      </span>
-                    </div>
-                  )}
+        <div className="space-y-3">
+          <ServersTable
+            servers={pagedServers}
+            isReachable={reachabilityQuery.data ?? {}}
+            getServerBusy={getServerBusy}
+            onOpenSetup={setPrepareServer}
+            onOpenDetails={setDetailsServer}
+            onEdit={(s) => {
+              setEditError(null);
+              setEditServer(s);
+            }}
+            onDelete={(s) => {
+              setDeleteError(null);
+              setDeleteTarget(s);
+            }}
+          />
 
-                  {/* Server card content */}
-                  <div className="p-4">
-                    <ServerCard
-                      server={server}
-                      isReachable={reachabilityQuery.data?.[server.id]}
-                      isBusy={isBusy}
-                      verifyingId={servers.verifyingId}
-                      detectingId={servers.detectingId}
-                      preparingId={servers.preparingId}
-                      installingKeyId={servers.installingKeyId}
-                      deletingId={servers.deletingId}
-                      updatingId={servers.updatingId}
-                      formatConnectionMode={servers.formatConnectionMode}
-                      onVerify={servers.handleVerify}
-                      onDetect={servers.handleDetect}
-                      onInstallKey={(s) => {
-                        setInstallKeyError(null);
-                        setInstallKeyServer(s);
-                      }}
-                      onOpenPrepare={setPrepareServer}
-                      onOpenDetails={setDetailsServer}
-                      onEdit={(s) => {
-                        setEditError(null);
-                        setEditServer(s);
-                      }}
-                      onDelete={(s) => {
-                        setDeleteError(null);
-                        setDeleteTarget(s);
-                      }}
-                    />
-                  </div>
-
-                </div>
-              );
-            })}
-
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={goToPage}
-              className="mt-2"
-            />
-          </div>
-        </>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+            className="mt-2"
+          />
+        </div>
       )}
 
       {/* ─── Environments tab ─── */}
@@ -334,6 +245,8 @@ export default function AdminServersPage() {
         isBusy={getServerBusy(activePrepareServer)}
         preparingId={servers.preparingId}
         installedTools={prepareToolsQuery.data ?? []}
+        onVerify={(s) => servers.handleVerify(s.id)}
+        verifyingId={servers.verifyingId}
         onClose={() => setPrepareServer(null)}
         onFieldChange={servers.handlePrepareOptionChange}
         onPrepare={servers.handlePrepare}
