@@ -103,7 +103,12 @@ export class DeploymentsConfigResolver {
       return `compose://${project.name}`;
     }
     if (this.isLocalBuildSource(buildSource)) {
-      return `${sanitizeDockerTag(project.name)}:${sanitizeDockerTag(branch || 'latest')}`;
+      // Le nom du SERVICE fait partie du tag : sans lui, deux services du même
+      // projet sur la même branche partagent « projet:branche » et le build de
+      // l'un ÉCRASE le tag de l'autre (un redeploy backend pouvait relancer
+      // l'image du frontend). Découvert lors du déploiement réel complet —
+      // même convention que le chemin REGISTRY ci-dessous (projet-service).
+      return `${sanitizeDockerTag(project.name)}-${sanitizeDockerTag(service.name)}:${sanitizeDockerTag(branch || 'latest')}`;
     }
     // Mode REGISTRY : si l'utilisateur a fixé une image (registryImage), on la
     // tire telle quelle au lieu de la dériver de la CI.

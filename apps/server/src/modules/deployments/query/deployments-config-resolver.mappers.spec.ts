@@ -12,6 +12,30 @@ describe('DeploymentsConfigResolver — pure mappers', () => {
     );
   });
 
+  // Régression (déploiement réel) : le tag d'un build LOCAL doit inclure le
+  // nom du SERVICE — « projet:branche » seul faisait que 2 services du même
+  // projet sur la même branche s'écrasaient mutuellement le tag d'image.
+  it('local build image tag includes the service name (no cross-service clobbering)', async () => {
+    const call = (svcName: string) =>
+      (
+        resolver as unknown as {
+          resolveDockerImage: (...a: unknown[]) => Promise<string>;
+        }
+      ).resolveDockerImage(
+        {},
+        'DOCKERFILE_LOCAL',
+        { name: svcName },
+        { id: 'p1', name: 'deploy-automation-v2' },
+        'dev',
+      );
+    await expect(call('backend')).resolves.toBe(
+      'deploy-automation-v2-backend:dev',
+    );
+    await expect(call('frontend')).resolves.toBe(
+      'deploy-automation-v2-frontend:dev',
+    );
+  });
+
   it('classifies local vs registry build sources', () => {
     const local: BuildSource[] = [
       'DOCKERFILE_LOCAL',

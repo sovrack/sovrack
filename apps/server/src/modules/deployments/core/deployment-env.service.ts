@@ -120,7 +120,11 @@ export class DeploymentEnvService {
           dbName: creds.dbName,
         };
       });
-    return buildDbConnectionEnv(links) || null;
+    // JSON objet — format attendu par resolveEnvDetailed pour un EnvLevel.env
+    // (le format « lignes KEY=VALUE » était silencieusement écarté : conteneur
+    // démarré sans DATABASE_URL/REDIS_URL → crash-loop Prisma).
+    const vars = buildDbConnectionEnv(links);
+    return Object.keys(vars).length > 0 ? JSON.stringify(vars) : null;
   }
 
   /**
@@ -175,11 +179,20 @@ export class DeploymentEnvService {
    * For DATABASE service types: create the data volume on the server, inject
    * the DB-specific env vars into the existing envVars array, and return the
    * volume name + path for bind-mount wiring (both undefined for non-DB).
+   *
+   * Real bug fixed here (RAPPORT_DEPLOIEMENT_REEL.md, Tâche 4 point 6): the
+   * volume name used to be derived from `deployment.id` — a FRESH id on
+   * every redeploy (each redeploy creates its own Deployment row) — so every
+   * redeploy of a DATABASE service silently created a brand-new EMPTY
+   * volume instead of reattaching to the previous one, losing all data.
+   * Naming it from `service.id` (stable for the service's whole lifetime)
+   * fixes this: `docker volume create` is idempotent, so a redeploy just
+   * reattaches to the existing volume instead of creating a fresh one.
    */
   async setupDbVolume(
     deployment: {
-      id: string;
       service?: {
+        id: string;
         type?: ServiceType | null;
         databaseType?: string | null;
         databaseCredentials?: unknown;
@@ -207,7 +220,7 @@ export class DeploymentEnvService {
     const dbConfig = getDatabaseContainerConfig(
       deployment.service.databaseType as ManagedServiceType,
     );
-    const dbVolumeName = `${deployment.id}-data`;
+    const dbVolumeName = `${deployment.service.id}-data`;
     const dbVolumePath = dbConfig.dataPath;
 
     await this.docker.createVolume(serverId, dbVolumeName);

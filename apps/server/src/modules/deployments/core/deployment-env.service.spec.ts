@@ -100,6 +100,43 @@ describe('DeploymentEnvService', () => {
       };
       const result = await svc.resolveAutoWiredDbEnv(deployment);
       expect(result).toContain('DATABASE_URL');
+      // Régression (déploiement réel) : le retour DOIT être un objet JSON —
+      // le format « lignes KEY=VALUE » était silencieusement écarté par
+      // resolveEnvDetailed et le conteneur démarrait sans DATABASE_URL.
+      const parsed = JSON.parse(result as string) as Record<string, string>;
+      expect(parsed.DATABASE_URL).toBe(
+        'postgresql://admin:secret@postgres:5432/mydb',
+      );
+    });
+
+    it('INTEGRATION: auto-wired env reaches the final envVars through resolveDeploymentEnv', async () => {
+      const { svc } = makeSvc({
+        dbs: [
+          {
+            name: 'postgres',
+            databaseType: ManagedServiceType.POSTGRES,
+            databaseCredentials: JSON.stringify({ user: 'app', password: 'pw', dbName: 'app' }),
+          },
+          { name: 'redis', databaseType: ManagedServiceType.REDIS, databaseCredentials: null },
+        ],
+      });
+      const deployment = {
+        id: 'dep1',
+        project: { id: 'proj1' },
+        service: { id: 'svc1', type: ServiceType.APP },
+        serviceEnv: { environment: { id: 'env1' } },
+        environment: null,
+      };
+      const autoDbEnv = await svc.resolveAutoWiredDbEnv(deployment);
+      const { envVars, commandLogs } = svc.resolveDeploymentEnv(
+        { id: 'dep1', service: null, serviceEnv: null, environment: null },
+        autoDbEnv,
+      );
+      expect(commandLogs).not.toContain('auto-db');
+      expect(envVars).toContain(
+        'DATABASE_URL=postgresql://app:pw@postgres:5432/app',
+      );
+      expect(envVars).toContain('REDIS_URL=redis://redis:6379');
     });
 
     it('uses environment.id when serviceEnv has no environment', async () => {
@@ -187,8 +224,7 @@ describe('DeploymentEnvService', () => {
     it('returns undefined fields for non-DATABASE service', async () => {
       const { svc } = makeSvc();
       const deployment = {
-        id: 'dep1',
-        service: { type: ServiceType.APP, databaseType: null, databaseCredentials: null },
+        service: { id: 'svc1', type: ServiceType.APP, databaseType: null, databaseCredentials: null },
       };
       const result = await svc.setupDbVolume(deployment, 'srv1', [], 5432);
       expect(result.dbVolumeName).toBeUndefined();
@@ -199,35 +235,60 @@ describe('DeploymentEnvService', () => {
     it('returns undefined fields when databaseType is null', async () => {
       const { svc } = makeSvc();
       const deployment = {
-        id: 'dep1',
-        service: { type: ServiceType.DATABASE, databaseType: null, databaseCredentials: null },
+        service: { id: 'svc1', type: ServiceType.DATABASE, databaseType: null, databaseCredentials: null },
       };
       const result = await svc.setupDbVolume(deployment, 'srv1', [], 5432);
       expect(result.dbVolumeName).toBeUndefined();
     });
 
-    it('creates data volume for DATABASE service and returns volume name', async () => {
+    // Real bug fixed here (RAPPORT_DEPLOIEMENT_REEL.md, Tâche 4 point 6): the
+    // volume name used to be `${deployment.id}-data` — a fresh id every
+    // redeploy — so this test previously asserted 'dep1-data', hiding the
+    // fact that a SECOND redeploy (a different deployment.id, same service)
+    // would get an entirely different, empty volume. Now keyed by
+    // service.id, which is stable for the service's whole lifetime.
+    it('creates data volume for DATABASE service, named from the SERVICE id (stable across redeploys)', async () => {
       const { svc, docker } = makeSvc();
       const deployment = {
-        id: 'dep1',
         service: {
+          id: 'svc1',
           type: ServiceType.DATABASE,
           databaseType: ManagedServiceType.POSTGRES,
           databaseCredentials: JSON.stringify({ user: 'pg', password: 'pass', dbName: 'db1' }),
         },
       };
       const result = await svc.setupDbVolume(deployment, 'srv1', [], 5432);
-      expect(docker.createVolume).toHaveBeenCalledWith('srv1', 'dep1-data');
-      expect(result.dbVolumeName).toBe('dep1-data');
-      expect(result.commandLogs).toContain('dep1-data');
+      expect(docker.createVolume).toHaveBeenCalledWith('srv1', 'svc1-data');
+      expect(result.dbVolumeName).toBe('svc1-data');
+      expect(result.commandLogs).toContain('svc1-data');
+    });
+
+    it('resolves the SAME volume name across two different deployments of the same service (no data loss on redeploy)', async () => {
+      const { svc: svcA, docker: dockerA } = makeSvc();
+      const { svc: svcB, docker: dockerB } = makeSvc();
+      const baseService = {
+        id: 'svc1',
+        type: ServiceType.DATABASE,
+        databaseType: ManagedServiceType.POSTGRES,
+        databaseCredentials: JSON.stringify({ user: 'pg', password: 'pass', dbName: 'db1' }),
+      };
+      // Two distinct Deployment rows (first deploy, then a redeploy) — the
+      // service itself is unchanged. Only `deployment.id` differs in reality;
+      // setupDbVolume no longer receives or uses it at all.
+      const firstDeployResult = await svcA.setupDbVolume({ service: baseService }, 'srv1', [], 5432);
+      const redeployResult = await svcB.setupDbVolume({ service: baseService }, 'srv1', [], 5432);
+
+      expect(firstDeployResult.dbVolumeName).toBe(redeployResult.dbVolumeName);
+      expect(dockerA.createVolume).toHaveBeenCalledWith('srv1', 'svc1-data');
+      expect(dockerB.createVolume).toHaveBeenCalledWith('srv1', 'svc1-data');
     });
 
     it('injects POSTGRES_* env vars for PostgreSQL', async () => {
       const { svc } = makeSvc();
       const envVars: string[] = [];
       const deployment = {
-        id: 'dep1',
         service: {
+          id: 'svc1',
           type: ServiceType.DATABASE,
           databaseType: ManagedServiceType.POSTGRES,
           databaseCredentials: JSON.stringify({ user: 'pg', password: 'pass', dbName: 'mydb' }),
@@ -241,8 +302,8 @@ describe('DeploymentEnvService', () => {
       const { svc } = makeSvc();
       const envVars = ['POSTGRES_USER=existing'];
       const deployment = {
-        id: 'dep1',
         service: {
+          id: 'svc1',
           type: ServiceType.DATABASE,
           databaseType: ManagedServiceType.POSTGRES,
           databaseCredentials: JSON.stringify({ user: 'existing', password: 'pass', dbName: 'db' }),
