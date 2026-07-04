@@ -238,7 +238,7 @@ describe('GitlabAdapter — delegation methods', () => {
   it('readFile delegates to fileService', async () => {
     const { adapter, fileService } = makeFullAdapter();
     const result = await adapter.readFile('p1', 'Dockerfile');
-    expect(fileService.readFile).toHaveBeenCalledWith('p1', 'Dockerfile', undefined);
+    expect(fileService.readFile).toHaveBeenCalledWith('p1', 'Dockerfile', undefined, undefined);
     expect(result).toBe('content');
   });
 

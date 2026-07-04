@@ -27,10 +27,40 @@ export class GitlabProjectConfigService {
     private readonly connection: GitlabConnectionService,
   ) {}
 
-  async getProjectConfig(projectId: string): Promise<GitlabResolvedConfig> {
-    const svc = await this.prisma.service.findFirst({
-      where: { projectId, providerId: { not: null } },
-    });
+  /**
+   * Resolves which SERVICE's repo/branch this config represents. A project
+   * can hold several GIT services (1 service = 1 repo in this model) — when
+   * the caller knows which one it's actually operating on (branch listing
+   * for a specific service's Source tab, deploy dialog with a service
+   * selected…), it MUST pass `serviceId` so the repo returned genuinely
+   * matches the one being configured/deployed. Real bug fixed here (see
+   * RAPPORT_DEPLOIEMENT_REEL.md, recommandation B3): without it, this used
+   * to pick an ARBITRARY service of the project via a bare `findFirst`,
+   * silently returning e.g. the backend repo's branches while the user was
+   * configuring the frontend service — live-confirmed against a real
+   * 2-service project (both repos' branch lists came back identical to the
+   * first service's, regardless of which one was being edited).
+   *
+   * When `serviceId` is NOT provided (project-wide aggregation contexts
+   * where no single service is structurally in scope — e.g. discovering
+   * repos in a GROUP-type connection before any service exists), the choice
+   * of which service's provider config to use is still inherently ambiguous
+   * for a genuinely multi-provider project. `orderBy: createdAt asc` only
+   * makes that pick deterministic (repeatable), not correct — it is a
+   * documented fallback, not a complete fix.
+   */
+  async getProjectConfig(
+    projectId: string,
+    serviceId?: string,
+  ): Promise<GitlabResolvedConfig> {
+    const svc = serviceId
+      ? await this.prisma.service.findFirst({
+          where: { id: serviceId, projectId, providerId: { not: null } },
+        })
+      : await this.prisma.service.findFirst({
+          where: { projectId, providerId: { not: null } },
+          orderBy: { createdAt: 'asc' },
+        });
     if (!svc?.providerId) {
       throw new NotFoundException(
         'Configuration GitLab non trouvée pour ce projet',

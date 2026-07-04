@@ -152,9 +152,18 @@ export class GitlabFileService {
     projectId: string,
     serviceId?: string,
   ): Promise<GitlabRepositoryContext> {
-    const svc = await this.prisma.service.findFirst({
-      where: { projectId, providerId: { not: null } },
-    });
+    // Quand serviceId est fourni, résoudre CE service (1 service = 1 dépôt) :
+    // l'ancien findFirst({projectId}) prenait un service ARBITRAIRE (ordre
+    // physique du heap Postgres) → sur un projet multi-dépôts, readFile/creds
+    // pouvaient viser le MAUVAIS dépôt (ex. le check Dockerfile du backend
+    // interrogeait le repo du frontend). Même famille que le bug B3 branches.
+    const svc = serviceId
+      ? await this.prisma.service.findFirst({
+          where: { id: serviceId, projectId },
+        })
+      : await this.prisma.service.findFirst({
+          where: { projectId, providerId: { not: null } },
+        });
     if (!svc?.providerId)
       throw new BadRequestException('Configuration GitLab manquante');
 

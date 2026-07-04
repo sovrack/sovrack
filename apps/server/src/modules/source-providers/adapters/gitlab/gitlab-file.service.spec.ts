@@ -263,4 +263,28 @@ describe('GitlabFileService.resolveRepositoryContext', () => {
     expect(ctx.branch).toBe('main');
     expect(ctx.gitlabProjectId).toBe('group/repo');
   });
+
+  // Mission B (déploiement réel) : sur un projet MULTI-DÉPÔTS, le contexte
+  // doit résoudre LE service demandé — l'ancien findFirst({projectId}) prenait
+  // un service arbitraire (ordre physique du heap) → le check Dockerfile du
+  // backend interrogeait le dépôt du frontend (404 → faux « pas de Dockerfile »).
+  it('resolves the REQUESTED service repo when serviceId is provided (multi-repo project)', async () => {
+    const { svc } = makeFullSvc({
+      service: {
+        id: 'svc-backend',
+        projectId: 'proj1',
+        providerId: 'prov1',
+        branch: 'fix-branch',
+        repoPath: 'group/backend-repo',
+        sourceType: SourceType.GIT_PROVIDER,
+      },
+    });
+    const prisma = (svc as unknown as { prisma: { service: { findFirst: jest.Mock } } }).prisma;
+    const ctx = await svc.resolveRepositoryContext('proj1', 'svc-backend');
+    // La requête cible bien id+projectId (pas un findFirst arbitraire du projet)
+    expect(prisma.service.findFirst).toHaveBeenCalledWith({
+      where: { id: 'svc-backend', projectId: 'proj1' },
+    });
+    expect(ctx.gitlabProjectId).toBe('group/backend-repo');
+  });
 });

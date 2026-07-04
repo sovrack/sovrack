@@ -82,22 +82,38 @@ describe('GitlabController', () => {
     it('parses numeric repoId from query string', async () => {
       const adapter = makeAdapter();
       const ctrl = new GitlabController(adapter as never);
-      await ctrl.getBranches('proj1', '42', user);
-      expect(adapter.getBranches).toHaveBeenCalledWith('proj1', 'user1', Role.ADMIN, 42);
+      await ctrl.getBranches('proj1', '42', undefined, user);
+      expect(adapter.getBranches).toHaveBeenCalledWith('proj1', 'user1', Role.ADMIN, 42, undefined);
     });
 
     it('passes undefined when repoId is empty', async () => {
       const adapter = makeAdapter();
       const ctrl = new GitlabController(adapter as never);
-      await ctrl.getBranches('proj1', undefined, user);
-      expect(adapter.getBranches).toHaveBeenCalledWith('proj1', 'user1', Role.ADMIN, undefined);
+      await ctrl.getBranches('proj1', undefined, undefined, user);
+      expect(adapter.getBranches).toHaveBeenCalledWith('proj1', 'user1', Role.ADMIN, undefined, undefined);
     });
 
     it('passes undefined when repoId is invalid', async () => {
       const adapter = makeAdapter();
       const ctrl = new GitlabController(adapter as never);
-      await ctrl.getBranches('proj1', 'not-a-number', user);
-      expect(adapter.getBranches).toHaveBeenCalledWith('proj1', 'user1', Role.ADMIN, undefined);
+      await ctrl.getBranches('proj1', 'not-a-number', undefined, user);
+      expect(adapter.getBranches).toHaveBeenCalledWith('proj1', 'user1', Role.ADMIN, undefined, undefined);
+    });
+
+    // Bug B3: serviceId must reach the adapter (and from there,
+    // getProjectConfig) so the resolved repo/branches genuinely match the
+    // service the caller is asking about, not an arbitrary one.
+    it('passes serviceId through to the adapter so the correct service repo is resolved', async () => {
+      const adapter = makeAdapter();
+      const ctrl = new GitlabController(adapter as never);
+      await ctrl.getBranches('proj1', undefined, 'svc-frontend', user);
+      expect(adapter.getBranches).toHaveBeenCalledWith(
+        'proj1',
+        'user1',
+        Role.ADMIN,
+        undefined,
+        'svc-frontend',
+      );
     });
   });
 

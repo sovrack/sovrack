@@ -11,6 +11,7 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -165,6 +166,12 @@ export class GitlabController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List available GitLab branches' })
+  @ApiQuery({
+    name: 'serviceId',
+    required: false,
+    description:
+      'Scopes the resolved repo to this specific service (1 service = 1 repo). Without it, an arbitrary GIT service of the project is used — pass it whenever the caller knows which service it concerns (e.g. that service\'s Source tab, or a deploy dialog with a service selected).',
+  })
   @ApiResponse({ status: 200, description: 'GitLab branches fetched' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Unauthorized access' })
@@ -175,6 +182,7 @@ export class GitlabController {
   async getBranches(
     @Param('id') projectId: string,
     @Query('repoId') repoId: string | undefined,
+    @Query('serviceId') serviceId: string | undefined,
     @GetUser() user: JwtPayload,
   ) {
     const parsedRepoId = this.parseOptionalRepoId(repoId);
@@ -183,6 +191,7 @@ export class GitlabController {
       user.id,
       user.role,
       parsedRepoId,
+      serviceId,
     );
   }
 

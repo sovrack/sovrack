@@ -110,11 +110,15 @@ export interface IGitProvider {
   /**
    * Read a file from the repository at the given ref (branch/commit).
    * Returns null if the file does not exist.
+   * `serviceId` is REQUIRED for correctness on multi-repo projects (1 service
+   * = 1 repo): without it the adapter resolves an arbitrary repo of the
+   * project — same failure family as the B3 branches bug.
    */
   readFile(
     projectId: string,
     filePath: string,
     ref?: string,
+    serviceId?: string,
   ): Promise<string | null>;
 
   /**

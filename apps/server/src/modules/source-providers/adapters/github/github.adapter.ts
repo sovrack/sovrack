@@ -262,10 +262,14 @@ export class GithubAdapter implements IGitProvider {
 
   // ─── IGitProvider — File operations ───────────────────────────────────────
 
+  // NB: serviceId accepté pour le contrat (multi-dépôts) mais non résolu ici —
+  // la résolution GitHub reste au niveau projet (resolveCredentials(projectId)),
+  // à aligner si des projets GitHub multi-dépôts apparaissent.
   async readFile(
     projectId: string,
     filePath: string,
     ref?: string,
+    _serviceId?: string,
   ): Promise<string | null> {
     return this.fileService.readFile(projectId, filePath, ref);
   }

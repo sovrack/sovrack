@@ -76,9 +76,13 @@ export class GitlabAdapter implements IGitProvider {
     userId: string,
     userRole: Role,
     preferredRepoId?: number,
+    serviceId?: string,
   ): Promise<GitlabBranchItem[]> {
     await this.auth.assertCanAccessProject(projectId, userId, userRole);
-    const config = await this.projectConfig.getProjectConfig(projectId);
+    const config = await this.projectConfig.getProjectConfig(
+      projectId,
+      serviceId,
+    );
     const repoId = await this.projectConfig.resolveRepoIdForAction(
       config,
       'récupération des branches',
@@ -323,8 +327,9 @@ export class GitlabAdapter implements IGitProvider {
     projectId: string,
     filePath: string,
     ref?: string,
+    serviceId?: string,
   ): Promise<string | null> {
-    return this.fileService.readFile(projectId, filePath, ref);
+    return this.fileService.readFile(projectId, filePath, ref, serviceId);
   }
 
   async writeFiles(
