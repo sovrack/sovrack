@@ -5,6 +5,7 @@ export type PreparationOptionKey =
   | 'systemUpdate'
   | 'docker'
   | 'dockerComposePlugin'
+  | 'dockerTls'
   | 'nginx'
   | 'nixpacks'
   | 'nodejs'
@@ -24,6 +25,7 @@ export type PreparationOptionKey =
 export type PreparationRoleKey =
   | 'system_base'
   | 'docker'
+  | 'docker_tls'
   | 'nginx'
   | 'nixpacks'
   | 'nodejs'
@@ -72,6 +74,7 @@ export const ROLE_ORDER: PreparationRoleKey[] = [
   'firewall',
   'fail2ban',
   'docker',
+  'docker_tls',
   'nginx',
   'nixpacks',
   'ssl',
@@ -113,6 +116,15 @@ export const PREPARATION_OPTIONS: PreparationOptionDefinition[] = [
     description:
       'Install the Docker Compose v2 plugin as part of Docker setup.',
     role: 'docker',
+    dependencies: ['docker'],
+    recommended: true,
+  },
+  {
+    key: 'dockerTls',
+    label: 'Docker TLS Connection (recommended)',
+    description:
+      'Enables the platform to deploy on this server automatically — required for deployments. Configures the Docker daemon for mTLS on port 2376 and registers the connection automatically.',
+    role: 'docker_tls',
     dependencies: ['docker'],
     recommended: true,
   },
@@ -249,6 +261,7 @@ export const PREPARATION_PROFILE_DEFAULTS: Record<
     systemUpdate: true,
     docker: true,
     dockerComposePlugin: true,
+    dockerTls: true,
     firewall: true,
     fail2ban: true,
     swap: true,
@@ -260,6 +273,7 @@ export const PREPARATION_PROFILE_DEFAULTS: Record<
     systemUpdate: true,
     docker: true,
     dockerComposePlugin: true,
+    dockerTls: true,
     nginx: true,
     certbot: true,
     firewall: true,
@@ -284,6 +298,7 @@ export const PREPARATION_PROFILE_DEFAULTS: Record<
     systemUpdate: true,
     docker: true,
     dockerComposePlugin: true,
+    dockerTls: true,
     gitlabRunner: true,
     firewall: true,
     fail2ban: true,
@@ -294,6 +309,7 @@ export const PREPARATION_PROFILE_DEFAULTS: Record<
     systemUpdate: true,
     docker: true,
     dockerComposePlugin: true,
+    dockerTls: true,
     nginx: true,
     nixpacks: true,
     nodejs: true,

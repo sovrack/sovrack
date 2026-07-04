@@ -39,6 +39,17 @@ export class StartServerPreparationDto {
   @IsBoolean()
   dockerComposePlugin?: boolean;
 
+  @ApiPropertyOptional({
+    example: true,
+    description:
+      'Configure Docker daemon mTLS (port 2376) and auto-register the ' +
+      'DockerConnection — required for the platform to deploy on this server.',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  dockerTls?: boolean;
+
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @Type(() => Boolean)

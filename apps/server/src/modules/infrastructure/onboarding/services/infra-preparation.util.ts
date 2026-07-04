@@ -67,6 +67,7 @@ export function parseRoleFromAnsibleLogLine(
 const ROLE_LABELS: Record<PreparationRoleKey, string> = {
   system_base: 'Système de base (apt + paquets essentiels)',
   docker: 'Docker Engine',
+  docker_tls: 'Connexion Docker TLS (mTLS 2376)',
   nginx: 'Nginx',
   nixpacks: 'Nixpacks (builder d’images)',
   nodejs: 'Node.js',

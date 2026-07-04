@@ -18,11 +18,15 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { redactSecrets as redactSecretsUtil } from '../../../../shared/security/redact';
+import { DockerConnectionsService } from '../../../../adapters/container-runtime/docker-connections.service';
 import { ServersJobsService } from '../../servers/services/servers-jobs.service';
 import { ServersConnectionService } from '../../servers/services/servers-connection.service';
 import { ServersDetectionService } from '../../servers/services/servers-detection.service';
 import { ServersAuditService } from '../../servers/services/servers-audit.service';
-import { ServerPreparationAnsibleService } from './server-preparation-ansible.service';
+import {
+  ServerPreparationAnsibleService,
+  type DockerTlsMaterial,
+} from './server-preparation-ansible.service';
 import { ServerPreparationGateway } from '../gateways/server-preparation.gateway';
 import {
   ServerPreparationStateService,
@@ -67,6 +71,7 @@ export class InfraPreparationRunnerService {
     private readonly configService: ConfigService,
     private readonly state: ServerPreparationStateService,
     private readonly serverRuns: ServerRunsService,
+    private readonly dockerConnections: DockerConnectionsService,
   ) {}
 
   /**
@@ -252,7 +257,7 @@ export class InfraPreparationRunnerService {
           )
         : [];
 
-      await this.ssh.withTimeout(
+      const runResult = await this.ssh.withTimeout(
         async () =>
           await this.ansible.runPreparation(
             server,
@@ -278,6 +283,18 @@ export class InfraPreparationRunnerService {
         timeoutMs,
         () => abortController.abort(),
       );
+
+      // docker_tls sélectionné + run réussi → enregistrer automatiquement la
+      // DockerConnection avec les certs rapatriés (même chemin de stockage
+      // chiffré que la saisie manuelle via POST /servers/:id/docker-connection,
+      // qui reste disponible telle quelle — rétrocompatibilité).
+      if (roles.includes('docker_tls')) {
+        await this.registerDockerTlsConnection(
+          server,
+          preparationId,
+          runResult.dockerTls,
+        );
+      }
 
       await this.state.markAllRemainingTasks(
         preparationId,
@@ -451,6 +468,83 @@ export class InfraPreparationRunnerService {
       },
       data: { status: ServerRunStepStatus.RUNNING, startedAt: new Date() },
     });
+  }
+
+  /**
+   * Enregistre la DockerConnection (endpoint mTLS 2376) à partir des certs
+   * client rapatriés par le rôle docker_tls. Chiffrement au repos identique à
+   * la saisie manuelle (DockerConnectionsService.upsert). Un échec ici ne fait
+   * PAS échouer la préparation (le serveur EST préparé) : il est loggé en
+   * ERROR et l'enregistrement manuel reste possible via l'API existante.
+   * AUCUN contenu PEM n'est loggé — uniquement l'endpoint et l'issue.
+   */
+  private async registerDockerTlsConnection(
+    server: Server,
+    preparationId: string,
+    material: DockerTlsMaterial | null,
+  ): Promise<void> {
+    if (!material) {
+      await this.appendLog(
+        preparationId,
+        ServerLogLevel.ERROR,
+        'orchestrator',
+        'docker_tls: run succeeded but client certificates were not retrieved — ' +
+          'Docker connection NOT registered. Register it manually via ' +
+          'POST /servers/:id/docker-connection.',
+      );
+      return;
+    }
+
+    const endpoint = `tcp://${server.host}:2376`;
+    try {
+      await this.dockerConnections.upsert({
+        serverId: server.id,
+        endpoint,
+        tlsCaCert: material.ca,
+        tlsClientCert: material.cert,
+        tlsClientKey: material.key,
+      });
+      await this.appendLog(
+        preparationId,
+        ServerLogLevel.INFO,
+        'orchestrator',
+        `Docker TLS connection registered automatically (${endpoint}).`,
+      );
+      await this.audit.record(server.id, 'DOCKER_CONNECTION_AUTO_REGISTERED', null, {
+        endpoint,
+        via: 'preparation:docker_tls',
+      });
+    } catch (error) {
+      await this.appendLog(
+        preparationId,
+        ServerLogLevel.ERROR,
+        'orchestrator',
+        `docker_tls: automatic Docker connection registration failed: ${
+          error instanceof Error ? error.message : String(error)
+        }. Register it manually via POST /servers/:id/docker-connection.`,
+      );
+      return;
+    }
+
+    // Probe best-effort : vérifie tout de suite que le démon répond en mTLS.
+    try {
+      const probe = await this.dockerConnections.probeReachability(server.id);
+      await this.appendLog(
+        preparationId,
+        ServerLogLevel.INFO,
+        'orchestrator',
+        `Docker TLS connection verified (API v${probe.apiVersion ?? '?'}, ${String(probe.latencyMs)}ms).`,
+      );
+    } catch (error) {
+      await this.appendLog(
+        preparationId,
+        ServerLogLevel.WARNING,
+        'orchestrator',
+        `Docker TLS connection registered but probe failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private async refreshDetectionAfterPreparation(

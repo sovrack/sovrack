@@ -1,0 +1,185 @@
+---
+# =============================================================================
+# docker_tls — Expose le démon Docker en mTLS sur tcp://<host>:2376
+# =============================================================================
+# Version RÔLE (sélectionnable dans le flux Setup Server) de la logique du
+# playbook playbooks/enable-docker-tls.yml — même génération CA/certs, même
+# config dockerd, idempotente (guards `creates:`). Dépend du rôle `docker`
+# (Docker Engine doit être installé — dépendance imposée côté backend).
+#
+# Sortie : si `docker_tls_fetch_dir` est défini (répertoire temporaire créé par
+# le backend HORS du dépôt), les 3 PEM client (ca/cert/key) y sont rapatriés
+# pour enregistrement automatique de la DockerConnection. Le CONTENU des PEM ne
+# transite jamais par stdout → jamais dans les logs de préparation.
+# =============================================================================
+
+- name: "docker_tls | Ensure openssl is installed"
+  ansible.builtin.package:
+    name: openssl
+    state: present
+
+- name: "docker_tls | Create TLS directory"
+  ansible.builtin.file:
+    path: "{{ docker_tls_dir }}"
+    state: directory
+    mode: "0700"
+
+# ── CA ────────────────────────────────────────────────────────────────────
+- name: "docker_tls | Generate CA key"
+  ansible.builtin.command: "openssl genrsa -out {{ docker_tls_dir }}/ca-key.pem 4096"
+  args: { creates: "{{ docker_tls_dir }}/ca-key.pem" }
+
+- name: "docker_tls | Generate CA cert"
+  ansible.builtin.command: >
+    openssl req -new -x509 -days {{ docker_tls_days }} -key {{ docker_tls_dir }}/ca-key.pem
+    -sha256 -out {{ docker_tls_dir }}/ca.pem -subj "/CN=platform-docker-ca"
+  args: { creates: "{{ docker_tls_dir }}/ca.pem" }
+
+# ── Certificat SERVEUR (SAN = IP + hostname) ──────────────────────────────
+- name: "docker_tls | Generate server key"
+  ansible.builtin.command: "openssl genrsa -out {{ docker_tls_dir }}/server-key.pem 4096"
+  args: { creates: "{{ docker_tls_dir }}/server-key.pem" }
+
+- name: "docker_tls | Generate server CSR"
+  ansible.builtin.command: >
+    openssl req -new -key {{ docker_tls_dir }}/server-key.pem
+    -out {{ docker_tls_dir }}/server.csr -subj "/CN={{ docker_tls_san_ip }}"
+  args: { creates: "{{ docker_tls_dir }}/server.csr" }
+
+# Le SAN dépend du TYPE de Server.host : entrée IP pour une adresse IPv4
+# (ex. 192.168.122.30), entrée DNS pour un nom d'hôte (ex.
+# vps-xxxx.vps.ovh.net). Une entrée `IP:<nom-dns>` est INVALIDE pour openssl
+# (« Error checking extension section ») — c'est exactement ce qui cassait le
+# Setup sur un serveur enregistré par son nom DNS. NB: inventory_hostname est
+# l'alias d'inventaire interne (server_<id>), jamais utile dans le SAN.
+- name: "docker_tls | Write server extfile (SAN)"
+  vars:
+    docker_tls_san_is_ip: "{{ docker_tls_san_ip is match('^([0-9]{1,3}\\.){3}[0-9]{1,3}$') }}"
+  ansible.builtin.copy:
+    dest: "{{ docker_tls_dir }}/server-ext.cnf"
+    mode: "0600"
+    content: |
+      subjectAltName = {{ 'IP:' ~ docker_tls_san_ip if docker_tls_san_is_ip | bool else 'DNS:' ~ docker_tls_san_ip }},IP:127.0.0.1
+      extendedKeyUsage = serverAuth
+
+- name: "docker_tls | Sign server cert"
+  ansible.builtin.command: >
+    openssl x509 -req -days {{ docker_tls_days }} -sha256 -in {{ docker_tls_dir }}/server.csr
+    -CA {{ docker_tls_dir }}/ca.pem -CAkey {{ docker_tls_dir }}/ca-key.pem -CAcreateserial
+    -out {{ docker_tls_dir }}/server-cert.pem -extfile {{ docker_tls_dir }}/server-ext.cnf
+  args: { creates: "{{ docker_tls_dir }}/server-cert.pem" }
+
+# ── Certificat CLIENT (la plateforme) ─────────────────────────────────────
+- name: "docker_tls | Generate client key"
+  ansible.builtin.command: "openssl genrsa -out {{ docker_tls_dir }}/client-key.pem 4096"
+  args: { creates: "{{ docker_tls_dir }}/client-key.pem" }
+
+- name: "docker_tls | Generate client CSR"
+  ansible.builtin.command: >
+    openssl req -new -key {{ docker_tls_dir }}/client-key.pem
+    -out {{ docker_tls_dir }}/client.csr -subj "/CN=platform-platform"
+  args: { creates: "{{ docker_tls_dir }}/client.csr" }
+
+- name: "docker_tls | Write client extfile"
+  ansible.builtin.copy:
+    dest: "{{ docker_tls_dir }}/client-ext.cnf"
+    mode: "0600"
+    content: |
+      extendedKeyUsage = clientAuth
+
+- name: "docker_tls | Sign client cert"
+  ansible.builtin.command: >
+    openssl x509 -req -days {{ docker_tls_days }} -sha256 -in {{ docker_tls_dir }}/client.csr
+    -CA {{ docker_tls_dir }}/ca.pem -CAkey {{ docker_tls_dir }}/ca-key.pem -CAcreateserial
+    -out {{ docker_tls_dir }}/client-cert.pem -extfile {{ docker_tls_dir }}/client-ext.cnf
+  args: { creates: "{{ docker_tls_dir }}/client-cert.pem" }
+
+# ── Config dockerd ─────────────────────────────────────────────────────────
+- name: "docker_tls | Read existing daemon.json (if any)"
+  ansible.builtin.slurp:
+    src: /etc/docker/daemon.json
+  register: existing_daemon
+  failed_when: false
+
+- name: "docker_tls | Merge TLS/hosts into daemon.json (preserve other keys)"
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+    content: >-
+      {{ ((existing_daemon.content | b64decode | from_json)
+            if (existing_daemon.content is defined) else {})
+         | combine({
+             'hosts': ['unix:///var/run/docker.sock', 'tcp://0.0.0.0:2376'],
+             'tls': true,
+             'tlsverify': true,
+             'tlscacert': docker_tls_dir ~ '/ca.pem',
+             'tlscert': docker_tls_dir ~ '/server-cert.pem',
+             'tlskey': docker_tls_dir ~ '/server-key.pem'
+           }) | to_nice_json }}
+  notify: restart docker
+
+# L'unité systemd par défaut passe `-H fd://`, en conflit avec la clé `hosts`
+# de daemon.json. On vide ExecStart pour laisser daemon.json décider.
+- name: "docker_tls | Create systemd drop-in dir"
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    mode: "0755"
+
+- name: "docker_tls | Drop-in to clear default -H (daemon.json defines hosts)"
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/docker.service.d/override.conf
+    mode: "0644"
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=/usr/bin/dockerd --containerd=/run/containerd/containerd.sock
+  notify: restart docker
+
+- name: "docker_tls | systemd daemon-reload"
+  ansible.builtin.systemd: { daemon_reload: true }
+
+- name: "docker_tls | Open firewall port 2376 (ufw, if active)"
+  ansible.builtin.command: ufw allow 2376/tcp
+  register: docker_tls_ufw_res
+  changed_when: "'Rule added' in docker_tls_ufw_res.stdout"
+  failed_when: false
+
+- name: "docker_tls | Apply docker restart now (flush handlers)"
+  ansible.builtin.meta: flush_handlers
+
+- name: "docker_tls | Wait for Docker daemon to be back up"
+  ansible.builtin.command: docker info --format '{{ "{{" }}.ServerVersion{{ "}}" }}'
+  register: docker_tls_info
+  retries: 10
+  delay: 3
+  until: docker_tls_info.rc == 0
+  changed_when: false
+
+# ── Rapatriement des certs CLIENT vers le control node ─────────────────────
+# Uniquement quand le backend fournit un répertoire temporaire sécurisé
+# (mkdtemp hors dépôt, détruit après lecture). fetch ne loggue pas le contenu.
+- name: "docker_tls | Fetch ca.pem to control node"
+  ansible.builtin.fetch:
+    src: "{{ docker_tls_dir }}/ca.pem"
+    dest: "{{ docker_tls_fetch_dir }}/ca.pem"
+    flat: true
+  when: docker_tls_fetch_dir | length > 0
+
+- name: "docker_tls | Fetch client cert.pem to control node"
+  ansible.builtin.fetch:
+    src: "{{ docker_tls_dir }}/client-cert.pem"
+    dest: "{{ docker_tls_fetch_dir }}/cert.pem"
+    flat: true
+  when: docker_tls_fetch_dir | length > 0
+
+- name: "docker_tls | Fetch client key.pem to control node"
+  ansible.builtin.fetch:
+    src: "{{ docker_tls_dir }}/client-key.pem"
+    dest: "{{ docker_tls_fetch_dir }}/key.pem"
+    flat: true
+  when: docker_tls_fetch_dir | length > 0
+
+- name: "docker_tls | Summary"
+  ansible.builtin.debug:
+    msg: "Docker mTLS ready on tcp://{{ docker_tls_san_ip }}:2376 (client certs fetched: {{ (docker_tls_fetch_dir | length > 0) | ternary('yes', 'no') }})"

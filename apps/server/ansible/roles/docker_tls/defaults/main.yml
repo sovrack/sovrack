@@ -1,0 +1,11 @@
+---
+# docker_tls — mTLS pour le démon Docker (port 2376).
+docker_tls_dir: /etc/docker/tls
+# SAN du certificat serveur : IP par laquelle la plateforme joint la VM.
+# Le backend passe l'IP réelle du Server via extra-vars ; fallback = IP défaut.
+docker_tls_san_ip: "{{ ansible_default_ipv4.address | default(inventory_hostname) }}"
+docker_tls_days: 3650
+# Répertoire LOCAL (control node) où rapatrier les certs client. Fourni par le
+# backend (mkdtemp hors du dépôt) ; si absent, aucun fetch n'est fait.
+# JAMAIS un chemin du projet : les PEM ne doivent pas pouvoir être commités.
+docker_tls_fetch_dir: ""

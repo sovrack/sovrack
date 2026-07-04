@@ -45,4 +45,39 @@ describe('redactSecrets', () => {
     const safe = 'Deploying app to server 10.0.0.1 on port 3000';
     expect(redactSecrets(safe)).toBe(safe);
   });
+
+  // Mission docker_tls (T4): PEM material must never survive into logs —
+  // covers multi-line PEMs, JSON-escaped single-line dumps (Ansible variable
+  // dumps escape newlines as \n), and truncated blocks missing the END marker.
+  describe('PEM material (docker_tls)', () => {
+    it('redacts a multi-line RSA private key block', () => {
+      const pem =
+        '-----BEGIN RSA PRIVATE KEY-----\nMIIEow...\nAAAA\n-----END RSA PRIVATE KEY-----';
+      expect(redactSecrets(`error dump: ${pem} end`)).toBe(
+        'error dump: [redacted-private-key] end',
+      );
+    });
+
+    it('redacts a JSON-escaped single-line private key (Ansible var dump)', () => {
+      const line =
+        '"content": "-----BEGIN PRIVATE KEY-----\\nMIIEvQ\\n-----END PRIVATE KEY-----\\n"';
+      const out = redactSecrets(line);
+      expect(out).not.toContain('MIIEvQ');
+      expect(out).toContain('[redacted-private-key]');
+    });
+
+    it('redacts a TRUNCATED private key (no END marker) to end-of-string', () => {
+      const out = redactSecrets(
+        'fatal: -----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIB…cut',
+      );
+      expect(out).not.toContain('MHcCAQEEIB');
+      expect(out).toContain('[redacted-private-key]');
+    });
+
+    it('redacts certificate blocks too', () => {
+      const pem =
+        '-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----';
+      expect(redactSecrets(`ca: ${pem}`)).toBe('ca: [redacted-certificate]');
+    });
+  });
 });

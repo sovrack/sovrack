@@ -31,6 +31,7 @@
         allowed_prepare_roles:
           - system_base
           - docker
+          - docker_tls
           - nginx
           - nixpacks
           - nodejs

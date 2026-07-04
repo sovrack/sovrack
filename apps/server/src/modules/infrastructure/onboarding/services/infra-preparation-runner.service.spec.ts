@@ -60,7 +60,15 @@ describe('InfraPreparationRunnerService', () => {
     const detection = {
       detect: jest.fn().mockResolvedValue({}),
     } as unknown as ServersDetectionService;
-    const audit = {} as unknown as ServersAuditService;
+    const audit = {
+      record: jest.fn().mockResolvedValue(undefined),
+    } as unknown as ServersAuditService;
+    const dockerConnections = {
+      upsert: jest.fn().mockResolvedValue({ id: 'conn-1' }),
+      probeReachability: jest
+        .fn()
+        .mockResolvedValue({ isReachable: true, apiVersion: '1.47', latencyMs: 12 }),
+    };
     const gateway = {
       emitLog: jest.fn(),
       emitFinished: jest.fn(),
@@ -95,6 +103,7 @@ describe('InfraPreparationRunnerService', () => {
       config,
       state,
       serverRuns,
+      dockerConnections as never,
     );
     return {
       runner,
@@ -105,6 +114,8 @@ describe('InfraPreparationRunnerService', () => {
       serverRuns,
       detection,
       config,
+      audit,
+      dockerConnections,
     };
   }
 
@@ -247,6 +258,92 @@ describe('InfraPreparationRunnerService', () => {
           data: expect.objectContaining({ status: ServerJobStatus.TIMEOUT }),
         }),
       );
+    });
+  });
+
+  // Mission docker_tls (T2): after a successful run that included the
+  // docker_tls role, the orchestrator registers the DockerConnection
+  // automatically with the fetched client certs — same encrypted storage path
+  // as a manual POST /servers/:id/docker-connection (upsert).
+  describe('registerDockerTlsConnection', () => {
+    const call = (
+      r: InfraPreparationRunnerService,
+      ...args: unknown[]
+    ): Promise<void> =>
+      (
+        r as unknown as {
+          registerDockerTlsConnection: (...a: unknown[]) => Promise<void>;
+        }
+      ).registerDockerTlsConnection(...args);
+
+    const srv = { id: 'srv-1', host: '10.0.0.9' } as Server;
+    const material = { ca: 'CA_PEM', cert: 'CERT_PEM', key: 'KEY_PEM' };
+
+    it('upserts the connection on tcp://host:2376 with the fetched certs and probes it', async () => {
+      const { runner, dockerConnections, audit } = build();
+      await call(runner, srv, 'run-1', material);
+      expect(dockerConnections.upsert).toHaveBeenCalledWith({
+        serverId: 'srv-1',
+        endpoint: 'tcp://10.0.0.9:2376',
+        tlsCaCert: 'CA_PEM',
+        tlsClientCert: 'CERT_PEM',
+        tlsClientKey: 'KEY_PEM',
+      });
+      expect(dockerConnections.probeReachability).toHaveBeenCalledWith('srv-1');
+      expect(audit.record).toHaveBeenCalledWith(
+        'srv-1',
+        'DOCKER_CONNECTION_AUTO_REGISTERED',
+        null,
+        expect.objectContaining({ endpoint: 'tcp://10.0.0.9:2376' }),
+      );
+    });
+
+    it('logs an ERROR (no throw) when material is missing — manual endpoint remains the fallback', async () => {
+      const { runner, dockerConnections, serverRuns } = build();
+      await call(runner, srv, 'run-1', null);
+      expect(dockerConnections.upsert).not.toHaveBeenCalled();
+      expect(serverRuns.appendLog).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({
+          level: ServerLogLevel.ERROR,
+          message: expect.stringContaining('NOT registered'),
+        }),
+      );
+    });
+
+    it('does not fail the preparation when the upsert itself fails (logged as ERROR)', async () => {
+      const { runner, dockerConnections, serverRuns } = build();
+      dockerConnections.upsert.mockRejectedValueOnce(new Error('db down'));
+      await expect(call(runner, srv, 'run-1', material)).resolves.toBeUndefined();
+      expect(serverRuns.appendLog).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ level: ServerLogLevel.ERROR }),
+      );
+      expect(dockerConnections.probeReachability).not.toHaveBeenCalled();
+    });
+
+    it('keeps the registration even when the post-registration probe fails (WARNING only)', async () => {
+      const { runner, dockerConnections, serverRuns } = build();
+      dockerConnections.probeReachability.mockRejectedValueOnce(
+        new Error('handshake refused'),
+      );
+      await call(runner, srv, 'run-1', material);
+      expect(dockerConnections.upsert).toHaveBeenCalled();
+      expect(serverRuns.appendLog).toHaveBeenCalledWith(
+        'run-1',
+        expect.objectContaining({ level: ServerLogLevel.WARNING }),
+      );
+    });
+
+    it('never logs the PEM contents themselves', async () => {
+      const { runner, serverRuns } = build();
+      await call(runner, srv, 'run-1', material);
+      const allMessages = (serverRuns.appendLog as jest.Mock).mock.calls
+        .map((c: unknown[]) => (c[1] as { message: string }).message)
+        .join('\n');
+      expect(allMessages).not.toContain('CA_PEM');
+      expect(allMessages).not.toContain('CERT_PEM');
+      expect(allMessages).not.toContain('KEY_PEM');
     });
   });
 
