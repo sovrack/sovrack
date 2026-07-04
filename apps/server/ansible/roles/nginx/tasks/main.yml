@@ -13,6 +13,35 @@
     mode: '0755'
   when: ansible_os_family == 'Debian'
 
+# Detects OTHER pre-existing site files (not this role's own "default") that
+# already declare `default_server` for port 80 — e.g. a hand-crafted vhost
+# left over from a manual setup predating this server's onboarding. Without
+# this check, `nginx -t` fails later with a raw, hard-to-diagnose
+# "duplicate default server" stderr blob once THIS role's own default site is
+# linked. Excludes this role's own "default" symlink so the check stays
+# idempotent across repeated runs.
+- name: "nginx | Detect other site files already declaring default_server"
+  ansible.builtin.shell: |
+    set -o pipefail
+    grep -l 'default_server' /etc/nginx/sites-enabled/* 2>/dev/null | grep -v '/etc/nginx/sites-enabled/default$' || true
+  args:
+    executable: /bin/bash
+  register: _nginx_conflicting_default_server
+  changed_when: false
+  when: ansible_os_family == 'Debian'
+
+- name: "nginx | Fail early with a clear message if a conflicting default_server site exists"
+  ansible.builtin.fail:
+    msg: >-
+      Nginx cannot become the default server for port 80: the following
+      pre-existing site file(s) already declare `default_server` and were NOT
+      created by this role: {{ _nginx_conflicting_default_server.stdout_lines | join(', ') }}.
+      Remove or adjust their `default_server` directive manually (or skip the
+      nginx preparation option on this server) before retrying.
+  when:
+    - ansible_os_family == 'Debian'
+    - _nginx_conflicting_default_server.stdout_lines | default([]) | length > 0
+
 - name: "nginx | Deploy default site"
   ansible.builtin.template:
     src: default.conf.j2

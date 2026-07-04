@@ -177,11 +177,30 @@ export class ServersDetectionService {
         );
       }
 
+      // detect() runs both BEFORE preparation (SSH_VALIDATED -> INFO_DETECTED,
+      // the normal onboarding step) and AFTER it — as a capabilities refresh,
+      // either automatic (refreshDetectionAfterPreparation) or manual
+      // (detectServer(), re-scanning an already-prepared server's tools).
+      // Unconditionally forcing INFO_DETECTED here used to silently regress a
+      // server that had just reached PREPARED/PARTIALLY_PREPARED back to
+      // INFO_DETECTED right after a successful preparation, permanently
+      // blocking deploys (the preflight requires PREPARED/PARTIALLY_PREPARED)
+      // even though provisioning genuinely succeeded. Once a server has
+      // reached one of those states, a capabilities refresh must not demote
+      // it — only the preparation flow itself is allowed to change status.
+      const preserveStatus =
+        server.status === ServerStatus.PREPARED ||
+        server.status === ServerStatus.PARTIALLY_PREPARED;
+
       const updated = await this.prisma.server.update({
         where: { id: server.id },
         data: {
-          status: ServerStatus.INFO_DETECTED,
-          onboardingStep: 'INFO_DETECTED',
+          ...(preserveStatus
+            ? {}
+            : {
+                status: ServerStatus.INFO_DETECTED,
+                onboardingStep: 'INFO_DETECTED',
+              }),
           lastDetectedAt: new Date(),
           // hasDocker/hasRunner are no longer stored — derived from capabilities
           // via serverHasDocker/serverHasRunner (single source of truth).

@@ -71,6 +71,53 @@ describe('ServersDetectionService', () => {
     expect(ssh.closeConnection).toHaveBeenCalled();
   });
 
+  // Real bug found + fixed during the "Déploiement réel" mission: detect() is
+  // called both before preparation (SSH_VALIDATED -> INFO_DETECTED, correct)
+  // AND after it (refreshDetectionAfterPreparation, right after preparation
+  // sets status: PREPARED) — unconditionally forcing INFO_DETECTED here
+  // silently regressed a just-PREPARED server back to INFO_DETECTED, which
+  // permanently blocked deploys (DeploymentPreflightService requires
+  // PREPARED/PARTIALLY_PREPARED). Reproduced live against a real VPS: a
+  // preparation reported SUCCEEDED but `GET /servers/:id` still showed
+  // INFO_DETECTED, and `POST /deployments` rejected with "n'est pas prêt".
+  it('does not regress status/onboardingStep when the server is already PREPARED', async () => {
+    const prepared = { id: 's1', isVerified: true, status: ServerStatus.PREPARED } as Server;
+    const updated = await service.detect(prepared, 'admin');
+    expect(updated.status).toBeUndefined(); // not overwritten in the update payload
+    const data = prisma.server.update.mock.calls[0][0].data;
+    expect(data).not.toHaveProperty('status');
+    expect(data).not.toHaveProperty('onboardingStep');
+    // Capabilities are still refreshed.
+    expect(data).toHaveProperty('capabilities');
+    expect(data).toHaveProperty('installedTools');
+  });
+
+  it('does not regress status/onboardingStep when the server is already PARTIALLY_PREPARED', async () => {
+    const partial = {
+      id: 's1',
+      isVerified: true,
+      status: ServerStatus.PARTIALLY_PREPARED,
+    } as Server;
+    await service.detect(partial);
+    const data = prisma.server.update.mock.calls[0][0].data;
+    expect(data).not.toHaveProperty('status');
+    expect(data).not.toHaveProperty('onboardingStep');
+  });
+
+  it('still sets INFO_DETECTED for the normal pre-preparation onboarding path', async () => {
+    const fresh = {
+      id: 's1',
+      isVerified: true,
+      status: ServerStatus.SSH_VALIDATED,
+    } as Server;
+    await service.detect(fresh);
+    const data = prisma.server.update.mock.calls[0][0].data;
+    expect(data).toMatchObject({
+      status: ServerStatus.INFO_DETECTED,
+      onboardingStep: 'INFO_DETECTED',
+    });
+  });
+
   it('marks a tool MISSING when its probe exits non-zero', async () => {
     // os/arch/systemd/python/memory/disk succeed; tool probes fail.
     let call = 0;
