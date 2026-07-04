@@ -188,6 +188,57 @@ describe('ServicesService — CRUD', () => {
     expect(arg.include.envLinks.select).not.toHaveProperty('env');
   });
 
+  // CRITICAL security regression: databaseCredentials (a DATABASE service's
+  // user/password/dbName) is stored in PLAINTEXT — unlike secretsEnv, which
+  // is encrypted at rest, this field was never omitted, so every service
+  // listing/detail/update response leaked a DB password in clear text to
+  // any project member. Asserting the exact `omit` shape sent to Prisma
+  // (this mocked client doesn't apply real omit filtering — the guarantee
+  // has to come from the query shape itself), matching the same pattern
+  // already used above for envLinks/secretsEnv.
+  it('findAll omits databaseCredentials (and secretsEnv/archivedAt) from the query', async () => {
+    const { service, prisma } = harness();
+    prisma.service.findMany.mockResolvedValue([]);
+
+    await service.findAll(projectId, userId, Role.ADMIN);
+
+    const arg = prisma.service.findMany.mock.calls[0][0];
+    expect(arg.omit).toEqual({
+      archivedAt: true,
+      secretsEnv: true,
+      databaseCredentials: true,
+    });
+  });
+
+  it('findOne omits databaseCredentials (and secretsEnv/archivedAt) from the query', async () => {
+    const { service, prisma } = harness();
+    prisma.service.findFirst.mockResolvedValue({ id: 's1' });
+
+    await service.findOne(projectId, 's1', userId, Role.ADMIN);
+
+    const arg = prisma.service.findFirst.mock.calls[0][0];
+    expect(arg.omit).toEqual({
+      archivedAt: true,
+      secretsEnv: true,
+      databaseCredentials: true,
+    });
+  });
+
+  it('update omits databaseCredentials (and secretsEnv/archivedAt) from its response query', async () => {
+    const { service, prisma } = harness();
+    prisma.service.findFirst.mockResolvedValue({ id: 's1' });
+    prisma.service.update.mockResolvedValue({ id: 's1' });
+
+    await service.update(projectId, 's1', { name: 'renamed' } as never, userId, Role.ADMIN);
+
+    const arg = prisma.service.update.mock.calls[0][0];
+    expect(arg.omit).toEqual({
+      archivedAt: true,
+      secretsEnv: true,
+      databaseCredentials: true,
+    });
+  });
+
   it('discoverGroup delegates to the source providers service', async () => {
     const { service, sourceProviders } = harness();
 

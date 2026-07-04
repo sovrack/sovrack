@@ -170,6 +170,7 @@ export class DockerDeployExecutorService {
             databaseType: true,
             databaseVersion: true,
             databaseCredentials: true,
+            externalPort: true,
             healthcheckPath: true,
             cpuLimit: true,
             memLimitMb: true,
@@ -314,13 +315,23 @@ export class DockerDeployExecutorService {
         serviceName,
       );
 
+    // Task 4 ("Sécurité database + UI" mission): a DATABASE service publishes
+    // NO host port unless the user explicitly set Service.externalPort (the
+    // "External Credentials" UI). Default = internal-only, reachable from
+    // other project services only via the Docker network alias.
+    const isDatabase = deployment.service?.type === ServiceType.DATABASE;
+    const dbExternalPort = deployment.service?.externalPort ?? null;
+    const dbHostPortDisabled = isDatabase && dbExternalPort == null;
+
     const blueGreen =
       deployment.strategy === DeploymentStrategy.BLUE_GREEN &&
       deployment.service?.type !== ServiceType.DATABASE &&
       !useTraefik;
     const publishPort = blueGreen
       ? servicePort + BLUE_GREEN_PORT_OFFSET
-      : servicePort;
+      : isDatabase && dbExternalPort != null
+        ? dbExternalPort
+        : servicePort;
     if (blueGreen) {
       this.emitGatewayLog(
         deployment.id,
@@ -379,8 +390,11 @@ export class DockerDeployExecutorService {
       // DeploymentPreflightService (Point 9) — voir
       // EXPLORATION_BACKEND_DEPENDANCES.md section 3. Ne pas changer d'un
       // côté sans l'autre.
+      // Task 4: un service DATABASE sans externalPort ne publie AUCUN port
+      // hôte (dbHostPortDisabled) → pas de check de conflit de port à faire.
       const publishesHostPort =
         !useTraefik &&
+        !dbHostPortDisabled &&
         deployment.service?.type !== 'WORKER' &&
         deployment.service?.type !== 'CRON';
 
@@ -497,6 +511,7 @@ export class DockerDeployExecutorService {
           servicePort,
           publishPort,
           useTraefik,
+          dbHostPortDisabled,
           platformLabels,
           dbVolumeName,
           dbVolumePath,

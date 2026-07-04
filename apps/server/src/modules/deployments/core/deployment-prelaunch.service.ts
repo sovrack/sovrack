@@ -84,6 +84,8 @@ export class DeploymentPrelaunchService {
     serverHost: string;
     publishPort: number;
     useTraefik: boolean;
+    /** DATABASE without externalPort → no host port to HTTP-probe (Task 4). */
+    dbHostPortDisabled?: boolean;
     healthcheckPath: string | null;
     deploymentId: string;
   }): Promise<string> {
@@ -93,14 +95,15 @@ export class DeploymentPrelaunchService {
       serverHost,
       publishPort,
       useTraefik,
+      dbHostPortDisabled,
       healthcheckPath,
       deploymentId,
     } = params;
     try {
-      if (useTraefik) {
-        // Mode Traefik : pas de port hôte → on vérifie que le conteneur tourne
-        // (Traefik effectue le vrai routage/santé via 'web'). Petite attente
-        // anti-flap avant l'inspection.
+      // Aucun port hôte publié (mode Traefik, ou base DATABASE interne sans
+      // externalPort) → pas d'endpoint HTTP à sonder : on vérifie seulement
+      // que le conteneur tourne. Une petite attente anti-flap avant inspection.
+      if (useTraefik || dbHostPortDisabled) {
         await this.sleep(3000);
         const info = await this.docker.inspectContainer(serverId, containerId);
         if (info.State.Status !== 'running') {
@@ -108,7 +111,9 @@ export class DeploymentPrelaunchService {
             `Conteneur non démarré (état: ${info.State.Status})`,
           );
         }
-        return `Conteneur en cours d'exécution (mode Traefik, sans port hôte).\n`;
+        return dbHostPortDisabled
+          ? `Conteneur en cours d'exécution (base interne, sans port hôte publié).\n`
+          : `Conteneur en cours d'exécution (mode Traefik, sans port hôte).\n`;
       }
       const healthLogs =
         await this.healthcheckService.runPostDeployHealthChecks({

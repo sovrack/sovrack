@@ -1,6 +1,7 @@
 import { Role } from '@prisma/client';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { ServicesService } from './services.service';
+import { ServicesCredentialsService } from './services-credentials.service';
 import { ServiceTemplatesFactoryService } from './service-templates-factory.service';
 import { ServicesController } from './services.controller';
 
@@ -16,12 +17,19 @@ describe('ServicesController', () => {
       update: jest.fn().mockResolvedValue({ id: 's1' }),
       remove: jest.fn().mockResolvedValue(undefined),
     } as unknown as ServicesService;
+    const credentialsService = {
+      getCredentials: jest.fn().mockResolvedValue({ serviceId: 's1' }),
+    } as unknown as ServicesCredentialsService;
     const templatesFactory = {
       listTemplates: jest.fn().mockReturnValue([]),
       createFromTemplate: jest.fn().mockResolvedValue([{ id: 's1' }]),
     } as unknown as ServiceTemplatesFactoryService;
-    const ctrl = new ServicesController(servicesService, templatesFactory);
-    return { ctrl, servicesService, templatesFactory };
+    const ctrl = new ServicesController(
+      servicesService,
+      credentialsService,
+      templatesFactory,
+    );
+    return { ctrl, servicesService, credentialsService, templatesFactory };
   }
 
   it('findAll / create / discoverGroup delegate with project scope', async () => {
@@ -76,6 +84,17 @@ describe('ServicesController', () => {
       'p1',
       's1',
       { name: 'y' },
+      'user-1',
+      Role.ADMIN,
+    );
+  });
+
+  it('getCredentials delegates to the dedicated credentials service with project scope', async () => {
+    const { ctrl, credentialsService } = build();
+    await ctrl.getCredentials('p1', 's1', user);
+    expect(credentialsService.getCredentials).toHaveBeenCalledWith(
+      'p1',
+      's1',
       'user-1',
       Role.ADMIN,
     );

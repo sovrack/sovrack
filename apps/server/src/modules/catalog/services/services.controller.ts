@@ -22,6 +22,7 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { DiscoverGroupDto } from './dto/discover-group.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { ServicesService } from './services.service';
+import { ServicesCredentialsService } from './services-credentials.service';
 import { ServiceTemplatesFactoryService } from './service-templates-factory.service';
 
 @ApiTags('Services')
@@ -31,6 +32,7 @@ import { ServiceTemplatesFactoryService } from './service-templates-factory.serv
 export class ServicesController {
   constructor(
     private readonly servicesService: ServicesService,
+    private readonly credentialsService: ServicesCredentialsService,
     private readonly templatesFactory: ServiceTemplatesFactoryService,
   ) {}
 
@@ -109,6 +111,24 @@ export class ServicesController {
     @GetUser() user: JwtPayload,
   ) {
     return await this.servicesService.findOne(
+      projectId,
+      serviceId,
+      user.id,
+      user.role,
+    );
+  }
+
+  @Get(':serviceId/credentials')
+  @ApiOperation({
+    summary:
+      'Get a DATABASE service credentials (dedicated, gated — not the listing route)',
+  })
+  async getCredentials(
+    @Param('projectId') projectId: string,
+    @Param('serviceId') serviceId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.credentialsService.getCredentials(
       projectId,
       serviceId,
       user.id,

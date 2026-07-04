@@ -35,6 +35,31 @@ describe('buildContainerCreateSpec', () => {
     expect(spec.HostConfig?.PortBindings).toEqual({});
   });
 
+  it('publishes NO host port for an internal-only DATABASE (dbHostPortDisabled) but still exposes the internal port', () => {
+    const spec = buildContainerCreateSpec(
+      base({ serviceType: 'DATABASE', dbHostPortDisabled: true }),
+    );
+    // No -p binding → not reachable from the host / outside the project…
+    expect(spec.HostConfig?.PortBindings).toEqual({});
+    // …but the internal port stays exposed so other project containers can
+    // reach it by network alias.
+    expect(spec.ExposedPorts).toEqual({ '3000/tcp': {} });
+  });
+
+  it('publishes the host port for a DATABASE exposed externally (dbHostPortDisabled false)', () => {
+    const spec = buildContainerCreateSpec(
+      base({
+        serviceType: 'DATABASE',
+        dbHostPortDisabled: false,
+        servicePort: 5432,
+        publishPort: 5433,
+      }),
+    );
+    expect(spec.HostConfig?.PortBindings).toEqual({
+      '5432/tcp': [{ HostPort: '5433' }],
+    });
+  });
+
   it('exposes nothing and publishes nothing for WORKER/CRON', () => {
     const worker = buildContainerCreateSpec(base({ serviceType: 'WORKER' }));
     expect(worker.ExposedPorts).toBeUndefined();

@@ -190,6 +190,20 @@ export class CreateServiceDto {
   @IsObject()
   databaseCredentials?: Record<string, string>;
 
+  @ApiPropertyOptional({
+    example: 5432,
+    description:
+      'DATABASE services only. Host port to publish for external access. ' +
+      'Null/omitted = not exposed externally (default) — only reachable ' +
+      "from other services in the project via the internal Docker network.",
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  externalPort?: number;
+
   @ApiPropertyOptional({ example: '{"NODE_ENV":"production"}' })
   @IsOptional()
   @IsString()

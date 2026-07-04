@@ -1217,6 +1217,13 @@ model Service {
   databaseType        ManagedServiceType?
   databaseVersion     String?             @default("latest")
   databaseCredentials Json? // { user, password, dbName }
+  // Host port to publish for external access (e.g. connecting from outside
+  // the project). Null = not exposed externally — the default, and the only
+  // way other services in this project can reach it is the internal Docker
+  // network alias (see buildServiceAlias). Set by the user from the
+  // DATABASE service's "External Credentials" UI; enforced at deploy time in
+  // DockerDeployExecutorService (no host port bound when null).
+  externalPort Int?
 
   // Runtime
   env             String? @db.Text // JSON — variables NON-secrètes du service (affichables)

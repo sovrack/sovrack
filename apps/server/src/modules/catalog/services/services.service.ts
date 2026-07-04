@@ -46,9 +46,17 @@ const serviceInclude = {
 // secretsEnv is omitted from every read: like Environment/ServiceEnvironment,
 // the encrypted service secrets are never returned to the client. They are only
 // decrypted at deploy time (deployment-env.service → crypto.decryptSafe).
+// databaseCredentials (DATABASE services only — user/password/dbName) is
+// ALSO omitted here: unlike secretsEnv it's stored in PLAINTEXT (needed
+// as-is by the deploy engine to configure the managed DB container), so
+// leaving it un-omitted meant every listing/detail/update response leaked a
+// service's DB password in clear text to any project member. Deliberately
+// exposed instead via a dedicated, purpose-built endpoint — see
+// services-credentials.service.ts — reached only from the DATABASE service
+// detail page, not from general listing routes.
 export type ServiceWithRelations = Prisma.ServiceGetPayload<{
   include: typeof serviceInclude;
-  omit: { archivedAt: true; secretsEnv: true };
+  omit: { archivedAt: true; secretsEnv: true; databaseCredentials: true };
 }>;
 
 @Injectable()
@@ -77,7 +85,7 @@ export class ServicesService {
     return await this.prisma.service.findMany({
       where: { projectId, ...ACTIVE_FILTER },
       orderBy: { createdAt: 'asc' },
-      omit: { archivedAt: true, secretsEnv: true },
+      omit: { archivedAt: true, secretsEnv: true, databaseCredentials: true },
       include: serviceInclude,
     });
   }
@@ -98,7 +106,7 @@ export class ServicesService {
 
     const service = await client.service.findFirst({
       where: { id: serviceId, projectId, ...ACTIVE_FILTER },
-      omit: { archivedAt: true, secretsEnv: true },
+      omit: { archivedAt: true, secretsEnv: true, databaseCredentials: true },
       include: serviceInclude,
     });
 
@@ -176,6 +184,7 @@ export class ServicesService {
             dto.type === ServiceType.DATABASE
               ? this.ensureDatabaseCredentials(dto.databaseCredentials)
               : dto.databaseCredentials || undefined,
+          externalPort: dto.externalPort ?? undefined,
           env: dto.env,
           // Service-level default secrets encrypted at rest (AES-256-GCM);
           // null when absent. Decrypted only at deploy time (decryptSafe).
@@ -310,6 +319,9 @@ export class ServicesService {
         ...(dto.databaseCredentials !== undefined
           ? { databaseCredentials: dto.databaseCredentials || null }
           : {}),
+        ...(dto.externalPort !== undefined
+          ? { externalPort: dto.externalPort }
+          : {}),
         ...(dto.env !== undefined ? { env: dto.env } : {}),
         ...(dto.healthcheckPath !== undefined
           ? { healthcheckPath: dto.healthcheckPath?.trim() }
@@ -322,7 +334,7 @@ export class ServicesService {
           ? { secretsEnv: this.crypto.encryptOptional(dto.secretsEnv) }
           : {}),
       },
-      omit: { archivedAt: true, secretsEnv: true },
+      omit: { archivedAt: true, secretsEnv: true, databaseCredentials: true },
       include: serviceInclude,
     });
     // Config du service changée → nouvelle génération désirée pour tous ses

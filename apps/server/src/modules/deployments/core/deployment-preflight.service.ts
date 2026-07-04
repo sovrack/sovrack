@@ -20,7 +20,6 @@ import { EnvLevel, resolveEnvDetailed } from '../utils/env-resolver.util';
 import { checkRepoCloneable } from '../utils/repo-cloneable.util';
 import { BLUE_GREEN_PORT_OFFSET } from '../utils/blue-green.constants';
 import { buildContainerPrefix } from '../../../shared/utils/container-spec.util';
-import { getDatabaseContainerConfig } from '../../../shared/utils/database-spec.util';
 
 export type PreflightInput = {
   serviceEnvId: string;
@@ -120,17 +119,20 @@ export class DeploymentPreflightService {
       }
       this.assertSecretsJsonValid(service, environment, serviceEnv);
 
-      // 9) Port cible disponible. Un service DATABASE publie TOUJOURS un port
-      // hôte fixe propre à son moteur (jamais de Traefik/blue-green pour une
-      // base — resolveTraefikConfig exclut explicitement DATABASE, et
-      // DockerDeployExecutorService ne fait jamais de blue-green sur une DB) :
-      // pas d'ambiguïté à lever, le check s'applique toujours ici.
-      const dbConfig = getDatabaseContainerConfig(service.databaseType);
-      await this.assertPortAvailable(
-        server.id,
-        buildContainerPrefix(project.name, service.name),
-        dbConfig.port,
-      );
+      // 9) Port cible disponible. Task 4 : un service DATABASE ne publie un
+      // port hôte QUE si l'utilisateur a défini externalPort (UI "External
+      // Credentials") — sinon la base reste interne au réseau projet (aucun
+      // -p, joignable seulement par alias Docker). Pas de Traefik/blue-green
+      // pour une base (resolveTraefikConfig exclut DATABASE, jamais de
+      // blue-green DB) → le port publié est exactement externalPort. Sans
+      // externalPort, rien n'est publié → aucun conflit possible à vérifier.
+      if (service.externalPort != null) {
+        await this.assertPortAvailable(
+          server.id,
+          buildContainerPrefix(project.name, service.name),
+          service.externalPort,
+        );
+      }
       return;
     }
 
@@ -347,9 +349,21 @@ export class DeploymentPreflightService {
     branch: string,
   ): Promise<void> {
     const provider = await this.gitProvidersService.forService(serviceId);
-    let content = await provider.readFile(projectId, 'Dockerfile', branch);
+    // serviceId obligatoire ici : sans lui, un projet multi-dépôts vérifie le
+    // Dockerfile d'un dépôt ARBITRAIRE (voir resolveRepositoryContext).
+    let content = await provider.readFile(
+      projectId,
+      'Dockerfile',
+      branch,
+      serviceId,
+    );
     if (content === null) {
-      content = await provider.readFile(projectId, 'dockerfile', branch);
+      content = await provider.readFile(
+        projectId,
+        'dockerfile',
+        branch,
+        serviceId,
+      );
     }
     if (content === null) {
       throw new BadRequestException(

@@ -33,6 +33,8 @@ export interface ReplicaLaunchParams {
   servicePort: number;
   publishPort: number;
   useTraefik: boolean;
+  /** DATABASE service without externalPort → no host port published (Task 4). */
+  dbHostPortDisabled?: boolean;
   platformLabels: Record<string, string>;
   dbVolumeName: string | null | undefined;
   dbVolumePath: string | null | undefined;
@@ -89,6 +91,7 @@ export class ReplicaLauncherService {
           servicePort: p.servicePort,
           publishPort: p.publishPort,
           useTraefik: p.useTraefik,
+          dbHostPortDisabled: p.dbHostPortDisabled,
           serviceType: p.serviceType ?? undefined,
           startCommand: p.runtime.startCommand,
           stopTimeout: p.stopTimeout,
@@ -137,6 +140,7 @@ export class ReplicaLauncherService {
         serverHost: p.server.host,
         publishPort: p.publishPort,
         useTraefik: p.useTraefik,
+        dbHostPortDisabled: p.dbHostPortDisabled,
         healthcheckPath: p.runtime.healthcheckPath,
         deploymentId: p.deploymentId,
       });

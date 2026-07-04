@@ -426,7 +426,7 @@ describe('DeploymentPreflightService.assertDeployable', () => {
     expect(containerLifecycle.assertNoForeignPortConflict).not.toHaveBeenCalled();
   });
 
-  it('9g) checks the fixed engine port for a DATABASE service (always publishes, no Traefik)', async () => {
+  it('9g) skips the port check for an internal-only DATABASE (no externalPort → no host port published)', async () => {
     prisma.serviceEnvironment.findUnique.mockResolvedValue(
       baseServiceEnv({
         service: {
@@ -434,6 +434,25 @@ describe('DeploymentPreflightService.assertDeployable', () => {
           type: 'DATABASE',
           databaseType: 'POSTGRES',
           databaseCredentials: { user: 'u', password: 'p', dbName: 'd' },
+          externalPort: null,
+        },
+      }),
+    );
+    await service.assertDeployable({ serviceEnvId: 'se-1' });
+    expect(
+      containerLifecycle.assertNoForeignPortConflict,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('9h) checks the chosen externalPort for a DATABASE exposed externally (Task 4)', async () => {
+    prisma.serviceEnvironment.findUnique.mockResolvedValue(
+      baseServiceEnv({
+        service: {
+          ...baseService(),
+          type: 'DATABASE',
+          databaseType: 'POSTGRES',
+          databaseCredentials: { user: 'u', password: 'p', dbName: 'd' },
+          externalPort: 5433,
         },
       }),
     );
@@ -441,7 +460,7 @@ describe('DeploymentPreflightService.assertDeployable', () => {
     expect(containerLifecycle.assertNoForeignPortConflict).toHaveBeenCalledWith(
       'srv-1',
       expect.any(String),
-      5432,
+      5433,
       true,
     );
   });

@@ -21,6 +21,12 @@ export type ContainerSpecInput = {
   publishPort: number;
   /** Traefik routing → no host port published. */
   useTraefik: boolean;
+  /**
+   * DATABASE service without externalPort → no host port published (Task 4).
+   * Still exposes the internal port so other containers reach it on the
+   * project network by alias.
+   */
+  dbHostPortDisabled?: boolean;
   serviceType?: string | null;
   startCommand?: string | null;
   stopTimeout: number;
@@ -48,6 +54,7 @@ export function buildContainerCreateSpec(
     servicePort,
     publishPort,
     useTraefik,
+    dbHostPortDisabled,
     serviceType,
     startCommand,
     stopTimeout,
@@ -57,7 +64,8 @@ export function buildContainerCreateSpec(
     resourceLimits,
   } = input;
 
-  const noHostPort = useTraefik || isNonPublishing(serviceType);
+  const noHostPort =
+    useTraefik || Boolean(dbHostPortDisabled) || isNonPublishing(serviceType);
 
   return {
     Image: imageRef,
