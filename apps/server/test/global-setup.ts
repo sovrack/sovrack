@@ -4,8 +4,6 @@ import {
 } from './utils/postgres-container';
 
 export default async function globalSetup(): Promise<void> {
-  const { databaseUrl } = await startTestDatabase();
-  process.env.DATABASE_URL = databaseUrl;
   process.env.JWT_SECRET = 'a'.repeat(64);
   process.env.JWT_EXPIRES_IN = '24h';
   process.env.CONFIG_SECRET = 'b'.repeat(64);
@@ -13,6 +11,22 @@ export default async function globalSetup(): Promise<void> {
   process.env.GITLAB_WEBHOOK_AUTO_CONFIGURE = 'false';
   process.env.NODE_ENV = 'test';
 
+  // In GitLab CI, a `postgres` service is already up and migrated (the
+  // `prisma migrate deploy` step runs right before this suite) — reuse it.
+  // Spinning up our own Testcontainers Postgres instead needs a Docker
+  // daemon reachable from inside the job container; on the "docker" executor
+  // the spun-up container is a network sibling, never reachable on
+  // localhost, so the wait strategy times out after 120s (real failure seen
+  // on pipeline #27885 / job #129657).
+  if (process.env.CI && process.env.DATABASE_URL) {
+    console.log(
+      `[e2e] Using CI-provided Postgres at ${process.env.DATABASE_URL}`,
+    );
+    return;
+  }
+
+  const { databaseUrl } = await startTestDatabase();
+  process.env.DATABASE_URL = databaseUrl;
   console.log(`[e2e] Postgres ready at ${databaseUrl}`);
 }
 
