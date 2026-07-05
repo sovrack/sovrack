@@ -73,7 +73,6 @@ const ROLE_LABELS: Record<PreparationRoleKey, string> = {
   gitlab_runner: 'GitLab Runner',
   firewall: 'Pare-feu UFW',
   fail2ban: 'Fail2ban',
-  ssl: 'Certbot SSL',
   monitoring: 'Agent de monitoring',
   node_exporter: 'Node Exporter',
   cadvisor: 'cAdvisor',
@@ -102,7 +101,6 @@ const ROLE_BUDGET_MS: Record<string, number> = {
   redis: 5 * 60_000, //  5 min
   gitlab_runner: 10 * 60_000, // 10 min
   nginx: 5 * 60_000,
-  ssl: 5 * 60_000,
   firewall: 3 * 60_000,
   fail2ban: 3 * 60_000,
   swap: 2 * 60_000,

@@ -26,7 +26,7 @@ import {
   ContainersModule,
   VolumesModule,
 } from './modules/infrastructure';
-import { DomainsModule, ProxyModule, SslModule } from './modules/networking';
+import { DomainsModule, ProxyModule } from './modules/networking';
 import { MonitoringModule, DashboardModule } from './modules/observability';
 // Contextes standalone — importés via leur porte publique (barrel index.ts)
 import {
@@ -104,7 +104,6 @@ import { QueueModule } from './shared/queue/queue.module';
     ServiceEnvironmentsModule,
     ServicesModule,
     VolumesModule,
-    SslModule,
   ],
   controllers: [AppController],
   // Guards globaux : rate-limit puis auth JWT (fail-secure — toute route exige

@@ -1,5 +1,0 @@
----
-dependencies: []
-galaxy_info:
-  role_name: ssl
-  description: Certbot installation and optional Nginx certificate issuance.

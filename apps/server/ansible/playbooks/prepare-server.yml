@@ -41,7 +41,6 @@
           - gitlab_runner
           - firewall
           - fail2ban
-          - ssl
           - monitoring
           - node_exporter
           - cadvisor

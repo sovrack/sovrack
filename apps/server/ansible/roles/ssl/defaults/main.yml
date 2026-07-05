@@ -1,4 +1,0 @@
----
-ssl_install_nginx_plugin: true
-ssl_email: ''
-ssl_domains: []

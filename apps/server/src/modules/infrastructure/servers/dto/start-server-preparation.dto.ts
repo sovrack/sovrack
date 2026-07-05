@@ -115,18 +115,6 @@ export class StartServerPreparationDto {
   @IsBoolean()
   fail2ban?: boolean;
 
-  @ApiPropertyOptional({ example: false })
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  certbot?: boolean;
-
-  @ApiPropertyOptional({ example: false, deprecated: true })
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  ssl?: boolean;
-
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @Type(() => Boolean)

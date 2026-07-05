@@ -15,7 +15,6 @@ export type PreparationOptionKey =
   | 'gitlabRunner'
   | 'firewall'
   | 'fail2ban'
-  | 'certbot'
   | 'swap'
   | 'monitoring'
   | 'backup'
@@ -36,7 +35,6 @@ export type PreparationRoleKey =
   | 'gitlab_runner'
   | 'firewall'
   | 'fail2ban'
-  | 'ssl'
   | 'monitoring'
   | 'node_exporter'
   | 'cadvisor'
@@ -80,7 +78,6 @@ export const ROLE_ORDER: PreparationRoleKey[] = [
   'traefik',
   'nginx',
   'nixpacks',
-  'ssl',
   'nodejs',
   'postgres',
   'redis',
@@ -207,14 +204,6 @@ export const PREPARATION_OPTIONS: PreparationOptionDefinition[] = [
     recommended: true,
   },
   {
-    key: 'certbot',
-    label: 'Certbot SSL',
-    description: 'Install Certbot integration. Requires Nginx.',
-    role: 'ssl',
-    dependencies: ['nginx'],
-    recommended: false,
-  },
-  {
     key: 'swap',
     label: 'Swap setup',
     description: 'Create swap file only if missing and requested.',
@@ -287,7 +276,6 @@ export const PREPARATION_PROFILE_DEFAULTS: Record<
     dockerComposePlugin: true,
     dockerTls: true,
     nginx: true,
-    certbot: true,
     firewall: true,
     fail2ban: true,
     swap: true,
@@ -330,7 +318,6 @@ export const PREPARATION_PROFILE_DEFAULTS: Record<
     gitlabRunner: true,
     firewall: true,
     fail2ban: true,
-    certbot: true,
     swap: true,
     monitoring: true,
     backup: true,
@@ -360,9 +347,6 @@ export function resolvePreparationOptions(
 
   if (dto?.postgresql !== undefined) {
     selected.postgres = dto.postgresql;
-  }
-  if (dto?.ssl !== undefined) {
-    selected.certbot = dto.ssl;
   }
 
   const gitlabRunnerExecutor = dto?.gitlabRunnerExecutor?.trim() || 'docker';
