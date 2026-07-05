@@ -1,6 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../shared/database/prisma.service';
-import { activeWhere } from '../../shared/database/prisma-active.helper';
 import { SourceProvidersService } from '../source-providers/source-providers.service';
 import { PlatformService } from '../platform/platform.service';
 import { WebhooksService } from './webhooks.service';
