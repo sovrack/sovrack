@@ -1,19 +1,19 @@
 import { ServerPreparationProfile } from '@prisma/client';
-import type { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
+import type { StartServerSetupDto } from '../dto/start-server-setup.dto';
 import {
   PREPARATION_PROFILE_DEFAULTS,
   resolvePreparationOptions,
-} from './server-preparation-options';
+} from './server-setup-options';
 
 // Mission docker_tls (T1): the Docker TLS Connection option is selectable in
 // the Setup Server flow, depends on Docker Engine, and maps to the docker_tls
 // role that runs right after docker.
 describe('resolvePreparationOptions — dockerTls', () => {
-  const dto = (over: Partial<StartServerPreparationDto>) =>
+  const dto = (over: Partial<StartServerSetupDto>) =>
     ({
       profile: ServerPreparationProfile.CUSTOM,
       ...over,
-    }) as StartServerPreparationDto;
+    }) as StartServerSetupDto;
 
   it('selecting dockerTls auto-enables its docker dependency', () => {
     const resolved = resolvePreparationOptions(dto({ dockerTls: true }));
@@ -46,7 +46,7 @@ describe('resolvePreparationOptions — dockerTls', () => {
     const resolved = resolvePreparationOptions({
       profile: ServerPreparationProfile.BASIC,
       dockerTls: false,
-    } as StartServerPreparationDto);
+    } as StartServerSetupDto);
     expect(resolved.roles).not.toContain('docker_tls');
     expect(resolved.roles).toContain('docker');
   });

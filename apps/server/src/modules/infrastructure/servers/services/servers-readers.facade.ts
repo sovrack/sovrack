@@ -4,7 +4,7 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersDetectionService } from './servers-detection.service';
 import { ServersVerificationService } from './servers-verification.service';
-import { ServerPreparationService } from '../../onboarding/services/infra-preparation.service';
+import { ServerSetupService } from '../../onboarding/services/infra-setup.service';
 import { AuditService } from '../../../audit/audit.service';
 import { toPublicServer } from '../shared/server-public.util';
 import type { ServerPublic } from '../shared/servers.types';
@@ -16,7 +16,7 @@ export class ServersReadersFacade {
     private readonly audit: ServersAuditService,
     private readonly detection: ServersDetectionService,
     private readonly verification: ServersVerificationService,
-    private readonly preparation: ServerPreparationService,
+    private readonly preparation: ServerSetupService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -80,7 +80,7 @@ export class ServersReadersFacade {
 
   async retryPreparation(
     id: string,
-    dto: Parameters<ServerPreparationService['retryPreparation']>[1],
+    dto: Parameters<ServerSetupService['retryPreparation']>[1],
     actorId: string,
   ) {
     return this.preparation.retryPreparation(id, dto, actorId);

@@ -21,7 +21,7 @@ import {
 } from '../../../../shared/http/pagination.dto';
 import { ServersConnectionService } from './servers-connection.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';
-import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
+import { StartServerSetupDto } from '../dto/start-server-setup.dto';
 import {
   ServerExecutionOptions,
   ServerJobPublic,
@@ -210,7 +210,7 @@ export class ServersJobsService implements OnModuleInit {
     handlers: {
       verify: () => Promise<T>;
       install: (payload?: InstallToolsDto) => Promise<T>;
-      prepare: (payload?: StartServerPreparationDto) => Promise<T>;
+      prepare: (payload?: StartServerSetupDto) => Promise<T>;
     },
   ): Promise<T> {
     const job = await this.prisma.serverJob.findFirst({
@@ -236,7 +236,7 @@ export class ServersJobsService implements OnModuleInit {
 
     if (job.type === ServerJobType.PREPARE_SERVER) {
       const payload =
-        (job.payload as { selectedOptions?: StartServerPreparationDto } | null)
+        (job.payload as { selectedOptions?: StartServerSetupDto } | null)
           ?.selectedOptions ?? undefined;
       return await handlers.prepare(payload);
     }
@@ -363,7 +363,7 @@ export class ServersJobsService implements OnModuleInit {
   /**
    * Atomic "lock-before-create": the active-job check and the INSERT happen in a
    * single transaction guarded by a per-server advisory lock (same lock key as
-   * {@link InfraPreparationService} preparation guard, so verify/register/prepare
+   * {@link InfraSetupService} preparation guard, so verify/register/prepare
    * starts mutually exclude). The partial unique index `unique_active_server_job`
    * (status IN RUNNING/PENDING) is the hard DB backstop: even if two paths race
    * past the in-memory check, the second INSERT raises P2002 and is surfaced as a

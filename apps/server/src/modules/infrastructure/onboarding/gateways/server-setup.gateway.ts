@@ -19,20 +19,20 @@ import {
 } from '../../../../shared/http/auth-cookie.util';
 import { resolveGatewayCorsOrigins } from '../../../../shared/http/cors-origins.util';
 
-type JoinPreparationPayload = {
-  preparationId?: string;
+type JoinSetupPayload = {
+  setupId?: string;
 };
 
 @Injectable()
 @WebSocketGateway({
-  namespace: '/server-preparations',
+  namespace: '/server-setups',
   cors: {
     origin: resolveGatewayCorsOrigins(),
     credentials: true,
   },
 })
-export class ServerPreparationGateway implements OnGatewayConnection {
-  private readonly logger = new Logger(ServerPreparationGateway.name);
+export class ServerSetupGateway implements OnGatewayConnection {
+  private readonly logger = new Logger(ServerSetupGateway.name);
 
   @WebSocketServer()
   server!: Server;
@@ -80,63 +80,61 @@ export class ServerPreparationGateway implements OnGatewayConnection {
     }
   }
 
-  @SubscribeMessage('join:preparation')
+  @SubscribeMessage('join:setup')
   async handleJoinPreparation(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: JoinPreparationPayload,
-  ): Promise<{ ok: boolean; preparationId?: string; error?: string }> {
-    const preparationId = payload?.preparationId?.trim();
-    if (!preparationId) {
-      return { ok: false, error: 'preparationId manquant' };
+    @MessageBody() payload: JoinSetupPayload,
+  ): Promise<{ ok: boolean; setupId?: string; error?: string }> {
+    const setupId = payload?.setupId?.trim();
+    if (!setupId) {
+      return { ok: false, error: 'setupId manquant' };
     }
 
     const preparation = await this.prisma.serverRun.findFirst({
-      where: { id: preparationId, kind: ServerRunKind.PREPARATION },
+      where: { id: setupId, kind: ServerRunKind.PREPARATION },
       select: { id: true },
     });
     if (!preparation) {
-      return { ok: false, preparationId, error: 'Setup introuvable' };
+      return { ok: false, setupId, error: 'Setup introuvable' };
     }
 
-    await client.join(this.roomName(preparationId));
-    client.emit('preparation:joined', { preparationId });
-    return { ok: true, preparationId };
+    await client.join(this.roomName(setupId));
+    client.emit('preparation:joined', { setupId });
+    return { ok: true, setupId };
   }
 
   emitLog(payload: {
-    preparationId: string;
+    setupId: string;
     level: string;
     source: string;
     message: string;
     lineNumber: number;
     createdAt: Date;
   }): void {
-    this.server
-      .to(this.roomName(payload.preparationId))
-      .emit('preparation:log', {
-        ...payload,
-        createdAt: payload.createdAt.toISOString(),
-      });
+    this.server.to(this.roomName(payload.setupId)).emit('preparation:log', {
+      ...payload,
+      createdAt: payload.createdAt.toISOString(),
+    });
   }
 
-  emitStatus(payload: { preparationId: string; status: string }): void {
+  emitStatus(payload: { setupId: string; status: string }): void {
     this.server
-      .to(this.roomName(payload.preparationId))
+      .to(this.roomName(payload.setupId))
       .emit('preparation:status', payload);
   }
 
   emitFinished(payload: {
-    preparationId: string;
+    setupId: string;
     status: string;
     summary?: string | null;
     errorMessage?: string | null;
   }): void {
     this.server
-      .to(this.roomName(payload.preparationId))
+      .to(this.roomName(payload.setupId))
       .emit('preparation:finished', payload);
   }
 
-  private roomName(preparationId: string): string {
-    return `server-preparation:${preparationId}`;
+  private roomName(setupId: string): string {
+    return `server-setup:${setupId}`;
   }
 }

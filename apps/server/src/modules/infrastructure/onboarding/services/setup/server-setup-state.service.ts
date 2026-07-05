@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, ServerRunStatus, ServerRunStepStatus } from '@prisma/client';
 import { PrismaService } from '../../../../../shared/database/prisma.service';
-import { ServerPreparationGateway } from '../../gateways/server-preparation.gateway';
+import { ServerSetupGateway } from '../../gateways/server-setup.gateway';
 
 // PREPARATION runs live in the unified ServerRun table (kind=PREPARATION).
 // These statuses are exactly the preparation lifecycle states (ServerRunStatus
@@ -49,10 +49,10 @@ export const ALLOWED_PREPARATION_TRANSITIONS: Partial<
 };
 
 @Injectable()
-export class ServerPreparationStateService {
+export class ServerSetupStateService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly gateway: ServerPreparationGateway,
+    private readonly gateway: ServerSetupGateway,
   ) {}
 
   async transitionPreparation(
@@ -87,7 +87,7 @@ export class ServerPreparationStateService {
         ...extra,
       },
     });
-    this.gateway.emitStatus({ preparationId, status });
+    this.gateway.emitStatus({ setupId: preparationId, status });
   }
 
   async markAllRemainingTasks(

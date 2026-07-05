@@ -24,52 +24,49 @@ import { ServersConnectionService } from '../../servers/services/servers-connect
 import { ServersDetectionService } from '../../servers/services/servers-detection.service';
 import { ServersAuditService } from '../../servers/services/servers-audit.service';
 import {
-  ServerPreparationAnsibleService,
+  ServerSetupAnsibleService,
   type DockerTlsMaterial,
-} from './server-preparation-ansible.service';
-import { ServerPreparationGateway } from '../gateways/server-preparation.gateway';
+} from './server-setup-ansible.service';
+import { ServerSetupGateway } from '../gateways/server-setup.gateway';
 import {
-  ServerPreparationStateService,
+  ServerSetupStateService,
   ACTIVE_PREPARATION_STATUSES,
-} from './preparation/server-preparation-state.service';
+} from './setup/server-setup-state.service';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
 import {
   ROLE_ORDER,
   ResolvedPreparation,
-  PreparationRoleKey,
-} from '../../servers/shared/server-preparation-options';
+  SetupRoleKey,
+} from '../../servers/shared/server-setup-options';
 import {
   parseRoleFromAnsibleLogLine,
-  resolvePreparationFailureOutcome,
+  resolveSetupFailureOutcome,
   roleDisplayName,
-  computePreparationTimeoutMs,
-} from './infra-preparation.util';
+  computeSetupTimeoutMs,
+} from './infra-setup.util';
 import {
   runWithStepsInclude,
   RunWithSteps,
   StartPreparationOptions,
-} from './infra-preparation-planning.util';
+} from './infra-setup-planning.util';
 
 @Injectable()
-export class InfraPreparationRunnerService {
-  private readonly logger = new Logger(InfraPreparationRunnerService.name);
+export class InfraSetupRunnerService {
+  private readonly logger = new Logger(InfraSetupRunnerService.name);
   private readonly runningControllers = new Map<string, AbortController>();
-  private readonly currentRoleByPreparation = new Map<
-    string,
-    PreparationRoleKey
-  >();
-  readonly knownRoleKeys = new Set<PreparationRoleKey>(ROLE_ORDER);
+  private readonly currentRoleByPreparation = new Map<string, SetupRoleKey>();
+  readonly knownRoleKeys = new Set<SetupRoleKey>(ROLE_ORDER);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobs: ServersJobsService,
     private readonly ssh: ServersConnectionService,
-    private readonly ansible: ServerPreparationAnsibleService,
+    private readonly ansible: ServerSetupAnsibleService,
     private readonly detection: ServersDetectionService,
     private readonly audit: ServersAuditService,
-    private readonly gateway: ServerPreparationGateway,
+    private readonly gateway: ServerSetupGateway,
     private readonly configService: ConfigService,
-    private readonly state: ServerPreparationStateService,
+    private readonly state: ServerSetupStateService,
     private readonly serverRuns: ServerRunsService,
     private readonly dockerConnections: DockerConnectionsService,
   ) {}
@@ -82,7 +79,7 @@ export class InfraPreparationRunnerService {
   async createRun(
     server: Server,
     resolved: ResolvedPreparation,
-    resolvedRoles: PreparationRoleKey[],
+    resolvedRoles: SetupRoleKey[],
     options?: StartPreparationOptions,
     actorId?: string,
   ): Promise<RunWithSteps> {
@@ -175,7 +172,7 @@ export class InfraPreparationRunnerService {
     server: Server,
     preparationId: string,
     jobId: string,
-    roles: PreparationRoleKey[],
+    roles: SetupRoleKey[],
   ): void {
     void this.execute(server, preparationId, jobId, roles).catch((error) => {
       this.logger.error(
@@ -195,7 +192,7 @@ export class InfraPreparationRunnerService {
     server: Server,
     preparationId: string,
     jobId: string,
-    roles: PreparationRoleKey[],
+    roles: SetupRoleKey[],
   ): Promise<void> {
     const timeoutMs = this.resolvePreparationTimeoutMs(roles);
     const abortController = new AbortController();
@@ -332,7 +329,7 @@ export class InfraPreparationRunnerService {
       );
       await this.refreshDetectionAfterPreparation(server, preparationId);
       this.gateway.emitFinished({
-        preparationId,
+        setupId: preparationId,
         status: ServerRunStatus.SUCCEEDED,
       });
     } catch (error) {
@@ -384,7 +381,7 @@ export class InfraPreparationRunnerService {
       })) > 0;
 
     const { prepStatus, serverStatus, displayError, displaySummary } =
-      resolvePreparationFailureOutcome(message, hasSuccessfulTask);
+      resolveSetupFailureOutcome(message, hasSuccessfulTask);
 
     await this.state.transitionPreparation(preparationId, prepStatus, {
       finishedAt: new Date(),
@@ -413,7 +410,7 @@ export class InfraPreparationRunnerService {
       this.redactSecrets(message),
     );
     this.gateway.emitFinished({
-      preparationId,
+      setupId: preparationId,
       status: prepStatus,
       errorMessage: this.redactSecrets(message),
     });
@@ -431,7 +428,7 @@ export class InfraPreparationRunnerService {
       message: this.redactSecrets(message),
     });
     this.gateway.emitLog({
-      preparationId: created.runId,
+      setupId: created.runId,
       level: created.level,
       source: created.source,
       message: created.message,
@@ -577,7 +574,7 @@ export class InfraPreparationRunnerService {
     const fromEnv = Number(
       this.configService.get<string>('SERVER_PREPARATION_TIMEOUT_MS', '0'),
     );
-    return computePreparationTimeoutMs(roles, fromEnv);
+    return computeSetupTimeoutMs(roles, fromEnv);
   }
 
   private redactSecrets(value: string): string {

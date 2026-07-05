@@ -12,17 +12,17 @@ import { ServersJobsService } from '../../servers/services/servers-jobs.service'
 import { ServersConnectionService } from '../../servers/services/servers-connection.service';
 import { ServersDetectionService } from '../../servers/services/servers-detection.service';
 import { ServersAuditService } from '../../servers/services/servers-audit.service';
-import { ServerPreparationAnsibleService } from './server-preparation-ansible.service';
-import { ServerPreparationGateway } from '../gateways/server-preparation.gateway';
-import { ServerPreparationStateService } from './preparation/server-preparation-state.service';
+import { ServerSetupAnsibleService } from './server-setup-ansible.service';
+import { ServerSetupGateway } from '../gateways/server-setup.gateway';
+import { ServerSetupStateService } from './preparation/server-setup-state.service';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
-import { InfraPreparationRunnerService } from './infra-preparation-runner.service';
+import { InfraSetupRunnerService } from './infra-setup-runner.service';
 import type {
-  PreparationRoleKey,
+  SetupRoleKey,
   ResolvedPreparation,
-} from '../../servers/shared/server-preparation-options';
+} from '../../servers/shared/server-setup-options';
 
-describe('InfraPreparationRunnerService', () => {
+describe('InfraSetupRunnerService', () => {
   function build() {
     const tx = {
       $executeRaw: jest.fn().mockResolvedValue(1),
@@ -56,7 +56,7 @@ describe('InfraPreparationRunnerService', () => {
     } as unknown as PrismaService;
     const jobs = {} as unknown as ServersJobsService;
     const ssh = {} as unknown as ServersConnectionService;
-    const ansible = {} as unknown as ServerPreparationAnsibleService;
+    const ansible = {} as unknown as ServerSetupAnsibleService;
     const detection = {
       detect: jest.fn().mockResolvedValue({}),
     } as unknown as ServersDetectionService;
@@ -74,7 +74,7 @@ describe('InfraPreparationRunnerService', () => {
     const gateway = {
       emitLog: jest.fn(),
       emitFinished: jest.fn(),
-    } as unknown as ServerPreparationGateway;
+    } as unknown as ServerSetupGateway;
     const config = {
       get: jest.fn().mockReturnValue('0'),
     } as unknown as ConfigService;
@@ -82,7 +82,7 @@ describe('InfraPreparationRunnerService', () => {
       transitionPreparation: jest.fn().mockResolvedValue(undefined),
       markFailedRunningTasks: jest.fn().mockResolvedValue(undefined),
       markAllRemainingTasks: jest.fn().mockResolvedValue(undefined),
-    } as unknown as ServerPreparationStateService;
+    } as unknown as ServerSetupStateService;
     const serverRuns = {
       appendLog: jest.fn().mockResolvedValue({
         runId: 'run-1',
@@ -94,7 +94,7 @@ describe('InfraPreparationRunnerService', () => {
       }),
     } as unknown as ServerRunsService;
 
-    const runner = new InfraPreparationRunnerService(
+    const runner = new InfraSetupRunnerService(
       prisma,
       jobs,
       ssh,
@@ -125,12 +125,12 @@ describe('InfraPreparationRunnerService', () => {
   const resolved: ResolvedPreparation = {
     profile: 'BASIC',
     selectedOptions: { docker: true } as never,
-    roles: ['system_base'] as PreparationRoleKey[],
+    roles: ['system_base'] as SetupRoleKey[],
     gitlabRunnerExecutor: 'docker',
     reinstallOptions: new Set<string>(),
     warnings: [],
   } as ResolvedPreparation;
-  const roles = ['system_base'] as PreparationRoleKey[];
+  const roles = ['system_base'] as SetupRoleKey[];
 
   describe('createRun', () => {
     it('creates the run + steps and flips the server to PREPARATION_PENDING', async () => {
@@ -200,15 +200,15 @@ describe('InfraPreparationRunnerService', () => {
   describe('knownRoleKeys', () => {
     it('exposes the canonical role set', () => {
       const { runner } = build();
-      expect(
-        runner.knownRoleKeys.has('system_base' as PreparationRoleKey),
-      ).toBe(true);
+      expect(runner.knownRoleKeys.has('system_base' as SetupRoleKey)).toBe(
+        true,
+      );
     });
   });
 
   describe('handlePreparationFailure', () => {
     const call = (
-      r: InfraPreparationRunnerService,
+      r: InfraSetupRunnerService,
       ...args: unknown[]
     ): Promise<void> =>
       (
@@ -269,7 +269,7 @@ describe('InfraPreparationRunnerService', () => {
   // as a manual POST /servers/:id/docker-connection (upsert).
   describe('registerDockerTlsConnection', () => {
     const call = (
-      r: InfraPreparationRunnerService,
+      r: InfraSetupRunnerService,
       ...args: unknown[]
     ): Promise<void> =>
       (
@@ -353,7 +353,7 @@ describe('InfraPreparationRunnerService', () => {
 
   describe('updateRoleStateFromLog', () => {
     const call = (
-      r: InfraPreparationRunnerService,
+      r: InfraSetupRunnerService,
       ...args: unknown[]
     ): Promise<void> =>
       (
@@ -371,7 +371,7 @@ describe('InfraPreparationRunnerService', () => {
 
   describe('refreshDetectionAfterPreparation', () => {
     const call = (
-      r: InfraPreparationRunnerService,
+      r: InfraSetupRunnerService,
       ...args: unknown[]
     ): Promise<void> =>
       (
@@ -401,7 +401,7 @@ describe('InfraPreparationRunnerService', () => {
 
   describe('appendLog', () => {
     const call = (
-      r: InfraPreparationRunnerService,
+      r: InfraSetupRunnerService,
       ...args: unknown[]
     ): Promise<void> =>
       (
@@ -413,7 +413,7 @@ describe('InfraPreparationRunnerService', () => {
       await call(runner, 'run-1', ServerLogLevel.INFO, 'orchestrator', 'hello');
       expect(serverRuns.appendLog).toHaveBeenCalled();
       expect(gateway.emitLog).toHaveBeenCalledWith(
-        expect.objectContaining({ preparationId: 'run-1' }),
+        expect.objectContaining({ setupId: 'run-1' }),
       );
     });
   });

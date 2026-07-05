@@ -4,15 +4,15 @@ import { Role } from '@prisma/client';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../shared/guards/roles.guard';
-import { ServerPreparationService } from '../services/infra-preparation.service';
+import { ServerSetupService } from '../services/infra-setup.service';
 
 @ApiTags('Server Preparation Options')
 @ApiBearerAuth()
-@Controller('server-preparation-options')
+@Controller('server-setup-options')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
-export class ServerPreparationOptionsController {
-  constructor(private readonly prep: ServerPreparationService) {}
+export class ServerSetupOptionsController {
+  constructor(private readonly prep: ServerSetupService) {}
 
   @Get()
   @ApiOperation({ summary: 'List provisioning options and profiles' })

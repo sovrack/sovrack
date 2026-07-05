@@ -415,7 +415,7 @@ export class DeploymentsValidationService {
   }
 
   /**
-   * Returns the latest successful ServerPreparation for a server, or null.
+   * Returns the latest successful ServerSetup for a server, or null.
    * Used to ensure a server has been fully prepared (tools installed) before
    * allowing a deployment — not just SSH-validated (isVerified).
    */

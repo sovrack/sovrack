@@ -1,14 +1,14 @@
-// Pure helpers extracted from ServerPreparationService (P2 split).
+// Pure helpers extracted from ServerSetupService (P2 split).
 // No I/O, no `this` — readiness checks, role labels, timeout budgeting and the
 // failure-outcome state machine, all unit-testable in isolation.
 
 import { ServerRunStatus, ServerStatus } from '@prisma/client';
 import { redactSecrets } from '../../../../shared/security/redact';
-import { PreparationRoleKey } from '../../servers/shared/server-preparation-options';
+import { SetupRoleKey } from '../../servers/shared/server-setup-options';
 
 // ─── Readiness checks ───────────────────────────────────────────────────────
 
-export type PreparationReadinessChecks = {
+export type SetupReadinessChecks = {
   serverActive: boolean;
   serverNotDisabled: boolean;
   sshValidated: boolean;
@@ -19,9 +19,7 @@ export type PreparationReadinessChecks = {
 };
 
 /** Turn a readiness checks snapshot into the human-readable blocking reasons. */
-export function computeBlockingReasons(
-  checks: PreparationReadinessChecks,
-): string[] {
+export function computeBlockingReasons(checks: SetupReadinessChecks): string[] {
   const blockingReasons: string[] = [];
   if (!checks.serverActive || !checks.serverNotDisabled) {
     blockingReasons.push('Le serveur est désactivé.');
@@ -48,19 +46,19 @@ export function computeBlockingReasons(
 /** Extract the role key from an Ansible `TASK [role...]` log line, if known. */
 export function parseRoleFromAnsibleLogLine(
   message: string,
-  knownRoles: Set<PreparationRoleKey>,
-): PreparationRoleKey | null {
+  knownRoles: Set<SetupRoleKey>,
+): SetupRoleKey | null {
   const match = message.match(/^TASK \[([^\]:]+)(?::|\])/);
   const rawRole = match?.[1]?.trim().replace(/-/g, '_');
-  if (!rawRole || !knownRoles.has(rawRole as PreparationRoleKey)) {
+  if (!rawRole || !knownRoles.has(rawRole as SetupRoleKey)) {
     return null;
   }
-  return rawRole as PreparationRoleKey;
+  return rawRole as SetupRoleKey;
 }
 
 // ─── Role display names ─────────────────────────────────────────────────────
 
-const ROLE_LABELS: Record<PreparationRoleKey, string> = {
+const ROLE_LABELS: Record<SetupRoleKey, string> = {
   system_base: 'Système de base (apt + paquets essentiels)',
   docker: 'Docker Engine',
   docker_tls: 'Connexion Docker TLS (mTLS 2376)',
@@ -86,7 +84,7 @@ const ROLE_LABELS: Record<PreparationRoleKey, string> = {
 };
 
 /** Human label for a preparation role (shown in the task list). */
-export function roleDisplayName(role: PreparationRoleKey): string {
+export function roleDisplayName(role: SetupRoleKey): string {
   return ROLE_LABELS[role] ?? role.replace(/_/g, ' ');
 }
 
@@ -124,7 +122,7 @@ const MAX_TIMEOUT_MS = 120 * 60_000;
  * otherwise the budget is derived dynamically from the selected roles
  * (heavier roles like `docker` get more time), capped to [10min, 2h].
  */
-export function computePreparationTimeoutMs(
+export function computeSetupTimeoutMs(
   roles: string[] = [],
   envOverrideMs = 0,
 ): number {
@@ -140,7 +138,7 @@ export function computePreparationTimeoutMs(
 
 // ─── Failure outcome state machine ──────────────────────────────────────────
 
-export type PreparationFailureOutcome = {
+export type SetupFailureOutcome = {
   isTimeout: boolean;
   prepStatus:
     | typeof ServerRunStatus.TIMEOUT
@@ -157,10 +155,10 @@ export type PreparationFailureOutcome = {
  * Derive the preparation/server statuses and display strings for a failed
  * run, from the raw error message and whether any task already succeeded.
  */
-export function resolvePreparationFailureOutcome(
+export function resolveSetupFailureOutcome(
   rawMessage: string,
   hasSuccessfulTask: boolean,
-): PreparationFailureOutcome {
+): SetupFailureOutcome {
   const isTimeout = rawMessage.startsWith('JOB_TIMEOUT_');
   const prepStatus = isTimeout
     ? ServerRunStatus.TIMEOUT

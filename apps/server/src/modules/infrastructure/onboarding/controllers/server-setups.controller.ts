@@ -20,31 +20,31 @@ import { GetUser } from '../../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../shared/guards/roles.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
-import { RetryServerPreparationDto } from '../../servers/dto';
+import { RetryServerSetupDto } from '../../servers/dto';
 import {
-  ServerPreparationLogDto,
-  ServerPreparationDto,
+  ServerSetupLogDto,
+  ServerSetupDto,
 } from '../../servers/dto/server-response.dto';
-import { ServerPreparationService } from '../services/infra-preparation.service';
+import { ServerSetupService } from '../services/infra-setup.service';
 
 @ApiTags('Server Preparations')
 @ApiBearerAuth()
-@Controller('preparations')
+@Controller('setups')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
-export class ServerPreparationsController {
-  constructor(private readonly prep: ServerPreparationService) {}
+export class ServerSetupsController {
+  constructor(private readonly prep: ServerSetupService) {}
 
   @Get(':id')
   @ApiOperation({ summary: "View a server provisioning's details" })
-  @ApiOkResponse({ type: ServerPreparationDto })
+  @ApiOkResponse({ type: ServerSetupDto })
   async findOne(@Param('id') id: string) {
     return await this.prep.getPreparation(id);
   }
 
   @Get(':id/logs')
   @ApiOperation({ summary: 'Read the persisted logs of a provisioning job' })
-  @ApiOkResponse({ type: ServerPreparationLogDto, isArray: true })
+  @ApiOkResponse({ type: ServerSetupLogDto, isArray: true })
   async logs(@Param('id') id: string, @Query('afterLine') afterLine?: string) {
     return await this.prep.getPreparationLogs(
       id,
@@ -56,10 +56,10 @@ export class ServerPreparationsController {
   @ApiOperation({
     summary: 'Re-run a provisioning by creating a new linked job',
   })
-  @ApiCreatedResponse({ type: ServerPreparationDto })
+  @ApiCreatedResponse({ type: ServerSetupDto })
   async retry(
     @Param('id') id: string,
-    @Body() dto: RetryServerPreparationDto,
+    @Body() dto: RetryServerSetupDto,
     @GetUser() user: JwtPayload,
   ) {
     return await this.prep.retryPreparation(id, dto, user.id);
@@ -69,7 +69,7 @@ export class ServerPreparationsController {
   @ApiOperation({
     summary: 'Cancel a provisioning job if still active',
   })
-  @ApiOkResponse({ type: ServerPreparationDto })
+  @ApiOkResponse({ type: ServerSetupDto })
   async cancel(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.prep.cancelPreparation(id, user.id);
   }

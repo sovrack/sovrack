@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AUTOMATION_ACTIONS, getAutomationAction } from './automation-options';
-import { PREPARATION_OPTIONS } from '../../infrastructure/servers/shared/server-preparation-options';
+import { SETUP_OPTIONS } from '../../infrastructure/servers/shared/server-setup-options';
 
 /**
  * E9 (plan produit final) — intégrité du catalogue d'actions Automation.
@@ -51,7 +51,7 @@ describe('AUTOMATION_ACTIONS catalog integrity', () => {
 
   it('preparation options reference only whitelisted ansible roles too', () => {
     const allowed = new Set(readAllowedPrepareRoles());
-    for (const option of PREPARATION_OPTIONS) {
+    for (const option of SETUP_OPTIONS) {
       expect({ option: option.key, allowed: allowed.has(option.role) }).toEqual(
         { option: option.key, allowed: true },
       );

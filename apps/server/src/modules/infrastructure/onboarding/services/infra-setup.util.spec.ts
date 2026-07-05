@@ -1,17 +1,17 @@
 import { ServerRunStatus, ServerStatus } from '@prisma/client';
-import { PreparationRoleKey } from '../../servers/shared/server-preparation-options';
+import { SetupRoleKey } from '../../servers/shared/server-setup-options';
 import {
   computeBlockingReasons,
-  computePreparationTimeoutMs,
+  computeSetupTimeoutMs,
   parseRoleFromAnsibleLogLine,
-  resolvePreparationFailureOutcome,
+  resolveSetupFailureOutcome,
   roleDisplayName,
-  type PreparationReadinessChecks,
-} from './infra-preparation.util';
+  type SetupReadinessChecks,
+} from './infra-setup.util';
 
 function checks(
-  overrides: Partial<PreparationReadinessChecks> = {},
-): PreparationReadinessChecks {
+  overrides: Partial<SetupReadinessChecks> = {},
+): SetupReadinessChecks {
   return {
     serverActive: true,
     serverNotDisabled: true,
@@ -77,7 +77,7 @@ describe('computeBlockingReasons', () => {
 });
 
 describe('parseRoleFromAnsibleLogLine', () => {
-  const knownRoles = new Set<PreparationRoleKey>(['system_base', 'docker']);
+  const knownRoles = new Set<SetupRoleKey>(['system_base', 'docker']);
 
   it('extracts a known role from a colon-suffixed TASK line', () => {
     expect(
@@ -119,47 +119,45 @@ describe('roleDisplayName', () => {
   });
 
   it('falls back to a humanized key for an unknown role', () => {
-    expect(roleDisplayName('made_up_role' as PreparationRoleKey)).toBe(
+    expect(roleDisplayName('made_up_role' as SetupRoleKey)).toBe(
       'made up role',
     );
   });
 });
 
-describe('computePreparationTimeoutMs', () => {
+describe('computeSetupTimeoutMs', () => {
   it('uses the env override when it is at least 1 minute', () => {
-    expect(computePreparationTimeoutMs(['docker'], 90_000)).toBe(90_000);
+    expect(computeSetupTimeoutMs(['docker'], 90_000)).toBe(90_000);
   });
 
   it('ignores an env override below 1 minute', () => {
-    expect(computePreparationTimeoutMs([], 1_000)).toBe(10 * 60_000);
+    expect(computeSetupTimeoutMs([], 1_000)).toBe(10 * 60_000);
   });
 
   it('derives the budget dynamically from selected roles', () => {
     // base 5min + system_base 3min + docker 20min = 28min
-    expect(computePreparationTimeoutMs(['system_base', 'docker'], 0)).toBe(
+    expect(computeSetupTimeoutMs(['system_base', 'docker'], 0)).toBe(
       28 * 60_000,
     );
   });
 
   it('applies the default per-role budget for unlisted roles', () => {
-    expect(computePreparationTimeoutMs(['some_unknown_role'], 0)).toBe(
-      10 * 60_000,
-    );
+    expect(computeSetupTimeoutMs(['some_unknown_role'], 0)).toBe(10 * 60_000);
   });
 
   it('clamps to the minimum timeout for a tiny role set', () => {
-    expect(computePreparationTimeoutMs([], 0)).toBe(10 * 60_000);
+    expect(computeSetupTimeoutMs([], 0)).toBe(10 * 60_000);
   });
 
   it('clamps to the maximum timeout for an oversized role set', () => {
     const manyRoles = Array.from({ length: 30 }, () => 'docker');
-    expect(computePreparationTimeoutMs(manyRoles, 0)).toBe(120 * 60_000);
+    expect(computeSetupTimeoutMs(manyRoles, 0)).toBe(120 * 60_000);
   });
 });
 
-describe('resolvePreparationFailureOutcome', () => {
+describe('resolveSetupFailureOutcome', () => {
   it('handles a timeout with no successful task', () => {
-    const outcome = resolvePreparationFailureOutcome(
+    const outcome = resolveSetupFailureOutcome(
       'JOB_TIMEOUT_2024\nAnsible did not respond',
       false,
     );
@@ -174,7 +172,7 @@ describe('resolvePreparationFailureOutcome', () => {
   });
 
   it('handles a timeout with at least one successful task', () => {
-    const outcome = resolvePreparationFailureOutcome('JOB_TIMEOUT_2024', true);
+    const outcome = resolveSetupFailureOutcome('JOB_TIMEOUT_2024', true);
     expect(outcome).toEqual({
       isTimeout: true,
       prepStatus: ServerRunStatus.TIMEOUT,
@@ -186,7 +184,7 @@ describe('resolvePreparationFailureOutcome', () => {
   });
 
   it('handles a non-timeout failure with no successful task', () => {
-    const outcome = resolvePreparationFailureOutcome('boom', false);
+    const outcome = resolveSetupFailureOutcome('boom', false);
     expect(outcome).toEqual({
       isTimeout: false,
       prepStatus: ServerRunStatus.FAILED,
@@ -197,7 +195,7 @@ describe('resolvePreparationFailureOutcome', () => {
   });
 
   it('handles a non-timeout failure with at least one successful task', () => {
-    const outcome = resolvePreparationFailureOutcome('boom', true);
+    const outcome = resolveSetupFailureOutcome('boom', true);
     expect(outcome).toEqual({
       isTimeout: false,
       prepStatus: ServerRunStatus.PARTIAL,
@@ -208,7 +206,7 @@ describe('resolvePreparationFailureOutcome', () => {
   });
 
   it('redacts secrets in the display error for non-timeout failures', () => {
-    const outcome = resolvePreparationFailureOutcome(
+    const outcome = resolveSetupFailureOutcome(
       'failed with password=supersecret',
       false,
     );

@@ -2,14 +2,14 @@ import { Module } from '@nestjs/common';
 import { AppJwtModule } from '../../../shared/jwt/jwt.module';
 import { InfrastructureCoreModule } from '../core/infrastructure-core.module';
 import { ServerRunsModule } from '../server-runs/server-runs.module';
-import { ServerPreparationController } from './controllers/server-preparation.controller';
-import { ServerPreparationsController } from './controllers/server-preparations.controller';
-import { ServerPreparationOptionsController } from './controllers/server-preparation-options.controller';
-import { ServerPreparationService } from './services/infra-preparation.service';
-import { ServerPreparationAnsibleService } from './services/server-preparation-ansible.service';
-import { ServerPreparationStateService } from './services/preparation/server-preparation-state.service';
-import { InfraPreparationRunnerService } from './services/infra-preparation-runner.service';
-import { ServerPreparationGateway } from './gateways/server-preparation.gateway';
+import { ServerSetupController } from './controllers/server-setup.controller';
+import { ServerSetupsController } from './controllers/server-setups.controller';
+import { ServerSetupOptionsController } from './controllers/server-setup-options.controller';
+import { ServerSetupService } from './services/infra-setup.service';
+import { ServerSetupAnsibleService } from './services/server-setup-ansible.service';
+import { ServerSetupStateService } from './services/setup/server-setup-state.service';
+import { InfraSetupRunnerService } from './services/infra-setup-runner.service';
+import { ServerSetupGateway } from './gateways/server-setup.gateway';
 
 /**
  * Infrastructure module — owns Ansible-based server PREPARATION (profiles,
@@ -23,17 +23,17 @@ import { ServerPreparationGateway } from './gateways/server-preparation.gateway'
 @Module({
   imports: [AppJwtModule, InfrastructureCoreModule, ServerRunsModule],
   controllers: [
-    ServerPreparationController,
-    ServerPreparationsController,
-    ServerPreparationOptionsController,
+    ServerSetupController,
+    ServerSetupsController,
+    ServerSetupOptionsController,
   ],
   providers: [
-    ServerPreparationAnsibleService,
-    ServerPreparationStateService,
-    ServerPreparationGateway,
-    InfraPreparationRunnerService,
-    ServerPreparationService,
+    ServerSetupAnsibleService,
+    ServerSetupStateService,
+    ServerSetupGateway,
+    InfraSetupRunnerService,
+    ServerSetupService,
   ],
-  exports: [ServerPreparationService, ServerPreparationAnsibleService],
+  exports: [ServerSetupService, ServerSetupAnsibleService],
 })
 export class InfrastructureModule {}

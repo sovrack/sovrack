@@ -12,7 +12,7 @@ export type AppendServerRunLogInput = {
 /**
  * Shared persistence for the unified ServerRun / ServerRunStep / ServerRunLog
  * tables. Owns the one piece of logic that used to be duplicated verbatim in
- * both the preparation engine (ServerPreparationService) and the automation
+ * both the preparation engine (ServerSetupService) and the automation
  * engine (AutomationRunnerService): appending a streamed log line with a
  * gap-free, per-run line number under an advisory lock.
  *

@@ -1,9 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
-import { ServerPreparationService } from '../services/infra-preparation.service';
-import { ServerPreparationController } from './server-preparation.controller';
-import { ServerPreparationsController } from './server-preparations.controller';
+import { ServerSetupService } from '../services/infra-setup.service';
+import { ServerSetupController } from './server-setup.controller';
+import { ServerSetupsController } from './server-setups.controller';
 
 describe('Server preparation controllers', () => {
   const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
@@ -17,13 +17,13 @@ describe('Server preparation controllers', () => {
       getPreparationLogs: jest.fn().mockResolvedValue([]),
       retryPreparation: jest.fn().mockResolvedValue({ id: 'prep-2' }),
       cancelPreparation: jest.fn().mockResolvedValue({ id: 'prep-1' }),
-    } as unknown as ServerPreparationService;
+    } as unknown as ServerSetupService;
   }
 
-  describe('ServerPreparationController', () => {
+  describe('ServerSetupController', () => {
     it('startPreparation delegates and returns the run', async () => {
       const prep = prepService();
-      const ctrl = new ServerPreparationController(prep);
+      const ctrl = new ServerSetupController(prep);
       const res = await ctrl.startPreparation(
         'srv-1',
         { profile: 'BASIC' } as never,
@@ -42,7 +42,7 @@ describe('Server preparation controllers', () => {
       (prep.startPreparation as jest.Mock).mockRejectedValueOnce(
         new BadRequestException('not ready'),
       );
-      const ctrl = new ServerPreparationController(prep);
+      const ctrl = new ServerSetupController(prep);
       await expect(
         ctrl.startPreparation('srv-1', {} as never, user),
       ).rejects.toBeInstanceOf(BadRequestException);
@@ -53,7 +53,7 @@ describe('Server preparation controllers', () => {
       (prep.startPreparation as jest.Mock).mockRejectedValueOnce(
         new Error('boom'),
       );
-      const ctrl = new ServerPreparationController(prep);
+      const ctrl = new ServerSetupController(prep);
       await expect(
         ctrl.startPreparation('srv-1', {} as never, user),
       ).rejects.toMatchObject({ status: 500 });
@@ -61,7 +61,7 @@ describe('Server preparation controllers', () => {
 
     it('listPreparations / getPreparationReadiness delegate', async () => {
       const prep = prepService();
-      const ctrl = new ServerPreparationController(prep);
+      const ctrl = new ServerSetupController(prep);
       await ctrl.listPreparations('srv-1');
       await ctrl.getPreparationReadiness('srv-1');
       expect(prep.listPreparations).toHaveBeenCalledWith('srv-1');
@@ -69,10 +69,10 @@ describe('Server preparation controllers', () => {
     });
   });
 
-  describe('ServerPreparationsController', () => {
+  describe('ServerSetupsController', () => {
     it('findOne / logs / retry / cancel delegate', async () => {
       const prep = prepService();
-      const ctrl = new ServerPreparationsController(prep);
+      const ctrl = new ServerSetupsController(prep);
       await ctrl.findOne('prep-1');
       await ctrl.logs('prep-1', '5');
       await ctrl.logs('prep-1', undefined);

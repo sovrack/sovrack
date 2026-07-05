@@ -1,11 +1,11 @@
 import type { Server } from '@prisma/client';
 import { mkdtemp, readFile, rm } from 'fs/promises';
-import { ServerPreparationAnsibleService } from './server-preparation-ansible.service';
+import { ServerSetupAnsibleService } from './server-setup-ansible.service';
 import type { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.service';
 import type { ServerHostKeyService } from '../../../../adapters/ssh/server-host-key.service';
 import type { ServersConnectionService } from '../../servers/services/servers-connection.service';
 import type { AnsibleRunnerService } from '../../../../adapters/provisioning/ansible-runner.service';
-import type { PreparationRoleKey } from '../../servers/shared/server-preparation-options';
+import type { SetupRoleKey } from '../../servers/shared/server-setup-options';
 
 jest.mock('fs/promises', () => ({
   mkdtemp: jest.fn(),
@@ -20,7 +20,7 @@ const mockedRm = rm as jest.Mock;
 // Mission docker_tls (T1): the fetch dir for the client PEMs is a per-run
 // mkdtemp OUTSIDE the repo (never committable), passed to Ansible as an
 // extra-var, read back in memory, and destroyed in a finally — even on failure.
-describe('ServerPreparationAnsibleService — docker_tls fetch dir', () => {
+describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
   function build() {
     const crypto = {
       decrypt: jest.fn().mockReturnValue('KEY'),
@@ -38,7 +38,7 @@ describe('ServerPreparationAnsibleService — docker_tls fetch dir', () => {
       resolvePlaybooksRoot: jest.fn().mockReturnValue('/app/ansible/playbooks'),
       run: jest.fn().mockResolvedValue(undefined),
     };
-    const service = new ServerPreparationAnsibleService(
+    const service = new ServerSetupAnsibleService(
       crypto,
       hostKeys,
       ssh,
@@ -73,7 +73,7 @@ describe('ServerPreparationAnsibleService — docker_tls fetch dir', () => {
     const result = await service.runPreparation(
       server,
       {
-        roles: ['docker', 'docker_tls'] as PreparationRoleKey[],
+        roles: ['docker', 'docker_tls'] as SetupRoleKey[],
         selectedOptions: { docker: true, dockerTls: true },
         gitlabRunnerExecutor: 'docker',
       },
@@ -103,7 +103,7 @@ describe('ServerPreparationAnsibleService — docker_tls fetch dir', () => {
     const result = await service.runPreparation(
       server,
       {
-        roles: ['docker'] as PreparationRoleKey[],
+        roles: ['docker'] as SetupRoleKey[],
         selectedOptions: { docker: true },
         gitlabRunnerExecutor: 'docker',
       },
@@ -124,7 +124,7 @@ describe('ServerPreparationAnsibleService — docker_tls fetch dir', () => {
       service.runPreparation(
         server,
         {
-          roles: ['docker', 'docker_tls'] as PreparationRoleKey[],
+          roles: ['docker', 'docker_tls'] as SetupRoleKey[],
           selectedOptions: { docker: true, dockerTls: true },
           gitlabRunnerExecutor: 'docker',
         },
@@ -143,7 +143,7 @@ describe('ServerPreparationAnsibleService — docker_tls fetch dir', () => {
     const result = await service.runPreparation(
       server,
       {
-        roles: ['docker_tls'] as PreparationRoleKey[],
+        roles: ['docker_tls'] as SetupRoleKey[],
         selectedOptions: { dockerTls: true },
         gitlabRunnerExecutor: 'docker',
       },

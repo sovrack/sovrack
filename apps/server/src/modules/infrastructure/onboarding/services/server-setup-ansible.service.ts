@@ -10,7 +10,7 @@ import {
   AnsibleRunnerService,
   type AnsibleLogEvent as CoreAnsibleLogEvent,
 } from '../../../../adapters/provisioning/ansible-runner.service';
-import type { PreparationRoleKey } from '../../servers/shared/server-preparation-options';
+import type { SetupRoleKey } from '../../servers/shared/server-setup-options';
 import { assertSafeLinuxUsername } from '../../servers/shared/servers-shell.util';
 
 type AnsibleLogEvent = {
@@ -20,7 +20,7 @@ type AnsibleLogEvent = {
 };
 
 export type RunPreparationInput = {
-  roles: PreparationRoleKey[];
+  roles: SetupRoleKey[];
   selectedOptions: Record<string, boolean>;
   gitlabRunnerExecutor: string;
   reinstallOptions?: string[];
@@ -63,8 +63,8 @@ export type RunPreparationResult = {
  * in core/. No ansible spawning lives here.
  */
 @Injectable()
-export class ServerPreparationAnsibleService {
-  private readonly logger = new Logger(ServerPreparationAnsibleService.name);
+export class ServerSetupAnsibleService {
+  private readonly logger = new Logger(ServerSetupAnsibleService.name);
 
   constructor(
     private readonly crypto: ServersCryptoService,

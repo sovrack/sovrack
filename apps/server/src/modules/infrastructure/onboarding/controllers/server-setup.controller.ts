@@ -21,29 +21,29 @@ import { GetUser } from '../../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../shared/guards/roles.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
-import { StartServerPreparationDto } from '../../servers/dto';
+import { StartServerSetupDto } from '../../servers/dto';
 import {
-  ServerPreparationDto,
-  ServerPreparationReadinessDto,
+  ServerSetupDto,
+  ServerSetupReadinessDto,
 } from '../../servers/dto/server-response.dto';
-import { ServerPreparationService } from '../services/infra-preparation.service';
+import { ServerSetupService } from '../services/infra-setup.service';
 
 @ApiTags('Servers Preparation')
 @ApiBearerAuth()
 @Controller('servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
-export class ServerPreparationController {
-  private readonly logger = new Logger(ServerPreparationController.name);
+export class ServerSetupController {
+  private readonly logger = new Logger(ServerSetupController.name);
 
-  constructor(private readonly prep: ServerPreparationService) {}
+  constructor(private readonly prep: ServerSetupService) {}
 
-  @Post(':id/preparations')
+  @Post(':id/setups')
   @ApiOperation({ summary: 'Start a server provisioning job' })
-  @ApiCreatedResponse({ type: ServerPreparationDto })
+  @ApiCreatedResponse({ type: ServerSetupDto })
   async startPreparation(
     @Param('id') id: string,
-    @Body() dto: StartServerPreparationDto,
+    @Body() dto: StartServerSetupDto,
     @GetUser() user: JwtPayload,
   ) {
     try {
@@ -70,9 +70,9 @@ export class ServerPreparationController {
     }
   }
 
-  @Get(':id/preparations')
+  @Get(':id/setups')
   @ApiOperation({ summary: "List the server's provisioning history" })
-  @ApiOkResponse({ type: ServerPreparationDto, isArray: true })
+  @ApiOkResponse({ type: ServerSetupDto, isArray: true })
   async listPreparations(@Param('id') id: string) {
     return await this.prep.listPreparations(id);
   }
@@ -82,7 +82,7 @@ export class ServerPreparationController {
     summary:
       'Check whether the server is ready to start provisioning (SSH/sudo/state/lock).',
   })
-  @ApiOkResponse({ type: ServerPreparationReadinessDto })
+  @ApiOkResponse({ type: ServerSetupReadinessDto })
   async getPreparationReadiness(@Param('id') id: string) {
     return await this.prep.getPreparationReadiness(id);
   }

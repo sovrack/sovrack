@@ -1,7 +1,7 @@
 import { ServerPreparationProfile } from '@prisma/client';
-import type { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
+import type { StartServerSetupDto } from '../dto/start-server-setup.dto';
 
-export type PreparationOptionKey =
+export type SetupOptionKey =
   | 'systemUpdate'
   | 'docker'
   | 'dockerComposePlugin'
@@ -22,7 +22,7 @@ export type PreparationOptionKey =
   | 'securityHardening'
   | 'autoUpdates';
 
-export type PreparationRoleKey =
+export type SetupRoleKey =
   | 'system_base'
   | 'docker'
   | 'docker_tls'
@@ -48,26 +48,26 @@ export type PreparationRoleKey =
 
 export type ResolvedPreparation = {
   profile: ServerPreparationProfile;
-  selectedOptions: Record<PreparationOptionKey, boolean>;
-  roles: PreparationRoleKey[];
+  selectedOptions: Record<SetupOptionKey, boolean>;
+  roles: SetupRoleKey[];
   warnings: string[];
   gitlabRunnerExecutor: string;
   reinstallOptions: Set<string>;
 };
 
-export type PreparationOptionDefinition = {
-  key: PreparationOptionKey;
+export type SetupOptionDefinition = {
+  key: SetupOptionKey;
   label: string;
   description: string;
-  role: PreparationRoleKey | null;
-  dependencies: PreparationOptionKey[];
+  role: SetupRoleKey | null;
+  dependencies: SetupOptionKey[];
   recommended: boolean;
 };
 
 // Single source of truth for the full set of preparation roles. Exported so
 // consumers (e.g. the preparation orchestrator's role-tracking + retry filter)
 // never hardcode a partial list that silently drops a role like `nixpacks`.
-export const ROLE_ORDER: PreparationRoleKey[] = [
+export const ROLE_ORDER: SetupRoleKey[] = [
   'system_base',
   'swap',
   'security_hardening',
@@ -92,7 +92,7 @@ export const ROLE_ORDER: PreparationRoleKey[] = [
   'logrotate',
 ];
 
-export const PREPARATION_OPTIONS: PreparationOptionDefinition[] = [
+export const SETUP_OPTIONS: SetupOptionDefinition[] = [
   {
     key: 'systemUpdate',
     label: 'System base (apt cache + essential packages)',
@@ -256,7 +256,7 @@ export const PREPARATION_OPTIONS: PreparationOptionDefinition[] = [
 
 export const PREPARATION_PROFILE_DEFAULTS: Record<
   ServerPreparationProfile,
-  Partial<Record<PreparationOptionKey, boolean>>
+  Partial<Record<SetupOptionKey, boolean>>
 > = {
   BASIC: {
     systemUpdate: true,
@@ -329,16 +329,16 @@ export const PREPARATION_PROFILE_DEFAULTS: Record<
 };
 
 export function resolvePreparationOptions(
-  dto?: StartServerPreparationDto,
+  dto?: StartServerSetupDto,
 ): ResolvedPreparation {
   const profile = dto?.profile ?? ServerPreparationProfile.BASIC;
   const selected = Object.fromEntries(
-    PREPARATION_OPTIONS.map((option) => [option.key, false]),
-  ) as Record<PreparationOptionKey, boolean>;
+    SETUP_OPTIONS.map((option) => [option.key, false]),
+  ) as Record<SetupOptionKey, boolean>;
 
   Object.assign(selected, PREPARATION_PROFILE_DEFAULTS[profile]);
 
-  for (const option of PREPARATION_OPTIONS) {
+  for (const option of SETUP_OPTIONS) {
     const explicit = dto?.[option.key];
     if (explicit !== undefined) {
       selected[option.key] = explicit;
@@ -358,7 +358,7 @@ export function resolvePreparationOptions(
   let changed = true;
   while (changed) {
     changed = false;
-    for (const option of PREPARATION_OPTIONS) {
+    for (const option of SETUP_OPTIONS) {
       if (!selected[option.key]) {
         continue;
       }
@@ -371,8 +371,8 @@ export function resolvePreparationOptions(
     }
   }
 
-  const roleSet = new Set<PreparationRoleKey>();
-  for (const option of PREPARATION_OPTIONS) {
+  const roleSet = new Set<SetupRoleKey>();
+  for (const option of SETUP_OPTIONS) {
     if (selected[option.key] && option.role) {
       roleSet.add(option.role);
     }

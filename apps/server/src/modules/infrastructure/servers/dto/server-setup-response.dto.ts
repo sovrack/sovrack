@@ -6,7 +6,7 @@ import {
   ServerLogLevel,
 } from '@prisma/client';
 
-export class ServerPreparationTaskDto {
+export class ServerSetupTaskDto {
   @ApiProperty()
   id!: string;
 
@@ -35,7 +35,7 @@ export class ServerPreparationTaskDto {
   message!: string | null;
 }
 
-export class ServerPreparationDto {
+export class ServerSetupDto {
   @ApiProperty()
   id!: string;
 
@@ -69,11 +69,11 @@ export class ServerPreparationDto {
   @ApiPropertyOptional({ nullable: true })
   retryOfPreparationId!: string | null;
 
-  @ApiProperty({ type: () => ServerPreparationTaskDto, isArray: true })
-  tasks!: ServerPreparationTaskDto[];
+  @ApiProperty({ type: () => ServerSetupTaskDto, isArray: true })
+  tasks!: ServerSetupTaskDto[];
 }
 
-export class ServerPreparationLogDto {
+export class ServerSetupLogDto {
   @ApiProperty()
   id!: string;
 
@@ -96,7 +96,7 @@ export class ServerPreparationLogDto {
   createdAt!: string;
 }
 
-export class ServerPreparationReadinessChecksDto {
+export class ServerSetupReadinessChecksDto {
   @ApiProperty()
   serverActive!: boolean;
 
@@ -119,15 +119,15 @@ export class ServerPreparationReadinessChecksDto {
   noActivePreparation!: boolean;
 }
 
-export class ServerPreparationReadinessDto {
+export class ServerSetupReadinessDto {
   @ApiProperty()
   serverId!: string;
 
   @ApiProperty()
   isReady!: boolean;
 
-  @ApiProperty({ type: () => ServerPreparationReadinessChecksDto })
-  checks!: ServerPreparationReadinessChecksDto;
+  @ApiProperty({ type: () => ServerSetupReadinessChecksDto })
+  checks!: ServerSetupReadinessChecksDto;
 
   @ApiProperty({ type: [String] })
   blockingReasons!: string[];

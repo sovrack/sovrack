@@ -95,6 +95,7 @@ export class ServerManagementController {
   }
 
   @Get()
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({ summary: 'List all servers (sshKey masked)' })
   @ApiOkResponse({
     description: 'Liste des serveurs',
@@ -113,6 +114,7 @@ export class ServerManagementController {
   }
 
   @Get('reachability')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({
     summary:
       'A3: lightweight TCP reachability ping for every server (not the full SSH validation) — meant to be polled frequently by the list page.',
@@ -125,6 +127,7 @@ export class ServerManagementController {
   }
 
   @Get(':id')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({ summary: "View a server's details" })
   @ApiOkResponse({ description: 'Server found', type: ServerResponseDto })
   async findOne(@Param('id') id: string) {

@@ -3,14 +3,14 @@ import {
   runWithStepsInclude,
   toPreparationView,
   type RunWithSteps,
-} from './infra-preparation-planning.util';
+} from './infra-setup-planning.util';
 
 /**
  * Pure transformer coverage: maps a unified ServerRun (kind=PREPARATION) back
- * to the legacy ServerPreparation response shape (paramsJson → selectedOptions,
+ * to the legacy ServerSetup response shape (paramsJson → selectedOptions,
  * resolvedJson → resolvedRoles, retryOfId → retryOfPreparationId, steps → tasks).
  */
-describe('infra-preparation-planning.util — toPreparationView', () => {
+describe('infra-setup-planning.util — toPreparationView', () => {
   const baseDate = new Date('2026-01-01T00:00:00.000Z');
 
   function makeRun(overrides: Partial<RunWithSteps> = {}): RunWithSteps {

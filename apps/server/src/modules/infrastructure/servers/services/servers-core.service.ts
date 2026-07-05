@@ -4,8 +4,8 @@ import { CreateServerDto } from '../dto/create-server.dto';
 import { UpdateServerDto } from '../dto/update-server.dto';
 import { InstallToolsDto } from '../dto/install-tools.dto';
 import { PrepareServerDto } from '../dto/prepare-server.dto';
-import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
-import { ServerPreparationService } from '../../onboarding/services/infra-preparation.service';
+import { StartServerSetupDto } from '../dto/start-server-setup.dto';
+import { ServerSetupService } from '../../onboarding/services/infra-setup.service';
 import {
   CreateServerResult,
   ServerJobsListResult,
@@ -92,7 +92,7 @@ export class ServersCoreService {
 
   async prepareServer(
     id: string,
-    prepare?: PrepareServerDto | StartServerPreparationDto,
+    prepare?: PrepareServerDto | StartServerSetupDto,
     actorUserId?: string,
   ): Promise<ServerPublic> {
     return this.jobsFacade.prepareServer(id, prepare, actorUserId);
@@ -100,7 +100,7 @@ export class ServersCoreService {
 
   async startPreparation(
     id: string,
-    prepare?: StartServerPreparationDto,
+    prepare?: StartServerSetupDto,
     actorUserId?: string,
   ) {
     return this.jobsFacade.startPreparation(id, prepare, actorUserId);
@@ -175,7 +175,7 @@ export class ServersCoreService {
 
   async retryPreparation(
     id: string,
-    dto: Parameters<ServerPreparationService['retryPreparation']>[1],
+    dto: Parameters<ServerSetupService['retryPreparation']>[1],
     actorId: string,
   ) {
     return this.readersFacade.retryPreparation(id, dto, actorId);

@@ -19,51 +19,51 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '../../../../shared/database/prisma.service';
-import { StartServerPreparationDto } from '../../servers/dto/start-server-preparation.dto';
-import { RetryServerPreparationDto } from '../../servers/dto/retry-server-preparation.dto';
+import { StartServerSetupDto } from '../../servers/dto/start-server-setup.dto';
+import { RetryServerSetupDto } from '../../servers/dto/retry-server-setup.dto';
 import {
   PREPARATION_PROFILE_DEFAULTS,
-  PREPARATION_OPTIONS,
-  PreparationRoleKey,
+  SETUP_OPTIONS,
+  SetupRoleKey,
   resolvePreparationOptions,
-} from '../../servers/shared/server-preparation-options';
+} from '../../servers/shared/server-setup-options';
 import { ServersAuditService } from '../../servers/services/servers-audit.service';
-import { ServerPreparationGateway } from '../gateways/server-preparation.gateway';
+import { ServerSetupGateway } from '../gateways/server-setup.gateway';
 import { ServersVerificationService } from '../../servers/services/servers-verification.service';
 import { ServersJobsService } from '../../servers/services/servers-jobs.service';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
 import {
   ACTIVE_PREPARATION_STATUSES,
-  ServerPreparationStateService,
-} from './preparation/server-preparation-state.service';
-import { computeBlockingReasons } from './infra-preparation.util';
+  ServerSetupStateService,
+} from './setup/server-setup-state.service';
+import { computeBlockingReasons } from './infra-setup.util';
 import {
   runWithStepsInclude,
   toPreparationView,
   StartPreparationOptions,
-  ServerPreparationReadiness,
+  ServerSetupReadiness,
   PreparationView,
-} from './infra-preparation-planning.util';
-import { InfraPreparationRunnerService } from './infra-preparation-runner.service';
+} from './infra-setup-planning.util';
+import { InfraSetupRunnerService } from './infra-setup-runner.service';
 
 export type {
   PreparationTaskView,
   PreparationView,
-} from './infra-preparation-planning.util';
+} from './infra-setup-planning.util';
 
 @Injectable()
-export class ServerPreparationService implements OnModuleInit {
-  private readonly logger = new Logger(ServerPreparationService.name);
+export class ServerSetupService implements OnModuleInit {
+  private readonly logger = new Logger(ServerSetupService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobs: ServersJobsService,
     private readonly verification: ServersVerificationService,
     private readonly audit: ServersAuditService,
-    private readonly gateway: ServerPreparationGateway,
-    private readonly state: ServerPreparationStateService,
+    private readonly gateway: ServerSetupGateway,
+    private readonly state: ServerSetupStateService,
     private readonly serverRuns: ServerRunsService,
-    private readonly runner: InfraPreparationRunnerService,
+    private readonly runner: InfraSetupRunnerService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -113,14 +113,14 @@ export class ServerPreparationService implements OnModuleInit {
       message:
         'Ansible is executed from the backend/control node. Target VPS hosts are SSH-managed and do not install Ansible.',
       profiles: ['BASIC', 'WEB', 'DATABASE', 'RUNNER', 'FULL', 'CUSTOM'],
-      options: PREPARATION_OPTIONS,
+      options: SETUP_OPTIONS,
       profileDefaults: PREPARATION_PROFILE_DEFAULTS,
     };
   }
 
   async getPreparationReadiness(
     serverId: string,
-  ): Promise<ServerPreparationReadiness> {
+  ): Promise<ServerSetupReadiness> {
     const server = await this.getServer(serverId);
     const validation = await this.verification.latestValidationResult(serverId);
     const activePreparationCount = await this.prisma.serverRun.count({
@@ -154,7 +154,7 @@ export class ServerPreparationService implements OnModuleInit {
 
   async startPreparation(
     serverId: string,
-    dto: StartServerPreparationDto | undefined,
+    dto: StartServerSetupDto | undefined,
     actorId?: string,
     options?: StartPreparationOptions,
   ): Promise<PreparationView> {
@@ -261,7 +261,7 @@ export class ServerPreparationService implements OnModuleInit {
 
   async retryPreparation(
     id: string,
-    dto: RetryServerPreparationDto,
+    dto: RetryServerSetupDto,
     actorId?: string,
   ): Promise<PreparationView> {
     const previous = await this.getPreparation(id);
@@ -273,8 +273,8 @@ export class ServerPreparationService implements OnModuleInit {
     const restoredRoles = Array.isArray(previous.resolvedRolesJson)
       ? previous.resolvedRolesJson
           .filter((role): role is string => typeof role === 'string')
-          .filter((role): role is PreparationRoleKey =>
-            this.runner.knownRoleKeys.has(role as PreparationRoleKey),
+          .filter((role): role is SetupRoleKey =>
+            this.runner.knownRoleKeys.has(role as SetupRoleKey),
           )
       : [];
     const restoredExecutor =
@@ -296,7 +296,7 @@ export class ServerPreparationService implements OnModuleInit {
         ...boolOptions,
         profile: previous.profile as ServerPreparationProfile,
         gitlabRunnerExecutor: restoredExecutor,
-      } as StartServerPreparationDto,
+      } as StartServerSetupDto,
       actorId,
       {
         retryOfPreparationId: id,
@@ -351,7 +351,7 @@ export class ServerPreparationService implements OnModuleInit {
     await this.audit.record(serverId, 'SERVER_PREPARATION_CANCEL', actorId, {
       preparationId: id,
     });
-    this.gateway.emitFinished({ preparationId: id, status: updated.status });
+    this.gateway.emitFinished({ setupId: id, status: updated.status });
     return updated;
   }
 

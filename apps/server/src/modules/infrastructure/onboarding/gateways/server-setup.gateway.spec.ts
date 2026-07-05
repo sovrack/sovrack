@@ -1,5 +1,5 @@
 import { ServerRunKind } from '@prisma/client';
-import { ServerPreparationGateway } from './server-preparation.gateway';
+import { ServerSetupGateway } from './server-setup.gateway';
 
 function makeClient(
   opts: {
@@ -57,11 +57,11 @@ function makeDeps(
   return { jwtService, prisma, configService };
 }
 
-describe('ServerPreparationGateway', () => {
+describe('ServerSetupGateway', () => {
   describe('handleConnection', () => {
     it('disconnects when no token', () => {
       const { jwtService, prisma, configService } = makeDeps();
-      const gw = new ServerPreparationGateway(
+      const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
@@ -75,7 +75,7 @@ describe('ServerPreparationGateway', () => {
       const { jwtService, prisma, configService } = makeDeps({
         jwtError: true,
       });
-      const gw = new ServerPreparationGateway(
+      const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
@@ -88,7 +88,7 @@ describe('ServerPreparationGateway', () => {
       const { jwtService, prisma, configService } = makeDeps({
         jwtPayload: { sub: 'u1', role: 'DEVELOPER' },
       });
-      const gw = new ServerPreparationGateway(
+      const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
@@ -100,7 +100,7 @@ describe('ServerPreparationGateway', () => {
 
     it('allows ADMIN token', () => {
       const { jwtService, prisma, configService } = makeDeps();
-      const gw = new ServerPreparationGateway(
+      const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
@@ -112,28 +112,28 @@ describe('ServerPreparationGateway', () => {
   });
 
   describe('handleJoinPreparation', () => {
-    it('returns error when preparationId is missing', async () => {
+    it('returns error when setupId is missing', async () => {
       const { jwtService, prisma, configService } = makeDeps();
-      const gw = new ServerPreparationGateway(
+      const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
       );
       const result = await gw.handleJoinPreparation(makeClient(), {});
-      expect(result).toEqual({ ok: false, error: 'preparationId manquant' });
+      expect(result).toEqual({ ok: false, error: 'setupId manquant' });
     });
 
     it('returns error when preparation run is not found', async () => {
       const { jwtService, prisma, configService } = makeDeps({
         runFound: false,
       });
-      const gw = new ServerPreparationGateway(
+      const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
       );
       const result = await gw.handleJoinPreparation(makeClient(), {
-        preparationId: 'prep1',
+        setupId: 'prep1',
       });
       expect(result.ok).toBe(false);
       expect(result.error).toContain('introuvable');
@@ -141,30 +141,30 @@ describe('ServerPreparationGateway', () => {
 
     it('joins room and emits preparation:joined on success', async () => {
       const { jwtService, prisma, configService } = makeDeps();
-      const gw = new ServerPreparationGateway(
+      const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
       );
       const client = makeClient();
       const result = await gw.handleJoinPreparation(client, {
-        preparationId: 'prep1',
+        setupId: 'prep1',
       });
-      expect(client.join).toHaveBeenCalledWith('server-preparation:prep1');
+      expect(client.join).toHaveBeenCalledWith('server-setup:prep1');
       expect(client.emit).toHaveBeenCalledWith('preparation:joined', {
-        preparationId: 'prep1',
+        setupId: 'prep1',
       });
-      expect(result).toEqual({ ok: true, preparationId: 'prep1' });
+      expect(result).toEqual({ ok: true, setupId: 'prep1' });
     });
 
     it('queries with PREPARATION kind', async () => {
       const { jwtService, prisma, configService } = makeDeps();
-      const gw = new ServerPreparationGateway(
+      const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
       );
-      await gw.handleJoinPreparation(makeClient(), { preparationId: 'prep1' });
+      await gw.handleJoinPreparation(makeClient(), { setupId: 'prep1' });
       expect(prisma.serverRun.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'prep1', kind: ServerRunKind.PREPARATION },
@@ -176,7 +176,7 @@ describe('ServerPreparationGateway', () => {
   describe('emit helpers', () => {
     function makeGw() {
       const { jwtService, prisma, configService } = makeDeps();
-      const gw = new ServerPreparationGateway(
+      const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
@@ -196,7 +196,7 @@ describe('ServerPreparationGateway', () => {
       const { gw, emitMock } = makeGw();
       const date = new Date('2026-06-01T12:00:00.000Z');
       gw.emitLog({
-        preparationId: 'p1',
+        setupId: 'p1',
         level: 'info',
         source: 'ansible',
         message: 'ok',
@@ -213,13 +213,13 @@ describe('ServerPreparationGateway', () => {
 
     it('emitStatus emits to room', () => {
       const { gw, serverMock } = makeGw();
-      gw.emitStatus({ preparationId: 'p1', status: 'RUNNING' });
-      expect(serverMock.to).toHaveBeenCalledWith('server-preparation:p1');
+      gw.emitStatus({ setupId: 'p1', status: 'RUNNING' });
+      expect(serverMock.to).toHaveBeenCalledWith('server-setup:p1');
     });
 
     it('emitFinished emits to room', () => {
       const { gw, emitMock } = makeGw();
-      gw.emitFinished({ preparationId: 'p1', status: 'SUCCESS' });
+      gw.emitFinished({ setupId: 'p1', status: 'SUCCESS' });
       expect(emitMock).toHaveBeenCalledWith(
         'preparation:finished',
         expect.objectContaining({ status: 'SUCCESS' }),

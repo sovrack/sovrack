@@ -9,9 +9,9 @@ import {
   ServerRunStepStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { ServerPreparationAnsibleService } from '../../infrastructure/onboarding/services/server-preparation-ansible.service';
+import { ServerSetupAnsibleService } from '../../infrastructure/onboarding/services/server-setup-ansible.service';
 import { ServerRunsService } from '../../infrastructure/server-runs/server-runs.service';
-import type { PreparationRoleKey } from '../../infrastructure/servers/shared/server-preparation-options';
+import type { SetupRoleKey } from '../../infrastructure/servers/shared/server-setup-options';
 import { AutomationGateway } from '../automation.gateway';
 import {
   AUTOMATION_RUN_COMPLETED,
@@ -19,7 +19,7 @@ import {
 } from '../shared/automation-events';
 
 type RunConfig = {
-  roles: PreparationRoleKey[];
+  roles: SetupRoleKey[];
   gitlabRunnerExecutor: string;
 };
 
@@ -43,7 +43,7 @@ export class AutomationRunnerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly ansible: ServerPreparationAnsibleService,
+    private readonly ansible: ServerSetupAnsibleService,
     private readonly gateway: AutomationGateway,
     private readonly configService: ConfigService,
     private readonly events: EventEmitter2,
@@ -382,7 +382,7 @@ export class AutomationRunnerService {
     const roles = rawRoles
       .filter((item): item is string => typeof item === 'string')
       .map((role) => role.trim())
-      .filter((role): role is PreparationRoleKey => role.length > 0);
+      .filter((role): role is SetupRoleKey => role.length > 0);
 
     const gitlabRunnerExecutor =
       typeof raw.gitlabRunnerExecutor === 'string' &&

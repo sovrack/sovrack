@@ -4,7 +4,7 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersJobsService } from './servers-jobs.service';
 import { ServersConnectionService } from './servers-connection.service';
 import { ServersDetectionService } from './servers-detection.service';
-import { ServerPreparationService } from '../../onboarding/services/infra-preparation.service';
+import { ServerSetupService } from '../../onboarding/services/infra-setup.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersVerificationService } from './servers-verification.service';
 import { ServersJobsFacade } from './servers-jobs.facade';
@@ -36,7 +36,7 @@ describe('ServersJobsFacade', () => {
     } as unknown as ServersDetectionService;
     const preparation = {
       startPreparation: jest.fn().mockResolvedValue({ id: 'prep-1' }),
-    } as unknown as ServerPreparationService;
+    } as unknown as ServerSetupService;
     const audit = {
       record: jest.fn().mockResolvedValue(undefined),
     } as unknown as ServersAuditService;

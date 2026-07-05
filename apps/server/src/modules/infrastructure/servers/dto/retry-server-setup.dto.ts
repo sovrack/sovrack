@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
-export class RetryServerPreparationDto {
+export class RetryServerSetupDto {
   @ApiPropertyOptional({
     example: 'Retry after firewall package mirror outage',
   })

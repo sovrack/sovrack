@@ -40,18 +40,21 @@ export class MonitoringController {
   ) {}
 
   @Get('overview')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({ summary: 'Monitoring overview for platform operations' })
   async overview() {
     return await this.monitoringService.getOverview();
   }
 
   @Get('servers')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({ summary: 'Server monitoring status and metric snapshots' })
   async servers() {
     return await this.monitoringService.getServerMonitoring();
   }
 
   @Get('projects')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({
     summary: 'Project monitoring linked to deployments/pipelines',
   })
@@ -60,18 +63,21 @@ export class MonitoringController {
   }
 
   @Get('deployments')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({ summary: 'Deployment health and history monitoring' })
   async deployments() {
     return await this.monitoringService.getDeploymentMonitoring();
   }
 
   @Get('prometheus/status')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({ summary: 'Prometheus connectivity and target status' })
   async prometheusStatus() {
     return await this.monitoringService.getPrometheusStatus();
   }
 
   @Get('servers/:host/metrics/range')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({
     summary:
       'Historical CPU/mem/disk time-series for a host (Prometheus range)',
@@ -109,6 +115,7 @@ export class MonitoringController {
   }
 
   @Get('grafana/status')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({ summary: 'Grafana connectivity and access status' })
   async grafanaStatus() {
     return await this.monitoringService.getGrafanaStatus();
@@ -131,6 +138,7 @@ export class MonitoringController {
   }
 
   @Get('alerts')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({
     summary: 'Monitoring alerts (Alertmanager or derived alerts)',
   })

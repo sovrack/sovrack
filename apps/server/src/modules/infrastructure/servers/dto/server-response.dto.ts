@@ -11,12 +11,12 @@ import { ServerConnectionModeDto } from './create-server.dto';
 // Les DTOs de préparation vivent désormais dans un fichier dédié ; re-exportés
 // ici pour que les importeurs existants (controllers) restent inchangés.
 export {
-  ServerPreparationTaskDto,
-  ServerPreparationDto,
-  ServerPreparationLogDto,
-  ServerPreparationReadinessChecksDto,
-  ServerPreparationReadinessDto,
-} from './server-preparation-response.dto';
+  ServerSetupTaskDto,
+  ServerSetupDto,
+  ServerSetupLogDto,
+  ServerSetupReadinessChecksDto,
+  ServerSetupReadinessDto,
+} from './server-setup-response.dto';
 
 export class ServerActiveJobDto {
   @ApiProperty()

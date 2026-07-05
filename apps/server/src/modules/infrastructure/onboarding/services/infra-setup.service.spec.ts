@@ -10,11 +10,11 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from '../../servers/services/servers-audit.service';
 import { ServersVerificationService } from '../../servers/services/servers-verification.service';
 import { ServersJobsService } from '../../servers/services/servers-jobs.service';
-import { ServerPreparationGateway } from '../gateways/server-preparation.gateway';
+import { ServerSetupGateway } from '../gateways/server-setup.gateway';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
-import { ServerPreparationStateService } from './preparation/server-preparation-state.service';
-import { InfraPreparationRunnerService } from './infra-preparation-runner.service';
-import { ServerPreparationService } from './infra-preparation.service';
+import { ServerSetupStateService } from './preparation/server-setup-state.service';
+import { InfraSetupRunnerService } from './infra-setup-runner.service';
+import { ServerSetupService } from './infra-setup.service';
 
 const defaultServer = {
   id: 'srv1',
@@ -92,11 +92,11 @@ function makeSvc(
 
   const gateway = {
     emitFinished: jest.fn(),
-  } as unknown as ServerPreparationGateway;
+  } as unknown as ServerSetupGateway;
 
   const state = {
     transitionPreparation: jest.fn().mockResolvedValue({}),
-  } as unknown as ServerPreparationStateService;
+  } as unknown as ServerSetupStateService;
 
   const serverRuns = {
     getLogs: jest.fn().mockResolvedValue([]),
@@ -107,9 +107,9 @@ function makeSvc(
     runInBackground: jest.fn(),
     abort: jest.fn(),
     knownRoleKeys: new Set(['docker', 'nginx', 'system_base']),
-  } as unknown as InfraPreparationRunnerService;
+  } as unknown as InfraSetupRunnerService;
 
-  const svc = new ServerPreparationService(
+  const svc = new ServerSetupService(
     prisma,
     jobs,
     verification,
@@ -140,7 +140,7 @@ const minRun = (status: ServerRunStatus = ServerRunStatus.RUNNING) => ({
   retryOfRunId: null,
 });
 
-describe('ServerPreparationService', () => {
+describe('ServerSetupService', () => {
   describe('onModuleInit', () => {
     it('does nothing when there are no orphaned preparations', async () => {
       const { svc, state } = makeSvc({ orphans: [] });

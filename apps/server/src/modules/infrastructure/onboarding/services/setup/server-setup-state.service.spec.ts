@@ -1,16 +1,16 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ServerRunStatus, ServerRunStepStatus } from '@prisma/client';
 import { PrismaService } from '../../../../../shared/database/prisma.service';
-import { ServerPreparationGateway } from '../../gateways/server-preparation.gateway';
-import { ServerPreparationStateService } from './server-preparation-state.service';
+import { ServerSetupGateway } from '../../gateways/server-setup.gateway';
+import { ServerSetupStateService } from './server-setup-state.service';
 
-describe('ServerPreparationStateService (state machine)', () => {
+describe('ServerSetupStateService (state machine)', () => {
   let prisma: {
     serverRun: { findUnique: jest.Mock; update: jest.Mock };
     serverRunStep: { updateMany: jest.Mock };
   };
   let gateway: { emitStatus: jest.Mock };
-  let svc: ServerPreparationStateService;
+  let svc: ServerSetupStateService;
 
   beforeEach(() => {
     prisma = {
@@ -23,9 +23,9 @@ describe('ServerPreparationStateService (state machine)', () => {
       serverRunStep: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
     };
     gateway = { emitStatus: jest.fn() };
-    svc = new ServerPreparationStateService(
+    svc = new ServerSetupStateService(
       prisma as unknown as PrismaService,
-      gateway as unknown as ServerPreparationGateway,
+      gateway as unknown as ServerSetupGateway,
     );
   });
 
@@ -34,7 +34,7 @@ describe('ServerPreparationStateService (state machine)', () => {
       await svc.transitionPreparation('p1', ServerRunStatus.RESOLVING_OPTIONS);
       expect(prisma.serverRun.update).toHaveBeenCalled();
       expect(gateway.emitStatus).toHaveBeenCalledWith({
-        preparationId: 'p1',
+        setupId: 'p1',
         status: ServerRunStatus.RESOLVING_OPTIONS,
       });
     });

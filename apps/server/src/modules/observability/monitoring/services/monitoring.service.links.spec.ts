@@ -169,3 +169,75 @@ describe('MonitoringService.onAutomationRunCompleted (B4)', () => {
     expect(prisma.server.updateMany).not.toHaveBeenCalled();
   });
 });
+
+describe('MonitoringService.getServerMonitoring — backfill legacy install', () => {
+  function makeStatsService(rows: unknown[]) {
+    return { getServerMonitoring: jest.fn().mockResolvedValue(rows) };
+  }
+
+  it('stamps monitoringInstalledAt when the global Grafana URL points at an unstamped server', async () => {
+    const rows = [
+      {
+        serverId: 's1',
+        host: '10.5.5.5',
+        monitoringInstalledAt: null,
+        links: null,
+      },
+      {
+        serverId: 's2',
+        host: '10.9.9.9',
+        monitoringInstalledAt: null,
+        links: null,
+      },
+    ];
+    const stats = makeStatsService(rows);
+    const { service, prisma } = (() => {
+      const base = makeService({
+        platformValues: { MONITORING_GRAFANA_URL: 'http://10.5.5.5:3000' },
+      });
+      // rebrancher le statsService mocké
+      (base.service as unknown as { statsService: unknown }).statsService =
+        stats;
+      (
+        base.service as unknown as { prometheusService: unknown }
+      ).prometheusService = {
+        fetchPrometheusMetricsByHost: jest.fn().mockResolvedValue(new Map()),
+      };
+      return base;
+    })();
+
+    const out = (await service.getServerMonitoring()) as typeof rows;
+
+    expect(prisma.server.updateMany).toHaveBeenCalledWith({
+      where: { host: '10.5.5.5', monitoringInstalledAt: null },
+      data: { monitoringInstalledAt: expect.any(Date) },
+    });
+    expect(out[0].links).toMatchObject({
+      grafanaUrl: 'http://10.5.5.5:3000',
+      lokiUrl: 'http://10.5.5.5:3100',
+    });
+    // le serveur non concerné reste non installé
+    expect(out[1].links).toBeNull();
+  });
+
+  it('does nothing when no global Grafana URL is configured', async () => {
+    const rows = [
+      {
+        serverId: 's1',
+        host: '10.5.5.5',
+        monitoringInstalledAt: null,
+        links: null,
+      },
+    ];
+    const base = makeService({ platformValues: {} });
+    (base.service as unknown as { statsService: unknown }).statsService =
+      makeStatsService(rows);
+    (
+      base.service as unknown as { prometheusService: unknown }
+    ).prometheusService = {
+      fetchPrometheusMetricsByHost: jest.fn().mockResolvedValue(new Map()),
+    };
+    await base.service.getServerMonitoring();
+    expect(base.prisma.server.updateMany).not.toHaveBeenCalled();
+  });
+});

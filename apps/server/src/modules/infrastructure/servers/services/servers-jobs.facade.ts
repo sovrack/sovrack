@@ -15,12 +15,12 @@ import { PaginationDto } from '../../../../shared/http/pagination.dto';
 import { ServersJobsService } from './servers-jobs.service';
 import { ServersConnectionService } from './servers-connection.service';
 import { ServersDetectionService } from './servers-detection.service';
-import { ServerPreparationService } from '../../onboarding/services/infra-preparation.service';
+import { ServerSetupService } from '../../onboarding/services/infra-setup.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersVerificationService } from './servers-verification.service';
 import { InstallToolsDto } from '../dto/install-tools.dto';
 import { PrepareServerDto } from '../dto/prepare-server.dto';
-import { StartServerPreparationDto } from '../dto/start-server-preparation.dto';
+import { StartServerSetupDto } from '../dto/start-server-setup.dto';
 import {
   RegisterRunnerPayload,
   ServerActiveJob,
@@ -43,7 +43,7 @@ export class ServersJobsFacade {
     private readonly jobs: ServersJobsService,
     private readonly ssh: ServersConnectionService,
     private readonly detection: ServersDetectionService,
-    private readonly preparation: ServerPreparationService,
+    private readonly preparation: ServerSetupService,
     private readonly audit: ServersAuditService,
     private readonly verification: ServersVerificationService,
   ) {}
@@ -146,7 +146,7 @@ export class ServersJobsFacade {
     id: string,
     tools?: InstallToolsDto,
   ): Promise<ServerPublic> {
-    const payload: StartServerPreparationDto = {
+    const payload: StartServerSetupDto = {
       docker: tools?.docker ?? true,
       dockerComposePlugin: tools?.docker ?? true,
       gitlabRunner: tools?.runner ?? false,
@@ -159,7 +159,7 @@ export class ServersJobsFacade {
 
   async prepareServer(
     id: string,
-    prepare?: PrepareServerDto | StartServerPreparationDto,
+    prepare?: PrepareServerDto | StartServerSetupDto,
     actorUserId?: string,
   ): Promise<ServerPublic> {
     const server = await this.getServerById(id);
@@ -169,7 +169,7 @@ export class ServersJobsFacade {
 
   async startPreparation(
     id: string,
-    prepare?: StartServerPreparationDto,
+    prepare?: StartServerSetupDto,
     actorUserId?: string,
   ) {
     const server = await this.getServerById(id);

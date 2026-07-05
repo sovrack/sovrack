@@ -28,21 +28,25 @@ export class AutomationController {
   constructor(private readonly automationService: AutomationService) {}
 
   @Get('automation/actions')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   getActions() {
     return this.automationService.getActions();
   }
 
   @Get('automation/runs')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   getRuns(@Query() pagination: AutomationPaginationDto) {
     return this.automationService.getRuns(pagination);
   }
 
   @Get('automation/runs/:id')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   getRun(@Param('id') id: string) {
     return this.automationService.getRun(id);
   }
 
   @Get('automation/runs/:id/logs')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   getRunLogs(@Param('id') id: string, @Query('afterLine') afterLine?: string) {
     const parsedAfterLine =
       afterLine && Number.isFinite(Number(afterLine))

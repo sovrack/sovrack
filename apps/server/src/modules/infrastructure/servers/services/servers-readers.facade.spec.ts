@@ -3,7 +3,7 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersDetectionService } from './servers-detection.service';
 import { ServersVerificationService } from './servers-verification.service';
-import { ServerPreparationService } from '../../onboarding/services/infra-preparation.service';
+import { ServerSetupService } from '../../onboarding/services/infra-setup.service';
 import { AuditService } from '../../../audit/audit.service';
 import { ServersReadersFacade } from './servers-readers.facade';
 
@@ -46,7 +46,7 @@ describe('ServersReadersFacade', () => {
       getPreparationLogs: jest.fn().mockResolvedValue([]),
       retryPreparation: jest.fn().mockResolvedValue({ id: 'prep-2' }),
       cancelPreparation: jest.fn().mockResolvedValue({ id: 'prep-1' }),
-    } as unknown as ServerPreparationService;
+    } as unknown as ServerSetupService;
     const auditService = {
       record: jest.fn().mockResolvedValue(undefined),
     } as unknown as AuditService;

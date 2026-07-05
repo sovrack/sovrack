@@ -79,7 +79,59 @@ export class MonitoringService {
   async getServerMonitoring() {
     const metricByHost =
       await this.prometheusService.fetchPrometheusMetricsByHost();
-    return await this.statsService.getServerMonitoring(metricByHost);
+    const rows = await this.statsService.getServerMonitoring(metricByHost);
+    return await this.backfillLegacyMonitoringInstall(rows);
+  }
+
+  /**
+   * Auto-réparation (bug utilisateur réel) : `monitoringInstalledAt` est une
+   * colonne récente — les stacks installées AVANT son introduction ont NULL
+   * et la page Monitoring affichait « not installed » à tort. Si l'URL
+   * Grafana globale (config plateforme, posée par ces anciennes installs)
+   * pointe vers l'host d'un serveur non tamponné, on tamponne (une fois) et
+   * on renvoie ses liens immédiatement.
+   */
+  private async backfillLegacyMonitoringInstall<
+    T extends {
+      host: string;
+      monitoringInstalledAt: string | null;
+      links: {
+        grafanaUrl: string;
+        prometheusUrl: string;
+        lokiUrl: string;
+      } | null;
+    },
+  >(rows: T[]): Promise<T[]> {
+    const missing = rows.filter((r) => !r.monitoringInstalledAt);
+    if (missing.length === 0) return rows;
+    const grafanaUrl = await this.getConfigValue('MONITORING_GRAFANA_URL');
+    if (!grafanaUrl) return rows;
+    let legacyHost: string;
+    try {
+      legacyHost = new URL(grafanaUrl).hostname;
+    } catch {
+      return rows;
+    }
+    const matched = missing.filter((r) => r.host === legacyHost);
+    if (matched.length === 0) return rows;
+
+    const now = new Date();
+    await this.prisma.server.updateMany({
+      where: { host: legacyHost, monitoringInstalledAt: null },
+      data: { monitoringInstalledAt: now },
+    });
+    this.logger.log(
+      `Backfill monitoringInstalledAt (install pré-colonne détectée via MONITORING_GRAFANA_URL) → ${legacyHost}`,
+    );
+    for (const r of matched) {
+      r.monitoringInstalledAt = now.toISOString();
+      r.links = {
+        grafanaUrl: `http://${r.host}:3000`,
+        prometheusUrl: `http://${r.host}:9090`,
+        lokiUrl: `http://${r.host}:3100`,
+      };
+    }
+    return rows;
   }
 
   async getProjectMonitoring() {

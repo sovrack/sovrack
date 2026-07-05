@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { ServerPreparationProfile } from '@prisma/client';
 
-export class StartServerPreparationDto {
+export class StartServerSetupDto {
   @ApiPropertyOptional({
     enum: ServerPreparationProfile,
     default: ServerPreparationProfile.BASIC,

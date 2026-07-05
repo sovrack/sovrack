@@ -1,21 +1,21 @@
 import { Prisma, ServerRunStatus, ServerRunStepStatus } from '@prisma/client';
-import type { PreparationReadinessChecks } from './infra-preparation.util';
-import type { PreparationRoleKey } from '../../servers/shared/server-preparation-options';
+import type { SetupReadinessChecks } from './infra-setup.util';
+import type { SetupRoleKey } from '../../servers/shared/server-setup-options';
 
 // ─── Input option types ──────────────────────────────────────────────────────
 
 export type StartPreparationOptions = {
   retryOfPreparationId?: string;
   triggerSource?: string;
-  forcedRoles?: PreparationRoleKey[];
+  forcedRoles?: SetupRoleKey[];
 };
 
 // ─── Response types ──────────────────────────────────────────────────────────
 
-export type ServerPreparationReadiness = {
+export type ServerSetupReadiness = {
   serverId: string;
   isReady: boolean;
-  checks: PreparationReadinessChecks;
+  checks: SetupReadinessChecks;
   blockingReasons: string[];
   latestValidationAt: Date | null;
 };
