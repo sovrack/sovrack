@@ -329,52 +329,6 @@ export function ServiceConfigForm({
               </div>
             </div>
           )}
-          <div>
-            <label className={labelClass} htmlFor="svc-branch">
-              Branch
-            </label>
-            {/* Task 2 ("Correction rapide"): reuses DeployDialog's exact
-                branch-fetching mechanism (useProjectBranches) and its exact
-                select/fallback pattern — a datalist-based free-text combobox
-                previously sat here and, confirmed by manual test, never
-                surfaced real repo branches (e.g. "dev") as selectable
-                options. */}
-            {branchesQuery.isLoading ? (
-              <div className={`${inputClass} flex items-center gap-2 text-[var(--text-muted)]`}>
-                <Loader2 size={14} className="animate-spin" /> Loading
-                branches…
-              </div>
-            ) : branches.length > 0 ? (
-              <select
-                id="svc-branch"
-                className={inputClass}
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-              >
-                {/* The service's currently stored branch may not be in the
-                    fetched list (renamed/deleted upstream, or pagination) —
-                    keep it as a selectable option instead of silently
-                    switching the selection (and thus the saved value) to
-                    whichever branch happens to come first. */}
-                {branch && !branches.includes(branch) && (
-                  <option value={branch}>{branch} (current)</option>
-                )}
-                {branches.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                id="svc-branch"
-                className={inputClass}
-                value={branch}
-                placeholder="main"
-                onChange={(e) => setBranch(e.target.value)}
-              />
-            )}
-          </div>
         </dl>
       </SectionCard>
 
@@ -383,6 +337,49 @@ export function ServiceConfigForm({
         description="How this service is built and run."
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* P1.3 (mission finale) : Branch déplacé ici depuis la carte Source
+              — la branche est un paramètre de BUILD (que construire), pas de
+              provenance du dépôt. Logique inchangée (sélecteur dynamique
+              useProjectBranches, avec repli input + option "(current)"). */}
+          {!isExternalImage && (
+            <div className="sm:col-span-2">
+              <label className={labelClass} htmlFor="svc-branch">
+                Branch
+              </label>
+              {branchesQuery.isLoading ? (
+                <div
+                  className={`${inputClass} flex items-center gap-2 text-[var(--text-muted)]`}
+                >
+                  <Loader2 size={14} className="animate-spin" /> Loading
+                  branches…
+                </div>
+              ) : branches.length > 0 ? (
+                <select
+                  id="svc-branch"
+                  className={inputClass}
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                >
+                  {branch && !branches.includes(branch) && (
+                    <option value={branch}>{branch} (current)</option>
+                  )}
+                  {branches.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id="svc-branch"
+                  className={inputClass}
+                  value={branch}
+                  placeholder="main"
+                  onChange={(e) => setBranch(e.target.value)}
+                />
+              )}
+            </div>
+          )}
           <div>
             <label className={labelClass} htmlFor="svc-buildpack">
               Build pack
