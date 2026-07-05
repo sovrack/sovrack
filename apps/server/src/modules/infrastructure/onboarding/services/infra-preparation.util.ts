@@ -27,22 +27,18 @@ export function computeBlockingReasons(
     blockingReasons.push('Le serveur est désactivé.');
   }
   if (!checks.sshValidated) {
-    blockingReasons.push(
-      'La validation SSH doit réussir avant la préparation.',
-    );
+    blockingReasons.push('La validation SSH doit réussir avant le setup.');
   }
   if (!checks.sshReachable || !checks.authSucceeded) {
     blockingReasons.push('Dernière validation SSH absente ou échouée.');
   }
   if (!checks.sudoAvailable) {
     blockingReasons.push(
-      'sudo sans mot de passe doit être validé pour préparer ce serveur.',
+      'sudo sans mot de passe doit être validé pour lancer le setup de ce serveur.',
     );
   }
   if (!checks.noActivePreparation) {
-    blockingReasons.push(
-      'Une préparation serveur est déjà en cours pour ce VPS.',
-    );
+    blockingReasons.push('Un setup serveur est déjà en cours pour ce VPS.');
   }
   return blockingReasons;
 }
@@ -187,8 +183,8 @@ export function resolvePreparationFailureOutcome(
       ? 'Timeout: certains rôles ont réussi avant que le délai soit atteint.'
       : "Timeout: aucun rôle n'a pu terminer dans le délai imparti."
     : hasSuccessfulTask
-      ? "Préparation partielle: certains rôles ont réussi avant l'échec."
-      : 'Préparation échouée.';
+      ? "Setup partiel: certains rôles ont réussi avant l'échec."
+      : 'Setup échoué.';
 
   return { isTimeout, prepStatus, serverStatus, displayError, displaySummary };
 }

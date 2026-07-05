@@ -100,7 +100,7 @@ export class InfraPreparationRunnerService {
         });
         if (active > 0) {
           throw new BadRequestException(
-            'Une préparation serveur est déjà en cours pour ce VPS.',
+            'Un setup serveur est déjà en cours pour ce VPS.',
           );
         }
 
@@ -161,7 +161,7 @@ export class InfraPreparationRunnerService {
         error.code === 'P2002'
       ) {
         throw new BadRequestException(
-          'Une préparation serveur est déjà en cours pour ce VPS.',
+          'Un setup serveur est déjà en cours pour ce VPS.',
         );
       }
       throw error;
@@ -312,7 +312,7 @@ export class InfraPreparationRunnerService {
         where: { id: jobId },
         data: {
           status: ServerJobStatus.SUCCESS,
-          output: 'Préparation serveur terminée avec succès',
+          output: 'Setup serveur terminé avec succès',
           finishedAt: new Date(),
         },
       });

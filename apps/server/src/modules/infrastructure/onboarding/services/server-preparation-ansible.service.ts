@@ -82,7 +82,7 @@ export class ServerPreparationAnsibleService {
     assertSafeLinuxUsername(server.username);
     if (input.roles.length === 0) {
       throw new BadRequestException(
-        'Au moins une option de préparation doit être sélectionnée.',
+        'Au moins une option de setup doit être sélectionnée.',
       );
     }
 

@@ -37,7 +37,7 @@ describe('computeBlockingReasons', () => {
 
   it('flags a missing SSH validation', () => {
     expect(computeBlockingReasons(checks({ sshValidated: false }))).toEqual([
-      'La validation SSH doit réussir avant la préparation.',
+      'La validation SSH doit réussir avant le setup.',
     ]);
   });
 
@@ -52,14 +52,14 @@ describe('computeBlockingReasons', () => {
 
   it('flags missing passwordless sudo', () => {
     expect(computeBlockingReasons(checks({ sudoAvailable: false }))).toEqual([
-      'sudo sans mot de passe doit être validé pour préparer ce serveur.',
+      'sudo sans mot de passe doit être validé pour lancer le setup de ce serveur.',
     ]);
   });
 
   it('flags an already-running preparation', () => {
     expect(
       computeBlockingReasons(checks({ noActivePreparation: false })),
-    ).toEqual(['Une préparation serveur est déjà en cours pour ce VPS.']);
+    ).toEqual(['Un setup serveur est déjà en cours pour ce VPS.']);
   });
 
   it('accumulates every applicable reason', () => {
@@ -192,7 +192,7 @@ describe('resolvePreparationFailureOutcome', () => {
       prepStatus: ServerRunStatus.FAILED,
       serverStatus: ServerStatus.PREPARATION_FAILED,
       displayError: 'boom',
-      displaySummary: 'Préparation échouée.',
+      displaySummary: 'Setup échoué.',
     });
   });
 
@@ -203,8 +203,7 @@ describe('resolvePreparationFailureOutcome', () => {
       prepStatus: ServerRunStatus.PARTIAL,
       serverStatus: ServerStatus.PARTIALLY_PREPARED,
       displayError: 'boom',
-      displaySummary:
-        "Préparation partielle: certains rôles ont réussi avant l'échec.",
+      displaySummary: "Setup partiel: certains rôles ont réussi avant l'échec.",
     });
   });
 

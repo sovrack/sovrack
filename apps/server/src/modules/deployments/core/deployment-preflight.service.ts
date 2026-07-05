@@ -263,12 +263,12 @@ export class DeploymentPreflightService {
     }
     if (!DEPLOYABLE_SERVER_STATUSES.includes(server.status)) {
       throw new BadRequestException(
-        `Le serveur « ${server.name} » n'est pas prêt (statut actuel : ${server.status}). Terminez sa préparation avant de déployer.`,
+        `Le serveur « ${server.name} » n'est pas prêt (statut actuel : ${server.status}). Terminez son setup avant de déployer.`,
       );
     }
     if (!serverHasDocker(server)) {
       throw new BadRequestException(
-        `Docker n'est pas installé sur le serveur « ${server.name} ». Relancez sa préparation.`,
+        `Docker n'est pas installé sur le serveur « ${server.name} ». Relancez son setup (Setup Server).`,
       );
     }
 
@@ -279,7 +279,7 @@ export class DeploymentPreflightService {
     } catch (err) {
       if (err instanceof NotFoundException) {
         throw new BadRequestException(
-          `Aucune connexion Docker configurée pour le serveur « ${server.name} ». Relancez sa préparation.`,
+          `Aucune connexion Docker configurée pour le serveur « ${server.name} ». Relancez son setup (Setup Server).`,
         );
       }
       throw err;

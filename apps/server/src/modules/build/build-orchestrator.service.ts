@@ -213,7 +213,7 @@ export class BuildOrchestratorService {
       serviceId: service?.id ?? project.id,
       serviceName: service?.name ?? project.name,
       status: 'SUCCESS',
-      message: 'Préparation terminée avec succès.',
+      message: 'Fichiers générés avec succès.',
       dockerfileStatus: pushResult?.fileStatuses?.['Dockerfile'] ?? 'SKIPPED',
       dockerignoreStatus:
         pushResult?.fileStatuses?.['.dockerignore'] ?? 'SKIPPED',

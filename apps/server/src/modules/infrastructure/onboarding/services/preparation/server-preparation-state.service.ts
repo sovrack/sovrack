@@ -65,7 +65,7 @@ export class ServerPreparationStateService {
       select: { status: true },
     });
     if (!current) {
-      throw new NotFoundException('Préparation serveur introuvable');
+      throw new NotFoundException('Setup serveur introuvable');
     }
 
     if (

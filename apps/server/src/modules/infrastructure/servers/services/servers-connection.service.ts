@@ -299,8 +299,8 @@ export class ServersConnectionService {
     return {
       success: true,
       message: passwordlessSudoReady
-        ? 'Clé installée et accès sudo sans mot de passe prêt. Lancez la validation SSH puis la préparation du serveur.'
-        : "Clé installée et test SSH réussi. Le compte SSH n'a pas sudo sans mot de passe: configurez sudoers avant la préparation du serveur.",
+        ? 'Clé installée et accès sudo sans mot de passe prêt. Lancez la validation SSH puis le setup du serveur.'
+        : "Clé installée et test SSH réussi. Le compte SSH n'a pas sudo sans mot de passe: configurez sudoers avant le setup du serveur.",
     };
   }
 

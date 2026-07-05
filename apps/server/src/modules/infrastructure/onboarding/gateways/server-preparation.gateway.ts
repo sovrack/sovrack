@@ -95,7 +95,7 @@ export class ServerPreparationGateway implements OnGatewayConnection {
       select: { id: true },
     });
     if (!preparation) {
-      return { ok: false, preparationId, error: 'Préparation introuvable' };
+      return { ok: false, preparationId, error: 'Setup introuvable' };
     }
 
     await client.join(this.roomName(preparationId));

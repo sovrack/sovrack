@@ -90,8 +90,7 @@ export class ServerPreparationService implements OnModuleInit {
             finishedAt: new Date(),
             summary:
               'Provisioning interrupted during a backend restart. Re-run the provisioning.',
-            errorMessage:
-              'Préparation interrompue lors du redémarrage du backend.',
+            errorMessage: 'Setup interrompu lors du redémarrage du backend.',
           },
         );
         if (prep.serverId) {
@@ -169,7 +168,7 @@ export class ServerPreparationService implements OnModuleInit {
         : resolved.roles;
     if (resolvedRoles.length === 0) {
       throw new BadRequestException(
-        'Au moins une option de préparation doit être sélectionnée.',
+        'Au moins une option de setup doit être sélectionnée.',
       );
     }
 
@@ -241,7 +240,7 @@ export class ServerPreparationService implements OnModuleInit {
       include: runWithStepsInclude,
     });
     if (!run) {
-      throw new NotFoundException('Préparation serveur introuvable');
+      throw new NotFoundException('Setup serveur introuvable');
     }
     return toPreparationView(run);
   }
@@ -267,7 +266,7 @@ export class ServerPreparationService implements OnModuleInit {
   ): Promise<PreparationView> {
     const previous = await this.getPreparation(id);
     if (!previous.serverId) {
-      throw new NotFoundException('Préparation serveur introuvable');
+      throw new NotFoundException('Setup serveur introuvable');
     }
     const rawOptions = previous.selectedOptionsJson as Record<string, unknown>;
     const { _gitlabRunnerExecutor, ...boolOptions } = rawOptions;
@@ -311,13 +310,11 @@ export class ServerPreparationService implements OnModuleInit {
     const preparation = await this.getPreparation(id);
     const serverId = preparation.serverId;
     if (!serverId) {
-      throw new NotFoundException('Préparation serveur introuvable');
+      throw new NotFoundException('Setup serveur introuvable');
     }
 
     if (!ACTIVE_PREPARATION_STATUSES.includes(preparation.status)) {
-      throw new BadRequestException(
-        'Cette préparation ne peut plus être annulée.',
-      );
+      throw new BadRequestException('Ce setup ne peut plus être annulé.');
     }
 
     this.runner.abort(id);
