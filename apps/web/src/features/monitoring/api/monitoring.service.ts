@@ -95,6 +95,27 @@ export const monitoringService = {
     );
     return res.data;
   },
+
+  // B5 : liens monitoring (Grafana/Prometheus/Loki) du SERVEUR qui héberge ce
+  // service-environnement — résolus par serveur (monitoringInstalledAt),
+  // fallback config plateforme.
+  async getServiceMonitoringLinks(
+    serviceEnvId: string,
+  ): Promise<ServiceMonitoringLinks> {
+    const res = await api.get<ServiceMonitoringLinks>(
+      `/monitoring/services/${serviceEnvId}/links`,
+    );
+    return res.data;
+  },
+};
+
+export type ServiceMonitoringLinks = {
+  installed: boolean;
+  source: "server" | "platform" | null;
+  serverHost: string | null;
+  grafanaUrl: string | null;
+  prometheusUrl: string | null;
+  lokiUrl: string | null;
 };
 
 export type MetricRangePoint = { t: number; value: number | null };

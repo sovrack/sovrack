@@ -37,6 +37,7 @@ import { ServiceTerminalDialog } from "@/features/projects/components/tabs/servi
 import { ServiceDomains } from "@/features/projects/components/tabs/service/service-domains";
 import { ServicePipelines } from "@/features/projects/components/tabs/service/service-pipelines";
 import { ServiceMonitoring } from "@/features/projects/components/tabs/service/service-monitoring";
+import { ServiceMonitoringLinks } from "@/features/projects/components/tabs/service/service-monitoring-links";
 import { ServiceMetricsChart } from "@/features/projects/components/tabs/service/service-metrics-chart";
 import { ServiceLogs } from "@/features/projects/components/tabs/service/service-logs";
 import { ServiceVariablesTab } from "@/features/projects/components/tabs/service/service-variables-tab";
@@ -414,6 +415,14 @@ export default function ServiceDetailPage({
       {/* Monitoring : stats live + historique (courbes + marqueurs de déploiement) */}
       {activeTab === "monitoring" && (
         <div className="space-y-4">
+          {/* B5 : liens Grafana/Prometheus/Loki du serveur hébergeant ce
+              service-env (résolus par serveur, fallback plateforme). */}
+          <ServiceMonitoringLinks
+            serviceEnvId={
+              service.envLinks?.find((l) => l.environmentId === effectiveEnvId)
+                ?.id ?? null
+            }
+          />
           {/* C5: both sub-blocks now follow the SAME ServiceEnvironment (the
               one selected above) — "stats live" used to follow the service's
               globally-last deployment across every environment instead. */}
