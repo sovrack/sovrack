@@ -8,8 +8,6 @@ stages:
   - test
   - build
   - security
-  - deploy
-  - verify
 
 default:
   image: node:20
@@ -22,7 +20,6 @@ variables:
   ANSIBLE_PLAYBOOKS_PATH: /tmp/playbooks
   ANSIBLE_VENV_PATH: /tmp/venv
   NODE_ENV: test
-  DEPLOY_PATH: /opt/deploy-automation/backend
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
@@ -157,54 +154,3 @@ security:trivy:
   script:
     - trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --no-progress .
   allow_failure: true
-
-deploy:production:
-  stage: deploy
-  image: node:20
-  resource_group: production
-  before_script:
-    - apt-get update -y
-    - apt-get install -y --no-install-recommends openssh-client rsync
-    - mkdir -p ~/.ssh
-    - printf '%s' "$DEPLOY_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
-    - chmod 600 ~/.ssh/id_ed25519
-    - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
-  script:
-    - test -n "$DEPLOY_HOST"
-    - test -n "$DEPLOY_USER"
-    - test -n "$DEPLOY_PATH"
-    - test -n "$DEPLOY_SSH_PRIVATE_KEY"
-    - rsync -az --delete
-      --exclude '.git'
-      --exclude 'node_modules'
-      --exclude 'dist'
-      --exclude 'coverage'
-      --exclude '.env'
-      --exclude '.env.*'
-      --exclude '.ansible-venv'
-      --exclude '.ansible-local'
-      ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
-    - ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_PATH' && docker compose -f docker-compose.yml up -d --build --remove-orphans"
-  environment:
-    name: production
-    url: $DEPLOY_BASE_URL
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $DEPLOY_HOST != "" && $DEPLOY_USER != "" && $DEPLOY_PATH != "" && $DEPLOY_SSH_PRIVATE_KEY != "" && $DEPLOY_BASE_URL != ""'
-      when: manual
-    - when: never
-
-verify:production:
-  stage: verify
-  image: curlimages/curl:8.10.1
-  needs:
-    - job: deploy:production
-  script:
-    - test -n "$DEPLOY_BASE_URL"
-    - curl -fsS "$DEPLOY_BASE_URL/health/ready"
-  environment:
-    name: production
-    url: $DEPLOY_BASE_URL
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $DEPLOY_BASE_URL != ""'
-      when: on_success
-    - when: never
