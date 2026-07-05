@@ -9,7 +9,6 @@ import { AuditModule } from '../audit';
 import { ServersModule } from '../infrastructure';
 import { ProjectAccessModule } from '../catalog/authorization/project-access.module';
 import { DockerDeployExecutorService } from './core/docker-deploy-executor.service';
-import { DockerComposeExecutorService } from './core/docker-compose-executor.service';
 import { ReplicaLauncherService } from './core/replica-launcher.service';
 import { DeployFailureRecoveryService } from './core/deploy-failure-recovery.service';
 import { ImageResolverService } from './core/image-resolver.service';
@@ -69,7 +68,6 @@ import { PipelineRunsCleanupService } from './health/pipeline-runs-cleanup.servi
     DeploymentsGateway,
     DeploymentEventsPublisher,
     DockerDeployExecutorService,
-    DockerComposeExecutorService,
     ReplicaLauncherService,
     DeployFailureRecoveryService,
     ImageResolverService,

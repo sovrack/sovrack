@@ -28,7 +28,6 @@ import { DeploymentPrelaunchService } from './deployment-prelaunch.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { BLUE_GREEN_PORT_OFFSET } from '../utils/blue-green.constants';
-import { DockerComposeExecutorService } from './docker-compose-executor.service';
 import {
   ReplicaLauncherService,
   type ResolvedRuntimeConfig,
@@ -76,7 +75,6 @@ export class DockerDeployExecutorService {
     private readonly deployRouting: DeployRoutingService,
     private readonly containerLifecycle: ContainerLifecycleService,
     private readonly notifications: NotificationsService,
-    private readonly composeExecutor: DockerComposeExecutorService,
     private readonly replicaLauncher: ReplicaLauncherService,
     private readonly failureRecovery: DeployFailureRecoveryService,
   ) {}
@@ -220,9 +218,15 @@ export class DockerDeployExecutorService {
 
     if (!deployment) throw new NotFoundException('Déploiement non trouvé');
 
-    // Docker Compose deployments follow a completely different path (SSH + compose CLI).
+    // E3 (plan produit final) : l'exécuteur Compose a été retiré — la
+    // création de services COMPOSE est désactivée depuis la mission finale
+    // (wizard) et la chaîne n'a jamais été utilisable bout-en-bout. Refus
+    // explicite plutôt qu'un chemin mort maintenu (réintroduction possible
+    // depuis l'historique git si la feature revient un jour).
     if (deployment.service?.buildPack === 'DOCKER_COMPOSE') {
-      return this.composeExecutor.executeDeploy(deploymentId);
+      throw new BadRequestException(
+        'Les déploiements Docker Compose sont désactivés sur cette plateforme.',
+      );
     }
 
     // serviceEnvId is nullable in the schema only to preserve history when a
