@@ -70,6 +70,10 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .ansible-local/
 .keys/
 
+# local SSH known_hosts accumulated by dev machines connecting to test
+# servers — leaks internal IPs/hostnames, never useful to commit.
+.local/
+
 # TLS client certs fetched locally from a server by enable-docker-tls.yml —
 # credential material, never committed (see security fix 2026-07-03).
 /ansible/out/
