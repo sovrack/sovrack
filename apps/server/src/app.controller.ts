@@ -158,7 +158,10 @@ export class AppController {
     if (!this.queue) return 'disconnected';
     try {
       // BullMQ types `client` minimally; the underlying ioredis client has ping().
-      const client = (await this.withTimeout(this.queue.client, 2000)) as unknown as {
+      const client = (await this.withTimeout(
+        this.queue.client,
+        2000,
+      )) as unknown as {
         ping: () => Promise<string>;
       };
       const pong = await this.withTimeout(client.ping(), 2000);

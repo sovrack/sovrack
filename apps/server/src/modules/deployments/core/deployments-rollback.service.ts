@@ -167,9 +167,7 @@ export class DeploymentsRollbackService {
    * auto-heal), falling back to the live serviceEnvironment/environment
    * binding for older rows created before resolvedRefs existed.
    */
-  private async resolveTargetServerId(
-    deployment: Deployment,
-  ): Promise<string> {
+  private async resolveTargetServerId(deployment: Deployment): Promise<string> {
     const fromSnapshot = (
       deployment.resolvedRefs as { serverId?: string } | null
     )?.serverId;

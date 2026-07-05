@@ -60,7 +60,13 @@ describe('QueueMonitoringService', () => {
         { id: 'j2', name: 'deploy', data: {}, processedOn: Date.now() },
       ]);
       queue.getFailed.mockResolvedValue([
-        { id: 'j3', name: 'deploy', data: {}, failedReason: 'err', timestamp: Date.now() },
+        {
+          id: 'j3',
+          name: 'deploy',
+          data: {},
+          failedReason: 'err',
+          timestamp: Date.now(),
+        },
       ]);
       const result = await svc.getDetailedStatus();
       expect(result.metrics.waiting).toBe(2);

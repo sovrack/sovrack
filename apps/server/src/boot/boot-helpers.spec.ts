@@ -82,7 +82,8 @@ describe('resolveAllowedOrigins', () => {
   });
 
   it('includes FRONTEND_URLS origins in development', () => {
-    process.env.FRONTEND_URLS = 'https://app.example.com,https://staging.example.com';
+    process.env.FRONTEND_URLS =
+      'https://app.example.com,https://staging.example.com';
     const origins = resolveAllowedOrigins();
     expect(origins).toContain('https://app.example.com');
     expect(origins).toContain('https://staging.example.com');
@@ -208,11 +209,13 @@ describe('reportWebhookConfiguration', () => {
 describe('assertRequiredTables', () => {
   it('resolves when all required tables exist', async () => {
     const prisma = {
-      $queryRaw: jest.fn().mockResolvedValue([
-        { table_name: 'SshKey' },
-        { table_name: 'GitProviderConfig' },
-        { table_name: 'other' },
-      ]),
+      $queryRaw: jest
+        .fn()
+        .mockResolvedValue([
+          { table_name: 'SshKey' },
+          { table_name: 'GitProviderConfig' },
+          { table_name: 'other' },
+        ]),
     } as never;
     await expect(assertRequiredTables(prisma)).resolves.toBeUndefined();
   });
@@ -232,10 +235,12 @@ describe('assertRequiredTables', () => {
 describe('assertRequiredTablesWithRetry', () => {
   it('resolves on first attempt when tables exist', async () => {
     const prisma = {
-      $queryRaw: jest.fn().mockResolvedValue([
-        { table_name: 'SshKey' },
-        { table_name: 'GitProviderConfig' },
-      ]),
+      $queryRaw: jest
+        .fn()
+        .mockResolvedValue([
+          { table_name: 'SshKey' },
+          { table_name: 'GitProviderConfig' },
+        ]),
     } as never;
     await expect(
       assertRequiredTablesWithRetry(prisma, 3, 1),
@@ -262,9 +267,9 @@ describe('assertRequiredTablesWithRetry', () => {
     const prisma = {
       $queryRaw: jest.fn().mockResolvedValue([{ table_name: 'SshKey' }]),
     } as never;
-    await expect(
-      assertRequiredTablesWithRetry(prisma, 2, 1),
-    ).rejects.toThrow('GitProviderConfig');
+    await expect(assertRequiredTablesWithRetry(prisma, 2, 1)).rejects.toThrow(
+      'GitProviderConfig',
+    );
   });
 });
 
@@ -301,7 +306,9 @@ describe('recoverInFlightDeployments', () => {
         throw new Error('service not found');
       }),
     } as never;
-    await expect(recoverInFlightDeployments(app, logger)).resolves.toBeUndefined();
+    await expect(
+      recoverInFlightDeployments(app, logger),
+    ).resolves.toBeUndefined();
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('service not found'),
       'Bootstrap',

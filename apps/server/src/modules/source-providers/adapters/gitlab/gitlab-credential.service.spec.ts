@@ -83,7 +83,10 @@ describe('GitlabCredentialService', () => {
   describe('resolveRegistryHost', () => {
     it('returns trimmed registryUrl when provided', () => {
       const { svc } = makeSvc();
-      const host = svc.resolveRegistryHost('https://registry.example.com/', 'https://gitlab.example.com');
+      const host = svc.resolveRegistryHost(
+        'https://registry.example.com/',
+        'https://gitlab.example.com',
+      );
       expect(host).toBe('registry.example.com');
     });
 
@@ -115,24 +118,32 @@ describe('GitlabCredentialService', () => {
   describe('cleanHost', () => {
     it('strips https:// prefix', () => {
       const { svc } = makeSvc();
-      expect(svc.cleanHost('https://registry.example.com/')).toBe('registry.example.com');
+      expect(svc.cleanHost('https://registry.example.com/')).toBe(
+        'registry.example.com',
+      );
     });
 
     it('strips http:// prefix', () => {
       const { svc } = makeSvc();
-      expect(svc.cleanHost('http://registry.example.com')).toBe('registry.example.com');
+      expect(svc.cleanHost('http://registry.example.com')).toBe(
+        'registry.example.com',
+      );
     });
 
     it('strips trailing slashes', () => {
       const { svc } = makeSvc();
-      expect(svc.cleanHost('registry.example.com/')).toBe('registry.example.com');
+      expect(svc.cleanHost('registry.example.com/')).toBe(
+        'registry.example.com',
+      );
     });
   });
 
   describe('extractRegistryUrl', () => {
     it('extracts host from a valid URL', () => {
       const { svc } = makeSvc();
-      expect(svc.extractRegistryUrl('https://gitlab.example.com')).toBe('gitlab.example.com');
+      expect(svc.extractRegistryUrl('https://gitlab.example.com')).toBe(
+        'gitlab.example.com',
+      );
     });
 
     it('returns the raw value for an invalid URL', () => {
@@ -144,7 +155,9 @@ describe('GitlabCredentialService', () => {
   describe('extractPathFromUrl', () => {
     it('extracts the path from a valid GitLab URL', () => {
       const { svc } = makeSvc();
-      expect(svc.extractPathFromUrl('https://gitlab.com/group/repo.git')).toBe('group/repo');
+      expect(svc.extractPathFromUrl('https://gitlab.com/group/repo.git')).toBe(
+        'group/repo',
+      );
     });
 
     it('strips .git suffix', () => {
@@ -166,21 +179,15 @@ describe('GitlabCredentialService', () => {
   describe('isPlaceholderPath', () => {
     it('returns true for a project placeholder path', () => {
       const { svc } = makeSvc();
-      expect(
-        svc.isPlaceholderPath(
-          { externalId: 42 },
-          'project-42/repo',
-        ),
-      ).toBe(true);
+      expect(svc.isPlaceholderPath({ externalId: 42 }, 'project-42/repo')).toBe(
+        true,
+      );
     });
 
     it('returns true for a group placeholder path', () => {
       const { svc } = makeSvc();
       expect(
-        svc.isPlaceholderPath(
-          { externalGroupId: 7 },
-          'group-7/project',
-        ),
+        svc.isPlaceholderPath({ externalGroupId: 7 }, 'group-7/project'),
       ).toBe(true);
     });
 

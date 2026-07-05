@@ -29,7 +29,10 @@ describe('DeploymentsStaleRecoveryService', () => {
 
     const call = findMany.mock.calls[0][0];
     expect(call.where.status.in).toEqual(
-      expect.arrayContaining([DeploymentStatus.RUNNING, DeploymentStatus.PENDING]),
+      expect.arrayContaining([
+        DeploymentStatus.RUNNING,
+        DeploymentStatus.PENDING,
+      ]),
     );
 
     const cutoff: Date = call.where.updatedAt.lt;

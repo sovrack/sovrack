@@ -102,7 +102,10 @@ export class ServicesCredentialsService {
       );
     }
 
-    const creds = (service.databaseCredentials ?? {}) as Record<string, unknown>;
+    const creds = (service.databaseCredentials ?? {}) as Record<
+      string,
+      unknown
+    >;
     const user = typeof creds.user === 'string' ? creds.user : 'app';
     const dbName = typeof creds.dbName === 'string' ? creds.dbName : 'app';
     const password =

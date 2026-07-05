@@ -301,9 +301,7 @@ export class GitlabAdapter implements IGitProvider {
   async resolveRegistryCredentials(
     projectId: string,
   ): Promise<RegistryCredentials> {
-    const { config } = await this.imageRefService.loadResolvedConfig(
-      projectId,
-    );
+    const { config } = await this.imageRefService.loadResolvedConfig(projectId);
     return this.resolveRegistryCredentialsFromConfig(config);
   }
 
@@ -311,9 +309,7 @@ export class GitlabAdapter implements IGitProvider {
     projectId: string,
     preferredRepoId?: number | string,
   ): Promise<string> {
-    const { config } = await this.imageRefService.loadResolvedConfig(
-      projectId,
-    );
+    const { config } = await this.imageRefService.loadResolvedConfig(projectId);
     return this.resolveRepositoryPathFromConfig(
       config,
       config.defaultBranch ?? '',

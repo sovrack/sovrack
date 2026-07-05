@@ -510,10 +510,15 @@ export class InfraPreparationRunnerService {
         'orchestrator',
         `Docker TLS connection registered automatically (${endpoint}).`,
       );
-      await this.audit.record(server.id, 'DOCKER_CONNECTION_AUTO_REGISTERED', null, {
-        endpoint,
-        via: 'preparation:docker_tls',
-      });
+      await this.audit.record(
+        server.id,
+        'DOCKER_CONNECTION_AUTO_REGISTERED',
+        null,
+        {
+          endpoint,
+          via: 'preparation:docker_tls',
+        },
+      );
     } catch (error) {
       await this.appendLog(
         preparationId,

@@ -24,26 +24,36 @@ describe('PipelineRunsCleanupService', () => {
   it('marks PENDING rows older than 7 days as FAILED', async () => {
     await service.cleanupStalePipelineRuns();
 
-    const call = updateMany.mock.calls.find((c) => c[0].where.status === 'PENDING');
+    const call = updateMany.mock.calls.find(
+      (c) => c[0].where.status === 'PENDING',
+    );
     expect(call).toBeDefined();
     expect(call[0].data).toEqual({ status: 'FAILED' });
 
     const cutoff: Date = call[0].where.createdAt.lt;
     const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-    expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(sevenDaysMs - 1000);
-    expect(Date.now() - cutoff.getTime()).toBeLessThanOrEqual(sevenDaysMs + 1000);
+    expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(
+      sevenDaysMs - 1000,
+    );
+    expect(Date.now() - cutoff.getTime()).toBeLessThanOrEqual(
+      sevenDaysMs + 1000,
+    );
   });
 
   it('marks RUNNING rows older than 24 h as FAILED', async () => {
     await service.cleanupStalePipelineRuns();
 
-    const call = updateMany.mock.calls.find((c) => c[0].where.status === 'RUNNING');
+    const call = updateMany.mock.calls.find(
+      (c) => c[0].where.status === 'RUNNING',
+    );
     expect(call).toBeDefined();
     expect(call[0].data).toEqual({ status: 'FAILED' });
 
     const cutoff: Date = call[0].where.updatedAt.lt;
     const oneDayMs = 24 * 60 * 60 * 1000;
-    expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(oneDayMs - 1000);
+    expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(
+      oneDayMs - 1000,
+    );
     expect(Date.now() - cutoff.getTime()).toBeLessThanOrEqual(oneDayMs + 1000);
   });
 
@@ -57,8 +67,12 @@ describe('PipelineRunsCleanupService', () => {
 
     const cutoff: Date = call.where.updatedAt.lt;
     const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
-    expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(ninetyDaysMs - 1000);
-    expect(Date.now() - cutoff.getTime()).toBeLessThanOrEqual(ninetyDaysMs + 1000);
+    expect(Date.now() - cutoff.getTime()).toBeGreaterThanOrEqual(
+      ninetyDaysMs - 1000,
+    );
+    expect(Date.now() - cutoff.getTime()).toBeLessThanOrEqual(
+      ninetyDaysMs + 1000,
+    );
   });
 
   it('completes without throwing when no rows match', async () => {

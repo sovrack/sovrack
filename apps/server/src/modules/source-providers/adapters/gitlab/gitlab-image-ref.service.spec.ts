@@ -5,15 +5,19 @@ import { GitlabImageRefService } from './gitlab-image-ref.service';
 // Extracted from GitlabAdapter — see EXPLORATION_BACKEND_DEPENDANCES.md
 // section 4. loadResolvedConfig/resolveRepositoryPathFromConfig/
 // resolveDockerImageRef behaviour ported unchanged.
-function harness(opts: {
-  projectFound?: boolean;
-  gitProviderConfigFound?: boolean;
-} = {}) {
+function harness(
+  opts: {
+    projectFound?: boolean;
+    gitProviderConfigFound?: boolean;
+  } = {},
+) {
   const prisma = {
     project: {
       findUnique: jest
         .fn()
-        .mockResolvedValue(opts.projectFound !== false ? { name: 'my-proj' } : null),
+        .mockResolvedValue(
+          opts.projectFound !== false ? { name: 'my-proj' } : null,
+        ),
     },
     service: {
       findFirst: jest.fn().mockResolvedValue(

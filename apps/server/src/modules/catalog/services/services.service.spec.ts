@@ -229,7 +229,13 @@ describe('ServicesService — CRUD', () => {
     prisma.service.findFirst.mockResolvedValue({ id: 's1' });
     prisma.service.update.mockResolvedValue({ id: 's1' });
 
-    await service.update(projectId, 's1', { name: 'renamed' } as never, userId, Role.ADMIN);
+    await service.update(
+      projectId,
+      's1',
+      { name: 'renamed' } as never,
+      userId,
+      Role.ADMIN,
+    );
 
     const arg = prisma.service.update.mock.calls[0][0];
     expect(arg.omit).toEqual({

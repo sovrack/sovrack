@@ -4,20 +4,24 @@ import { PrismaService } from '../../shared/database/prisma.service';
 import { CryptoService } from '../../shared/crypto/crypto.service';
 import { PlatformService } from './platform.service';
 
-function makeSvc(opts: {
-  record?: { key: string; value: string; isSecret: boolean } | null;
-  allRecords?: { key: string; value: string; isSecret: boolean }[];
-  webhookUrl?: string;
-} = {}) {
+function makeSvc(
+  opts: {
+    record?: { key: string; value: string; isSecret: boolean } | null;
+    allRecords?: { key: string; value: string; isSecret: boolean }[];
+    webhookUrl?: string;
+  } = {},
+) {
   const record = 'record' in opts ? opts.record : null;
 
   const prisma = {
     platformConfig: {
       findUnique: jest.fn().mockResolvedValue(record),
       findMany: jest.fn().mockResolvedValue(opts.allRecords ?? []),
-      upsert: jest.fn().mockImplementation(({ create }: { create: unknown }) =>
-        Promise.resolve(create),
-      ),
+      upsert: jest
+        .fn()
+        .mockImplementation(({ create }: { create: unknown }) =>
+          Promise.resolve(create),
+        ),
     },
   } as unknown as PrismaService;
 
@@ -64,7 +68,11 @@ describe('PlatformService', () => {
 
     it('returns value when key exists', async () => {
       const { svc } = makeSvc({
-        record: { key: 'WEBHOOK', value: 'https://api.example.com', isSecret: false },
+        record: {
+          key: 'WEBHOOK',
+          value: 'https://api.example.com',
+          isSecret: false,
+        },
       });
       expect(await svc.getOrFail('WEBHOOK')).toBe('https://api.example.com');
     });
@@ -73,13 +81,20 @@ describe('PlatformService', () => {
   describe('resolveWebhookBaseUrl', () => {
     it('returns DB value when WEBHOOK_BASE_URL is set', async () => {
       const { svc } = makeSvc({
-        record: { key: 'WEBHOOK_BASE_URL', value: 'https://platform.io', isSecret: false },
+        record: {
+          key: 'WEBHOOK_BASE_URL',
+          value: 'https://platform.io',
+          isSecret: false,
+        },
       });
       expect(await svc.resolveWebhookBaseUrl()).toBe('https://platform.io');
     });
 
     it('falls back to env var when DB value is absent', async () => {
-      const { svc } = makeSvc({ record: null, webhookUrl: 'https://env.example.com' });
+      const { svc } = makeSvc({
+        record: null,
+        webhookUrl: 'https://env.example.com',
+      });
       expect(await svc.resolveWebhookBaseUrl()).toBe('https://env.example.com');
     });
 
@@ -92,7 +107,11 @@ describe('PlatformService', () => {
   describe('buildWebhookUrl', () => {
     it('builds a webhook URL from the base', async () => {
       const { svc } = makeSvc({
-        record: { key: 'WEBHOOK_BASE_URL', value: 'https://platform.io', isSecret: false },
+        record: {
+          key: 'WEBHOOK_BASE_URL',
+          value: 'https://platform.io',
+          isSecret: false,
+        },
       });
       const url = await svc.buildWebhookUrl('/api/webhooks/inbound');
       expect(url).toBe('https://platform.io/api/webhooks/inbound');
@@ -100,7 +119,11 @@ describe('PlatformService', () => {
 
     it('strips trailing slash from base and leading slash from path', async () => {
       const { svc } = makeSvc({
-        record: { key: 'WEBHOOK_BASE_URL', value: 'https://platform.io/', isSecret: false },
+        record: {
+          key: 'WEBHOOK_BASE_URL',
+          value: 'https://platform.io/',
+          isSecret: false,
+        },
       });
       const url = await svc.buildWebhookUrl('webhooks');
       expect(url).toBe('https://platform.io/webhooks');
@@ -108,7 +131,9 @@ describe('PlatformService', () => {
 
     it('throws NotFoundException when base URL is missing and throwIfMissing=true', async () => {
       const { svc } = makeSvc({ record: null, webhookUrl: '' });
-      await expect(svc.buildWebhookUrl('/hook')).rejects.toThrow(NotFoundException);
+      await expect(svc.buildWebhookUrl('/hook')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns empty string when base URL is missing and throwIfMissing=false', async () => {
@@ -134,7 +159,8 @@ describe('PlatformService', () => {
       const { svc, crypto, prisma } = makeSvc({ record: null });
       await svc.set('API_KEY', 'secret123', true);
       expect(crypto.encrypt).toHaveBeenCalledWith('secret123');
-      const upsertCall = (prisma.platformConfig.upsert as jest.Mock).mock.calls[0][0];
+      const upsertCall = (prisma.platformConfig.upsert as jest.Mock).mock
+        .calls[0][0];
       expect(upsertCall.create.value).toBe('enc:secret123');
     });
 
@@ -143,7 +169,8 @@ describe('PlatformService', () => {
         record: { key: 'API_KEY', value: 'old-enc', isSecret: true },
       });
       await svc.set('API_KEY', '***');
-      const upsertCall = (prisma.platformConfig.upsert as jest.Mock).mock.calls[0][0];
+      const upsertCall = (prisma.platformConfig.upsert as jest.Mock).mock
+        .calls[0][0];
       // masked → keep existing encrypted value
       expect(upsertCall.update.value).toBe('old-enc');
     });

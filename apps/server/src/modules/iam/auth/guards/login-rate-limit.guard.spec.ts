@@ -31,8 +31,12 @@ describe('LoginRateLimitGuard', () => {
     for (let i = 0; i < 5; i++) {
       guard.canActivate(makeContext('5.5.5.5'));
     }
-    expect(() => guard.canActivate(makeContext('5.5.5.5'))).toThrow(HttpException);
-    expect(() => guard.canActivate(makeContext('5.5.5.5'))).toThrow('Trop de tentatives');
+    expect(() => guard.canActivate(makeContext('5.5.5.5'))).toThrow(
+      HttpException,
+    );
+    expect(() => guard.canActivate(makeContext('5.5.5.5'))).toThrow(
+      'Trop de tentatives',
+    );
   });
 
   it('does not affect a different IP', () => {
@@ -50,7 +54,9 @@ describe('LoginRateLimitGuard', () => {
 
   it('extracts first IP from x-forwarded-for array header', () => {
     const guard = new LoginRateLimitGuard();
-    expect(guard.canActivate(makeContext('unknown', ['10.0.0.2', '10.0.0.3']))).toBe(true);
+    expect(
+      guard.canActivate(makeContext('unknown', ['10.0.0.2', '10.0.0.3'])),
+    ).toBe(true);
   });
 
   it('falls back to request.ip when no forwarded header is present', () => {

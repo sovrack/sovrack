@@ -3,26 +3,37 @@ import { Role } from '@prisma/client';
 import { AnsibleRunnerService } from '../../../adapters/provisioning/ansible-runner.service';
 import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { SslCertificateService, SslCertificateRequest } from './ssl-certificate.service';
+import {
+  SslCertificateService,
+  SslCertificateRequest,
+} from './ssl-certificate.service';
 
-function makeSvc(opts: {
-  server?: unknown;
-  cert?: unknown;
-  certs?: unknown[];
-} = {}) {
+function makeSvc(
+  opts: {
+    server?: unknown;
+    cert?: unknown;
+    certs?: unknown[];
+  } = {},
+) {
   const prisma = {
     server: {
-      findUnique: jest.fn().mockResolvedValue(
-        'server' in opts ? opts.server : { environment: { projectId: 'proj1' } },
-      ),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue(
+          'server' in opts
+            ? opts.server
+            : { environment: { projectId: 'proj1' } },
+        ),
     },
     sslCertificate: {
       upsert: jest.fn().mockResolvedValue({}),
       findUnique: jest.fn().mockResolvedValue(
-        'cert' in opts ? opts.cert : {
-          domainName: 'example.com',
-          domain: { projectId: 'proj1', serviceEnv: null },
-        },
+        'cert' in opts
+          ? opts.cert
+          : {
+              domainName: 'example.com',
+              domain: { projectId: 'proj1', serviceEnv: null },
+            },
       ),
       findMany: jest.fn().mockResolvedValue(opts.certs ?? []),
     },
@@ -72,7 +83,8 @@ describe('SslCertificateService', () => {
     it('runs the ssl-certbot.yml playbook with correct extra-vars', async () => {
       const { svc, ansibleRunner } = makeSvc();
       await svc.issueAndConfigure(request, 'u1', Role.ADMIN);
-      const args: string[] = (ansibleRunner.runPlaybook as jest.Mock).mock.calls[0][0];
+      const args: string[] = (ansibleRunner.runPlaybook as jest.Mock).mock
+        .calls[0][0];
       expect(args[0]).toContain('ssl-certbot.yml');
       const extraVars = JSON.parse(args[args.indexOf('--extra-vars') + 1]) as {
         domain_name: string;
@@ -88,7 +100,10 @@ describe('SslCertificateService', () => {
       expect(prisma.sslCertificate.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { domainName: 'example.com' },
-          create: expect.objectContaining({ domainName: 'example.com', autoRenewal: true }),
+          create: expect.objectContaining({
+            domainName: 'example.com',
+            autoRenewal: true,
+          }),
         }),
       );
     });
@@ -106,13 +121,16 @@ describe('SslCertificateService', () => {
   describe('revoke', () => {
     it('throws NotFoundException when certificate not found', async () => {
       const { svc } = makeSvc({ cert: null });
-      await expect(svc.revoke('missing.com', 'u1', Role.ADMIN)).rejects.toThrow(NotFoundException);
+      await expect(svc.revoke('missing.com', 'u1', Role.ADMIN)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('runs the ssl-revoke.yml playbook', async () => {
       const { svc, ansibleRunner } = makeSvc();
       await svc.revoke('example.com', 'u1', Role.ADMIN);
-      const args: string[] = (ansibleRunner.runPlaybook as jest.Mock).mock.calls[0][0];
+      const args: string[] = (ansibleRunner.runPlaybook as jest.Mock).mock
+        .calls[0][0];
       expect(args[0]).toContain('ssl-revoke.yml');
     });
 
@@ -149,15 +167,23 @@ describe('SslCertificateService', () => {
     it('returns certs expiring within the given days window', async () => {
       const now = new Date();
       const { svc, prisma } = makeSvc({
-        certs: [{ domainName: 'exp.com', expiresAt: new Date(now.getTime() + 10 * 86400000) }],
+        certs: [
+          {
+            domainName: 'exp.com',
+            expiresAt: new Date(now.getTime() + 10 * 86400000),
+          },
+        ],
       });
       const result = await svc.getExpiringCertificates(30);
       expect(result).toHaveLength(1);
-      const call = (prisma.sslCertificate.findMany as jest.Mock).mock.calls[0][0];
+      const call = (prisma.sslCertificate.findMany as jest.Mock).mock
+        .calls[0][0];
       expect(call.where.autoRenewal).toBe(true);
       const threshold: Date = call.where.expiresAt.lt;
       const expectedThresholdMs = 30 * 86400000;
-      expect(threshold.getTime() - Date.now()).toBeGreaterThan(expectedThresholdMs - 2000);
+      expect(threshold.getTime() - Date.now()).toBeGreaterThan(
+        expectedThresholdMs - 2000,
+      );
     });
 
     it('uses 30 days as the default window', async () => {

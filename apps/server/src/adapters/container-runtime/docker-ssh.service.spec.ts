@@ -2,7 +2,9 @@ import type { SshConnection, SshExecResult } from '../ssh/ssh-executor.service';
 import { DockerSshService } from './docker-ssh.service';
 
 function makeExec(stdout = '', stderr = '', code = 0): jest.Mock {
-  return jest.fn().mockResolvedValue({ stdout, stderr, code } satisfies SshExecResult);
+  return jest
+    .fn()
+    .mockResolvedValue({ stdout, stderr, code } satisfies SshExecResult);
 }
 
 function makeSvc(execMock?: jest.Mock) {
@@ -45,7 +47,9 @@ describe('DockerSshService', () => {
   describe('findContainerByName', () => {
     it('returns the first matching container name', async () => {
       const { svc, conn } = makeSvc(makeExec('deploy-myapp-api-abc1\n'));
-      expect(await svc.findContainerByName(conn, 'myapp')).toBe('deploy-myapp-api-abc1');
+      expect(await svc.findContainerByName(conn, 'myapp')).toBe(
+        'deploy-myapp-api-abc1',
+      );
     });
 
     it('returns empty string when no container matches', async () => {
@@ -112,7 +116,9 @@ describe('DockerSshService', () => {
   describe('imageDigest', () => {
     it('returns sha256 digest from stdout', async () => {
       const { svc, conn } = makeSvc(makeExec('sha256:abc123def456\n'));
-      expect(await svc.imageDigest(conn, 'app:latest')).toBe('sha256:abc123def456');
+      expect(await svc.imageDigest(conn, 'app:latest')).toBe(
+        'sha256:abc123def456',
+      );
     });
 
     it('returns null when no sha256 line is found', async () => {
@@ -124,7 +130,9 @@ describe('DockerSshService', () => {
       const { svc, conn } = makeSvc(
         makeExec('sha256:firsthash\nsome other line\n'),
       );
-      expect(await svc.imageDigest(conn, 'app:latest')).toBe('sha256:firsthash');
+      expect(await svc.imageDigest(conn, 'app:latest')).toBe(
+        'sha256:firsthash',
+      );
     });
   });
 

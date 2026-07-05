@@ -65,9 +65,11 @@ describe('InfraPreparationRunnerService', () => {
     } as unknown as ServersAuditService;
     const dockerConnections = {
       upsert: jest.fn().mockResolvedValue({ id: 'conn-1' }),
-      probeReachability: jest
-        .fn()
-        .mockResolvedValue({ isReachable: true, apiVersion: '1.47', latencyMs: 12 }),
+      probeReachability: jest.fn().mockResolvedValue({
+        isReachable: true,
+        apiVersion: '1.47',
+        latencyMs: 12,
+      }),
     };
     const gateway = {
       emitLog: jest.fn(),
@@ -314,7 +316,9 @@ describe('InfraPreparationRunnerService', () => {
     it('does not fail the preparation when the upsert itself fails (logged as ERROR)', async () => {
       const { runner, dockerConnections, serverRuns } = build();
       dockerConnections.upsert.mockRejectedValueOnce(new Error('db down'));
-      await expect(call(runner, srv, 'run-1', material)).resolves.toBeUndefined();
+      await expect(
+        call(runner, srv, 'run-1', material),
+      ).resolves.toBeUndefined();
       expect(serverRuns.appendLog).toHaveBeenCalledWith(
         'run-1',
         expect.objectContaining({ level: ServerLogLevel.ERROR }),

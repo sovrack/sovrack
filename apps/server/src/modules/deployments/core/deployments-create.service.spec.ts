@@ -1,5 +1,11 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { DeploymentStatus, DeploymentStrategy, ManagedServiceType, Role, ServiceType } from '@prisma/client';
+import {
+  DeploymentStatus,
+  DeploymentStrategy,
+  ManagedServiceType,
+  Role,
+  ServiceType,
+} from '@prisma/client';
 import { DeploymentsCreateService } from './deployments-create.service';
 import { buildAppSpecSnapshot } from '../utils/spec-snapshot.util';
 
@@ -25,10 +31,12 @@ const baseDeployment = {
   dockerImage: null,
 };
 
-function makeServiceEnv(overrides: Partial<{
-  serviceType: ServiceType;
-  databaseType: ManagedServiceType | null;
-}> = {}) {
+function makeServiceEnv(
+  overrides: Partial<{
+    serviceType: ServiceType;
+    databaseType: ManagedServiceType | null;
+  }> = {},
+) {
   const serviceType = overrides.serviceType ?? ServiceType.APP;
   return {
     id: 'senv1',
@@ -51,26 +59,36 @@ function makeServiceEnv(overrides: Partial<{
     environment: {
       id: 'env1',
       project: { id: 'proj1', name: 'my-project', maxConcurrentDeploys: null },
-      servers: [{ id: 'srv1', name: 'prod', host: '1.2.3.4', port: 22, username: 'ubuntu' }],
+      servers: [
+        {
+          id: 'srv1',
+          name: 'prod',
+          host: '1.2.3.4',
+          port: 22,
+          username: 'ubuntu',
+        },
+      ],
     },
   };
 }
 
-function makeDeps(opts: {
-  serviceEnvFound?: boolean;
-  serviceType?: ServiceType;
-  databaseType?: ManagedServiceType | null;
-  needsDirectTrigger?: boolean;
-  pipelineError?: Error;
-  resolvedConfig?: Partial<{
-    buildSource: string;
-    isLocalBuild: boolean;
-    branch: string;
-    dockerImage: string | null;
-    resolvedNixpacksConfig: unknown;
-    resolvedStaticConfig: unknown;
-  }>;
-} = {}) {
+function makeDeps(
+  opts: {
+    serviceEnvFound?: boolean;
+    serviceType?: ServiceType;
+    databaseType?: ManagedServiceType | null;
+    needsDirectTrigger?: boolean;
+    pipelineError?: Error;
+    resolvedConfig?: Partial<{
+      buildSource: string;
+      isLocalBuild: boolean;
+      branch: string;
+      dockerImage: string | null;
+      resolvedNixpacksConfig: unknown;
+      resolvedStaticConfig: unknown;
+    }>;
+  } = {},
+) {
   const senv = makeServiceEnv({
     serviceType: opts.serviceType,
     databaseType: opts.databaseType,
@@ -80,19 +98,21 @@ function makeDeps(opts: {
 
   const prisma = {
     serviceEnvironment: {
-      findUnique: opts.serviceEnvFound === false
-        ? jest.fn().mockResolvedValue(null)
-        : jest.fn().mockResolvedValue(senv),
+      findUnique:
+        opts.serviceEnvFound === false
+          ? jest.fn().mockResolvedValue(null)
+          : jest.fn().mockResolvedValue(senv),
     },
     deployment: {
       create: jest.fn().mockResolvedValue(txDeployment),
       // Merges `data` into the base row so callers that read the RETURN
       // value (e.g. gateway.emitFinished({ status: failed.status, ... }))
       // see the actual status/finishedAt just written, not a stale fixture.
-      update: jest.fn().mockImplementation(
-        ({ data }: { data: Record<string, unknown> }) =>
+      update: jest
+        .fn()
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) =>
           Promise.resolve({ ...txDeployment, ...data }),
-      ),
+        ),
     },
     pipelineRun: {
       upsert: jest.fn().mockResolvedValue({}),
@@ -100,7 +120,9 @@ function makeDeps(opts: {
     $transaction: jest.fn().mockImplementation((cb: (tx: unknown) => unknown) =>
       cb({
         deployment: { create: jest.fn().mockResolvedValue(txDeployment) },
-        serviceEnvironment: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+        serviceEnvironment: {
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
       }),
     ),
   } as never;
@@ -156,7 +178,9 @@ function makeDeps(opts: {
   const gitProvidersService = {
     triggerPipeline: opts.pipelineError
       ? jest.fn().mockRejectedValue(opts.pipelineError)
-      : jest.fn().mockResolvedValue({ id: 99, webUrl: 'https://ci.example.com/99' }),
+      : jest
+          .fn()
+          .mockResolvedValue({ id: 99, webUrl: 'https://ci.example.com/99' }),
     resolveProviderType: jest.fn().mockResolvedValue('GITLAB'),
   } as never;
 
@@ -173,8 +197,15 @@ function makeDeps(opts: {
       auditService,
       queueService,
     ),
-    prisma, authorizationService, configResolver, gateway, buildsService,
-    buildStrategyResolver, auditService, queueService, gitProvidersService,
+    prisma,
+    authorizationService,
+    configResolver,
+    gateway,
+    buildsService,
+    buildStrategyResolver,
+    auditService,
+    queueService,
+    gitProvidersService,
     preflight,
   };
 }
@@ -183,8 +214,9 @@ describe('DeploymentsCreateService', () => {
   describe('create', () => {
     it('throws NotFoundException when serviceEnv not found', async () => {
       const { svc } = makeDeps({ serviceEnvFound: false });
-      await expect(svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1'))
-        .rejects.toThrow(NotFoundException);
+      await expect(
+        svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1'),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('routes to createDatabaseDeployment for DATABASE services', async () => {
@@ -234,7 +266,9 @@ describe('DeploymentsCreateService', () => {
       const { svc, authorizationService } = makeDeps();
       await svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1');
       expect(authorizationService.assertCanDeployProject).toHaveBeenCalledWith(
-        'proj1', 'user1', Role.ADMIN,
+        'proj1',
+        'user1',
+        Role.ADMIN,
       );
     });
 
@@ -249,7 +283,9 @@ describe('DeploymentsCreateService', () => {
     });
 
     it('direct trigger path: calls enqueueDeploy and emits status', async () => {
-      const { svc, queueService, gateway } = makeDeps({ needsDirectTrigger: true });
+      const { svc, queueService, gateway } = makeDeps({
+        needsDirectTrigger: true,
+      });
       await svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1');
       expect(queueService.enqueueDeploy).toHaveBeenCalledWith('dep1');
       expect(gateway.emitStatus).toHaveBeenCalledWith({
@@ -259,14 +295,21 @@ describe('DeploymentsCreateService', () => {
     });
 
     it('pipeline path: triggers pipeline and upserts pipeline run', async () => {
-      const { svc, gitProvidersService, prisma } = makeDeps({ needsDirectTrigger: false });
+      const { svc, gitProvidersService, prisma } = makeDeps({
+        needsDirectTrigger: false,
+      });
       await svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1');
       expect(gitProvidersService.triggerPipeline).toHaveBeenCalledWith(
-        'proj1', 'main', 'user1', Role.ADMIN,
+        'proj1',
+        'main',
+        'user1',
+        Role.ADMIN,
       );
       expect(prisma.pipelineRun.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { externalId_provider: { externalId: 99n, provider: 'GITLAB' } },
+          where: {
+            externalId_provider: { externalId: 99n, provider: 'GITLAB' },
+          },
           create: expect.objectContaining({
             externalId: 99n,
             provider: 'GITLAB',
@@ -289,7 +332,9 @@ describe('DeploymentsCreateService', () => {
         svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1'),
       ).rejects.toThrow('CI unavailable');
       expect(prisma.deployment.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ status: DeploymentStatus.FAILED }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ status: DeploymentStatus.FAILED }),
+        }),
       );
     });
 
@@ -298,7 +343,9 @@ describe('DeploymentsCreateService', () => {
         needsDirectTrigger: false,
         pipelineError: new Error('CI down'),
       });
-      await expect(svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1')).rejects.toThrow();
+      await expect(
+        svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1'),
+      ).rejects.toThrow();
       expect(gateway.emitFinished).toHaveBeenCalledWith({
         deploymentId: 'dep1',
         status: DeploymentStatus.FAILED,
@@ -309,7 +356,10 @@ describe('DeploymentsCreateService', () => {
     it('uses blue-green strategy when dto.strategy is blue-green', async () => {
       const { svc } = makeDeps({ needsDirectTrigger: true });
       (buildAppSpecSnapshot as jest.Mock).mockClear();
-      await svc.create({ serviceEnvId: 'senv1', branch: 'main', strategy: 'blue-green' }, 'user1');
+      await svc.create(
+        { serviceEnvId: 'senv1', branch: 'main', strategy: 'blue-green' },
+        'user1',
+      );
       // The strategy is frozen into the specSnapshot at creation time — assert
       // the snapshot builder actually received BLUE_GREEN, not just that some
       // transaction ran (which would pass for either strategy).

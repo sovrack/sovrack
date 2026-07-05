@@ -5,7 +5,12 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { BuildPack, CircuitState, ServerStatus, ServiceType } from '@prisma/client';
+import {
+  BuildPack,
+  CircuitState,
+  ServerStatus,
+  ServiceType,
+} from '@prisma/client';
 import * as yaml from 'js-yaml';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
@@ -372,9 +377,7 @@ export class DeploymentPreflightService {
     }
   }
 
-  private assertComposeContentValid(
-    content: string | null | undefined,
-  ): void {
+  private assertComposeContentValid(content: string | null | undefined): void {
     if (!content || !content.trim()) {
       throw new BadRequestException(
         "Le service n'a pas de contenu docker-compose. Renseignez le champ « Docker Compose » du service.",
@@ -383,7 +386,8 @@ export class DeploymentPreflightService {
     try {
       yaml.load(content);
     } catch (err) {
-      const reason = err instanceof Error ? err.message : 'erreur de parsing YAML';
+      const reason =
+        err instanceof Error ? err.message : 'erreur de parsing YAML';
       throw new BadRequestException(
         `Le contenu docker-compose n'est pas un YAML valide : ${reason}`,
       );

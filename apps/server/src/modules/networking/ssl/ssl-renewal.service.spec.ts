@@ -17,7 +17,11 @@ function makeService(certs: { domainName: string }[] = []) {
     notifySslRenewalFailed: jest.fn().mockResolvedValue(undefined),
   } as unknown as NotificationsService;
 
-  const svc = new SslRenewalService(sslCertificateService, ansibleRunner, notifications);
+  const svc = new SslRenewalService(
+    sslCertificateService,
+    ansibleRunner,
+    notifications,
+  );
   return { svc, sslCertificateService, ansibleRunner, notifications };
 }
 
@@ -39,13 +43,17 @@ describe('SslRenewalService', () => {
     });
 
     it('passes the domain name as extra-vars to the playbook', async () => {
-      const { svc, ansibleRunner } = makeService([{ domainName: 'example.com' }]);
+      const { svc, ansibleRunner } = makeService([
+        { domainName: 'example.com' },
+      ]);
       await svc.renewExpiringCertificates();
       const call = (ansibleRunner.runPlaybook as jest.Mock).mock.calls[0];
       const args: string[] = call[0];
       expect(args[0]).toContain('ssl-renew.yml');
       expect(args).toContain('--extra-vars');
-      const extraVars = JSON.parse(args[args.indexOf('--extra-vars') + 1]) as { domain_name: string };
+      const extraVars = JSON.parse(args[args.indexOf('--extra-vars') + 1]) as {
+        domain_name: string;
+      };
       expect(extraVars.domain_name).toBe('example.com');
     });
 
@@ -53,7 +61,9 @@ describe('SslRenewalService', () => {
       const { svc, ansibleRunner, notifications } = makeService([
         { domainName: 'fail.com' },
       ]);
-      (ansibleRunner.runPlaybook as jest.Mock).mockRejectedValue(new Error('timeout'));
+      (ansibleRunner.runPlaybook as jest.Mock).mockRejectedValue(
+        new Error('timeout'),
+      );
       await svc.renewExpiringCertificates();
       expect(notifications.notifySslRenewalFailed).toHaveBeenCalledWith(
         expect.objectContaining({ domainName: 'fail.com', error: 'timeout' }),
@@ -76,7 +86,9 @@ describe('SslRenewalService', () => {
       const { svc, ansibleRunner, notifications } = makeService([
         { domainName: 'fail.com' },
       ]);
-      (ansibleRunner.runPlaybook as jest.Mock).mockRejectedValue(new Error('boom'));
+      (ansibleRunner.runPlaybook as jest.Mock).mockRejectedValue(
+        new Error('boom'),
+      );
       (notifications.notifySslRenewalFailed as jest.Mock).mockRejectedValue(
         new Error('slack down'),
       );

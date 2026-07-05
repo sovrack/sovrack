@@ -8,17 +8,20 @@ function makeClient(id = 'client-1') {
   } as never;
 }
 
-function makeSvc(opts: {
-  containerFound?: boolean;
-  streamEntries?: string[];
-  streamError?: Error;
-} = {}) {
+function makeSvc(
+  opts: {
+    containerFound?: boolean;
+    streamEntries?: string[];
+    streamError?: Error;
+  } = {},
+) {
   const container = { serverId: 'srv1', dockerId: 'docker-abc' };
 
   const containersService = {
-    findOne: opts.containerFound === false
-      ? jest.fn().mockRejectedValue(new Error('not found'))
-      : jest.fn().mockResolvedValue(container),
+    findOne:
+      opts.containerFound === false
+        ? jest.fn().mockRejectedValue(new Error('not found'))
+        : jest.fn().mockResolvedValue(container),
   } as never;
 
   async function* makeStream() {

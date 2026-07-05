@@ -35,7 +35,11 @@ describe('ServicesCredentialsService', () => {
       name: 'My Postgres',
       type: 'DATABASE',
       databaseType: 'POSTGRES',
-      databaseCredentials: { user: 'appuser', password: 's3cr3t', dbName: 'core' },
+      databaseCredentials: {
+        user: 'appuser',
+        password: 's3cr3t',
+        dbName: 'core',
+      },
       externalPort: null,
     });
 

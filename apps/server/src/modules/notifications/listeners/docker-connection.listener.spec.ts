@@ -1,15 +1,23 @@
 import { DockerConnectionNotificationsListener } from './docker-connection.listener';
 
-function makeSvc(opts: { serverName?: string | null; serverLookupError?: boolean; notifyError?: boolean } = {}) {
+function makeSvc(
+  opts: {
+    serverName?: string | null;
+    serverLookupError?: boolean;
+    notifyError?: boolean;
+  } = {},
+) {
   const prisma = {
     server: {
       findUnique: opts.serverLookupError
         ? jest.fn().mockRejectedValue(new Error('db error'))
-        : jest.fn().mockResolvedValue(
-            opts.serverName !== undefined
-              ? { name: opts.serverName }
-              : { name: 'my-server' },
-          ),
+        : jest
+            .fn()
+            .mockResolvedValue(
+              opts.serverName !== undefined
+                ? { name: opts.serverName }
+                : { name: 'my-server' },
+            ),
     },
   } as never;
 
@@ -57,7 +65,8 @@ describe('DockerConnectionNotificationsListener', () => {
         lastError: 'err',
         failedSince: new Date(),
       });
-      const call = (notifications.notifyDockerConnectionDown as jest.Mock).mock.calls[0][0];
+      const call = (notifications.notifyDockerConnectionDown as jest.Mock).mock
+        .calls[0][0];
       expect(call.serverName).toBeUndefined();
     });
 
@@ -93,7 +102,9 @@ describe('DockerConnectionNotificationsListener', () => {
         serverId: 'srv1',
         endpoint: 'tcp://1.2.3.4:2376',
       });
-      expect(notifications.notifyDockerConnectionRecovered).toHaveBeenCalledWith(
+      expect(
+        notifications.notifyDockerConnectionRecovered,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           serverId: 'srv1',
           serverName: 'my-server',

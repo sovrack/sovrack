@@ -2,11 +2,13 @@ import { BadRequestException } from '@nestjs/common';
 import { of, throwError } from 'rxjs';
 import { GitlabConnectionTesterService } from './gitlab-connection-tester.service';
 
-function makeProvider(overrides: Partial<{
-  providerUrl: string;
-  oauthAccessToken: string | null;
-  adminToken: string | null;
-}> = {}) {
+function makeProvider(
+  overrides: Partial<{
+    providerUrl: string;
+    oauthAccessToken: string | null;
+    adminToken: string | null;
+  }> = {},
+) {
   return {
     id: 'prov1',
     providerUrl: 'https://gitlab.com',
@@ -16,12 +18,14 @@ function makeProvider(overrides: Partial<{
   } as never;
 }
 
-function makeSvc(opts: {
-  httpOk?: boolean;
-  httpError?: Error;
-  decryptResult?: string;
-  legacyConfigs?: Record<string, { value: string; isSecret: boolean } | null>;
-} = {}) {
+function makeSvc(
+  opts: {
+    httpOk?: boolean;
+    httpError?: Error;
+    decryptResult?: string;
+    legacyConfigs?: Record<string, { value: string; isSecret: boolean } | null>;
+  } = {},
+) {
   const http = {
     get: opts.httpError
       ? jest.fn().mockReturnValue(throwError(() => opts.httpError))
@@ -33,9 +37,9 @@ function makeSvc(opts: {
   } as never;
 
   const oauth = {
-    refreshProviderOAuthTokenIfNeeded: jest.fn().mockImplementation((p: unknown) =>
-      Promise.resolve(p),
-    ),
+    refreshProviderOAuthTokenIfNeeded: jest
+      .fn()
+      .mockImplementation((p: unknown) => Promise.resolve(p)),
   } as never;
 
   const legacyConfigs = opts.legacyConfigs ?? {
@@ -46,15 +50,19 @@ function makeSvc(opts: {
 
   const prisma = {
     platformConfig: {
-      findUnique: jest.fn().mockImplementation(({ where }: { where: { key: string } }) =>
-        Promise.resolve(legacyConfigs[where.key] ?? null),
-      ),
+      findUnique: jest
+        .fn()
+        .mockImplementation(({ where }: { where: { key: string } }) =>
+          Promise.resolve(legacyConfigs[where.key] ?? null),
+        ),
     },
   } as never;
 
   return {
     svc: new GitlabConnectionTesterService(prisma, http, crypto, oauth),
-    http, crypto, oauth,
+    http,
+    crypto,
+    oauth,
   };
 }
 
@@ -62,13 +70,21 @@ describe('GitlabConnectionTesterService', () => {
   describe('testProvider', () => {
     it('throws BadRequestException when both tokens are empty', async () => {
       const { svc } = makeSvc({ decryptResult: '' });
-      const provider = makeProvider({ oauthAccessToken: null, adminToken: null });
-      await expect(svc.testProvider(provider)).rejects.toThrow(BadRequestException);
+      const provider = makeProvider({
+        oauthAccessToken: null,
+        adminToken: null,
+      });
+      await expect(svc.testProvider(provider)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('returns ok=true for valid admin token', async () => {
       const { svc } = makeSvc();
-      const provider = makeProvider({ oauthAccessToken: null, adminToken: 'enc-tok' });
+      const provider = makeProvider({
+        oauthAccessToken: null,
+        adminToken: 'enc-tok',
+      });
       const result = await svc.testProvider(provider);
       expect(result.ok).toBe(true);
       expect(result.message).toContain('Admin Token');
@@ -76,23 +92,34 @@ describe('GitlabConnectionTesterService', () => {
 
     it('returns ok=true with oauth token when oauth is valid', async () => {
       const { svc } = makeSvc();
-      const provider = makeProvider({ oauthAccessToken: 'enc-oauth', adminToken: null });
+      const provider = makeProvider({
+        oauthAccessToken: 'enc-oauth',
+        adminToken: null,
+      });
       const result = await svc.testProvider(provider);
       expect(result.ok).toBe(true);
       expect(result.message).toContain('OAuth');
     });
 
     it('falls back to admin token when oauth request fails', async () => {
-      const httpGet = jest.fn()
+      const httpGet = jest
+        .fn()
         .mockReturnValueOnce(throwError(() => new Error('oauth failed')))
         .mockReturnValueOnce(of({ data: { id: 1 } }));
       const svc = new GitlabConnectionTesterService(
         { platformConfig: { findUnique: jest.fn() } } as never,
         { get: httpGet } as never,
         { decrypt: jest.fn().mockReturnValue('tok') } as never,
-        { refreshProviderOAuthTokenIfNeeded: jest.fn().mockImplementation((p: unknown) => Promise.resolve(p)) } as never,
+        {
+          refreshProviderOAuthTokenIfNeeded: jest
+            .fn()
+            .mockImplementation((p: unknown) => Promise.resolve(p)),
+        } as never,
       );
-      const provider = makeProvider({ oauthAccessToken: 'enc-oauth', adminToken: 'enc-admin' });
+      const provider = makeProvider({
+        oauthAccessToken: 'enc-oauth',
+        adminToken: 'enc-admin',
+      });
       const result = await svc.testProvider(provider);
       expect(result.ok).toBe(true);
       expect(result.message).toContain('fallback Admin Token');
@@ -101,14 +128,21 @@ describe('GitlabConnectionTesterService', () => {
     it('throws BadRequestException when provider URL is empty', async () => {
       const { svc } = makeSvc();
       const provider = makeProvider({ providerUrl: '' });
-      await expect(svc.testProvider(provider)).rejects.toThrow(BadRequestException);
+      await expect(svc.testProvider(provider)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('sends PRIVATE-TOKEN header for admin token requests', async () => {
       const { svc, http } = makeSvc();
-      const provider = makeProvider({ oauthAccessToken: null, adminToken: 'enc-tok' });
+      const provider = makeProvider({
+        oauthAccessToken: null,
+        adminToken: 'enc-tok',
+      });
       await svc.testProvider(provider);
-      const opts = (http.get as jest.Mock).mock.calls[0][1] as { headers: Record<string, string> };
+      const opts = (http.get as jest.Mock).mock.calls[0][1] as {
+        headers: Record<string, string>;
+      };
       expect(opts.headers['PRIVATE-TOKEN']).toBe('decrypted-token');
     });
   });

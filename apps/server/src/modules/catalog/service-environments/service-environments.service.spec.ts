@@ -185,10 +185,18 @@ describe('ServiceEnvironmentsService', () => {
     );
 
     it('leaves the 5 overrides untouched when omitted from the payload', async () => {
-      await service.update('p1', 'se1', { env: '{}' } as never, 'admin', Role.ADMIN);
-      const data = (prisma.serviceEnvironment.update.mock.calls[0][0] as {
-        data: Record<string, unknown>;
-      }).data;
+      await service.update(
+        'p1',
+        'se1',
+        { env: '{}' } as never,
+        'admin',
+        Role.ADMIN,
+      );
+      const data = (
+        prisma.serviceEnvironment.update.mock.calls[0][0] as {
+          data: Record<string, unknown>;
+        }
+      ).data;
       for (const field of [
         'branch',
         'port',

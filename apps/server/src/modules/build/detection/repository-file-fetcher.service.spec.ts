@@ -80,16 +80,24 @@ describe('RepositoryFileFetcherService', () => {
           of({ data: [{ path: 'dup.ts' }], headers: { 'x-next-page': '' } }),
         );
       const svc = makeSvc(httpGet);
-      const result = await svc.listGitLabRepositoryFiles('https://gl.io', '1', 'tok');
+      const result = await svc.listGitLabRepositoryFiles(
+        'https://gl.io',
+        '1',
+        'tok',
+      );
       expect(result.filter((p) => p === 'dup.ts')).toHaveLength(1);
     });
 
     it('uses item.name as fallback when path is absent', async () => {
-      const httpGet = jest.fn().mockReturnValue(
-        of({ data: [{ name: 'fallback.txt' }], headers: {} }),
-      );
+      const httpGet = jest
+        .fn()
+        .mockReturnValue(of({ data: [{ name: 'fallback.txt' }], headers: {} }));
       const svc = makeSvc(httpGet);
-      const result = await svc.listGitLabRepositoryFiles('https://gl.io', '1', 'tok');
+      const result = await svc.listGitLabRepositoryFiles(
+        'https://gl.io',
+        '1',
+        'tok',
+      );
       expect(result).toContain('fallback.txt');
     });
   });
@@ -98,7 +106,12 @@ describe('RepositoryFileFetcherService', () => {
     it('throws NotFoundException when repoFullName is null', async () => {
       const svc = makeSvc(jest.fn());
       await expect(
-        svc.listGitHubRepositoryFiles('https://api.github.com', null, 'tok', 'main'),
+        svc.listGitHubRepositoryFiles(
+          'https://api.github.com',
+          null,
+          'tok',
+          'main',
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -148,7 +161,9 @@ describe('RepositoryFileFetcherService', () => {
   describe('fetchRawFile', () => {
     describe('GitHub', () => {
       it('decodes base64 content and returns UTF-8 string', async () => {
-        const content = Buffer.from('console.log("hello")\n').toString('base64');
+        const content = Buffer.from('console.log("hello")\n').toString(
+          'base64',
+        );
         const httpGet = jest
           .fn()
           .mockReturnValue(of({ data: { content, encoding: 'base64' } }));
@@ -165,9 +180,11 @@ describe('RepositoryFileFetcherService', () => {
       });
 
       it('returns content directly when encoding is not base64', async () => {
-        const httpGet = jest.fn().mockReturnValue(
-          of({ data: { content: 'plain text', encoding: 'utf-8' } }),
-        );
+        const httpGet = jest
+          .fn()
+          .mockReturnValue(
+            of({ data: { content: 'plain text', encoding: 'utf-8' } }),
+          );
         const svc = makeSvc(httpGet);
         const result = await svc.fetchRawFile(
           'https://api.github.com',
@@ -228,7 +245,9 @@ describe('RepositoryFileFetcherService', () => {
       });
 
       it('returns null when response data is not a string', async () => {
-        const httpGet = jest.fn().mockReturnValue(of({ data: { unexpected: true } }));
+        const httpGet = jest
+          .fn()
+          .mockReturnValue(of({ data: { unexpected: true } }));
         const svc = makeSvc(httpGet);
         const result = await svc.fetchRawFile(
           'https://gitlab.com',

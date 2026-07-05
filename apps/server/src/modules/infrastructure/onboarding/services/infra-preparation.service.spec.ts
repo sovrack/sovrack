@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   Prisma,
   ServerJobStatus,
@@ -33,15 +30,17 @@ const defaultValidation = {
   validatedAt: new Date(),
 };
 
-function makeSvc(opts: {
-  server?: unknown;
-  orphans?: unknown[];
-  activePreparationCount?: number;
-  validation?: unknown;
-  preparation?: unknown;
-  preparations?: unknown[];
-  serverJob?: unknown;
-} = {}) {
+function makeSvc(
+  opts: {
+    server?: unknown;
+    orphans?: unknown[];
+    activePreparationCount?: number;
+    validation?: unknown;
+    preparation?: unknown;
+    preparations?: unknown[];
+    serverJob?: unknown;
+  } = {},
+) {
   const prisma = {
     serverRun: {
       findMany: jest.fn().mockResolvedValue(opts.orphans ?? []),
@@ -61,16 +60,16 @@ function makeSvc(opts: {
       ),
     },
     serverJob: {
-      findFirst: jest.fn().mockResolvedValue(
-        'serverJob' in opts ? opts.serverJob : null,
-      ),
+      findFirst: jest
+        .fn()
+        .mockResolvedValue('serverJob' in opts ? opts.serverJob : null),
       update: jest.fn().mockResolvedValue({}),
       createJob: jest.fn().mockResolvedValue({ id: 'job1' }),
     },
     server: {
-      findUnique: jest.fn().mockResolvedValue(
-        'server' in opts ? opts.server : defaultServer,
-      ),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue('server' in opts ? opts.server : defaultServer),
       update: jest.fn().mockResolvedValue({}),
     },
   } as unknown as PrismaService;
@@ -80,9 +79,11 @@ function makeSvc(opts: {
   } as unknown as ServersJobsService;
 
   const verification = {
-    latestValidationResult: jest.fn().mockResolvedValue(
-      'validation' in opts ? opts.validation : defaultValidation,
-    ),
+    latestValidationResult: jest
+      .fn()
+      .mockResolvedValue(
+        'validation' in opts ? opts.validation : defaultValidation,
+      ),
   } as unknown as ServersVerificationService;
 
   const audit = {
@@ -187,7 +188,9 @@ describe('ServerPreparationService', () => {
   describe('getPreparationReadiness', () => {
     it('throws NotFoundException when server not found', async () => {
       const { svc } = makeSvc({ server: null });
-      await expect(svc.getPreparationReadiness('missing')).rejects.toThrow(NotFoundException);
+      await expect(svc.getPreparationReadiness('missing')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns isReady=true when all checks pass', async () => {
@@ -216,7 +219,9 @@ describe('ServerPreparationService', () => {
   describe('getPreparation', () => {
     it('throws NotFoundException when preparation not found', async () => {
       const { svc } = makeSvc({ preparation: null });
-      await expect(svc.getPreparation('ghost')).rejects.toThrow(NotFoundException);
+      await expect(svc.getPreparation('ghost')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns preparation view when found', async () => {
@@ -230,13 +235,16 @@ describe('ServerPreparationService', () => {
   describe('listPreparations', () => {
     it('throws NotFoundException when server not found', async () => {
       const { svc } = makeSvc({ server: null });
-      await expect(svc.listPreparations('missing')).rejects.toThrow(NotFoundException);
+      await expect(svc.listPreparations('missing')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns empty list when no preparations exist', async () => {
       const { svc } = makeSvc({ preparations: [] });
-      (svc as unknown as { prisma: { serverRun: { findMany: jest.Mock } } })
-        .prisma.serverRun.findMany
+      (
+        svc as unknown as { prisma: { serverRun: { findMany: jest.Mock } } }
+      ).prisma.serverRun.findMany
         // second call (listPreparations) returns empty
         .mockResolvedValueOnce([]) // onModuleInit orphans check
         .mockResolvedValueOnce([]); // listPreparations
@@ -255,7 +263,9 @@ describe('ServerPreparationService', () => {
         ...minRun(),
         serverId: null,
       });
-      await expect(svc.cancelPreparation('prep1')).rejects.toThrow(NotFoundException);
+      await expect(svc.cancelPreparation('prep1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws BadRequestException when preparation is not in an active status', async () => {
@@ -263,13 +273,15 @@ describe('ServerPreparationService', () => {
       (prisma.serverRun.findFirst as jest.Mock).mockResolvedValue(
         minRun(ServerRunStatus.SUCCEEDED),
       );
-      await expect(svc.cancelPreparation('prep1')).rejects.toThrow(BadRequestException);
+      await expect(svc.cancelPreparation('prep1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('aborts the runner and transitions to CANCELED', async () => {
       const { svc, prisma, state, runner, gateway } = makeSvc();
       (prisma.serverRun.findFirst as jest.Mock)
-        .mockResolvedValueOnce(minRun(ServerRunStatus.RUNNING))  // getPreparation first call
+        .mockResolvedValueOnce(minRun(ServerRunStatus.RUNNING)) // getPreparation first call
         .mockResolvedValueOnce(minRun(ServerRunStatus.CANCELED)); // getPreparation second call (updated)
       await svc.cancelPreparation('prep1');
       expect(runner.abort).toHaveBeenCalledWith('prep1');
@@ -322,8 +334,13 @@ describe('ServerPreparationService', () => {
       });
       (jobs.createJob as jest.Mock).mockRejectedValue(p2002);
       await expect(
-        svc.startPreparation('srv1', { profile: 'BASIC', docker: true } as never),
-      ).rejects.toMatchObject({ message: expect.stringContaining('déjà en cours') });
+        svc.startPreparation('srv1', {
+          profile: 'BASIC',
+          docker: true,
+        } as never),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('déjà en cours'),
+      });
       expect(state.transitionPreparation).toHaveBeenCalledWith(
         'run1',
         ServerRunStatus.FAILED,

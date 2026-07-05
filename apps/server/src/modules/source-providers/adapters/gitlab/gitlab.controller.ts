@@ -170,7 +170,7 @@ export class GitlabController {
     name: 'serviceId',
     required: false,
     description:
-      'Scopes the resolved repo to this specific service (1 service = 1 repo). Without it, an arbitrary GIT service of the project is used — pass it whenever the caller knows which service it concerns (e.g. that service\'s Source tab, or a deploy dialog with a service selected).',
+      "Scopes the resolved repo to this specific service (1 service = 1 repo). Without it, an arbitrary GIT service of the project is used — pass it whenever the caller knows which service it concerns (e.g. that service's Source tab, or a deploy dialog with a service selected).",
   })
   @ApiResponse({ status: 200, description: 'GitLab branches fetched' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })

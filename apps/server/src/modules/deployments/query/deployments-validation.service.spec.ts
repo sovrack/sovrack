@@ -20,7 +20,14 @@ jest.mock('fs/promises', () => ({
 jest.mock('@prisma/client', () => ({
   PrismaClient: class {},
   Role: { ADMIN: 'ADMIN', DEVELOPER: 'DEVELOPER' },
-  BuildPack: { NIXPACKS: 'NIXPACKS', BUILDPACK: 'BUILDPACK', DOCKERFILE: 'DOCKERFILE', DOCKER_COMPOSE: 'DOCKER_COMPOSE', STATIC: 'STATIC', NONE: 'NONE' },
+  BuildPack: {
+    NIXPACKS: 'NIXPACKS',
+    BUILDPACK: 'BUILDPACK',
+    DOCKERFILE: 'DOCKERFILE',
+    DOCKER_COMPOSE: 'DOCKER_COMPOSE',
+    STATIC: 'STATIC',
+    NONE: 'NONE',
+  },
   CircuitState: { CLOSED: 'CLOSED', OPEN: 'OPEN', HALF_OPEN: 'HALF_OPEN' },
   ServerStatus: {
     NEW: 'NEW',
@@ -36,7 +43,12 @@ jest.mock('@prisma/client', () => ({
     UNREACHABLE: 'UNREACHABLE',
     DISABLED: 'DISABLED',
   },
-  ServiceType: { APPLICATION: 'APPLICATION', DATABASE: 'DATABASE', WORKER: 'WORKER', CRON: 'CRON' },
+  ServiceType: {
+    APPLICATION: 'APPLICATION',
+    DATABASE: 'DATABASE',
+    WORKER: 'WORKER',
+    CRON: 'CRON',
+  },
 }));
 jest.mock('../../../shared/database/prisma.service', () => ({
   PrismaService: class {},
@@ -129,11 +141,16 @@ describe('DeploymentsValidationService.validate', () => {
       service: { type: 'DATABASE' },
     });
     preflight.assertDeployable.mockRejectedValue(
-      new BadRequestException('databaseType est requis pour un service DATABASE'),
+      new BadRequestException(
+        'databaseType est requis pour un service DATABASE',
+      ),
     );
     await expect(
       service.validate('p1', 'env-1', 'EXTERNAL_IMAGE', 'u1', 'se-1'),
-    ).resolves.toMatchObject({ ready: false, reason: expect.stringContaining('databaseType') });
+    ).resolves.toMatchObject({
+      ready: false,
+      reason: expect.stringContaining('databaseType'),
+    });
   });
 
   it('reflects a DATABASE service rejection from the preflight (e.g. incomplete credentials)', async () => {
@@ -141,9 +158,17 @@ describe('DeploymentsValidationService.validate', () => {
       service: { type: 'DATABASE' },
     });
     preflight.assertDeployable.mockRejectedValue(
-      new BadRequestException('databaseCredentials doit contenir user, password et dbName'),
+      new BadRequestException(
+        'databaseCredentials doit contenir user, password et dbName',
+      ),
     );
-    const res = await service.validate('p1', 'env-1', 'EXTERNAL_IMAGE', 'u1', 'se-1');
+    const res = await service.validate(
+      'p1',
+      'env-1',
+      'EXTERNAL_IMAGE',
+      'u1',
+      'se-1',
+    );
     expect(res.ready).toBe(false);
     expect(res.reason).toContain('databaseCredentials');
   });
@@ -228,7 +253,9 @@ describe('DeploymentsValidationService.validate', () => {
 
   it('reports ready:false with the preflight reason even when all tools are installed', async () => {
     preflight.assertDeployable.mockRejectedValue(
-      new BadRequestException("Aucun Dockerfile trouvé sur la branche « main »"),
+      new BadRequestException(
+        'Aucun Dockerfile trouvé sur la branche « main »',
+      ),
     );
     const res = await service.validate(
       'p1',

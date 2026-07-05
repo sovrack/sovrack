@@ -98,27 +98,34 @@ describe('GitProviderOauthService — helpers', () => {
 
 // ─── Public methods ──────────────────────────────────────────────────────────
 
-function makeFullSvc(opts: {
-  provider?: Partial<{
-    id: string;
-    type: string;
-    isDefault: boolean;
-    providerUrl: string;
-    applicationId: string;
-    applicationSecret: string;
-    redirectUri: string;
-    oauthState: string;
-    oauthStateExpiresAt: Date;
-    oauthAccessToken: string | null;
-    oauthRefreshToken: string | null;
-    oauthExpiresAt: Date | null;
-  }> | null;
-  tokenResponse?: { access_token?: string; refresh_token?: string; expires_in?: number };
-  httpError?: boolean;
-  oauthCandidates?: unknown[];
-} = {}) {
-  const defaultProvider = opts.provider !== undefined
-    ? (opts.provider
+function makeFullSvc(
+  opts: {
+    provider?: Partial<{
+      id: string;
+      type: string;
+      isDefault: boolean;
+      providerUrl: string;
+      applicationId: string;
+      applicationSecret: string;
+      redirectUri: string;
+      oauthState: string;
+      oauthStateExpiresAt: Date;
+      oauthAccessToken: string | null;
+      oauthRefreshToken: string | null;
+      oauthExpiresAt: Date | null;
+    }> | null;
+    tokenResponse?: {
+      access_token?: string;
+      refresh_token?: string;
+      expires_in?: number;
+    };
+    httpError?: boolean;
+    oauthCandidates?: unknown[];
+  } = {},
+) {
+  const defaultProvider =
+    opts.provider !== undefined
+      ? opts.provider
         ? {
             id: 'prov1',
             type: GitProviderType.GITLAB,
@@ -134,30 +141,32 @@ function makeFullSvc(opts: {
             oauthExpiresAt: null,
             ...opts.provider,
           }
-        : null)
-    : {
-        id: 'prov1',
-        type: GitProviderType.GITLAB,
-        isDefault: false,
-        providerUrl: 'https://gitlab.example.com',
-        applicationId: 'app-id',
-        applicationSecret: 'enc-secret',
-        redirectUri: 'https://platform.io/gitlab/callback',
-        oauthState: null,
-        oauthStateExpiresAt: null,
-        oauthAccessToken: null,
-        oauthRefreshToken: null,
-        oauthExpiresAt: null,
-      };
+        : null
+      : {
+          id: 'prov1',
+          type: GitProviderType.GITLAB,
+          isDefault: false,
+          providerUrl: 'https://gitlab.example.com',
+          applicationId: 'app-id',
+          applicationSecret: 'enc-secret',
+          redirectUri: 'https://platform.io/gitlab/callback',
+          oauthState: null,
+          oauthStateExpiresAt: null,
+          oauthAccessToken: null,
+          oauthRefreshToken: null,
+          oauthExpiresAt: null,
+        };
 
   const prismaFull = {
     gitProviderConfig: {
       findUnique: jest.fn().mockResolvedValue(defaultProvider),
       findFirst: jest.fn().mockResolvedValue(defaultProvider),
       findMany: jest.fn().mockResolvedValue(opts.oauthCandidates ?? []),
-      update: jest.fn().mockImplementation(({ data }: { data: unknown }) =>
-        Promise.resolve({ ...(defaultProvider ?? {}), ...(data as object) }),
-      ),
+      update: jest
+        .fn()
+        .mockImplementation(({ data }: { data: unknown }) =>
+          Promise.resolve({ ...(defaultProvider ?? {}), ...(data as object) }),
+        ),
     },
     platformConfig: {
       upsert: jest.fn().mockResolvedValue(undefined),
@@ -169,7 +178,13 @@ function makeFullSvc(opts: {
     post: opts.httpError
       ? jest.fn().mockReturnValue(throwError(() => new Error('network error')))
       : jest.fn().mockReturnValue(
-          of({ data: opts.tokenResponse ?? { access_token: 'new-token', refresh_token: 'rtoken', expires_in: 7200 } }),
+          of({
+            data: opts.tokenResponse ?? {
+              access_token: 'new-token',
+              refresh_token: 'rtoken',
+              expires_in: 7200,
+            },
+          }),
         ),
   };
 
@@ -189,38 +204,52 @@ function makeFullSvc(opts: {
       cryptoFull as unknown as CryptoService,
       configFull as unknown as ConfigService,
     ),
-    prismaFull, httpFull, cryptoFull,
+    prismaFull,
+    httpFull,
+    cryptoFull,
   };
 }
 
 describe('GitProviderOauthService — startGitlabOAuth', () => {
   it('throws BadRequestException when no default provider exists', async () => {
     const { svc } = makeFullSvc({ provider: null });
-    await expect(svc.startGitlabOAuth('https://platform.io')).rejects.toThrow(BadRequestException);
+    await expect(svc.startGitlabOAuth('https://platform.io')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('throws BadRequestException when applicationId is missing', async () => {
     const { svc } = makeFullSvc({ provider: { applicationId: '' } });
-    await expect(svc.startGitlabOAuth('https://platform.io')).rejects.toThrow(BadRequestException);
+    await expect(svc.startGitlabOAuth('https://platform.io')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 });
 
 describe('GitProviderOauthService — startGitlabOAuthForProvider', () => {
   it('generates state and returns authorizeUrl with correct params', async () => {
     const { svc, prismaFull } = makeFullSvc();
-    const result = await svc.startGitlabOAuthForProvider('prov1', 'https://platform.io');
+    const result = await svc.startGitlabOAuthForProvider(
+      'prov1',
+      'https://platform.io',
+    );
     expect(result.authorizeUrl).toContain('/oauth/authorize');
     expect(result.authorizeUrl).toContain('client_id=app-id');
     expect(result.authorizeUrl).toContain('response_type=code');
     expect(prismaFull.gitProviderConfig.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ oauthState: expect.any(String) }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ oauthState: expect.any(String) }),
+      }),
     );
   });
 
   it('throws NotFoundException for wrong provider type', async () => {
-    const { svc } = makeFullSvc({ provider: { type: GitProviderType.GITHUB } as never });
-    await expect(svc.startGitlabOAuthForProvider('prov1', 'https://platform.io'))
-      .rejects.toThrow(NotFoundException);
+    const { svc } = makeFullSvc({
+      provider: { type: GitProviderType.GITHUB } as never,
+    });
+    await expect(
+      svc.startGitlabOAuthForProvider('prov1', 'https://platform.io'),
+    ).rejects.toThrow(NotFoundException);
   });
 });
 
@@ -238,7 +267,9 @@ describe('GitProviderOauthService — completeGitlabOAuthCallback', () => {
 
   it('returns ok=false when code or state is missing', async () => {
     const { svc } = makeFullSvc();
-    const result = await svc.completeGitlabOAuthCallback({ callbackBaseUrl: 'https://p.io' });
+    const result = await svc.completeGitlabOAuthCallback({
+      callbackBaseUrl: 'https://p.io',
+    });
     expect(result.ok).toBe(false);
   });
 
@@ -257,20 +288,22 @@ describe('GitProviderOauthService — completeGitlabOAuthCallback', () => {
     const state = 'a'.repeat(64);
     const future = new Date(Date.now() + 600_000);
     const { svc, prismaFull } = makeFullSvc({
-      oauthCandidates: [{
-        id: 'prov1',
-        type: GitProviderType.GITLAB,
-        providerUrl: 'https://gitlab.example.com',
-        applicationId: 'app-id',
-        applicationSecret: 'enc-secret',
-        redirectUri: 'https://platform.io/gitlab/callback',
-        isDefault: false,
-        oauthState: state,
-        oauthStateExpiresAt: future,
-        oauthAccessToken: null,
-        oauthRefreshToken: null,
-        oauthExpiresAt: null,
-      }],
+      oauthCandidates: [
+        {
+          id: 'prov1',
+          type: GitProviderType.GITLAB,
+          providerUrl: 'https://gitlab.example.com',
+          applicationId: 'app-id',
+          applicationSecret: 'enc-secret',
+          redirectUri: 'https://platform.io/gitlab/callback',
+          isDefault: false,
+          oauthState: state,
+          oauthStateExpiresAt: future,
+          oauthAccessToken: null,
+          oauthRefreshToken: null,
+          oauthExpiresAt: null,
+        },
+      ],
     });
     const result = await svc.completeGitlabOAuthCallback({
       code: 'auth-code',
@@ -280,7 +313,9 @@ describe('GitProviderOauthService — completeGitlabOAuthCallback', () => {
     expect(result.ok).toBe(true);
     expect(prismaFull.gitProviderConfig.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ oauthAccessToken: expect.stringContaining('enc-') }),
+        data: expect.objectContaining({
+          oauthAccessToken: expect.stringContaining('enc-'),
+        }),
       }),
     );
   });
@@ -290,20 +325,22 @@ describe('GitProviderOauthService — completeGitlabOAuthCallback', () => {
     const future = new Date(Date.now() + 600_000);
     const { svc } = makeFullSvc({
       httpError: true,
-      oauthCandidates: [{
-        id: 'prov1',
-        type: GitProviderType.GITLAB,
-        providerUrl: 'https://gitlab.example.com',
-        applicationId: 'app-id',
-        applicationSecret: 'enc-secret',
-        redirectUri: 'https://platform.io/gitlab/callback',
-        isDefault: false,
-        oauthState: state,
-        oauthStateExpiresAt: future,
-        oauthAccessToken: null,
-        oauthRefreshToken: null,
-        oauthExpiresAt: null,
-      }],
+      oauthCandidates: [
+        {
+          id: 'prov1',
+          type: GitProviderType.GITLAB,
+          providerUrl: 'https://gitlab.example.com',
+          applicationId: 'app-id',
+          applicationSecret: 'enc-secret',
+          redirectUri: 'https://platform.io/gitlab/callback',
+          isDefault: false,
+          oauthState: state,
+          oauthStateExpiresAt: future,
+          oauthAccessToken: null,
+          oauthRefreshToken: null,
+          oauthExpiresAt: null,
+        },
+      ],
     });
     const result = await svc.completeGitlabOAuthCallback({
       code: 'auth-code',
@@ -381,7 +418,9 @@ describe('GitProviderOauthService — refreshProviderOAuthTokenIfNeeded', () => 
     });
     expect(prismaFull.gitProviderConfig.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ oauthAccessToken: expect.stringContaining('enc-') }),
+        data: expect.objectContaining({
+          oauthAccessToken: expect.stringContaining('enc-'),
+        }),
       }),
     );
   });

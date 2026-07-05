@@ -4,10 +4,12 @@ import { GitProviderConfigService } from '../../shared/connection/git-provider-c
 import { GitlabConnectionService } from './gitlab-connection.service';
 import type { GitlabResolvedConfig } from './gitlab.types';
 
-function makeSvc(registryOverrides: Partial<{
-  listGitlabProvidersForProjects: jest.Mock;
-  resolveGitlabCredentials: jest.Mock;
-}> = {}) {
+function makeSvc(
+  registryOverrides: Partial<{
+    listGitlabProvidersForProjects: jest.Mock;
+    resolveGitlabCredentials: jest.Mock;
+  }> = {},
+) {
   const registry = {
     listGitlabProvidersForProjects: jest.fn().mockResolvedValue([]),
     resolveGitlabCredentials: jest.fn().mockResolvedValue({
@@ -24,12 +26,16 @@ describe('GitlabConnectionService', () => {
   describe('normalizeUrl', () => {
     it('trims whitespace', () => {
       const { svc } = makeSvc();
-      expect(svc.normalizeUrl('  https://gitlab.com  ')).toBe('https://gitlab.com');
+      expect(svc.normalizeUrl('  https://gitlab.com  ')).toBe(
+        'https://gitlab.com',
+      );
     });
 
     it('strips trailing slashes', () => {
       const { svc } = makeSvc();
-      expect(svc.normalizeUrl('https://gitlab.com///')).toBe('https://gitlab.com');
+      expect(svc.normalizeUrl('https://gitlab.com///')).toBe(
+        'https://gitlab.com',
+      );
     });
   });
 
@@ -60,36 +66,52 @@ describe('GitlabConnectionService', () => {
 
     it('throws BadRequestException for non-positive integer', () => {
       const { svc } = makeSvc();
-      expect(() => svc.normalizeGitlabIdentifier(0, 'ID')).toThrow(BadRequestException);
-      expect(() => svc.normalizeGitlabIdentifier(-1, 'ID')).toThrow(BadRequestException);
+      expect(() => svc.normalizeGitlabIdentifier(0, 'ID')).toThrow(
+        BadRequestException,
+      );
+      expect(() => svc.normalizeGitlabIdentifier(-1, 'ID')).toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException for non-integer number', () => {
       const { svc } = makeSvc();
-      expect(() => svc.normalizeGitlabIdentifier(1.5, 'ID')).toThrow(BadRequestException);
+      expect(() => svc.normalizeGitlabIdentifier(1.5, 'ID')).toThrow(
+        BadRequestException,
+      );
     });
 
     it('accepts a non-empty string', () => {
       const { svc } = makeSvc();
-      expect(svc.normalizeGitlabIdentifier('group/project', 'Path')).toBe('group/project');
+      expect(svc.normalizeGitlabIdentifier('group/project', 'Path')).toBe(
+        'group/project',
+      );
     });
 
     it('throws BadRequestException for empty string', () => {
       const { svc } = makeSvc();
-      expect(() => svc.normalizeGitlabIdentifier('  ', 'Path')).toThrow(BadRequestException);
+      expect(() => svc.normalizeGitlabIdentifier('  ', 'Path')).toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException for null/undefined', () => {
       const { svc } = makeSvc();
-      expect(() => svc.normalizeGitlabIdentifier(undefined, 'Path')).toThrow(BadRequestException);
-      expect(() => svc.normalizeGitlabIdentifier(null, 'Path')).toThrow(BadRequestException);
+      expect(() => svc.normalizeGitlabIdentifier(undefined, 'Path')).toThrow(
+        BadRequestException,
+      );
+      expect(() => svc.normalizeGitlabIdentifier(null, 'Path')).toThrow(
+        BadRequestException,
+      );
     });
   });
 
   describe('resolveNumericGitlabId', () => {
     it('returns apiId when it is a positive integer', () => {
       const { svc } = makeSvc();
-      expect(svc.resolveNumericGitlabId(123, 'group/project', 'Project')).toBe(123);
+      expect(svc.resolveNumericGitlabId(123, 'group/project', 'Project')).toBe(
+        123,
+      );
     });
 
     it('parses the identifier string when apiId is undefined', () => {
@@ -99,12 +121,16 @@ describe('GitlabConnectionService', () => {
 
     it('throws BadRequestException when neither is resolvable', () => {
       const { svc } = makeSvc();
-      expect(() => svc.resolveNumericGitlabId(undefined, 'not-a-number', 'Project')).toThrow(BadRequestException);
+      expect(() =>
+        svc.resolveNumericGitlabId(undefined, 'not-a-number', 'Project'),
+      ).toThrow(BadRequestException);
     });
 
     it('throws BadRequestException for zero apiId and non-numeric identifier', () => {
       const { svc } = makeSvc();
-      expect(() => svc.resolveNumericGitlabId(0, 'abc', 'ID')).toThrow(BadRequestException);
+      expect(() => svc.resolveNumericGitlabId(0, 'abc', 'ID')).toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -116,12 +142,16 @@ describe('GitlabConnectionService', () => {
 
     it('extracts path from a full HTTPS URL', () => {
       const { svc } = makeSvc();
-      expect(svc.normalizeRepositoryPath('https://gitlab.com/group/repo.git')).toBe('group/repo');
+      expect(
+        svc.normalizeRepositoryPath('https://gitlab.com/group/repo.git'),
+      ).toBe('group/repo');
     });
 
     it('handles SSH URL (git@host:path)', () => {
       const { svc } = makeSvc();
-      const result = svc.normalizeRepositoryPath('git@gitlab.com:group/repo.git');
+      const result = svc.normalizeRepositoryPath(
+        'git@gitlab.com:group/repo.git',
+      );
       expect(result).toContain('group/repo');
     });
 
@@ -203,7 +233,9 @@ describe('GitlabConnectionService', () => {
     it('throws BadRequestException when only one of url/token is provided', async () => {
       const { svc } = makeSvc();
       await expect(
-        svc.resolveGitlabConnectionInput({ gitlabUrl: 'https://git.io' } as never),
+        svc.resolveGitlabConnectionInput({
+          gitlabUrl: 'https://git.io',
+        } as never),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -226,14 +258,18 @@ describe('GitlabConnectionService', () => {
         providerId: 'prov-corp',
       } as never);
       expect(result.gitlabToken).toBe('corp-token');
-      expect(registry.resolveGitlabCredentials).toHaveBeenCalledWith('prov-corp');
+      expect(registry.resolveGitlabCredentials).toHaveBeenCalledWith(
+        'prov-corp',
+      );
     });
 
     it('uses manual token and provider URL when providerId + manualToken provided', async () => {
       const { svc, registry } = makeSvc({
-        listGitlabProvidersForProjects: jest.fn().mockResolvedValue([
-          { id: 'prov-1', providerUrl: 'https://git.corp.io' },
-        ]),
+        listGitlabProvidersForProjects: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'prov-1', providerUrl: 'https://git.corp.io' },
+          ]),
       });
       const result = await svc.resolveGitlabConnectionInput({
         providerId: 'prov-1',

@@ -68,11 +68,13 @@ describe('BuildDetectorService.inferType (delegates to inferType util)', () => {
 
 // ── BuildDetectorService.detectProjectType ────────────────────────────────────
 
-function makePrisma(overrides: Partial<{
-  project: unknown;
-  service: unknown;
-  serviceUpdate: unknown;
-}> = {}) {
+function makePrisma(
+  overrides: Partial<{
+    project: unknown;
+    service: unknown;
+    serviceUpdate: unknown;
+  }> = {},
+) {
   const defaultProvider = {
     id: 'prov1',
     type: GitProviderType.GITLAB,
@@ -94,17 +96,21 @@ function makePrisma(overrides: Partial<{
 
   return {
     project: {
-      findUnique: jest.fn().mockResolvedValue(
-        'project' in overrides ? overrides.project : defaultProject,
-      ),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue(
+          'project' in overrides ? overrides.project : defaultProject,
+        ),
     },
     service: {
-      findUnique: jest.fn().mockResolvedValue(
-        'service' in overrides ? overrides.service : null,
-      ),
-      update: jest.fn().mockResolvedValue(
-        'serviceUpdate' in overrides ? overrides.serviceUpdate : { id: 's1' },
-      ),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue('service' in overrides ? overrides.service : null),
+      update: jest
+        .fn()
+        .mockResolvedValue(
+          'serviceUpdate' in overrides ? overrides.serviceUpdate : { id: 's1' },
+        ),
     },
   };
 }
@@ -115,14 +121,12 @@ function makeService(prismaOverrides = {}) {
     decrypt: jest.fn((v: string) => `decrypted:${v}`),
   } as unknown as CryptoService;
   const fileFetcher = {
-    listGitLabRepositoryFiles: jest.fn().mockResolvedValue([
-      'package.json',
-      'Dockerfile',
-    ]),
-    listGitHubRepositoryFiles: jest.fn().mockResolvedValue([
-      'package.json',
-      'Dockerfile',
-    ]),
+    listGitLabRepositoryFiles: jest
+      .fn()
+      .mockResolvedValue(['package.json', 'Dockerfile']),
+    listGitHubRepositoryFiles: jest
+      .fn()
+      .mockResolvedValue(['package.json', 'Dockerfile']),
     fetchRawFile: jest.fn().mockResolvedValue(null),
   } as unknown as RepositoryFileFetcherService;
 
@@ -133,14 +137,18 @@ function makeService(prismaOverrides = {}) {
 describe('BuildDetectorService.detectProjectType', () => {
   it('throws NotFoundException when project does not exist', async () => {
     const { svc } = makeService({ project: null });
-    await expect(svc.detectProjectType('missing')).rejects.toThrow(NotFoundException);
+    await expect(svc.detectProjectType('missing')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('throws NotFoundException when project has no repos', async () => {
     const { svc } = makeService({
       project: { id: 'p1', name: 'X', providerRepos: [] },
     });
-    await expect(svc.detectProjectType('p1')).rejects.toThrow(NotFoundException);
+    await expect(svc.detectProjectType('p1')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('returns a detect result for a GitLab project', async () => {
@@ -184,7 +192,9 @@ describe('BuildDetectorService.detectProjectType', () => {
       id: 's1',
       branch: 'feature/x',
     });
-    const crypto = { decrypt: jest.fn((v: string) => v) } as unknown as CryptoService;
+    const crypto = {
+      decrypt: jest.fn((v: string) => v),
+    } as unknown as CryptoService;
     const fileFetcher = {
       listGitLabRepositoryFiles: jest.fn().mockResolvedValue(['package.json']),
       listGitHubRepositoryFiles: jest.fn().mockResolvedValue([]),
@@ -201,15 +211,23 @@ describe('BuildDetectorService.detectProjectType', () => {
 
   it('throws NotFoundException when serviceId refers to a non-existent service', async () => {
     const { svc } = makeService({ service: null });
-    await expect(svc.detectProjectType('proj1', 'ghost-svc')).rejects.toThrow(NotFoundException);
+    await expect(svc.detectProjectType('proj1', 'ghost-svc')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('returns a fallback result when listRepositoryFiles throws', async () => {
     const prisma = makePrisma() as unknown as PrismaService;
-    const crypto = { decrypt: jest.fn((v: string) => v) } as unknown as CryptoService;
+    const crypto = {
+      decrypt: jest.fn((v: string) => v),
+    } as unknown as CryptoService;
     const fileFetcher = {
-      listGitLabRepositoryFiles: jest.fn().mockRejectedValue(new Error('network error')),
-      listGitHubRepositoryFiles: jest.fn().mockRejectedValue(new Error('network error')),
+      listGitLabRepositoryFiles: jest
+        .fn()
+        .mockRejectedValue(new Error('network error')),
+      listGitHubRepositoryFiles: jest
+        .fn()
+        .mockRejectedValue(new Error('network error')),
       fetchRawFile: jest.fn().mockResolvedValue(null),
     } as unknown as RepositoryFileFetcherService;
 
@@ -258,13 +276,17 @@ describe('BuildDetectorService.detectProjectType', () => {
       branch: 'main',
     });
     (prisma.service.update as jest.Mock).mockResolvedValue({ id: 's1' });
-    const crypto = { decrypt: jest.fn((v: string) => v) } as unknown as CryptoService;
+    const crypto = {
+      decrypt: jest.fn((v: string) => v),
+    } as unknown as CryptoService;
     const fileFetcher = {
       listGitLabRepositoryFiles: jest.fn().mockResolvedValue(['package.json']),
       listGitHubRepositoryFiles: jest.fn().mockResolvedValue([]),
-      fetchRawFile: jest.fn().mockResolvedValue(
-        JSON.stringify({ dependencies: { '@nestjs/core': '^10' } }),
-      ),
+      fetchRawFile: jest
+        .fn()
+        .mockResolvedValue(
+          JSON.stringify({ dependencies: { '@nestjs/core': '^10' } }),
+        ),
     } as unknown as RepositoryFileFetcherService;
 
     const svc = new BuildDetectorService(prisma, crypto, fileFetcher);

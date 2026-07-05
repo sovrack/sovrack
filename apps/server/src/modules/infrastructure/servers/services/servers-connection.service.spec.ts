@@ -5,13 +5,17 @@ import { ServersConnectionService } from './servers-connection.service';
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
 
 function makeSvc() {
-  const prisma = { server: { findUnique: jest.fn(), update: jest.fn() } } as never;
+  const prisma = {
+    server: { findUnique: jest.fn(), update: jest.fn() },
+  } as never;
   const crypto = {
     decrypt: jest.fn().mockReturnValue('key'),
     normalizePrivateKeyFormat: jest.fn((k: string) => k),
   } as never;
   const hostKeys = {
-    resolveForConnection: jest.fn().mockResolvedValue({ keyBase64: 'b64', knownHostsLine: 'kh' }),
+    resolveForConnection: jest
+      .fn()
+      .mockResolvedValue({ keyBase64: 'b64', knownHostsLine: 'kh' }),
     isStrictMode: jest.fn().mockReturnValue(false),
   } as never;
   const verification = {
@@ -23,8 +27,20 @@ function makeSvc() {
   const config = { get: jest.fn().mockReturnValue('false') } as never;
   const sshExecutor = { connect: jest.fn() } as never;
   return {
-    svc: new ServersConnectionService(prisma, crypto, hostKeys, verification, config, sshExecutor),
-    prisma, crypto, hostKeys, verification, config, sshExecutor,
+    svc: new ServersConnectionService(
+      prisma,
+      crypto,
+      hostKeys,
+      verification,
+      config,
+      sshExecutor,
+    ),
+    prisma,
+    crypto,
+    hostKeys,
+    verification,
+    config,
+    sshExecutor,
   };
 }
 
@@ -37,7 +53,9 @@ describe('ServersConnectionService', () => {
 
     it('always returns SSH mode', () => {
       const { svc } = makeSvc();
-      expect(svc.mapConnectionMode(ServerConnectionModeDto.SSH)).toBe(ServerConnectionMode.SSH);
+      expect(svc.mapConnectionMode(ServerConnectionModeDto.SSH)).toBe(
+        ServerConnectionMode.SSH,
+      );
       expect(svc.mapConnectionMode(undefined)).toBe(ServerConnectionMode.SSH);
     });
   });
@@ -45,13 +63,25 @@ describe('ServersConnectionService', () => {
   describe('execOrThrow', () => {
     it('resolves when exit code is 0', async () => {
       const { svc } = makeSvc();
-      const ssh = { execCommand: jest.fn().mockResolvedValue({ code: 0, stdout: '', stderr: '' }) } as never;
-      await expect(svc.execOrThrow(ssh, 'ls', 'ls failed')).resolves.toBeUndefined();
+      const ssh = {
+        execCommand: jest
+          .fn()
+          .mockResolvedValue({ code: 0, stdout: '', stderr: '' }),
+      } as never;
+      await expect(
+        svc.execOrThrow(ssh, 'ls', 'ls failed'),
+      ).resolves.toBeUndefined();
     });
 
     it('throws BadRequestException with stderr when exit code is non-zero', async () => {
       const { svc } = makeSvc();
-      const ssh = { execCommand: jest.fn().mockResolvedValue({ code: 1, stdout: '', stderr: 'permission denied' }) } as never;
+      const ssh = {
+        execCommand: jest.fn().mockResolvedValue({
+          code: 1,
+          stdout: '',
+          stderr: 'permission denied',
+        }),
+      } as never;
       await expect(svc.execOrThrow(ssh, 'sudo', 'sudo failed')).rejects.toThrow(
         'sudo failed: permission denied',
       );
@@ -59,15 +89,25 @@ describe('ServersConnectionService', () => {
 
     it('falls back to stdout when stderr is empty', async () => {
       const { svc } = makeSvc();
-      const ssh = { execCommand: jest.fn().mockResolvedValue({ code: 1, stdout: 'command not found', stderr: '' }) } as never;
-      await expect(svc.execOrThrow(ssh, 'foobar', 'foobar failed')).rejects.toThrow(
-        'foobar failed: command not found',
-      );
+      const ssh = {
+        execCommand: jest.fn().mockResolvedValue({
+          code: 1,
+          stdout: 'command not found',
+          stderr: '',
+        }),
+      } as never;
+      await expect(
+        svc.execOrThrow(ssh, 'foobar', 'foobar failed'),
+      ).rejects.toThrow('foobar failed: command not found');
     });
 
     it('falls back to "erreur inconnue" when both stdout and stderr are empty', async () => {
       const { svc } = makeSvc();
-      const ssh = { execCommand: jest.fn().mockResolvedValue({ code: 2, stdout: '', stderr: '' }) } as never;
+      const ssh = {
+        execCommand: jest
+          .fn()
+          .mockResolvedValue({ code: 2, stdout: '', stderr: '' }),
+      } as never;
       await expect(svc.execOrThrow(ssh, 'cmd', 'cmd failed')).rejects.toThrow(
         'cmd failed: erreur inconnue',
       );
@@ -77,7 +117,10 @@ describe('ServersConnectionService', () => {
   describe('closeConnection', () => {
     it('calls dispose on the connection', () => {
       const { svc } = makeSvc();
-      const connection = { target: {} as never, dispose: jest.fn().mockResolvedValue(undefined) };
+      const connection = {
+        target: {} as never,
+        dispose: jest.fn().mockResolvedValue(undefined),
+      };
       svc.closeConnection(connection);
       expect(connection.dispose).toHaveBeenCalled();
     });
@@ -93,14 +136,18 @@ describe('ServersConnectionService', () => {
     it('rejects with JOB_TIMEOUT error when task exceeds timeout', async () => {
       const { svc } = makeSvc();
       const never = new Promise<string>(() => {});
-      await expect(svc.withTimeout(() => never, 10)).rejects.toThrow('JOB_TIMEOUT_10');
+      await expect(svc.withTimeout(() => never, 10)).rejects.toThrow(
+        'JOB_TIMEOUT_10',
+      );
     });
 
     it('calls onTimeout callback when timeout fires', async () => {
       const { svc } = makeSvc();
       const onTimeout = jest.fn();
       const never = new Promise<string>(() => {});
-      await expect(svc.withTimeout(() => never, 10, onTimeout)).rejects.toThrow();
+      await expect(
+        svc.withTimeout(() => never, 10, onTimeout),
+      ).rejects.toThrow();
       expect(onTimeout).toHaveBeenCalled();
     });
 
@@ -121,8 +168,12 @@ describe('ServersConnectionService', () => {
       (crypto.decrypt as jest.Mock).mockReturnValue('decrypted-key');
 
       const server = {
-        id: 'srv1', host: '1.2.3.4', port: 22, username: 'admin',
-        sshKey: 'enc-key', knownHostKey: 'base64key',
+        id: 'srv1',
+        host: '1.2.3.4',
+        port: 22,
+        username: 'admin',
+        sshKey: 'enc-key',
+        knownHostKey: 'base64key',
       } as never;
 
       await svc.openConnection(server, 'expected-b64-key');
@@ -144,8 +195,12 @@ describe('ServersConnectionService', () => {
       (sshExecutor.connect as jest.Mock).mockResolvedValue(mockConn);
 
       const server = {
-        id: 's', host: 'h', port: 22, username: 'u',
-        sshKey: 'k', knownHostKey: 'b',
+        id: 's',
+        host: 'h',
+        port: 22,
+        username: 'u',
+        sshKey: 'k',
+        knownHostKey: 'b',
       } as never;
 
       const conn = await svc.openConnection(server, 'b64');
@@ -161,7 +216,9 @@ describe('ServersConnectionService', () => {
     it('resolves true when the port accepts a TCP connection', async () => {
       const { svc } = makeSvc();
       const server = createServer();
-      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+      await new Promise<void>((resolve) =>
+        server.listen(0, '127.0.0.1', resolve),
+      );
       const port = (server.address() as { port: number }).port;
 
       try {
@@ -175,9 +232,7 @@ describe('ServersConnectionService', () => {
       const { svc } = makeSvc();
       // Port 1 is a reserved/privileged port essentially never bound in a
       // test environment — ECONNREFUSED is the expected, fast outcome.
-      await expect(svc.pingReachable('127.0.0.1', 1, 500)).resolves.toBe(
-        false,
-      );
+      await expect(svc.pingReachable('127.0.0.1', 1, 500)).resolves.toBe(false);
     });
 
     it('resolves false (not hung) when the host does not respond before the timeout', async () => {
@@ -195,7 +250,14 @@ describe('ServersConnectionService', () => {
     it('throws BadRequestException when signal is already aborted', async () => {
       const { svc } = makeSvc();
       const abortedSignal = { aborted: true } as AbortSignal;
-      const server = { id: 's', host: 'h', port: 22, username: 'u', sshKey: 'k', name: 'My Server' } as never;
+      const server = {
+        id: 's',
+        host: 'h',
+        port: 22,
+        username: 'u',
+        sshKey: 'k',
+        name: 'My Server',
+      } as never;
       await expect(
         svc.registerRunnerDirect(server, 'https://gitlab.com', 'token', {
           signal: abortedSignal,

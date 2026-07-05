@@ -195,7 +195,7 @@ export class CreateServiceDto {
     description:
       'DATABASE services only. Host port to publish for external access. ' +
       'Null/omitted = not exposed externally (default) — only reachable ' +
-      "from other services in the project via the internal Docker network.",
+      'from other services in the project via the internal Docker network.',
   })
   @IsOptional()
   @Type(() => Number)
@@ -223,7 +223,9 @@ export class CreateServiceDto {
   // JSON invalide, ce qui casserait ce cas déjà supporté aujourd'hui.
   @ValidateIf(
     (o: CreateServiceDto) =>
-      o.secretsEnv !== undefined && o.secretsEnv !== null && o.secretsEnv !== '',
+      o.secretsEnv !== undefined &&
+      o.secretsEnv !== null &&
+      o.secretsEnv !== '',
   )
   @IsJSON({ message: 'secretsEnv doit être un JSON valide' })
   secretsEnv?: string;

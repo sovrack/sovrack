@@ -2,8 +2,12 @@ import { WebhookManagementController } from './webhook-management.controller';
 
 function makeSvc() {
   return {
-    configureForService: jest.fn().mockResolvedValue({ hookId: 1, url: 'https://hook' }),
-    configureForProject: jest.fn().mockResolvedValue({ hookId: 2, url: 'https://hook' }),
+    configureForService: jest
+      .fn()
+      .mockResolvedValue({ hookId: 1, url: 'https://hook' }),
+    configureForProject: jest
+      .fn()
+      .mockResolvedValue({ hookId: 2, url: 'https://hook' }),
     getStatusForService: jest.fn().mockResolvedValue({ active: true }),
     getStatus: jest.fn().mockResolvedValue({ active: false }),
     setActiveForService: jest.fn().mockResolvedValue(undefined),

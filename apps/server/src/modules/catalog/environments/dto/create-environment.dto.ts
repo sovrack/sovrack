@@ -37,7 +37,9 @@ export class CreateEnvironmentDto {
   // invalide, ce qui casserait ce cas déjà supporté aujourd'hui.
   @ValidateIf(
     (o: CreateEnvironmentDto) =>
-      o.secretsEnv !== undefined && o.secretsEnv !== null && o.secretsEnv !== '',
+      o.secretsEnv !== undefined &&
+      o.secretsEnv !== null &&
+      o.secretsEnv !== '',
   )
   @IsJSON({ message: 'secretsEnv doit être un JSON valide' })
   secretsEnv?: string;

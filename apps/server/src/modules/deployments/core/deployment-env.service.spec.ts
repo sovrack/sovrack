@@ -1,10 +1,16 @@
 import { ManagedServiceType, ServiceType } from '@prisma/client';
 import { DeploymentEnvService } from './deployment-env.service';
 
-function makeSvc(opts: {
-  dbs?: Array<{ name: string; databaseType: string; databaseCredentials: unknown }>;
-  volumeError?: boolean;
-} = {}) {
+function makeSvc(
+  opts: {
+    dbs?: Array<{
+      name: string;
+      databaseType: string;
+      databaseCredentials: unknown;
+    }>;
+    volumeError?: boolean;
+  } = {},
+) {
   const prisma = {
     service: {
       findMany: jest.fn().mockResolvedValue(opts.dbs ?? []),
@@ -27,7 +33,10 @@ function makeSvc(opts: {
 
   return {
     svc: new DeploymentEnvService(prisma, docker, crypto, logEmitter),
-    prisma, docker, crypto, logEmitter,
+    prisma,
+    docker,
+    crypto,
+    logEmitter,
   };
 }
 
@@ -35,7 +44,12 @@ function makeDeployment(overrides = {}) {
   return {
     id: 'dep1',
     project: { id: 'proj1' },
-    service: { id: 'svc1', type: ServiceType.APP, env: 'PORT=3000', secretsEnv: null },
+    service: {
+      id: 'svc1',
+      type: ServiceType.APP,
+      env: 'PORT=3000',
+      secretsEnv: null,
+    },
     serviceEnv: {
       env: 'NODE_ENV=production',
       secretsEnv: null,
@@ -86,11 +100,17 @@ describe('DeploymentEnvService', () => {
 
     it('resolves DATABASE_URL from linked managed database', async () => {
       const { svc } = makeSvc({
-        dbs: [{
-          name: 'postgres',
-          databaseType: ManagedServiceType.POSTGRES,
-          databaseCredentials: JSON.stringify({ user: 'admin', password: 'secret', dbName: 'mydb' }),
-        }],
+        dbs: [
+          {
+            name: 'postgres',
+            databaseType: ManagedServiceType.POSTGRES,
+            databaseCredentials: JSON.stringify({
+              user: 'admin',
+              password: 'secret',
+              dbName: 'mydb',
+            }),
+          },
+        ],
       });
       const deployment = {
         project: { id: 'proj1' },
@@ -115,9 +135,17 @@ describe('DeploymentEnvService', () => {
           {
             name: 'postgres',
             databaseType: ManagedServiceType.POSTGRES,
-            databaseCredentials: JSON.stringify({ user: 'app', password: 'pw', dbName: 'app' }),
+            databaseCredentials: JSON.stringify({
+              user: 'app',
+              password: 'pw',
+              dbName: 'app',
+            }),
           },
-          { name: 'redis', databaseType: ManagedServiceType.REDIS, databaseCredentials: null },
+          {
+            name: 'redis',
+            databaseType: ManagedServiceType.REDIS,
+            databaseCredentials: null,
+          },
         ],
       });
       const deployment = {
@@ -169,7 +197,11 @@ describe('DeploymentEnvService', () => {
     it('prepends auto-db level when autoDbEnv is provided', () => {
       const { svc } = makeSvc();
       // autoDbEnv must be JSON format — the resolver expects JSON objects.
-      const deployment = makeDeployment({ service: null, serviceEnv: null, environment: null });
+      const deployment = makeDeployment({
+        service: null,
+        serviceEnv: null,
+        environment: null,
+      });
       const { envVars } = svc.resolveDeploymentEnv(
         deployment,
         '{"DATABASE_URL": "postgresql://user:pass@db:5432/app"}',
@@ -181,7 +213,12 @@ describe('DeploymentEnvService', () => {
       const { svc } = makeSvc();
       // Service env is JSON; auto-db JSON is lower priority.
       const deployment = makeDeployment({
-        service: { id: 'svc1', type: ServiceType.APP, env: '{"DATABASE_URL": "postgres://user-defined"}', secretsEnv: null },
+        service: {
+          id: 'svc1',
+          type: ServiceType.APP,
+          env: '{"DATABASE_URL": "postgres://user-defined"}',
+          secretsEnv: null,
+        },
         serviceEnv: null,
         environment: null,
       });
@@ -196,7 +233,12 @@ describe('DeploymentEnvService', () => {
     it('emits warning log for malformed JSON env', () => {
       const { svc, logEmitter } = makeSvc();
       const deployment = makeDeployment({
-        service: { id: 'svc1', type: ServiceType.APP, env: 'NOT_JSON_AT_ALL', secretsEnv: null },
+        service: {
+          id: 'svc1',
+          type: ServiceType.APP,
+          env: 'NOT_JSON_AT_ALL',
+          secretsEnv: null,
+        },
         serviceEnv: null,
         environment: null,
       });
@@ -211,7 +253,12 @@ describe('DeploymentEnvService', () => {
     it('returns empty commandLogs when no warnings', () => {
       const { svc } = makeSvc();
       const deployment = makeDeployment({
-        service: { id: 'svc1', type: ServiceType.APP, env: '{"PORT": "3000"}', secretsEnv: null },
+        service: {
+          id: 'svc1',
+          type: ServiceType.APP,
+          env: '{"PORT": "3000"}',
+          secretsEnv: null,
+        },
         serviceEnv: null,
         environment: null,
       });
@@ -224,7 +271,12 @@ describe('DeploymentEnvService', () => {
     it('returns undefined fields for non-DATABASE service', async () => {
       const { svc } = makeSvc();
       const deployment = {
-        service: { id: 'svc1', type: ServiceType.APP, databaseType: null, databaseCredentials: null },
+        service: {
+          id: 'svc1',
+          type: ServiceType.APP,
+          databaseType: null,
+          databaseCredentials: null,
+        },
       };
       const result = await svc.setupDbVolume(deployment, 'srv1', [], 5432);
       expect(result.dbVolumeName).toBeUndefined();
@@ -235,7 +287,12 @@ describe('DeploymentEnvService', () => {
     it('returns undefined fields when databaseType is null', async () => {
       const { svc } = makeSvc();
       const deployment = {
-        service: { id: 'svc1', type: ServiceType.DATABASE, databaseType: null, databaseCredentials: null },
+        service: {
+          id: 'svc1',
+          type: ServiceType.DATABASE,
+          databaseType: null,
+          databaseCredentials: null,
+        },
       };
       const result = await svc.setupDbVolume(deployment, 'srv1', [], 5432);
       expect(result.dbVolumeName).toBeUndefined();
@@ -254,7 +311,11 @@ describe('DeploymentEnvService', () => {
           id: 'svc1',
           type: ServiceType.DATABASE,
           databaseType: ManagedServiceType.POSTGRES,
-          databaseCredentials: JSON.stringify({ user: 'pg', password: 'pass', dbName: 'db1' }),
+          databaseCredentials: JSON.stringify({
+            user: 'pg',
+            password: 'pass',
+            dbName: 'db1',
+          }),
         },
       };
       const result = await svc.setupDbVolume(deployment, 'srv1', [], 5432);
@@ -270,13 +331,27 @@ describe('DeploymentEnvService', () => {
         id: 'svc1',
         type: ServiceType.DATABASE,
         databaseType: ManagedServiceType.POSTGRES,
-        databaseCredentials: JSON.stringify({ user: 'pg', password: 'pass', dbName: 'db1' }),
+        databaseCredentials: JSON.stringify({
+          user: 'pg',
+          password: 'pass',
+          dbName: 'db1',
+        }),
       };
       // Two distinct Deployment rows (first deploy, then a redeploy) — the
       // service itself is unchanged. Only `deployment.id` differs in reality;
       // setupDbVolume no longer receives or uses it at all.
-      const firstDeployResult = await svcA.setupDbVolume({ service: baseService }, 'srv1', [], 5432);
-      const redeployResult = await svcB.setupDbVolume({ service: baseService }, 'srv1', [], 5432);
+      const firstDeployResult = await svcA.setupDbVolume(
+        { service: baseService },
+        'srv1',
+        [],
+        5432,
+      );
+      const redeployResult = await svcB.setupDbVolume(
+        { service: baseService },
+        'srv1',
+        [],
+        5432,
+      );
 
       expect(firstDeployResult.dbVolumeName).toBe(redeployResult.dbVolumeName);
       expect(dockerA.createVolume).toHaveBeenCalledWith('srv1', 'svc1-data');
@@ -291,7 +366,11 @@ describe('DeploymentEnvService', () => {
           id: 'svc1',
           type: ServiceType.DATABASE,
           databaseType: ManagedServiceType.POSTGRES,
-          databaseCredentials: JSON.stringify({ user: 'pg', password: 'pass', dbName: 'mydb' }),
+          databaseCredentials: JSON.stringify({
+            user: 'pg',
+            password: 'pass',
+            dbName: 'mydb',
+          }),
         },
       };
       await svc.setupDbVolume(deployment, 'srv1', envVars, 5432);
@@ -306,11 +385,17 @@ describe('DeploymentEnvService', () => {
           id: 'svc1',
           type: ServiceType.DATABASE,
           databaseType: ManagedServiceType.POSTGRES,
-          databaseCredentials: JSON.stringify({ user: 'existing', password: 'pass', dbName: 'db' }),
+          databaseCredentials: JSON.stringify({
+            user: 'existing',
+            password: 'pass',
+            dbName: 'db',
+          }),
         },
       };
       await svc.setupDbVolume(deployment, 'srv1', envVars, 5432);
-      const count = envVars.filter((v) => v === 'POSTGRES_USER=existing').length;
+      const count = envVars.filter(
+        (v) => v === 'POSTGRES_USER=existing',
+      ).length;
       expect(count).toBe(1);
     });
   });

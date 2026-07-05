@@ -73,36 +73,71 @@ describe('GitlabAdapter (response mapping)', () => {
 
 function makeFullAdapter() {
   const apiService = {
-    getBranches: jest.fn().mockResolvedValue([
-      { name: 'main', default: true, commit: { id: 'sha1' } },
-    ]),
+    getBranches: jest
+      .fn()
+      .mockResolvedValue([
+        { name: 'main', default: true, commit: { id: 'sha1' } },
+      ]),
     getRepos: jest.fn().mockResolvedValue([
-      { id: 1, name: 'app', path_with_namespace: 'org/app', web_url: 'https://gl.io/org/app', default_branch: 'main' },
+      {
+        id: 1,
+        name: 'app',
+        path_with_namespace: 'org/app',
+        web_url: 'https://gl.io/org/app',
+        default_branch: 'main',
+      },
     ]),
     fetchGroupRepositories: jest.fn().mockResolvedValue([]),
     listGroupRepositoriesPageByConnection: jest.fn().mockResolvedValue({
-      items: [{ path_with_namespace: 'org/repo', default_branch: 'dev', web_url: 'https://gl.io/org/repo', last_activity_at: '2026-01-01' }],
+      items: [
+        {
+          path_with_namespace: 'org/repo',
+          default_branch: 'dev',
+          web_url: 'https://gl.io/org/repo',
+          last_activity_at: '2026-01-01',
+        },
+      ],
       totalCount: 1,
       nextPage: null,
     }),
   };
 
-  const registry = { listGitlabProvidersForProjects: jest.fn().mockResolvedValue([]) };
+  const registry = {
+    listGitlabProvidersForProjects: jest.fn().mockResolvedValue([]),
+  };
 
   const ci = {
-    getPipelines: jest.fn().mockResolvedValue([{ id: 10, status: 'running', ref: 'main', sha: 'abc', web_url: 'https://ci.gl.io/10' }]),
+    getPipelines: jest.fn().mockResolvedValue([
+      {
+        id: 10,
+        status: 'running',
+        ref: 'main',
+        sha: 'abc',
+        web_url: 'https://ci.gl.io/10',
+      },
+    ]),
     getPipelinesForService: jest.fn().mockResolvedValue([]),
-    triggerPipeline: jest.fn().mockResolvedValue({ id: 42, status: 'created', ref: 'main', sha: 'xyz', web_url: 'https://ci.gl.io/42' }),
+    triggerPipeline: jest.fn().mockResolvedValue({
+      id: 42,
+      status: 'created',
+      ref: 'main',
+      sha: 'xyz',
+      web_url: 'https://ci.gl.io/42',
+    }),
   };
 
   const fileService = {
     readFile: jest.fn().mockResolvedValue('content'),
     writeFiles: jest.fn().mockResolvedValue({ success: true }),
-    resolveGitCredentials: jest.fn().mockResolvedValue({ username: 'user', password: 'tok' }),
+    resolveGitCredentials: jest
+      .fn()
+      .mockResolvedValue({ username: 'user', password: 'tok' }),
   };
 
   const webhookConfigurator = {
-    configureWebhook: jest.fn().mockResolvedValue({ hookId: 5, url: 'https://hook' }),
+    configureWebhook: jest
+      .fn()
+      .mockResolvedValue({ hookId: 5, url: 'https://hook' }),
   };
 
   const auth = {
@@ -115,17 +150,28 @@ function makeFullAdapter() {
       gitlabToken: 'tok',
       providerId: null,
     }),
-    normalizeUrl: jest.fn().mockImplementation((u: string) => u.replace(/\/+$/, '')),
+    normalizeUrl: jest
+      .fn()
+      .mockImplementation((u: string) => u.replace(/\/+$/, '')),
     normalizeRepositoryPath: jest.fn().mockImplementation((p: string) => p),
-    toPublicConfig: jest.fn().mockReturnValue({ id: 'prov1', gitlabUrl: 'https://gitlab.example.com' }),
+    toPublicConfig: jest.fn().mockReturnValue({
+      id: 'prov1',
+      gitlabUrl: 'https://gitlab.example.com',
+    }),
   };
 
   const credential = {
-    resolveRegistryCredentialsFromConfig: jest.fn().mockReturnValue({ username: 'user', password: 'tok' }),
+    resolveRegistryCredentialsFromConfig: jest
+      .fn()
+      .mockReturnValue({ username: 'user', password: 'tok' }),
   };
 
   const projectConfig = {
-    getProjectConfig: jest.fn().mockResolvedValue({ id: 'prov1', sourceType: 'REGISTRY', providerUrl: 'https://gl.io' }),
+    getProjectConfig: jest.fn().mockResolvedValue({
+      id: 'prov1',
+      sourceType: 'REGISTRY',
+      providerUrl: 'https://gl.io',
+    }),
     resolveRepoIdForAction: jest.fn().mockResolvedValue(123),
     assertRepoSource: jest.fn().mockReturnValue(123),
   };
@@ -141,7 +187,9 @@ function makeFullAdapter() {
       svc: { repoPath: 'org/app', name: 'app' },
     }),
     resolveRepositoryPathFromConfig: jest.fn().mockResolvedValue('org/app'),
-    resolveDockerImageRef: jest.fn().mockResolvedValue('registry.gl.io/org/app:main'),
+    resolveDockerImageRef: jest
+      .fn()
+      .mockResolvedValue('registry.gl.io/org/app:main'),
   };
 
   return {
@@ -158,8 +206,17 @@ function makeFullAdapter() {
       onboarding as never,
       imageRefService as never,
     ),
-    apiService, ci, fileService, webhookConfigurator, auth, connection, credential, registry, projectConfig,
-    onboarding, imageRefService,
+    apiService,
+    ci,
+    fileService,
+    webhookConfigurator,
+    auth,
+    connection,
+    credential,
+    registry,
+    projectConfig,
+    onboarding,
+    imageRefService,
   };
 }
 
@@ -168,7 +225,12 @@ describe('GitlabAdapter — connectProject / verifyConnectionInput (delegation)'
     const { adapter, onboarding } = makeFullAdapter();
     const dto = { repoPath: 'org/app' } as never;
     await adapter.connectProject('p1', dto, 'u1', Role.ADMIN);
-    expect(onboarding.connectProject).toHaveBeenCalledWith('p1', dto, 'u1', Role.ADMIN);
+    expect(onboarding.connectProject).toHaveBeenCalledWith(
+      'p1',
+      dto,
+      'u1',
+      Role.ADMIN,
+    );
   });
 
   it('verifyConnectionInput delegates to GitlabOnboardingService', async () => {
@@ -182,7 +244,12 @@ describe('GitlabAdapter — connectProject / verifyConnectionInput (delegation)'
 describe('GitlabAdapter — triggerPipeline', () => {
   it('maps web_url to webUrl in the returned PipelineItem', async () => {
     const { adapter } = makeFullAdapter();
-    const result = await adapter.triggerPipeline('p1', 'main', 'u1', Role.ADMIN);
+    const result = await adapter.triggerPipeline(
+      'p1',
+      'main',
+      'u1',
+      Role.ADMIN,
+    );
     expect(result.webUrl).toBe('https://ci.gl.io/42');
     expect(result.id).toBe(42);
   });
@@ -203,7 +270,11 @@ describe('GitlabAdapter — resolveDockerImageRef (delegation)', () => {
   it('delegates to GitlabImageRefService with the same arguments', async () => {
     const { adapter, imageRefService } = makeFullAdapter();
     const result = await adapter.resolveDockerImageRef('p1', 'main', 'svc1');
-    expect(imageRefService.resolveDockerImageRef).toHaveBeenCalledWith('p1', 'main', 'svc1');
+    expect(imageRefService.resolveDockerImageRef).toHaveBeenCalledWith(
+      'p1',
+      'main',
+      'svc1',
+    );
     expect(result).toBe('registry.gl.io/org/app:main');
   });
 });
@@ -213,11 +284,9 @@ describe('GitlabAdapter — resolveRepositoryPathFromConfig (delegation)', () =>
     const { adapter, imageRefService } = makeFullAdapter();
     const config = { providerUrl: 'https://gl.io' } as never;
     await adapter.resolveRepositoryPathFromConfig(config, 'fallback-slug', 7);
-    expect(imageRefService.resolveRepositoryPathFromConfig).toHaveBeenCalledWith(
-      config,
-      'fallback-slug',
-      7,
-    );
+    expect(
+      imageRefService.resolveRepositoryPathFromConfig,
+    ).toHaveBeenCalledWith(config, 'fallback-slug', 7);
   });
 });
 
@@ -238,7 +307,12 @@ describe('GitlabAdapter — delegation methods', () => {
   it('readFile delegates to fileService', async () => {
     const { adapter, fileService } = makeFullAdapter();
     const result = await adapter.readFile('p1', 'Dockerfile');
-    expect(fileService.readFile).toHaveBeenCalledWith('p1', 'Dockerfile', undefined, undefined);
+    expect(fileService.readFile).toHaveBeenCalledWith(
+      'p1',
+      'Dockerfile',
+      undefined,
+      undefined,
+    );
     expect(result).toBe('content');
   });
 
@@ -260,14 +334,18 @@ describe('GitlabAdapter — delegation methods', () => {
     imageRefService.loadResolvedConfig.mockRejectedValueOnce(
       new NotFoundException('Aucune config GitLab pour le projet p1'),
     );
-    await expect(adapter.resolveRegistryCredentials('p1')).rejects.toThrow(NotFoundException);
+    await expect(adapter.resolveRegistryCredentials('p1')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('resolveRepositoryPath calls imageRefService.loadResolvedConfig then resolveRepositoryPathFromConfig', async () => {
     const { adapter, imageRefService } = makeFullAdapter();
     await adapter.resolveRepositoryPath('p1', 7);
     expect(imageRefService.loadResolvedConfig).toHaveBeenCalledWith('p1');
-    expect(imageRefService.resolveRepositoryPathFromConfig).toHaveBeenCalledWith(
+    expect(
+      imageRefService.resolveRepositoryPathFromConfig,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({ providerUrl: 'https://gl.io' }),
       'main',
       7,

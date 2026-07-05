@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 const execFileMock = jest.fn(
   (
@@ -18,7 +22,14 @@ jest.mock('fs/promises', () => ({
 // with plain enum objects (the only things this service actually reads).
 jest.mock('@prisma/client', () => ({
   PrismaClient: class {},
-  BuildPack: { NIXPACKS: 'NIXPACKS', BUILDPACK: 'BUILDPACK', DOCKERFILE: 'DOCKERFILE', DOCKER_COMPOSE: 'DOCKER_COMPOSE', STATIC: 'STATIC', NONE: 'NONE' },
+  BuildPack: {
+    NIXPACKS: 'NIXPACKS',
+    BUILDPACK: 'BUILDPACK',
+    DOCKERFILE: 'DOCKERFILE',
+    DOCKER_COMPOSE: 'DOCKER_COMPOSE',
+    STATIC: 'STATIC',
+    NONE: 'NONE',
+  },
   CircuitState: { CLOSED: 'CLOSED', OPEN: 'OPEN', HALF_OPEN: 'HALF_OPEN' },
   ServerStatus: {
     NEW: 'NEW',
@@ -34,7 +45,12 @@ jest.mock('@prisma/client', () => ({
     UNREACHABLE: 'UNREACHABLE',
     DISABLED: 'DISABLED',
   },
-  ServiceType: { APPLICATION: 'APPLICATION', DATABASE: 'DATABASE', WORKER: 'WORKER', CRON: 'CRON' },
+  ServiceType: {
+    APPLICATION: 'APPLICATION',
+    DATABASE: 'DATABASE',
+    WORKER: 'WORKER',
+    CRON: 'CRON',
+  },
 }));
 
 import { DeploymentPreflightService } from './deployment-preflight.service';
@@ -141,7 +157,9 @@ describe('DeploymentPreflightService.assertDeployable', () => {
       findForServer: jest.fn().mockResolvedValue({ circuitState: 'CLOSED' }),
     };
     crypto = { decryptSafe: jest.fn((v: string | null) => v) };
-    registryAuth = { resolveAuthForImage: jest.fn().mockResolvedValue(undefined) };
+    registryAuth = {
+      resolveAuthForImage: jest.fn().mockResolvedValue(undefined),
+    };
     containerLifecycle = {
       assertNoForeignPortConflict: jest.fn().mockResolvedValue(''),
     };
@@ -236,7 +254,9 @@ describe('DeploymentPreflightService.assertDeployable', () => {
 
   it('2d) throws when Docker is not confirmed installed on the server', async () => {
     const env = baseServiceEnv();
-    env.environment.servers[0].capabilities = {} as { 'docker.installed': string };
+    env.environment.servers[0].capabilities = {} as {
+      'docker.installed': string;
+    };
     prisma.serviceEnvironment.findUnique.mockResolvedValue(env);
     prisma.server.findUnique.mockResolvedValue(env.environment.servers[0]);
     await expect(
@@ -286,7 +306,11 @@ describe('DeploymentPreflightService.assertDeployable', () => {
     });
     prisma.serviceEnvironment.findUnique.mockResolvedValue(
       baseServiceEnv({
-        service: { ...baseService(), buildPack: 'DOCKER_COMPOSE', dockerComposeContent: '' },
+        service: {
+          ...baseService(),
+          buildPack: 'DOCKER_COMPOSE',
+          dockerComposeContent: '',
+        },
       }),
     );
     await expect(
@@ -343,7 +367,7 @@ describe('DeploymentPreflightService.assertDeployable', () => {
     });
     registryAuth.resolveAuthForImage.mockRejectedValue(
       new BadRequestException(
-        "La configuration du registre « custom » est incomplète.",
+        'La configuration du registre « custom » est incomplète.',
       ),
     );
     prisma.serviceEnvironment.findUnique.mockResolvedValue(
@@ -390,7 +414,10 @@ describe('DeploymentPreflightService.assertDeployable', () => {
 
   it('9c) applies the blue-green port offset when strategy is blue-green', async () => {
     prisma.serviceEnvironment.findUnique.mockResolvedValue(baseServiceEnv());
-    await service.assertDeployable({ serviceEnvId: 'se-1', strategy: 'blue-green' });
+    await service.assertDeployable({
+      serviceEnvId: 'se-1',
+      strategy: 'blue-green',
+    });
     expect(containerLifecycle.assertNoForeignPortConflict).toHaveBeenCalledWith(
       'srv-1',
       expect.any(String),
@@ -403,7 +430,9 @@ describe('DeploymentPreflightService.assertDeployable', () => {
     prisma.serviceEnvironment.findUnique.mockResolvedValue(baseServiceEnv());
     prisma.domain.findFirst.mockResolvedValue({ id: 'dom-1' });
     await service.assertDeployable({ serviceEnvId: 'se-1' });
-    expect(containerLifecycle.assertNoForeignPortConflict).not.toHaveBeenCalled();
+    expect(
+      containerLifecycle.assertNoForeignPortConflict,
+    ).not.toHaveBeenCalled();
   });
 
   it('9e) skips the port check when auto-subdomain would apply (PLATFORM_BASE_DOMAIN set)', async () => {
@@ -415,7 +444,9 @@ describe('DeploymentPreflightService.assertDeployable', () => {
           : Promise.resolve(null),
     );
     await service.assertDeployable({ serviceEnvId: 'se-1' });
-    expect(containerLifecycle.assertNoForeignPortConflict).not.toHaveBeenCalled();
+    expect(
+      containerLifecycle.assertNoForeignPortConflict,
+    ).not.toHaveBeenCalled();
   });
 
   it('9f) skips the port check entirely for WORKER/CRON services (never publish a host port)', async () => {
@@ -423,7 +454,9 @@ describe('DeploymentPreflightService.assertDeployable', () => {
       baseServiceEnv({ service: { ...baseService(), type: 'WORKER' } }),
     );
     await service.assertDeployable({ serviceEnvId: 'se-1' });
-    expect(containerLifecycle.assertNoForeignPortConflict).not.toHaveBeenCalled();
+    expect(
+      containerLifecycle.assertNoForeignPortConflict,
+    ).not.toHaveBeenCalled();
   });
 
   it('9g) skips the port check for an internal-only DATABASE (no externalPort → no host port published)', async () => {
@@ -506,9 +539,9 @@ describe('DeploymentPreflightService.assertDeployable', () => {
       dockerConnections.findForServer.mockResolvedValue({
         circuitState: 'OPEN',
       });
-      await expect(
-        service.assertServerReady('srv-1'),
-      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      await expect(service.assertServerReady('srv-1')).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
     });
 
     it('does NOT perform any of the full preflight checks (no Dockerfile/secrets/registry/port checks)', async () => {
@@ -516,7 +549,9 @@ describe('DeploymentPreflightService.assertDeployable', () => {
       await service.assertServerReady('srv-1');
       expect(gitProviders.forService).not.toHaveBeenCalled();
       expect(registryAuth.resolveAuthForImage).not.toHaveBeenCalled();
-      expect(containerLifecycle.assertNoForeignPortConflict).not.toHaveBeenCalled();
+      expect(
+        containerLifecycle.assertNoForeignPortConflict,
+      ).not.toHaveBeenCalled();
     });
   });
 });

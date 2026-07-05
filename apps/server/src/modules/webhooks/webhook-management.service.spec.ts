@@ -94,10 +94,12 @@ describe('WebhookManagementService — status & toggle', () => {
 // Moved from BuildSetupService.reconcileWebhooks (see A10 in the
 // Sprints 4+5+6 mission) — legacy per-service redirect notice.
 describe('WebhookManagementService.reconcileWebhooksNotice', () => {
-  function harness(opts: {
-    project?: { id: string; name: string } | null;
-    services?: { id: string; name: string }[];
-  } = {}) {
+  function harness(
+    opts: {
+      project?: { id: string; name: string } | null;
+      services?: { id: string; name: string }[];
+    } = {},
+  ) {
     const prisma = {
       project: {
         findUnique: jest

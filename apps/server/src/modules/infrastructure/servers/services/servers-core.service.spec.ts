@@ -6,7 +6,14 @@ import { ServersCoreService } from './servers-core.service';
 // spec only verifies each public method delegates to the right sub-service
 // with the right arguments — the facade contract the 4 controllers rely on.
 describe('ServersCoreService (facade)', () => {
-  let crud: { create: jest.Mock; findAll: jest.Mock; pingAll: jest.Mock; findOne: jest.Mock; update: jest.Mock; remove: jest.Mock };
+  let crud: {
+    create: jest.Mock;
+    findAll: jest.Mock;
+    pingAll: jest.Mock;
+    findOne: jest.Mock;
+    update: jest.Mock;
+    remove: jest.Mock;
+  };
   let jobsFacade: Record<string, jest.Mock>;
   let readersFacade: Record<string, jest.Mock>;
   let service: ServersCoreService;
@@ -170,10 +177,7 @@ describe('ServersCoreService (facade)', () => {
     );
 
     await service.cancelPreparation('s1', 'admin');
-    expect(readersFacade.cancelPreparation).toHaveBeenCalledWith(
-      's1',
-      'admin',
-    );
+    expect(readersFacade.cancelPreparation).toHaveBeenCalledWith('s1', 'admin');
 
     await service.resetVerificationStatus('s1');
     expect(readersFacade.resetVerificationStatus).toHaveBeenCalledWith('s1');
@@ -195,8 +199,6 @@ describe('ServersCoreService (facade)', () => {
     expect(readersFacade.listInfraEnvironments).toHaveBeenCalled();
 
     await service.listEnvironmentsForServer('s1');
-    expect(readersFacade.listEnvironmentsForServer).toHaveBeenCalledWith(
-      's1',
-    );
+    expect(readersFacade.listEnvironmentsForServer).toHaveBeenCalledWith('s1');
   });
 });

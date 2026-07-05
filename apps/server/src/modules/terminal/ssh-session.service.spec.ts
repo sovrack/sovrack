@@ -21,12 +21,14 @@ function makeStream(opts: { closed?: boolean } = {}) {
   return emitter;
 }
 
-function makeClient(opts: {
-  readyError?: Error;
-  shellError?: Error;
-  noShell?: boolean;
-  customStream?: ReturnType<typeof makeStream>;
-} = {}) {
+function makeClient(
+  opts: {
+    readyError?: Error;
+    shellError?: Error;
+    noShell?: boolean;
+    customStream?: ReturnType<typeof makeStream>;
+  } = {},
+) {
   const stream = opts.customStream ?? makeStream();
   const client = new EventEmitter() as EventEmitter & {
     shell: jest.Mock;
@@ -98,11 +100,15 @@ describe('SshSessionService', () => {
     it('rejects when SSH connection emits error before ready', async () => {
       const { client } = makeClient({ readyError: new Error('Auth failed') });
       patchClientConstructor(client);
-      await expect(svc.openShell(makeInput(), makeHandlers())).rejects.toThrow('Auth failed');
+      await expect(svc.openShell(makeInput(), makeHandlers())).rejects.toThrow(
+        'Auth failed',
+      );
     });
 
     it('calls onError when SSH connection emits error', async () => {
-      const { client } = makeClient({ readyError: new Error('Connection refused') });
+      const { client } = makeClient({
+        readyError: new Error('Connection refused'),
+      });
       patchClientConstructor(client);
       const handlers = makeHandlers();
       await expect(svc.openShell(makeInput(), handlers)).rejects.toThrow();
@@ -114,7 +120,9 @@ describe('SshSessionService', () => {
     it('rejects when shell callback receives error', async () => {
       const { client } = makeClient({ shellError: new Error('PTY failed') });
       patchClientConstructor(client);
-      await expect(svc.openShell(makeInput(), makeHandlers())).rejects.toThrow('PTY failed');
+      await expect(svc.openShell(makeInput(), makeHandlers())).rejects.toThrow(
+        'PTY failed',
+      );
     });
 
     it('streams data via onData when stream emits data event', async () => {

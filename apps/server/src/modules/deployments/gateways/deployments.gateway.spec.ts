@@ -8,18 +8,19 @@ import { DeploymentsGateway } from './deployments.gateway';
 
 // ── Socket mock helpers ───────────────────────────────────────────────────────
 
-function makeSocket(overrides: Partial<{
-  cookieHeader: string;
-  authToken: string | undefined;
-  authorizationHeader: string;
-  userData: Record<string, unknown>;
-}> = {}) {
+function makeSocket(
+  overrides: Partial<{
+    cookieHeader: string;
+    authToken: string | undefined;
+    authorizationHeader: string;
+    userData: Record<string, unknown>;
+  }> = {},
+) {
   return {
     id: 'socket-1',
     handshake: {
-      auth: overrides.authToken !== undefined
-        ? { token: overrides.authToken }
-        : {},
+      auth:
+        overrides.authToken !== undefined ? { token: overrides.authToken } : {},
       headers: {
         cookie: overrides.cookieHeader ?? '',
         authorization: overrides.authorizationHeader ?? '',
@@ -34,11 +35,13 @@ function makeSocket(overrides: Partial<{
 
 // ── Gateway factory ───────────────────────────────────────────────────────────
 
-function makeGateway(opts: {
-  jwtPayload?: Record<string, unknown> | null;
-  deployment?: { projectId: string } | null;
-  member?: { id: string } | null;
-} = {}) {
+function makeGateway(
+  opts: {
+    jwtPayload?: Record<string, unknown> | null;
+    deployment?: { projectId: string } | null;
+    member?: { id: string } | null;
+  } = {},
+) {
   const jwtService = {
     verify: jest.fn(),
   } as unknown as JwtService;
@@ -55,14 +58,16 @@ function makeGateway(opts: {
 
   const prisma = {
     deployment: {
-      findUnique: jest.fn().mockResolvedValue(
-        'deployment' in opts ? opts.deployment : { projectId: 'proj1' },
-      ),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue(
+          'deployment' in opts ? opts.deployment : { projectId: 'proj1' },
+        ),
     },
     projectMember: {
-      findUnique: jest.fn().mockResolvedValue(
-        'member' in opts ? opts.member : { id: 'pm1' },
-      ),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue('member' in opts ? opts.member : { id: 'pm1' }),
     },
   } as unknown as PrismaService;
 
@@ -90,7 +95,14 @@ function makeGateway(opts: {
     to: mockServerTo,
   } as unknown as Server;
 
-  return { gateway, jwtService, prisma, logStreamService, mockServerTo, mockEmit };
+  return {
+    gateway,
+    jwtService,
+    prisma,
+    logStreamService,
+    mockServerTo,
+    mockEmit,
+  };
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -151,10 +163,9 @@ describe('DeploymentsGateway', () => {
       const client = makeSocket({
         userData: { user: { id: 'u1', role: Role.USER } },
       });
-      const result = await gateway.handleJoinDeployment(
-        client as never,
-        { deploymentId: '' },
-      );
+      const result = await gateway.handleJoinDeployment(client as never, {
+        deploymentId: '',
+      });
       expect(result.ok).toBe(false);
       expect(result.error).toContain('deploymentId');
     });
@@ -162,10 +173,9 @@ describe('DeploymentsGateway', () => {
     it('returns error when client has no user (unauthenticated)', async () => {
       const { gateway } = makeGateway();
       const client = makeSocket({ userData: {} });
-      const result = await gateway.handleJoinDeployment(
-        client as never,
-        { deploymentId: 'd1' },
-      );
+      const result = await gateway.handleJoinDeployment(client as never, {
+        deploymentId: 'd1',
+      });
       expect(result.ok).toBe(false);
       expect(result.error).toContain('non authentifié');
     });
@@ -175,10 +185,9 @@ describe('DeploymentsGateway', () => {
       const client = makeSocket({
         userData: { user: { id: 'u1', role: Role.USER, email: 'u@t.com' } },
       });
-      const result = await gateway.handleJoinDeployment(
-        client as never,
-        { deploymentId: 'd1' },
-      );
+      const result = await gateway.handleJoinDeployment(client as never, {
+        deploymentId: 'd1',
+      });
       expect(result.ok).toBe(false);
     });
 
@@ -187,10 +196,9 @@ describe('DeploymentsGateway', () => {
       const client = makeSocket({
         userData: { user: { id: 'u1', role: Role.USER, email: 'u@t.com' } },
       });
-      const result = await gateway.handleJoinDeployment(
-        client as never,
-        { deploymentId: 'd1' },
-      );
+      const result = await gateway.handleJoinDeployment(client as never, {
+        deploymentId: 'd1',
+      });
       expect(result.ok).toBe(true);
       expect(client.join).toHaveBeenCalledWith('deployment:d1');
     });
@@ -202,10 +210,9 @@ describe('DeploymentsGateway', () => {
           user: { id: 'admin1', role: Role.ADMIN, email: 'a@t.com' },
         },
       });
-      const result = await gateway.handleJoinDeployment(
-        client as never,
-        { deploymentId: 'd1' },
-      );
+      const result = await gateway.handleJoinDeployment(client as never, {
+        deploymentId: 'd1',
+      });
       expect(result.ok).toBe(true);
       expect(prisma.projectMember.findUnique).not.toHaveBeenCalled();
     });
@@ -214,14 +221,24 @@ describe('DeploymentsGateway', () => {
   describe('event emitters', () => {
     it('emitStarted broadcasts to the deployment room', () => {
       const { gateway, mockServerTo, mockEmit } = makeGateway();
-      gateway.emitStarted({ deploymentId: 'd1', startedAt: new Date().toISOString() });
+      gateway.emitStarted({
+        deploymentId: 'd1',
+        startedAt: new Date().toISOString(),
+      });
       expect(mockServerTo).toHaveBeenCalledWith('deployment:d1');
-      expect(mockEmit).toHaveBeenCalledWith('deployment:started', expect.objectContaining({ deploymentId: 'd1' }));
+      expect(mockEmit).toHaveBeenCalledWith(
+        'deployment:started',
+        expect.objectContaining({ deploymentId: 'd1' }),
+      );
     });
 
     it('emitLog broadcasts and appends to the ring buffer', () => {
       const { gateway, mockServerTo, mockEmit } = makeGateway();
-      const log = { deploymentId: 'd1', line: 'build ok', timestamp: '2026-01-01T00:00:00Z' };
+      const log = {
+        deploymentId: 'd1',
+        line: 'build ok',
+        timestamp: '2026-01-01T00:00:00Z',
+      };
       gateway.emitLog(log);
       expect(mockServerTo).toHaveBeenCalledWith('deployment:d1');
       expect(mockEmit).toHaveBeenCalledWith('deployment:log', log);
@@ -237,8 +254,15 @@ describe('DeploymentsGateway', () => {
       const { gateway, mockEmit } = makeGateway();
       // pre-populate buffer via emitLog
       gateway.emitLog({ deploymentId: 'd1', line: 'line1', timestamp: '' });
-      gateway.emitFinished({ deploymentId: 'd1', status: 'SUCCESS', finishedAt: '' });
-      expect(mockEmit).toHaveBeenCalledWith('deployment:finished', expect.any(Object));
+      gateway.emitFinished({
+        deploymentId: 'd1',
+        status: 'SUCCESS',
+        finishedAt: '',
+      });
+      expect(mockEmit).toHaveBeenCalledWith(
+        'deployment:finished',
+        expect.any(Object),
+      );
 
       // buffer should be cleared — replay should return count=0
     });
@@ -246,7 +270,11 @@ describe('DeploymentsGateway', () => {
     it('ring buffer evicts oldest entries when MAX_BUFFER_SIZE is exceeded', () => {
       const { gateway } = makeGateway();
       for (let i = 0; i < 210; i++) {
-        gateway.emitLog({ deploymentId: 'd-buf', line: `line-${i}`, timestamp: '' });
+        gateway.emitLog({
+          deploymentId: 'd-buf',
+          line: `line-${i}`,
+          timestamp: '',
+        });
       }
       // No error means eviction worked; buffer is capped at 200
     });
@@ -267,7 +295,9 @@ describe('DeploymentsGateway', () => {
       const client = makeSocket({
         userData: { user: { id: 'u1', role: Role.USER, email: 'u@t.com' } },
       });
-      const result = await gateway.handleReplayRequest(client as never, { deploymentId: 'd1' });
+      const result = await gateway.handleReplayRequest(client as never, {
+        deploymentId: 'd1',
+      });
       expect(result.ok).toBe(true);
       expect(result.count).toBe(0);
     });
@@ -275,18 +305,31 @@ describe('DeploymentsGateway', () => {
     it('emits buffered logs and returns their count', async () => {
       const { gateway } = makeGateway();
       // populate buffer first
-      gateway.emitLog({ deploymentId: 'd-replay', line: 'log1', timestamp: '' });
-      gateway.emitLog({ deploymentId: 'd-replay', line: 'log2', timestamp: '' });
+      gateway.emitLog({
+        deploymentId: 'd-replay',
+        line: 'log1',
+        timestamp: '',
+      });
+      gateway.emitLog({
+        deploymentId: 'd-replay',
+        line: 'log2',
+        timestamp: '',
+      });
 
       const client = makeSocket({
         userData: { user: { id: 'u1', role: Role.ADMIN, email: 'a@t.com' } },
       });
-      const result = await gateway.handleReplayRequest(client as never, { deploymentId: 'd-replay' });
+      const result = await gateway.handleReplayRequest(client as never, {
+        deploymentId: 'd-replay',
+      });
       expect(result.ok).toBe(true);
       expect(result.count).toBe(2);
       expect(client.emit).toHaveBeenCalledWith(
         'deployment:log-replay',
-        expect.objectContaining({ deploymentId: 'd-replay', logs: expect.any(Array) }),
+        expect.objectContaining({
+          deploymentId: 'd-replay',
+          logs: expect.any(Array),
+        }),
       );
     });
   });

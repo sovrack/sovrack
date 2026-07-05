@@ -1,9 +1,15 @@
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
-function makeUser(overrides: Partial<{
-  id: string; email: string; password: string; isActive: boolean; role: string;
-}> = {}) {
+function makeUser(
+  overrides: Partial<{
+    id: string;
+    email: string;
+    password: string;
+    isActive: boolean;
+    role: string;
+  }> = {},
+) {
   return {
     id: 'user-1',
     email: 'user@example.com',
@@ -16,12 +22,14 @@ function makeUser(overrides: Partial<{
   };
 }
 
-function makeSvc(opts: {
-  user?: ReturnType<typeof makeUser> | null;
-  passwordValid?: boolean;
-  needsRehash?: boolean;
-  rehashError?: boolean;
-} = {}) {
+function makeSvc(
+  opts: {
+    user?: ReturnType<typeof makeUser> | null;
+    passwordValid?: boolean;
+    needsRehash?: boolean;
+    rehashError?: boolean;
+  } = {},
+) {
   const user = opts.user !== undefined ? opts.user : makeUser();
 
   const usersService = {
@@ -34,9 +42,11 @@ function makeSvc(opts: {
   } as never;
 
   const prisma = {
-    user: { update: opts.rehashError
-      ? jest.fn().mockRejectedValue(new Error('db error'))
-      : jest.fn().mockResolvedValue({}) },
+    user: {
+      update: opts.rehashError
+        ? jest.fn().mockRejectedValue(new Error('db error'))
+        : jest.fn().mockResolvedValue({}),
+    },
   } as never;
 
   const auditService = {
@@ -50,8 +60,18 @@ function makeSvc(opts: {
   } as never;
 
   return {
-    svc: new AuthService(usersService, jwtService, prisma, auditService, passwordHasher),
-    usersService, jwtService, auditService, passwordHasher, prisma,
+    svc: new AuthService(
+      usersService,
+      jwtService,
+      prisma,
+      auditService,
+      passwordHasher,
+    ),
+    usersService,
+    jwtService,
+    auditService,
+    passwordHasher,
+    prisma,
   };
 }
 
@@ -59,7 +79,10 @@ describe('AuthService', () => {
   describe('login', () => {
     it('returns access_token and user without password on success', async () => {
       const { svc } = makeSvc();
-      const result = await svc.login({ email: 'user@example.com', password: 'pass' });
+      const result = await svc.login({
+        email: 'user@example.com',
+        password: 'pass',
+      });
       expect(result.access_token).toBe('jwt-token');
       expect(result.user).not.toHaveProperty('password');
       expect(result.user.email).toBe('user@example.com');
@@ -67,23 +90,23 @@ describe('AuthService', () => {
 
     it('throws UnauthorizedException when user is not found', async () => {
       const { svc } = makeSvc({ user: null });
-      await expect(svc.login({ email: 'x@x.com', password: 'pass' })).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        svc.login({ email: 'x@x.com', password: 'pass' }),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('throws UnauthorizedException when password is invalid', async () => {
       const { svc } = makeSvc({ passwordValid: false });
-      await expect(svc.login({ email: 'user@example.com', password: 'wrong' })).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        svc.login({ email: 'user@example.com', password: 'wrong' }),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('throws UnauthorizedException when user account is inactive', async () => {
       const { svc } = makeSvc({ user: makeUser({ isActive: false }) });
-      await expect(svc.login({ email: 'user@example.com', password: 'pass' })).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        svc.login({ email: 'user@example.com', password: 'pass' }),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('rehashes password when needsRehash returns true', async () => {
@@ -97,7 +120,10 @@ describe('AuthService', () => {
 
     it('does not block login when rehash throws', async () => {
       const { svc } = makeSvc({ needsRehash: true, rehashError: true });
-      const result = await svc.login({ email: 'user@example.com', password: 'pass' });
+      const result = await svc.login({
+        email: 'user@example.com',
+        password: 'pass',
+      });
       expect(result.access_token).toBe('jwt-token');
     });
 
@@ -119,7 +145,12 @@ describe('AuthService', () => {
       const { svc, auditService } = makeSvc();
       const result = await svc.logout('user-1');
       expect(result.message).toContain('Déconnexion');
-      expect(auditService.record).toHaveBeenCalledWith('user-1', 'AUTH_LOGOUT', 'User', 'user-1');
+      expect(auditService.record).toHaveBeenCalledWith(
+        'user-1',
+        'AUTH_LOGOUT',
+        'User',
+        'user-1',
+      );
     });
   });
 

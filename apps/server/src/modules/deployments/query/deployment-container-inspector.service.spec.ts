@@ -11,13 +11,15 @@ function makeConn() {
   return { dispose: jest.fn().mockResolvedValue(undefined) };
 }
 
-function makeSvc(opts: {
-  deployment?: unknown;
-  server?: unknown;
-  hostKey?: { keyBase64: string };
-  dockerInspect?: unknown;
-  imageDigest?: string | null;
-} = {}) {
+function makeSvc(
+  opts: {
+    deployment?: unknown;
+    server?: unknown;
+    hostKey?: { keyBase64: string };
+    dockerInspect?: unknown;
+    imageDigest?: string | null;
+  } = {},
+) {
   const conn = makeConn();
 
   const prisma = {
@@ -53,24 +55,28 @@ function makeSvc(opts: {
   } as unknown as SshExecutorService;
 
   const dockerRemoteService = {
-    inspectImage: jest.fn().mockResolvedValue(
-      'dockerInspect' in opts ? opts.dockerInspect : null,
-    ),
+    inspectImage: jest
+      .fn()
+      .mockResolvedValue('dockerInspect' in opts ? opts.dockerInspect : null),
   } as unknown as DockerApiService;
 
   const dockerSsh = {
     findContainerByName: jest.fn().mockResolvedValue('app-container'),
     listContainerNames: jest.fn().mockResolvedValue(''),
-    logsRaw: jest.fn().mockResolvedValue({ stdout: 'log line 1\nlog line 2', stderr: '' }),
-    imageDigest: jest.fn().mockResolvedValue(
-      'imageDigest' in opts ? opts.imageDigest : 'sha256:abc123',
-    ),
+    logsRaw: jest
+      .fn()
+      .mockResolvedValue({ stdout: 'log line 1\nlog line 2', stderr: '' }),
+    imageDigest: jest
+      .fn()
+      .mockResolvedValue(
+        'imageDigest' in opts ? opts.imageDigest : 'sha256:abc123',
+      ),
   } as unknown as DockerSshService;
 
   const serverHostKeyService = {
-    resolveForConnection: jest.fn().mockResolvedValue(
-      opts.hostKey ?? { keyBase64: 'hostkey-base64' },
-    ),
+    resolveForConnection: jest
+      .fn()
+      .mockResolvedValue(opts.hostKey ?? { keyBase64: 'hostkey-base64' }),
   } as unknown as ServerHostKeyService;
 
   const serversCryptoService = {
@@ -93,26 +99,45 @@ describe('DeploymentContainerInspectorService', () => {
   describe('getContainerLogs', () => {
     it('throws BadRequestException when deployment not found', async () => {
       const { svc } = makeSvc({ deployment: null });
-      await expect(svc.getContainerLogs('missing')).rejects.toThrow(BadRequestException);
+      await expect(svc.getContainerLogs('missing')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when resolvedRefs has no serverId', async () => {
       const { svc } = makeSvc({
-        deployment: { id: 'd1', serviceId: null, resolvedRefs: null, service: null },
+        deployment: {
+          id: 'd1',
+          serviceId: null,
+          resolvedRefs: null,
+          service: null,
+        },
       });
-      await expect(svc.getContainerLogs('d1')).rejects.toThrow(BadRequestException);
+      await expect(svc.getContainerLogs('d1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when server not found', async () => {
       const { svc } = makeSvc({ server: null });
-      await expect(svc.getContainerLogs('d1')).rejects.toThrow(BadRequestException);
+      await expect(svc.getContainerLogs('d1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when server has no sshKey', async () => {
       const { svc } = makeSvc({
-        server: { id: 'srv1', host: '10.0.0.1', port: 22, username: 'deploy', sshKey: null },
+        server: {
+          id: 'srv1',
+          host: '10.0.0.1',
+          port: 22,
+          username: 'deploy',
+          sshKey: null,
+        },
       });
-      await expect(svc.getContainerLogs('d1')).rejects.toThrow(BadRequestException);
+      await expect(svc.getContainerLogs('d1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('returns logs from the container via SSH', async () => {
@@ -124,7 +149,9 @@ describe('DeploymentContainerInspectorService', () => {
     it('falls back to listContainerNames when findContainerByName returns null', async () => {
       const { svc, dockerSsh } = makeSvc();
       (dockerSsh.findContainerByName as jest.Mock).mockResolvedValue(null);
-      (dockerSsh.listContainerNames as jest.Mock).mockResolvedValue('app-container\nother');
+      (dockerSsh.listContainerNames as jest.Mock).mockResolvedValue(
+        'app-container\nother',
+      );
       const logs = await svc.getContainerLogs('d1');
       expect(logs).toContain('log line');
     });
@@ -139,7 +166,9 @@ describe('DeploymentContainerInspectorService', () => {
 
     it('disposes the SSH connection even on error', async () => {
       const { svc, ssh, conn } = makeSvc();
-      (ssh.connect as jest.Mock).mockRejectedValue(new Error('connection refused'));
+      (ssh.connect as jest.Mock).mockRejectedValue(
+        new Error('connection refused'),
+      );
       await expect(svc.getContainerLogs('d1')).rejects.toThrow();
       // conn was never created so dispose is not called — just check it doesn't throw
     });
@@ -158,19 +187,29 @@ describe('DeploymentContainerInspectorService', () => {
   describe('resolveImageDigest', () => {
     it('returns null for empty imageRef', async () => {
       const { svc } = makeSvc();
-      expect(await svc.resolveImageDigest('srv1', {} as never, 'key', '')).toBeNull();
+      expect(
+        await svc.resolveImageDigest('srv1', {} as never, 'key', ''),
+      ).toBeNull();
     });
 
     it('returns null for compose:// imageRef', async () => {
       const { svc } = makeSvc();
       expect(
-        await svc.resolveImageDigest('srv1', {} as never, 'key', 'compose://app'),
+        await svc.resolveImageDigest(
+          'srv1',
+          {} as never,
+          'key',
+          'compose://app',
+        ),
       ).toBeNull();
     });
 
     it('returns digest from DockerRemoteService when inspectImage succeeds', async () => {
       const { svc } = makeSvc({
-        dockerInspect: { RepoDigests: ['sha256:abc123def456'], Id: 'sha256:other' },
+        dockerInspect: {
+          RepoDigests: ['sha256:abc123def456'],
+          Id: 'sha256:other',
+        },
       });
       const digest = await svc.resolveImageDigest(
         'srv1',
@@ -182,8 +221,12 @@ describe('DeploymentContainerInspectorService', () => {
     });
 
     it('falls back to SSH digest when TLS inspect fails', async () => {
-      const { svc, dockerRemoteService } = makeSvc({ imageDigest: 'sha256:ssh-digest' });
-      (dockerRemoteService.inspectImage as jest.Mock).mockRejectedValue(new Error('TLS error'));
+      const { svc, dockerRemoteService } = makeSvc({
+        imageDigest: 'sha256:ssh-digest',
+      });
+      (dockerRemoteService.inspectImage as jest.Mock).mockRejectedValue(
+        new Error('TLS error'),
+      );
       const digest = await svc.resolveImageDigest(
         'srv1',
         { host: '10.0.0.1', port: 22, username: 'deploy' },
@@ -194,7 +237,10 @@ describe('DeploymentContainerInspectorService', () => {
     });
 
     it('falls back to SSH when TLS returns null info', async () => {
-      const { svc } = makeSvc({ dockerInspect: null, imageDigest: 'sha256:fallback' });
+      const { svc } = makeSvc({
+        dockerInspect: null,
+        imageDigest: 'sha256:fallback',
+      });
       const digest = await svc.resolveImageDigest(
         'srv1',
         { host: '10.0.0.1', port: 22, username: 'deploy' },
@@ -206,7 +252,9 @@ describe('DeploymentContainerInspectorService', () => {
 
     it('returns null when SSH digest also fails', async () => {
       const { svc, dockerRemoteService, ssh } = makeSvc();
-      (dockerRemoteService.inspectImage as jest.Mock).mockRejectedValue(new Error('tls fail'));
+      (dockerRemoteService.inspectImage as jest.Mock).mockRejectedValue(
+        new Error('tls fail'),
+      );
       (ssh.connect as jest.Mock).mockRejectedValue(new Error('ssh refused'));
       const digest = await svc.resolveImageDigest(
         'srv1',

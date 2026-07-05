@@ -17,7 +17,9 @@ describe('UpdateServiceDto — externalPort (Task 4)', () => {
   });
 
   it('accepts and coerces a numeric string to a number', async () => {
-    const instance = plainToInstance(UpdateServiceDto, { externalPort: '5433' });
+    const instance = plainToInstance(UpdateServiceDto, {
+      externalPort: '5433',
+    });
     const errors = await validate(instance);
     expect(errors).toHaveLength(0);
     expect(instance.externalPort).toBe(5433);

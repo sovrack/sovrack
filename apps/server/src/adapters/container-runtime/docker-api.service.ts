@@ -201,10 +201,14 @@ export class DockerApiService {
     serverId: string,
     containerName: string,
   ): Promise<Docker.ContainerInspectInfo> {
-    return this.withNetworkErrorHandling('inspectContainer', serverId, async () => {
-      const client = await this.getClient(serverId);
-      return client.getContainer(containerName).inspect();
-    });
+    return this.withNetworkErrorHandling(
+      'inspectContainer',
+      serverId,
+      async () => {
+        const client = await this.getClient(serverId);
+        return client.getContainer(containerName).inspect();
+      },
+    );
   }
 
   async *streamContainerLogs(
@@ -249,41 +253,57 @@ export class DockerApiService {
     serverId: string,
     containerName: string,
   ): Promise<unknown> {
-    return this.withNetworkErrorHandling('getContainerStats', serverId, async () => {
-      const client = await this.getClient(serverId);
-      return client.getContainer(containerName).stats({ stream: false });
-    });
+    return this.withNetworkErrorHandling(
+      'getContainerStats',
+      serverId,
+      async () => {
+        const client = await this.getClient(serverId);
+        return client.getContainer(containerName).stats({ stream: false });
+      },
+    );
   }
 
   async listContainers(
     serverId: string,
     all = false,
   ): Promise<Docker.ContainerInfo[]> {
-    return this.withNetworkErrorHandling('listContainers', serverId, async () => {
-      const client = await this.getClient(serverId);
-      return client.listContainers({ all });
-    });
+    return this.withNetworkErrorHandling(
+      'listContainers',
+      serverId,
+      async () => {
+        const client = await this.getClient(serverId);
+        return client.listContainers({ all });
+      },
+    );
   }
 
   async createContainer(
     serverId: string,
     spec: Docker.ContainerCreateOptions,
   ): Promise<Docker.Container> {
-    return this.withNetworkErrorHandling('createContainer', serverId, async () => {
-      const client = await this.getClient(serverId);
-      const container = await client.createContainer(spec);
-      this.logger.log(
-        `Container created: ${spec.Image} → ${container.id.slice(0, 12)}`,
-      );
-      return container;
-    });
+    return this.withNetworkErrorHandling(
+      'createContainer',
+      serverId,
+      async () => {
+        const client = await this.getClient(serverId);
+        const container = await client.createContainer(spec);
+        this.logger.log(
+          `Container created: ${spec.Image} → ${container.id.slice(0, 12)}`,
+        );
+        return container;
+      },
+    );
   }
 
   async startContainer(serverId: string, containerName: string): Promise<void> {
-    await this.withNetworkErrorHandling('startContainer', serverId, async () => {
-      const client = await this.getClient(serverId);
-      await client.getContainer(containerName).start();
-    });
+    await this.withNetworkErrorHandling(
+      'startContainer',
+      serverId,
+      async () => {
+        const client = await this.getClient(serverId);
+        await client.getContainer(containerName).start();
+      },
+    );
   }
 
   /**
@@ -327,10 +347,14 @@ export class DockerApiService {
     containerName: string,
     timeoutSec = 10,
   ): Promise<void> {
-    await this.withNetworkErrorHandling('restartContainer', serverId, async () => {
-      const client = await this.getClient(serverId);
-      await client.getContainer(containerName).restart({ t: timeoutSec });
-    });
+    await this.withNetworkErrorHandling(
+      'restartContainer',
+      serverId,
+      async () => {
+        const client = await this.getClient(serverId);
+        await client.getContainer(containerName).restart({ t: timeoutSec });
+      },
+    );
   }
 
   async removeContainer(
@@ -338,10 +362,14 @@ export class DockerApiService {
     containerName: string,
     force = false,
   ): Promise<void> {
-    await this.withNetworkErrorHandling('removeContainer', serverId, async () => {
-      const client = await this.getClient(serverId);
-      await client.getContainer(containerName).remove({ force });
-    });
+    await this.withNetworkErrorHandling(
+      'removeContainer',
+      serverId,
+      async () => {
+        const client = await this.getClient(serverId);
+        await client.getContainer(containerName).remove({ force });
+      },
+    );
   }
 
   /**
@@ -399,43 +427,47 @@ export class DockerApiService {
     cmd: string[],
     input: Buffer,
   ): Promise<{ stdout: Buffer; stderr: string; exitCode: number }> {
-    return this.withNetworkErrorHandling('execWithInput', serverId, async () => {
-      const client = await this.getClient(serverId);
-      const container = client.getContainer(containerName);
-      const exec = await container.exec({
-        Cmd: cmd,
-        AttachStdin: true,
-        AttachStdout: true,
-        AttachStderr: true,
-      });
-      const stream = await exec.start({ hijack: true, stdin: true });
+    return this.withNetworkErrorHandling(
+      'execWithInput',
+      serverId,
+      async () => {
+        const client = await this.getClient(serverId);
+        const container = client.getContainer(containerName);
+        const exec = await container.exec({
+          Cmd: cmd,
+          AttachStdin: true,
+          AttachStdout: true,
+          AttachStderr: true,
+        });
+        const stream = await exec.start({ hijack: true, stdin: true });
 
-      const stdoutChunks: Buffer[] = [];
-      const stderrChunks: Buffer[] = [];
-      const out = new PassThrough();
-      const err = new PassThrough();
-      out.on('data', (c: Buffer) => stdoutChunks.push(c));
-      err.on('data', (c: Buffer) => stderrChunks.push(c));
-      client.modem.demuxStream(stream, out, err);
+        const stdoutChunks: Buffer[] = [];
+        const stderrChunks: Buffer[] = [];
+        const out = new PassThrough();
+        const err = new PassThrough();
+        out.on('data', (c: Buffer) => stdoutChunks.push(c));
+        err.on('data', (c: Buffer) => stderrChunks.push(c));
+        client.modem.demuxStream(stream, out, err);
 
-      // Write the dump to STDIN, then close it so the command reads EOF and exits.
-      stream.write(input);
-      stream.end();
+        // Write the dump to STDIN, then close it so the command reads EOF and exits.
+        stream.write(input);
+        stream.end();
 
-      await new Promise<void>((resolve, reject) => {
-        stream.on('end', resolve);
-        stream.on('error', reject);
-      });
-      out.end();
-      err.end();
+        await new Promise<void>((resolve, reject) => {
+          stream.on('end', resolve);
+          stream.on('error', reject);
+        });
+        out.end();
+        err.end();
 
-      const info = await exec.inspect();
-      return {
-        stdout: Buffer.concat(stdoutChunks),
-        stderr: Buffer.concat(stderrChunks).toString('utf-8'),
-        exitCode: info.ExitCode ?? 0,
-      };
-    });
+        const info = await exec.inspect();
+        return {
+          stdout: Buffer.concat(stdoutChunks),
+          stderr: Buffer.concat(stderrChunks).toString('utf-8'),
+          exitCode: info.ExitCode ?? 0,
+        };
+      },
+    );
   }
 
   async buildImage(

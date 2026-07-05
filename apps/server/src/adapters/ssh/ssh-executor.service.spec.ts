@@ -19,7 +19,11 @@ describe('SshExecutorService', () => {
 
   describe('exec', () => {
     it('delegates to client.execCommand and maps the result', async () => {
-      const { conn, client } = makeConn({ stdout: 'hello', stderr: '', code: 0 });
+      const { conn, client } = makeConn({
+        stdout: 'hello',
+        stderr: '',
+        code: 0,
+      });
       const result = await svc.exec(conn, 'echo hello');
       expect(client.execCommand).toHaveBeenCalledWith('echo hello');
       expect(result).toEqual({ stdout: 'hello', stderr: '', code: 0 });
@@ -29,7 +33,9 @@ describe('SshExecutorService', () => {
   describe('execOrThrow', () => {
     it('resolves when exit code is 0', async () => {
       const { conn } = makeConn({ code: 0 });
-      await expect(svc.execOrThrow(conn, 'ls', 'ls failed')).resolves.toBeUndefined();
+      await expect(
+        svc.execOrThrow(conn, 'ls', 'ls failed'),
+      ).resolves.toBeUndefined();
     });
 
     it('throws when exit code is non-zero (with stderr)', async () => {
@@ -40,7 +46,11 @@ describe('SshExecutorService', () => {
     });
 
     it('throws when exit code is non-zero (stdout fallback)', async () => {
-      const { conn } = makeConn({ code: 1, stderr: '', stdout: 'command not found' });
+      const { conn } = makeConn({
+        code: 1,
+        stderr: '',
+        stdout: 'command not found',
+      });
       await expect(
         svc.execOrThrow(conn, 'foobar', 'foobar failed'),
       ).rejects.toThrow('foobar failed: command not found');
@@ -51,7 +61,9 @@ describe('SshExecutorService', () => {
     it('writes content to a remote path via cat', async () => {
       const { conn, client } = makeConn({ code: 0 });
       await svc.putContent(conn, '/etc/app/config.json', '{"key":"val"}');
-      const calls = (client.execCommand as jest.Mock).mock.calls.map((c: unknown[]) => c[0] as string);
+      const calls = (client.execCommand as jest.Mock).mock.calls.map(
+        (c: unknown[]) => c[0] as string,
+      );
       expect(calls.some((cmd) => cmd.includes('mkdir -p'))).toBe(true);
       expect(calls.some((cmd) => cmd.includes('cat >'))).toBe(true);
     });
@@ -89,18 +101,17 @@ describe('SshExecutorService', () => {
 
   describe('withTimeout', () => {
     it('resolves when the task finishes before the timeout', async () => {
-      const result = await svc.withTimeout(
-        () => Promise.resolve('done'),
-        1000,
-      );
+      const result = await svc.withTimeout(() => Promise.resolve('done'), 1000);
       expect(result).toBe('done');
     });
 
     it('rejects with SSH_TIMEOUT error when task exceeds timeout', async () => {
-      const never = new Promise<string>(() => { /* never resolves */ });
-      await expect(
-        svc.withTimeout(() => never, 10),
-      ).rejects.toThrow('SSH_TIMEOUT_10');
+      const never = new Promise<string>(() => {
+        /* never resolves */
+      });
+      await expect(svc.withTimeout(() => never, 10)).rejects.toThrow(
+        'SSH_TIMEOUT_10',
+      );
     });
 
     it('calls onTimeout callback when the timeout fires', async () => {

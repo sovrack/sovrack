@@ -2,14 +2,18 @@ import { BadRequestException } from '@nestjs/common';
 import { ContainerStatus } from '@prisma/client';
 import { DeploymentPrelaunchService } from './deployment-prelaunch.service';
 
-function makeSvc(opts: {
-  inspectStates?: Array<{ Status: string; ExitCode?: number }>;
-  inspectError?: boolean;
-  healthcheckLogs?: string;
-  healthcheckError?: Error;
-  stopError?: boolean;
-} = {}) {
-  const inspectStates = opts.inspectStates ?? [{ Status: 'exited', ExitCode: 0 }];
+function makeSvc(
+  opts: {
+    inspectStates?: Array<{ Status: string; ExitCode?: number }>;
+    inspectError?: boolean;
+    healthcheckLogs?: string;
+    healthcheckError?: Error;
+    stopError?: boolean;
+  } = {},
+) {
+  const inspectStates = opts.inspectStates ?? [
+    { Status: 'exited', ExitCode: 0 },
+  ];
   let inspectCall = 0;
 
   const docker = {
@@ -17,7 +21,8 @@ function makeSvc(opts: {
     startContainer: jest.fn().mockResolvedValue(undefined),
     inspectContainer: jest.fn().mockImplementation(() => {
       if (opts.inspectError) return Promise.reject(new Error('inspect failed'));
-      const state = inspectStates[inspectCall] ?? inspectStates[inspectStates.length - 1];
+      const state =
+        inspectStates[inspectCall] ?? inspectStates[inspectStates.length - 1];
       inspectCall++;
       return Promise.resolve({ State: state });
     }),
@@ -43,8 +48,16 @@ function makeSvc(opts: {
   } as never;
 
   return {
-    svc: new DeploymentPrelaunchService(prisma, docker, healthcheck, logEmitter),
-    docker, healthcheck, logEmitter, prisma,
+    svc: new DeploymentPrelaunchService(
+      prisma,
+      docker,
+      healthcheck,
+      logEmitter,
+    ),
+    docker,
+    healthcheck,
+    logEmitter,
+    prisma,
   };
 }
 
@@ -52,24 +65,50 @@ describe('DeploymentPrelaunchService', () => {
   describe('runPreDeployCommand', () => {
     it('creates, starts, and inspects a throwaway container', async () => {
       const { svc, docker } = makeSvc();
-      await svc.runPreDeployCommand('srv1', 'my-image:latest', 'app', [], 'npm run migrate', 60, 'dep1');
-      expect(docker.createContainer).toHaveBeenCalledWith('srv1', expect.objectContaining({
-        Image: 'my-image:latest',
-        name: 'pre-app',
-        Cmd: ['sh', '-c', 'npm run migrate'],
-        HostConfig: { AutoRemove: true },
-      }));
-      expect(docker.startContainer).toHaveBeenCalledWith('srv1', 'pre-container-1');
+      await svc.runPreDeployCommand(
+        'srv1',
+        'my-image:latest',
+        'app',
+        [],
+        'npm run migrate',
+        60,
+        'dep1',
+      );
+      expect(docker.createContainer).toHaveBeenCalledWith(
+        'srv1',
+        expect.objectContaining({
+          Image: 'my-image:latest',
+          name: 'pre-app',
+          Cmd: ['sh', '-c', 'npm run migrate'],
+          HostConfig: { AutoRemove: true },
+        }),
+      );
+      expect(docker.startContainer).toHaveBeenCalledWith(
+        'srv1',
+        'pre-container-1',
+      );
     });
 
     it('returns success message when exit code is 0', async () => {
-      const { svc } = makeSvc({ inspectStates: [{ Status: 'exited', ExitCode: 0 }] });
-      const result = await svc.runPreDeployCommand('srv1', 'img', 'ctn', [], 'echo ok', 10, 'dep1');
+      const { svc } = makeSvc({
+        inspectStates: [{ Status: 'exited', ExitCode: 0 }],
+      });
+      const result = await svc.runPreDeployCommand(
+        'srv1',
+        'img',
+        'ctn',
+        [],
+        'echo ok',
+        10,
+        'dep1',
+      );
       expect(result).toContain('Completed successfully');
     });
 
     it('throws BadRequestException when exit code is non-zero', async () => {
-      const { svc } = makeSvc({ inspectStates: [{ Status: 'exited', ExitCode: 1 }] });
+      const { svc } = makeSvc({
+        inspectStates: [{ Status: 'exited', ExitCode: 1 }],
+      });
       await expect(
         svc.runPreDeployCommand('srv1', 'img', 'ctn', [], 'exit 1', 10, 'dep1'),
       ).rejects.toThrow(BadRequestException);
@@ -84,7 +123,15 @@ describe('DeploymentPrelaunchService', () => {
 
     it('emits PRE-DEPLOY log at start', async () => {
       const { svc, logEmitter } = makeSvc();
-      await svc.runPreDeployCommand('srv1', 'img', 'ctn', [], 'my-cmd', 10, 'dep-123');
+      await svc.runPreDeployCommand(
+        'srv1',
+        'img',
+        'ctn',
+        [],
+        'my-cmd',
+        10,
+        'dep-123',
+      );
       expect(logEmitter.emit).toHaveBeenCalledWith(
         'dep-123',
         expect.stringContaining('[PRE-DEPLOY]'),
@@ -94,10 +141,21 @@ describe('DeploymentPrelaunchService', () => {
 
     it('passes env vars to the container', async () => {
       const { svc, docker } = makeSvc();
-      await svc.runPreDeployCommand('srv1', 'img', 'ctn', ['DB_URL=postgres://...'], 'cmd', 10, 'd1');
-      expect(docker.createContainer).toHaveBeenCalledWith('srv1', expect.objectContaining({
-        Env: ['DB_URL=postgres://...'],
-      }));
+      await svc.runPreDeployCommand(
+        'srv1',
+        'img',
+        'ctn',
+        ['DB_URL=postgres://...'],
+        'cmd',
+        10,
+        'd1',
+      );
+      expect(docker.createContainer).toHaveBeenCalledWith(
+        'srv1',
+        expect.objectContaining({
+          Env: ['DB_URL=postgres://...'],
+        }),
+      );
     });
   });
 
@@ -116,14 +174,20 @@ describe('DeploymentPrelaunchService', () => {
       const { svc, healthcheck } = makeSvc();
       const result = await svc.runHealthGate({ ...baseParams });
       expect(healthcheck.runPostDeployHealthChecks).toHaveBeenCalledWith(
-        expect.objectContaining({ serverId: 'srv1', appPort: 3000, healthcheckPath: '/health' }),
+        expect.objectContaining({
+          serverId: 'srv1',
+          appPort: 3000,
+          healthcheckPath: '/health',
+        }),
       );
       expect(result).toContain('health OK');
     });
 
     it('returns Traefik mode message without running healthchecks', async () => {
       jest.useFakeTimers();
-      const { svc, healthcheck } = makeSvc({ inspectStates: [{ Status: 'running' }] });
+      const { svc, healthcheck } = makeSvc({
+        inspectStates: [{ Status: 'running' }],
+      });
       const promise = svc.runHealthGate({ ...baseParams, useTraefik: true });
       jest.runAllTimers();
       const result = await promise;
@@ -144,12 +208,16 @@ describe('DeploymentPrelaunchService', () => {
     it('stops unhealthy container and rethrows when healthcheck fails', async () => {
       const healthError = new BadRequestException('health check failed');
       const { svc, docker } = makeSvc({ healthcheckError: healthError });
-      await expect(svc.runHealthGate({ ...baseParams })).rejects.toThrow('health check failed');
+      await expect(svc.runHealthGate({ ...baseParams })).rejects.toThrow(
+        'health check failed',
+      );
       expect(docker.stopContainer).toHaveBeenCalledWith('srv1', 'ctn1');
     });
 
     it('marks container EXITED in DB after health failure', async () => {
-      const { svc, prisma } = makeSvc({ healthcheckError: new BadRequestException('fail') });
+      const { svc, prisma } = makeSvc({
+        healthcheckError: new BadRequestException('fail'),
+      });
       await expect(svc.runHealthGate({ ...baseParams })).rejects.toThrow();
       expect(prisma.container.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({ data: { status: ContainerStatus.EXITED } }),
@@ -161,13 +229,21 @@ describe('DeploymentPrelaunchService', () => {
         healthcheckError: new BadRequestException('fail'),
         stopError: true,
       });
-      await expect(svc.runHealthGate({ ...baseParams })).rejects.toThrow('fail');
+      await expect(svc.runHealthGate({ ...baseParams })).rejects.toThrow(
+        'fail',
+      );
     });
 
     it('emits error log when healthcheck fails', async () => {
-      const { svc, logEmitter } = makeSvc({ healthcheckError: new BadRequestException('fail') });
+      const { svc, logEmitter } = makeSvc({
+        healthcheckError: new BadRequestException('fail'),
+      });
       await expect(svc.runHealthGate({ ...baseParams })).rejects.toThrow();
-      expect(logEmitter.emit).toHaveBeenCalledWith('dep1', expect.stringContaining('Health-check'), 'error');
+      expect(logEmitter.emit).toHaveBeenCalledWith(
+        'dep1',
+        expect.stringContaining('Health-check'),
+        'error',
+      );
     });
   });
 });

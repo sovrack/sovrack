@@ -24,20 +24,32 @@ const baseDeployment = {
   finishedAt: new Date(),
 };
 
-function makeSvc(opts: {
-  currentDeployment?: Partial<typeof baseDeployment>;
-  previousSuccess?: Partial<typeof baseDeployment> | null;
-  previousHasDockerImage?: boolean;
-} = {}) {
+function makeSvc(
+  opts: {
+    currentDeployment?: Partial<typeof baseDeployment>;
+    previousSuccess?: Partial<typeof baseDeployment> | null;
+    previousHasDockerImage?: boolean;
+  } = {},
+) {
   const current = { ...baseDeployment, ...opts.currentDeployment };
   const previous =
     opts.previousSuccess === null
       ? null
       : opts.previousSuccess !== undefined
         ? { ...baseDeployment, ...opts.previousSuccess }
-        : { ...baseDeployment, id: 'dep0', dockerImage: opts.previousHasDockerImage !== false ? 'registry/app:v0' : null };
+        : {
+            ...baseDeployment,
+            id: 'dep0',
+            dockerImage:
+              opts.previousHasDockerImage !== false ? 'registry/app:v0' : null,
+          };
 
-  const created = { ...baseDeployment, id: 'dep-rollback', status: DeploymentStatus.RUNNING, isRollback: true };
+  const created = {
+    ...baseDeployment,
+    id: 'dep-rollback',
+    status: DeploymentStatus.RUNNING,
+    isRollback: true,
+  };
   const executed = { ...created, status: DeploymentStatus.SUCCESS };
 
   const prisma = {
@@ -74,9 +86,21 @@ function makeSvc(opts: {
 
   return {
     svc: new DeploymentsRollbackService(
-      prisma, authorizationService, queryService, gateway, deployExecutor, auditService, preflight,
+      prisma,
+      authorizationService,
+      queryService,
+      gateway,
+      deployExecutor,
+      auditService,
+      preflight,
     ),
-    prisma, authorizationService, queryService, gateway, deployExecutor, auditService, preflight,
+    prisma,
+    authorizationService,
+    queryService,
+    gateway,
+    deployExecutor,
+    auditService,
+    preflight,
   };
 }
 
@@ -84,19 +108,25 @@ describe('DeploymentsRollbackService', () => {
   describe('rollback', () => {
     it('throws BadRequestException when no previous SUCCESS deployment exists', async () => {
       const { svc } = makeSvc({ previousSuccess: null });
-      await expect(svc.rollback('dep1', 'user1', Role.ADMIN)).rejects.toThrow(BadRequestException);
+      await expect(svc.rollback('dep1', 'user1', Role.ADMIN)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when target deployment has no dockerImage', async () => {
       const { svc } = makeSvc({ previousHasDockerImage: false });
-      await expect(svc.rollback('dep1', 'user1', Role.ADMIN)).rejects.toThrow(BadRequestException);
+      await expect(svc.rollback('dep1', 'user1', Role.ADMIN)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('creates a rollback deployment with isRollback=true', async () => {
       const { svc, prisma } = makeSvc();
       await svc.rollback('dep1', 'user1', Role.ADMIN);
       expect(prisma.deployment.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ isRollback: true }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ isRollback: true }),
+        }),
       );
     });
 
@@ -104,22 +134,35 @@ describe('DeploymentsRollbackService', () => {
       const { svc, prisma } = makeSvc();
       await svc.rollback('dep1', 'user1', Role.ADMIN);
       expect(prisma.deployment.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ previousDeploymentId: 'dep0' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ previousDeploymentId: 'dep0' }),
+        }),
       );
     });
 
     it('calls executeDeploy with the docker image', async () => {
       const { svc, deployExecutor } = makeSvc();
       await svc.rollback('dep1', 'user1', Role.ADMIN);
-      expect(deployExecutor.executeDeploy).toHaveBeenCalledWith('dep-rollback', 'registry/app:v0');
+      expect(deployExecutor.executeDeploy).toHaveBeenCalledWith(
+        'dep-rollback',
+        'registry/app:v0',
+      );
     });
 
     it('prefers imageSha over dockerImage when sha is present', async () => {
       const { svc, deployExecutor } = makeSvc({
-        previousSuccess: { ...baseDeployment, id: 'dep0', dockerImage: 'registry/app:v0', imageSha: 'sha256:abc' },
+        previousSuccess: {
+          ...baseDeployment,
+          id: 'dep0',
+          dockerImage: 'registry/app:v0',
+          imageSha: 'sha256:abc',
+        },
       });
       await svc.rollback('dep1', 'user1', Role.ADMIN);
-      expect(deployExecutor.executeDeploy).toHaveBeenCalledWith('dep-rollback', 'sha256:abc');
+      expect(deployExecutor.executeDeploy).toHaveBeenCalledWith(
+        'dep-rollback',
+        'sha256:abc',
+      );
     });
 
     it('emits started gateway event', async () => {
@@ -134,7 +177,11 @@ describe('DeploymentsRollbackService', () => {
       const { svc, auditService } = makeSvc();
       await svc.rollback('dep1', 'user1', Role.ADMIN);
       expect(auditService.record).toHaveBeenCalledWith(
-        'user1', 'DEPLOYMENT_ROLLBACK', 'Deployment', 'dep-rollback', expect.any(Object),
+        'user1',
+        'DEPLOYMENT_ROLLBACK',
+        'Deployment',
+        'dep-rollback',
+        expect.any(Object),
       );
     });
 
@@ -147,8 +194,9 @@ describe('DeploymentsRollbackService', () => {
 
     it('throws when targetDeploymentId not found', async () => {
       const { svc } = makeSvc({ previousSuccess: null });
-      await expect(svc.rollback('dep1', 'user1', Role.ADMIN, 'dep-target'))
-        .rejects.toThrow('introuvable');
+      await expect(
+        svc.rollback('dep1', 'user1', Role.ADMIN, 'dep-target'),
+      ).rejects.toThrow('introuvable');
     });
 
     // C1 (Sprints 4+5+6 mission): minimal server guard before relaunching a

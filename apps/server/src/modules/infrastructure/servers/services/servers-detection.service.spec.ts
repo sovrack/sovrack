@@ -81,7 +81,11 @@ describe('ServersDetectionService', () => {
   // preparation reported SUCCEEDED but `GET /servers/:id` still showed
   // INFO_DETECTED, and `POST /deployments` rejected with "n'est pas prêt".
   it('does not regress status/onboardingStep when the server is already PREPARED', async () => {
-    const prepared = { id: 's1', isVerified: true, status: ServerStatus.PREPARED } as Server;
+    const prepared = {
+      id: 's1',
+      isVerified: true,
+      status: ServerStatus.PREPARED,
+    } as Server;
     const updated = await service.detect(prepared, 'admin');
     expect(updated.status).toBeUndefined(); // not overwritten in the update payload
     const data = prisma.server.update.mock.calls[0][0].data;

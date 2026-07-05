@@ -169,7 +169,10 @@ describe('ServersCrudService', () => {
     expect(crypto.resolveSshMaterial).toHaveBeenCalledWith('dec:stored-enc');
     expect(prisma.server.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ sshKey: 'enc:priv', sshPublicKey: 'pub' }),
+        data: expect.objectContaining({
+          sshKey: 'enc:priv',
+          sshPublicKey: 'pub',
+        }),
       }),
     );
   });

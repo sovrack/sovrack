@@ -167,13 +167,19 @@ async function bootstrap() {
       }
 
       const directKey = req.headers['x-swagger-key'];
-      if (typeof directKey === 'string' && directKey === process.env.SWAGGER_API_KEY) {
+      if (
+        typeof directKey === 'string' &&
+        directKey === process.env.SWAGGER_API_KEY
+      ) {
         next();
         return;
       }
 
       const authorization = req.headers.authorization;
-      if (typeof authorization === 'string' && authorization.startsWith('Basic ')) {
+      if (
+        typeof authorization === 'string' &&
+        authorization.startsWith('Basic ')
+      ) {
         const encoded = authorization.slice('Basic '.length).trim();
         try {
           const decoded = Buffer.from(encoded, 'base64').toString('utf8');

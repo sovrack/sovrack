@@ -17,7 +17,9 @@ describe('UpdateServiceEnvironmentDto — explicit null clears an override (C6)'
       });
       const errors = await validate(instance);
       expect(errors).toHaveLength(0);
-      expect((instance as unknown as Record<string, unknown>)[field]).toBeNull();
+      expect(
+        (instance as unknown as Record<string, unknown>)[field],
+      ).toBeNull();
     },
   );
 

@@ -15,15 +15,17 @@ import { GitlabFileService } from './gitlab-file.service';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function makeFullSvc(opts: {
-  service?: object | null;
-  gitProviderConfig?: object | null;
-  gitProviderRepo?: object | null;
-  httpGetResponses?: jest.Mock;
-  httpPostResponses?: jest.Mock;
-  httpPutResponses?: jest.Mock;
-  decryptResult?: string;
-} = {}) {
+function makeFullSvc(
+  opts: {
+    service?: object | null;
+    gitProviderConfig?: object | null;
+    gitProviderRepo?: object | null;
+    httpGetResponses?: jest.Mock;
+    httpPostResponses?: jest.Mock;
+    httpPutResponses?: jest.Mock;
+    decryptResult?: string;
+  } = {},
+) {
   const prisma = {
     service: {
       findFirst: jest.fn().mockResolvedValue(
@@ -39,7 +41,10 @@ function makeFullSvc(opts: {
             },
       ),
       findUnique: jest.fn().mockResolvedValue({
-        id: 'svc1', branch: 'main', repoPath: 'group/repo', providerId: 'prov1',
+        id: 'svc1',
+        branch: 'main',
+        repoPath: 'group/repo',
+        providerId: 'prov1',
       }),
       update: jest.fn().mockResolvedValue({}),
     },
@@ -56,34 +61,66 @@ function makeFullSvc(opts: {
       ),
     },
     gitProviderRepo: {
-      findFirst: jest.fn().mockResolvedValue(
-        opts.gitProviderRepo !== undefined ? opts.gitProviderRepo : { repoPath: 'group/repo' },
-      ),
+      findFirst: jest
+        .fn()
+        .mockResolvedValue(
+          opts.gitProviderRepo !== undefined
+            ? opts.gitProviderRepo
+            : { repoPath: 'group/repo' },
+        ),
     },
   } as unknown as PrismaService;
 
-  const httpGet = opts.httpGetResponses ?? jest.fn().mockReturnValue(of({ data: { content: 'file content', encoding: 'utf-8' } }));
-  const httpPost = opts.httpPostResponses ?? jest.fn().mockReturnValue(of({ data: {} }));
-  const httpPut = opts.httpPutResponses ?? jest.fn().mockReturnValue(of({ data: {} }));
+  const httpGet =
+    opts.httpGetResponses ??
+    jest
+      .fn()
+      .mockReturnValue(
+        of({ data: { content: 'file content', encoding: 'utf-8' } }),
+      );
+  const httpPost =
+    opts.httpPostResponses ?? jest.fn().mockReturnValue(of({ data: {} }));
+  const httpPut =
+    opts.httpPutResponses ?? jest.fn().mockReturnValue(of({ data: {} }));
 
-  const httpService = { get: httpGet, post: httpPost, put: httpPut } as unknown as HttpService;
-  const crypto = { decrypt: jest.fn().mockReturnValue(opts.decryptResult ?? 'decrypted-token') } as unknown as CryptoService;
+  const httpService = {
+    get: httpGet,
+    post: httpPost,
+    put: httpPut,
+  } as unknown as HttpService;
+  const crypto = {
+    decrypt: jest.fn().mockReturnValue(opts.decryptResult ?? 'decrypted-token'),
+  } as unknown as CryptoService;
 
-  return { svc: new GitlabFileService(prisma, httpService, crypto), httpGet, httpPost, httpPut };
+  return {
+    svc: new GitlabFileService(prisma, httpService, crypto),
+    httpGet,
+    httpPost,
+    httpPut,
+  };
 }
 
 function makeSvcWithContext(contextOverrides = {}) {
   const http = { get: jest.fn() };
-  const svc = new GitlabFileService({} as never, http as unknown as HttpService, {} as never);
-  jest.spyOn(svc as unknown as { resolveRepositoryContext: jest.Mock }, 'resolveRepositoryContext').mockResolvedValue({
-    baseUrl: 'https://gitlab.com',
-    gitlabProjectId: '42',
-    token: 'tok',
-    branch: 'main',
-    repositoryPath: 'group/repo',
-    sourceType: SourceType.GIT_PROVIDER,
-    ...contextOverrides,
-  });
+  const svc = new GitlabFileService(
+    {} as never,
+    http as unknown as HttpService,
+    {} as never,
+  );
+  jest
+    .spyOn(
+      svc as unknown as { resolveRepositoryContext: jest.Mock },
+      'resolveRepositoryContext',
+    )
+    .mockResolvedValue({
+      baseUrl: 'https://gitlab.com',
+      gitlabProjectId: '42',
+      token: 'tok',
+      branch: 'main',
+      repositoryPath: 'group/repo',
+      sourceType: SourceType.GIT_PROVIDER,
+      ...contextOverrides,
+    });
   return { svc, http };
 }
 
@@ -92,10 +129,20 @@ function makeSvcWithContext(contextOverrides = {}) {
 describe('GitlabFileService.readFile', () => {
   it('decodes a base64 file + sends PRIVATE-TOKEN and ref', async () => {
     const { svc, http } = makeSvcWithContext();
-    http.get.mockReturnValue(of({ data: { content: Buffer.from('hello world').toString('base64'), encoding: 'base64' } }));
+    http.get.mockReturnValue(
+      of({
+        data: {
+          content: Buffer.from('hello world').toString('base64'),
+          encoding: 'base64',
+        },
+      }),
+    );
     const content = await svc.readFile('p1', 'Dockerfile', 'main');
     expect(content).toBe('hello world');
-    const [url, opts] = http.get.mock.calls[0] as [string, { headers: Record<string, string>; params: Record<string, string> }];
+    const [url, opts] = http.get.mock.calls[0] as [
+      string,
+      { headers: Record<string, string>; params: Record<string, string> },
+    ];
     expect(url).toContain('/api/v4/projects/42/repository/files/Dockerfile');
     expect(opts.headers['PRIVATE-TOKEN']).toBe('tok');
     expect(opts.params.ref).toBe('main');
@@ -103,7 +150,9 @@ describe('GitlabFileService.readFile', () => {
 
   it('returns plain content as-is when not base64', async () => {
     const { svc, http } = makeSvcWithContext();
-    http.get.mockReturnValue(of({ data: { content: 'plain', encoding: 'text' } }));
+    http.get.mockReturnValue(
+      of({ data: { content: 'plain', encoding: 'text' } }),
+    );
     expect(await svc.readFile('p1', 'f')).toBe('plain');
   });
 
@@ -116,7 +165,9 @@ describe('GitlabFileService.readFile', () => {
   it('throws UnauthorizedException on 401', async () => {
     const { svc, http } = makeSvcWithContext();
     http.get.mockReturnValue(throwError(() => ({ response: { status: 401 } })));
-    await expect(svc.readFile('p1', 'file.ts')).rejects.toThrow(UnauthorizedException);
+    await expect(svc.readFile('p1', 'file.ts')).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 });
 
@@ -148,15 +199,23 @@ describe('GitlabFileService.extractGitlabErrorMessage', () => {
   const { svc } = makeFullSvc();
 
   it('extracts message string from response.data.message', () => {
-    expect(svc.extractGitlabErrorMessage({ response: { data: { message: 'branch not found' } } })).toBe('branch not found');
+    expect(
+      svc.extractGitlabErrorMessage({
+        response: { data: { message: 'branch not found' } },
+      }),
+    ).toBe('branch not found');
   });
 
   it('extracts plain string body', () => {
-    expect(svc.extractGitlabErrorMessage({ response: { data: 'plain error' } })).toBe('plain error');
+    expect(
+      svc.extractGitlabErrorMessage({ response: { data: 'plain error' } }),
+    ).toBe('plain error');
   });
 
   it('joins message array', () => {
-    const result = svc.extractGitlabErrorMessage({ response: { data: { message: ['A', 'B'] } } });
+    const result = svc.extractGitlabErrorMessage({
+      response: { data: { message: ['A', 'B'] } },
+    });
     expect(result).toBe('A, B');
   });
 
@@ -171,22 +230,34 @@ describe('GitlabFileService.throwGitlabMappedError', () => {
   const { svc } = makeFullSvc();
 
   it('throws UnauthorizedException on 401', () => {
-    expect(() => svc.throwGitlabMappedError('act', { response: { status: 401 } }, 'fb')).toThrow(UnauthorizedException);
+    expect(() =>
+      svc.throwGitlabMappedError('act', { response: { status: 401 } }, 'fb'),
+    ).toThrow(UnauthorizedException);
   });
   it('throws ForbiddenException on 403', () => {
-    expect(() => svc.throwGitlabMappedError('act', { response: { status: 403 } }, 'fb')).toThrow(ForbiddenException);
+    expect(() =>
+      svc.throwGitlabMappedError('act', { response: { status: 403 } }, 'fb'),
+    ).toThrow(ForbiddenException);
   });
   it('throws NotFoundException on 404', () => {
-    expect(() => svc.throwGitlabMappedError('act', { response: { status: 404 } }, 'fb')).toThrow(NotFoundException);
+    expect(() =>
+      svc.throwGitlabMappedError('act', { response: { status: 404 } }, 'fb'),
+    ).toThrow(NotFoundException);
   });
   it('throws ConflictException on 409', () => {
-    expect(() => svc.throwGitlabMappedError('act', { response: { status: 409 } }, 'fb')).toThrow(ConflictException);
+    expect(() =>
+      svc.throwGitlabMappedError('act', { response: { status: 409 } }, 'fb'),
+    ).toThrow(ConflictException);
   });
   it('throws UnprocessableEntityException on 422', () => {
-    expect(() => svc.throwGitlabMappedError('act', { response: { status: 422 } }, 'fb')).toThrow(UnprocessableEntityException);
+    expect(() =>
+      svc.throwGitlabMappedError('act', { response: { status: 422 } }, 'fb'),
+    ).toThrow(UnprocessableEntityException);
   });
   it('throws BadRequestException for unknown codes', () => {
-    expect(() => svc.throwGitlabMappedError('act', { response: { status: 500 } }, 'fb')).toThrow(BadRequestException);
+    expect(() =>
+      svc.throwGitlabMappedError('act', { response: { status: 500 } }, 'fb'),
+    ).toThrow(BadRequestException);
   });
 });
 
@@ -202,10 +273,18 @@ describe('GitlabFileService.resolveGitCredentials', () => {
 
   it('throws BadRequestException when repositoryPath is null', async () => {
     const { svc } = makeFullSvc({
-      service: { id: 'svc1', providerId: 'prov1', branch: 'main', repoPath: null, sourceType: SourceType.GIT_PROVIDER },
+      service: {
+        id: 'svc1',
+        providerId: 'prov1',
+        branch: 'main',
+        repoPath: null,
+        sourceType: SourceType.GIT_PROVIDER,
+      },
       gitProviderRepo: null,
     });
-    await expect(svc.resolveGitCredentials('proj1')).rejects.toThrow(BadRequestException);
+    await expect(svc.resolveGitCredentials('proj1')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 });
 
@@ -214,26 +293,38 @@ describe('GitlabFileService.resolveGitCredentials', () => {
 describe('GitlabFileService.writeFiles', () => {
   it('throws ForbiddenException for non-whitelisted files', async () => {
     const { svc } = makeFullSvc();
-    await expect(svc.writeFiles('proj1', { 'package.json': '{}' })).rejects.toThrow(ForbiddenException);
+    await expect(
+      svc.writeFiles('proj1', { 'package.json': '{}' }),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('creates a new Dockerfile and returns CREATED', async () => {
-    const httpGet = jest.fn()
-      .mockReturnValueOnce(of({ data: { default_branch: 'main', permissions: null } })) // project check
-      .mockReturnValueOnce(of({ data: {} }))                                              // branch exists
-      .mockReturnValueOnce(throwError(() => ({ response: { status: 404 } })));            // file does not exist
+    const httpGet = jest
+      .fn()
+      .mockReturnValueOnce(
+        of({ data: { default_branch: 'main', permissions: null } }),
+      ) // project check
+      .mockReturnValueOnce(of({ data: {} })) // branch exists
+      .mockReturnValueOnce(throwError(() => ({ response: { status: 404 } }))); // file does not exist
     const { svc } = makeFullSvc({ httpGetResponses: httpGet });
-    const result = await svc.writeFiles('proj1', { Dockerfile: 'FROM node:20' });
+    const result = await svc.writeFiles('proj1', {
+      Dockerfile: 'FROM node:20',
+    });
     expect(result.fileStatuses['Dockerfile']).toBe('CREATED');
   });
 
   it('updates an existing Dockerfile and returns UPDATED', async () => {
-    const httpGet = jest.fn()
-      .mockReturnValueOnce(of({ data: { default_branch: 'main', permissions: null } })) // project check
-      .mockReturnValueOnce(of({ data: {} }))                                              // branch exists
-      .mockReturnValueOnce(of({ data: {} }));                                             // file exists
+    const httpGet = jest
+      .fn()
+      .mockReturnValueOnce(
+        of({ data: { default_branch: 'main', permissions: null } }),
+      ) // project check
+      .mockReturnValueOnce(of({ data: {} })) // branch exists
+      .mockReturnValueOnce(of({ data: {} })); // file exists
     const { svc } = makeFullSvc({ httpGetResponses: httpGet });
-    const result = await svc.writeFiles('proj1', { Dockerfile: 'FROM node:18' });
+    const result = await svc.writeFiles('proj1', {
+      Dockerfile: 'FROM node:18',
+    });
     expect(result.fileStatuses['Dockerfile']).toBe('UPDATED');
   });
 });
@@ -243,17 +334,23 @@ describe('GitlabFileService.writeFiles', () => {
 describe('GitlabFileService.resolveRepositoryContext', () => {
   it('throws BadRequestException when no service with providerId exists', async () => {
     const { svc } = makeFullSvc({ service: null });
-    await expect(svc.resolveRepositoryContext('proj1')).rejects.toThrow(BadRequestException);
+    await expect(svc.resolveRepositoryContext('proj1')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('throws BadRequestException when gitProviderConfig not found', async () => {
     const { svc } = makeFullSvc({ gitProviderConfig: null });
-    await expect(svc.resolveRepositoryContext('proj1')).rejects.toThrow(BadRequestException);
+    await expect(svc.resolveRepositoryContext('proj1')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('throws UnauthorizedException when decrypted token is empty', async () => {
     const { svc } = makeFullSvc({ decryptResult: '   ' });
-    await expect(svc.resolveRepositoryContext('proj1')).rejects.toThrow(UnauthorizedException);
+    await expect(svc.resolveRepositoryContext('proj1')).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('resolves context successfully', async () => {
@@ -279,7 +376,9 @@ describe('GitlabFileService.resolveRepositoryContext', () => {
         sourceType: SourceType.GIT_PROVIDER,
       },
     });
-    const prisma = (svc as unknown as { prisma: { service: { findFirst: jest.Mock } } }).prisma;
+    const prisma = (
+      svc as unknown as { prisma: { service: { findFirst: jest.Mock } } }
+    ).prisma;
     const ctx = await svc.resolveRepositoryContext('proj1', 'svc-backend');
     // La requête cible bien id+projectId (pas un findFirst arbitraire du projet)
     expect(prisma.service.findFirst).toHaveBeenCalledWith({

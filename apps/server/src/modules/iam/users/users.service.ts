@@ -70,7 +70,9 @@ export class UsersService {
         role: dto.role ?? Role.DEVELOPER,
       },
     });
-    this.logger.log(`User ${user.email} (${user.id}) created with role ${user.role}`);
+    this.logger.log(
+      `User ${user.email} (${user.id}) created with role ${user.role}`,
+    );
 
     return this.removePassword(user);
   }

@@ -1,8 +1,5 @@
 import { Test } from '@nestjs/testing';
-import {
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DockerApiService } from './docker-api.service';
 import { DockerConnectionsService } from './docker-connections.service';
@@ -197,9 +194,7 @@ describe('DockerApiService', () => {
           code: 'ECONNREFUSED',
         }),
       );
-      await expect(
-        service.inspectContainer('srv_1', 'my-app'),
-      ).rejects.toThrow(
+      await expect(service.inspectContainer('srv_1', 'my-app')).rejects.toThrow(
         /Connexion au daemon Docker perdue pendant inspectContainer \(serveur srv_1\)/,
       );
     });

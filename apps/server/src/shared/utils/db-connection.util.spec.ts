@@ -20,14 +20,18 @@ describe('buildDbConnectionUrl', () => {
 
   it('Redis → pas de creds dans l’URL', () => {
     expect(
-      buildDbConnectionUrl({ databaseType: 'REDIS', host: 'cache', port: 6379 }),
+      buildDbConnectionUrl({
+        databaseType: 'REDIS',
+        host: 'cache',
+        port: 6379,
+      }),
     ).toBe('redis://cache:6379');
   });
 
   it('port par défaut = port standard du moteur', () => {
-    expect(
-      buildDbConnectionUrl({ databaseType: 'MYSQL', host: 'sql' }),
-    ).toBe('mysql://app:changeme@sql:3306/app');
+    expect(buildDbConnectionUrl({ databaseType: 'MYSQL', host: 'sql' })).toBe(
+      'mysql://app:changeme@sql:3306/app',
+    );
   });
 
   it('dbConnectionEnvKey mappe la variable par moteur', () => {
@@ -86,7 +90,13 @@ describe('buildDbConnectionEnv', () => {
 
   it('Postgres + Redis ensemble → les DEUX variables (cas du déploiement réel)', () => {
     const out = buildDbConnectionEnv([
-      { name: 'postgres', databaseType: 'POSTGRES', user: 'app', password: 'pw', dbName: 'app' },
+      {
+        name: 'postgres',
+        databaseType: 'POSTGRES',
+        user: 'app',
+        password: 'pw',
+        dbName: 'app',
+      },
       { name: 'redis', databaseType: 'REDIS' },
     ]);
     expect(Object.keys(out).sort()).toEqual(['DATABASE_URL', 'REDIS_URL']);

@@ -112,7 +112,9 @@ export class ServersCrudService {
       host: server.host,
       connectionMode: server.connectionMode,
     });
-    this.logger.log(`Server "${server.name}" (${server.id}) created at ${server.host}`);
+    this.logger.log(
+      `Server "${server.name}" (${server.id}) created at ${server.host}`,
+    );
 
     return toPublicServer(server);
   }

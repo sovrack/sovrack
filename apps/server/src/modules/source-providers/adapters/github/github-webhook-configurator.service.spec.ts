@@ -1,12 +1,14 @@
 import { of, throwError } from 'rxjs';
 import { GithubWebhookConfiguratorService } from './github-webhook-configurator.service';
 
-function makeSvc(opts: {
-  credentials?: { token: string; apiBase: string; fullRepoName: string };
-  existingHookId?: number | null;
-  createError?: Error;
-  listError?: boolean;
-} = {}) {
+function makeSvc(
+  opts: {
+    credentials?: { token: string; apiBase: string; fullRepoName: string };
+    existingHookId?: number | null;
+    createError?: Error;
+    listError?: boolean;
+  } = {},
+) {
   const credentials = opts.credentials ?? {
     token: 'gh-token',
     apiBase: 'https://api.github.com',
@@ -22,11 +24,17 @@ function makeSvc(opts: {
 
   if (opts.listError) {
     httpGet.mockReturnValue(throwError(() => new Error('network')));
-  } else if (opts.existingHookId !== undefined && opts.existingHookId !== null) {
+  } else if (
+    opts.existingHookId !== undefined &&
+    opts.existingHookId !== null
+  ) {
     httpGet.mockReturnValue(
       of({
         data: [
-          { id: opts.existingHookId, config: { url: 'https://platform.io/hook' } },
+          {
+            id: opts.existingHookId,
+            config: { url: 'https://platform.io/hook' },
+          },
         ],
       }),
     );
@@ -43,7 +51,8 @@ function makeSvc(opts: {
   const httpService = { get: httpGet, post: httpPost } as never;
   return {
     svc: new GithubWebhookConfiguratorService(httpService, fileService),
-    httpPost, httpGet,
+    httpPost,
+    httpGet,
   };
 }
 

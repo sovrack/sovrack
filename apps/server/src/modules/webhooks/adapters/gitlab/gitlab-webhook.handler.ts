@@ -339,5 +339,4 @@ export class GitlabWebhookHandler implements IWebhookHandler {
       );
     }
   }
-
 }

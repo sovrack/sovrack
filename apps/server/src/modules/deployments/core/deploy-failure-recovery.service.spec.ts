@@ -37,7 +37,14 @@ describe('DeployFailureRecoveryService.handleDeployFailure', () => {
       gateway as unknown as DeploymentEventsPublisher,
       notifications as unknown as NotificationsService,
     );
-    return { service, docker, containerLifecycle, prisma, gateway, notifications };
+    return {
+      service,
+      docker,
+      containerLifecycle,
+      prisma,
+      gateway,
+      notifications,
+    };
   }
 
   const baseParams = (over: Record<string, unknown> = {}) => ({
@@ -71,7 +78,9 @@ describe('DeployFailureRecoveryService.handleDeployFailure', () => {
   it('marks the deployment FAILED with the error message in conditions and logs', async () => {
     const { service, prisma } = harness();
     await expect(
-      service.handleDeployFailure(baseParams({ error: new Error('specific reason') })),
+      service.handleDeployFailure(
+        baseParams({ error: new Error('specific reason') }),
+      ),
     ).rejects.toThrow();
 
     const call = prisma.deployment.update.mock.calls[0][0];
@@ -109,7 +118,10 @@ describe('DeployFailureRecoveryService.handleDeployFailure', () => {
     await expect(service.handleDeployFailure(baseParams())).rejects.toThrow();
 
     expect(gateway.emitStatus).toHaveBeenCalledWith(
-      expect.objectContaining({ deploymentId: 'dep-1', status: DeploymentStatus.FAILED }),
+      expect.objectContaining({
+        deploymentId: 'dep-1',
+        status: DeploymentStatus.FAILED,
+      }),
     );
     expect(gateway.emitFinished).toHaveBeenCalled();
     expect(notifications.notifyDeploymentFinished).toHaveBeenCalledWith(

@@ -26,7 +26,8 @@ import { LoggerService } from './logger.service';
 
 function getMockLogger() {
   const createLogger = winston.createLogger as jest.Mock;
-  return createLogger.mock.results[createLogger.mock.results.length - 1].value as {
+  return createLogger.mock.results[createLogger.mock.results.length - 1]
+    .value as {
     info: jest.Mock;
     error: jest.Mock;
     warn: jest.Mock;
@@ -37,7 +38,13 @@ function getMockLogger() {
 function makeSvc() {
   const svc = new LoggerService();
   const ml = getMockLogger();
-  return { svc, infoSpy: ml.info, errorSpy: ml.error, warnSpy: ml.warn, debugSpy: ml.debug };
+  return {
+    svc,
+    infoSpy: ml.info,
+    errorSpy: ml.error,
+    warnSpy: ml.warn,
+    debugSpy: ml.debug,
+  };
 }
 
 beforeEach(() => {
@@ -68,7 +75,11 @@ describe('LoggerService', () => {
       const { svc, errorSpy } = makeSvc();
       svc.error('boom', 'stack trace', 'ErrCtx');
       expect(errorSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'boom', trace: 'stack trace', context: 'ErrCtx' }),
+        expect.objectContaining({
+          message: 'boom',
+          trace: 'stack trace',
+          context: 'ErrCtx',
+        }),
       );
     });
   });

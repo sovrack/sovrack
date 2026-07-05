@@ -4,11 +4,13 @@ import { GitlabOnboardingService } from './gitlab-onboarding.service';
 
 // Extracted from GitlabAdapter — see EXPLORATION_BACKEND_DEPENDANCES.md
 // section 4. connectProject/verifyConnectionInput behaviour ported unchanged.
-function harness(opts: {
-  branches?: { name: string; default: boolean; commit: { id: string } }[];
-  groupRepos?: { path_with_namespace: string; default_branch: string }[];
-  existingService?: unknown;
-} = {}) {
+function harness(
+  opts: {
+    branches?: { name: string; default: boolean; commit: { id: string } }[];
+    groupRepos?: { path_with_namespace: string; default_branch: string }[];
+    existingService?: unknown;
+  } = {},
+) {
   const prisma = {
     gitProviderConfig: {
       create: jest.fn().mockResolvedValue({ id: 'prov-new' }),
@@ -18,9 +20,7 @@ function harness(opts: {
       create: jest.fn().mockResolvedValue({ id: 'env1' }),
     },
     service: {
-      findFirst: jest
-        .fn()
-        .mockResolvedValue(opts.existingService ?? null),
+      findFirst: jest.fn().mockResolvedValue(opts.existingService ?? null),
       update: jest.fn().mockResolvedValue({}),
       create: jest.fn().mockResolvedValue({ id: 'svc-new' }),
     },
@@ -38,15 +38,21 @@ function harness(opts: {
       .fn()
       .mockResolvedValue({ path_with_namespace: 'org/app' }),
     getGroupByConnection: jest.fn().mockResolvedValue({}),
-    fetchGroupRepositories: jest
+    fetchGroupRepositories: jest.fn().mockResolvedValue(opts.groupRepos ?? []),
+    listProjectBranchesByConnection: jest
       .fn()
-      .mockResolvedValue(opts.groupRepos ?? []),
-    listProjectBranchesByConnection: jest.fn().mockResolvedValue(
-      opts.branches ?? [{ name: 'main', default: true, commit: { id: 'sha1' } }],
-    ),
+      .mockResolvedValue(
+        opts.branches ?? [
+          { name: 'main', default: true, commit: { id: 'sha1' } },
+        ],
+      ),
     listGroupRepositoriesByConnection: jest
       .fn()
-      .mockResolvedValue(opts.groupRepos ?? [{ path_with_namespace: 'org/repo', default_branch: 'main' }]),
+      .mockResolvedValue(
+        opts.groupRepos ?? [
+          { path_with_namespace: 'org/repo', default_branch: 'main' },
+        ],
+      ),
   };
 
   const cryptoService = {
@@ -63,11 +69,14 @@ function harness(opts: {
       gitlabToken: 'tok',
       providerId: null,
     }),
-    normalizeUrl: jest.fn().mockImplementation((u: string) => u.replace(/\/+$/, '')),
-    normalizeRepositoryPath: jest.fn().mockImplementation((p: string) => p),
-    toPublicConfig: jest
+    normalizeUrl: jest
       .fn()
-      .mockReturnValue({ id: 'prov-new', gitlabUrl: 'https://gitlab.example.com' }),
+      .mockImplementation((u: string) => u.replace(/\/+$/, '')),
+    normalizeRepositoryPath: jest.fn().mockImplementation((p: string) => p),
+    toPublicConfig: jest.fn().mockReturnValue({
+      id: 'prov-new',
+      gitlabUrl: 'https://gitlab.example.com',
+    }),
   };
 
   const service = new GitlabOnboardingService(
@@ -90,7 +99,11 @@ describe('GitlabOnboardingService.connectProject', () => {
       'u1',
       Role.ADMIN,
     );
-    expect(auth.assertCanManageProject).toHaveBeenCalledWith('p1', 'u1', Role.ADMIN);
+    expect(auth.assertCanManageProject).toHaveBeenCalledWith(
+      'p1',
+      'u1',
+      Role.ADMIN,
+    );
   });
 
   it('creates a new service + serviceEnvironment link + GitProviderRepo when connecting a single repo', async () => {
@@ -123,7 +136,9 @@ describe('GitlabOnboardingService.connectProject', () => {
 
   it('auto-syncs group repositories as GitProviderRepo entries when connecting a group', async () => {
     const { service, prisma } = harness({
-      groupRepos: [{ path_with_namespace: 'org/repo-a', default_branch: 'main' }],
+      groupRepos: [
+        { path_with_namespace: 'org/repo-a', default_branch: 'main' },
+      ],
     });
     await service.connectProject(
       'p1',

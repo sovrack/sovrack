@@ -166,9 +166,7 @@ export class ServersDetectionService {
       const installedTools: InstalledTool[] = [];
       for (const tool of DETECTION_TOOLS) {
         const result = await connection.target.execCommand(tool.command);
-        const version = (result.stdout || result.stderr)
-          .trim()
-          .split('\n')[0];
+        const version = (result.stdout || result.stderr).trim().split('\n')[0];
         const isInstalled = result.code === 0;
         installed[tool.key] = isInstalled;
         capabilities[tool.capabilityKey] = String(isInstalled);

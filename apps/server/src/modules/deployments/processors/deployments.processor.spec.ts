@@ -10,7 +10,11 @@ describe('DeploymentsProcessor', () => {
   let processor: DeploymentsProcessor;
   let mockWorker: { on: jest.Mock; close: jest.Mock };
   let executeDeploy: jest.Mock;
-  let capturedProcessFn: (job: { name: string; data: unknown; id?: string }) => Promise<void>;
+  let capturedProcessFn: (job: {
+    name: string;
+    data: unknown;
+    id?: string;
+  }) => Promise<void>;
 
   beforeEach(() => {
     mockWorker = {
@@ -23,7 +27,9 @@ describe('DeploymentsProcessor', () => {
     });
 
     executeDeploy = jest.fn().mockResolvedValue(undefined);
-    const executor = { executeDeploy } as unknown as DockerDeployExecutorService;
+    const executor = {
+      executeDeploy,
+    } as unknown as DockerDeployExecutorService;
     processor = new DeploymentsProcessor(executor);
   });
 
@@ -39,8 +45,14 @@ describe('DeploymentsProcessor', () => {
 
     it('registers completed and failed event listeners', async () => {
       await processor.onModuleInit();
-      expect(mockWorker.on).toHaveBeenCalledWith('completed', expect.any(Function));
-      expect(mockWorker.on).toHaveBeenCalledWith('failed', expect.any(Function));
+      expect(mockWorker.on).toHaveBeenCalledWith(
+        'completed',
+        expect.any(Function),
+      );
+      expect(mockWorker.on).toHaveBeenCalledWith(
+        'failed',
+        expect.any(Function),
+      );
     });
   });
 
