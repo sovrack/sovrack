@@ -45,7 +45,6 @@ import { ServiceContainersTab } from "@/features/projects/components/tabs/servic
 import { ServiceCredentials } from "@/features/projects/components/tabs/service/service-credentials";
 import { DeploymentLogsDialog } from "@/features/projects/components/tabs/runs/deployment-logs-dialog";
 import { resolveDeploymentUrl } from "@/features/deployments/utils";
-import { KeyValueField } from "@/shared/ui/key-value-field";
 import type { Service } from "@/features/projects/types/service";
 import type { Deployment } from "@/features/deployments/types";
 
@@ -251,20 +250,24 @@ export default function ServiceDetailPage({
         }
       />
 
-      {!isDatabase && (
-        <ServiceDeployBar
-          redeploying={redeploying}
-          stopping={stopping}
-          effectiveEnvId={effectiveEnvId}
-          envName={environments.find((e) => e.id === effectiveEnvId)?.name}
+      {/* B2 (plan produit final) : la barre Deploy s'affiche AUSSI pour les
+          DATABASE — le moteur backend les gère intégralement (validation,
+          volume de données, health-gate) ; sans elle, un conteneur retiré
+          par erreur était irrécupérable depuis l'UI. Seul "Open app" est
+          masqué (une base n'a pas d'URL navigable). */}
+      <ServiceDeployBar
+        redeploying={redeploying}
+        stopping={stopping}
+        effectiveEnvId={effectiveEnvId}
+        envName={environments.find((e) => e.id === effectiveEnvId)?.name}
           lastDeployment={lastDeployment}
-          appUrl={appUrl}
-          onDeploy={() => setDeployOpen(true)}
-          onRedeploy={() => void handleRedeploy()}
-          onStop={() => void handleStop()}
-          onTerminal={() => setTerminalOpen(true)}
-        />
-      )}
+        appUrl={isDatabase ? null : appUrl}
+        onDeploy={() => setDeployOpen(true)}
+        onRedeploy={() => void handleRedeploy()}
+        onStop={() => void handleStop()}
+        onTerminal={() => setTerminalOpen(true)}
+      />
+
 
       {/* Tabs */}
       <div className="border-b border-[var(--border)]">
@@ -300,11 +303,10 @@ export default function ServiceDetailPage({
                     {service.databaseType} {service.databaseVersion ?? ""}
                   </span>
                 </div>
-                <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                  {service.port != null && (
-                    <KeyValueField k="Port" v={String(service.port)} />
-                  )}
-                </dl>
+                {/* B3 : pas de champ "Port" ici — Service.port (défaut 3000,
+                    pensé pour une appli web) n'a aucun sens pour une base ;
+                    les vrais ports (interne 5432/6379, externe optionnel)
+                    sont affichés par ServiceCredentials ci-dessous. */}
               </SectionCard>
               {/* P2.2 (mission finale) : Internal/External Credentials fusionnés
                   ici, dans General — une base managée n'a que 3 onglets
