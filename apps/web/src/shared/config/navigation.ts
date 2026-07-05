@@ -23,12 +23,15 @@ export type AppNavItem = {
 };
 
 export type AppNavSection = {
-  id: "overview" | "deliver" | "infrastructure" | "integrations" | "settings";
+  id: "overview" | "infrastructure" | "integrations" | "settings";
   label: string;
   items: AppNavItem[];
 };
 
-// IA en 5 piliers : Overview · Delivery · Infrastructure · Integrations · Settings.
+// IA en 4 piliers : Overview · Infrastructure · Integrations · Settings.
+// Décision utilisateur (LOT1c) : Dashboard, Projects et Deployments vivent
+// ensemble dans Overview — la section Delivery (réduite à 2 items depuis le
+// départ d'Automation) est supprimée.
 // - Pipelines n'est plus un item de 1er niveau : c'est un SOUS-ONGLET de
 //   Deployments (SubNav), pour lever le chevauchement Deployments/Pipelines.
 // - E1 (plan produit final) : Automation rangée sous Infrastructure (elle
@@ -40,12 +43,8 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
     id: "overview",
     label: "Overview",
-    items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
-  },
-  {
-    id: "deliver",
-    label: "Delivery",
     items: [
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/projects", label: "Projects", icon: FolderGit2 },
       { href: "/deployments", label: "Deployments", icon: Rocket },
     ],

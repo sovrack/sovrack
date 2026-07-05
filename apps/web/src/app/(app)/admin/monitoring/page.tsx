@@ -14,6 +14,7 @@ import {
 import { monitoringService } from "@/features/monitoring";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { PageHeader } from "@/shared/layout/page-header";
+import { ProtectedRoute } from "@/shared/common/protected-route";
 import { useI18n } from "@/shared/i18n/language-context";
 import type { MonitoredServer } from "@/features/monitoring";
 
@@ -105,6 +106,14 @@ function ServerRow({ server }: { server: MonitoredServer }) {
  * service.
  */
 export default function InfrastructureMonitoringPage() {
+  return (
+    <ProtectedRoute requiredRole="ADMIN">
+      <MonitoringPageBody />
+    </ProtectedRoute>
+  );
+}
+
+function MonitoringPageBody() {
   const { t } = useI18n();
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["monitoring-servers"],
