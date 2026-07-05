@@ -31,6 +31,14 @@ export type MonitoredServer = {
   host: string;
   platformStatus: string;
   monitoringStatus: MonitoringHealth;
+  // B4/E2 : stack Prometheus/Grafana/Loki installée SUR ce serveur → liens
+  // déduits de son host ; null si non installée.
+  monitoringInstalledAt: string | null;
+  links: {
+    grafanaUrl: string;
+    prometheusUrl: string;
+    lokiUrl: string;
+  } | null;
   lastCheckAt: string | null;
   metrics: {
     up: number | null;

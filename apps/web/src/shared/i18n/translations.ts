@@ -93,6 +93,17 @@ export const FR: Record<string, string> = {
   "= the webhook secret (Webhooks tab)":
     "= le secret du webhook (onglet Webhooks)",
 
+  // ── Page Infrastructure → Monitoring ─────────────────────────────────
+  Integrations: "Intégrations",
+  "Per-server health, live metrics and dashboards (Grafana / Prometheus / Loki).":
+    "Santé par serveur, métriques temps réel et tableaux de bord (Grafana / Prometheus / Loki).",
+  "Monitoring stack not installed": "Stack monitoring non installée",
+  "install it from Servers → Setup Server → Setup Monitoring.":
+    "installe-la depuis Serveurs → Setup Server → Setup Monitoring.",
+  "No servers": "Aucun serveur",
+  "Add a server from Infrastructure → Servers to monitor it.":
+    "Ajoute un serveur depuis Infrastructure → Serveurs pour le surveiller.",
+
   // ── Divers ────────────────────────────────────────────────────────────
   Deployment: "Déploiement",
   "(changing the repository = create another service)":

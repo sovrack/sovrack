@@ -23,16 +23,19 @@ export type AppNavItem = {
 };
 
 export type AppNavSection = {
-  id: "overview" | "deliver" | "infrastructure" | "settings";
+  id: "overview" | "deliver" | "infrastructure" | "integrations" | "settings";
   label: string;
   items: AppNavItem[];
 };
 
-// IA en 4 piliers : Overview · Delivery · Infrastructure · Settings.
+// IA en 5 piliers : Overview · Delivery · Infrastructure · Integrations · Settings.
 // - Pipelines n'est plus un item de 1er niveau : c'est un SOUS-ONGLET de
 //   Deployments (SubNav), pour lever le chevauchement Deployments/Pipelines.
-// - Servers / Registry / SSH Keys / Terminal sont regroupés sous Infrastructure
-//   (ce sont des cibles/outils d'infra, pas des « réglages »).
+// - E1 (plan produit final) : Automation rangée sous Infrastructure (elle
+//   exécute des actions Ansible SUR des serveurs — pas de la livraison de
+//   code) ; Git Providers + Registry regroupés sous Integrations (connexions
+//   à des services EXTERNES — ni infra à soi, ni réglages plateforme) ;
+//   Monitoring (vue par serveur) ajouté à Infrastructure.
 export const APP_NAV_SECTIONS: AppNavSection[] = [
   {
     id: "overview",
@@ -45,12 +48,6 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     items: [
       { href: "/projects", label: "Projects", icon: FolderGit2 },
       { href: "/deployments", label: "Deployments", icon: Rocket },
-      {
-        href: "/automation",
-        label: "Automation",
-        icon: Wrench,
-        adminOnly: true,
-      },
     ],
   },
   {
@@ -64,9 +61,15 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
         adminOnly: true,
       },
       {
-        href: "/settings/registry",
-        label: "Registry",
-        icon: Database,
+        href: "/admin/monitoring",
+        label: "Monitoring",
+        icon: Activity,
+        adminOnly: true,
+      },
+      {
+        href: "/automation",
+        label: "Automation",
+        icon: Wrench,
         adminOnly: true,
       },
       { href: "/settings/ssh-keys", label: "SSH Keys", icon: KeyRound },
@@ -79,6 +82,24 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     ],
   },
   {
+    id: "integrations",
+    label: "Integrations",
+    items: [
+      {
+        href: "/settings/git",
+        label: "Git Providers",
+        icon: GitBranch,
+        adminOnly: true,
+      },
+      {
+        href: "/settings/registry",
+        label: "Registry",
+        icon: Database,
+        adminOnly: true,
+      },
+    ],
+  },
+  {
     id: "settings",
     label: "Settings",
     items: [
@@ -86,12 +107,6 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
         href: "/settings",
         label: "Platform Settings",
         icon: Settings,
-        adminOnly: true,
-      },
-      {
-        href: "/settings/git",
-        label: "Git Providers",
-        icon: GitBranch,
         adminOnly: true,
       },
       {
