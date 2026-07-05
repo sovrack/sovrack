@@ -1,6 +1,7 @@
 import { Role } from '@prisma/client';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { MonitoringService } from '../services/monitoring.service';
+import { MonitoringAccessService } from '../services/monitoring-access.service';
 import { ContainerStatsService } from '../../../infrastructure/containers/services/container-stats.service';
 import { MonitoringController } from './monitoring.controller';
 
@@ -24,11 +25,17 @@ describe('MonitoringController', () => {
       getContainerInfo: jest.fn().mockResolvedValue({}),
       listProjectContainers: jest.fn().mockResolvedValue([]),
     } as unknown as ContainerStatsService;
+    const access = {
+      assertProject: jest.fn().mockResolvedValue(undefined),
+      assertServiceEnv: jest.fn().mockResolvedValue(undefined),
+      assertDeployment: jest.fn().mockResolvedValue(undefined),
+    } as unknown as MonitoringAccessService;
     const ctrl = new MonitoringController(
       monitoringService,
+      access,
       containerMonitoring,
     );
-    return { ctrl, monitoringService, containerMonitoring };
+    return { ctrl, monitoringService, containerMonitoring, access };
   }
 
   it('read endpoints delegate to the monitoring service', async () => {
@@ -66,10 +73,20 @@ describe('MonitoringController', () => {
     );
   });
 
-  it('container endpoints delegate to the container stats service', async () => {
-    const { ctrl, containerMonitoring } = build();
-    await ctrl.containerInfo('d1', 100);
-    await ctrl.projectContainers('p1', 's1');
+  it('container endpoints assert project access then delegate (LOT1a)', async () => {
+    const { ctrl, containerMonitoring, access } = build();
+    await ctrl.containerInfo('d1', user, 100);
+    await ctrl.projectContainers('p1', user, 's1');
+    expect(access.assertDeployment).toHaveBeenCalledWith(
+      'd1',
+      'user-1',
+      Role.ADMIN,
+    );
+    expect(access.assertProject).toHaveBeenCalledWith(
+      'p1',
+      'user-1',
+      Role.ADMIN,
+    );
     expect(containerMonitoring.getContainerInfo).toHaveBeenCalledWith(
       'd1',
       100,

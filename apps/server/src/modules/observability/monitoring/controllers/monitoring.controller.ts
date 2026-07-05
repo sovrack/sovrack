@@ -18,8 +18,15 @@ import { RolesGuard } from '../../../../shared/guards/roles.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringService } from '../services/monitoring.service';
+import { MonitoringAccessService } from '../services/monitoring-access.service';
 import { ContainerStatsService } from '../../../infrastructure/containers/services/container-stats.service';
 
+// LOT1a : le contrôleur reste ADMIN par défaut (vues d'infra globales), mais
+// les routes scopées à UN projet (onglet Monitoring d'un service : stats
+// conteneur, historique, liens Grafana) sont ouvertes aux DEVELOPER — avec
+// vérification d'appartenance au projet (MonitoringAccessService), comme
+// l'onglet Logs. Avant : @Roles(ADMIN) niveau classe → 403 sur tout l'onglet
+// Monitoring pour un développeur.
 @ApiTags('Monitoring')
 @ApiBearerAuth()
 @Controller('monitoring')
@@ -28,6 +35,7 @@ import { ContainerStatsService } from '../../../infrastructure/containers/servic
 export class MonitoringController {
   constructor(
     private readonly monitoringService: MonitoringService,
+    private readonly access: MonitoringAccessService,
     private readonly containerMonitoring: ContainerStatsService,
   ) {}
 
@@ -81,15 +89,18 @@ export class MonitoringController {
   }
 
   @Get('services/:serviceEnvId/metrics/range')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({
     summary:
       'Historical CPU/memory time-series for a service-environment (Prometheus range)',
   })
   async serviceMetricRange(
     @Param('serviceEnvId') serviceEnvId: string,
+    @GetUser() user: JwtPayload,
     @Query('minutes', new DefaultValuePipe(60), ParseIntPipe) minutes: number,
     @Query('step', new DefaultValuePipe(60), ParseIntPipe) step: number,
   ) {
+    await this.access.assertServiceEnv(serviceEnvId, user.id, user.role);
     return await this.monitoringService.getServiceMetricRange(
       serviceEnvId,
       minutes,
@@ -104,11 +115,16 @@ export class MonitoringController {
   }
 
   @Get('services/:serviceEnvId/links')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({
     summary:
       'Monitoring links (Grafana/Prometheus/Loki) for the server hosting a service-environment',
   })
-  async serviceMonitoringLinks(@Param('serviceEnvId') serviceEnvId: string) {
+  async serviceMonitoringLinks(
+    @Param('serviceEnvId') serviceEnvId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    await this.access.assertServiceEnv(serviceEnvId, user.id, user.role);
     return await this.monitoringService.getMonitoringLinksForServiceEnv(
       serviceEnvId,
     );
@@ -145,22 +161,28 @@ export class MonitoringController {
   /* ── Container monitoring ────────────────────────────────────────────── */
 
   @Get('containers/deployment/:deploymentId')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({ summary: 'Get container stats and logs for a deployment' })
   async containerInfo(
     @Param('deploymentId') deploymentId: string,
+    @GetUser() user: JwtPayload,
     @Query('tail', new DefaultValuePipe(200), ParseIntPipe) tail: number,
   ) {
+    await this.access.assertDeployment(deploymentId, user.id, user.role);
     return await this.containerMonitoring.getContainerInfo(deploymentId, tail);
   }
 
   @Get('containers/project/:projectId')
+  @Roles(Role.ADMIN, Role.DEVELOPER)
   @ApiOperation({
     summary: 'List running containers for a project on a server',
   })
   async projectContainers(
     @Param('projectId') projectId: string,
+    @GetUser() user: JwtPayload,
     @Query('serverId') serverId: string,
   ) {
+    await this.access.assertProject(projectId, user.id, user.role);
     return await this.containerMonitoring.listProjectContainers(
       projectId,
       serverId,

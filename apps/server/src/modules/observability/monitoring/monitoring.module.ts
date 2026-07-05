@@ -12,6 +12,7 @@ import { MonitoringPrometheusService } from './services/monitoring-prometheus.se
 import { MonitoringLokiService } from './services/monitoring-loki.service';
 import { MonitoringAlertsService } from './services/monitoring-alerts.service';
 import { MonitoringRuntimeLogsService } from './services/monitoring-runtime-logs.service';
+import { MonitoringAccessService } from './services/monitoring-access.service';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { MonitoringRuntimeLogsService } from './services/monitoring-runtime-logs
     MonitoringLokiService,
     MonitoringAlertsService,
     MonitoringRuntimeLogsService,
+    MonitoringAccessService,
   ],
   exports: [
     MonitoringService,
