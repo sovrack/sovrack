@@ -168,17 +168,8 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
     requiresSshValidated: true,
     requiresSudo: true,
   },
-  {
-    key: 'enable_ssl',
-    label: "Activer SSL / HTTPS (Let's Encrypt)",
-    description:
-      "Installs Certbot and obtains a Let's Encrypt certificate for the configured domains. Automatic renewal enabled.",
-    playbookPath: 'prepare-server.yml',
-    category: 'web',
-    roles: ['ssl'],
-    requiresSshValidated: true,
-    requiresSudo: true,
-  },
+  // enable_ssl (certbot) retiré avec la voie SSL certbot (E4) — le HTTPS
+  // passe par Traefik + Let's Encrypt (Setup Reverse Proxy, D5).
   {
     key: 'install_nodejs',
     label: 'Installer Node.js',
