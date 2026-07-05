@@ -88,7 +88,7 @@ function makeGateway(
     logStreamService,
   );
 
-  const mockTo = jest.fn().mockReturnThis();
+  const _mockTo = jest.fn().mockReturnThis();
   const mockEmit = jest.fn();
   const mockServerTo = jest.fn().mockReturnValue({ emit: mockEmit });
   gateway.server = {

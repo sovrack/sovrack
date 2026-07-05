@@ -55,8 +55,7 @@ describe('GitlabController', () => {
       await ctrl.listGroupRepositories('p1', 'grp1', {
         archived: 'true',
       } as never);
-      const call = (adapter.listGroupRepositoriesByProvider as jest.Mock).mock
-        .calls[0][0];
+      const call = adapter.listGroupRepositoriesByProvider.mock.calls[0][0];
       expect(call.query.archived).toBe(true);
     });
 
@@ -64,8 +63,7 @@ describe('GitlabController', () => {
       const adapter = makeAdapter();
       const ctrl = new GitlabController(adapter as never);
       await ctrl.listGroupRepositories('p1', 'grp1', {} as never);
-      const call = (adapter.listGroupRepositoriesByProvider as jest.Mock).mock
-        .calls[0][0];
+      const call = adapter.listGroupRepositoriesByProvider.mock.calls[0][0];
       expect(call.query.includeSubgroups).toBe(true);
     });
   });
@@ -194,8 +192,8 @@ describe('GitlabController', () => {
       await ctrl.listGroupRepositories('p1', 'g1', {
         archived: value,
       } as never);
-      const query = (adapter.listGroupRepositoriesByProvider as jest.Mock).mock
-        .calls[0][0].query;
+      const query =
+        adapter.listGroupRepositoriesByProvider.mock.calls[0][0].query;
       expect(query.archived).toBe(expected);
     });
   });

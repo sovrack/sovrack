@@ -23,7 +23,6 @@ const baseConfig: GitlabResolvedConfig = {
 describe('GitlabCredentialService', () => {
   describe('resolveRegistryCredentialsFromConfig', () => {
     it('uses deploy token when it has a valid gldt- prefix and username', () => {
-      const { svc } = makeSvc();
       const config: GitlabResolvedConfig = {
         ...baseConfig,
         deployTokenUsername: 'mydeployuser',

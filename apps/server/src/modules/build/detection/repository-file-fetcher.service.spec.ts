@@ -153,7 +153,7 @@ describe('RepositoryFileFetcherService', () => {
         'tok',
         'release',
       );
-      const treeUrl = (httpGet as jest.Mock).mock.calls[1][0] as string;
+      const treeUrl = httpGet.mock.calls[1][0] as string;
       expect(treeUrl).toContain('def456');
     });
   });

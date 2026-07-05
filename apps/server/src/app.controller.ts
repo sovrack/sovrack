@@ -147,7 +147,7 @@ export class AppController {
         },
         (err: unknown) => {
           clearTimeout(timer);
-          reject(err);
+          reject(err instanceof Error ? err : new Error(String(err)));
         },
       );
     });

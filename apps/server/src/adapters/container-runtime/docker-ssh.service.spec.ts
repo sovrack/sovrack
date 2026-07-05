@@ -21,7 +21,7 @@ describe('DockerSshService', () => {
       const { svc, conn, exec } = makeSvc(makeExec(' abc|name|10% \n'));
       const result = await svc.containerStats(conn, 'app');
       expect(result).toBe('abc|name|10%');
-      const cmd = (exec as jest.Mock).mock.calls[0][1] as string;
+      const cmd = exec.mock.calls[0][1] as string;
       expect(cmd).toContain('docker stats');
       expect(cmd).toContain("'app'");
     });

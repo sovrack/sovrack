@@ -264,7 +264,7 @@ describe('GitlabConnectionService', () => {
     });
 
     it('uses manual token and provider URL when providerId + manualToken provided', async () => {
-      const { svc, registry } = makeSvc({
+      const { svc } = makeSvc({
         listGitlabProvidersForProjects: jest
           .fn()
           .mockResolvedValue([

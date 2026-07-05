@@ -61,7 +61,7 @@ describe('SshExecutorService', () => {
     it('writes content to a remote path via cat', async () => {
       const { conn, client } = makeConn({ code: 0 });
       await svc.putContent(conn, '/etc/app/config.json', '{"key":"val"}');
-      const calls = (client.execCommand as jest.Mock).mock.calls.map(
+      const calls = client.execCommand.mock.calls.map(
         (c: unknown[]) => c[0] as string,
       );
       expect(calls.some((cmd) => cmd.includes('mkdir -p'))).toBe(true);
@@ -70,7 +70,7 @@ describe('SshExecutorService', () => {
 
     it('throws when the cat command fails', async () => {
       const { conn, client } = makeConn({ code: 0 });
-      (client.execCommand as jest.Mock)
+      client.execCommand
         .mockResolvedValueOnce({ stdout: '', stderr: '', code: 0 }) // mkdir
         .mockResolvedValueOnce({ stdout: '', stderr: 'disk full', code: 1 }); // cat
       await expect(

@@ -204,8 +204,13 @@ export class UsersService {
     }
 
     if (data.role !== undefined || data.isActive !== undefined) {
+      // Log les valeurs depuis dto (typées Role/boolean simples) plutôt que
+      // depuis `data` (dont le type Prisma est une union avec la forme objet
+      // { set } → no-base-to-string). Équivalent : data.role provient de dto.role.
+      const nextRole = dto.role ?? user.role;
+      const nextActive = dto.isActive ?? user.isActive;
       this.logger.warn(
-        `User ${id} updated by ${actor?.id ?? 'system'}: role=${String(data.role ?? user.role)}, isActive=${String(data.isActive ?? user.isActive)}`,
+        `User ${id} updated by ${actor?.id ?? 'system'}: role=${nextRole}, isActive=${String(nextActive)}`,
       );
     }
     if (wantsPasswordChange) {

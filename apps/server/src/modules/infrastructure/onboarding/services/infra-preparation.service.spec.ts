@@ -294,7 +294,7 @@ describe('ServerPreparationService', () => {
     });
 
     it('cancels the active server job when one exists', async () => {
-      const { svc, prisma, state } = makeSvc({
+      const { svc, prisma } = makeSvc({
         serverJob: { id: 'job1' },
       });
       (prisma.serverRun.findFirst as jest.Mock)
@@ -312,7 +312,7 @@ describe('ServerPreparationService', () => {
 
   describe('startPreparation', () => {
     it('throws BadRequestException when no roles are resolved', async () => {
-      const { svc, prisma } = makeSvc();
+      const { svc } = makeSvc();
       // All checkboxes false → resolvePreparationOptions returns empty roles
       await expect(
         svc.startPreparation('srv1', {

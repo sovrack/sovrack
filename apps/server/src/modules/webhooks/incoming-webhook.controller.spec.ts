@@ -173,9 +173,7 @@ describe('IncomingWebhookController.handle', () => {
 
   it('marks event failed and returns ok when dispatch throws', async () => {
     const handler = makeHandler();
-    (handler.handleIncoming as jest.Mock).mockRejectedValue(
-      new Error('dispatch error'),
-    );
+    handler.handleIncoming.mockRejectedValue(new Error('dispatch error'));
     const svc = makeSvcFull();
     const ctrl = new IncomingWebhookController(svc as never, [handler]);
     const result = await ctrl.handle('tok', {}, {}, {

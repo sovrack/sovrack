@@ -72,7 +72,7 @@ describe('GithubWebhookConfiguratorService', () => {
     it('sends push and workflow_run events in creation payload', async () => {
       const { svc, httpPost } = makeSvc();
       await svc.configureWebhook('proj1', 'https://platform.io/hook', 'secret');
-      const body = (httpPost as jest.Mock).mock.calls[0][1] as {
+      const body = httpPost.mock.calls[0][1] as {
         events: string[];
         config: { url: string; secret: string };
       };
@@ -113,7 +113,7 @@ describe('GithubWebhookConfiguratorService', () => {
     it('uses correct hooks endpoint for the repository', async () => {
       const { svc, httpGet } = makeSvc();
       await svc.configureWebhook('proj1', 'https://platform.io/hook', 'secret');
-      const listUrl = (httpGet as jest.Mock).mock.calls[0][0] as string;
+      const listUrl = httpGet.mock.calls[0][0] as string;
       expect(listUrl).toContain('/repos/org/repo/hooks');
     });
   });

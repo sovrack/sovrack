@@ -165,7 +165,7 @@ describe('DeploymentContainerInspectorService', () => {
     });
 
     it('disposes the SSH connection even on error', async () => {
-      const { svc, ssh, conn } = makeSvc();
+      const { svc, ssh } = makeSvc();
       (ssh.connect as jest.Mock).mockRejectedValue(
         new Error('connection refused'),
       );
