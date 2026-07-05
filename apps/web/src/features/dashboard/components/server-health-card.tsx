@@ -1,6 +1,7 @@
 "use client";
 
 import { Server } from "lucide-react";
+import { useI18n } from "@/shared/i18n/language-context";
 import Link from "next/link";
 
 type Props = {
@@ -15,15 +16,16 @@ type Props = {
 };
 
 export function ServerHealthCard({ servers, isAdmin }: Props) {
+  const { t } = useI18n();
   if (!isAdmin || servers.total === 0) {
     return null;
   }
 
   const items = [
-    { label: "Ready", value: servers.ready, color: "bg-emerald-400" },
-    { label: "Provisioning", value: servers.preparing, color: "bg-blue-400" },
-    { label: "En erreur", value: servers.error, color: "bg-red-400" },
-    { label: "Offline", value: servers.offline, color: "bg-zinc-500" },
+    { label: t("Ready"), value: servers.ready, color: "bg-emerald-400" },
+    { label: t("Provisioning"), value: servers.preparing, color: "bg-blue-400" },
+    { label: t("Errors"), value: servers.error, color: "bg-red-400" },
+    { label: t("Offline"), value: servers.offline, color: "bg-zinc-500" },
   ];
 
   const healthPct =
@@ -41,7 +43,7 @@ export function ServerHealthCard({ servers, isAdmin }: Props) {
             href="/admin/servers"
             className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
           >
-            voir tout →
+            {t("view all →")}
           </Link>
         )}
       </div>

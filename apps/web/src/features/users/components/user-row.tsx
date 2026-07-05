@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Loader2, Pencil, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { formatDate } from "@/shared/lib/format-date";
+import { useI18n } from "@/shared/i18n/language-context";
 import type { UserListItem } from "@/features/users/types/user";
 
 /** Ligne du tableau utilisateurs (admin). Présentationnel — actions via callbacks. */
@@ -19,6 +20,7 @@ export function UserRow({
   togglingId: string | null;
   deletingUserId: string | null;
 }) {
+  const { t } = useI18n();
   return (
     <tr className="hover:bg-[var(--hover)]">
       <td className="px-4 py-3 text-[var(--text-primary)]">{user.fullName}</td>
@@ -38,7 +40,7 @@ export function UserRow({
               : "border border-zinc-500/20 bg-[var(--text-primary)]/10 text-[var(--text-muted)]"
           }`}
         >
-          {user.isActive ? "Actif" : "Inactif"}
+          {user.isActive ? t("Active") : t("Inactive")}
         </span>
       </td>
       <td className="px-4 py-3 text-[var(--text-secondary)]">

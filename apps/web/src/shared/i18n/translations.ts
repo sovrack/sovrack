@@ -104,6 +104,15 @@ export const FR: Record<string, string> = {
   "Add a server from Infrastructure → Servers to monitor it.":
     "Ajoute un serveur depuis Infrastructure → Serveurs pour le surveiller.",
 
+  // ── Dashboard / Users ─────────────────────────────────────────────────
+  Ready: "Prêt",
+  Provisioning: "Provisionnement",
+  Errors: "En erreur",
+  Offline: "Hors ligne",
+  "view all →": "voir tout →",
+  Active: "Actif",
+  Inactive: "Inactif",
+
   // ── Divers ────────────────────────────────────────────────────────────
   Deployment: "Déploiement",
   "(changing the repository = create another service)":
