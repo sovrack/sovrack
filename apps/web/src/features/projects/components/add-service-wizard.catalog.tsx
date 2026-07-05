@@ -1,9 +1,14 @@
-import { Container, Database, FolderGit2, Layers, Package } from "lucide-react";
+import { Container, Database, FolderGit2, Package } from "lucide-react";
 import type { ManagedServiceType } from "@/features/projects/types/service";
 
 // Catalogue + helpers du wizard d'ajout de service. Extrait du composant pour
 // le garder focalisé sur le flux (3 étapes) ; ces données/utilitaires sont purs.
 
+// NB: "COMPOSE" reste dans l'union (le code des étapes/backend est conservé
+// pour un futur exécuteur multi-conteneurs), mais l'option est RETIRÉE du
+// catalogue de création ci-dessous (décision D3) : le moteur ne déploie qu'un
+// conteneur, un service compose ne se déploierait jamais — ne pas exposer une
+// fonctionnalité morte.
 export type ServiceKind =
   "APPLICATION" | "DATABASE" | "DOCKER" | "COMPOSE" | "TEMPLATE";
 export type AppMode = "repo" | "group";
@@ -33,12 +38,6 @@ export const KINDS: {
     label: "Docker image",
     hint: "Deploy a prebuilt image from a registry",
     icon: <Container size={20} />,
-  },
-  {
-    kind: "COMPOSE",
-    label: "Docker Compose",
-    hint: "Deploy a multi-service stack defined in a docker-compose.yml",
-    icon: <Layers size={20} />,
   },
   {
     kind: "TEMPLATE",

@@ -14,7 +14,6 @@ import {
   FolderGit2,
   GitPullRequestArrow,
   Globe,
-  KeyRound,
   Loader2,
   ScrollText,
   Settings2,
@@ -52,7 +51,6 @@ import type { Deployment } from "@/features/deployments/types";
 
 type Tab =
   | "general"
-  | "credentials"
   | "pipeline"
   | "standardisation"
   | "variables"
@@ -74,14 +72,6 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "monitoring", label: "Monitoring", icon: ContainerIcon },
   { id: "logs", label: "Logs", icon: ScrollText },
 ];
-// DATABASE services get a "Credentials" tab (Internal/External connection
-// details) inserted right after General — Pipeline/Standardisation (build
-// concepts) are meaningless for a managed database and hidden for it.
-const DB_CREDENTIALS_TAB: { id: Tab; label: string; icon: React.ElementType } = {
-  id: "credentials",
-  label: "Credentials",
-  icon: KeyRound,
-};
 
 export default function ServiceDetailPage({
   params,
@@ -148,15 +138,33 @@ export default function ServiceDetailPage({
   const lastDeployment = deployments[0] ?? null;
   const appUrl = lastDeployment ? resolveDeploymentUrl(lastDeployment) : null;
   const isDatabase = service?.type === "DATABASE";
+  const isExternalImage = service?.sourceType === "DOCKER_IMAGE";
 
-  // DB services: insert Credentials after General and drop the build-only tabs
-  // (Pipeline / Standardisation). Other services keep the full list.
+  // Matrice d'onglets par type de service (Phase 2.1, décisions D1/D3) :
+  //  - DATABASE : General (moteur + credentials fusionnés, voir 2.2) +
+  //    Containers + Logs. Pas de Pipeline/Standardisation/Variables/Domains/
+  //    Webhooks/Monitoring/Deployments (une base managée n'a ni build, ni
+  //    domaine HTTP, ni webhook de dépôt).
+  //  - Image externe (DOCKER_IMAGE) : pas de code source à builder → on retire
+  //    Pipeline/Standardisation/Webhooks ; le reste (dont Deployments) reste.
+  //  - APPLICATION (Git) : liste complète.
   const visibleTabs = useMemo(() => {
-    if (!isDatabase) return TABS;
-    return TABS.filter(
-      (t) => t.id !== "pipeline" && t.id !== "standardisation",
-    ).flatMap((t) => (t.id === "general" ? [t, DB_CREDENTIALS_TAB] : [t]));
-  }, [isDatabase]);
+    if (isDatabase) {
+      return TABS.filter((t) =>
+        ["general", "containers", "logs"].includes(t.id),
+      );
+    }
+    if (isExternalImage) {
+      return TABS.filter(
+        (t) => !["pipeline", "standardisation", "webhooks"].includes(t.id),
+      );
+    }
+    return TABS;
+  }, [isDatabase, isExternalImage]);
+
+  // Si l'onglet courant n'est plus visible pour ce type (ex. bascule de type,
+  // ou état résiduel), on retombe sur General.
+  const activeTab = visibleTabs.some((t) => t.id === tab) ? tab : "general";
 
   const {
     deleting,
@@ -266,7 +274,7 @@ export default function ServiceDetailPage({
               key={tid}
               type="button"
               onClick={() => setTab(tid)}
-              className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition ${tab === tid ? "border-[var(--text-primary)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+              className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition ${activeTab === tid ? "border-[var(--text-primary)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
             >
               <Icon size={14} /> {label}
             </button>
@@ -275,7 +283,7 @@ export default function ServiceDetailPage({
       </div>
 
       {/* General */}
-      {tab === "general" && (
+      {activeTab === "general" && (
         <div className="space-y-4">
           {isDatabase ? (
             <>
@@ -298,6 +306,15 @@ export default function ServiceDetailPage({
                   )}
                 </dl>
               </SectionCard>
+              {/* P2.2 (mission finale) : Internal/External Credentials fusionnés
+                  ici, dans General — une base managée n'a que 3 onglets
+                  (General / Containers / Logs), plus d'onglet Credentials
+                  séparé. Chargés à la demande via l'endpoint dédié gaté. */}
+              <ServiceCredentials
+                projectId={projectId}
+                serviceId={serviceId}
+                active={activeTab === "general"}
+              />
             </>
           ) : (
             <ServiceConfigForm
@@ -315,18 +332,8 @@ export default function ServiceDetailPage({
         </div>
       )}
 
-      {/* Credentials — DATABASE only : Internal/External connection details
-          (Task 4). Loaded on demand from the dedicated, gated endpoint. */}
-      {tab === "credentials" && isDatabase && (
-        <ServiceCredentials
-          projectId={projectId}
-          serviceId={serviceId}
-          active={tab === "credentials"}
-        />
-      )}
-
       {/* Pipeline — historique des runs GitLab/GitHub pour ce service. */}
-      {tab === "pipeline" && (
+      {activeTab === "pipeline" && (
         <ServicePipelines
           projectId={projectId}
           serviceId={serviceId}
@@ -336,19 +343,19 @@ export default function ServiceDetailPage({
 
       {/* Standardisation — générateur d'aperçu (Dockerfile + .dockerignore +
           fichier CI), séparé du Pipeline (Task 2, "Correction rapide"). */}
-      {tab === "standardisation" && !isDatabase && (
+      {activeTab === "standardisation" && !isDatabase && (
         <ServiceCiGenerator projectId={projectId} serviceId={serviceId} />
       )}
 
       {/* Webhooks (onglet séparé — gère le webhook de déploiement) */}
-      {tab === "webhooks" && (
+      {activeTab === "webhooks" && (
         <ServiceWebhook projectId={projectId} serviceId={serviceId} />
       )}
 
       {/* B4: Variables — remplace l'ancien onglet "Environments" (liste
           PRODUCTION/STAGING à déplier) par l'éditeur direct pour
           l'environnement déjà sélectionné dans le header de la page. */}
-      {tab === "variables" && (
+      {activeTab === "variables" && (
         <ServiceVariablesTab
           projectId={projectId}
           serviceId={serviceId}
@@ -361,7 +368,7 @@ export default function ServiceDetailPage({
       )}
 
       {/* Domains */}
-      {tab === "domains" && (
+      {activeTab === "domains" && (
         <ServiceDomains
           projectId={projectId}
           serviceEnvId={
@@ -374,7 +381,7 @@ export default function ServiceDetailPage({
       )}
 
       {/* Deployments — historique + logs par déploiement (en dialog) */}
-      {tab === "deployments" && (
+      {activeTab === "deployments" && (
         <ProjectDeploymentsTab
           deployments={deployments}
           loading={loading}
@@ -389,7 +396,7 @@ export default function ServiceDetailPage({
       )}
 
       {/* Containers : stats/actions/logs du conteneur de l'environnement sélectionné */}
-      {tab === "containers" && (
+      {activeTab === "containers" && (
         <ServiceContainersTab
           serviceEnvId={
             service.envLinks?.find((l) => l.environmentId === effectiveEnvId)
@@ -403,7 +410,7 @@ export default function ServiceDetailPage({
       )}
 
       {/* Monitoring : stats live + historique (courbes + marqueurs de déploiement) */}
-      {tab === "monitoring" && (
+      {activeTab === "monitoring" && (
         <div className="space-y-4">
           {/* C5: both sub-blocks now follow the SAME ServiceEnvironment (the
               one selected above) — "stats live" used to follow the service's
@@ -425,7 +432,7 @@ export default function ServiceDetailPage({
       )}
 
       {/* Logs : recherche historique centralisée (Loki) par période */}
-      {tab === "logs" && (
+      {activeTab === "logs" && (
         <ServiceLogs
           serviceEnvId={
             service.envLinks?.find((l) => l.environmentId === effectiveEnvId)

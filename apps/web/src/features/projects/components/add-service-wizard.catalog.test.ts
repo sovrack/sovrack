@@ -39,9 +39,12 @@ describe("add-service-wizard catalog", () => {
   });
 
   describe("catalog data", () => {
-    it("exposes the 5 service kinds and 5 databases", () => {
-      expect(KINDS).toHaveLength(5);
+    it("exposes the 4 service kinds and 5 databases", () => {
+      // P2.3 (D3) : "COMPOSE" retiré du catalogue de création (fonctionnalité
+      // morte tant que l'exécuteur ne déploie qu'un conteneur).
+      expect(KINDS).toHaveLength(4);
       expect(KINDS.map((k) => k.kind)).toContain("TEMPLATE");
+      expect(KINDS.map((k) => k.kind)).not.toContain("COMPOSE");
       expect(DATABASES).toHaveLength(5);
       expect(DATABASES.find((d) => d.type === "POSTGRES")?.defaultVersion).toBe(
         "16",
