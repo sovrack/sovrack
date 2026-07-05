@@ -9,11 +9,27 @@ import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Queue } from 'bullmq';
+import { statfs } from 'node:fs/promises';
+import * as os from 'node:os';
 import { PrismaService } from './shared/database/prisma.service';
 import { PlatformService } from './modules/platform/platform.service';
 import { Public } from './shared/decorators/public.decorator';
 
 type ComponentStatus = 'connected' | 'disconnected';
+
+// C2 (plan produit final) : ressources de la machine qui HÉBERGE platform —
+// le disque qui se remplit (images Docker, logs) est la panne silencieuse
+// n°1 : Postgres s'arrête sans aucun signal préalable dans System Status.
+type HostResources = {
+  cpuLoad1m: number;
+  cpuCount: number;
+  memoryTotalMb: number;
+  memoryFreeMb: number;
+  memoryUsedPercent: number;
+  diskTotalGb: number | null;
+  diskFreeGb: number | null;
+  diskUsedPercent: number | null;
+};
 
 type HealthResponse = {
   status: string;
@@ -28,6 +44,7 @@ type HealthResponse = {
     valid: boolean;
     callbackUrl: string | null;
   };
+  host: HostResources;
 };
 
 @ApiTags('Health')
@@ -106,9 +123,10 @@ export class AppController {
   @ApiResponse({ status: 200, description: 'Service operational' })
   async getHealth(): Promise<HealthResponse> {
     const webhook = await this.resolveWebhookConfigStatus();
-    const [database, redis] = await Promise.all([
+    const [database, redis, host] = await Promise.all([
       this.checkDatabase(),
       this.checkRedis(),
+      this.readHostResources(),
     ]);
 
     return {
@@ -119,6 +137,37 @@ export class AppController {
       database,
       redis,
       webhook,
+      host,
+    };
+  }
+
+  /** CPU/RAM/disque de la machine hôte (best-effort : disque null si statfs échoue). */
+  private async readHostResources(): Promise<HostResources> {
+    const memTotal = os.totalmem();
+    const memFree = os.freemem();
+    let diskTotalGb: number | null = null;
+    let diskFreeGb: number | null = null;
+    let diskUsedPercent: number | null = null;
+    try {
+      const fs = await this.withTimeout(statfs('/'), 2000);
+      const total = fs.blocks * fs.bsize;
+      const free = fs.bavail * fs.bsize;
+      diskTotalGb = Math.round((total / 1024 ** 3) * 10) / 10;
+      diskFreeGb = Math.round((free / 1024 ** 3) * 10) / 10;
+      diskUsedPercent =
+        total > 0 ? Math.round(((total - free) / total) * 100) : null;
+    } catch {
+      // conteneur/OS sans statfs — le reste de /health reste utilisable
+    }
+    return {
+      cpuLoad1m: Math.round(os.loadavg()[0] * 100) / 100,
+      cpuCount: os.cpus().length,
+      memoryTotalMb: Math.round(memTotal / 1024 / 1024),
+      memoryFreeMb: Math.round(memFree / 1024 / 1024),
+      memoryUsedPercent: Math.round(((memTotal - memFree) / memTotal) * 100),
+      diskTotalGb,
+      diskFreeGb,
+      diskUsedPercent,
     };
   }
 
