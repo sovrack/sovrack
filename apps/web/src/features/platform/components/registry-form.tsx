@@ -165,9 +165,9 @@ export function RegistryForm({
           />
           {form.type === "GITLAB" && (
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Token avec le scope <strong>read_registry</strong> (write_registry
-              pour push). Deploy token recommandé (Settings → Repository →
-              Deploy tokens).
+              Token with the <strong>read_registry</strong> scope
+              (write_registry for push). Deploy token recommended (Settings →
+              Repository → Deploy tokens).
             </p>
           )}
         </div>

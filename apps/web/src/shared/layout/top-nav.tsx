@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { useSidebar } from "@/shared/contexts/sidebar-context";
+import { useI18n } from "@/shared/i18n/language-context";
 import { ThemeToggle } from "@/shared/common/theme-toggle";
 import { deploymentsService } from "@/features/deployments/api/deployments.service";
 import {
@@ -35,6 +36,7 @@ function statusIcon(status: Deployment["status"]) {
 }
 
 function NotificationBell() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [lastSeen, setLastSeen] = useState<string>(() => {
     if (typeof window !== "undefined")
@@ -105,14 +107,14 @@ function NotificationBell() {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
             <span className="text-sm font-semibold text-[var(--text-primary)]">
-              Recent activity
+              {t("Recent activity")}
             </span>
             <Link
               href="/settings"
               onClick={() => setOpen(false)}
               className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] transition hover:text-[var(--text-secondary)]"
             >
-              <Settings size={10} /> Configure
+              <Settings size={10} /> {t("Configure")}
             </Link>
           </div>
 
@@ -122,7 +124,7 @@ function NotificationBell() {
               <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
                 <Rocket size={20} className="mb-2 text-[var(--text-muted)]" />
                 <p className="text-xs text-[var(--text-secondary)]">
-                  No recent activity
+                  {t("No recent activity")}
                 </p>
               </div>
             ) : (
@@ -144,7 +146,7 @@ function NotificationBell() {
                         {dep.project.name}
                         {isNew && (
                           <span className="ml-2 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-400">
-                            New
+                            {t("New")}
                           </span>
                         )}
                       </p>
@@ -168,7 +170,7 @@ function NotificationBell() {
               onClick={() => setOpen(false)}
               className="text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
             >
-              View all deployments →
+              {t("View all deployments →")}
             </Link>
           </div>
         </div>
@@ -177,9 +179,28 @@ function NotificationBell() {
   );
 }
 
+/* ─── Language toggle (D1) ──────────────────────────────────────────────── */
+
+function LanguageToggle() {
+  const { lang, setLang, mounted } = useI18n();
+  if (!mounted) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => setLang(lang === "en" ? "fr" : "en")}
+      title={lang === "en" ? "Passer en français" : "Switch to English"}
+      aria-label="Toggle language"
+      className="flex h-9 items-center justify-center rounded-xl px-2.5 text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+    >
+      {lang === "en" ? "FR" : "EN"}
+    </button>
+  );
+}
+
 /* ─── Top nav ───────────────────────────────────────────────────────────── */
 
 export function TopNav() {
+  const { t } = useI18n();
   const router = useRouter();
   const { user, logout } = useAuth();
   const { toggleSidebar } = useSidebar();
@@ -228,6 +249,7 @@ export function TopNav() {
         </button>
 
         <div className="ml-auto flex items-center gap-1.5">
+          <LanguageToggle />
           <ThemeToggle />
           <NotificationBell />
 
@@ -275,7 +297,7 @@ export function TopNav() {
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                   >
                     <User size={14} className="text-[var(--text-muted)]" />
-                    Settings
+                    {t("Settings")}
                   </button>
                   <button
                     type="button"
@@ -283,7 +305,7 @@ export function TopNav() {
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-400"
                   >
                     <LogOut size={14} className="text-red-400" />
-                    Log out
+                    {t("Log out")}
                   </button>
                 </div>
               </div>

@@ -46,7 +46,7 @@ describe("ServiceCiGenerator", () => {
     );
     expect(screen.getAllByText("Dockerfile").length).toBeGreaterThan(0);
     // How-to + the webhook URL are surfaced for the user.
-    expect(screen.getByText(/Colle chaque fichier/)).toBeInTheDocument();
+    expect(screen.getByText(/Paste each file/)).toBeInTheDocument();
     expect(screen.getByText("https://platform/hook/abc")).toBeInTheDocument();
   });
 

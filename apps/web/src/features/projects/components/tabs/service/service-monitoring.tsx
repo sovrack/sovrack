@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { monitoringService, type ContainerInfo } from "@/features/monitoring";
+import { useI18n } from "@/shared/i18n/language-context";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { SectionCard } from "@/shared/layout/section-card";
 
@@ -25,6 +26,7 @@ export function ServiceMonitoring({
 }: {
   deploymentId: string | null;
 }) {
+  const { t } = useI18n();
   const [info, setInfo] = useState<ContainerInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [live, setLive] = useState(true);
@@ -53,16 +55,16 @@ export function ServiceMonitoring({
 
   if (!deploymentId)
     return (
-      <SectionCard title="Monitoring">
-        <p className="text-sm text-[var(--text-muted)]">No deployment yet.</p>
+      <SectionCard title={t("Monitoring")}>
+        <p className="text-sm text-[var(--text-muted)]">{t("No deployment yet.")}</p>
       </SectionCard>
     );
 
   const running = info?.status === "running";
   return (
     <SectionCard
-      title="Container metrics"
-      description="Stats temps réel du conteneur (rafraîchies toutes les 5s)."
+      title={t("Container metrics")}
+      description={t("Real-time container stats (refreshed every 5s).")}
     >
       <div className="space-y-3">
         <div className="flex items-center gap-2">
@@ -74,14 +76,14 @@ export function ServiceMonitoring({
             <span
               className={`h-1.5 w-1.5 rounded-full ${live ? "animate-pulse bg-green-400" : "bg-[var(--text-muted)]"}`}
             />
-            {live ? "Live" : "En pause"}
+            {live ? t("Live") : t("Paused")}
           </button>
           <button
             type="button"
             onClick={() => void fetchInfo()}
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
           >
-            <RefreshCw size={11} /> Refresh
+            <RefreshCw size={11} /> {t("Refresh")}
           </button>
         </div>
         {error && <p className="text-xs text-red-400">{error}</p>}

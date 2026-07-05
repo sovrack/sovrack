@@ -21,6 +21,7 @@ import {
   Webhook,
 } from "lucide-react";
 import { getApiErrorMessage } from "@/shared/lib/api";
+import { useI18n } from "@/shared/i18n/language-context";
 import { useProjectServices } from "@/features/projects/api/use-project-services";
 import { useProjectDeployments } from "@/features/projects/api/use-project-deployments";
 import { useProjectEnvironments } from "@/features/projects/api/use-project-environments";
@@ -79,6 +80,7 @@ export default function ServiceDetailPage({
   params: Promise<{ id: string; serviceId: string }>;
 }) {
   const { id: projectId, serviceId } = use(params);
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("general");
@@ -224,7 +226,7 @@ export default function ServiceDetailPage({
               href={`/projects/${projectId}`}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
             >
-              <ArrowLeft size={14} /> Project
+              <ArrowLeft size={14} /> {t("Project")}
             </Link>
             <ServiceEnvironmentSelector
               projectId={projectId}
@@ -245,7 +247,7 @@ export default function ServiceDetailPage({
               ) : (
                 <Trash2 size={14} />
               )}{" "}
-              Delete
+              {t("Delete")}
             </button>
           </div>
         }
@@ -280,7 +282,7 @@ export default function ServiceDetailPage({
               onClick={() => setTab(tid)}
               className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition ${activeTab === tid ? "border-[var(--text-primary)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
             >
-              <Icon size={14} /> {label}
+              <Icon size={14} /> {t(label)}
             </button>
           ))}
         </nav>

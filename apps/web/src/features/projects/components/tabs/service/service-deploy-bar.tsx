@@ -9,6 +9,7 @@ import {
   TerminalSquare,
 } from "lucide-react";
 import { DeploymentStatusBadge } from "@/features/deployments";
+import { useI18n } from "@/shared/i18n/language-context";
 import type { Deployment } from "@/features/deployments/types";
 
 type Props = {
@@ -40,6 +41,7 @@ export function ServiceDeployBar({
   onStop,
   onTerminal,
 }: Props) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
       <button
@@ -47,7 +49,7 @@ export function ServiceDeployBar({
         onClick={onDeploy}
         className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
       >
-        <Rocket size={15} /> Deploy
+        <Rocket size={15} /> {t("Deploy")}
       </button>
 
       <button
@@ -61,7 +63,7 @@ export function ServiceDeployBar({
         ) : (
           <RefreshCw size={15} />
         )}{" "}
-        Redeploy
+        {t("Redeploy")}
       </button>
 
       <button
@@ -75,7 +77,7 @@ export function ServiceDeployBar({
         ) : (
           <StopCircle size={15} />
         )}{" "}
-        Stop
+        {t("Stop")}
       </button>
 
       <button
@@ -83,7 +85,7 @@ export function ServiceDeployBar({
         onClick={onTerminal}
         className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
       >
-        <TerminalSquare size={15} /> Terminal
+        <TerminalSquare size={15} /> {t("Terminal")}
         {effectiveEnvId && (
           <span className="rounded-md bg-[var(--hover)] px-1.5 py-0.5 text-xs font-medium text-[var(--text-muted)]">
             {envName ?? "…"}
@@ -104,7 +106,7 @@ export function ServiceDeployBar({
               rel="noreferrer"
               className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
             >
-              <Globe size={12} /> Open app
+              <Globe size={12} /> {t("Open app")}
             </a>
           )}
         </div>

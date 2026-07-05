@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { useSidebar } from "@/shared/contexts/sidebar-context";
+import { useI18n } from "@/shared/i18n/language-context";
 import { LogOut, Rocket, Settings } from "lucide-react";
 import { APP_NAV_SECTIONS, isRouteActive } from "@/shared/config/navigation";
 
@@ -57,6 +58,7 @@ function SectionLabel({ label }: { label: string }) {
 }
 
 export function Sidebar() {
+  const { t } = useI18n();
   const pathname = usePathname();
   const { user, isAdmin, logout } = useAuth();
   const { collapsed } = useSidebar();
@@ -107,14 +109,14 @@ export function Sidebar() {
 
           return (
             <div key={section.id}>
-              {!collapsed && <SectionLabel label={section.label} />}
+              {!collapsed && <SectionLabel label={t(section.label)} />}
               <nav className="space-y-0.5">
                 {visibleItems.map((item) => {
                   return (
                     <NavItem
                       key={item.href}
                       href={item.href}
-                      label={item.label}
+                      label={t(item.label)}
                       icon={item.icon}
                       isActive={isRouteActive(pathname, item.href)}
                       collapsed={collapsed}

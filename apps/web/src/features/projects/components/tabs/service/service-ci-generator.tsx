@@ -5,6 +5,7 @@ import { Check, Copy, FileCode2, Loader2, Wand2, XCircle } from "lucide-react";
 import { buildService } from "@/features/source-providers";
 import { webhooksService } from "@/features/platform";
 import { getApiErrorMessage } from "@/shared/lib/api";
+import { useI18n } from "@/shared/i18n/language-context";
 
 type GenFile = { name: string; content: string };
 
@@ -22,6 +23,7 @@ export function ServiceCiGenerator({
   projectId: string;
   serviceId: string;
 }) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<GenFile[]>([]);
@@ -84,7 +86,7 @@ export function ServiceCiGenerator({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-[var(--text-primary)]">
-            Standardized CI/CD config
+            {t("Standardized CI/CD config")}
           </p>
           <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
             Generates the <code className="font-mono">Dockerfile</code>, the{" "}
@@ -104,7 +106,7 @@ export function ServiceCiGenerator({
           ) : (
             <Wand2 size={15} />
           )}{" "}
-          Generate
+          {t("Generate")}
         </button>
       </div>
 
@@ -120,23 +122,25 @@ export function ServiceCiGenerator({
           <ol className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--hover)]/40 p-4 text-xs text-[var(--text-secondary)]">
             <li>
               <span className="font-semibold text-[var(--text-primary)]">
-                1. Colle chaque fichier
+                {t("1. Paste each file")}
               </span>{" "}
-              à l&apos;emplacement indiqué (le chemin est au-dessus de chaque
-              bloc), à la racine de ton dépôt.
+              {t(
+                "at the indicated location (the path is above each block), at the root of your repository.",
+              )}
             </li>
             <li>
               <span className="font-semibold text-[var(--text-primary)]">
-                2. Ajoute 2 variables CI
+                {t("2. Add 2 CI variables")}
               </span>{" "}
-              dans ton dépôt Git (GitLab : Settings → CI/CD → Variables ; GitHub
-              : Settings → Secrets and variables → Actions) :
+              {t(
+                "in your Git repository (GitLab: Settings → CI/CD → Variables; GitHub: Settings → Secrets and variables → Actions):",
+              )}
               <div className="mt-1.5 space-y-1">
                 <VarLine
                   name="PLATFORM_DEPLOY_HOOK"
                   value={
                     webhookUrl ??
-                    "(configure le webhook dans l’onglet Webhooks)"
+                    t("(set up the webhook in the Webhooks tab)")
                   }
                   copyable={Boolean(webhookUrl)}
                   copied={copied === "hook"}
@@ -144,16 +148,18 @@ export function ServiceCiGenerator({
                 />
                 <VarLine
                   name="platform_DEPLOY_TOKEN"
-                  value="= le secret du webhook (onglet Webhooks)"
+                  value={t("= the webhook secret (Webhooks tab)")}
                   copyable={false}
                 />
               </div>
             </li>
             <li>
               <span className="font-semibold text-[var(--text-primary)]">
-                3. Push
+                {t("3. Push")}
               </span>{" "}
-              → la CI build l&apos;image puis déclenche le déploiement platform.
+              {t(
+                "→ the CI builds the image then triggers the platform deployment.",
+              )}
             </li>
           </ol>
 

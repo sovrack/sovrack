@@ -227,7 +227,7 @@ export default function DeploymentDetailPage({
           <div className="flex items-center gap-3">
             <DeploymentStatusBadge status={dep.status} />
             <h1 className="text-xl font-semibold text-[var(--text-primary)]">
-              {dep.service?.name ?? "Déploiement"}
+              {dep.service?.name ?? "Deployment"}
             </h1>
           </div>
           <p className="font-mono text-xs text-[var(--text-muted)]">{dep.id}</p>

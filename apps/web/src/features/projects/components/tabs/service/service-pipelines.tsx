@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { projectsService } from "@/features/projects/api/projects.service";
+import { useI18n } from "@/shared/i18n/language-context";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { timeAgo } from "@/features/deployments/utils";
 
@@ -36,6 +37,7 @@ export function ServicePipelines({
   serviceId?: string;
   branch?: string | null;
 }) {
+  const { t } = useI18n();
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["service-pipelines", projectId, serviceId ?? "project"],
     // Au niveau service : dépôt propre au service ; sinon vue projet.
@@ -55,10 +57,11 @@ export function ServicePipelines({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-[var(--text-primary)]">
-            Pipelines (CI/CD)
+            {t("Pipelines (CI/CD)")}
           </p>
           <p className="text-xs text-[var(--text-secondary)]">
-            Historique CI du dépôt{branch ? ` (branche ${branch})` : ""}.
+            {t("CI history of the repository")}
+            {branch ? ` (${t("branch")} ${branch})` : ""}.
           </p>
         </div>
         <button
@@ -79,8 +82,8 @@ export function ServicePipelines({
 
       {isLoading && (
         <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-8 text-sm text-[var(--text-secondary)]">
-          <Loader2 size={14} className="animate-spin" /> Chargement des
-          pipelines…
+          <Loader2 size={14} className="animate-spin" />{" "}
+          {t("Loading pipelines…")}
         </div>
       )}
 
@@ -88,10 +91,12 @@ export function ServicePipelines({
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-14 text-center">
           <CheckCircle2 size={26} className="mb-3 text-[var(--text-muted)]" />
           <p className="text-sm font-semibold text-[var(--text-primary)]">
-            Aucun pipeline
+            {t("No pipelines")}
           </p>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            Les pipelines CI apparaîtront ici dès que le dépôt en déclenche.
+            {t(
+              "CI pipelines will appear here as soon as the repository triggers one.",
+            )}
           </p>
         </div>
       )}
@@ -126,7 +131,7 @@ export function ServicePipelines({
                   rel="noreferrer"
                   className="ml-auto flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
                 >
-                  Ouvrir <ExternalLink size={11} />
+                  {t("Open")} <ExternalLink size={11} />
                 </a>
               )}
             </div>
