@@ -101,19 +101,15 @@ export class DeploymentPrelaunchService {
     } = params;
     try {
       // Aucun port hôte publié (mode Traefik, ou base DATABASE interne sans
-      // externalPort) → pas d'endpoint HTTP à sonder : on vérifie seulement
-      // que le conteneur tourne. Une petite attente anti-flap avant inspection.
+      // externalPort) → pas d'endpoint HTTP à sonder : la seule preuve de santé
+      // est que le conteneur reste STABLE (D7). On ne se contente plus d'une
+      // inspection unique à +3 s (un conteneur qui crash-loope APRÈS était
+      // marqué SUCCESS à tort) : on vérifie la stabilité sur une fenêtre.
       if (useTraefik || dbHostPortDisabled) {
-        await this.sleep(3000);
-        const info = await this.docker.inspectContainer(serverId, containerId);
-        if (info.State.Status !== 'running') {
-          throw new BadRequestException(
-            `Conteneur non démarré (état: ${info.State.Status})`,
-          );
-        }
+        await this.assertStableRunning(serverId, containerId);
         return dbHostPortDisabled
-          ? `Conteneur en cours d'exécution (base interne, sans port hôte publié).\n`
-          : `Conteneur en cours d'exécution (mode Traefik, sans port hôte).\n`;
+          ? `Conteneur stable (base interne, sans port hôte publié).\n`
+          : `Conteneur stable (mode Traefik, sans port hôte).\n`;
       }
       const healthLogs =
         await this.healthcheckService.runPostDeployHealthChecks({
@@ -125,6 +121,9 @@ export class DeploymentPrelaunchService {
           appPort: publishPort,
           healthcheckPath,
         });
+      // D7 : même après une sonde HTTP verte, le conteneur peut crash-looper
+      // ensuite — on confirme la stabilité (RestartCount inchangé) avant SUCCESS.
+      await this.assertStableRunning(serverId, containerId);
       return `${healthLogs}\n`;
     } catch (healthError) {
       this.logEmitter.emit(
@@ -171,6 +170,47 @@ export class DeploymentPrelaunchService {
       await new Promise<void>((r) => setTimeout(r, 2000));
     }
     return -1;
+  }
+
+  /**
+   * D7 (mission finale) : un déploiement n'est SUCCESS que si le conteneur
+   * reste RUNNING et ne redémarre pas (RestartCount stable) sur une courte
+   * fenêtre — attrape les crash-loops qui démarrent après la sonde initiale
+   * (observés en réel : frontend .ts en boucle, backend sans DATABASE_URL).
+   * Fenêtre configurable via DEPLOY_STABILITY_WINDOW_MS (défaut 12 s, 3
+   * échantillons). Lève BadRequestException si instable → le caller stoppe le
+   * conteneur et marque FAILED.
+   */
+  private async assertStableRunning(
+    serverId: string,
+    containerId: string,
+  ): Promise<void> {
+    const windowMs = this.stabilityWindowMs();
+    const samples = 3;
+    const interval = Math.max(1000, Math.floor(windowMs / samples));
+    let baselineRestart: number | null = null;
+    for (let i = 0; i < samples; i += 1) {
+      if (i > 0) await this.sleep(interval);
+      const info = await this.docker.inspectContainer(serverId, containerId);
+      if (info.State?.Status !== 'running') {
+        throw new BadRequestException(
+          `Conteneur instable après démarrage (état: ${info.State?.Status ?? 'inconnu'}).`,
+        );
+      }
+      const restart = info.RestartCount ?? 0;
+      if (baselineRestart === null) {
+        baselineRestart = restart;
+      } else if (restart > baselineRestart) {
+        throw new BadRequestException(
+          `Conteneur en crash-loop (RestartCount ${baselineRestart}→${restart}) : déploiement instable.`,
+        );
+      }
+    }
+  }
+
+  private stabilityWindowMs(): number {
+    const raw = Number(process.env.DEPLOY_STABILITY_WINDOW_MS);
+    return Number.isFinite(raw) && raw >= 3000 ? raw : 12000;
   }
 
   private sleep(ms: number): Promise<void> {

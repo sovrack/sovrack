@@ -4,7 +4,11 @@ import { DeploymentPrelaunchService } from './deployment-prelaunch.service';
 
 function makeSvc(
   opts: {
-    inspectStates?: Array<{ Status: string; ExitCode?: number }>;
+    inspectStates?: Array<{
+      Status: string;
+      ExitCode?: number;
+      RestartCount?: number;
+    }>;
     inspectError?: boolean;
     healthcheckLogs?: string;
     healthcheckError?: Error;
@@ -24,7 +28,11 @@ function makeSvc(
       const state =
         inspectStates[inspectCall] ?? inspectStates[inspectStates.length - 1];
       inspectCall++;
-      return Promise.resolve({ State: state });
+      // RestartCount vit au niveau racine de ContainerInspectInfo (D7).
+      return Promise.resolve({
+        State: { Status: state.Status, ExitCode: state.ExitCode },
+        RestartCount: state.RestartCount ?? 0,
+      });
     }),
     stopContainer: opts.stopError
       ? jest.fn().mockRejectedValue(new Error('stop failed'))
@@ -47,18 +55,19 @@ function makeSvc(
     },
   } as never;
 
-  return {
-    svc: new DeploymentPrelaunchService(
-      prisma,
-      docker,
-      healthcheck,
-      logEmitter,
-    ),
+  const svc = new DeploymentPrelaunchService(
+    prisma,
     docker,
     healthcheck,
     logEmitter,
-    prisma,
-  };
+  );
+  // Les fenêtres d'attente (anti-flap, stabilité D7) sont neutralisées pour
+  // que les tests soient instantanés — on teste la LOGIQUE, pas les délais.
+  jest
+    .spyOn(svc as unknown as { sleep: () => Promise<void> }, 'sleep')
+    .mockResolvedValue(undefined);
+
+  return { svc, docker, healthcheck, logEmitter, prisma };
 }
 
 describe('DeploymentPrelaunchService', () => {
@@ -171,7 +180,10 @@ describe('DeploymentPrelaunchService', () => {
     };
 
     it('runs post-deploy health checks in non-Traefik mode', async () => {
-      const { svc, healthcheck } = makeSvc();
+      // Après la sonde HTTP, la stabilité D7 ré-inspecte : conteneur running.
+      const { svc, healthcheck } = makeSvc({
+        inspectStates: [{ Status: 'running', RestartCount: 0 }],
+      });
       const result = await svc.runHealthGate({ ...baseParams });
       expect(healthcheck.runPostDeployHealthChecks).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -183,26 +195,62 @@ describe('DeploymentPrelaunchService', () => {
       expect(result).toContain('health OK');
     });
 
-    it('returns Traefik mode message without running healthchecks', async () => {
-      jest.useFakeTimers();
+    it('returns Traefik mode message without running healthchecks (stable)', async () => {
       const { svc, healthcheck } = makeSvc({
-        inspectStates: [{ Status: 'running' }],
+        inspectStates: [{ Status: 'running', RestartCount: 0 }],
       });
-      const promise = svc.runHealthGate({ ...baseParams, useTraefik: true });
-      jest.runAllTimers();
-      const result = await promise;
-      jest.useRealTimers();
+      const result = await svc.runHealthGate({
+        ...baseParams,
+        useTraefik: true,
+      });
       expect(healthcheck.runPostDeployHealthChecks).not.toHaveBeenCalled();
       expect(result).toContain('Traefik');
     });
 
     it('throws BadRequestException in Traefik mode when container is not running', async () => {
-      jest.useFakeTimers();
       const { svc } = makeSvc({ inspectStates: [{ Status: 'exited' }] });
-      const promise = svc.runHealthGate({ ...baseParams, useTraefik: true });
-      jest.runAllTimers();
-      jest.useRealTimers();
-      await expect(promise).rejects.toThrow(BadRequestException);
+      await expect(
+        svc.runHealthGate({ ...baseParams, useTraefik: true }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    // D7 (mission finale) : un conteneur qui crash-loope APRÈS le démarrage
+    // (RestartCount qui augmente sur la fenêtre) ne doit PLUS être SUCCESS.
+    it('rejects a crash-looping container (RestartCount increases) — Traefik/DB path', async () => {
+      const { svc, docker } = makeSvc({
+        inspectStates: [
+          { Status: 'running', RestartCount: 0 },
+          { Status: 'running', RestartCount: 1 },
+          { Status: 'running', RestartCount: 3 },
+        ],
+      });
+      await expect(
+        svc.runHealthGate({ ...baseParams, dbHostPortDisabled: true }),
+      ).rejects.toThrow(/crash-loop/);
+      expect(docker.stopContainer).toHaveBeenCalledWith('srv1', 'ctn1');
+    });
+
+    it('rejects when the container is no longer running during the stability window', async () => {
+      const { svc } = makeSvc({
+        inspectStates: [
+          { Status: 'running', RestartCount: 0 },
+          { Status: 'exited', RestartCount: 0 },
+        ],
+      });
+      await expect(
+        svc.runHealthGate({ ...baseParams, dbHostPortDisabled: true }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts a container that stays running with a stable RestartCount', async () => {
+      const { svc } = makeSvc({
+        inspectStates: [{ Status: 'running', RestartCount: 2 }],
+      });
+      const result = await svc.runHealthGate({
+        ...baseParams,
+        dbHostPortDisabled: true,
+      });
+      expect(result).toContain('stable');
     });
 
     it('stops unhealthy container and rethrows when healthcheck fails', async () => {
