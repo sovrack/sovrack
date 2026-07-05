@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, type ReactNode } from "react";
 import type { Deployment } from "@/features/deployments/types";
@@ -72,8 +78,11 @@ function setup() {
   return Wrapper;
 }
 
-describe("DeploymentDetailPage — Journal section (Task D1)", () => {
-  it("renders the stored logs as structured per-line entries instead of a raw text blob", async () => {
+// P2.4 (mission finale) : la page est passée en onglets (Général / Logs /
+// Conteneur). Les logs vivent dans l'onglet Logs (LogTerminal plein cadre),
+// plus dans une section "Journal" ni une modale.
+describe("DeploymentDetailPage — onglets (P2.4)", () => {
+  it("shows the stored logs (structured per-line) in the Logs tab", async () => {
     getByIdMock.mockResolvedValue(dep);
 
     await act(async () => {
@@ -83,17 +92,23 @@ describe("DeploymentDetailPage — Journal section (Task D1)", () => {
       );
     });
 
+    // Onglet Général par défaut : les logs ne sont pas encore affichés.
+    await waitFor(() =>
+      expect(screen.getByText("Details")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Starting build")).not.toBeInTheDocument();
+
+    // Bascule sur l'onglet Logs.
+    fireEvent.click(screen.getByText("Logs"));
+
     await waitFor(() =>
       expect(screen.getByText("Starting build")).toBeInTheDocument(),
     );
-    // Reused from LogTerminal (shared/common/log-terminal.tsx) — same
-    // component used for live deployment logs and server-preparation logs.
+    // Réutilise LogTerminal (shared/common/log-terminal.tsx).
     expect(screen.getByText("Deployment terminal")).toBeInTheDocument();
     expect(screen.getByText("Successfully pulled image")).toBeInTheDocument();
     expect(screen.getByText(/build failed/)).toBeInTheDocument();
-
-    // The old raw <pre> blob is gone — logs are split into individual lines,
-    // not rendered as one continuous multi-line string.
+    // Pas de blob brut multi-lignes.
     expect(
       screen.queryByText(
         "Starting build\nSuccessfully pulled image\nError: build failed",
@@ -101,7 +116,7 @@ describe("DeploymentDetailPage — Journal section (Task D1)", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("omits the Journal section entirely when there are no stored logs", async () => {
+  it("shows a General tab (Details) and never a legacy 'Journal' section", async () => {
     getByIdMock.mockResolvedValue({ ...dep, logs: null });
 
     await act(async () => {
