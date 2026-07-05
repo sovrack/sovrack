@@ -98,6 +98,9 @@ export const FR: Record<string, string> = {
   "Per-server health, live metrics and dashboards (Grafana / Prometheus / Loki).":
     "Santé par serveur, métriques temps réel et tableaux de bord (Grafana / Prometheus / Loki).",
   "Monitoring stack not installed": "Stack monitoring non installée",
+  "Setup Monitoring": "Setup Monitoring",
+  "Setup Monitoring started — the dashboards will appear here once the run completes (a few minutes).":
+    "Setup Monitoring lancé — les tableaux de bord apparaîtront ici à la fin du run (quelques minutes).",
   "install it from Servers → Setup Server → Setup Monitoring.":
     "installe-la depuis Serveurs → Setup Server → Setup Monitoring.",
   "No servers": "Aucun serveur",

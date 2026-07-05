@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   BarChart3,
@@ -9,6 +10,7 @@ import {
   RefreshCw,
   ScrollText,
   Server as ServerIcon,
+  Wrench,
   XCircle,
 } from "lucide-react";
 import { monitoringService } from "@/features/monitoring";
@@ -16,6 +18,7 @@ import { getApiErrorMessage } from "@/shared/lib/api";
 import { PageHeader } from "@/shared/layout/page-header";
 import { ProtectedRoute } from "@/shared/common/protected-route";
 import { useI18n } from "@/shared/i18n/language-context";
+import { useToast } from "@/shared/contexts/toast-context";
 import type { MonitoredServer } from "@/features/monitoring";
 
 const HEALTH_TONE: Record<string, string> = {
@@ -29,7 +32,15 @@ function pct(v: number | null): string {
   return v === null ? "—" : `${v.toFixed(0)}%`;
 }
 
-function ServerRow({ server }: { server: MonitoredServer }) {
+function ServerRow({
+  server,
+  onSetup,
+  settingUp,
+}: {
+  server: MonitoredServer;
+  onSetup: (serverId: string) => void;
+  settingUp: boolean;
+}) {
   const { t } = useI18n();
   const linkClass =
     "inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]";
@@ -88,10 +99,28 @@ function ServerRow({ server }: { server: MonitoredServer }) {
             </a>
           </>
         ) : (
-          <span className="text-xs text-[var(--text-muted)]">
-            {t("Monitoring stack not installed")} —{" "}
-            {t("install it from Servers → Setup Server → Setup Monitoring.")}
-          </span>
+          <>
+            <span className="text-xs text-[var(--text-muted)]">
+              {t("Monitoring stack not installed")}
+            </span>
+            {/* Demande utilisateur : bouton Setup Monitoring PAR serveur,
+                directement ici — installe la stack complète
+                (install_monitoring_stack) puis la ligne bascule sur les
+                liens dès que le run réussit (monitoringInstalledAt). */}
+            <button
+              type="button"
+              disabled={settingUp}
+              onClick={() => onSetup(server.serverId)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50"
+            >
+              {settingUp ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Wrench size={12} />
+              )}{" "}
+              {t("Setup Monitoring")}
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -115,11 +144,35 @@ export default function InfrastructureMonitoringPage() {
 
 function MonitoringPageBody() {
   const { t } = useI18n();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [installingIds, setInstallingIds] = useState<Set<string>>(new Set());
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["monitoring-servers"],
     queryFn: () => monitoringService.getServers(),
-    refetchInterval: 30_000,
+    // 10s tant qu'une installation est en cours (le run Ansible dure
+    // plusieurs minutes ; la ligne bascule dès monitoringInstalledAt posé).
+    refetchInterval: installingIds.size > 0 ? 10_000 : 30_000,
     refetchOnWindowFocus: false,
+  });
+
+  const installMutation = useMutation({
+    mutationFn: (serverId: string) =>
+      monitoringService.installMonitoring({
+        actionKey: "install_monitoring_stack",
+        serverIds: [serverId],
+      }),
+    onSuccess: (_run, serverId) => {
+      setInstallingIds((prev) => new Set(prev).add(serverId));
+      toast(
+        t(
+          "Setup Monitoring started — the dashboards will appear here once the run completes (a few minutes).",
+        ),
+        "success",
+      );
+      void queryClient.invalidateQueries({ queryKey: ["monitoring-servers"] });
+    },
+    onError: (e) => toast(getApiErrorMessage(e), "error"),
   });
 
   const servers = data ?? [];
@@ -171,7 +224,14 @@ function MonitoringPageBody() {
       {servers.length > 0 && (
         <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
           {servers.map((server) => (
-            <ServerRow key={server.serverId} server={server} />
+            <ServerRow
+              key={server.serverId}
+              server={server}
+              settingUp={
+                installingIds.has(server.serverId) || installMutation.isPending
+              }
+              onSetup={(id) => installMutation.mutate(id)}
+            />
           ))}
         </div>
       )}
