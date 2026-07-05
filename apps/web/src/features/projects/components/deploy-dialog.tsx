@@ -67,7 +67,17 @@ export function DeployDialog({
 
   // F-1 fix: use React Query hooks — cache shared with parent page, no double fetch.
   const envsQuery = useProjectEnvironments(projectId);
-  const branchesQuery = useProjectBranches(projectId, open);
+
+  const [envIds, setEnvIds] = useState<string[]>([]);
+  const [branch, setBranch] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState(
+    initialServiceId ?? "",
+  );
+
+  // B3 fix: scope the fetch to the currently-selected service so a
+  // multi-service project doesn't show another service's branches (see
+  // use-project-branches.ts) — refetches as the user switches services below.
+  const branchesQuery = useProjectBranches(projectId, open, selectedServiceId || undefined);
 
   const environments: Environment[] = useMemo(
     () => envsQuery.data ?? [],
@@ -78,12 +88,6 @@ export function DeployDialog({
     [branchesQuery.data],
   );
   const loading = envsQuery.isLoading || branchesQuery.isLoading;
-
-  const [envIds, setEnvIds] = useState<string[]>([]);
-  const [branch, setBranch] = useState("");
-  const [selectedServiceId, setSelectedServiceId] = useState(
-    initialServiceId ?? "",
-  );
 
   const selectedService = services.find((s) => s.id === selectedServiceId);
   const effectiveBuildSource: BuildSource = resolveBuildSource(selectedService);

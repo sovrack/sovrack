@@ -46,6 +46,34 @@ export type ServiceTemplate = {
   }[];
 };
 
+/**
+ * DATABASE service credentials, loaded on demand from the DEDICATED, gated
+ * endpoint (GET /projects/:id/services/:sid/credentials) — never from the
+ * general service listing, which omits these fields (see backend Task 1 fix).
+ */
+export type ServiceCredentials = {
+  serviceId: string;
+  databaseType: ManagedServiceType;
+  internal: {
+    user: string;
+    dbName: string;
+    password: string;
+    /** Distinct root password — only for engines that init one (MySQL). */
+    rootPassword: string | null;
+    /** Stable internal Docker network alias (other services connect here). */
+    host: string;
+    /** Engine port inside the container (5432, 3306, …). */
+    port: number;
+    /** Connection env var name (DATABASE_URL / REDIS_URL / AMQP_URL). */
+    connectionUrlEnvKey: string;
+    connectionUrl: string;
+  };
+  external: {
+    enabled: boolean;
+    port: number | null;
+  };
+};
+
 export type Service = {
   id: string;
   projectId: string;
@@ -90,12 +118,14 @@ export type Service = {
 // precise shapes the create form relies on. `source` keeps the local payload type.
 export type CreateServicePayload = Omit<
   ApiSchema["CreateServiceDto"],
-  "buildArgs" | "nixpacksConfig" | "staticConfig" | "source"
+  "buildArgs" | "nixpacksConfig" | "staticConfig" | "source" | "externalPort"
 > & {
   buildArgs?: Record<string, string>;
   nixpacksConfig?: Record<string, unknown>;
   staticConfig?: Record<string, unknown>;
   source?: SourceConnectionPayload;
+  // number = publish on that host port · null = disable external exposure.
+  externalPort?: number | null;
 };
 
 export type UpdateServicePayload = Partial<CreateServicePayload>;

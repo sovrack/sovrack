@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ServiceVariablesTab } from "./service-variables-tab";
 import { environmentsService } from "@/features/projects/api/environments.service";
+import { useProjectServices } from "@/features/projects/api/use-project-services";
 
 vi.mock("@/features/projects/api/environments.service", () => ({
   environmentsService: {
@@ -12,7 +13,15 @@ vi.mock("@/features/projects/api/environments.service", () => ({
   },
 }));
 
+// Task 4 point 5 ("Correction complète" mission): sibling DATABASE services
+// note — mocked at the module level (no QueryClientProvider in these tests,
+// matching this file's existing convention of mocking data-fetching hooks).
+vi.mock("@/features/projects/api/use-project-services", () => ({
+  useProjectServices: vi.fn(),
+}));
+
 const mocked = vi.mocked(environmentsService);
+const mockedProjectServices = vi.mocked(useProjectServices);
 
 const baseLink = {
   id: "senv1",
@@ -65,6 +74,7 @@ function renderTab() {
 describe("ServiceVariablesTab — no per-environment build overrides (Task 1)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedProjectServices.mockReturnValue({ data: [] } as never);
     mocked.getServiceLink.mockResolvedValue(baseLink as never);
     mocked.updateServiceLink.mockResolvedValue(undefined);
   });
@@ -130,6 +140,7 @@ describe("ServiceVariablesTab — no per-environment build overrides (Task 1)", 
 describe("ServiceVariablesTab — .env-format Variables editor (C7)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedProjectServices.mockReturnValue({ data: [] } as never);
     mocked.getServiceLink.mockResolvedValue({
       ...baseLink,
       env: '{"NODE_ENV":"production","DEBUG":"false"}',
@@ -185,6 +196,7 @@ describe("ServiceVariablesTab — .env-format Variables editor (C7)", () => {
 describe("ServiceVariablesTab — preserved edge cases from the old tab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedProjectServices.mockReturnValue({ data: [] } as never);
   });
 
   it("shows a link to the project's Environments tab when no environment exists at all", () => {
@@ -222,5 +234,81 @@ describe("ServiceVariablesTab — preserved edge cases from the old tab", () => 
     await waitFor(() =>
       expect(mocked.getServiceLink).toHaveBeenCalledWith("p1", "senv-new"),
     );
+  });
+});
+
+// "Correction complète" mission, Task 4 point 5: a sibling DATABASE service
+// of the same project, linked to the same environment, already gets
+// DATABASE_URL/REDIS_URL auto-wired at deploy time with zero manual config —
+// this used to be invisible in the UI. Confirms the note now appears (naming
+// the concerned service + the correct env var) and stays absent otherwise.
+describe("ServiceVariablesTab — sibling DATABASE auto-wiring note (Task 4)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocked.getServiceLink.mockResolvedValue(baseLink as never);
+    mocked.updateServiceLink.mockResolvedValue(undefined);
+  });
+
+  it("shows DATABASE_URL note when a sibling Postgres service is linked to this same environment", async () => {
+    mockedProjectServices.mockReturnValue({
+      data: [
+        {
+          id: "svc1",
+          name: "app",
+          type: "APPLICATION",
+          envLinks: [{ id: "senv1", environmentId: "env1" }],
+        },
+        {
+          id: "svc-db",
+          name: "deploy-test-postgres",
+          type: "DATABASE",
+          databaseType: "POSTGRES",
+          envLinks: [{ id: "senv-db", environmentId: "env1" }],
+        },
+      ],
+    } as never);
+
+    renderTab();
+
+    expect(await screen.findByText("DATABASE_URL")).toBeInTheDocument();
+    expect(screen.getByText("deploy-test-postgres")).toBeInTheDocument();
+  });
+
+  it("shows REDIS_URL for a sibling Redis service", async () => {
+    mockedProjectServices.mockReturnValue({
+      data: [
+        {
+          id: "svc-db",
+          name: "deploy-test-redis",
+          type: "DATABASE",
+          databaseType: "REDIS",
+          envLinks: [{ id: "senv-db", environmentId: "env1" }],
+        },
+      ],
+    } as never);
+
+    renderTab();
+
+    expect(await screen.findByText("REDIS_URL")).toBeInTheDocument();
+  });
+
+  it("shows no note when there is no sibling DATABASE service linked to this environment", async () => {
+    mockedProjectServices.mockReturnValue({
+      data: [
+        {
+          id: "svc-db",
+          name: "deploy-test-postgres",
+          type: "DATABASE",
+          databaseType: "POSTGRES",
+          // Linked to a DIFFERENT environment — must not show up here.
+          envLinks: [{ id: "senv-db-staging", environmentId: "env-staging" }],
+        },
+      ],
+    } as never);
+
+    renderTab();
+
+    await waitFor(() => expect(mocked.getServiceLink).toHaveBeenCalled());
+    expect(screen.queryByText("DATABASE_URL")).not.toBeInTheDocument();
   });
 });

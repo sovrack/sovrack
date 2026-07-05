@@ -340,3 +340,18 @@ describe("ServiceConfigForm — Auto-deploy on push moved from Variables (Task 1
     ).not.toBeInTheDocument();
   });
 });
+
+// Bug B3 (RAPPORT_DEPLOIEMENT_REEL.md): the branch list used to be fetched
+// with only the projectId, so a second service configured in the same
+// project could silently show the FIRST service's branches/cache entry.
+// Confirms this form passes its OWN service.id through to the shared hook.
+describe("ServiceConfigForm — passes its own serviceId to useProjectBranches (Bug B3)", () => {
+  it("calls useProjectBranches with this service's id, not just the projectId", () => {
+    mockedProjects.getSourceProviders.mockResolvedValue([] as never);
+    mockedBranches.mockReturnValue({ data: [], isLoading: false } as never);
+
+    renderForm();
+
+    expect(mockedBranches).toHaveBeenCalledWith("p1", true, "svc1");
+  });
+});

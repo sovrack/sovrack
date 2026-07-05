@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Loader2, Save } from "lucide-react";
 import { environmentsService } from "@/features/projects/api/environments.service";
 import { useResolvedServiceEnvId } from "@/features/projects/api/use-resolved-service-env-id";
+import { useProjectServices } from "@/features/projects/api/use-project-services";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { SectionCard } from "@/shared/layout/section-card";
 import {
@@ -49,6 +50,25 @@ export function ServiceVariablesTab({
     serviceEnvId,
   );
 
+  // "Correction complète" mission, Task 4 point 5: sibling DATABASE services
+  // of this SAME project, linked to this SAME environment, already get
+  // DATABASE_URL/REDIS_URL injected automatically at deploy time
+  // (deployment-env.service.ts::resolveAutoWiredDbEnv) — with zero manual
+  // configuration. Surfaced here so a user doesn't assume they need to type
+  // these in by hand (this mechanism was previously invisible in the UI).
+  const servicesQuery = useProjectServices(projectId);
+  const autoWiredDbs = (servicesQuery.data ?? [])
+    .filter(
+      (s) =>
+        s.type === "DATABASE" &&
+        s.id !== serviceId &&
+        s.envLinks?.some((l) => l.environmentId === environmentId),
+    )
+    .map((s) => ({
+      name: s.name,
+      envVar: s.databaseType === "REDIS" ? "REDIS_URL" : "DATABASE_URL",
+    }));
+
   if (!environmentId) {
     return (
       <SectionCard
@@ -89,6 +109,18 @@ export function ServiceVariablesTab({
       title="Variables"
       description="Environment variables and secrets for this service, for the environment selected above."
     >
+      {autoWiredDbs.length > 0 && (
+        <div className="mb-3 space-y-1 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-xs text-blue-300">
+          {autoWiredDbs.map((db) => (
+            <p key={db.name}>
+              <span className="font-mono font-semibold">{db.envVar}</span> is
+              injected automatically from the{" "}
+              <span className="font-mono">{db.name}</span> service of this
+              project — no manual configuration needed.
+            </p>
+          ))}
+        </div>
+      )}
       <EnvVarsEditor projectId={projectId} serviceEnvId={resolvedServiceEnvId} />
     </SectionCard>
   );

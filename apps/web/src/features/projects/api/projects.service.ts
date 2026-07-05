@@ -102,11 +102,12 @@ export const projectsService = {
   async getBranches(
     projectId: string,
     repoId?: number,
+    serviceId?: string,
   ): Promise<GitlabBranch[]> {
     const res = await api.get<GitlabBranch[]>(
       `/projects/${projectId}/gitlab/branches`,
       {
-        params: repoId ? { repoId } : undefined,
+        params: { ...(repoId ? { repoId } : {}), ...(serviceId ? { serviceId } : {}) },
       },
     );
     return res.data;

@@ -119,7 +119,9 @@ export function ServiceConfigForm({
       : null;
 
   // F-4 fix: use React Query for branches (shared cache, no memory leak).
-  const branchesQuery = useProjectBranches(projectId);
+  // B3 fix: scope the fetch to THIS service so a multi-service project
+  // doesn't show another service's branches (see use-project-branches.ts).
+  const branchesQuery = useProjectBranches(projectId, true, service.id);
   const branches = (branchesQuery.data ?? []).map((b) => b.name);
 
   // Task 1: Auto-deploy on push is a ServiceEnvironment-level setting (see

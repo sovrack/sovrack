@@ -189,7 +189,7 @@ export function DeploymentLogsDialog({
                   Nixpacks is not installed on this server.
                 </p>
                 <p className="mt-0.5 text-amber-400/80">
-                  Open <strong>Deploy → Prepare server</strong> and check{" "}
+                  Open <strong>Deploy → Setup Server</strong> and check{" "}
                   <strong>Nixpacks</strong>, or switch the Build Source to{" "}
                   <strong>Dockerfile — Local</strong> in Configuration → Build.
                 </p>

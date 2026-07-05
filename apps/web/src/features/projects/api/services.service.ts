@@ -1,6 +1,7 @@
 import api from "@/shared/lib/api";
 import type {
   Service,
+  ServiceCredentials,
   CreateServicePayload,
   UpdateServicePayload,
   DiscoveredRepo,
@@ -31,6 +32,21 @@ export const servicesService = {
 
   async remove(projectId: string, serviceId: string): Promise<void> {
     await api.delete(`/projects/${projectId}/services/${serviceId}`);
+  },
+
+  /**
+   * DATABASE credentials from the DEDICATED, gated endpoint — kept off the
+   * general getAll() listing (which omits them) so this never reintroduces the
+   * Task 1 leak. Loaded on demand only when the Credentials panel is opened.
+   */
+  async getCredentials(
+    projectId: string,
+    serviceId: string,
+  ): Promise<ServiceCredentials> {
+    const res = await api.get<ServiceCredentials>(
+      `/projects/${projectId}/services/${serviceId}/credentials`,
+    );
+    return res.data;
   },
 
   async update(

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -14,6 +14,7 @@ import {
   FolderGit2,
   GitPullRequestArrow,
   Globe,
+  KeyRound,
   Loader2,
   ScrollText,
   Settings2,
@@ -42,6 +43,7 @@ import { ServiceLogs } from "@/features/projects/components/tabs/service/service
 import { ServiceVariablesTab } from "@/features/projects/components/tabs/service/service-variables-tab";
 import { ServiceEnvironmentSelector } from "@/features/projects/components/tabs/service/service-environment-selector";
 import { ServiceContainersTab } from "@/features/projects/components/tabs/service/service-containers-tab";
+import { ServiceCredentials } from "@/features/projects/components/tabs/service/service-credentials";
 import { DeploymentLogsDialog } from "@/features/projects/components/tabs/runs/deployment-logs-dialog";
 import { resolveDeploymentUrl } from "@/features/deployments/utils";
 import { KeyValueField } from "@/shared/ui/key-value-field";
@@ -50,6 +52,7 @@ import type { Deployment } from "@/features/deployments/types";
 
 type Tab =
   | "general"
+  | "credentials"
   | "pipeline"
   | "standardisation"
   | "variables"
@@ -71,6 +74,14 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "monitoring", label: "Monitoring", icon: ContainerIcon },
   { id: "logs", label: "Logs", icon: ScrollText },
 ];
+// DATABASE services get a "Credentials" tab (Internal/External connection
+// details) inserted right after General — Pipeline/Standardisation (build
+// concepts) are meaningless for a managed database and hidden for it.
+const DB_CREDENTIALS_TAB: { id: Tab; label: string; icon: React.ElementType } = {
+  id: "credentials",
+  label: "Credentials",
+  icon: KeyRound,
+};
 
 export default function ServiceDetailPage({
   params,
@@ -137,6 +148,15 @@ export default function ServiceDetailPage({
   const lastDeployment = deployments[0] ?? null;
   const appUrl = lastDeployment ? resolveDeploymentUrl(lastDeployment) : null;
   const isDatabase = service?.type === "DATABASE";
+
+  // DB services: insert Credentials after General and drop the build-only tabs
+  // (Pipeline / Standardisation). Other services keep the full list.
+  const visibleTabs = useMemo(() => {
+    if (!isDatabase) return TABS;
+    return TABS.filter(
+      (t) => t.id !== "pipeline" && t.id !== "standardisation",
+    ).flatMap((t) => (t.id === "general" ? [t, DB_CREDENTIALS_TAB] : [t]));
+  }, [isDatabase]);
 
   const {
     deleting,
@@ -241,7 +261,7 @@ export default function ServiceDetailPage({
       {/* Tabs */}
       <div className="border-b border-[var(--border)]">
         <nav className="-mb-px flex gap-1 overflow-x-auto">
-          {TABS.map(({ id: tid, label, icon: Icon }) => (
+          {visibleTabs.map(({ id: tid, label, icon: Icon }) => (
             <button
               key={tid}
               type="button"
@@ -293,6 +313,16 @@ export default function ServiceDetailPage({
             />
           )}
         </div>
+      )}
+
+      {/* Credentials — DATABASE only : Internal/External connection details
+          (Task 4). Loaded on demand from the dedicated, gated endpoint. */}
+      {tab === "credentials" && isDatabase && (
+        <ServiceCredentials
+          projectId={projectId}
+          serviceId={serviceId}
+          active={tab === "credentials"}
+        />
       )}
 
       {/* Pipeline — historique des runs GitLab/GitHub pour ce service. */}
