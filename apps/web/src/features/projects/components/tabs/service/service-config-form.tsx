@@ -427,6 +427,14 @@ export function ServiceConfigForm({
               <option value="PIPELINE_SUCCESS">
                 Pipeline success — deploy when CI goes green
               </option>
+              {/* E5 : CI_HOOK existait côté backend (mode utilisé par la CI
+                  générée dans Standardisation via PLATFORM_DEPLOY_HOOK) mais
+                  était introuvable dans ce sélecteur — l'utilisateur qui
+                  suivait ce parcours ne pouvait pas choisir le mode
+                  correspondant. */}
+              <option value="CI_HOOK">
+                CI hook — your CI calls the deploy hook (Standardisation)
+              </option>
               <option value="MANUAL">Manual — deploy on demand only</option>
             </select>
           </div>
