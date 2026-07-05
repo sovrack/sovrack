@@ -1,7 +1,7 @@
 "use client";
 
 // Barrel — the server hooks were split into focused modules (CRUD, validation,
-// capabilities, preparation). This re-export preserves the original import path
+// capabilities, setup). This re-export preserves the original import path
 // `@/features/servers/api/use-servers` for existing consumers.
 export { serverKeys } from "./server-query-keys";
 export {
@@ -23,12 +23,12 @@ export {
 } from "./use-server-capabilities";
 export {
   useDockerConnection,
-  useServerPreparations,
-  useStartServerPreparation,
-  useServerPreparationOptions,
-  usePreparation,
-  usePreparationReadiness,
-  usePreparationLogs,
-  useRetryPreparation,
-  useCancelPreparation,
-} from "./use-server-preparation";
+  useServerSetups,
+  useStartServerSetup,
+  useServerSetupOptions,
+  useSetup,
+  useSetupReadiness,
+  useSetupLogs,
+  useRetrySetup,
+  useCancelSetup,
+} from "./use-server-setup";

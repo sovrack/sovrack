@@ -104,7 +104,17 @@
 <a name='L39'></a><a href='#L39'>39</a>
 <a name='L40'></a><a href='#L40'>40</a>
 <a name='L41'></a><a href='#L41'>41</a>
-<a name='L42'></a><a href='#L42'>42</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -125,11 +135,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -145,7 +165,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { Server, ServerJob } from '@/features/servers/types/server';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { Server, ServerJob } from "@/features/servers/types/server";
 &nbsp;
 /**
  * Pure presentation/predicate helpers for servers &amp; server jobs, extracted from
@@ -153,38 +173,48 @@
  * without React — see PLAN_AMELIORATION.md §4.4.
  */
 &nbsp;
-export function formatJobType(type: ServerJob['type']): string {
-  if (type === 'INSTALL_TOOLS') return 'Legacy setup';
-  if (type === 'PREPARE_SERVER') return 'Prepare Server';
-  if (type === 'REGISTER_RUNNER') return 'Register Runner';
-  return 'Validate SSH';
+export function formatJobType(type: ServerJob["type"]): string {
+  if (type === "INSTALL_TOOLS") return "Legacy setup";
+  if (type === "PREPARE_SERVER") return "Setup Server";
+  if (type === "REGISTER_RUNNER") return "Register Runner";
+  return "Validate SSH";
 }
 &nbsp;
-export function formatConnectionMode(mode: Server['connectionMode']): string {
+export function formatConnectionMode(mode: Server["connectionMode"]): string {
   return mode.toUpperCase();
 }
 &nbsp;
 export function canRetryJob(job: ServerJob): boolean {
-  const retryableStatuses: ServerJob['status'][] = ['FAILED', 'TIMEOUT', 'BLOCKED'];
-  return retryableStatuses.includes(job.status) &amp;&amp; job.type !== 'REGISTER_RUNNER';
+  const retryableStatuses: ServerJob["status"][] = [
+    "FAILED",
+    "TIMEOUT",
+    "BLOCKED",
+  ];
+  return (
+    retryableStatuses.includes(job.status) &amp;&amp; job.type !== "REGISTER_RUNNER"
+  );
 }
 &nbsp;
 export function canCancelJob(job: ServerJob): boolean {
-  const cancelableStatuses: ServerJob['status'][] = ['RUNNING', 'PENDING', 'BLOCKED'];
+  const cancelableStatuses: ServerJob["status"][] = [
+    "RUNNING",
+    "PENDING",
+    "BLOCKED",
+  ];
   return cancelableStatuses.includes(job.status);
 }
 &nbsp;
-export function getJobStatusClassName(status: ServerJob['status']): string {
-  if (status === 'SUCCESS') {
-    return 'border-green-500/20 bg-green-500/10 text-green-400';
+export function getJobStatusClassName(status: ServerJob["status"]): string {
+  if (status === "SUCCESS") {
+    return "border-green-500/20 bg-green-500/10 text-green-400";
   }
-  if (status === 'FAILED' || status === 'TIMEOUT' || status === 'BLOCKED') {
-    return 'border-red-500/30 bg-red-500/10 text-red-400';
+  if (status === "FAILED" || status === "TIMEOUT" || status === "BLOCKED") {
+    return "border-red-500/30 bg-red-500/10 text-red-400";
   }
-  if (status === 'RUNNING' || status === 'PENDING') {
-    return 'border-blue-500/30 bg-blue-500/10 text-blue-300';
+  if (status === "RUNNING" || status === "PENDING") {
+    return "border-blue-500/30 bg-blue-500/10 text-blue-300";
   }
-  return 'border-zinc-500/30 bg-zinc-500/10 text-zinc-400';
+  return "border-zinc-500/30 bg-zinc-500/10 text-zinc-400";
 }
 &nbsp;</pre></td></tr></table></pre>
 
@@ -193,7 +223,7 @@ export function getJobStatusClassName(status: ServerJob['status']): string {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-27T15:40:53.826Z
+                at 2026-07-05T11:54:01.972Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

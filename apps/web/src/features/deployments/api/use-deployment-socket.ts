@@ -125,7 +125,7 @@ export function useDeploymentSocket({
     }
 
     // Fresh, authenticated namespace connection — mirrors the automation and
-    // server-preparation streams. Reusing the shared root manager
+    // server-setup streams. Reusing the shared root manager
     // (`getSocket().io.socket('/deployments')`) dropped the auth cookie on the
     // `/deployments` handshake, so the gateway rejected it ("token absent") and
     // live logs never streamed. `withCredentials: true` lets the browser send

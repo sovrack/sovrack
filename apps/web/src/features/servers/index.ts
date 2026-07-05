@@ -1,11 +1,11 @@
 // Barrel = porte publique de la feature servers (frontière enforced Phase 4).
 export * from "./api/server-query-keys";
 export * from "./api/servers.service";
-export * from "./api/use-preparation-log-stream";
+export * from "./api/use-setup-log-stream";
 export * from "./api/use-server-actions";
 export * from "./api/use-server-capabilities";
 export * from "./api/use-server-crud";
-export * from "./api/use-server-preparation";
+export * from "./api/use-server-setup";
 export * from "./api/use-servers";
 export * from "./api/use-server-validation";
 export * from "./components/panels/installed-tools-list";
@@ -18,9 +18,9 @@ export * from "./components/forms/server-form";
 export * from "./components/forms/server-form.validation";
 export * from "./components/panels/server-jobs-panel";
 export * from "./components/dialogs/server-key-install-dialog";
-export * from "./components/panels/server-preparation-history";
-export * from "./components/panels/server-preparation-log-viewer";
-export * from "./components/dialogs/server-prepare-dialog";
+export * from "./components/panels/server-setup-history";
+export * from "./components/panels/server-setup-log-viewer";
+export * from "./components/dialogs/server-setup-dialog";
 export * from "./components/dialogs/server-terminal-dialog";
 export * from "./components/shared/server-status-badges";
 export * from "./components/dialogs/server-upsert-dialog";

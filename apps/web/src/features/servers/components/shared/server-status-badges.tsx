@@ -196,7 +196,7 @@ export function ServerWorkflowBadges({ server }: { server: Server }) {
   );
 }
 
-export function formatPreparationBlockingReason(reason: string): string {
+export function formatSetupBlockingReason(reason: string): string {
   const normalized = reason.toLowerCase();
   if (normalized.includes("validation ssh")) {
     return "SSH validation required";

@@ -3,11 +3,11 @@
 import { useEffect } from "react";
 import { io, type Socket } from "socket.io-client";
 import { resolveWsBaseUrl } from "@/shared/lib/socket";
-import type { ServerPreparationLog } from "@/features/servers/types/server";
+import type { ServerSetupLog } from "@/features/servers/types/server";
 
-type UsePreparationLogStreamOptions = {
-  preparationId: string | null;
-  onLog: (log: ServerPreparationLog) => void;
+type UseSetupLogStreamOptions = {
+  setupId: string | null;
+  onLog: (log: ServerSetupLog) => void;
   onStatus?: (status: string) => void;
   onFinished?: (payload: {
     status: string;
@@ -15,28 +15,28 @@ type UsePreparationLogStreamOptions = {
   }) => void;
 };
 
-export function usePreparationLogStream({
-  preparationId,
+export function useSetupLogStream({
+  setupId,
   onLog: onLogProp,
   onStatus: onStatusProp,
   onFinished: onFinishedProp,
-}: UsePreparationLogStreamOptions) {
+}: UseSetupLogStreamOptions) {
   useEffect(() => {
     const wsBase = resolveWsBaseUrl();
-    if (!preparationId || !wsBase) {
+    if (!setupId || !wsBase) {
       return;
     }
 
-    const socket: Socket = io(`${wsBase}/server-preparations`, {
+    const socket: Socket = io(`${wsBase}/server-setups`, {
       autoConnect: true,
       transports: ["websocket"],
       withCredentials: true,
     });
 
     const onConnect = () => {
-      socket.emit("join:preparation", { preparationId });
+      socket.emit("join:setup", { setupId });
     };
-    const onLog = (log: ServerPreparationLog) => onLogProp(log);
+    const onLog = (log: ServerSetupLog) => onLogProp(log);
     const onStatus = (payload: { status: string }) => {
       onStatusProp?.(payload.status);
     };
@@ -48,16 +48,16 @@ export function usePreparationLogStream({
     };
 
     socket.on("connect", onConnect);
-    socket.on("preparation:log", onLog);
-    socket.on("preparation:status", onStatus);
-    socket.on("preparation:finished", onFinished);
+    socket.on("setup:log", onLog);
+    socket.on("setup:status", onStatus);
+    socket.on("setup:finished", onFinished);
 
     return () => {
       socket.off("connect", onConnect);
-      socket.off("preparation:log", onLog);
-      socket.off("preparation:status", onStatus);
-      socket.off("preparation:finished", onFinished);
+      socket.off("setup:log", onLog);
+      socket.off("setup:status", onStatus);
+      socket.off("setup:finished", onFinished);
       socket.disconnect();
     };
-  }, [onFinishedProp, onLogProp, onStatusProp, preparationId]);
+  }, [onFinishedProp, onLogProp, onStatusProp, setupId]);
 }

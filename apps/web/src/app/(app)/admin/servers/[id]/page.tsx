@@ -8,64 +8,64 @@ import { PageHeader } from "@/shared/layout/page-header";
 import { SectionCard } from "@/shared/layout/section-card";
 import { Button } from "@/shared/ui/button";
 import {
-  formatPreparationBlockingReason,
+  formatSetupBlockingReason,
   ServerOverallStatusBadge,
   ServerWorkflowBadges,
 } from "@/features/servers/components/shared/server-status-badges";
 import { ServerValidationCard } from "@/features/servers/components/cards/server-validation-card";
 import { ServerCapabilitiesCard } from "@/features/servers/components/cards/server-capabilities-card";
 import { InstalledToolsList } from "@/features/servers/components/panels/installed-tools-list";
-import { ServerPreparationHistory } from "@/features/servers/components/panels/server-preparation-history";
-import { ServerPreparationLogViewer } from "@/features/servers/components/panels/server-preparation-log-viewer";
+import { ServerSetupHistory } from "@/features/servers/components/panels/server-setup-history";
+import { ServerSetupLogViewer } from "@/features/servers/components/panels/server-setup-log-viewer";
 import {
-  ServerPrepareDialog,
+  ServerSetupDialog,
   type PrepareOptions,
-} from "@/features/servers/components/dialogs/server-prepare-dialog";
+} from "@/features/servers/components/dialogs/server-setup-dialog";
 import { ServerAuditTimeline } from "@/features/servers/components/panels/server-audit-timeline";
 import {
-  useCancelPreparation,
+  useCancelSetup,
   useDetectServerInfo,
   useDockerConnection,
   useInstalledTools,
-  usePreparationReadiness,
-  useRetryPreparation,
+  useSetupReadiness,
+  useRetrySetup,
   useServer,
   useServerAuditEvents,
   useServerCapabilities,
-  useServerPreparations,
+  useServerSetups,
   useServerValidationResults,
-  useStartServerPreparation,
+  useStartServerSetup,
   useValidateServerSsh,
 } from "@/features/servers/api/use-servers";
-import type { ServerPreparation } from "@/features/servers/types/server";
+import type { ServerSetup } from "@/features/servers/types/server";
 
 export default function AdminServerDetailPage() {
   const params = useParams();
   const serverId = params.id as string;
   const [prepareOpen, setPrepareOpen] = useState(false);
-  const [selectedPreparation, setSelectedPreparation] =
-    useState<ServerPreparation | null>(null);
+  const [selectedSetup, setSelectedSetup] =
+    useState<ServerSetup | null>(null);
 
   const serverQuery = useServer(serverId);
   const validationsQuery = useServerValidationResults(serverId);
   const capabilitiesQuery = useServerCapabilities(serverId);
   const toolsQuery = useInstalledTools(serverId);
-  const preparationsQuery = useServerPreparations(serverId);
-  const readinessQuery = usePreparationReadiness(serverId);
+  const setupsQuery = useServerSetups(serverId);
+  const readinessQuery = useSetupReadiness(serverId);
   const auditEventsQuery = useServerAuditEvents(serverId);
   const dockerConnectionQuery = useDockerConnection(serverId);
   const validateMutation = useValidateServerSsh(serverId);
   const detectMutation = useDetectServerInfo(serverId);
-  const startPreparation = useStartServerPreparation(serverId);
-  const retryPreparation = useRetryPreparation();
-  const cancelPreparation = useCancelPreparation();
+  const startSetup = useStartServerSetup(serverId);
+  const retrySetup = useRetrySetup();
+  const cancelSetup = useCancelSetup();
 
   const server = serverQuery.data;
   const readiness = readinessQuery.data;
   const loading = serverQuery.isLoading;
 
   const onPrepare = async (options: PrepareOptions) => {
-    await startPreparation.mutateAsync(options);
+    await startSetup.mutateAsync(options);
     setPrepareOpen(false);
   };
 
@@ -154,10 +154,10 @@ export default function AdminServerDetailPage() {
                 onClick={() => setPrepareOpen(true)}
                 disabled={
                   !server.isVerified ||
-                  startPreparation.isPending ||
+                  startSetup.isPending ||
                   Boolean(readiness && !readiness.isReady)
                 }
-                loading={startPreparation.isPending}
+                loading={startSetup.isPending}
               >
                 {server.status === "PREPARATION_FAILED"
                   ? "Retry Setup"
@@ -210,7 +210,7 @@ export default function AdminServerDetailPage() {
               <p className="mb-1 font-semibold">Setup blocked:</p>
               <ul className="space-y-0.5 list-disc list-inside">
                 {readiness.blockingReasons.map((reason, i) => (
-                  <li key={i}>{formatPreparationBlockingReason(reason)}</li>
+                  <li key={i}>{formatSetupBlockingReason(reason)}</li>
                 ))}
               </ul>
             </div>
@@ -221,42 +221,42 @@ export default function AdminServerDetailPage() {
         <ServerValidationCard results={validationsQuery.data ?? []} />
         <InstalledToolsList tools={toolsQuery.data ?? []} />
         <ServerCapabilitiesCard capabilities={capabilitiesQuery.data ?? []} />
-        <ServerPreparationHistory
-          preparations={preparationsQuery.data ?? []}
-          onOpenLogs={setSelectedPreparation}
+        <ServerSetupHistory
+          setups={setupsQuery.data ?? []}
+          onOpenLogs={setSelectedSetup}
           retryingId={
-            retryPreparation.isPending ? retryPreparation.variables?.id : null
+            retrySetup.isPending ? retrySetup.variables?.id : null
           }
           cancelingId={
-            cancelPreparation.isPending
-              ? (cancelPreparation.variables ?? null)
+            cancelSetup.isPending
+              ? (cancelSetup.variables ?? null)
               : null
           }
-          onRetry={(preparation) => {
-            retryPreparation.mutate({
-              id: preparation.id,
+          onRetry={(setup) => {
+            retrySetup.mutate({
+              id: setup.id,
               reason: "Retry from server detail page",
             });
           }}
-          onCancel={(preparation) => {
-            cancelPreparation.mutate(preparation.id);
+          onCancel={(setup) => {
+            cancelSetup.mutate(setup.id);
           }}
         />
         <ServerAuditTimeline events={auditEventsQuery.data ?? []} />
       </div>
 
-      <ServerPrepareDialog
+      <ServerSetupDialog
         open={prepareOpen}
         server={server}
-        isBusy={startPreparation.isPending}
-        preparingId={startPreparation.isPending ? server.id : null}
+        isBusy={startSetup.isPending}
+        preparingId={startSetup.isPending ? server.id : null}
         onClose={() => setPrepareOpen(false)}
         onPrepare={(_s, options) => onPrepare(options)}
       />
 
-      <ServerPreparationLogViewer
-        preparation={selectedPreparation}
-        onClose={() => setSelectedPreparation(null)}
+      <ServerSetupLogViewer
+        setup={selectedSetup}
+        onClose={() => setSelectedSetup(null)}
       />
     </div>
   );

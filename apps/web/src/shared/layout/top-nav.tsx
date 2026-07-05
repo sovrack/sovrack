@@ -47,11 +47,14 @@ function NotificationBell() {
   });
   const ref = useRef<HTMLDivElement>(null);
 
-  const { data: deployments = [] } = useQuery({
+  const { data: deployments = [], refetch } = useQuery({
     queryKey: ["notif-deployments"],
     queryFn: () => deploymentsService.getAll(),
+    // LOT4c : fin du polling permanent (chaque utilisateur interrogeait TOUS
+    // les déploiements toutes les 30s). Rafraîchi au focus de l'onglet et à
+    // l'ouverture de la cloche — les événements temps réel passent déjà par
+    // les WebSockets des pages concernées.
     staleTime: 30_000,
-    refetchInterval: 30_000,
     refetchOnWindowFocus: true,
     select: (list) =>
       list
@@ -80,6 +83,7 @@ function NotificationBell() {
   }, []);
 
   const handleOpen = () => {
+    if (!open) void refetch();
     setOpen((v) => !v);
     if (!open) {
       const now = new Date().toISOString();
@@ -292,7 +296,7 @@ export function TopNav() {
                     type="button"
                     onClick={() => {
                       setDropdownOpen(false);
-                      router.push("/settings");
+                      router.push("/settings/account");
                     }}
                     className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
                   >

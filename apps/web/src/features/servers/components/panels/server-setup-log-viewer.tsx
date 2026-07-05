@@ -3,50 +3,50 @@
 import { useCallback, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/shared/ui/button";
-import { usePreparationLogStream } from "@/features/servers/api/use-preparation-log-stream";
+import { useSetupLogStream } from "@/features/servers/api/use-setup-log-stream";
 import {
-  usePreparation,
-  usePreparationLogs,
+  useSetup,
+  useSetupLogs,
 } from "@/features/servers/api/use-servers";
 import type {
-  ServerPreparation,
-  ServerPreparationLog,
+  ServerSetup,
+  ServerSetupLog,
 } from "@/features/servers/types/server";
 
 type Props = {
-  preparation: ServerPreparation | null;
+  setup: ServerSetup | null;
   onClose: () => void;
 };
 
-export function ServerPreparationLogViewer({ preparation, onClose }: Props) {
-  const [streamedLogs, setStreamedLogs] = useState<ServerPreparationLog[]>([]);
-  const preparationQuery = usePreparation(preparation?.id ?? null);
-  const { data: persistedLogs = [] } = usePreparationLogs(
-    preparation?.id ?? null,
+export function ServerSetupLogViewer({ setup, onClose }: Props) {
+  const [streamedLogs, setStreamedLogs] = useState<ServerSetupLog[]>([]);
+  const setupQuery = useSetup(setup?.id ?? null);
+  const { data: persistedLogs = [] } = useSetupLogs(
+    setup?.id ?? null,
   );
-  const currentPreparation = preparationQuery.data ?? preparation;
+  const currentSetup = setupQuery.data ?? setup;
 
-  const handleLog = useCallback((log: ServerPreparationLog) => {
+  const handleLog = useCallback((log: ServerSetupLog) => {
     setStreamedLogs((prev) => {
       if (prev.some((item) => item.id === log.id)) return prev;
       return [...prev, log];
     });
   }, []);
 
-  usePreparationLogStream({
-    preparationId: preparation?.id ?? null,
+  useSetupLogStream({
+    setupId: setup?.id ?? null,
     onLog: handleLog,
   });
 
   const logs = useMemo(() => {
-    const map = new Map<string, ServerPreparationLog>();
+    const map = new Map<string, ServerSetupLog>();
     for (const log of [...persistedLogs, ...streamedLogs]) {
       map.set(log.id, log);
     }
     return Array.from(map.values()).sort((a, b) => a.lineNumber - b.lineNumber);
   }, [persistedLogs, streamedLogs]);
 
-  if (!currentPreparation) return null;
+  if (!currentSetup) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -58,7 +58,7 @@ export function ServerPreparationLogViewer({ preparation, onClose }: Props) {
               Setup logs
             </p>
             <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
-              {currentPreparation.status}
+              {currentSetup.status}
             </h2>
           </div>
           <button

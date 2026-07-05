@@ -702,34 +702,6 @@
         ]
       }
     },
-    "/projects/{id}/build/reconcile-webhooks": {
-      "post": {
-        "operationId": "BuildController_reconcileWebhooks",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Build"
-        ]
-      }
-    },
     "/projects/{id}/build/status": {
       "get": {
         "operationId": "BuildController_getBuildStatus",
@@ -4425,9 +4397,9 @@
         ]
       }
     },
-    "/servers/{id}/preparations": {
+    "/servers/{id}/setups": {
       "post": {
-        "operationId": "ServerPreparationController_startPreparation",
+        "operationId": "ServerSetupController_startPreparation",
         "parameters": [
           {
             "name": "id",
@@ -4443,7 +4415,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/StartServerPreparationDto"
+                "$ref": "#/components/schemas/StartServerSetupDto"
               }
             }
           }
@@ -4454,7 +4426,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServerPreparationDto"
+                  "$ref": "#/components/schemas/ServerSetupDto"
                 }
               }
             }
@@ -4471,7 +4443,7 @@
         ]
       },
       "get": {
-        "operationId": "ServerPreparationController_listPreparations",
+        "operationId": "ServerSetupController_listPreparations",
         "parameters": [
           {
             "name": "id",
@@ -4490,7 +4462,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ServerPreparationDto"
+                    "$ref": "#/components/schemas/ServerSetupDto"
                   }
                 }
               }
@@ -4510,7 +4482,7 @@
     },
     "/servers/{id}/preparation-readiness": {
       "get": {
-        "operationId": "ServerPreparationController_getPreparationReadiness",
+        "operationId": "ServerSetupController_getPreparationReadiness",
         "parameters": [
           {
             "name": "id",
@@ -4527,7 +4499,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServerPreparationReadinessDto"
+                  "$ref": "#/components/schemas/ServerSetupReadinessDto"
                 }
               }
             }
@@ -4544,9 +4516,9 @@
         ]
       }
     },
-    "/preparations/{id}": {
+    "/setups/{id}": {
       "get": {
-        "operationId": "ServerPreparationsController_findOne",
+        "operationId": "ServerSetupsController_findOne",
         "parameters": [
           {
             "name": "id",
@@ -4563,7 +4535,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServerPreparationDto"
+                  "$ref": "#/components/schemas/ServerSetupDto"
                 }
               }
             }
@@ -4580,9 +4552,9 @@
         ]
       }
     },
-    "/preparations/{id}/logs": {
+    "/setups/{id}/logs": {
       "get": {
-        "operationId": "ServerPreparationsController_logs",
+        "operationId": "ServerSetupsController_logs",
         "parameters": [
           {
             "name": "id",
@@ -4609,7 +4581,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ServerPreparationLogDto"
+                    "$ref": "#/components/schemas/ServerSetupLogDto"
                   }
                 }
               }
@@ -4627,9 +4599,9 @@
         ]
       }
     },
-    "/preparations/{id}/retry": {
+    "/setups/{id}/retry": {
       "post": {
-        "operationId": "ServerPreparationsController_retry",
+        "operationId": "ServerSetupsController_retry",
         "parameters": [
           {
             "name": "id",
@@ -4645,7 +4617,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RetryServerPreparationDto"
+                "$ref": "#/components/schemas/RetryServerSetupDto"
               }
             }
           }
@@ -4656,7 +4628,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServerPreparationDto"
+                  "$ref": "#/components/schemas/ServerSetupDto"
                 }
               }
             }
@@ -4673,9 +4645,9 @@
         ]
       }
     },
-    "/preparations/{id}/cancel": {
+    "/setups/{id}/cancel": {
       "post": {
-        "operationId": "ServerPreparationsController_cancel",
+        "operationId": "ServerSetupsController_cancel",
         "parameters": [
           {
             "name": "id",
@@ -4692,7 +4664,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServerPreparationDto"
+                  "$ref": "#/components/schemas/ServerSetupDto"
                 }
               }
             }
@@ -4709,9 +4681,9 @@
         ]
       }
     },
-    "/server-preparation-options": {
+    "/server-setup-options": {
       "get": {
-        "operationId": "ServerPreparationOptionsController_options",
+        "operationId": "ServerSetupOptionsController_options",
         "parameters": [],
         "responses": {
           "200": {
@@ -5958,6 +5930,35 @@
           }
         ],
         "summary": "Grafana connectivity and access status",
+        "tags": [
+          "Monitoring"
+        ]
+      }
+    },
+    "/monitoring/services/{serviceEnvId}/links": {
+      "get": {
+        "operationId": "MonitoringController_serviceMonitoringLinks",
+        "parameters": [
+          {
+            "name": "serviceEnvId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Monitoring links (Grafana/Prometheus/Loki) for the server hosting a service-environment",
         "tags": [
           "Monitoring"
         ]
@@ -7660,72 +7661,6 @@
           "volumes"
         ]
       }
-    },
-    "/ssl/certificates": {
-      "post": {
-        "operationId": "SslController_issue",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "SSL"
-        ]
-      }
-    },
-    "/ssl/certificates/{domainName}": {
-      "delete": {
-        "operationId": "SslController_revoke",
-        "parameters": [
-          {
-            "name": "domainName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "SSL"
-        ]
-      }
-    },
-    "/ssl/certificates/expiring": {
-      "get": {
-        "operationId": "SslController_getExpiring",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "SSL"
-        ]
-      }
     }
   },
   "info": {
@@ -9416,7 +9351,7 @@
           "detectedAt"
         ]
       },
-      "StartServerPreparationDto": {
+      "StartServerSetupDto": {
         "type": "object",
         "properties": {
           "profile": {
@@ -9491,15 +9426,6 @@
             "type": "boolean",
             "example": true
           },
-          "certbot": {
-            "type": "boolean",
-            "example": false
-          },
-          "ssl": {
-            "type": "boolean",
-            "example": false,
-            "deprecated": true
-          },
           "swap": {
             "type": "boolean",
             "example": true
@@ -9543,7 +9469,7 @@
           }
         }
       },
-      "ServerPreparationTaskDto": {
+      "ServerSetupTaskDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -9599,7 +9525,7 @@
           "status"
         ]
       },
-      "ServerPreparationDto": {
+      "ServerSetupDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -9665,7 +9591,7 @@
           "tasks": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ServerPreparationTaskDto"
+              "$ref": "#/components/schemas/ServerSetupTaskDto"
             }
           }
         },
@@ -9678,7 +9604,7 @@
           "tasks"
         ]
       },
-      "ServerPreparationReadinessChecksDto": {
+      "ServerSetupReadinessChecksDto": {
         "type": "object",
         "properties": {
           "serverActive": {
@@ -9713,7 +9639,7 @@
           "noActivePreparation"
         ]
       },
-      "ServerPreparationReadinessDto": {
+      "ServerSetupReadinessDto": {
         "type": "object",
         "properties": {
           "serverId": {
@@ -9723,7 +9649,7 @@
             "type": "boolean"
           },
           "checks": {
-            "$ref": "#/components/schemas/ServerPreparationReadinessChecksDto"
+            "$ref": "#/components/schemas/ServerSetupReadinessChecksDto"
           },
           "blockingReasons": {
             "type": "array",
@@ -9744,7 +9670,7 @@
           "blockingReasons"
         ]
       },
-      "ServerPreparationLogDto": {
+      "ServerSetupLogDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -9785,7 +9711,7 @@
           "createdAt"
         ]
       },
-      "RetryServerPreparationDto": {
+      "RetryServerSetupDto": {
         "type": "object",
         "properties": {
           "reason": {
@@ -10515,7 +10441,6 @@
               "install_loki",
               "install_prometheus_grafana",
               "configure_swap",
-              "enable_ssl",
               "install_nodejs"
             ]
           },

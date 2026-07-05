@@ -7,6 +7,7 @@ import { PageHeader } from "@/shared/layout/page-header";
 import { SectionCard } from "@/shared/layout/section-card";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
+import { useAuth } from "@/features/auth/api/use-auth";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import {
   useAutomationActions,
@@ -46,6 +47,7 @@ function statusTone(status: AutomationRunStatus) {
 }
 
 export default function AutomationPage() {
+  const { isAdmin } = useAuth();
   const serversQuery = useServers();
   const actionsQuery = useAutomationActions();
   const runsQuery = useAutomationRuns(1, 25);
@@ -322,7 +324,7 @@ export default function AutomationPage() {
           <Button
             onClick={() => void handleStart()}
             loading={startRun.isPending}
-            disabled={launchDisabled}
+            disabled={launchDisabled || !isAdmin}
             icon={startRun.isPending ? undefined : <Play size={14} />}
           >
             Execute Automation

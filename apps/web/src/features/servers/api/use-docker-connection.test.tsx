@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useDockerConnection } from "./use-server-preparation";
+import { useDockerConnection } from "./use-server-setup";
 import { serversService } from "./servers.service";
 
 vi.mock("./servers.service", () => ({

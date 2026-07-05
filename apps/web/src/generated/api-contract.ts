@@ -307,22 +307,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/projects/{id}/build/reconcile-webhooks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["BuildController_reconcileWebhooks"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/projects/{id}/build/status": {
         parameters: {
             query?: never;
@@ -1659,7 +1643,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/servers/{id}/preparations": {
+    "/servers/{id}/setups": {
         parameters: {
             query?: never;
             header?: never;
@@ -1667,10 +1651,10 @@ export interface paths {
             cookie?: never;
         };
         /** List the server's provisioning history */
-        get: operations["ServerPreparationController_listPreparations"];
+        get: operations["ServerSetupController_listPreparations"];
         put?: never;
         /** Start a server provisioning job */
-        post: operations["ServerPreparationController_startPreparation"];
+        post: operations["ServerSetupController_startPreparation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1685,7 +1669,7 @@ export interface paths {
             cookie?: never;
         };
         /** Check whether the server is ready to start provisioning (SSH/sudo/state/lock). */
-        get: operations["ServerPreparationController_getPreparationReadiness"];
+        get: operations["ServerSetupController_getPreparationReadiness"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1694,7 +1678,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/preparations/{id}": {
+    "/setups/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1702,7 +1686,7 @@ export interface paths {
             cookie?: never;
         };
         /** View a server provisioning's details */
-        get: operations["ServerPreparationsController_findOne"];
+        get: operations["ServerSetupsController_findOne"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1711,7 +1695,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/preparations/{id}/logs": {
+    "/setups/{id}/logs": {
         parameters: {
             query?: never;
             header?: never;
@@ -1719,7 +1703,7 @@ export interface paths {
             cookie?: never;
         };
         /** Read the persisted logs of a provisioning job */
-        get: operations["ServerPreparationsController_logs"];
+        get: operations["ServerSetupsController_logs"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1728,7 +1712,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/preparations/{id}/retry": {
+    "/setups/{id}/retry": {
         parameters: {
             query?: never;
             header?: never;
@@ -1738,14 +1722,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Re-run a provisioning by creating a new linked job */
-        post: operations["ServerPreparationsController_retry"];
+        post: operations["ServerSetupsController_retry"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/preparations/{id}/cancel": {
+    "/setups/{id}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -1755,14 +1739,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Cancel a provisioning job if still active */
-        post: operations["ServerPreparationsController_cancel"];
+        post: operations["ServerSetupsController_cancel"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/server-preparation-options": {
+    "/server-setup-options": {
         parameters: {
             query?: never;
             header?: never;
@@ -1770,7 +1754,7 @@ export interface paths {
             cookie?: never;
         };
         /** List provisioning options and profiles */
-        get: operations["ServerPreparationOptionsController_options"];
+        get: operations["ServerSetupOptionsController_options"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2262,6 +2246,23 @@ export interface paths {
         };
         /** Grafana connectivity and access status */
         get: operations["MonitoringController_grafanaStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/monitoring/services/{serviceEnvId}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monitoring links (Grafana/Prometheus/Loki) for the server hosting a service-environment */
+        get: operations["MonitoringController_serviceMonitoringLinks"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2932,54 +2933,6 @@ export interface paths {
         patch: operations["VolumesController_update"];
         trace?: never;
     };
-    "/ssl/certificates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["SslController_issue"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/ssl/certificates/{domainName}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["SslController_revoke"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/ssl/certificates/expiring": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["SslController_getExpiring"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3621,7 +3574,7 @@ export interface components {
             /** Format: date-time */
             detectedAt: string;
         };
-        StartServerPreparationDto: {
+        StartServerSetupDto: {
             /**
              * @description Reusable preparation profile. Explicit options override profile defaults.
              * @default BASIC
@@ -3665,13 +3618,6 @@ export interface components {
             firewall?: boolean;
             /** @example true */
             fail2ban?: boolean;
-            /** @example false */
-            certbot?: boolean;
-            /**
-             * @deprecated
-             * @example false
-             */
-            ssl?: boolean;
             /** @example true */
             swap?: boolean;
             /** @example false */
@@ -3698,7 +3644,7 @@ export interface components {
              */
             reinstallOptions?: string[];
         };
-        ServerPreparationTaskDto: {
+        ServerSetupTaskDto: {
             id: string;
             preparationId: string;
             roleKey: string;
@@ -3712,7 +3658,7 @@ export interface components {
             finishedAt?: string | null;
             message?: string | null;
         };
-        ServerPreparationDto: {
+        ServerSetupDto: {
             id: string;
             serverId: string;
             /** @enum {string} */
@@ -3728,9 +3674,9 @@ export interface components {
             summary?: string | null;
             errorMessage?: string | null;
             retryOfPreparationId?: string | null;
-            tasks: components["schemas"]["ServerPreparationTaskDto"][];
+            tasks: components["schemas"]["ServerSetupTaskDto"][];
         };
-        ServerPreparationReadinessChecksDto: {
+        ServerSetupReadinessChecksDto: {
             serverActive: boolean;
             serverNotDisabled: boolean;
             sshValidated: boolean;
@@ -3739,15 +3685,15 @@ export interface components {
             sudoAvailable: boolean;
             noActivePreparation: boolean;
         };
-        ServerPreparationReadinessDto: {
+        ServerSetupReadinessDto: {
             serverId: string;
             isReady: boolean;
-            checks: components["schemas"]["ServerPreparationReadinessChecksDto"];
+            checks: components["schemas"]["ServerSetupReadinessChecksDto"];
             blockingReasons: string[];
             /** Format: date-time */
             latestValidationAt?: string | null;
         };
-        ServerPreparationLogDto: {
+        ServerSetupLogDto: {
             id: string;
             preparationId: string;
             /** @enum {string} */
@@ -3758,7 +3704,7 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
-        RetryServerPreparationDto: {
+        RetryServerSetupDto: {
             /** @example Retry after firewall package mirror outage */
             reason?: string;
         };
@@ -3971,7 +3917,7 @@ export interface components {
         };
         CreateAutomationRunDto: {
             /** @enum {string} */
-            actionKey: "system_update" | "install_docker" | "install_nginx" | "install_postgres" | "install_redis" | "install_gitlab_runner" | "configure_firewall" | "install_fail2ban" | "security_hardening" | "install_monitoring" | "install_monitoring_stack" | "install_loki" | "install_prometheus_grafana" | "configure_swap" | "enable_ssl" | "install_nodejs";
+            actionKey: "system_update" | "install_docker" | "install_nginx" | "install_postgres" | "install_redis" | "install_gitlab_runner" | "configure_firewall" | "install_fail2ban" | "security_hardening" | "install_monitoring" | "install_monitoring_stack" | "install_loki" | "install_prometheus_grafana" | "configure_swap" | "install_nodejs";
             serverIds: string[];
             gitlabRunnerExecutor?: string;
         };
@@ -4947,25 +4893,6 @@ export interface operations {
         };
     };
     BuildController_generateAll: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    BuildController_reconcileWebhooks: {
         parameters: {
             query?: never;
             header?: never;
@@ -7431,7 +7358,7 @@ export interface operations {
             };
         };
     };
-    ServerPreparationController_listPreparations: {
+    ServerSetupController_listPreparations: {
         parameters: {
             query?: never;
             header?: never;
@@ -7447,12 +7374,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ServerPreparationDto"][];
+                    "application/json": components["schemas"]["ServerSetupDto"][];
                 };
             };
         };
     };
-    ServerPreparationController_startPreparation: {
+    ServerSetupController_startPreparation: {
         parameters: {
             query?: never;
             header?: never;
@@ -7463,7 +7390,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["StartServerPreparationDto"];
+                "application/json": components["schemas"]["StartServerSetupDto"];
             };
         };
         responses: {
@@ -7472,12 +7399,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ServerPreparationDto"];
+                    "application/json": components["schemas"]["ServerSetupDto"];
                 };
             };
         };
     };
-    ServerPreparationController_getPreparationReadiness: {
+    ServerSetupController_getPreparationReadiness: {
         parameters: {
             query?: never;
             header?: never;
@@ -7493,12 +7420,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ServerPreparationReadinessDto"];
+                    "application/json": components["schemas"]["ServerSetupReadinessDto"];
                 };
             };
         };
     };
-    ServerPreparationsController_findOne: {
+    ServerSetupsController_findOne: {
         parameters: {
             query?: never;
             header?: never;
@@ -7514,12 +7441,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ServerPreparationDto"];
+                    "application/json": components["schemas"]["ServerSetupDto"];
                 };
             };
         };
     };
-    ServerPreparationsController_logs: {
+    ServerSetupsController_logs: {
         parameters: {
             query: {
                 afterLine: string;
@@ -7537,12 +7464,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ServerPreparationLogDto"][];
+                    "application/json": components["schemas"]["ServerSetupLogDto"][];
                 };
             };
         };
     };
-    ServerPreparationsController_retry: {
+    ServerSetupsController_retry: {
         parameters: {
             query?: never;
             header?: never;
@@ -7553,7 +7480,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RetryServerPreparationDto"];
+                "application/json": components["schemas"]["RetryServerSetupDto"];
             };
         };
         responses: {
@@ -7562,12 +7489,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ServerPreparationDto"];
+                    "application/json": components["schemas"]["ServerSetupDto"];
                 };
             };
         };
     };
-    ServerPreparationsController_cancel: {
+    ServerSetupsController_cancel: {
         parameters: {
             query?: never;
             header?: never;
@@ -7583,12 +7510,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ServerPreparationDto"];
+                    "application/json": components["schemas"]["ServerSetupDto"];
                 };
             };
         };
     };
-    ServerPreparationOptionsController_options: {
+    ServerSetupOptionsController_options: {
         parameters: {
             query?: never;
             header?: never;
@@ -8571,6 +8498,25 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MonitoringController_serviceMonitoringLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serviceEnvId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -9670,59 +9616,6 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateVolumeDto"];
             };
         };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SslController_issue: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SslController_revoke: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                domainName: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SslController_getExpiring: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             200: {
                 headers: {

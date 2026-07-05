@@ -198,7 +198,7 @@ export function SshTerminal({ serverId, onClose }: Props) {
       // Retire tous les listeners (socket + Manager de reconnexion) avant de
       // couper — évite l'accumulation de handlers si ce composant venait à
       // être remonté (même pattern que le fix de fuite mémoire des flux
-      // automation/preparation).
+      // automation/setup).
       socketRef.current?.removeAllListeners();
       socketRef.current?.io.removeAllListeners();
       socketRef.current?.disconnect();

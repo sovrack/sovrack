@@ -132,7 +132,47 @@
 <a name='L67'></a><a href='#L67'>67</a>
 <a name='L68'></a><a href='#L68'>68</a>
 <a name='L69'></a><a href='#L69'>69</a>
-<a name='L70'></a><a href='#L70'>70</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -158,19 +198,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -191,6 +224,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
@@ -201,25 +237,20 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import {
-  Container,
-  Database,
-  FolderGit2,
-  Layers,
-  Package,
-} from 'lucide-react';
-import type { ManagedServiceType } from '@/features/projects/types/service';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Container, Database, FolderGit2, Package } from "lucide-react";
+import type { ManagedServiceType } from "@/features/projects/types/service";
 &nbsp;
 // Catalogue + helpers du wizard d'ajout de service. Extrait du composant pour
 // le garder focalisé sur le flux (3 étapes) ; ces données/utilitaires sont purs.
 &nbsp;
+// NB: "COMPOSE" reste dans l'union (le code des étapes/backend est conservé
+// pour un futur exécuteur multi-conteneurs), mais l'option est RETIRÉE du
+// catalogue de création ci-dessous (décision D3) : le moteur ne déploie qu'un
+// conteneur, un service compose ne se déploierait jamais — ne pas exposer une
+// fonctionnalité morte.
 export type ServiceKind =
-  | 'APPLICATION'
-  | 'DATABASE'
-  | 'DOCKER'
-  | 'COMPOSE'
-  | 'TEMPLATE';
-export type AppMode = 'repo' | 'group';
+  "APPLICATION" | "DATABASE" | "DOCKER" | "COMPOSE" | "TEMPLATE";
+export type AppMode = "repo" | "group";
 export type Step = 1 | 2 | 3;
 &nbsp;
 export const KINDS: {
@@ -227,12 +258,32 @@ export const KINDS: {
   label: string;
   hint: string;
   icon: React.ReactNode;
+  badge?: string;
 }[] = [
-  { kind: 'APPLICATION', label: 'Application', hint: 'Deploy from a Git repo or import a whole group (GitLab / GitHub / Gitea)', icon: &lt;FolderGit2 size={20} /&gt; },
-  { kind: 'DATABASE', label: 'Database', hint: 'PostgreSQL, MySQL, Redis, MongoDB, RabbitMQ', icon: &lt;Database size={20} /&gt; },
-  { kind: 'DOCKER', label: 'Docker image', hint: 'Deploy a prebuilt image from a registry', icon: &lt;Container size={20} /&gt; },
-  { kind: 'COMPOSE', label: 'Docker Compose', hint: 'Deploy a docker-compose.yml stack', icon: &lt;Layers size={20} /&gt; },
-  { kind: 'TEMPLATE', label: 'Template', hint: 'One-click bundles (e.g. PostgreSQL + pgAdmin), pre-wired together', icon: &lt;Package size={20} /&gt; },
+  {
+    kind: "APPLICATION",
+    label: "Application",
+    hint: "Deploy from a Git repo or import a whole group (GitLab / GitHub / Gitea)",
+    icon: &lt;FolderGit2 size={20} /&gt;,
+  },
+  {
+    kind: "DATABASE",
+    label: "Database",
+    hint: "PostgreSQL, MySQL, Redis, MongoDB, RabbitMQ",
+    icon: &lt;Database size={20} /&gt;,
+  },
+  {
+    kind: "DOCKER",
+    label: "Docker image",
+    hint: "Deploy a prebuilt image from a registry",
+    icon: &lt;Container size={20} /&gt;,
+  },
+  {
+    kind: "TEMPLATE",
+    label: "Template",
+    hint: "One-click bundles (e.g. PostgreSQL + pgAdmin), pre-wired together",
+    icon: &lt;Package size={20} /&gt;,
+  },
 ];
 &nbsp;
 export const DATABASES: {
@@ -240,15 +291,15 @@ export const DATABASES: {
   label: string;
   defaultVersion: string;
 }[] = [
-  { type: 'POSTGRES', label: 'PostgreSQL', defaultVersion: '16' },
-  { type: 'MYSQL', label: 'MySQL', defaultVersion: '8' },
-  { type: 'REDIS', label: 'Redis', defaultVersion: '7' },
-  { type: 'MONGODB', label: 'MongoDB', defaultVersion: '7' },
-  { type: 'RABBITMQ', label: 'RabbitMQ', defaultVersion: '3' },
+  { type: "POSTGRES", label: "PostgreSQL", defaultVersion: "16" },
+  { type: "MYSQL", label: "MySQL", defaultVersion: "8" },
+  { type: "REDIS", label: "Redis", defaultVersion: "7" },
+  { type: "MONGODB", label: "MongoDB", defaultVersion: "7" },
+  { type: "RABBITMQ", label: "RabbitMQ", defaultVersion: "3" },
 ];
 &nbsp;
 export function repoToName(repoPath: string): string {
-  const seg = repoPath.trim().replace(/\/+$/, '').split('/').pop() ?? <span class="branch-1 cbranch-no" title="branch not covered" >'';</span>
+  const seg = repoPath.trim().replace(/\/+$/, "").split("/").pop() ?? <span class="branch-1 cbranch-no" title="branch not covered" >"";</span>
   return seg || <span class="branch-1 cbranch-no" title="branch not covered" >repoPath.trim();</span>
 }
 &nbsp;
@@ -259,15 +310,18 @@ export function repoToName(repoPath: string): string {
  *      group/repo                         →  group/repo
  */
 export function normalizeRepoPath(input: string): string {
-  const s = input.trim().replace(/\.git$/i, '').replace(/\/+$/, '');
+  const s = input
+    .trim()
+    .replace(/\.git$/i, "")
+    .replace(/\/+$/, "");
   try {
     const url = new URL(s);
-    return url.pathname.replace(/^\/+/, '');
+    return url.pathname.replace(/^\/+/, "");
   } catch {
-    if (s.includes('@') &amp;&amp; s.includes(':')) {
-      return s.split(':').slice(1).join(':');
+    if (s.includes("@") &amp;&amp; s.includes(":")) {
+      return s.split(":").slice(1).join(":");
     }
-    return s.replace(/^\/+/, '');
+    return s.replace(/^\/+/, "");
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -277,7 +331,7 @@ export function normalizeRepoPath(input: string): string {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-27T15:40:53.826Z
+                at 2026-07-05T11:54:01.972Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

@@ -3,13 +3,13 @@
 import { Activity, Check, Globe, Wrench, Zap } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
-import { usePreparationReadiness } from "@/features/servers/api/use-servers";
+import { useSetupReadiness } from "@/features/servers/api/use-servers";
 import type {
   Server,
-  StartServerPreparationPayload,
+  StartServerSetupPayload,
 } from "@/features/servers/types/server";
 
-export type PrepareOptions = StartServerPreparationPayload;
+export type PrepareOptions = StartServerSetupPayload;
 
 // P3 (mission finale, décision D4) : plus de cases à cocher ni de profil. Deux
 // actions à jeu FIXE, choisi par la plateforme :
@@ -21,7 +21,7 @@ export type PrepareOptions = StartServerPreparationPayload;
 //  - "Setup Monitoring" installe la brique d'observabilité, séparément.
 // gitlab_runner (transformer le VPS en runner CI) reste une action avancée non
 // exposée ici.
-const SETUP_SERVER_PAYLOAD: StartServerPreparationPayload = {
+const SETUP_SERVER_PAYLOAD: StartServerSetupPayload = {
   profile: "CUSTOM",
   systemUpdate: true,
   docker: true,
@@ -36,13 +36,13 @@ const SETUP_SERVER_PAYLOAD: StartServerPreparationPayload = {
   autoUpdates: true,
 };
 
-const SETUP_MONITORING_PAYLOAD: StartServerPreparationPayload = {
+const SETUP_MONITORING_PAYLOAD: StartServerSetupPayload = {
   profile: "CUSTOM",
   monitoring: true,
 };
 
 // P3.5 (D5) : reverse proxy Traefik + Let's Encrypt (HTTPS automatique).
-const SETUP_REVERSE_PROXY_PAYLOAD: StartServerPreparationPayload = {
+const SETUP_REVERSE_PROXY_PAYLOAD: StartServerSetupPayload = {
   profile: "CUSTOM",
   docker: true,
   reverseProxy: true,
@@ -67,7 +67,7 @@ const SERVER_TOOLS: { label: string; desc: string }[] = [
   },
 ];
 
-type ServerPrepareDialogProps = {
+type ServerSetupDialogProps = {
   open: boolean;
   server: Server | null;
   isBusy: boolean;
@@ -79,11 +79,11 @@ type ServerPrepareDialogProps = {
   onClose: () => void;
   onPrepare: (
     server: Server,
-    options: StartServerPreparationPayload,
+    options: StartServerSetupPayload,
   ) => Promise<void>;
 };
 
-export function ServerPrepareDialog({
+export function ServerSetupDialog({
   open,
   server,
   isBusy,
@@ -92,8 +92,8 @@ export function ServerPrepareDialog({
   verifyingId,
   onClose,
   onPrepare,
-}: ServerPrepareDialogProps) {
-  const readinessQuery = usePreparationReadiness(
+}: ServerSetupDialogProps) {
+  const readinessQuery = useSetupReadiness(
     open && server ? server.id : "",
   );
 

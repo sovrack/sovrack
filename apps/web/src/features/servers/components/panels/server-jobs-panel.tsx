@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import type {
   ServerJob,
-  ServerPreparation,
+  ServerSetup,
 } from "@/features/servers/types/server";
 
 type ServerJobsPanelProps = {
@@ -29,8 +29,8 @@ type ServerJobsPanelProps = {
   // A2: PREPARE_SERVER jobs link to the detailed ServerRun (step-by-step
   // Ansible log) they triggered via job.preparationId — merges what the now
   // -removed standalone "Logs" dialog showed directly into this list.
-  preparations: ServerPreparation[];
-  onViewPreparationLogs: (preparation: ServerPreparation) => void;
+  setups: ServerSetup[];
+  onViewSetupLogs: (setup: ServerSetup) => void;
 };
 
 export function ServerJobsPanel({
@@ -47,8 +47,8 @@ export function ServerJobsPanel({
   onRefreshJobs,
   onRetryJob,
   onCancelJob,
-  preparations,
-  onViewPreparationLogs,
+  setups,
+  onViewSetupLogs,
 }: ServerJobsPanelProps) {
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   return (
@@ -123,8 +123,8 @@ export function ServerJobsPanel({
       <div className="mt-2 space-y-2">
         {jobs.slice(0, 5).map((job) => {
           const isExpanded = expandedJobId === job.id;
-          const preparation = job.preparationId
-            ? (preparations.find((p) => p.id === job.preparationId) ?? null)
+          const setup = job.preparationId
+            ? (setups.find((p) => p.id === job.preparationId) ?? null)
             : null;
           return (
             <div
@@ -238,12 +238,12 @@ export function ServerJobsPanel({
                       No output recorded for this job.
                     </p>
                   )}
-                  {preparation && (
+                  {setup && (
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onViewPreparationLogs(preparation);
+                        onViewSetupLogs(setup);
                       }}
                       className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--hover)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
                     >

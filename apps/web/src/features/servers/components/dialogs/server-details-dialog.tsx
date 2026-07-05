@@ -10,12 +10,12 @@ import {
   ServerWorkflowBadges,
 } from "@/features/servers/components/shared/server-status-badges";
 import { ServerJobsPanel } from "@/features/servers/components/panels/server-jobs-panel";
-import { ServerPreparationLogViewer } from "@/features/servers/components/panels/server-preparation-log-viewer";
-import { useServerPreparations } from "@/features/servers/api/use-server-preparation";
+import { ServerSetupLogViewer } from "@/features/servers/components/panels/server-setup-log-viewer";
+import { useServerSetups } from "@/features/servers/api/use-server-setup";
 import type {
   Server,
   ServerJob,
-  ServerPreparation,
+  ServerSetup,
 } from "@/features/servers/types/server";
 
 type ServerDetailsDialogProps = {
@@ -54,12 +54,12 @@ export function ServerDetailsDialog({
   onCancelJob,
 }: ServerDetailsDialogProps) {
   // A2: Job History rows for PREPARE_SERVER jobs link to the ServerRun they
-  // triggered (job.preparationId) — reuses the same preparations list/log
+  // triggered (job.setupId) — reuses the same setups list/log
   // viewer already used by the server detail page, instead of the removed
   // standalone "Logs" dialog duplicating that same data.
-  const [selectedPreparation, setSelectedPreparation] =
-    useState<ServerPreparation | null>(null);
-  const preparationsQuery = useServerPreparations(open ? (server?.id ?? "") : "");
+  const [selectedSetup, setSelectedSetup] =
+    useState<ServerSetup | null>(null);
+  const setupsQuery = useServerSetups(open ? (server?.id ?? "") : "");
 
   useEffect(() => {
     if (!open || !server) {
@@ -159,14 +159,14 @@ export function ServerDetailsDialog({
           onRefreshJobs={onRefreshJobs}
           onRetryJob={onRetryJob}
           onCancelJob={onCancelJob}
-          preparations={preparationsQuery.data ?? []}
-          onViewPreparationLogs={setSelectedPreparation}
+          setups={setupsQuery.data ?? []}
+          onViewSetupLogs={setSelectedSetup}
         />
       </div>
 
-      <ServerPreparationLogViewer
-        preparation={selectedPreparation}
-        onClose={() => setSelectedPreparation(null)}
+      <ServerSetupLogViewer
+        setup={selectedSetup}
+        onClose={() => setSelectedSetup(null)}
       />
     </Modal>
   );

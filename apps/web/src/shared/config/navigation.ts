@@ -102,6 +102,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     id: "settings",
     label: "Settings",
     items: [
+      { href: "/settings/account", label: "My Account", icon: Users },
       {
         href: "/settings",
         label: "Platform Settings",

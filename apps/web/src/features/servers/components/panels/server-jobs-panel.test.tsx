@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ServerJobsPanel } from "./server-jobs-panel";
-import type { ServerJob, ServerPreparation } from "@/features/servers/types/server";
+import type { ServerJob, ServerSetup } from "@/features/servers/types/server";
 
 const baseProps = {
   serverId: "srv-1",
@@ -16,7 +16,7 @@ const baseProps = {
   onRefreshJobs: vi.fn().mockResolvedValue(undefined),
   onRetryJob: vi.fn().mockResolvedValue(undefined),
   onCancelJob: vi.fn().mockResolvedValue(undefined),
-  onViewPreparationLogs: vi.fn(),
+  onViewSetupLogs: vi.fn(),
 };
 
 function makeJob(over: Partial<ServerJob> = {}): ServerJob {
@@ -42,11 +42,11 @@ function makeJob(over: Partial<ServerJob> = {}): ServerJob {
 // A2 (merge the separate "Logs" dialog into Job History): each row must
 // expand in place to reveal the full detail that used to live behind the
 // now-removed standalone "Logs" button, and PREPARE_SERVER jobs must offer a
-// way to reach their step-by-step Ansible log via job.preparationId.
+// way to reach their step-by-step Ansible log via job.setupId.
 describe("ServerJobsPanel — expand to reveal full detail (Task A2)", () => {
   it("truncates output by default and shows it in full once expanded", () => {
     const job = makeJob({ output: "line1\nline2\nline3" });
-    render(<ServerJobsPanel {...baseProps} jobs={[job]} preparations={[]} />);
+    render(<ServerJobsPanel {...baseProps} jobs={[job]} setups={[]} />);
 
     const row = screen.getByRole("button", {
       name: "Toggle details for VERIFY job",
@@ -61,7 +61,7 @@ describe("ServerJobsPanel — expand to reveal full detail (Task A2)", () => {
 
   it("collapses again on a second click", () => {
     const job = makeJob();
-    render(<ServerJobsPanel {...baseProps} jobs={[job]} preparations={[]} />);
+    render(<ServerJobsPanel {...baseProps} jobs={[job]} setups={[]} />);
     const row = screen.getByRole("button", {
       name: "Toggle details for VERIFY job",
     });
@@ -78,18 +78,18 @@ describe("ServerJobsPanel — expand to reveal full detail (Task A2)", () => {
     expect(screen.getAllByText(/line1/)).toHaveLength(1);
   });
 
-  it("offers 'View step-by-step Ansible log' only for a PREPARE_SERVER job with a matching preparation", () => {
+  it("offers 'View step-by-step Ansible log' only for a PREPARE_SERVER job with a matching setup", () => {
     const job = makeJob({
       type: "PREPARE_SERVER",
       preparationId: "run-42",
       output: "preparing…",
     });
-    const preparation = { id: "run-42", status: "SUCCEEDED" } as ServerPreparation;
+    const setup = { id: "run-42", status: "SUCCEEDED" } as ServerSetup;
     render(
       <ServerJobsPanel
         {...baseProps}
         jobs={[job]}
-        preparations={[preparation]}
+        setups={[setup]}
       />,
     );
 
@@ -102,12 +102,12 @@ describe("ServerJobsPanel — expand to reveal full detail (Task A2)", () => {
       name: /view step-by-step ansible log/i,
     });
     fireEvent.click(logButton);
-    expect(baseProps.onViewPreparationLogs).toHaveBeenCalledWith(preparation);
+    expect(baseProps.onViewSetupLogs).toHaveBeenCalledWith(setup);
   });
 
-  it("does not offer the Ansible log button when no matching preparation exists", () => {
+  it("does not offer the Ansible log button when no matching setup exists", () => {
     const job = makeJob({ type: "PREPARE_SERVER", preparationId: "run-missing" });
-    render(<ServerJobsPanel {...baseProps} jobs={[job]} preparations={[]} />);
+    render(<ServerJobsPanel {...baseProps} jobs={[job]} setups={[]} />);
 
     fireEvent.click(
       screen.getByRole("button", {
@@ -121,7 +121,7 @@ describe("ServerJobsPanel — expand to reveal full detail (Task A2)", () => {
 
   it("does not offer the Ansible log button for non-PREPARE_SERVER job types", () => {
     const job = makeJob({ type: "VERIFY" });
-    render(<ServerJobsPanel {...baseProps} jobs={[job]} preparations={[]} />);
+    render(<ServerJobsPanel {...baseProps} jobs={[job]} setups={[]} />);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Toggle details for VERIFY job" }),
@@ -137,7 +137,7 @@ describe("ServerJobsPanel — expand to reveal full detail (Task A2)", () => {
       <ServerJobsPanel
         {...baseProps}
         jobs={[job]}
-        preparations={[]}
+        setups={[]}
         canRetryJob={() => true}
       />,
     );

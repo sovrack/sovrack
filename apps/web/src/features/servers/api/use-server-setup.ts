@@ -29,10 +29,10 @@ export function useDockerConnection(id: string) {
   });
 }
 
-export function useServerPreparations(id: string) {
+export function useServerSetups(id: string) {
   return useQuery({
-    queryKey: serverKeys.preparations(id),
-    queryFn: () => serversService.getPreparations(id),
+    queryKey: serverKeys.setups(id),
+    queryFn: () => serversService.getSetups(id),
     enabled: Boolean(id),
     refetchInterval: (query) => {
       const data = query.state.data;
@@ -46,7 +46,7 @@ export function useServerPreparations(id: string) {
   });
 }
 
-export function useStartServerPreparation(id: string) {
+export function useStartServerSetup(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: PrepareServerPayload) =>
@@ -54,26 +54,26 @@ export function useStartServerPreparation(id: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: serverKeys.all });
       void queryClient.invalidateQueries({
-        queryKey: serverKeys.preparations(id),
+        queryKey: serverKeys.setups(id),
       });
     },
   });
 }
 
-export function useServerPreparationOptions() {
+export function useServerSetupOptions() {
   return useQuery({
-    queryKey: serverKeys.preparationOptions(),
-    queryFn: () => serversService.getPreparationOptions(),
+    queryKey: serverKeys.setupOptions(),
+    queryFn: () => serversService.getSetupOptions(),
     staleTime: 60_000,
   });
 }
 
-export function usePreparation(id: string | null) {
+export function useSetup(id: string | null) {
   return useQuery({
     queryKey: id
-      ? serverKeys.preparation(id)
-      : [...serverKeys.all, "preparation", "none"],
-    queryFn: () => serversService.getPreparation(id ?? ""),
+      ? serverKeys.setup(id)
+      : [...serverKeys.all, "setup", "none"],
+    queryFn: () => serversService.getSetup(id ?? ""),
     enabled: Boolean(id),
     refetchInterval: (query) => {
       const data = query.state.data;
@@ -88,54 +88,54 @@ export function usePreparation(id: string | null) {
   });
 }
 
-export function usePreparationReadiness(id: string) {
+export function useSetupReadiness(id: string) {
   return useQuery({
-    queryKey: serverKeys.preparationReadiness(id),
-    queryFn: () => serversService.getPreparationReadiness(id),
+    queryKey: serverKeys.setupReadiness(id),
+    queryFn: () => serversService.getSetupReadiness(id),
     enabled: Boolean(id),
     refetchInterval: 8_000,
     refetchIntervalInBackground: false,
   });
 }
 
-export function usePreparationLogs(preparationId: string | null) {
+export function useSetupLogs(setupId: string | null) {
   return useQuery({
-    queryKey: preparationId
-      ? serverKeys.preparationLogs(preparationId)
-      : [...serverKeys.all, "preparation-logs", "none"],
-    queryFn: () => serversService.getPreparationLogs(preparationId ?? ""),
-    enabled: Boolean(preparationId),
+    queryKey: setupId
+      ? serverKeys.setupLogs(setupId)
+      : [...serverKeys.all, "setup-logs", "none"],
+    queryFn: () => serversService.getSetupLogs(setupId ?? ""),
+    enabled: Boolean(setupId),
     refetchInterval: 2_000,
     refetchIntervalInBackground: false,
   });
 }
 
-export function useRetryPreparation() {
+export function useRetrySetup() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
-      serversService.retryPreparation(id, reason),
-    onSuccess: (preparation) => {
+      serversService.retrySetup(id, reason),
+    onSuccess: (setup) => {
       void queryClient.invalidateQueries({ queryKey: serverKeys.all });
       void queryClient.invalidateQueries({
-        queryKey: serverKeys.preparations(preparation.serverId),
+        queryKey: serverKeys.setups(setup.serverId),
       });
     },
   });
 }
 
-export function useCancelPreparation() {
+export function useCancelSetup() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => serversService.cancelPreparation(id),
-    onSuccess: (preparation) => {
+    mutationFn: (id: string) => serversService.cancelSetup(id),
+    onSuccess: (setup) => {
       void queryClient.invalidateQueries({ queryKey: serverKeys.all });
       void queryClient.invalidateQueries({
-        queryKey: serverKeys.preparations(preparation.serverId),
+        queryKey: serverKeys.setups(setup.serverId),
       });
       queryClient.setQueryData(
-        serverKeys.preparation(preparation.id),
-        preparation,
+        serverKeys.setup(setup.id),
+        setup,
       );
     },
   });

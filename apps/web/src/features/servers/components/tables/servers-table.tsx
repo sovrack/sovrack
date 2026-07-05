@@ -11,6 +11,7 @@ type ServersTableProps = {
   isReachable: Record<string, boolean | undefined>;
   getServerBusy: (server: Server) => boolean;
   onOpenTerminal: (server: Server) => void;
+  readOnly?: boolean;
   onOpenSetup: (server: Server) => void;
   onOpenDetails: (server: Server) => void;
   onEdit: (server: Server) => void;
@@ -49,6 +50,7 @@ const td = "px-3 py-2.5 align-middle";
  */
 export function ServersTable({
   servers,
+  readOnly,
   isReachable,
   getServerBusy,
   onOpenTerminal,
@@ -119,7 +121,7 @@ export function ServersTable({
                   })}
                 </td>
                 <td className={`${td} text-right`}>
-                  <ServerRowActionsMenu
+                  {!readOnly && (<ServerRowActionsMenu
                     server={server}
                     disabled={getServerBusy(server)}
                     onOpenTerminal={onOpenTerminal}
@@ -127,7 +129,7 @@ export function ServersTable({
                     onOpenDetails={onOpenDetails}
                     onEdit={onEdit}
                     onDelete={onDelete}
-                  />
+                  />)}
                 </td>
               </tr>
             );

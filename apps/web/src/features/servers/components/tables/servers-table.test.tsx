@@ -66,7 +66,7 @@ describe("ServersTable — columns (Task 2)", () => {
 
   // A3 regression (ported from the removed ServerCard test): the
   // reachability dot is a distinct 3-state signal (checking/reachable/
-  // unreachable), independent of the server's validation/preparation status.
+  // unreachable), independent of the server's validation/setup status.
   it("shows a 'checking' indicator when reachability is not yet known", () => {
     render(
       <ServersTable {...baseProps} servers={[makeServer()]} isReachable={{}} />,
@@ -85,7 +85,7 @@ describe("ServersTable — columns (Task 2)", () => {
     expect(screen.getByTitle("Reachable (live TCP check)")).toBeInTheDocument();
   });
 
-  it("shows an unreachable indicator even when the last preparation status was healthy", () => {
+  it("shows an unreachable indicator even when the last setup status was healthy", () => {
     render(
       <ServersTable
         {...baseProps}

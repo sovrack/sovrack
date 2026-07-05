@@ -1,18 +1,18 @@
 import { RotateCcw, Square } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import type { ServerPreparation } from "@/features/servers/types/server";
+import type { ServerSetup } from "@/features/servers/types/server";
 
 type Props = {
-  preparations: ServerPreparation[];
-  onOpenLogs: (preparation: ServerPreparation) => void;
-  onRetry: (preparation: ServerPreparation) => void;
-  onCancel?: (preparation: ServerPreparation) => void;
+  setups: ServerSetup[];
+  onOpenLogs: (setup: ServerSetup) => void;
+  onRetry: (setup: ServerSetup) => void;
+  onCancel?: (setup: ServerSetup) => void;
   retryingId?: string | null;
   cancelingId?: string | null;
 };
 
-function tone(status: ServerPreparation["status"]) {
+function tone(status: ServerSetup["status"]) {
   if (status === "SUCCEEDED") return "success" as const;
   if (status === "FAILED" || status === "TIMEOUT" || status === "CANCELED")
     return "error" as const;
@@ -20,8 +20,8 @@ function tone(status: ServerPreparation["status"]) {
   return "info" as const;
 }
 
-export function ServerPreparationHistory({
-  preparations,
+export function ServerSetupHistory({
+  setups,
   onOpenLogs,
   onRetry,
   onCancel,
@@ -36,36 +36,36 @@ export function ServerPreparationHistory({
       <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
         History and tasks
       </h3>
-      {preparations.length === 0 ? (
+      {setups.length === 0 ? (
         <p className="mt-4 text-sm text-[var(--text-secondary)]">
           No setup has run yet.
         </p>
       ) : (
         <div className="mt-4 space-y-3">
-          {preparations.map((preparation) => (
+          {setups.map((setup) => (
             <div
-              key={preparation.id}
+              key={setup.id}
               className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Badge tone={tone(preparation.status)}>
-                      {preparation.status}
+                    <Badge tone={tone(setup.status)}>
+                      {setup.status}
                     </Badge>
                     <span className="text-xs text-[var(--text-secondary)]">
-                      {preparation.profile} ·{" "}
-                      {new Date(preparation.createdAt).toLocaleString()}
+                      {setup.profile} ·{" "}
+                      {new Date(setup.createdAt).toLocaleString()}
                     </span>
                   </div>
-                  {preparation.summary && (
+                  {setup.summary && (
                     <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                      {preparation.summary}
+                      {setup.summary}
                     </p>
                   )}
-                  {preparation.errorMessage && (
+                  {setup.errorMessage && (
                     <p className="mt-2 text-sm text-red-400">
-                      {preparation.errorMessage}
+                      {setup.errorMessage}
                     </p>
                   )}
                 </div>
@@ -73,19 +73,19 @@ export function ServerPreparationHistory({
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => onOpenLogs(preparation)}
+                    onClick={() => onOpenLogs(setup)}
                   >
                     View logs
                   </Button>
-                  {(preparation.status === "FAILED" ||
-                    preparation.status === "TIMEOUT") && (
+                  {(setup.status === "FAILED" ||
+                    setup.status === "TIMEOUT") && (
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => onRetry(preparation)}
-                      loading={retryingId === preparation.id}
+                      onClick={() => onRetry(setup)}
+                      loading={retryingId === setup.id}
                       icon={
-                        retryingId === preparation.id ? undefined : (
+                        retryingId === setup.id ? undefined : (
                           <RotateCcw size={13} />
                         )
                       }
@@ -99,14 +99,14 @@ export function ServerPreparationHistory({
                       "RESOLVING_OPTIONS",
                       "WAITING_FOR_LOCK",
                       "RUNNING",
-                    ].includes(preparation.status) && (
+                    ].includes(setup.status) && (
                       <Button
                         size="sm"
                         variant="danger"
-                        onClick={() => onCancel(preparation)}
-                        loading={cancelingId === preparation.id}
+                        onClick={() => onCancel(setup)}
+                        loading={cancelingId === setup.id}
                         icon={
-                          cancelingId === preparation.id ? undefined : (
+                          cancelingId === setup.id ? undefined : (
                             <Square size={13} />
                           )
                         }
@@ -116,9 +116,9 @@ export function ServerPreparationHistory({
                     )}
                 </div>
               </div>
-              {preparation.tasks.length > 0 && (
+              {setup.tasks.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {preparation.tasks.map((task) => (
+                  {setup.tasks.map((task) => (
                     <Badge
                       key={task.id}
                       tone={task.status === "OK" ? "success" : "default"}

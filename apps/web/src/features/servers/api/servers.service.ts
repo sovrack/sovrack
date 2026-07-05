@@ -10,13 +10,13 @@ import type {
   ServerCapability,
   ServerInstalledTool,
   ServerJob,
-  ServerPreparation,
-  ServerPreparationLog,
-  ServerPreparationReadiness,
-  ServerPreparationOptionsResponse,
+  ServerSetup,
+  ServerSetupLog,
+  ServerSetupReadiness,
+  ServerSetupOptionsResponse,
   ServerAuditEvent,
   ServerValidationResult,
-  StartServerPreparationPayload,
+  StartServerSetupPayload,
   UpdateServerPayload,
   VerifyServerResult,
 } from "@/features/servers/types/server";
@@ -41,7 +41,7 @@ function isPaginatedResponse<T>(
   return Array.isArray((value as RawDataPaginatedResponse<T>).data);
 }
 
-export type PrepareServerPayload = StartServerPreparationPayload;
+export type PrepareServerPayload = StartServerSetupPayload;
 
 /** Metadata of a server's Docker TLS connection (certs are write-only). */
 export type DockerConnectionInfo = {
@@ -166,9 +166,9 @@ export const serversService = {
   async prepare(
     id: string,
     payload: PrepareServerPayload,
-  ): Promise<ServerPreparation> {
-    const res = await api.post<ServerPreparation>(
-      `/servers/${id}/preparations`,
+  ): Promise<ServerSetup> {
+    const res = await api.post<ServerSetup>(
+      `/servers/${id}/setups`,
       payload,
     );
     return res.data;
@@ -221,40 +221,40 @@ export const serversService = {
     return res.data;
   },
 
-  async getPreparationOptions(): Promise<ServerPreparationOptionsResponse> {
-    const res = await api.get<ServerPreparationOptionsResponse>(
-      "/server-preparation-options",
+  async getSetupOptions(): Promise<ServerSetupOptionsResponse> {
+    const res = await api.get<ServerSetupOptionsResponse>(
+      "/server-setup-options",
     );
     return res.data;
   },
 
-  async getPreparations(id: string): Promise<ServerPreparation[]> {
-    const res = await api.get<ServerPreparation[]>(
-      `/servers/${id}/preparations`,
+  async getSetups(id: string): Promise<ServerSetup[]> {
+    const res = await api.get<ServerSetup[]>(
+      `/servers/${id}/setups`,
     );
     return res.data;
   },
 
-  async getPreparationReadiness(
+  async getSetupReadiness(
     id: string,
-  ): Promise<ServerPreparationReadiness> {
-    const res = await api.get<ServerPreparationReadiness>(
-      `/servers/${id}/preparation-readiness`,
+  ): Promise<ServerSetupReadiness> {
+    const res = await api.get<ServerSetupReadiness>(
+      `/servers/${id}/setup-readiness`,
     );
     return res.data;
   },
 
-  async getPreparation(id: string): Promise<ServerPreparation> {
-    const res = await api.get<ServerPreparation>(`/preparations/${id}`);
+  async getSetup(id: string): Promise<ServerSetup> {
+    const res = await api.get<ServerSetup>(`/setups/${id}`);
     return res.data;
   },
 
-  async getPreparationLogs(
+  async getSetupLogs(
     id: string,
     afterLine?: number,
-  ): Promise<ServerPreparationLog[]> {
-    const res = await api.get<ServerPreparationLog[]>(
-      `/preparations/${id}/logs`,
+  ): Promise<ServerSetupLog[]> {
+    const res = await api.get<ServerSetupLog[]>(
+      `/setups/${id}/logs`,
       {
         params: afterLine ? { afterLine } : undefined,
       },
@@ -262,18 +262,18 @@ export const serversService = {
     return res.data;
   },
 
-  async retryPreparation(
+  async retrySetup(
     id: string,
     reason?: string,
-  ): Promise<ServerPreparation> {
-    const res = await api.post<ServerPreparation>(`/preparations/${id}/retry`, {
+  ): Promise<ServerSetup> {
+    const res = await api.post<ServerSetup>(`/setups/${id}/retry`, {
       reason,
     });
     return res.data;
   },
 
-  async cancelPreparation(id: string): Promise<ServerPreparation> {
-    const res = await api.post<ServerPreparation>(`/preparations/${id}/cancel`);
+  async cancelSetup(id: string): Promise<ServerSetup> {
+    const res = await api.post<ServerSetup>(`/setups/${id}/cancel`);
     return res.data;
   },
 

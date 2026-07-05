@@ -4,17 +4,17 @@ type ApiSchema = components["schemas"];
 
 type ServerInstalledToolApi = ApiSchema["ServerInstalledToolDto"];
 type ServerValidationResultApi = ApiSchema["ServerValidationResultDto"];
-type ServerPreparationTaskApi = ApiSchema["ServerPreparationTaskDto"];
-type ServerPreparationApi = ApiSchema["ServerPreparationDto"];
+type ServerSetupTaskApi = ApiSchema["ServerSetupTaskDto"];
+type ServerSetupApi = ApiSchema["ServerSetupDto"];
 type ServerAuditEventApi = ApiSchema["ServerAuditEventDto"];
 
 export type ServerStatus = ApiSchema["ServerResponseDto"]["status"];
-export type ServerPreparationStatus =
-  ApiSchema["ServerPreparationDto"]["status"];
-export type ServerPreparationTaskStatus =
-  ApiSchema["ServerPreparationTaskDto"]["status"];
+export type ServerSetupStatus =
+  ApiSchema["ServerSetupDto"]["status"];
+export type ServerSetupTaskStatus =
+  ApiSchema["ServerSetupTaskDto"]["status"];
 export type ServerPreparationProfile = NonNullable<
-  ApiSchema["StartServerPreparationDto"]["profile"]
+  ApiSchema["StartServerSetupDto"]["profile"]
 >;
 export type ServerConnectionMode =
   ApiSchema["ServerResponseDto"]["connectionMode"];
@@ -56,8 +56,8 @@ export type UpdateServerPayload = ApiSchema["UpdateServerDto"] & {
 
 export type InstallToolsPayload = Record<string, unknown>;
 
-export type StartServerPreparationPayload =
-  ApiSchema["StartServerPreparationDto"] & {
+export type StartServerSetupPayload =
+  ApiSchema["StartServerSetupDto"] & {
     reinstallOptions?: string[];
   };
 
@@ -103,8 +103,8 @@ export type ServerValidationResult = Omit<
   updatedAt?: string;
 };
 
-export type ServerPreparationTask = Omit<
-  ServerPreparationTaskApi,
+export type ServerSetupTask = Omit<
+  ServerSetupTaskApi,
   "startedAt" | "finishedAt" | "message"
 > & {
   startedAt?: string | null;
@@ -114,8 +114,8 @@ export type ServerPreparationTask = Omit<
   updatedAt?: string;
 };
 
-export type ServerPreparation = Omit<
-  ServerPreparationApi,
+export type ServerSetup = Omit<
+  ServerSetupApi,
   | "startedAt"
   | "finishedAt"
   | "summary"
@@ -132,13 +132,13 @@ export type ServerPreparation = Omit<
   resolvedRolesJson?: string[];
   createdAt: string;
   updatedAt: string;
-  tasks: ServerPreparationTask[];
+  tasks: ServerSetupTask[];
 };
 
-export type ServerPreparationLog = ApiSchema["ServerPreparationLogDto"];
+export type ServerSetupLog = ApiSchema["ServerSetupLogDto"];
 
-export type ServerPreparationReadiness =
-  ApiSchema["ServerPreparationReadinessDto"];
+export type ServerSetupReadiness =
+  ApiSchema["ServerSetupReadinessDto"];
 
 export type ServerAuditEvent = Omit<
   ServerAuditEventApi,
@@ -148,8 +148,8 @@ export type ServerAuditEvent = Omit<
   payloadJson?: Record<string, unknown> | null;
 };
 
-export type PreparationOptionDefinition = {
-  key: keyof StartServerPreparationPayload;
+export type SetupOptionDefinition = {
+  key: keyof StartServerSetupPayload;
   label: string;
   description: string;
   role: string | null;
@@ -157,14 +157,14 @@ export type PreparationOptionDefinition = {
   recommended: boolean;
 };
 
-export type ServerPreparationOptionsResponse = {
+export type ServerSetupOptionsResponse = {
   controlNodeOnly: boolean;
   message: string;
   profiles: ServerPreparationProfile[];
-  options: PreparationOptionDefinition[];
+  options: SetupOptionDefinition[];
   profileDefaults: Record<
     ServerPreparationProfile,
-    Partial<Record<PreparationOptionDefinition["key"], boolean>>
+    Partial<Record<SetupOptionDefinition["key"], boolean>>
   >;
 };
 

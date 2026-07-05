@@ -10,9 +10,10 @@ import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { PageHeader } from "@/shared/layout/page-header";
 import { ServersTable } from "@/features/servers/components/tables/servers-table";
+import { useAuth } from "@/features/auth/api/use-auth";
 import { ServerDetailsDialog } from "@/features/servers/components/dialogs/server-details-dialog";
 import { ServerKeyInstallDialog } from "@/features/servers/components/dialogs/server-key-install-dialog";
-import { ServerPrepareDialog } from "@/features/servers/components/dialogs/server-prepare-dialog";
+import { ServerSetupDialog } from "@/features/servers/components/dialogs/server-setup-dialog";
 import { ServerTerminalDialog } from "@/features/servers/components/dialogs/server-terminal-dialog";
 import {
   ServerUpsertDialog,
@@ -26,6 +27,7 @@ import { Pagination } from "@/shared/ui/pagination";
 /* ─── Page ────────────────────────────────────────────────────────────────── */
 
 export default function AdminServersPage() {
+  const { isAdmin } = useAuth();
   const servers = useServerActions();
   const reachabilityQuery = useServersReachability();
 
@@ -152,15 +154,17 @@ export default function AdminServersPage() {
         title="Remote Servers"
         description="Manage your VPS servers — SSH validation, capability detection, Ansible provisioning and environment assignment."
         actions={
-          <Button
-            icon={<Plus size={16} />}
-            onClick={() => {
-              setCreateError(null);
-              setCreateOpen(true);
-            }}
-          >
-            Add Server
-          </Button>
+          isAdmin ? (
+            <Button
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setCreateError(null);
+                setCreateOpen(true);
+              }}
+            >
+              Add Server
+            </Button>
+          ) : undefined
         }
       />
 
@@ -173,15 +177,17 @@ export default function AdminServersPage() {
             title="No servers"
             description="Add your first VPS to start SSH validation and provisioning."
             action={
-              <Button
-                icon={<Plus size={16} />}
-                onClick={() => {
-                  setCreateError(null);
-                  setCreateOpen(true);
-                }}
-              >
-                Add Server
-              </Button>
+              isAdmin ? (
+                <Button
+                  icon={<Plus size={16} />}
+                  onClick={() => {
+                    setCreateError(null);
+                    setCreateOpen(true);
+                  }}
+                >
+                  Add Server
+                </Button>
+              ) : undefined
             }
           />
         </div>
@@ -190,6 +196,7 @@ export default function AdminServersPage() {
       {!servers.loading && servers.servers.length > 0 && (
         <div className="space-y-3">
           <ServersTable
+            readOnly={!isAdmin}
             servers={pagedServers}
             isReachable={reachabilityQuery.data ?? {}}
             getServerBusy={getServerBusy}
@@ -234,7 +241,7 @@ export default function AdminServersPage() {
         onSubmit={handleInstallKeySubmit}
       />
 
-      <ServerPrepareDialog
+      <ServerSetupDialog
         open={Boolean(activePrepareServer)}
         server={activePrepareServer}
         isBusy={getServerBusy(activePrepareServer)}

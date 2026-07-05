@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { ServerPrepareDialog } from "./server-prepare-dialog";
+import { ServerSetupDialog } from "./server-setup-dialog";
 import { serversService } from "@/features/servers/api/servers.service";
 import type { Server } from "@/features/servers/types/server";
 
 vi.mock("@/features/servers/api/servers.service", () => ({
   serversService: {
-    getPreparationReadiness: vi.fn(),
+    getSetupReadiness: vi.fn(),
   },
 }));
 
@@ -42,19 +42,19 @@ const ready = {
     sshReachable: true,
     authSucceeded: true,
     sudoAvailable: true,
-    noActivePreparation: true,
+    noActiveSetup: true,
   },
 };
 
 // P3 (mission finale, D4) : le dialog Setup Server n'a plus de cases ni de
 // profil — une liste fixe (lecture seule) de ce qui est installé + un bouton
 // "Setup Server" (jeu fixe) + un bouton "Setup Monitoring" séparé.
-describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
+describe("ServerSetupDialog — fixed Setup Server (P3)", () => {
   beforeEach(() => vi.clearAllMocks());
 
   function renderDialog(props: Record<string, unknown> = {}) {
     return render(
-      <ServerPrepareDialog
+      <ServerSetupDialog
         open
         server={server}
         isBusy={false}
@@ -68,7 +68,7 @@ describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
   }
 
   it("shows the fixed install list and both action buttons, no checkboxes", async () => {
-    mocked.getPreparationReadiness.mockResolvedValue(ready as never);
+    mocked.getSetupReadiness.mockResolvedValue(ready as never);
     renderDialog();
 
     await waitFor(() =>
@@ -88,7 +88,7 @@ describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
   });
 
   it("runs Setup Server with the fixed essential payload", async () => {
-    mocked.getPreparationReadiness.mockResolvedValue(ready as never);
+    mocked.getSetupReadiness.mockResolvedValue(ready as never);
     const onPrepare = vi.fn().mockResolvedValue(undefined);
     renderDialog({ onPrepare });
 
@@ -110,7 +110,7 @@ describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
   });
 
   it("runs Setup Reverse Proxy with the Traefik payload (P3.5)", async () => {
-    mocked.getPreparationReadiness.mockResolvedValue(ready as never);
+    mocked.getSetupReadiness.mockResolvedValue(ready as never);
     const onPrepare = vi.fn().mockResolvedValue(undefined);
     renderDialog({ onPrepare });
 
@@ -124,7 +124,7 @@ describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
   });
 
   it("runs Setup Monitoring with the monitoring payload", async () => {
-    mocked.getPreparationReadiness.mockResolvedValue(ready as never);
+    mocked.getSetupReadiness.mockResolvedValue(ready as never);
     const onPrepare = vi.fn().mockResolvedValue(undefined);
     renderDialog({ onPrepare });
 
@@ -137,7 +137,7 @@ describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
   });
 
   it("blocks and offers 'Validate SSH now' when SSH validation is the blocker", async () => {
-    mocked.getPreparationReadiness.mockResolvedValue({
+    mocked.getSetupReadiness.mockResolvedValue({
       isReady: false,
       blockingReasons: ["La validation SSH doit réussir avant la préparation."],
       checks: {
@@ -147,7 +147,7 @@ describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
         sshReachable: false,
         authSucceeded: false,
         sudoAvailable: false,
-        noActivePreparation: true,
+        noActiveSetup: true,
       },
     } as never);
     const onVerify = vi.fn().mockResolvedValue(undefined);
@@ -161,7 +161,7 @@ describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
   });
 
   it("hides 'Validate SSH now' when SSH is validated but another blocker applies", async () => {
-    mocked.getPreparationReadiness.mockResolvedValue({
+    mocked.getSetupReadiness.mockResolvedValue({
       isReady: false,
       blockingReasons: ["Une préparation serveur est déjà en cours."],
       checks: {
@@ -171,7 +171,7 @@ describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
         sshReachable: true,
         authSucceeded: true,
         sudoAvailable: true,
-        noActivePreparation: false,
+        noActiveSetup: false,
       },
     } as never);
     renderDialog({ onVerify: vi.fn(), verifyingId: null });

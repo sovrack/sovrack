@@ -138,7 +138,7 @@ export function Sidebar() {
           )}
         >
           <Link
-            href="/settings"
+            href="/settings/account"
             title={collapsed ? "Platform Settings" : undefined}
             className={clsx(
               "flex items-center gap-3 min-w-0 flex-1",
@@ -163,7 +163,7 @@ export function Sidebar() {
           {!collapsed && (
             <div className="flex shrink-0 items-center gap-1">
               <Link
-                href="/settings"
+                href="/settings/account"
                 title="Platform settings"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100/80 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-50"
               >
