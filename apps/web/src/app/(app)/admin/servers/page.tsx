@@ -19,10 +19,7 @@ import {
   type CreateServerOptions,
 } from "@/features/servers/components/dialogs/server-upsert-dialog";
 import { useServerActions } from "@/features/servers/api/use-server-actions";
-import {
-  useInstalledTools,
-  useServersReachability,
-} from "@/features/servers/api/use-servers";
+import { useServersReachability } from "@/features/servers/api/use-servers";
 import { usePagination } from "@/shared/hooks/use-pagination";
 import { Pagination } from "@/shared/ui/pagination";
 
@@ -41,7 +38,6 @@ export default function AdminServersPage() {
   );
   const [installKeyError, setInstallKeyError] = useState<string | null>(null);
   const [prepareServer, setPrepareServer] = useState<ServerType | null>(null);
-  const prepareToolsQuery = useInstalledTools(prepareServer?.id ?? "");
   const [detailsServer, setDetailsServer] = useState<ServerType | null>(null);
   const [terminalServer, setTerminalServer] = useState<ServerType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServerType | null>(null);
@@ -82,9 +78,6 @@ export default function AdminServersPage() {
 
   const activePrepareServer = resolveLiveServer(prepareServer);
   const activeDetailsServer = resolveLiveServer(detailsServer);
-  const activePrepareOptions = activePrepareServer
-    ? servers.getPrepareOptions(activePrepareServer)
-    : {};
   const activeDetailsJobs = activeDetailsServer
     ? (servers.jobsByServer[activeDetailsServer.id] ?? [])
     : [];
@@ -244,14 +237,11 @@ export default function AdminServersPage() {
       <ServerPrepareDialog
         open={Boolean(activePrepareServer)}
         server={activePrepareServer}
-        prepareOptions={activePrepareOptions}
         isBusy={getServerBusy(activePrepareServer)}
         preparingId={servers.preparingId}
-        installedTools={prepareToolsQuery.data ?? []}
         onVerify={(s) => servers.handleVerify(s.id)}
         verifyingId={servers.verifyingId}
         onClose={() => setPrepareServer(null)}
-        onFieldChange={servers.handlePrepareOptionChange}
         onPrepare={servers.handlePrepare}
       />
 

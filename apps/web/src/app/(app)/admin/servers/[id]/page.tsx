@@ -37,18 +37,12 @@ import {
   useStartServerPreparation,
   useValidateServerSsh,
 } from "@/features/servers/api/use-servers";
-import type {
-  Server,
-  ServerPreparation,
-} from "@/features/servers/types/server";
+import type { ServerPreparation } from "@/features/servers/types/server";
 
 export default function AdminServerDetailPage() {
   const params = useParams();
   const serverId = params.id as string;
   const [prepareOpen, setPrepareOpen] = useState(false);
-  const [prepareOptions, setPrepareOptions] = useState<PrepareOptions>({
-    gitlabRunnerExecutor: "docker",
-  });
   const [selectedPreparation, setSelectedPreparation] =
     useState<ServerPreparation | null>(null);
 
@@ -70,19 +64,8 @@ export default function AdminServerDetailPage() {
   const readiness = readinessQuery.data;
   const loading = serverQuery.isLoading;
 
-  const onFieldChange = (
-    _server: Server,
-    field: keyof PrepareOptions,
-    value: boolean | string | string[],
-  ) => {
-    setPrepareOptions((prev) => ({
-      ...prev,
-      [field]: value as PrepareOptions[keyof PrepareOptions],
-    }));
-  };
-
-  const onPrepare = async () => {
-    await startPreparation.mutateAsync(prepareOptions);
+  const onPrepare = async (options: PrepareOptions) => {
+    await startPreparation.mutateAsync(options);
     setPrepareOpen(false);
   };
 
@@ -265,13 +248,10 @@ export default function AdminServerDetailPage() {
       <ServerPrepareDialog
         open={prepareOpen}
         server={server}
-        prepareOptions={prepareOptions}
         isBusy={startPreparation.isPending}
         preparingId={startPreparation.isPending ? server.id : null}
-        installedTools={toolsQuery.data ?? []}
         onClose={() => setPrepareOpen(false)}
-        onFieldChange={onFieldChange}
-        onPrepare={() => onPrepare()}
+        onPrepare={(_s, options) => onPrepare(options)}
       />
 
       <ServerPreparationLogViewer

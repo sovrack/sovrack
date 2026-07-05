@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ServerPrepareDialog } from "./server-prepare-dialog";
@@ -8,7 +8,6 @@ import type { Server } from "@/features/servers/types/server";
 
 vi.mock("@/features/servers/api/servers.service", () => ({
   serversService: {
-    getPreparationOptions: vi.fn(),
     getPreparationReadiness: vi.fn(),
   },
 }));
@@ -33,180 +32,137 @@ const server = {
   username: "ubuntu",
 } as Server;
 
-// A5: the dropdown used to show only the raw profile enum ("WEB") with zero
-// description — a user could only learn what a profile did by selecting it
-// and diffing the checkbox grid. This locks in the tagline + dynamic summary
-// derived from the real profileDefaults (not a static/hardcoded list).
-describe("ServerPrepareDialog — profile clarity (Task A5)", () => {
-  it("shows a one-line tagline for each profile in the dropdown", async () => {
-    mocked.getPreparationOptions.mockResolvedValue({
-      controlNodeOnly: true,
-      message: "",
-      profiles: ["BASIC", "WEB"],
-      options: [
-        { key: "docker", label: "Docker", description: "", role: "docker", dependencies: [], recommended: true },
-        { key: "nginx", label: "Nginx", description: "", role: "nginx", dependencies: [], recommended: false },
-      ],
-      profileDefaults: {
-        BASIC: { docker: true },
-        WEB: { docker: true, nginx: true },
-      },
-    } as never);
-    mocked.getPreparationReadiness.mockResolvedValue({
-      isReady: true,
-      blockingReasons: [],
-    } as never);
+const ready = {
+  isReady: true,
+  blockingReasons: [],
+  checks: {
+    serverActive: true,
+    serverNotDisabled: true,
+    sshValidated: true,
+    sshReachable: true,
+    authSucceeded: true,
+    sudoAvailable: true,
+    noActivePreparation: true,
+  },
+};
 
-    render(
+// P3 (mission finale, D4) : le dialog Setup Server n'a plus de cases ni de
+// profil — une liste fixe (lecture seule) de ce qui est installé + un bouton
+// "Setup Server" (jeu fixe) + un bouton "Setup Monitoring" séparé.
+describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function renderDialog(props: Record<string, unknown> = {}) {
+    return render(
       <ServerPrepareDialog
         open
         server={server}
-        prepareOptions={{}}
         isBusy={false}
         preparingId={null}
         onClose={vi.fn()}
-        onFieldChange={vi.fn()}
         onPrepare={vi.fn()}
+        {...props}
       />,
       { wrapper: setup() },
     );
+  }
+
+  it("shows the fixed install list and both action buttons, no checkboxes", async () => {
+    mocked.getPreparationReadiness.mockResolvedValue(ready as never);
+    renderDialog();
 
     await waitFor(() =>
-      expect(
-        screen.getByText(/Recommended baseline — hardening only/),
-      ).toBeInTheDocument(),
+      expect(screen.getByText("Docker TLS Connection")).toBeInTheDocument(),
     );
+    expect(screen.getByText("Nixpacks")).toBeInTheDocument();
+    // Deux actions, un jeu fixe (pas de sélection).
+    expect(
+      screen.getByRole("button", { name: "Setup Server" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Setup Monitoring" }),
+    ).toBeInTheDocument();
+    // Plus aucune case à cocher ni sélecteur de profil.
+    expect(document.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
+    expect(document.querySelector("select")).toBeNull();
   });
 
-  it("shows a dynamic summary of what the selected profile enables, from the real profileDefaults", async () => {
-    mocked.getPreparationOptions.mockResolvedValue({
-      controlNodeOnly: true,
-      message: "",
-      profiles: ["WEB"],
-      options: [
-        { key: "docker", label: "Docker", description: "", role: "docker", dependencies: [], recommended: true },
-        { key: "nginx", label: "Nginx", description: "", role: "nginx", dependencies: [], recommended: false },
-        { key: "redis", label: "Redis", description: "", role: "redis", dependencies: [], recommended: false },
-      ],
-      profileDefaults: {
-        WEB: { docker: true, nginx: true, redis: false },
+  it("runs Setup Server with the fixed essential payload", async () => {
+    mocked.getPreparationReadiness.mockResolvedValue(ready as never);
+    const onPrepare = vi.fn().mockResolvedValue(undefined);
+    renderDialog({ onPrepare });
+
+    const btn = await screen.findByRole("button", { name: "Setup Server" });
+    await waitFor(() => expect(btn).toBeEnabled());
+    fireEvent.click(btn);
+    expect(onPrepare).toHaveBeenCalledTimes(1);
+    const [, payload] = onPrepare.mock.calls[0];
+    expect(payload).toMatchObject({
+      docker: true,
+      dockerTls: true,
+      nixpacks: true,
+      firewall: true,
+      securityHardening: true,
+    });
+    // Setup Server n'installe PAS nginx/postgres/redis/nodejs/backup.
+    expect(payload.nginx).toBeUndefined();
+    expect(payload.postgres).toBeUndefined();
+  });
+
+  it("runs Setup Monitoring with the monitoring payload", async () => {
+    mocked.getPreparationReadiness.mockResolvedValue(ready as never);
+    const onPrepare = vi.fn().mockResolvedValue(undefined);
+    renderDialog({ onPrepare });
+
+    const btn = await screen.findByRole("button", { name: "Setup Monitoring" });
+    await waitFor(() => expect(btn).toBeEnabled());
+    fireEvent.click(btn);
+    const [, payload] = onPrepare.mock.calls[0];
+    expect(payload).toMatchObject({ monitoring: true });
+    expect(payload.docker).toBeUndefined();
+  });
+
+  it("blocks and offers 'Validate SSH now' when SSH validation is the blocker", async () => {
+    mocked.getPreparationReadiness.mockResolvedValue({
+      isReady: false,
+      blockingReasons: ["La validation SSH doit réussir avant la préparation."],
+      checks: {
+        serverActive: true,
+        serverNotDisabled: true,
+        sshValidated: false,
+        sshReachable: false,
+        authSucceeded: false,
+        sudoAvailable: false,
+        noActivePreparation: true,
       },
     } as never);
-    mocked.getPreparationReadiness.mockResolvedValue({
-      isReady: true,
-      blockingReasons: [],
-    } as never);
+    const onVerify = vi.fn().mockResolvedValue(undefined);
+    renderDialog({ onVerify, verifyingId: null });
 
-    render(
-      <ServerPrepareDialog
-        open
-        server={server}
-        prepareOptions={{ profile: "WEB" }}
-        isBusy={false}
-        preparingId={null}
-        onClose={vi.fn()}
-        onFieldChange={vi.fn()}
-        onPrepare={vi.fn()}
-      />,
-      { wrapper: setup() },
-    );
-
-    // The summary line must list exactly Docker + Nginx — Redis is false in
-    // profileDefaults for WEB, so it must be absent from THIS specific text
-    // (it still legitimately appears elsewhere, as an unchecked option in
-    // the checkbox grid below).
-    await waitFor(() =>
-      expect(
-        screen.getByText("Enables by default: Docker, Nginx."),
-      ).toBeInTheDocument(),
-    );
+    const verify = await screen.findByText("Validate SSH now");
+    fireEvent.click(verify);
+    expect(onVerify).toHaveBeenCalledWith(server);
+    // Bloqué : le bouton Setup Server est désactivé.
+    expect(screen.getByRole("button", { name: "Setup Server" })).toBeDisabled();
   });
 
-  // "Sécurité database + UI" mission, Task 2: the compact server table no
-  // longer has its own "Validate SSH" row action (only 5 fixed actions) —
-  // folded here instead, inline, exactly where the dialog already explains
-  // SSH validation is what's blocking Setup Server.
-  describe("inline 'Validate SSH now' (Task 2)", () => {
-    beforeEach(() => {
-      mocked.getPreparationOptions.mockResolvedValue({
-        controlNodeOnly: true,
-        message: "",
-        profiles: ["BASIC"],
-        options: [],
-        profileDefaults: { BASIC: {} },
-      } as never);
-    });
+  it("hides 'Validate SSH now' when SSH is validated but another blocker applies", async () => {
+    mocked.getPreparationReadiness.mockResolvedValue({
+      isReady: false,
+      blockingReasons: ["Une préparation serveur est déjà en cours."],
+      checks: {
+        serverActive: true,
+        serverNotDisabled: true,
+        sshValidated: true,
+        sshReachable: true,
+        authSucceeded: true,
+        sudoAvailable: true,
+        noActivePreparation: false,
+      },
+    } as never);
+    renderDialog({ onVerify: vi.fn(), verifyingId: null });
 
-    it("shows a 'Validate SSH now' button when SSH validation is the blocker, and calls onVerify", async () => {
-      mocked.getPreparationReadiness.mockResolvedValue({
-        isReady: false,
-        blockingReasons: ["La validation SSH doit réussir avant la préparation."],
-        checks: {
-          serverActive: true,
-          serverNotDisabled: true,
-          sshValidated: false,
-          sshReachable: false,
-          authSucceeded: false,
-          sudoAvailable: false,
-          noActivePreparation: true,
-        },
-      } as never);
-      const onVerify = vi.fn().mockResolvedValue(undefined);
-
-      render(
-        <ServerPrepareDialog
-          open
-          server={server}
-          prepareOptions={{}}
-          isBusy={false}
-          preparingId={null}
-          onVerify={onVerify}
-          verifyingId={null}
-          onClose={vi.fn()}
-          onFieldChange={vi.fn()}
-          onPrepare={vi.fn()}
-        />,
-        { wrapper: setup() },
-      );
-
-      const button = await screen.findByText("Validate SSH now");
-      button.click();
-      expect(onVerify).toHaveBeenCalledWith(server);
-    });
-
-    it("does not show the button when SSH is already validated (a different blocker applies)", async () => {
-      mocked.getPreparationReadiness.mockResolvedValue({
-        isReady: false,
-        blockingReasons: ["Une préparation serveur est déjà en cours pour ce VPS."],
-        checks: {
-          serverActive: true,
-          serverNotDisabled: true,
-          sshValidated: true,
-          sshReachable: true,
-          authSucceeded: true,
-          sudoAvailable: true,
-          noActivePreparation: false,
-        },
-      } as never);
-
-      render(
-        <ServerPrepareDialog
-          open
-          server={server}
-          prepareOptions={{}}
-          isBusy={false}
-          preparingId={null}
-          onVerify={vi.fn()}
-          verifyingId={null}
-          onClose={vi.fn()}
-          onFieldChange={vi.fn()}
-          onPrepare={vi.fn()}
-        />,
-        { wrapper: setup() },
-      );
-
-      await screen.findByText("Setup blocked");
-      expect(screen.queryByText("Validate SSH now")).not.toBeInTheDocument();
-    });
+    await screen.findByText("Setup blocked");
+    expect(screen.queryByText("Validate SSH now")).not.toBeInTheDocument();
   });
 });

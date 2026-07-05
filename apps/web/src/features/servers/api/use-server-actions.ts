@@ -311,8 +311,14 @@ export function useServerActions() {
     }
   };
 
-  const handlePrepare = async (server: ServerType) => {
-    const payload = getPrepareOptions(server);
+  // P3 (mission finale) : le dialog Setup Server envoie un JEU DE BOOLÉENS FIXE
+  // (bouton "Setup Server" ou "Setup Monitoring") via `overrideOptions`, au
+  // lieu d'un brouillon de cases à cocher — d'où ce paramètre optionnel.
+  const handlePrepare = async (
+    server: ServerType,
+    overrideOptions?: PrepareServerPayload,
+  ) => {
+    const payload = overrideOptions ?? getPrepareOptions(server);
     setField("preparingId", server.id);
     try {
       await serversService.prepare(server.id, payload);
