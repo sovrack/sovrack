@@ -287,6 +287,11 @@ model Server {
   lastVerifiedAt    DateTime?
   lastDetectedAt    DateTime?
   lastPreparedAt    DateTime?
+  // Posé quand la stack monitoring (Prometheus/Grafana/Loki) est installée
+  // avec succès SUR CE serveur — les URLs Grafana/Prometheus/Loki se déduisent
+  // alors de `host` (ports standard). Remplace l'ancienne config plateforme
+  // globale unique (premier serveur installé "gagnait" l'URL pour toujours).
+  monitoringInstalledAt DateTime?
   onboardingStep    ServerOnboardingStep     @default(PENDING)
   // hasDocker/hasRunner removed — derived from `capabilities` via
   // serverHasDocker/serverHasRunner (server-capabilities.util). Single source

@@ -115,6 +115,71 @@ export class MonitoringService {
     });
   }
 
+  /**
+   * B4/B5 : liens monitoring (Grafana/Prometheus/Loki) pour un
+   * service-environnement. Résolution PAR SERVEUR : le serveur cible du
+   * service-env (serverId explicite, sinon 1er serveur de l'environnement) ;
+   * si la stack y est installée (`monitoringInstalledAt`), les URLs se
+   * déduisent de son host. Fallback : URLs globales de la config plateforme
+   * (compat mono-serveur / Grafana externe).
+   */
+  async getMonitoringLinksForServiceEnv(serviceEnvId: string): Promise<{
+    installed: boolean;
+    source: 'server' | 'platform' | null;
+    serverHost: string | null;
+    grafanaUrl: string | null;
+    prometheusUrl: string | null;
+    lokiUrl: string | null;
+  }> {
+    const serviceEnv = await this.prisma.serviceEnvironment.findUnique({
+      where: { id: serviceEnvId },
+      select: {
+        environmentId: true,
+        server: {
+          select: { host: true, monitoringInstalledAt: true },
+        },
+      },
+    });
+    if (!serviceEnv) {
+      throw new BadRequestException('Service-environnement introuvable');
+    }
+
+    const server =
+      serviceEnv.server ??
+      (await this.prisma.server.findFirst({
+        where: { environmentId: serviceEnv.environmentId, archivedAt: null },
+        select: { host: true, monitoringInstalledAt: true },
+      }));
+
+    if (server?.monitoringInstalledAt) {
+      return {
+        installed: true,
+        source: 'server',
+        serverHost: server.host,
+        grafanaUrl: `http://${server.host}:3000`,
+        prometheusUrl: `http://${server.host}:9090`,
+        lokiUrl: `http://${server.host}:3100`,
+      };
+    }
+
+    const [grafanaUrl, prometheusUrl, lokiUrl] = await Promise.all([
+      this.getConfigValue('MONITORING_GRAFANA_URL'),
+      this.getConfigValue('MONITORING_PROMETHEUS_URL'),
+      this.getConfigValue('MONITORING_LOKI_URL'),
+    ]);
+
+    return {
+      installed: Boolean(grafanaUrl),
+      source: grafanaUrl ? 'platform' : null,
+      serverHost: server?.host ?? null,
+      grafanaUrl: grafanaUrl ? this.trimTrailingSlash(grafanaUrl) : null,
+      prometheusUrl: prometheusUrl
+        ? this.trimTrailingSlash(prometheusUrl)
+        : null,
+      lokiUrl: lokiUrl ? this.trimTrailingSlash(lokiUrl) : null,
+    };
+  }
+
   /** Historical CPU/memory time-series for one service-environment (containers). */
   async getServiceMetricRange(
     serviceEnvId: string,
@@ -276,10 +341,14 @@ export class MonitoringService {
   }
 
   /**
-   * Une fois la stack monitoring installée avec succès sur un serveur, on câble
-   * automatiquement les URLs Prometheus/Grafana en config plateforme → la page
-   * monitoring passe en « mode complet » sans étape manuelle. (Ne surcharge pas
-   * une URL déjà configurée par l'admin, ex. Grafana externe.)
+   * Une fois la stack monitoring installée avec succès sur un serveur :
+   *  1. (B4) on tamponne `Server.monitoringInstalledAt` sur CHAQUE serveur
+   *     réussi — le monitoring est scopé PAR SERVEUR, les URLs
+   *     Grafana/Prometheus/Loki se déduisent de son `host` ;
+   *  2. compat : on câble aussi les URLs globales en config plateforme si
+   *     absentes (ne surcharge jamais une URL déjà posée par l'admin, ex.
+   *     Grafana externe) — utilisées comme fallback quand aucun serveur
+   *     précis n'est ciblé.
    */
   @OnEvent(AUTOMATION_RUN_COMPLETED)
   async onAutomationRunCompleted(
@@ -297,9 +366,15 @@ export class MonitoringService {
     ) {
       return;
     }
-    const host = event.succeededHosts[0];
-    if (!host) return;
+    const hosts = event.succeededHosts.filter(Boolean);
+    if (hosts.length === 0) return;
 
+    await this.prisma.server.updateMany({
+      where: { host: { in: hosts } },
+      data: { monitoringInstalledAt: new Date() },
+    });
+
+    const host = hosts[0];
     const setIfAbsent = async (key: string, value: string) => {
       const current = await this.platformConfig.get(key);
       if (!current || current.trim().length === 0) {
@@ -310,7 +385,7 @@ export class MonitoringService {
     await setIfAbsent('MONITORING_GRAFANA_URL', `http://${host}:3000`);
     await setIfAbsent('MONITORING_LOKI_URL', `http://${host}:3100`);
     this.logger.log(
-      `Monitoring stack installed on ${host} → URLs Prometheus/Grafana/Loki câblées.`,
+      `Monitoring stack installed on ${hosts.join(', ')} → monitoringInstalledAt posé (+ URLs plateforme si absentes).`,
     );
   }
 

@@ -103,6 +103,17 @@ export class MonitoringController {
     return await this.monitoringService.getGrafanaStatus();
   }
 
+  @Get('services/:serviceEnvId/links')
+  @ApiOperation({
+    summary:
+      'Monitoring links (Grafana/Prometheus/Loki) for the server hosting a service-environment',
+  })
+  async serviceMonitoringLinks(@Param('serviceEnvId') serviceEnvId: string) {
+    return await this.monitoringService.getMonitoringLinksForServiceEnv(
+      serviceEnvId,
+    );
+  }
+
   @Get('alerts')
   @ApiOperation({
     summary: 'Monitoring alerts (Alertmanager or derived alerts)',
