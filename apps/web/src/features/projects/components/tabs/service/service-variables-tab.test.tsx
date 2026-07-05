@@ -20,6 +20,17 @@ vi.mock("@/features/projects/api/use-project-services", () => ({
   useProjectServices: vi.fn(),
 }));
 
+// P1.4 : le bandeau affiche la valeur résolue via useServiceCredentials.
+// Mocké au niveau module (ce fichier n'installe pas de QueryClientProvider).
+vi.mock("@/features/projects/api/use-service-credentials", () => ({
+  useServiceCredentials: vi.fn().mockReturnValue({
+    data: {
+      internal: { connectionUrl: "postgresql://app:pw@db:5432/app" },
+    },
+    isLoading: false,
+  }),
+}));
+
 const mocked = vi.mocked(environmentsService);
 const mockedProjectServices = vi.mocked(useProjectServices);
 
@@ -270,8 +281,10 @@ describe("ServiceVariablesTab — sibling DATABASE auto-wiring note (Task 4)", (
 
     renderTab();
 
-    expect(await screen.findByText("DATABASE_URL")).toBeInTheDocument();
-    expect(screen.getByText("deploy-test-postgres")).toBeInTheDocument();
+    // Le label combine désormais la clé + la base source (P1.4).
+    expect(
+      await screen.findByText(/DATABASE_URL — from deploy-test-postgres/),
+    ).toBeInTheDocument();
   });
 
   it("shows REDIS_URL for a sibling Redis service", async () => {
@@ -289,7 +302,9 @@ describe("ServiceVariablesTab — sibling DATABASE auto-wiring note (Task 4)", (
 
     renderTab();
 
-    expect(await screen.findByText("REDIS_URL")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/REDIS_URL — from deploy-test-redis/),
+    ).toBeInTheDocument();
   });
 
   it("shows no note when there is no sibling DATABASE service linked to this environment", async () => {

@@ -6,8 +6,10 @@ import { Loader2, Save } from "lucide-react";
 import { environmentsService } from "@/features/projects/api/environments.service";
 import { useResolvedServiceEnvId } from "@/features/projects/api/use-resolved-service-env-id";
 import { useProjectServices } from "@/features/projects/api/use-project-services";
+import { useServiceCredentials } from "@/features/projects/api/use-service-credentials";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { SectionCard } from "@/shared/layout/section-card";
+import { CredentialField } from "./credential-field";
 import {
   EnvTextEditor,
   KvRows,
@@ -65,6 +67,7 @@ export function ServiceVariablesTab({
         s.envLinks?.some((l) => l.environmentId === environmentId),
     )
     .map((s) => ({
+      id: s.id,
       name: s.name,
       envVar: s.databaseType === "REDIS" ? "REDIS_URL" : "DATABASE_URL",
     }));
@@ -110,19 +113,49 @@ export function ServiceVariablesTab({
       description="Environment variables and secrets for this service, for the environment selected above."
     >
       {autoWiredDbs.length > 0 && (
-        <div className="mb-3 space-y-1 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-xs text-blue-300">
+        <div className="mb-3 space-y-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2.5">
+          <p className="text-xs text-blue-300">
+            {autoWiredDbs.length > 1
+              ? "These connection variables are "
+              : "This connection variable is "}
+            <span className="font-semibold">auto-injected</span> from this
+            project&apos;s database service
+            {autoWiredDbs.length > 1 ? "s" : ""} at deploy time — override any of
+            them by redefining the same key below.
+          </p>
           {autoWiredDbs.map((db) => (
-            <p key={db.name}>
-              <span className="font-mono font-semibold">{db.envVar}</span> is
-              injected automatically from the{" "}
-              <span className="font-mono">{db.name}</span> service of this
-              project — no manual configuration needed.
-            </p>
+            <AutoWiredDbValue key={db.id} projectId={projectId} db={db} />
           ))}
         </div>
       )}
       <EnvVarsEditor projectId={projectId} serviceEnvId={resolvedServiceEnvId} />
     </SectionCard>
+  );
+}
+
+/**
+ * P1.4 (mission finale, décision D2) : affiche la VALEUR RÉSOLUE effectivement
+ * auto-injectée (l'URL de connexion interne de la base sœur, masquée + œil +
+ * copie via CredentialField), calculée par le même mécanisme que
+ * resolveAutoWiredDbEnv côté backend (endpoint credentials dédié, gaté par
+ * l'accès projet — jamais le listing). L'utilisateur voit exactement ce qui
+ * sera injecté, tout en pouvant le surcharger dans l'éditeur ci-dessous.
+ */
+function AutoWiredDbValue({
+  projectId,
+  db,
+}: {
+  projectId: string;
+  db: { id: string; name: string; envVar: string };
+}) {
+  const { data, isLoading } = useServiceCredentials(projectId, db.id, true);
+  const value = data?.internal.connectionUrl ?? "";
+  return (
+    <CredentialField
+      label={`${db.envVar} — from ${db.name}`}
+      value={isLoading ? "resolving…" : value || "unavailable"}
+      secret={Boolean(value)}
+    />
   );
 }
 
