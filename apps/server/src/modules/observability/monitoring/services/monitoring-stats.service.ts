@@ -90,6 +90,17 @@ export class MonitoringStatsService {
         host: server.host,
         platformStatus: server.status,
         monitoringStatus,
+        // B4/E2 : stack monitoring installée SUR CE serveur → liens déduits
+        // de son host (page Infrastructure → Monitoring + onglet service).
+        monitoringInstalledAt:
+          server.monitoringInstalledAt?.toISOString() ?? null,
+        links: server.monitoringInstalledAt
+          ? {
+              grafanaUrl: `http://${server.host}:3000`,
+              prometheusUrl: `http://${server.host}:9090`,
+              lokiUrl: `http://${server.host}:3100`,
+            }
+          : null,
         lastCheckAt:
           metrics.up !== null ||
           metrics.cpuPercent !== null ||
