@@ -13,6 +13,7 @@ import { ServersTable } from "@/features/servers/components/tables/servers-table
 import { ServerDetailsDialog } from "@/features/servers/components/dialogs/server-details-dialog";
 import { ServerKeyInstallDialog } from "@/features/servers/components/dialogs/server-key-install-dialog";
 import { ServerPrepareDialog } from "@/features/servers/components/dialogs/server-prepare-dialog";
+import { ServerTerminalDialog } from "@/features/servers/components/dialogs/server-terminal-dialog";
 import {
   ServerUpsertDialog,
   type CreateServerOptions,
@@ -42,6 +43,7 @@ export default function AdminServersPage() {
   const [prepareServer, setPrepareServer] = useState<ServerType | null>(null);
   const prepareToolsQuery = useInstalledTools(prepareServer?.id ?? "");
   const [detailsServer, setDetailsServer] = useState<ServerType | null>(null);
+  const [terminalServer, setTerminalServer] = useState<ServerType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServerType | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -198,6 +200,7 @@ export default function AdminServersPage() {
             servers={pagedServers}
             isReachable={reachabilityQuery.data ?? {}}
             getServerBusy={getServerBusy}
+            onOpenTerminal={setTerminalServer}
             onOpenSetup={setPrepareServer}
             onOpenDetails={setDetailsServer}
             onEdit={(s) => {
@@ -268,6 +271,12 @@ export default function AdminServersPage() {
         onRefreshJobs={servers.refreshJobs}
         onRetryJob={servers.handleRetryJob}
         onCancelJob={servers.handleCancelJob}
+      />
+
+      <ServerTerminalDialog
+        open={Boolean(terminalServer)}
+        server={terminalServer}
+        onClose={() => setTerminalServer(null)}
       />
 
       <ServerUpsertDialog

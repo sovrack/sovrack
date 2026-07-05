@@ -26,6 +26,7 @@ function makeServer(over: Partial<Server> = {}): Server {
 
 const baseProps = {
   getServerBusy: () => false,
+  onOpenTerminal: vi.fn(),
   onOpenSetup: vi.fn(),
   onOpenDetails: vi.fn(),
   onEdit: vi.fn(),

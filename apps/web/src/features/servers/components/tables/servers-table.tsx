@@ -10,6 +10,7 @@ type ServersTableProps = {
   servers: Server[];
   isReachable: Record<string, boolean | undefined>;
   getServerBusy: (server: Server) => boolean;
+  onOpenTerminal: (server: Server) => void;
   onOpenSetup: (server: Server) => void;
   onOpenDetails: (server: Server) => void;
   onEdit: (server: Server) => void;
@@ -50,6 +51,7 @@ export function ServersTable({
   servers,
   isReachable,
   getServerBusy,
+  onOpenTerminal,
   onOpenSetup,
   onOpenDetails,
   onEdit,
@@ -120,6 +122,7 @@ export function ServersTable({
                   <ServerRowActionsMenu
                     server={server}
                     disabled={getServerBusy(server)}
+                    onOpenTerminal={onOpenTerminal}
                     onOpenSetup={onOpenSetup}
                     onOpenDetails={onOpenDetails}
                     onEdit={onEdit}

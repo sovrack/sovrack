@@ -21,6 +21,7 @@ export * from "./components/dialogs/server-key-install-dialog";
 export * from "./components/panels/server-preparation-history";
 export * from "./components/panels/server-preparation-log-viewer";
 export * from "./components/dialogs/server-prepare-dialog";
+export * from "./components/dialogs/server-terminal-dialog";
 export * from "./components/shared/server-status-badges";
 export * from "./components/dialogs/server-upsert-dialog";
 export * from "./components/cards/server-validation-card";

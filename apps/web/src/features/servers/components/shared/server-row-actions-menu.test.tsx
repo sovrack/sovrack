@@ -10,16 +10,16 @@ const server = {
   port: 22,
 } as Server;
 
-// Task 2 ("Sécurité database + UI" mission): the compact table's Actions
-// column opens exactly this 5-item menu — Enter Terminal / Setup Server /
-// Edit / View Details / Delete (red). "Validate SSH" and "Detect Info" were
-// deliberately NOT kept as separate row actions (folded into the Setup
-// Server dialog instead — see server-prepare-dialog.tsx).
+// The compact table's Actions column opens exactly this 5-item menu —
+// Enter Terminal / Setup Server / Edit / View Details / Delete (red).
+// P1.2 (mission finale) : "Enter Terminal" ouvre désormais un DIALOG
+// (callback onOpenTerminal) au lieu de rediriger vers /terminal.
 describe("ServerRowActionsMenu", () => {
   it("shows exactly the 5 specified actions when opened", () => {
     render(
       <ServerRowActionsMenu
         server={server}
+        onOpenTerminal={vi.fn()}
         onOpenSetup={vi.fn()}
         onOpenDetails={vi.fn()}
         onEdit={vi.fn()}
@@ -37,10 +37,12 @@ describe("ServerRowActionsMenu", () => {
     expect(screen.queryByText("Detect Info")).not.toBeInTheDocument();
   });
 
-  it("links Enter Terminal to /terminal with the server preselected", () => {
+  it("opens the terminal dialog (callback) instead of navigating", () => {
+    const onOpenTerminal = vi.fn();
     render(
       <ServerRowActionsMenu
         server={server}
+        onOpenTerminal={onOpenTerminal}
         onOpenSetup={vi.fn()}
         onOpenDetails={vi.fn()}
         onEdit={vi.fn()}
@@ -48,9 +50,10 @@ describe("ServerRowActionsMenu", () => {
       />,
     );
     fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
-
-    const link = screen.getByText("Enter Terminal").closest("a");
-    expect(link).toHaveAttribute("href", "/terminal?serverId=s1");
+    // Plus aucun lien de navigation : c'est un bouton d'action.
+    expect(screen.getByText("Enter Terminal").closest("a")).toBeNull();
+    fireEvent.click(screen.getByText("Enter Terminal"));
+    expect(onOpenTerminal).toHaveBeenCalledWith(server);
   });
 
   it("calls onOpenSetup, onEdit, onOpenDetails, onDelete with the server", () => {
@@ -61,6 +64,7 @@ describe("ServerRowActionsMenu", () => {
     render(
       <ServerRowActionsMenu
         server={server}
+        onOpenTerminal={vi.fn()}
         onOpenSetup={onOpenSetup}
         onOpenDetails={onOpenDetails}
         onEdit={onEdit}
@@ -90,6 +94,7 @@ describe("ServerRowActionsMenu", () => {
       <div>
         <ServerRowActionsMenu
           server={server}
+          onOpenTerminal={vi.fn()}
           onOpenSetup={vi.fn()}
           onOpenDetails={vi.fn()}
           onEdit={vi.fn()}

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   Eye,
   MoreHorizontal,
@@ -19,6 +18,7 @@ import type { Server } from "@/features/servers/types/server";
 type ServerRowActionsMenuProps = {
   server: Server;
   disabled?: boolean;
+  onOpenTerminal: (server: Server) => void;
   onOpenSetup: (server: Server) => void;
   onOpenDetails: (server: Server) => void;
   onEdit: (server: Server) => void;
@@ -34,14 +34,12 @@ type ServerRowActionsMenuProps = {
 export function ServerRowActionsMenu({
   server,
   disabled,
+  onOpenTerminal,
   onOpenSetup,
   onOpenDetails,
   onEdit,
   onDelete,
 }: ServerRowActionsMenuProps) {
-  const linkItemCls =
-    "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]";
-
   return (
     <DropdownMenu
       disabled={disabled}
@@ -54,14 +52,15 @@ export function ServerRowActionsMenu({
     >
       {({ close }) => (
         <>
-          <Link
-            href={`/terminal?serverId=${server.id}`}
-            onClick={close}
-            className={linkItemCls}
-            role="menuitem"
+          <DropdownItem
+            icon={<Terminal size={14} />}
+            onClick={() => {
+              close();
+              onOpenTerminal(server);
+            }}
           >
-            <Terminal size={14} /> Enter Terminal
-          </Link>
+            Enter Terminal
+          </DropdownItem>
           <DropdownItem
             icon={<Wrench size={14} />}
             onClick={() => {
