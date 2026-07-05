@@ -138,17 +138,6 @@ export const buildService = {
     return res.data;
   },
 
-  async reconcileWebhooks(
-    projectId: string,
-  ): Promise<{ results: BuildAllResult[] }> {
-    const res = await api.post<{ results: BuildAllResult[] }>(
-      `/projects/${projectId}/build/reconcile-webhooks`,
-      undefined,
-      { timeout: BUILD_PREPARE_TIMEOUT_MS },
-    );
-    return res.data;
-  },
-
   async getBuildStatus(projectId: string): Promise<BuildStatusResult> {
     const res = await api.get<BuildStatusResult>(
       `/projects/${projectId}/build/status`,
