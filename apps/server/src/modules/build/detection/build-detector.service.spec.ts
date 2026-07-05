@@ -297,4 +297,70 @@ describe('BuildDetectorService.detectProjectType', () => {
       data: { buildType: result.type },
     });
   });
+
+  // B1 (plan produit final) : 1 service = 1 dépôt. Le dépôt/provider du
+  // SERVICE priment sur providerRepos[0] du projet — régression du bug
+  // « Aucun dépôt Git configuré » sur les projets multi-dépôts.
+  it('resolves the repo from the SERVICE when the project has no repo link', async () => {
+    const prisma = makePrisma({
+      project: { id: 'proj1', name: 'X', providerRepos: [] },
+    }) as unknown as PrismaService;
+    (prisma.service.findUnique as jest.Mock).mockResolvedValue({
+      id: 's1',
+      branch: 'dev',
+      repoPath: 'group/backend',
+      provider: {
+        id: 'prov-svc',
+        type: GitProviderType.GITLAB,
+        providerUrl: 'https://gitlab.example.com',
+        adminToken: null,
+        oauthAccessToken: null,
+      },
+    });
+    const crypto = {
+      decrypt: jest.fn((v: string) => v),
+    } as unknown as CryptoService;
+    const fileFetcher = {
+      listGitLabRepositoryFiles: jest.fn().mockResolvedValue(['package.json']),
+      listGitHubRepositoryFiles: jest.fn().mockResolvedValue([]),
+      fetchRawFile: jest.fn().mockResolvedValue(null),
+    } as unknown as RepositoryFileFetcherService;
+
+    const svc = new BuildDetectorService(prisma, crypto, fileFetcher);
+    const result = await svc.detectProjectType('proj1', 's1');
+
+    expect(result.type).toBeTruthy();
+    expect(fileFetcher.listGitLabRepositoryFiles).toHaveBeenCalledWith(
+      'https://gitlab.example.com',
+      'group/backend',
+      '',
+    );
+  });
+
+  it("prefers the service's own repoPath over the project repo link", async () => {
+    const prisma = makePrisma() as unknown as PrismaService; // projet → group/app
+    (prisma.service.findUnique as jest.Mock).mockResolvedValue({
+      id: 's2',
+      branch: 'main',
+      repoPath: 'group/frontend',
+      provider: null, // provider du projet conservé, repoPath du service prioritaire
+    });
+    const crypto = {
+      decrypt: jest.fn((v: string) => v),
+    } as unknown as CryptoService;
+    const fileFetcher = {
+      listGitLabRepositoryFiles: jest.fn().mockResolvedValue(['package.json']),
+      listGitHubRepositoryFiles: jest.fn().mockResolvedValue([]),
+      fetchRawFile: jest.fn().mockResolvedValue(null),
+    } as unknown as RepositoryFileFetcherService;
+
+    const svc = new BuildDetectorService(prisma, crypto, fileFetcher);
+    await svc.detectProjectType('proj1', 's2');
+
+    expect(fileFetcher.listGitLabRepositoryFiles).toHaveBeenCalledWith(
+      'https://gitlab.com',
+      'group/frontend',
+      '',
+    );
+  });
 });

@@ -41,12 +41,40 @@ export class BuildDetectorService {
       throw new NotFoundException('Projet non trouvé');
     }
 
-    const repo = project.providerRepos?.[0];
-    if (!repo) {
+    // 1 service = 1 dépôt : quand serviceId est fourni, le dépôt vient du
+    // SERVICE (repoPath + providerId portés par Service), pas du premier
+    // GitProviderRepo du projet — sur un projet multi-dépôts (ex. backend +
+    // frontend), providerRepos[0] visait un dépôt arbitraire et les services
+    // sans lien projet-repo recevaient « Aucun dépôt Git configuré » alors
+    // que leur dépôt existe. Fallback projet conservé (mono-repo/legacy).
+    const projectRepo = project.providerRepos?.[0];
+    let repoPath: string | null = projectRepo?.repoPath ?? null;
+    let config = projectRepo?.provider ?? null;
+    let ref = projectRepo?.defaultBranch || 'main';
+
+    if (serviceId) {
+      const service = await this.prisma.service.findUnique({
+        where: { id: serviceId },
+        include: { provider: true },
+      });
+      if (!service) {
+        throw new NotFoundException('Service introuvable');
+      }
+      if (service.repoPath) {
+        repoPath = service.repoPath;
+      }
+      if (service.provider) {
+        config = service.provider;
+      }
+      if (service.branch) {
+        ref = service.branch;
+      }
+    }
+
+    if (!config || !repoPath) {
       throw new NotFoundException('Aucun dépôt Git configuré');
     }
 
-    const config = repo.provider;
     const isGitHub = config.type === GitProviderType.GITHUB;
     const adminToken = config.adminToken
       ? this.crypto.decrypt(config.adminToken)
@@ -61,27 +89,11 @@ export class BuildDetectorService {
         ? 'https://api.github.com'
         : `${config.providerUrl.replace(/\/$/, '')}/api/v3`
       : config.providerUrl.replace(/\/$/, '');
-    let ref = repo.defaultBranch || 'main';
-
-    if (serviceId) {
-      const service = await this.prisma.service.findUnique({
-        where: { id: serviceId },
-      });
-      if (!service) {
-        throw new NotFoundException('Service introuvable');
-      }
-      if (service.branch) {
-        ref = service.branch;
-      }
-    }
 
     let files: string[] = [];
-    let repoId: string;
+    const repoId: string = repoPath;
     try {
       if (isGitHub) {
-        repoId = repo.repoPath ?? '';
-        if (!repoId)
-          throw new NotFoundException('Nom de dépôt GitHub introuvable');
         files = await this.fileFetcher.listGitHubRepositoryFiles(
           baseUrl,
           repoId,
@@ -89,7 +101,6 @@ export class BuildDetectorService {
           ref,
         );
       } else {
-        repoId = this.resolveGitlabProjectId(repo);
         files = await this.fileFetcher.listGitLabRepositoryFiles(
           baseUrl,
           repoId,
@@ -126,12 +137,6 @@ export class BuildDetectorService {
     }
 
     return result;
-  }
-
-  private resolveGitlabProjectId(repo: { repoPath?: string | null }): string {
-    if (!repo.repoPath)
-      throw new NotFoundException('Chemin GitLab du dépôt introuvable');
-    return repo.repoPath;
   }
 
   private async collectSignals(input: {

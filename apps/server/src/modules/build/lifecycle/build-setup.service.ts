@@ -228,10 +228,15 @@ export class BuildSetupService {
       this.prisma.service.findMany({
         where: activeWhere({ projectId }),
         orderBy: { createdAt: 'asc' },
+        include: {
+          provider: {
+            select: { adminToken: true, oauthAccessToken: true },
+          },
+        },
       }),
     ]);
 
-    const tokenConfigured = Boolean(
+    const projectTokenConfigured = Boolean(
       providerRepo?.provider?.adminToken ||
       providerRepo?.provider?.oauthAccessToken,
     );
@@ -244,10 +249,20 @@ export class BuildSetupService {
       services: services.map((service) => {
         const missingRequirements: string[] = [];
 
+        // 1 service = 1 dépôt : les prérequis se jugent d'abord sur le
+        // SERVICE (repoPath + provider portés par Service) ; le lien
+        // projet→repo ne sert que de fallback mono-repo/legacy.
+        const tokenConfigured =
+          Boolean(
+            service.provider?.adminToken || service.provider?.oauthAccessToken,
+          ) || projectTokenConfigured;
+        const effectiveRepoPath =
+          service.repoPath ?? providerRepo?.repoPath ?? null;
+
         if (!tokenConfigured) {
           missingRequirements.push('Token GitLab manquant');
         }
-        if (!providerRepo?.repoPath) {
+        if (!effectiveRepoPath) {
           missingRequirements.push('Chemin du dépôt Git manquant');
         }
         if (!service.branch?.trim()) {
@@ -262,7 +277,7 @@ export class BuildSetupService {
           type: service.buildType ?? 'dockerized',
           repositoryPath: service.repoPath,
           defaultBranch: service.branch ?? 'main',
-          repoPath: providerRepo?.repoPath ?? null,
+          repoPath: effectiveRepoPath,
           ready: missingRequirements.length === 0,
           missingRequirements,
           lastPipeline: null,
