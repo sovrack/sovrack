@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Eye,
@@ -10,6 +9,11 @@ import {
   Trash2,
   Wrench,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownItem,
+  DropdownDivider,
+} from "@/shared/ui/dropdown-menu";
 import type { Server } from "@/features/servers/types/server";
 
 type ServerRowActionsMenuProps = {
@@ -22,11 +26,10 @@ type ServerRowActionsMenuProps = {
 };
 
 /**
- * Compact "⋯" actions menu for a server table row (Task 2, "Sécurité
- * database + UI" mission) — replaces the old inline button row
- * (server-actions.tsx / server-card.tsx, both removed) with exactly the 5
- * actions the compact table needs. Click-outside-to-close mirrors the same
- * pattern already used by ServiceEnvironmentSelector for consistency.
+ * Compact "⋯" actions menu for a server table row. Uses the shared portal-based
+ * DropdownMenu (Phase 1.1) so the menu escapes the table's `overflow-x-auto`
+ * wrapper — the previous `absolute` menu was clipped and caused a stray
+ * scrollbar. Exactly the 5 actions the compact table needs.
  */
 export function ServerRowActionsMenu({
   server,
@@ -36,86 +39,69 @@ export function ServerRowActionsMenu({
   onEdit,
   onDelete,
 }: ServerRowActionsMenuProps) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const itemCls =
+  const linkItemCls =
     "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]";
 
   return (
-    <div ref={ref} className="relative inline-block text-left">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        disabled={disabled}
-        aria-label={`Actions for ${server.name}`}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
-      >
-        <MoreHorizontal size={15} />
-      </button>
-
-      {open && (
-        <div className="absolute right-0 z-50 mt-1.5 w-52 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1.5 shadow-2xl">
+    <DropdownMenu
+      disabled={disabled}
+      label={`Actions for ${server.name}`}
+      trigger={() => (
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]">
+          <MoreHorizontal size={15} />
+        </span>
+      )}
+    >
+      {({ close }) => (
+        <>
           <Link
             href={`/terminal?serverId=${server.id}`}
-            onClick={() => setOpen(false)}
-            className={itemCls}
+            onClick={close}
+            className={linkItemCls}
+            role="menuitem"
           >
             <Terminal size={14} /> Enter Terminal
           </Link>
-          <button
-            type="button"
+          <DropdownItem
+            icon={<Wrench size={14} />}
             onClick={() => {
-              setOpen(false);
+              close();
               onOpenSetup(server);
             }}
-            className={itemCls}
           >
-            <Wrench size={14} /> Setup Server
-          </button>
-          <button
-            type="button"
+            Setup Server
+          </DropdownItem>
+          <DropdownItem
+            icon={<Pencil size={14} />}
             onClick={() => {
-              setOpen(false);
+              close();
               onEdit(server);
             }}
-            className={itemCls}
           >
-            <Pencil size={14} /> Edit
-          </button>
-          <button
-            type="button"
+            Edit
+          </DropdownItem>
+          <DropdownItem
+            icon={<Eye size={14} />}
             onClick={() => {
-              setOpen(false);
+              close();
               onOpenDetails(server);
             }}
-            className={itemCls}
           >
-            <Eye size={14} /> View Details
-          </button>
-          <div className="my-1 border-t border-[var(--border)]" />
-          <button
-            type="button"
+            View Details
+          </DropdownItem>
+          <DropdownDivider />
+          <DropdownItem
+            icon={<Trash2 size={14} />}
+            danger
             onClick={() => {
-              setOpen(false);
+              close();
               onDelete(server);
             }}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/10"
           >
-            <Trash2 size={14} /> Delete
-          </button>
-        </div>
+            Delete
+          </DropdownItem>
+        </>
       )}
-    </div>
+    </DropdownMenu>
   );
 }
