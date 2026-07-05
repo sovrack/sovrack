@@ -15,6 +15,18 @@ export type PlatformHealth = {
     valid: boolean;
     callbackUrl: string | null;
   };
+  // C2 : ressources de la machine qui héberge platform (disque plein = panne
+  // silencieuse n°1). Optionnel : un backend pas encore à jour n'en envoie pas.
+  host?: {
+    cpuLoad1m: number;
+    cpuCount: number;
+    memoryTotalMb: number;
+    memoryFreeMb: number;
+    memoryUsedPercent: number;
+    diskTotalGb: number | null;
+    diskFreeGb: number | null;
+    diskUsedPercent: number | null;
+  };
 };
 
 export const healthService = {

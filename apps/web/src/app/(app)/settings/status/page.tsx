@@ -168,6 +168,80 @@ export default function SystemStatusPage() {
           </p>
         )}
       </SectionCard>
+
+      {/* C2 (plan produit final) : ressources de la machine qui HÉBERGE
+          platform — un disque qui se remplit (images Docker, logs) arrête
+          Postgres sans aucun autre signal préalable sur cette page. Seuils
+          visuels : >80% orange, >90% rouge. */}
+      {h?.host && (
+        <SectionCard
+          title="Host resources"
+          description="CPU, memory and disk of the machine running this platform."
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <HostStat
+              label="CPU load (1m)"
+              value={`${h.host.cpuLoad1m} / ${h.host.cpuCount} cores`}
+              percent={Math.min(
+                100,
+                Math.round((h.host.cpuLoad1m / h.host.cpuCount) * 100),
+              )}
+            />
+            <HostStat
+              label="Memory"
+              value={`${Math.round((h.host.memoryTotalMb - h.host.memoryFreeMb) / 1024)} / ${Math.round(h.host.memoryTotalMb / 1024)} GB`}
+              percent={h.host.memoryUsedPercent}
+            />
+            <HostStat
+              label="Disk (/)"
+              value={
+                h.host.diskUsedPercent === null
+                  ? "unavailable"
+                  : `${((h.host.diskTotalGb ?? 0) - (h.host.diskFreeGb ?? 0)).toFixed(1)} / ${h.host.diskTotalGb} GB`
+              }
+              percent={h.host.diskUsedPercent}
+            />
+          </div>
+        </SectionCard>
+      )}
+    </div>
+  );
+}
+
+function HostStat({
+  label,
+  value,
+  percent,
+}: {
+  label: string;
+  value: string;
+  percent: number | null;
+}) {
+  const tone =
+    percent === null
+      ? "bg-zinc-500"
+      : percent > 90
+        ? "bg-red-400"
+        : percent > 80
+          ? "bg-amber-400"
+          : "bg-emerald-400";
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+        {label}
+      </p>
+      <p className="mt-1 font-mono text-sm font-bold text-[var(--text-primary)]">
+        {value}
+      </p>
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]">
+        <div
+          className={`h-full rounded-full transition-all ${tone}`}
+          style={{ width: `${percent ?? 0}%` }}
+        />
+      </div>
+      {percent !== null && (
+        <p className="mt-1 text-[10px] text-[var(--text-muted)]">{percent}%</p>
+      )}
     </div>
   );
 }
