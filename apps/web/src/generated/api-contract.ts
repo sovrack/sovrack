@@ -3639,6 +3639,11 @@ export interface components {
              * @example true
              */
             dockerTls?: boolean;
+            /**
+             * @description Install Traefik reverse proxy (ports 80/443) with automatic Let’s Encrypt HTTPS. Services with a domain then get certificates at deploy.
+             * @example true
+             */
+            reverseProxy?: boolean;
             /** @example true */
             nginx?: boolean;
             /** @example false */

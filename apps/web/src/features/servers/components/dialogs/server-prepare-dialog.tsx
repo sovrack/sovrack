@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Check, Wrench, Zap } from "lucide-react";
+import { Activity, Check, Globe, Wrench, Zap } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
 import { usePreparationReadiness } from "@/features/servers/api/use-servers";
@@ -39,6 +39,13 @@ const SETUP_SERVER_PAYLOAD: StartServerPreparationPayload = {
 const SETUP_MONITORING_PAYLOAD: StartServerPreparationPayload = {
   profile: "CUSTOM",
   monitoring: true,
+};
+
+// P3.5 (D5) : reverse proxy Traefik + Let's Encrypt (HTTPS automatique).
+const SETUP_REVERSE_PROXY_PAYLOAD: StartServerPreparationPayload = {
+  profile: "CUSTOM",
+  docker: true,
+  reverseProxy: true,
 };
 
 // Liste lisible de ce que "Setup Server" installe (lecture seule, informative).
@@ -172,7 +179,29 @@ export function ServerPrepareDialog({
           </ul>
         </div>
 
-        {/* Setup Monitoring — action séparée */}
+        {/* Actions optionnelles séparées */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              Reverse Proxy — HTTPS (optional)
+            </p>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Install Traefik (80/443) with automatic Let’s Encrypt
+              certificates. Services with a domain then get HTTPS at deploy.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={isBusy || !isReady}
+            loading={busyThis}
+            onClick={() => void onPrepare(server, SETUP_REVERSE_PROXY_PAYLOAD)}
+            icon={busyThis ? undefined : <Globe size={13} />}
+          >
+            Setup Reverse Proxy
+          </Button>
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-[var(--text-primary)]">

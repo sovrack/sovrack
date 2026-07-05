@@ -9449,6 +9449,11 @@
             "example": true,
             "description": "Configure Docker daemon mTLS (port 2376) and auto-register the DockerConnection — required for the platform to deploy on this server."
           },
+          "reverseProxy": {
+            "type": "boolean",
+            "example": true,
+            "description": "Install Traefik reverse proxy (ports 80/443) with automatic Let’s Encrypt HTTPS. Services with a domain then get certificates at deploy."
+          },
           "nginx": {
             "type": "boolean",
             "example": true

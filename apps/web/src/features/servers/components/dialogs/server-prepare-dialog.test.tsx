@@ -109,6 +109,20 @@ describe("ServerPrepareDialog — fixed Setup Server (P3)", () => {
     expect(payload.postgres).toBeUndefined();
   });
 
+  it("runs Setup Reverse Proxy with the Traefik payload (P3.5)", async () => {
+    mocked.getPreparationReadiness.mockResolvedValue(ready as never);
+    const onPrepare = vi.fn().mockResolvedValue(undefined);
+    renderDialog({ onPrepare });
+
+    const btn = await screen.findByRole("button", {
+      name: "Setup Reverse Proxy",
+    });
+    await waitFor(() => expect(btn).toBeEnabled());
+    fireEvent.click(btn);
+    const [, payload] = onPrepare.mock.calls[0];
+    expect(payload).toMatchObject({ reverseProxy: true, docker: true });
+  });
+
   it("runs Setup Monitoring with the monitoring payload", async () => {
     mocked.getPreparationReadiness.mockResolvedValue(ready as never);
     const onPrepare = vi.fn().mockResolvedValue(undefined);
