@@ -6,6 +6,7 @@ export type PreparationOptionKey =
   | 'docker'
   | 'dockerComposePlugin'
   | 'dockerTls'
+  | 'reverseProxy'
   | 'nginx'
   | 'nixpacks'
   | 'nodejs'
@@ -26,6 +27,7 @@ export type PreparationRoleKey =
   | 'system_base'
   | 'docker'
   | 'docker_tls'
+  | 'traefik'
   | 'nginx'
   | 'nixpacks'
   | 'nodejs'
@@ -75,6 +77,7 @@ export const ROLE_ORDER: PreparationRoleKey[] = [
   'fail2ban',
   'docker',
   'docker_tls',
+  'traefik',
   'nginx',
   'nixpacks',
   'ssl',
@@ -127,6 +130,15 @@ export const PREPARATION_OPTIONS: PreparationOptionDefinition[] = [
     role: 'docker_tls',
     dependencies: ['docker'],
     recommended: true,
+  },
+  {
+    key: 'reverseProxy',
+    label: 'Reverse Proxy (Traefik + HTTPS)',
+    description:
+      'Install Traefik on ports 80/443 with automatic Let’s Encrypt certificates. Once installed, any service with a configured domain gets HTTPS automatically at deploy time. Replaces Nginx (do not install both).',
+    role: 'traefik',
+    dependencies: ['docker'],
+    recommended: false,
   },
   {
     key: 'nginx',

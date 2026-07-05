@@ -32,6 +32,7 @@
           - system_base
           - docker
           - docker_tls
+          - traefik
           - nginx
           - nixpacks
           - nodejs

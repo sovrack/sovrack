@@ -50,6 +50,17 @@ export class StartServerPreparationDto {
   @IsBoolean()
   dockerTls?: boolean;
 
+  @ApiPropertyOptional({
+    example: true,
+    description:
+      'Install Traefik reverse proxy (ports 80/443) with automatic Let’s ' +
+      'Encrypt HTTPS. Services with a domain then get certificates at deploy.',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  reverseProxy?: boolean;
+
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @Type(() => Boolean)
