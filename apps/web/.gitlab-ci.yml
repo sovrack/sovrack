@@ -53,8 +53,7 @@ contract:check:
     # Note: updating api-contract.openapi.json itself requires running
     # 'npm run contract:generate' locally (needs backend running) and committing both files.
     - npm run contract:types
-    - git diff --exit-code src/generated/api-contract.ts
-      || (echo "ERROR: api-contract.ts is outdated. Run 'npm run contract:types' and commit the result." && exit 1)
+    - 'git diff --exit-code src/generated/api-contract.ts || (echo "ERROR: api-contract.ts is outdated. Run ''npm run contract:types'' and commit the result." && exit 1)'
 
 build:
   stage: build
