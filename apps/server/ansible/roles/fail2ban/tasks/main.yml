@@ -5,10 +5,59 @@
     state: present
 
 # Le control node (la plateforme) est le client SSH : on le whitelist pour qu'il
-# ne soit jamais banni par ses propres déploiements répétés.
-- name: "fail2ban | Detect control-node (SSH client) IP"
+# ne soit jamais banni par ses propres déploiements répétés (P4.3, mission
+# finale). La détection est robuste (plusieurs replis) : sur certains VPS
+# (ex. OVH), `ansible_env.SSH_CLIENT` revient VIDE (env non propagé sous sudo /
+# ControlPersist) → la plateforme n'était pas exemptée et risquait un bannissement.
+- name: "fail2ban | Detect control-node IP from gathered SSH env (primary)"
   ansible.builtin.set_fact:
-    fail2ban_control_ip: "{{ (ansible_env.SSH_CLIENT | default('')).split() | first | default('') }}"
+    fail2ban_control_ip: >-
+      {{ (ansible_env.SSH_CLIENT | default('')).split() | first
+         | default((ansible_env.SSH_CONNECTION | default('')).split() | first, true)
+         | default('', true) }}
+
+# Repli 1 : lire SSH_CONNECTION EN DIRECT dans la session (sans become, pour ne
+# pas perdre l'env via sudo env_reset). Premier champ = IP du client (= control).
+- name: "fail2ban | Fallback 1 — read SSH_CONNECTION live from the session"
+  ansible.builtin.command: sh -c 'printf "%s" "${SSH_CONNECTION%% *}"'
+  register: fail2ban_ssh_conn
+  changed_when: false
+  failed_when: false
+  become: false
+  when: fail2ban_control_ip | length == 0
+
+# Repli 2 : le pair de la connexion sshd établie (hors loopback) — indépendant
+# de l'environnement, lu directement depuis la table des sockets.
+- name: "fail2ban | Fallback 2 — peer of the established sshd connection"
+  ansible.builtin.shell: >-
+    set -o pipefail;
+    ss -Htn state established '( sport = :22 )'
+    | awk '{print $4}' | sed 's/:[0-9]*$//'
+    | grep -Ev '^(127\.|::1)' | head -n1
+  args:
+    executable: /bin/bash
+  register: fail2ban_ss_peer
+  changed_when: false
+  failed_when: false
+  when:
+    - fail2ban_control_ip | length == 0
+    - (fail2ban_ssh_conn.stdout | default('') | trim) | length == 0
+
+- name: "fail2ban | Resolve final control-node IP"
+  ansible.builtin.set_fact:
+    fail2ban_control_ip: >-
+      {{ fail2ban_control_ip if (fail2ban_control_ip | length > 0)
+         else ((fail2ban_ssh_conn.stdout | default('') | trim)
+               if ((fail2ban_ssh_conn.stdout | default('') | trim) | length > 0)
+               else (fail2ban_ss_peer.stdout | default('') | trim)) }}
+
+- name: "fail2ban | Warn when control-node IP could not be detected"
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: control-node IP not detected — the platform is NOT in fail2ban
+      ignoreip. Repeated deploys could eventually get it banned. Add it manually
+      to fail2ban_ignoreip if needed.
+  when: fail2ban_control_ip | length == 0
 
 - name: "fail2ban | Build effective ignoreip (defaults + control node)"
   ansible.builtin.set_fact:
