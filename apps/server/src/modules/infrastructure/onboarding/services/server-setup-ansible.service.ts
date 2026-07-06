@@ -58,7 +58,7 @@ export type RunSetupResult = {
  * Server setup Ansible service.
  *
  * Owns the setup-specific concerns (host-key trust, passwordless-sudo
- * pre-flight, the `prepare-server.yml` extra-vars contract) and delegates the
+ * pre-flight, the `setup-server.yml` extra-vars contract) and delegates the
  * actual ansible-playbook spawn to the single, shared {@link AnsibleRunnerService}
  * in core/. No ansible spawning lives here.
  */
@@ -93,7 +93,7 @@ export class ServerSetupAnsibleService {
 
     const playbookPath = join(
       this.ansibleRunner.resolvePlaybooksRoot(),
-      'prepare-server.yml',
+      'setup-server.yml',
     );
     const privateKey = this.crypto.normalizePrivateKeyFormat(
       this.crypto.decrypt(server.sshKey),

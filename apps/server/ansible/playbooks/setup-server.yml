@@ -1,8 +1,8 @@
 ---
-# Internal DevOps Platform - Prepare Server
+# Internal DevOps Platform - Setup Server
 # Ansible runs only on the control node. Target VPS hosts are agentless SSH targets.
 
-- name: "Internal Platform | Prepare remote VPS from control node"
+- name: "Internal Platform | Setup remote VPS from control node"
   hosts: "{{ target_hosts | default('targets') }}"
   become: true
   gather_facts: true
@@ -12,7 +12,7 @@
     managed_by: "{{ managed_by | default('internal-devops-platform-control-node') }}"
 
   pre_tasks:
-    - name: "Prepare | Set default roles when not provided via extra-vars"
+    - name: "Setup | Set default roles when not provided via extra-vars"
       ansible.builtin.set_fact:
         selected_roles:
           - system_base
@@ -20,15 +20,15 @@
       when: selected_roles is not defined or (selected_roles | length == 0)
       tags: always
 
-    - name: "Prepare | Assert selected roles are valid"
+    - name: "Setup | Assert selected roles are valid"
       ansible.builtin.assert:
         that:
           - selected_roles is iterable
           - selected_roles | length > 0
-          - selected_roles | difference(allowed_prepare_roles) | length == 0
-        fail_msg: "Invalid selected_roles. Allowed roles: {{ allowed_prepare_roles | join(', ') }}"
+          - selected_roles | difference(allowed_setup_roles) | length == 0
+        fail_msg: "Invalid selected_roles. Allowed roles: {{ allowed_setup_roles | join(', ') }}"
       vars:
-        allowed_prepare_roles:
+        allowed_setup_roles:
           - system_base
           - docker
           - docker_tls
@@ -54,7 +54,7 @@
           - security_hardening
       tags: always
 
-    - name: "Prepare | Explain execution model"
+    - name: "Setup | Explain execution model"
       ansible.builtin.debug:
         msg:
           - "Ansible is executed from the control node, not installed on the VPS."
@@ -64,16 +64,16 @@
       tags: always
 
   tasks:
-    - name: "Prepare | Run selected role"
+    - name: "Setup | Run selected role"
       ansible.builtin.include_role:
-        name: "{{ prepare_role }}"
+        name: "{{ setup_role }}"
       loop: "{{ selected_roles }}"
       loop_control:
-        loop_var: prepare_role
+        loop_var: setup_role
       tags: always
 
   post_tasks:
-    - name: "Prepare | Completion summary"
+    - name: "Setup | Completion summary"
       ansible.builtin.debug:
         msg: "Server preparation completed with roles: {{ selected_roles | join(', ') }}"
       tags: always

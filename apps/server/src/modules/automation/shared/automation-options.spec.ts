@@ -8,16 +8,16 @@ import { SETUP_OPTIONS } from '../../infrastructure/servers/shared/server-setup-
  *
  * Ce module avait 0 test sur son catalogue alors que c'est LA source des
  * runs Ansible. Historique réel de cette classe de bug : 5 rôles monitoring
- * absents de allowed_prepare_roles (2026-06), et l'action enable_ssl restée
+ * absents de allowed_setup_roles (2026-06), et l'action enable_ssl restée
  * pointée sur le rôle `ssl` supprimé (E4, attrapé en écrivant ce spec).
  * Ces tests empêchent définitivement la dérive catalogue ↔ whitelist ansible.
  */
-function readAllowedPrepareRoles(): string[] {
+function readAllowedSetupRoles(): string[] {
   const playbook = readFileSync(
-    join(__dirname, '../../../../ansible/playbooks/prepare-server.yml'),
+    join(__dirname, '../../../../ansible/playbooks/setup-server.yml'),
     'utf-8',
   );
-  const block = playbook.split('allowed_prepare_roles:')[1];
+  const block = playbook.split('allowed_setup_roles:')[1];
   expect(block).toBeDefined();
   const roles: string[] = [];
   for (const line of block.split('\n').slice(1)) {
@@ -35,10 +35,10 @@ describe('AUTOMATION_ACTIONS catalog integrity', () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it('every prepare-server action only references ansible-whitelisted roles', () => {
-    const allowed = new Set(readAllowedPrepareRoles());
+  it('every setup-server action only references ansible-whitelisted roles', () => {
+    const allowed = new Set(readAllowedSetupRoles());
     for (const action of AUTOMATION_ACTIONS) {
-      if (action.playbookPath !== 'prepare-server.yml') continue;
+      if (action.playbookPath !== 'setup-server.yml') continue;
       for (const role of action.roles ?? []) {
         expect({
           action: action.key,
@@ -50,7 +50,7 @@ describe('AUTOMATION_ACTIONS catalog integrity', () => {
   });
 
   it('preparation options reference only whitelisted ansible roles too', () => {
-    const allowed = new Set(readAllowedPrepareRoles());
+    const allowed = new Set(readAllowedSetupRoles());
     for (const option of SETUP_OPTIONS) {
       expect({ option: option.key, allowed: allowed.has(option.role) }).toEqual(
         { option: option.key, allowed: true },
