@@ -112,6 +112,31 @@ build:
       - dist/
     expire_in: 2 hours
 
+# Construit et pousse l'image Docker de production vers le Container Registry
+# GitLab intégré (méthode B, plan produit final). Kaniko plutôt que
+# `docker build` : ce runner ("docker" executor, gitlab-docker-runner-2) n'a
+# PAS Docker-in-Docker — mémé limite déjà rencontrée et contournée pour
+# test:e2e (Testcontainers). Kaniko construit une image OCI sans daemon
+# Docker, fonctionne sur n'importe quel runner sans privileged mode.
+# CI_REGISTRY_USER/PASSWORD sont fournis automatiquement par GitLab pour
+# CE projet — rien à créer côté utilisateur pour CETTE étape.
+build:image:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: ['']
+  script:
+    - mkdir -p /kaniko/.docker
+    - >
+      echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor
+      --context "$CI_PROJECT_DIR"
+      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
+      --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      --destination "$CI_REGISTRY_IMAGE:latest"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
 # ── Security & quality gates ────────────────────────────────────────────────
 
 # Dependency vulnerability gate: fail on any HIGH/CRITICAL advisory. Moderate
