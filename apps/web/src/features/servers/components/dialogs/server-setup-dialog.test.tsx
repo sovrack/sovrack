@@ -89,9 +89,9 @@ describe("ServerSetupDialog — fixed core + optional checkboxes", () => {
         open
         server={server}
         isBusy={false}
-        preparingId={null}
+        settingUpId={null}
         onClose={vi.fn()}
-        onPrepare={vi.fn()}
+        onStartSetup={vi.fn()}
         {...props}
       />,
       { wrapper: setup() },
@@ -134,14 +134,14 @@ describe("ServerSetupDialog — fixed core + optional checkboxes", () => {
 
   it("runs Setup Server with the fixed essential payload when no extra is checked", async () => {
     mocked.getSetupReadiness.mockResolvedValue(ready as never);
-    const onPrepare = vi.fn().mockResolvedValue(undefined);
-    renderDialog({ onPrepare });
+    const onStartSetup = vi.fn().mockResolvedValue(undefined);
+    renderDialog({ onStartSetup });
 
     const btn = await screen.findByRole("button", { name: "Setup Server" });
     await waitFor(() => expect(btn).toBeEnabled());
     fireEvent.click(btn);
-    expect(onPrepare).toHaveBeenCalledTimes(1);
-    const [, payload] = onPrepare.mock.calls[0];
+    expect(onStartSetup).toHaveBeenCalledTimes(1);
+    const [, payload] = onStartSetup.mock.calls[0];
     expect(payload).toMatchObject({
       docker: true,
       dockerTls: true,
@@ -159,8 +159,8 @@ describe("ServerSetupDialog — fixed core + optional checkboxes", () => {
 
   it("bundles Reverse Proxy into the same Setup Server run when checked", async () => {
     mocked.getSetupReadiness.mockResolvedValue(ready as never);
-    const onPrepare = vi.fn().mockResolvedValue(undefined);
-    renderDialog({ onPrepare });
+    const onStartSetup = vi.fn().mockResolvedValue(undefined);
+    renderDialog({ onStartSetup });
 
     await waitFor(() =>
       expect(
@@ -174,14 +174,14 @@ describe("ServerSetupDialog — fixed core + optional checkboxes", () => {
 
     const btn = screen.getByRole("button", { name: "Setup Server" });
     fireEvent.click(btn);
-    const [, payload] = onPrepare.mock.calls[0];
+    const [, payload] = onStartSetup.mock.calls[0];
     expect(payload).toMatchObject({ reverseProxy: true, docker: true });
   });
 
   it("bundles GitLab Runner into the same Setup Server run when checked", async () => {
     mocked.getSetupReadiness.mockResolvedValue(ready as never);
-    const onPrepare = vi.fn().mockResolvedValue(undefined);
-    renderDialog({ onPrepare });
+    const onStartSetup = vi.fn().mockResolvedValue(undefined);
+    renderDialog({ onStartSetup });
 
     await waitFor(() =>
       expect(screen.getByText("GitLab Runner")).toBeInTheDocument(),
@@ -191,7 +191,7 @@ describe("ServerSetupDialog — fixed core + optional checkboxes", () => {
 
     const btn = screen.getByRole("button", { name: "Setup Server" });
     fireEvent.click(btn);
-    const [, payload] = onPrepare.mock.calls[0];
+    const [, payload] = onStartSetup.mock.calls[0];
     expect(payload).toMatchObject({ gitlabRunner: true, docker: true });
   });
 

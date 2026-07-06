@@ -34,7 +34,7 @@ function makeJob(over: Partial<ServerJob> = {}): ServerJob {
     finishedAt: null,
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
-    preparationId: null,
+    setupId: null,
     ...over,
   } as ServerJob;
 }
@@ -81,7 +81,7 @@ describe("ServerJobsPanel — expand to reveal full detail (Task A2)", () => {
   it("offers 'View step-by-step Ansible log' only for a PREPARE_SERVER job with a matching setup", () => {
     const job = makeJob({
       type: "PREPARE_SERVER",
-      preparationId: "run-42",
+      setupId: "run-42",
       output: "preparing…",
     });
     const setup = { id: "run-42", status: "SUCCEEDED" } as ServerSetup;
@@ -106,7 +106,7 @@ describe("ServerJobsPanel — expand to reveal full detail (Task A2)", () => {
   });
 
   it("does not offer the Ansible log button when no matching setup exists", () => {
-    const job = makeJob({ type: "PREPARE_SERVER", preparationId: "run-missing" });
+    const job = makeJob({ type: "PREPARE_SERVER", setupId: "run-missing" });
     render(<ServerJobsPanel {...baseProps} jobs={[job]} setups={[]} />);
 
     fireEvent.click(

@@ -27,7 +27,7 @@ type ServerJobsPanelProps = {
   onRetryJob: (serverId: string, jobId: string) => Promise<void>;
   onCancelJob?: (serverId: string, jobId: string) => Promise<void>;
   // A2: PREPARE_SERVER jobs link to the detailed ServerRun (step-by-step
-  // Ansible log) they triggered via job.preparationId — merges what the now
+  // Ansible log) they triggered via job.setupId — merges what the now
   // -removed standalone "Logs" dialog showed directly into this list.
   setups: ServerSetup[];
   onViewSetupLogs: (setup: ServerSetup) => void;
@@ -123,8 +123,8 @@ export function ServerJobsPanel({
       <div className="mt-2 space-y-2">
         {jobs.slice(0, 5).map((job) => {
           const isExpanded = expandedJobId === job.id;
-          const setup = job.preparationId
-            ? (setups.find((p) => p.id === job.preparationId) ?? null)
+          const setup = job.setupId
+            ? (setups.find((p) => p.id === job.setupId) ?? null)
             : null;
           return (
             <div

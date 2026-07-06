@@ -3,11 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   serversService,
-  type PrepareServerPayload,
+  type StartSetupPayload,
 } from "@/features/servers/api/servers.service";
 import {
-  ACTIVE_PREPARATION_STATUSES,
-  FINISHED_PREPARATION_STATUSES,
+  ACTIVE_SETUP_STATUSES,
+  FINISHED_SETUP_STATUSES,
   serverKeys,
 } from "./server-query-keys";
 
@@ -38,7 +38,7 @@ export function useServerSetups(id: string) {
       const data = query.state.data;
       if (!data || !Array.isArray(data)) return 3_000;
       const hasActive = (data as Array<{ status: string }>).some((p) =>
-        ACTIVE_PREPARATION_STATUSES.has(p.status),
+        ACTIVE_SETUP_STATUSES.has(p.status),
       );
       return hasActive ? 3_000 : false;
     },
@@ -49,8 +49,8 @@ export function useServerSetups(id: string) {
 export function useStartServerSetup(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: PrepareServerPayload) =>
-      serversService.prepare(id, payload),
+    mutationFn: (payload: StartSetupPayload) =>
+      serversService.startSetup(id, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: serverKeys.all });
       void queryClient.invalidateQueries({
@@ -78,7 +78,7 @@ export function useSetup(id: string | null) {
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data) return 3_000;
-      return FINISHED_PREPARATION_STATUSES.has(
+      return FINISHED_SETUP_STATUSES.has(
         (data as { status: string }).status,
       )
         ? false

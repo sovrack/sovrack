@@ -4399,7 +4399,7 @@
     },
     "/servers/{id}/setups": {
       "post": {
-        "operationId": "ServerSetupController_startPreparation",
+        "operationId": "ServerSetupController_startSetup",
         "parameters": [
           {
             "name": "id",
@@ -4439,11 +4439,11 @@
         ],
         "summary": "Start a server provisioning job",
         "tags": [
-          "Servers Preparation"
+          "Servers Setup"
         ]
       },
       "get": {
-        "operationId": "ServerSetupController_listPreparations",
+        "operationId": "ServerSetupController_listSetups",
         "parameters": [
           {
             "name": "id",
@@ -4476,13 +4476,13 @@
         ],
         "summary": "List the server's provisioning history",
         "tags": [
-          "Servers Preparation"
+          "Servers Setup"
         ]
       }
     },
-    "/servers/{id}/preparation-readiness": {
+    "/servers/{id}/setup-readiness": {
       "get": {
-        "operationId": "ServerSetupController_getPreparationReadiness",
+        "operationId": "ServerSetupController_getSetupReadiness",
         "parameters": [
           {
             "name": "id",
@@ -4512,7 +4512,7 @@
         ],
         "summary": "Check whether the server is ready to start provisioning (SSH/sudo/state/lock).",
         "tags": [
-          "Servers Preparation"
+          "Servers Setup"
         ]
       }
     },
@@ -4548,7 +4548,7 @@
         ],
         "summary": "View a server provisioning's details",
         "tags": [
-          "Server Preparations"
+          "Server Setups"
         ]
       }
     },
@@ -4595,7 +4595,7 @@
         ],
         "summary": "Read the persisted logs of a provisioning job",
         "tags": [
-          "Server Preparations"
+          "Server Setups"
         ]
       }
     },
@@ -4641,7 +4641,7 @@
         ],
         "summary": "Re-run a provisioning by creating a new linked job",
         "tags": [
-          "Server Preparations"
+          "Server Setups"
         ]
       }
     },
@@ -4677,7 +4677,7 @@
         ],
         "summary": "Cancel a provisioning job if still active",
         "tags": [
-          "Server Preparations"
+          "Server Setups"
         ]
       }
     },
@@ -4697,7 +4697,7 @@
         ],
         "summary": "List provisioning options and profiles",
         "tags": [
-          "Server Preparation Options"
+          "Server Setup Options"
         ]
       }
     },
@@ -8863,7 +8863,7 @@
             "type": "string",
             "format": "date-time"
           },
-          "preparationId": {
+          "setupId": {
             "type": "string",
             "nullable": true,
             "description": "For PREPARE_SERVER jobs: the id of the ServerRun (kind=PREPARATION) it triggered — fetch it for the step-by-step Ansible log. Null for job types that never ran Ansible (VERIFY/INSTALL_TOOLS/REGISTER_RUNNER)."
@@ -9365,7 +9365,7 @@
             ],
             "type": "string",
             "default": "BASIC",
-            "description": "Reusable preparation profile. Explicit options override profile defaults."
+            "description": "Reusable setup profile. Explicit options override profile defaults."
           },
           "systemUpdate": {
             "type": "boolean",
@@ -9475,7 +9475,7 @@
           "id": {
             "type": "string"
           },
-          "preparationId": {
+          "setupId": {
             "type": "string"
           },
           "roleKey": {
@@ -9518,7 +9518,7 @@
         },
         "required": [
           "id",
-          "preparationId",
+          "setupId",
           "roleKey",
           "taskName",
           "orderIndex",
@@ -9584,7 +9584,7 @@
             "type": "string",
             "nullable": true
           },
-          "retryOfPreparationId": {
+          "retryOfSetupId": {
             "type": "string",
             "nullable": true
           },
@@ -9625,7 +9625,7 @@
           "sudoAvailable": {
             "type": "boolean"
           },
-          "noActivePreparation": {
+          "noActiveSetup": {
             "type": "boolean"
           }
         },
@@ -9636,7 +9636,7 @@
           "sshReachable",
           "authSucceeded",
           "sudoAvailable",
-          "noActivePreparation"
+          "noActiveSetup"
         ]
       },
       "ServerSetupReadinessDto": {
@@ -9676,7 +9676,7 @@
           "id": {
             "type": "string"
           },
-          "preparationId": {
+          "setupId": {
             "type": "string"
           },
           "level": {
@@ -9703,7 +9703,7 @@
         },
         "required": [
           "id",
-          "preparationId",
+          "setupId",
           "level",
           "source",
           "message",

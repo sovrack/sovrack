@@ -69,7 +69,12 @@ export function ServiceVariablesTab({
     .map((s) => ({
       id: s.id,
       name: s.name,
-      envVar: s.databaseType === "REDIS" ? "REDIS_URL" : "DATABASE_URL",
+      envVar:
+        s.databaseType === "REDIS"
+          ? "REDIS_URL"
+          : s.databaseType === "RABBITMQ"
+            ? "AMQP_URL"
+            : "DATABASE_URL",
     }));
 
   if (!environmentId) {

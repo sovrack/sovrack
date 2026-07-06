@@ -307,6 +307,26 @@ describe("ServiceVariablesTab — sibling DATABASE auto-wiring note (Task 4)", (
     ).toBeInTheDocument();
   });
 
+  it("shows AMQP_URL for a sibling RabbitMQ service", async () => {
+    mockedProjectServices.mockReturnValue({
+      data: [
+        {
+          id: "svc-db",
+          name: "deploy-test-rabbitmq",
+          type: "DATABASE",
+          databaseType: "RABBITMQ",
+          envLinks: [{ id: "senv-db", environmentId: "env1" }],
+        },
+      ],
+    } as never);
+
+    renderTab();
+
+    expect(
+      await screen.findByText(/AMQP_URL — from deploy-test-rabbitmq/),
+    ).toBeInTheDocument();
+  });
+
   it("shows no note when there is no sibling DATABASE service linked to this environment", async () => {
     mockedProjectServices.mockReturnValue({
       data: [

@@ -14,7 +14,7 @@ vi.mock("@/features/servers/api/servers.service", () => ({
     update: vi.fn(),
     verify: vi.fn(),
     detect: vi.fn(),
-    prepare: vi.fn(),
+    startSetup: vi.fn(),
     installKey: vi.fn(),
     remove: vi.fn(),
     retryJob: vi.fn(),
@@ -144,17 +144,17 @@ describe("useServerActions — state management (useReducer)", () => {
     );
   });
 
-  it("getPrepareOptions defaults to docker executor, handlePrepareOptionChange updates the draft", async () => {
+  it("getSetupDraft defaults to docker executor, handleSetupOptionChange updates the draft", async () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.servers).toHaveLength(1));
 
     const server = aServer();
-    expect(result.current.getPrepareOptions(server)).toEqual({
+    expect(result.current.getSetupDraft(server)).toEqual({
       gitlabRunnerExecutor: "docker",
     });
 
     act(() =>
-      result.current.handlePrepareOptionChange(
+      result.current.handleSetupOptionChange(
         server,
         "gitlabRunnerExecutor",
         "shell",
@@ -162,39 +162,39 @@ describe("useServerActions — state management (useReducer)", () => {
     );
 
     await waitFor(() =>
-      expect(result.current.getPrepareOptions(server)).toEqual({
+      expect(result.current.getSetupDraft(server)).toEqual({
         gitlabRunnerExecutor: "shell",
       }),
     );
   });
 
-  it("handlePrepare clears the prepare draft for the server after success", async () => {
-    mocked.prepare.mockResolvedValue(undefined as never);
+  it("handleStartSetup clears the setup draft for the server after success", async () => {
+    mocked.startSetup.mockResolvedValue(undefined as never);
     mocked.getJobs.mockResolvedValue([]);
     const { result } = setup();
     await waitFor(() => expect(result.current.servers).toHaveLength(1));
 
     const server = aServer();
     act(() =>
-      result.current.handlePrepareOptionChange(
+      result.current.handleSetupOptionChange(
         server,
         "gitlabRunnerExecutor",
         "shell",
       ),
     );
     await waitFor(() =>
-      expect(result.current.getPrepareOptions(server).gitlabRunnerExecutor).toBe(
+      expect(result.current.getSetupDraft(server).gitlabRunnerExecutor).toBe(
         "shell",
       ),
     );
 
     await act(async () => {
-      await result.current.handlePrepare(server);
+      await result.current.handleStartSetup(server);
     });
 
-    expect(result.current.getPrepareOptions(server)).toEqual({
+    expect(result.current.getSetupDraft(server)).toEqual({
       gitlabRunnerExecutor: "docker",
     });
-    expect(result.current.preparingId).toBeNull();
+    expect(result.current.settingUpId).toBeNull();
   });
 });

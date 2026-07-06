@@ -1,4 +1,4 @@
-export const FINISHED_PREPARATION_STATUSES = new Set([
+export const FINISHED_SETUP_STATUSES = new Set([
   "SUCCEEDED",
   "FAILED",
   "TIMEOUT",
@@ -6,7 +6,7 @@ export const FINISHED_PREPARATION_STATUSES = new Set([
   "PARTIAL",
 ]);
 
-export const ACTIVE_PREPARATION_STATUSES = new Set([
+export const ACTIVE_SETUP_STATUSES = new Set([
   "QUEUED",
   "RESOLVING_OPTIONS",
   "WAITING_FOR_LOCK",

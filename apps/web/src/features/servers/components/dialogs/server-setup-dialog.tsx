@@ -13,7 +13,7 @@ import type {
   StartServerSetupPayload,
 } from "@/features/servers/types/server";
 
-export type PrepareOptions = StartServerSetupPayload;
+export type SetupDialogOptions = StartServerSetupPayload;
 
 // P3 (mission finale, décision D4) : "Setup Server" installe un jeu FIXE
 // (pas de cases à cocher), choisi par la plateforme — un serveur peut builder
@@ -77,13 +77,13 @@ type ServerSetupDialogProps = {
   open: boolean;
   server: Server | null;
   isBusy: boolean;
-  preparingId: string | null;
+  settingUpId: string | null;
   // "Validate SSH" est repliée ici (le tableau serveurs n'a que 5 actions) :
   // proposée inline quand la validation SSH est le prérequis bloquant.
   onVerify?: (server: Server) => Promise<void>;
   verifyingId?: string | null;
   onClose: () => void;
-  onPrepare: (
+  onStartSetup: (
     server: Server,
     options: StartServerSetupPayload,
   ) => Promise<void>;
@@ -93,11 +93,11 @@ export function ServerSetupDialog({
   open,
   server,
   isBusy,
-  preparingId,
+  settingUpId,
   onVerify,
   verifyingId,
   onClose,
-  onPrepare,
+  onStartSetup,
 }: ServerSetupDialogProps) {
   const readinessQuery = useSetupReadiness(
     open && server ? server.id : "",
@@ -122,7 +122,7 @@ export function ServerSetupDialog({
       : (readiness?.blockingReasons ?? []);
   const isReady =
     !readinessLoading && !readinessError && Boolean(readiness?.isReady);
-  const busyThis = preparingId === server.id;
+  const busyThis = settingUpId === server.id;
 
   const extraOptions = (optionsQuery.data?.options ?? []).filter((o) =>
     EXTRA_OPTION_KEYS.includes(o.key),
@@ -135,14 +135,14 @@ export function ServerSetupDialog({
   const runSetup = () => {
     const payload: StartServerSetupPayload = { ...SETUP_SERVER_PAYLOAD };
     // reverseProxy needs docker (already true above); each extra is just an
-    // extra boolean on the same flat payload — resolvePreparationOptions
+    // extra boolean on the same flat payload — resolveSetupOptions
     // (backend) fills in role dependencies on its own.
     for (const key of EXTRA_OPTION_KEYS) {
       if (selectedExtras[key]) {
         (payload as Record<string, unknown>)[key] = true;
       }
     }
-    void onPrepare(server, payload);
+    void onStartSetup(server, payload);
   };
 
   return (

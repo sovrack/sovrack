@@ -120,14 +120,14 @@ export type ServerSetup = Omit<
   | "finishedAt"
   | "summary"
   | "errorMessage"
-  | "retryOfPreparationId"
+  | "retryOfSetupId"
   | "tasks"
 > & {
   startedAt?: string | null;
   finishedAt?: string | null;
   summary?: string | null;
   errorMessage?: string | null;
-  retryOfPreparationId?: string | null;
+  retryOfSetupId?: string | null;
   selectedOptionsJson?: Record<string, unknown>;
   resolvedRolesJson?: string[];
   createdAt: string;

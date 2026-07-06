@@ -141,14 +141,13 @@ export function ServerOverallStatusBadge({ server }: { server: Server }) {
 // A4: real per-server tool badges, driven by Server.installedTools (capability
 // detection) — not a generic/hardcoded pair like ServerWorkflowBadges'
 // Docker/Runner booleans below. Only tools actually detected as INSTALLED on
-// THIS server are shown; nothing is fabricated for tools this platform
-// doesn't track per-server (e.g. Traefik — it runs as a deployment-time
-// reverse proxy, not an OS package a server "has installed").
+// THIS server are shown.
 const TOOL_DISPLAY_PRIORITY = [
   "docker",
   "postgres",
   "redis",
   "nginx",
+  "traefik",
   "gitlab_runner",
 ];
 

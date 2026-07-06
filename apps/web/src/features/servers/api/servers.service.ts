@@ -41,7 +41,7 @@ function isPaginatedResponse<T>(
   return Array.isArray((value as RawDataPaginatedResponse<T>).data);
 }
 
-export type PrepareServerPayload = StartServerSetupPayload;
+export type StartSetupPayload = StartServerSetupPayload;
 
 /** Metadata of a server's Docker TLS connection (certs are write-only). */
 export type DockerConnectionInfo = {
@@ -163,9 +163,9 @@ export const serversService = {
     return res.data;
   },
 
-  async prepare(
+  async startSetup(
     id: string,
-    payload: PrepareServerPayload,
+    payload: StartSetupPayload,
   ): Promise<ServerSetup> {
     const res = await api.post<ServerSetup>(
       `/servers/${id}/setups`,
@@ -239,7 +239,7 @@ export const serversService = {
     id: string,
   ): Promise<ServerSetupReadiness> {
     const res = await api.get<ServerSetupReadiness>(
-      `/servers/${id}/preparation-readiness`,
+      `/servers/${id}/setup-readiness`,
     );
     return res.data;
   },

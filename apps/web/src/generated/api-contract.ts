@@ -1651,17 +1651,17 @@ export interface paths {
             cookie?: never;
         };
         /** List the server's provisioning history */
-        get: operations["ServerSetupController_listPreparations"];
+        get: operations["ServerSetupController_listSetups"];
         put?: never;
         /** Start a server provisioning job */
-        post: operations["ServerSetupController_startPreparation"];
+        post: operations["ServerSetupController_startSetup"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/servers/{id}/preparation-readiness": {
+    "/servers/{id}/setup-readiness": {
         parameters: {
             query?: never;
             header?: never;
@@ -1669,7 +1669,7 @@ export interface paths {
             cookie?: never;
         };
         /** Check whether the server is ready to start provisioning (SSH/sudo/state/lock). */
-        get: operations["ServerSetupController_getPreparationReadiness"];
+        get: operations["ServerSetupController_getSetupReadiness"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3409,7 +3409,7 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             /** @description For PREPARE_SERVER jobs: the id of the ServerRun (kind=PREPARATION) it triggered — fetch it for the step-by-step Ansible log. Null for job types that never ran Ansible (VERIFY/INSTALL_TOOLS/REGISTER_RUNNER). */
-            preparationId?: string | null;
+            setupId?: string | null;
         };
         PaginatedServerJobsResponseDto: {
             data: components["schemas"]["ServerJobResponseDto"][];
@@ -3576,7 +3576,7 @@ export interface components {
         };
         StartServerSetupDto: {
             /**
-             * @description Reusable preparation profile. Explicit options override profile defaults.
+             * @description Reusable setup profile. Explicit options override profile defaults.
              * @default BASIC
              * @enum {string}
              */
@@ -3646,7 +3646,7 @@ export interface components {
         };
         ServerSetupTaskDto: {
             id: string;
-            preparationId: string;
+            setupId: string;
             roleKey: string;
             taskName: string;
             orderIndex: number;
@@ -3673,7 +3673,7 @@ export interface components {
             finishedAt?: string | null;
             summary?: string | null;
             errorMessage?: string | null;
-            retryOfPreparationId?: string | null;
+            retryOfSetupId?: string | null;
             tasks: components["schemas"]["ServerSetupTaskDto"][];
         };
         ServerSetupReadinessChecksDto: {
@@ -3683,7 +3683,7 @@ export interface components {
             sshReachable: boolean;
             authSucceeded: boolean;
             sudoAvailable: boolean;
-            noActivePreparation: boolean;
+            noActiveSetup: boolean;
         };
         ServerSetupReadinessDto: {
             serverId: string;
@@ -3695,7 +3695,7 @@ export interface components {
         };
         ServerSetupLogDto: {
             id: string;
-            preparationId: string;
+            setupId: string;
             /** @enum {string} */
             level: "INFO" | "WARNING" | "ERROR";
             source: string;
@@ -7358,7 +7358,7 @@ export interface operations {
             };
         };
     };
-    ServerSetupController_listPreparations: {
+    ServerSetupController_listSetups: {
         parameters: {
             query?: never;
             header?: never;
@@ -7379,7 +7379,7 @@ export interface operations {
             };
         };
     };
-    ServerSetupController_startPreparation: {
+    ServerSetupController_startSetup: {
         parameters: {
             query?: never;
             header?: never;
@@ -7404,7 +7404,7 @@ export interface operations {
             };
         };
     };
-    ServerSetupController_getPreparationReadiness: {
+    ServerSetupController_getSetupReadiness: {
         parameters: {
             query?: never;
             header?: never;

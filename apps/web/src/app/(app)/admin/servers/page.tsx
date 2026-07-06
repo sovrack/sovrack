@@ -39,7 +39,7 @@ export default function AdminServersPage() {
     null,
   );
   const [installKeyError, setInstallKeyError] = useState<string | null>(null);
-  const [prepareServer, setPrepareServer] = useState<ServerType | null>(null);
+  const [setupServer, setSetupServer] = useState<ServerType | null>(null);
   const [detailsServer, setDetailsServer] = useState<ServerType | null>(null);
   const [terminalServer, setTerminalServer] = useState<ServerType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServerType | null>(null);
@@ -70,7 +70,7 @@ export default function AdminServersPage() {
       [
         servers.verifyingId,
         servers.detectingId,
-        servers.preparingId,
+        servers.settingUpId,
         servers.installingKeyId,
         servers.deletingId,
         servers.updatingId,
@@ -78,7 +78,7 @@ export default function AdminServersPage() {
     );
   };
 
-  const activePrepareServer = resolveLiveServer(prepareServer);
+  const activeSetupServer = resolveLiveServer(setupServer);
   const activeDetailsServer = resolveLiveServer(detailsServer);
   const activeDetailsJobs = activeDetailsServer
     ? (servers.jobsByServer[activeDetailsServer.id] ?? [])
@@ -201,7 +201,7 @@ export default function AdminServersPage() {
             isReachable={reachabilityQuery.data ?? {}}
             getServerBusy={getServerBusy}
             onOpenTerminal={setTerminalServer}
-            onOpenSetup={setPrepareServer}
+            onOpenSetup={setSetupServer}
             onOpenDetails={setDetailsServer}
             onEdit={(s) => {
               setEditError(null);
@@ -244,14 +244,14 @@ export default function AdminServersPage() {
       />
 
       <ServerSetupDialog
-        open={Boolean(activePrepareServer)}
-        server={activePrepareServer}
-        isBusy={getServerBusy(activePrepareServer)}
-        preparingId={servers.preparingId}
+        open={Boolean(activeSetupServer)}
+        server={activeSetupServer}
+        isBusy={getServerBusy(activeSetupServer)}
+        settingUpId={servers.settingUpId}
         onVerify={(s) => servers.handleVerify(s.id)}
         verifyingId={servers.verifyingId}
-        onClose={() => setPrepareServer(null)}
-        onPrepare={servers.handlePrepare}
+        onClose={() => setSetupServer(null)}
+        onStartSetup={servers.handleStartSetup}
       />
 
       <ServerDetailsDialog

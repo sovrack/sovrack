@@ -6,7 +6,7 @@ import { useToast } from "@/shared/contexts/toast-context";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import {
   serversService,
-  type PrepareServerPayload,
+  type StartSetupPayload,
 } from "@/features/servers/api/servers.service";
 import {
   canCancelJob,
@@ -24,9 +24,9 @@ import type {
 } from "@/features/servers/types/server";
 
 /* ─── State + reducer ──────────────────────────────────────────────────────
- * The 12 pieces of local state (verifyingId, detectingId, preparingId,
+ * The 12 pieces of local state (verifyingId, detectingId, settingUpId,
  * installingKeyId, deletingId, updatingId, creating, loadingJobsByServer,
- * jobsByServer, retryingJobId, cancelingJobId, prepareDrafts) were
+ * jobsByServer, retryingJobId, cancelingJobId, setupDrafts) were
  * previously 12 independent useState calls. Consolidated into one
  * ServerActionsState + a reducer. The single-id fields (verifyingId etc.)
  * deliberately stay individual nullable-id fields rather than a shared
@@ -40,7 +40,7 @@ import type {
 type ServerActionsState = {
   verifyingId: string | null;
   detectingId: string | null;
-  preparingId: string | null;
+  settingUpId: string | null;
   installingKeyId: string | null;
   deletingId: string | null;
   updatingId: string | null;
@@ -49,13 +49,13 @@ type ServerActionsState = {
   jobsByServer: Record<string, ServerJob[]>;
   retryingJobId: string | null;
   cancelingJobId: string | null;
-  prepareDrafts: Record<string, PrepareServerPayload>;
+  setupDrafts: Record<string, StartSetupPayload>;
 };
 
 const initialState: ServerActionsState = {
   verifyingId: null,
   detectingId: null,
-  preparingId: null,
+  settingUpId: null,
   installingKeyId: null,
   deletingId: null,
   updatingId: null,
@@ -64,7 +64,7 @@ const initialState: ServerActionsState = {
   jobsByServer: {},
   retryingJobId: null,
   cancelingJobId: null,
-  prepareDrafts: {},
+  setupDrafts: {},
 };
 
 type SetFieldAction = {
@@ -80,8 +80,8 @@ type ServerActionsReducerAction =
   | { type: "SET_LOADING_JOBS_FOR_SERVER"; serverId: string; loading: boolean }
   | { type: "SET_JOBS_FOR_SERVER"; serverId: string; jobs: ServerJob[] }
   | { type: "REMOVE_JOBS_FOR_SERVER"; serverId: string }
-  | { type: "SET_PREPARE_DRAFT"; serverId: string; draft: PrepareServerPayload }
-  | { type: "CLEAR_PREPARE_DRAFT"; serverId: string };
+  | { type: "SET_SETUP_DRAFT"; serverId: string; draft: StartSetupPayload }
+  | { type: "CLEAR_SETUP_DRAFT"; serverId: string };
 
 function serverActionsReducer(
   state: ServerActionsState,
@@ -108,15 +108,15 @@ function serverActionsReducer(
       delete next[action.serverId];
       return { ...state, jobsByServer: next };
     }
-    case "SET_PREPARE_DRAFT":
+    case "SET_SETUP_DRAFT":
       return {
         ...state,
-        prepareDrafts: { ...state.prepareDrafts, [action.serverId]: action.draft },
+        setupDrafts: { ...state.setupDrafts, [action.serverId]: action.draft },
       };
-    case "CLEAR_PREPARE_DRAFT": {
-      const next = { ...state.prepareDrafts };
+    case "CLEAR_SETUP_DRAFT": {
+      const next = { ...state.setupDrafts };
       delete next[action.serverId];
-      return { ...state, prepareDrafts: next };
+      return { ...state, setupDrafts: next };
     }
     default:
       return state;
@@ -129,7 +129,7 @@ export function useServerActions() {
   const {
     verifyingId,
     detectingId,
-    preparingId,
+    settingUpId,
     installingKeyId,
     deletingId,
     updatingId,
@@ -138,7 +138,7 @@ export function useServerActions() {
     jobsByServer,
     retryingJobId,
     cancelingJobId,
-    prepareDrafts,
+    setupDrafts,
   } = state;
 
   const setField = useCallback(
@@ -236,29 +236,29 @@ export function useServerActions() {
     }
   };
 
-  const getPrepareOptions = (server: ServerType): PrepareServerPayload => {
+  const getSetupDraft = (server: ServerType): StartSetupPayload => {
     return (
-      prepareDrafts[server.id] ?? {
+      setupDrafts[server.id] ?? {
         gitlabRunnerExecutor: "docker",
       }
     );
   };
 
-  const handlePrepareOptionChange = (
+  const handleSetupOptionChange = (
     server: ServerType,
-    field: keyof PrepareServerPayload,
+    field: keyof StartSetupPayload,
     value: boolean | string | string[],
   ) => {
-    const current = getPrepareOptions(server);
+    const current = getSetupDraft(server);
     dispatch({
-      type: "SET_PREPARE_DRAFT",
+      type: "SET_SETUP_DRAFT",
       serverId: server.id,
       draft: { ...current, [field]: value },
     });
   };
 
-  const clearPrepareDraft = (serverId: string) => {
-    dispatch({ type: "CLEAR_PREPARE_DRAFT", serverId });
+  const clearSetupDraft = (serverId: string) => {
+    dispatch({ type: "CLEAR_SETUP_DRAFT", serverId });
   };
 
   const handleCreate = async (payload: CreateServerPayload) => {
@@ -323,22 +323,22 @@ export function useServerActions() {
   // P3 (mission finale) : le dialog Setup Server envoie un JEU DE BOOLÉENS FIXE
   // (bouton "Setup Server" ou "Setup Monitoring") via `overrideOptions`, au
   // lieu d'un brouillon de cases à cocher — d'où ce paramètre optionnel.
-  const handlePrepare = async (
+  const handleStartSetup = async (
     server: ServerType,
-    overrideOptions?: PrepareServerPayload,
+    overrideOptions?: StartSetupPayload,
   ) => {
-    const payload = overrideOptions ?? getPrepareOptions(server);
-    setField("preparingId", server.id);
+    const payload = overrideOptions ?? getSetupDraft(server);
+    setField("settingUpId", server.id);
     try {
-      await serversService.prepare(server.id, payload);
+      await serversService.startSetup(server.id, payload);
       showToast("Setup started", "success");
       await refreshJobs(server.id);
       await fetchServers();
-      clearPrepareDraft(server.id);
+      clearSetupDraft(server.id);
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
     } finally {
-      setField("preparingId", null);
+      setField("settingUpId", null);
     }
   };
 
@@ -418,7 +418,7 @@ export function useServerActions() {
     updatingId,
     verifyingId,
     detectingId,
-    preparingId,
+    settingUpId,
     installingKeyId,
     deletingId,
     loadingJobsByServer,
@@ -427,13 +427,13 @@ export function useServerActions() {
     cancelingJobId,
     fetchServers,
     refreshJobs,
-    getPrepareOptions,
-    handlePrepareOptionChange,
+    getSetupDraft,
+    handleSetupOptionChange,
     handleCreate,
     handleUpdate,
     handleVerify,
     handleDetect,
-    handlePrepare,
+    handleStartSetup,
     handleInstallKey,
     handleDelete,
     handleRetryJob,

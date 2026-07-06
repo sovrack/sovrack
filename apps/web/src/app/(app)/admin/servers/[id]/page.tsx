@@ -19,7 +19,7 @@ import { ServerSetupHistory } from "@/features/servers/components/panels/server-
 import { ServerSetupLogViewer } from "@/features/servers/components/panels/server-setup-log-viewer";
 import {
   ServerSetupDialog,
-  type PrepareOptions,
+  type SetupDialogOptions,
 } from "@/features/servers/components/dialogs/server-setup-dialog";
 import { ServerAuditTimeline } from "@/features/servers/components/panels/server-audit-timeline";
 import {
@@ -42,7 +42,7 @@ import type { ServerSetup } from "@/features/servers/types/server";
 export default function AdminServerDetailPage() {
   const params = useParams();
   const serverId = params.id as string;
-  const [prepareOpen, setPrepareOpen] = useState(false);
+  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const [selectedSetup, setSelectedSetup] =
     useState<ServerSetup | null>(null);
 
@@ -64,17 +64,17 @@ export default function AdminServerDetailPage() {
   const readiness = readinessQuery.data;
   const loading = serverQuery.isLoading;
 
-  const onPrepare = async (options: PrepareOptions) => {
+  const handleStartSetup = async (options: SetupDialogOptions) => {
     await startSetup.mutateAsync(options);
-    setPrepareOpen(false);
+    setSetupDialogOpen(false);
   };
 
-  const primaryAction: "validate" | "detect" | "prepare" =
+  const primaryAction: "validate" | "detect" | "setup" =
     !server || !server.isVerified || server.status === "VALIDATION_FAILED"
       ? "validate"
       : !server.lastDetectedAt && server.status !== "INFO_DETECTED"
         ? "detect"
-        : "prepare";
+        : "setup";
 
   if (loading) {
     return (
@@ -148,10 +148,10 @@ export default function AdminServerDetailPage() {
                 Detect Info
               </Button>
             )}
-            {primaryAction === "prepare" && (
+            {primaryAction === "setup" && (
               <Button
                 icon={<Wrench size={15} />}
-                onClick={() => setPrepareOpen(true)}
+                onClick={() => setSetupDialogOpen(true)}
                 disabled={
                   !server.isVerified ||
                   startSetup.isPending ||
@@ -246,12 +246,12 @@ export default function AdminServerDetailPage() {
       </div>
 
       <ServerSetupDialog
-        open={prepareOpen}
+        open={setupDialogOpen}
         server={server}
         isBusy={startSetup.isPending}
-        preparingId={startSetup.isPending ? server.id : null}
-        onClose={() => setPrepareOpen(false)}
-        onPrepare={(_s, options) => onPrepare(options)}
+        settingUpId={startSetup.isPending ? server.id : null}
+        onClose={() => setSetupDialogOpen(false)}
+        onStartSetup={(_s, options) => handleStartSetup(options)}
       />
 
       <ServerSetupLogViewer

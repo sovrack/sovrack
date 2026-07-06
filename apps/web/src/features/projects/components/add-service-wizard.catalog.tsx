@@ -52,12 +52,11 @@ export const DATABASES: {
   label: string;
   defaultVersion: string;
 }[] = [
-  // LOT4d (décision produit) : seuls les moteurs VALIDÉS en déploiement réel
-  // sont proposés (Postgres/Redis — testés E2E sur VPS). MySQL/MongoDB
-  // restent supportés par le backend (ManagedServiceType) et reviendront ici
-  // après un test de déploiement réel — même logique honnête que COMPOSE.
   { type: "POSTGRES", label: "PostgreSQL", defaultVersion: "16" },
   { type: "REDIS", label: "Redis", defaultVersion: "7" },
+  { type: "MYSQL", label: "MySQL", defaultVersion: "8.0" },
+  { type: "MONGODB", label: "MongoDB", defaultVersion: "7" },
+  { type: "RABBITMQ", label: "RabbitMQ", defaultVersion: "3.13" },
 ];
 
 export function repoToName(repoPath: string): string {

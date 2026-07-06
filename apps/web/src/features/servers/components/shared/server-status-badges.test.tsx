@@ -32,7 +32,7 @@ describe("ServerToolBadges (Task A4)", () => {
     ).toBeInTheDocument();
   });
 
-  it("never fabricates a Traefik badge (not tracked as a per-server capability)", () => {
+  it("never fabricates a badge for a tool absent from installedTools", () => {
     render(
       <ServerToolBadges
         server={makeServer([
@@ -40,6 +40,17 @@ describe("ServerToolBadges (Task A4)", () => {
         ])}
       />,
     );
-    expect(screen.queryByText(/traefik/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Traefik")).not.toBeInTheDocument();
+  });
+
+  it("shows a Traefik badge when detected as INSTALLED", () => {
+    render(
+      <ServerToolBadges
+        server={makeServer([
+          { toolKey: "traefik", displayName: "Traefik", status: "INSTALLED" } as never,
+        ])}
+      />,
+    );
+    expect(screen.getByText("Traefik")).toBeInTheDocument();
   });
 });
