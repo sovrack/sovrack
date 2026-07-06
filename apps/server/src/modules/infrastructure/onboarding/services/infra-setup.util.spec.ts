@@ -19,7 +19,7 @@ function checks(
     sshReachable: true,
     authSucceeded: true,
     sudoAvailable: true,
-    noActivePreparation: true,
+    noActiveSetup: true,
     ...overrides,
   };
 }
@@ -57,9 +57,9 @@ describe('computeBlockingReasons', () => {
   });
 
   it('flags an already-running preparation', () => {
-    expect(
-      computeBlockingReasons(checks({ noActivePreparation: false })),
-    ).toEqual(['Un setup serveur est déjà en cours pour ce VPS.']);
+    expect(computeBlockingReasons(checks({ noActiveSetup: false }))).toEqual([
+      'Un setup serveur est déjà en cours pour ce VPS.',
+    ]);
   });
 
   it('accumulates every applicable reason', () => {
@@ -69,7 +69,7 @@ describe('computeBlockingReasons', () => {
           serverActive: false,
           sshValidated: false,
           sudoAvailable: false,
-          noActivePreparation: false,
+          noActiveSetup: false,
         }),
       ),
     ).toHaveLength(4);
@@ -163,7 +163,7 @@ describe('resolveSetupFailureOutcome', () => {
     );
     expect(outcome).toEqual({
       isTimeout: true,
-      prepStatus: ServerRunStatus.TIMEOUT,
+      setupStatus: ServerRunStatus.TIMEOUT,
       serverStatus: ServerStatus.PREPARATION_FAILED,
       displayError: 'Ansible did not respond',
       displaySummary:
@@ -175,7 +175,7 @@ describe('resolveSetupFailureOutcome', () => {
     const outcome = resolveSetupFailureOutcome('JOB_TIMEOUT_2024', true);
     expect(outcome).toEqual({
       isTimeout: true,
-      prepStatus: ServerRunStatus.TIMEOUT,
+      setupStatus: ServerRunStatus.TIMEOUT,
       serverStatus: ServerStatus.PARTIALLY_PREPARED,
       displayError: 'Ansible a dépassé le délai configuré.',
       displaySummary:
@@ -187,7 +187,7 @@ describe('resolveSetupFailureOutcome', () => {
     const outcome = resolveSetupFailureOutcome('boom', false);
     expect(outcome).toEqual({
       isTimeout: false,
-      prepStatus: ServerRunStatus.FAILED,
+      setupStatus: ServerRunStatus.FAILED,
       serverStatus: ServerStatus.PREPARATION_FAILED,
       displayError: 'boom',
       displaySummary: 'Setup échoué.',
@@ -198,7 +198,7 @@ describe('resolveSetupFailureOutcome', () => {
     const outcome = resolveSetupFailureOutcome('boom', true);
     expect(outcome).toEqual({
       isTimeout: false,
-      prepStatus: ServerRunStatus.PARTIAL,
+      setupStatus: ServerRunStatus.PARTIAL,
       serverStatus: ServerStatus.PARTIALLY_PREPARED,
       displayError: 'boom',
       displaySummary: "Setup partiel: certains rôles ont réussi avant l'échec.",

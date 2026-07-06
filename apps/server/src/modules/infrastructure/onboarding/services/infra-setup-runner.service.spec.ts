@@ -14,12 +14,12 @@ import { ServersDetectionService } from '../../servers/services/servers-detectio
 import { ServersAuditService } from '../../servers/services/servers-audit.service';
 import { ServerSetupAnsibleService } from './server-setup-ansible.service';
 import { ServerSetupGateway } from '../gateways/server-setup.gateway';
-import { ServerSetupStateService } from './preparation/server-setup-state.service';
+import { ServerSetupStateService } from './setup/server-setup-state.service';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
 import { InfraSetupRunnerService } from './infra-setup-runner.service';
 import type {
   SetupRoleKey,
-  ResolvedPreparation,
+  ResolvedSetup,
 } from '../../servers/shared/server-setup-options';
 
 describe('InfraSetupRunnerService', () => {
@@ -79,7 +79,7 @@ describe('InfraSetupRunnerService', () => {
       get: jest.fn().mockReturnValue('0'),
     } as unknown as ConfigService;
     const state = {
-      transitionPreparation: jest.fn().mockResolvedValue(undefined),
+      transitionSetup: jest.fn().mockResolvedValue(undefined),
       markFailedRunningTasks: jest.fn().mockResolvedValue(undefined),
       markAllRemainingTasks: jest.fn().mockResolvedValue(undefined),
     } as unknown as ServerSetupStateService;
@@ -122,14 +122,14 @@ describe('InfraSetupRunnerService', () => {
   }
 
   const server = { id: 'srv-1' } as Server;
-  const resolved: ResolvedPreparation = {
+  const resolved: ResolvedSetup = {
     profile: 'BASIC',
     selectedOptions: { docker: true } as never,
     roles: ['system_base'] as SetupRoleKey[],
     gitlabRunnerExecutor: 'docker',
     reinstallOptions: new Set<string>(),
     warnings: [],
-  } as ResolvedPreparation;
+  } as ResolvedSetup;
   const roles = ['system_base'] as SetupRoleKey[];
 
   describe('createRun', () => {
@@ -150,7 +150,7 @@ describe('InfraSetupRunnerService', () => {
       expect(created).toMatchObject({ id: 'run-1' });
     });
 
-    it('rejects when a preparation is already active', async () => {
+    it('rejects when a setup is already active', async () => {
       const { runner, tx } = build();
       tx.serverRun.count.mockResolvedValueOnce(1);
       await expect(
@@ -191,7 +191,7 @@ describe('InfraSetupRunnerService', () => {
   });
 
   describe('abort', () => {
-    it('is a no-op when no preparation is running', () => {
+    it('is a no-op when no setup is running', () => {
       const { runner } = build();
       expect(() => runner.abort('unknown')).not.toThrow();
     });
@@ -206,18 +206,18 @@ describe('InfraSetupRunnerService', () => {
     });
   });
 
-  describe('handlePreparationFailure', () => {
+  describe('handleSetupFailure', () => {
     const call = (
       r: InfraSetupRunnerService,
       ...args: unknown[]
     ): Promise<void> =>
       (
         r as unknown as {
-          handlePreparationFailure: (...a: unknown[]) => Promise<void>;
+          handleSetupFailure: (...a: unknown[]) => Promise<void>;
         }
-      ).handlePreparationFailure(...args);
+      ).handleSetupFailure(...args);
 
-    it('only fails the job when the preparation was canceled', async () => {
+    it('only fails the job when the setup was canceled', async () => {
       const { runner, prisma, state } = build();
       (prisma.serverRun.findUnique as jest.Mock).mockResolvedValueOnce({
         status: ServerRunStatus.CANCELED,
@@ -228,7 +228,7 @@ describe('InfraSetupRunnerService', () => {
           data: expect.objectContaining({ status: ServerJobStatus.FAILED }),
         }),
       );
-      expect(state.transitionPreparation).not.toHaveBeenCalled();
+      expect(state.transitionSetup).not.toHaveBeenCalled();
     });
 
     it('marks failed tasks and transitions the run on a real failure', async () => {
@@ -241,7 +241,7 @@ describe('InfraSetupRunnerService', () => {
         new Error('ansible exploded'),
       );
       expect(state.markFailedRunningTasks).toHaveBeenCalledWith('run-1', false);
-      expect(state.transitionPreparation).toHaveBeenCalled();
+      expect(state.transitionSetup).toHaveBeenCalled();
       expect(gateway.emitFinished).toHaveBeenCalled();
     });
 
@@ -313,7 +313,7 @@ describe('InfraSetupRunnerService', () => {
       );
     });
 
-    it('does not fail the preparation when the upsert itself fails (logged as ERROR)', async () => {
+    it('does not fail the setup when the upsert itself fails (logged as ERROR)', async () => {
       const { runner, dockerConnections, serverRuns } = build();
       dockerConnections.upsert.mockRejectedValueOnce(new Error('db down'));
       await expect(
@@ -369,16 +369,16 @@ describe('InfraSetupRunnerService', () => {
     });
   });
 
-  describe('refreshDetectionAfterPreparation', () => {
+  describe('refreshDetectionAfterSetup', () => {
     const call = (
       r: InfraSetupRunnerService,
       ...args: unknown[]
     ): Promise<void> =>
       (
         r as unknown as {
-          refreshDetectionAfterPreparation: (...a: unknown[]) => Promise<void>;
+          refreshDetectionAfterSetup: (...a: unknown[]) => Promise<void>;
         }
-      ).refreshDetectionAfterPreparation(...args);
+      ).refreshDetectionAfterSetup(...args);
 
     it('runs detection on the refreshed server', async () => {
       const { runner, detection } = build();

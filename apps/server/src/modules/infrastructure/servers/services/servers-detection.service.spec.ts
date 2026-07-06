@@ -73,7 +73,7 @@ describe('ServersDetectionService', () => {
 
   // Real bug found + fixed during the "Déploiement réel" mission: detect() is
   // called both before preparation (SSH_VALIDATED -> INFO_DETECTED, correct)
-  // AND after it (refreshDetectionAfterPreparation, right after preparation
+  // AND after it (refreshDetectionAfterSetup, right after setup
   // sets status: PREPARED) — unconditionally forcing INFO_DETECTED here
   // silently regressed a just-PREPARED server back to INFO_DETECTED, which
   // permanently blocked deploys (DeploymentPreflightService requires

@@ -15,7 +15,7 @@ export type SetupReadinessChecks = {
   sshReachable: boolean;
   authSucceeded: boolean;
   sudoAvailable: boolean;
-  noActivePreparation: boolean;
+  noActiveSetup: boolean;
 };
 
 /** Turn a readiness checks snapshot into the human-readable blocking reasons. */
@@ -35,7 +35,7 @@ export function computeBlockingReasons(checks: SetupReadinessChecks): string[] {
       'sudo sans mot de passe doit être validé pour lancer le setup de ce serveur.',
     );
   }
-  if (!checks.noActivePreparation) {
+  if (!checks.noActiveSetup) {
     blockingReasons.push('Un setup serveur est déjà en cours pour ce VPS.');
   }
   return blockingReasons;
@@ -140,7 +140,7 @@ export function computeSetupTimeoutMs(
 
 export type SetupFailureOutcome = {
   isTimeout: boolean;
-  prepStatus:
+  setupStatus:
     | typeof ServerRunStatus.TIMEOUT
     | typeof ServerRunStatus.PARTIAL
     | typeof ServerRunStatus.FAILED;
@@ -160,7 +160,7 @@ export function resolveSetupFailureOutcome(
   hasSuccessfulTask: boolean,
 ): SetupFailureOutcome {
   const isTimeout = rawMessage.startsWith('JOB_TIMEOUT_');
-  const prepStatus = isTimeout
+  const setupStatus = isTimeout
     ? ServerRunStatus.TIMEOUT
     : hasSuccessfulTask
       ? ServerRunStatus.PARTIAL
@@ -182,5 +182,5 @@ export function resolveSetupFailureOutcome(
       ? "Setup partiel: certains rôles ont réussi avant l'échec."
       : 'Setup échoué.';
 
-  return { isTimeout, prepStatus, serverStatus, displayError, displaySummary };
+  return { isTimeout, setupStatus, serverStatus, displayError, displaySummary };
 }

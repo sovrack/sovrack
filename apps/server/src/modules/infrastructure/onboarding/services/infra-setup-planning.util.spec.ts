@@ -1,16 +1,16 @@
 import { ServerRunStatus, ServerRunStepStatus } from '@prisma/client';
 import {
   runWithStepsInclude,
-  toPreparationView,
+  toSetupView,
   type RunWithSteps,
 } from './infra-setup-planning.util';
 
 /**
  * Pure transformer coverage: maps a unified ServerRun (kind=PREPARATION) back
  * to the legacy ServerSetup response shape (paramsJson → selectedOptions,
- * resolvedJson → resolvedRoles, retryOfId → retryOfPreparationId, steps → tasks).
+ * resolvedJson → resolvedRoles, retryOfId → retryOfSetupId, steps → tasks).
  */
-describe('infra-setup-planning.util — toPreparationView', () => {
+describe('infra-setup-planning.util — toSetupView', () => {
   const baseDate = new Date('2026-01-01T00:00:00.000Z');
 
   function makeRun(overrides: Partial<RunWithSteps> = {}): RunWithSteps {
@@ -38,7 +38,7 @@ describe('infra-setup-planning.util — toPreparationView', () => {
   }
 
   it('maps top-level run fields onto the legacy view shape', () => {
-    const view = toPreparationView(makeRun({ retryOfId: 'prev-run' }));
+    const view = toSetupView(makeRun({ retryOfId: 'prev-run' }));
 
     expect(view).toMatchObject({
       id: 'run-1',
@@ -49,7 +49,7 @@ describe('infra-setup-planning.util — toPreparationView', () => {
       requestedById: 'user-1',
       summary: 'done',
       errorMessage: null,
-      retryOfPreparationId: 'prev-run',
+      retryOfSetupId: 'prev-run',
       selectedOptionsJson: { docker: true },
       resolvedRolesJson: ['DOCKER'],
     });
@@ -57,7 +57,7 @@ describe('infra-setup-planning.util — toPreparationView', () => {
   });
 
   it('defaults resolvedRolesJson to an empty array when resolvedJson is null', () => {
-    const view = toPreparationView(makeRun({ resolvedJson: null }));
+    const view = toSetupView(makeRun({ resolvedJson: null }));
     expect(view.resolvedRolesJson).toEqual([]);
   });
 
@@ -86,14 +86,14 @@ describe('infra-setup-planning.util — toPreparationView', () => {
         message: 'queued',
       },
     ];
-    const view = toPreparationView(
+    const view = toSetupView(
       makeRun({ steps: steps as unknown as RunWithSteps['steps'] }),
     );
 
     expect(view.tasks).toHaveLength(2);
     expect(view.tasks[0]).toEqual({
       id: 'step-1',
-      preparationId: 'run-1',
+      setupId: 'run-1',
       roleKey: 'DOCKER',
       taskName: 'Install Docker',
       orderIndex: 0,

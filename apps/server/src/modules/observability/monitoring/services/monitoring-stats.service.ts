@@ -428,10 +428,10 @@ export class MonitoringStatsService {
       reasons.push('Server unreachable');
     }
     if (server.status === ServerStatus.PREPARATION_FAILED) {
-      reasons.push('Preparation failed');
+      reasons.push('Setup failed');
     }
     if (!server.lastPreparedAt) {
-      reasons.push('Preparation required');
+      reasons.push('Setup required');
     }
 
     return reasons;

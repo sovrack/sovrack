@@ -86,7 +86,7 @@ export class MonitoringAlertsService {
       id: `server-${server.id}`,
       severity: 'critical',
       status: 'firing',
-      summary: `${server.name}: ${server.status === ServerStatus.UNREACHABLE ? 'server unreachable' : 'preparation failed'}`,
+      summary: `${server.name}: ${server.status === ServerStatus.UNREACHABLE ? 'server unreachable' : 'setup failed'}`,
       source: 'platform',
       startsAt: new Date().toISOString(),
       serverId: server.id,

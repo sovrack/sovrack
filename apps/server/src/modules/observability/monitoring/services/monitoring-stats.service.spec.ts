@@ -105,7 +105,7 @@ describe('MonitoringStatsService — pure health resolvers', () => {
         lastPreparedAt: null,
       });
       expect(reasons).toContain('SSH validation required');
-      expect(reasons).toContain('Preparation required');
+      expect(reasons).toContain('Setup required');
     });
     it('is empty for a verified, prepared, reachable server', () => {
       const reasons = blockingReasons({

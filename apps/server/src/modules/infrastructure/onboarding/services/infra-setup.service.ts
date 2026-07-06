@@ -46,10 +46,7 @@ import {
 } from './infra-setup-planning.util';
 import { InfraSetupRunnerService } from './infra-setup-runner.service';
 
-export type {
-  SetupTaskView,
-  SetupView,
-} from './infra-setup-planning.util';
+export type { SetupTaskView, SetupView } from './infra-setup-planning.util';
 
 @Injectable()
 export class ServerSetupService implements OnModuleInit {
@@ -83,16 +80,12 @@ export class ServerSetupService implements OnModuleInit {
 
     for (const prep of orphaned) {
       try {
-        await this.state.transitionSetup(
-          prep.id,
-          ServerRunStatus.FAILED,
-          {
-            finishedAt: new Date(),
-            summary:
-              'Provisioning interrupted during a backend restart. Re-run the provisioning.',
-            errorMessage: 'Setup interrompu lors du redémarrage du backend.',
-          },
-        );
+        await this.state.transitionSetup(prep.id, ServerRunStatus.FAILED, {
+          finishedAt: new Date(),
+          summary:
+            'Provisioning interrupted during a backend restart. Re-run the provisioning.',
+          errorMessage: 'Setup interrompu lors du redémarrage du backend.',
+        });
         if (prep.serverId) {
           await this.prisma.server.update({
             where: { id: prep.serverId },
@@ -118,9 +111,7 @@ export class ServerSetupService implements OnModuleInit {
     };
   }
 
-  async getSetupReadiness(
-    serverId: string,
-  ): Promise<ServerSetupReadiness> {
+  async getSetupReadiness(serverId: string): Promise<ServerSetupReadiness> {
     const server = await this.getServer(serverId);
     const validation = await this.verification.latestValidationResult(serverId);
     const activeSetupCount = await this.prisma.serverRun.count({
@@ -198,15 +189,11 @@ export class ServerSetupService implements OnModuleInit {
         // partial unique index `unique_active_server_job` rejected our
         // PREPARE_SERVER job — roll the now-orphaned setup back to FAILED
         // and surface a clean 409 instead of a 500.
-        await this.state.transitionSetup(
-          created.id,
-          ServerRunStatus.FAILED,
-          {
-            finishedAt: new Date(),
-            summary: 'Another job is already running on this server.',
-            errorMessage: 'Un job est déjà en cours sur ce serveur.',
-          },
-        );
+        await this.state.transitionSetup(created.id, ServerRunStatus.FAILED, {
+          finishedAt: new Date(),
+          summary: 'Another job is already running on this server.',
+          errorMessage: 'Un job est déjà en cours sur ce serveur.',
+        });
         throw new ConflictException(
           'Un job est déjà en cours sur ce serveur. Attendez sa fin ou annulez-le avant de préparer.',
         );
@@ -281,15 +268,10 @@ export class ServerSetupService implements OnModuleInit {
       typeof _gitlabRunnerExecutor === 'string'
         ? _gitlabRunnerExecutor
         : 'docker';
-    await this.audit.record(
-      previous.serverId,
-      'SERVER_SETUP_RETRY',
-      actorId,
-      {
-        retryOfSetupId: id,
-        reason: dto.reason ?? null,
-      },
-    );
+    await this.audit.record(previous.serverId, 'SERVER_SETUP_RETRY', actorId, {
+      retryOfSetupId: id,
+      reason: dto.reason ?? null,
+    });
     return await this.startSetup(
       previous.serverId,
       {

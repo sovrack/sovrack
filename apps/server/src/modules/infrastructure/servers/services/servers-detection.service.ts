@@ -45,6 +45,12 @@ const DETECTION_TOOLS: DetectionTool[] = [
     command: 'nginx -v',
   },
   {
+    key: 'traefik',
+    displayName: 'Traefik',
+    capabilityKey: 'traefik.installed',
+    command: 'traefik version',
+  },
+  {
     key: 'nodejs',
     displayName: 'Node.js',
     capabilityKey: 'nodejs.installed',
@@ -165,7 +171,13 @@ export class ServersDetectionService {
       const installed: Record<string, boolean> = {};
       const installedTools: InstalledTool[] = [];
       for (const tool of DETECTION_TOOLS) {
-        const result = await connection.target.execCommand(tool.command);
+        // Run through a login shell (sh -lc), like the os-release check above —
+        // a raw exec doesn't source .profile/.bashrc, so tools whose PATH entry
+        // is only set up there (e.g. Node.js installed via nvm) would otherwise
+        // be falsely reported as missing.
+        const result = await connection.target.execCommand(
+          `sh -lc '${tool.command}'`,
+        );
         const version = (result.stdout || result.stderr).trim().split('\n')[0];
         const isInstalled = result.code === 0;
         installed[tool.key] = isInstalled;
@@ -177,7 +189,7 @@ export class ServersDetectionService {
 
       // detect() runs both BEFORE preparation (SSH_VALIDATED -> INFO_DETECTED,
       // the normal onboarding step) and AFTER it — as a capabilities refresh,
-      // either automatic (refreshDetectionAfterPreparation) or manual
+      // either automatic (refreshDetectionAfterSetup) or manual
       // (detectServer(), re-scanning an already-prepared server's tools).
       // Unconditionally forcing INFO_DETECTED here used to silently regress a
       // server that had just reached PREPARED/PARTIALLY_PREPARED back to

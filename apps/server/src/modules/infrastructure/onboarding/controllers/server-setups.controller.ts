@@ -27,7 +27,7 @@ import {
 } from '../../servers/dto/server-response.dto';
 import { ServerSetupService } from '../services/infra-setup.service';
 
-@ApiTags('Server Preparations')
+@ApiTags('Server Setups')
 @ApiBearerAuth()
 @Controller('setups')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -39,14 +39,14 @@ export class ServerSetupsController {
   @ApiOperation({ summary: "View a server provisioning's details" })
   @ApiOkResponse({ type: ServerSetupDto })
   async findOne(@Param('id') id: string) {
-    return await this.prep.getPreparation(id);
+    return await this.prep.getSetup(id);
   }
 
   @Get(':id/logs')
   @ApiOperation({ summary: 'Read the persisted logs of a provisioning job' })
   @ApiOkResponse({ type: ServerSetupLogDto, isArray: true })
   async logs(@Param('id') id: string, @Query('afterLine') afterLine?: string) {
-    return await this.prep.getPreparationLogs(
+    return await this.prep.getSetupLogs(
       id,
       afterLine ? Number(afterLine) : undefined,
     );
@@ -62,7 +62,7 @@ export class ServerSetupsController {
     @Body() dto: RetryServerSetupDto,
     @GetUser() user: JwtPayload,
   ) {
-    return await this.prep.retryPreparation(id, dto, user.id);
+    return await this.prep.retrySetup(id, dto, user.id);
   }
 
   @Post(':id/cancel')
@@ -71,6 +71,6 @@ export class ServerSetupsController {
   })
   @ApiOkResponse({ type: ServerSetupDto })
   async cancel(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.prep.cancelPreparation(id, user.id);
+    return await this.prep.cancelSetup(id, user.id);
   }
 }

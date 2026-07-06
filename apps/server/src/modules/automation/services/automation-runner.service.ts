@@ -177,7 +177,7 @@ export class AutomationRunnerService {
         });
 
         try {
-          await this.ansible.runPreparation(
+          await this.ansible.runSetup(
             server,
             {
               roles: cfg.roles,

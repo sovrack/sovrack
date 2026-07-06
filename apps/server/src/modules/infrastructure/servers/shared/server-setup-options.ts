@@ -328,9 +328,7 @@ export const SETUP_PROFILE_DEFAULTS: Record<
   CUSTOM: {},
 };
 
-export function resolveSetupOptions(
-  dto?: StartServerSetupDto,
-): ResolvedSetup {
+export function resolveSetupOptions(dto?: StartServerSetupDto): ResolvedSetup {
   const profile = dto?.profile ?? ServerPreparationProfile.BASIC;
   const selected = Object.fromEntries(
     SETUP_OPTIONS.map((option) => [option.key, false]),

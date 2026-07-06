@@ -29,9 +29,9 @@ describe('ServerSetupStateService (state machine)', () => {
     );
   });
 
-  describe('transitionPreparation', () => {
+  describe('transitionSetup', () => {
     it('allows a valid transition + emits the status', async () => {
-      await svc.transitionPreparation('p1', ServerRunStatus.RESOLVING_OPTIONS);
+      await svc.transitionSetup('p1', ServerRunStatus.RESOLVING_OPTIONS);
       expect(prisma.serverRun.update).toHaveBeenCalled();
       expect(gateway.emitStatus).toHaveBeenCalledWith({
         setupId: 'p1',
@@ -41,7 +41,7 @@ describe('ServerSetupStateService (state machine)', () => {
 
     it('rejects an invalid transition (QUEUED → RUNNING)', async () => {
       await expect(
-        svc.transitionPreparation('p1', ServerRunStatus.RUNNING),
+        svc.transitionSetup('p1', ServerRunStatus.RUNNING),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(prisma.serverRun.update).not.toHaveBeenCalled();
     });
@@ -49,7 +49,7 @@ describe('ServerSetupStateService (state machine)', () => {
     it('throws NotFound when the run is missing', async () => {
       prisma.serverRun.findUnique.mockResolvedValue(null);
       await expect(
-        svc.transitionPreparation('ghost', ServerRunStatus.CANCELED),
+        svc.transitionSetup('ghost', ServerRunStatus.CANCELED),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
@@ -57,7 +57,7 @@ describe('ServerSetupStateService (state machine)', () => {
       prisma.serverRun.findUnique.mockResolvedValue({
         status: ServerRunStatus.WAITING_FOR_LOCK,
       });
-      await svc.transitionPreparation('p1', ServerRunStatus.RUNNING);
+      await svc.transitionSetup('p1', ServerRunStatus.RUNNING);
       expect(
         prisma.serverRun.update.mock.calls[0][0].data.startedAt,
       ).toBeInstanceOf(Date);
@@ -68,7 +68,7 @@ describe('ServerSetupStateService (state machine)', () => {
         status: ServerRunStatus.RUNNING,
       });
       await expect(
-        svc.transitionPreparation('p1', ServerRunStatus.RUNNING),
+        svc.transitionSetup('p1', ServerRunStatus.RUNNING),
       ).resolves.toBeUndefined();
     });
   });

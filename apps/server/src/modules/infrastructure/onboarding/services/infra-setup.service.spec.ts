@@ -12,7 +12,7 @@ import { ServersVerificationService } from '../../servers/services/servers-verif
 import { ServersJobsService } from '../../servers/services/servers-jobs.service';
 import { ServerSetupGateway } from '../gateways/server-setup.gateway';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
-import { ServerSetupStateService } from './preparation/server-setup-state.service';
+import { ServerSetupStateService } from './setup/server-setup-state.service';
 import { InfraSetupRunnerService } from './infra-setup-runner.service';
 import { ServerSetupService } from './infra-setup.service';
 
@@ -34,20 +34,20 @@ function makeSvc(
   opts: {
     server?: unknown;
     orphans?: unknown[];
-    activePreparationCount?: number;
+    activeSetupCount?: number;
     validation?: unknown;
-    preparation?: unknown;
-    preparations?: unknown[];
+    setup?: unknown;
+    setups?: unknown[];
     serverJob?: unknown;
   } = {},
 ) {
   const prisma = {
     serverRun: {
       findMany: jest.fn().mockResolvedValue(opts.orphans ?? []),
-      count: jest.fn().mockResolvedValue(opts.activePreparationCount ?? 0),
+      count: jest.fn().mockResolvedValue(opts.activeSetupCount ?? 0),
       findFirst: jest.fn().mockResolvedValue(
-        'preparation' in opts
-          ? opts.preparation
+        'setup' in opts
+          ? opts.setup
           : {
               id: 'prep1',
               serverId: 'srv1',
@@ -95,7 +95,7 @@ function makeSvc(
   } as unknown as ServerSetupGateway;
 
   const state = {
-    transitionPreparation: jest.fn().mockResolvedValue({}),
+    transitionSetup: jest.fn().mockResolvedValue({}),
   } as unknown as ServerSetupStateService;
 
   const serverRuns = {
@@ -122,7 +122,7 @@ function makeSvc(
   return { svc, prisma, jobs, verification, audit, gateway, state, runner };
 }
 
-// Minimal toPreparationView-compatible run shape
+// Minimal toSetupView-compatible run shape
 const minRun = (status: ServerRunStatus = ServerRunStatus.RUNNING) => ({
   id: 'prep1',
   serverId: 'srv1',
@@ -142,18 +142,18 @@ const minRun = (status: ServerRunStatus = ServerRunStatus.RUNNING) => ({
 
 describe('ServerSetupService', () => {
   describe('onModuleInit', () => {
-    it('does nothing when there are no orphaned preparations', async () => {
+    it('does nothing when there are no orphaned setups', async () => {
       const { svc, state } = makeSvc({ orphans: [] });
       await svc.onModuleInit();
-      expect(state.transitionPreparation).not.toHaveBeenCalled();
+      expect(state.transitionSetup).not.toHaveBeenCalled();
     });
 
-    it('marks orphaned preparations as FAILED on startup', async () => {
+    it('marks orphaned setups as FAILED on startup', async () => {
       const { svc, state } = makeSvc({
         orphans: [{ id: 'prep-orphan', serverId: 'srv1' }],
       });
       await svc.onModuleInit();
-      expect(state.transitionPreparation).toHaveBeenCalledWith(
+      expect(state.transitionSetup).toHaveBeenCalledWith(
         'prep-orphan',
         ServerRunStatus.FAILED,
         expect.any(Object),
@@ -167,11 +167,11 @@ describe('ServerSetupService', () => {
           { id: 'p2', serverId: 'srv2' },
         ],
       });
-      (state.transitionPreparation as jest.Mock)
+      (state.transitionSetup as jest.Mock)
         .mockRejectedValueOnce(new Error('DB error'))
         .mockResolvedValueOnce({});
       await expect(svc.onModuleInit()).resolves.toBeUndefined();
-      expect(state.transitionPreparation).toHaveBeenCalledTimes(2);
+      expect(state.transitionSetup).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -185,17 +185,17 @@ describe('ServerSetupService', () => {
     });
   });
 
-  describe('getPreparationReadiness', () => {
+  describe('getSetupReadiness', () => {
     it('throws NotFoundException when server not found', async () => {
       const { svc } = makeSvc({ server: null });
-      await expect(svc.getPreparationReadiness('missing')).rejects.toThrow(
+      await expect(svc.getSetupReadiness('missing')).rejects.toThrow(
         NotFoundException,
       );
     });
 
     it('returns isReady=true when all checks pass', async () => {
       const { svc } = makeSvc();
-      const result = await svc.getPreparationReadiness('srv1');
+      const result = await svc.getSetupReadiness('srv1');
       expect(result.isReady).toBe(true);
       expect(result.blockingReasons).toHaveLength(0);
     });
@@ -204,76 +204,72 @@ describe('ServerSetupService', () => {
       const { svc } = makeSvc({
         server: { ...defaultServer, isVerified: false },
       });
-      const result = await svc.getPreparationReadiness('srv1');
+      const result = await svc.getSetupReadiness('srv1');
       expect(result.isReady).toBe(false);
       expect(result.blockingReasons.length).toBeGreaterThan(0);
     });
 
-    it('returns isReady=false when a preparation is already running', async () => {
-      const { svc } = makeSvc({ activePreparationCount: 1 });
-      const result = await svc.getPreparationReadiness('srv1');
+    it('returns isReady=false when a setup is already running', async () => {
+      const { svc } = makeSvc({ activeSetupCount: 1 });
+      const result = await svc.getSetupReadiness('srv1');
       expect(result.isReady).toBe(false);
     });
   });
 
-  describe('getPreparation', () => {
-    it('throws NotFoundException when preparation not found', async () => {
-      const { svc } = makeSvc({ preparation: null });
-      await expect(svc.getPreparation('ghost')).rejects.toThrow(
-        NotFoundException,
-      );
+  describe('getSetup', () => {
+    it('throws NotFoundException when setup not found', async () => {
+      const { svc } = makeSvc({ setup: null });
+      await expect(svc.getSetup('ghost')).rejects.toThrow(NotFoundException);
     });
 
-    it('returns preparation view when found', async () => {
+    it('returns setup view when found', async () => {
       const { svc, prisma } = makeSvc();
       (prisma.serverRun.findFirst as jest.Mock).mockResolvedValue(minRun());
-      const result = await svc.getPreparation('prep1');
+      const result = await svc.getSetup('prep1');
       expect(result.id).toBe('prep1');
     });
   });
 
-  describe('listPreparations', () => {
+  describe('listSetups', () => {
     it('throws NotFoundException when server not found', async () => {
       const { svc } = makeSvc({ server: null });
-      await expect(svc.listPreparations('missing')).rejects.toThrow(
+      await expect(svc.listSetups('missing')).rejects.toThrow(
         NotFoundException,
       );
     });
 
-    it('returns empty list when no preparations exist', async () => {
-      const { svc } = makeSvc({ preparations: [] });
+    it('returns empty list when no setups exist', async () => {
+      const { svc } = makeSvc({ setups: [] });
       (
         svc as unknown as { prisma: { serverRun: { findMany: jest.Mock } } }
       ).prisma.serverRun.findMany
-        // second call (listPreparations) returns empty
+        // second call (listSetups) returns empty
         .mockResolvedValueOnce([]) // onModuleInit orphans check
-        .mockResolvedValueOnce([]); // listPreparations
+        .mockResolvedValueOnce([]); // listSetups
       // Re-create without orphans first to avoid confusion
       const { svc: svc2, prisma } = makeSvc({ orphans: [] });
       (prisma.serverRun.findMany as jest.Mock).mockResolvedValue([]);
-      const result = await svc2.listPreparations('srv1');
+      const result = await svc2.listSetups('srv1');
       expect(result).toHaveLength(0);
     });
   });
 
-  describe('cancelPreparation', () => {
-    it('throws NotFoundException when preparation has no serverId', async () => {
+  describe('cancelSetup', () => {
+    it('throws NotFoundException when setup has no serverId', async () => {
       const { svc, prisma } = makeSvc();
       (prisma.serverRun.findFirst as jest.Mock).mockResolvedValue({
         ...minRun(),
         serverId: null,
       });
-      await expect(svc.cancelPreparation('prep1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(svc.cancelSetup('prep1')).rejects.toThrow(NotFoundException);
     });
 
-    it('throws BadRequestException when preparation is not in an active status', async () => {
+    it('throws BadRequestException when setup is not in an active status', async () => {
       const { svc, prisma } = makeSvc();
       (prisma.serverRun.findFirst as jest.Mock).mockResolvedValue(
         minRun(ServerRunStatus.SUCCEEDED),
       );
-      await expect(svc.cancelPreparation('prep1')).rejects.toThrow(
+      await expect(svc.cancelSetup('prep1')).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -281,11 +277,11 @@ describe('ServerSetupService', () => {
     it('aborts the runner and transitions to CANCELED', async () => {
       const { svc, prisma, state, runner, gateway } = makeSvc();
       (prisma.serverRun.findFirst as jest.Mock)
-        .mockResolvedValueOnce(minRun(ServerRunStatus.RUNNING)) // getPreparation first call
-        .mockResolvedValueOnce(minRun(ServerRunStatus.CANCELED)); // getPreparation second call (updated)
-      await svc.cancelPreparation('prep1');
+        .mockResolvedValueOnce(minRun(ServerRunStatus.RUNNING)) // getSetup first call
+        .mockResolvedValueOnce(minRun(ServerRunStatus.CANCELED)); // getSetup second call (updated)
+      await svc.cancelSetup('prep1');
       expect(runner.abort).toHaveBeenCalledWith('prep1');
-      expect(state.transitionPreparation).toHaveBeenCalledWith(
+      expect(state.transitionSetup).toHaveBeenCalledWith(
         'prep1',
         ServerRunStatus.CANCELED,
         expect.any(Object),
@@ -300,7 +296,7 @@ describe('ServerSetupService', () => {
       (prisma.serverRun.findFirst as jest.Mock)
         .mockResolvedValueOnce(minRun(ServerRunStatus.RUNNING))
         .mockResolvedValueOnce(minRun(ServerRunStatus.CANCELED));
-      await svc.cancelPreparation('prep1');
+      await svc.cancelSetup('prep1');
       expect(prisma.serverJob.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'job1' },
@@ -310,12 +306,12 @@ describe('ServerSetupService', () => {
     });
   });
 
-  describe('startPreparation', () => {
+  describe('startSetup', () => {
     it('throws BadRequestException when no roles are resolved', async () => {
       const { svc } = makeSvc();
-      // All checkboxes false → resolvePreparationOptions returns empty roles
+      // All checkboxes false → resolveSetupOptions returns empty roles
       await expect(
-        svc.startPreparation('srv1', {
+        svc.startSetup('srv1', {
           profile: 'CUSTOM',
           docker: false,
           systemUpdate: false,
@@ -326,7 +322,7 @@ describe('ServerSetupService', () => {
     it('handles P2002 job conflict by transitioning run to FAILED and throwing ConflictException', async () => {
       const { svc, jobs, state, prisma } = makeSvc();
       // Make runner.createRun return a run
-      // startPreparation needs server to be ready → patch verification
+      // startSetup needs server to be ready → patch verification
       (prisma.serverRun.count as jest.Mock).mockResolvedValue(0);
       const p2002 = new Prisma.PrismaClientKnownRequestError('duplicate', {
         code: 'P2002',
@@ -334,14 +330,14 @@ describe('ServerSetupService', () => {
       });
       (jobs.createJob as jest.Mock).mockRejectedValue(p2002);
       await expect(
-        svc.startPreparation('srv1', {
+        svc.startSetup('srv1', {
           profile: 'BASIC',
           docker: true,
         } as never),
       ).rejects.toMatchObject({
         message: expect.stringContaining('déjà en cours'),
       });
-      expect(state.transitionPreparation).toHaveBeenCalledWith(
+      expect(state.transitionSetup).toHaveBeenCalledWith(
         'run1',
         ServerRunStatus.FAILED,
         expect.any(Object),

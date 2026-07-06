@@ -8,7 +8,7 @@
   gather_facts: true
 
   vars:
-    preparation_options: "{{ preparation_options | default({}) }}"
+    setup_options: "{{ setup_options | default({}) }}"
     managed_by: "{{ managed_by | default('internal-devops-platform-control-node') }}"
 
   pre_tasks:

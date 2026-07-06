@@ -5,31 +5,31 @@ import { ServerSetupService } from '../services/infra-setup.service';
 import { ServerSetupController } from './server-setup.controller';
 import { ServerSetupsController } from './server-setups.controller';
 
-describe('Server preparation controllers', () => {
+describe('Server setup controllers', () => {
   const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
 
   function prepService() {
     return {
-      startPreparation: jest.fn().mockResolvedValue({ id: 'prep-1' }),
-      listPreparations: jest.fn().mockResolvedValue([]),
-      getPreparationReadiness: jest.fn().mockResolvedValue({ isReady: true }),
-      getPreparation: jest.fn().mockResolvedValue({ id: 'prep-1' }),
-      getPreparationLogs: jest.fn().mockResolvedValue([]),
-      retryPreparation: jest.fn().mockResolvedValue({ id: 'prep-2' }),
-      cancelPreparation: jest.fn().mockResolvedValue({ id: 'prep-1' }),
+      startSetup: jest.fn().mockResolvedValue({ id: 'prep-1' }),
+      listSetups: jest.fn().mockResolvedValue([]),
+      getSetupReadiness: jest.fn().mockResolvedValue({ isReady: true }),
+      getSetup: jest.fn().mockResolvedValue({ id: 'prep-1' }),
+      getSetupLogs: jest.fn().mockResolvedValue([]),
+      retrySetup: jest.fn().mockResolvedValue({ id: 'prep-2' }),
+      cancelSetup: jest.fn().mockResolvedValue({ id: 'prep-1' }),
     } as unknown as ServerSetupService;
   }
 
   describe('ServerSetupController', () => {
-    it('startPreparation delegates and returns the run', async () => {
+    it('startSetup delegates and returns the run', async () => {
       const prep = prepService();
       const ctrl = new ServerSetupController(prep);
-      const res = await ctrl.startPreparation(
+      const res = await ctrl.startSetup(
         'srv-1',
         { profile: 'BASIC' } as never,
         user,
       );
-      expect(prep.startPreparation).toHaveBeenCalledWith(
+      expect(prep.startSetup).toHaveBeenCalledWith(
         'srv-1',
         { profile: 'BASIC' },
         'user-1',
@@ -39,33 +39,31 @@ describe('Server preparation controllers', () => {
 
     it('re-throws HTTP exceptions unchanged', async () => {
       const prep = prepService();
-      (prep.startPreparation as jest.Mock).mockRejectedValueOnce(
+      (prep.startSetup as jest.Mock).mockRejectedValueOnce(
         new BadRequestException('not ready'),
       );
       const ctrl = new ServerSetupController(prep);
       await expect(
-        ctrl.startPreparation('srv-1', {} as never, user),
+        ctrl.startSetup('srv-1', {} as never, user),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('wraps unexpected errors in a 500', async () => {
       const prep = prepService();
-      (prep.startPreparation as jest.Mock).mockRejectedValueOnce(
-        new Error('boom'),
-      );
+      (prep.startSetup as jest.Mock).mockRejectedValueOnce(new Error('boom'));
       const ctrl = new ServerSetupController(prep);
       await expect(
-        ctrl.startPreparation('srv-1', {} as never, user),
+        ctrl.startSetup('srv-1', {} as never, user),
       ).rejects.toMatchObject({ status: 500 });
     });
 
-    it('listPreparations / getPreparationReadiness delegate', async () => {
+    it('listSetups / getSetupReadiness delegate', async () => {
       const prep = prepService();
       const ctrl = new ServerSetupController(prep);
-      await ctrl.listPreparations('srv-1');
-      await ctrl.getPreparationReadiness('srv-1');
-      expect(prep.listPreparations).toHaveBeenCalledWith('srv-1');
-      expect(prep.getPreparationReadiness).toHaveBeenCalledWith('srv-1');
+      await ctrl.listSetups('srv-1');
+      await ctrl.getSetupReadiness('srv-1');
+      expect(prep.listSetups).toHaveBeenCalledWith('srv-1');
+      expect(prep.getSetupReadiness).toHaveBeenCalledWith('srv-1');
     });
   });
 
@@ -78,15 +76,15 @@ describe('Server preparation controllers', () => {
       await ctrl.logs('prep-1', undefined);
       await ctrl.retry('prep-1', { reason: 'x' } as never, user);
       await ctrl.cancel('prep-1', user);
-      expect(prep.getPreparation).toHaveBeenCalledWith('prep-1');
-      expect(prep.getPreparationLogs).toHaveBeenCalledWith('prep-1', 5);
-      expect(prep.getPreparationLogs).toHaveBeenCalledWith('prep-1', undefined);
-      expect(prep.retryPreparation).toHaveBeenCalledWith(
+      expect(prep.getSetup).toHaveBeenCalledWith('prep-1');
+      expect(prep.getSetupLogs).toHaveBeenCalledWith('prep-1', 5);
+      expect(prep.getSetupLogs).toHaveBeenCalledWith('prep-1', undefined);
+      expect(prep.retrySetup).toHaveBeenCalledWith(
         'prep-1',
         { reason: 'x' },
         'user-1',
       );
-      expect(prep.cancelPreparation).toHaveBeenCalledWith('prep-1', 'user-1');
+      expect(prep.cancelSetup).toHaveBeenCalledWith('prep-1', 'user-1');
     });
   });
 });

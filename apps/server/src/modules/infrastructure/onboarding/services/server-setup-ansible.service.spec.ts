@@ -70,7 +70,7 @@ describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
       .mockResolvedValueOnce('KEY_PEM');
     const { service, ansibleRunner } = build();
 
-    const result = await service.runPreparation(
+    const result = await service.runSetup(
       server,
       {
         roles: ['docker', 'docker_tls'] as SetupRoleKey[],
@@ -100,7 +100,7 @@ describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
 
   it('creates NO fetch dir and returns null material when docker_tls is not selected', async () => {
     const { service, ansibleRunner } = build();
-    const result = await service.runPreparation(
+    const result = await service.runSetup(
       server,
       {
         roles: ['docker'] as SetupRoleKey[],
@@ -121,7 +121,7 @@ describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
     const { service, ansibleRunner } = build();
     ansibleRunner.run.mockRejectedValueOnce(new Error('ansible exploded'));
     await expect(
-      service.runPreparation(
+      service.runSetup(
         server,
         {
           roles: ['docker', 'docker_tls'] as SetupRoleKey[],
@@ -140,7 +140,7 @@ describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
   it('returns null material (no throw) when the certs were not fetched', async () => {
     mockedReadFile.mockRejectedValue(new Error('ENOENT'));
     const { service } = build();
-    const result = await service.runPreparation(
+    const result = await service.runSetup(
       server,
       {
         roles: ['docker_tls'] as SetupRoleKey[],

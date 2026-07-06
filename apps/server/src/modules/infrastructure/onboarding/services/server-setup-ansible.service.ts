@@ -19,14 +19,14 @@ type AnsibleLogEvent = {
   message: string;
 };
 
-export type RunPreparationInput = {
+export type RunSetupInput = {
   roles: SetupRoleKey[];
   selectedOptions: Record<string, boolean>;
   gitlabRunnerExecutor: string;
   reinstallOptions?: string[];
 };
 
-export type RunPreparationCallbacks = {
+export type RunSetupCallbacks = {
   onLog?: (event: AnsibleLogEvent) => Promise<void> | void;
 };
 
@@ -35,7 +35,7 @@ type RunOptions = {
   timeoutMs: number;
 };
 
-export type RunPreparationOptions = RunOptions;
+export type RunSetupOptions = RunOptions;
 
 /**
  * Matériel TLS client rapatrié par le rôle docker_tls (contenu PEM en clair,
@@ -49,15 +49,15 @@ export type DockerTlsMaterial = {
   key: string;
 };
 
-export type RunPreparationResult = {
+export type RunSetupResult = {
   /** Présent uniquement si le rôle docker_tls a tourné ET a rapatrié les certs. */
   dockerTls: DockerTlsMaterial | null;
 };
 
 /**
- * Server preparation Ansible service.
+ * Server setup Ansible service.
  *
- * Owns the preparation-specific concerns (host-key trust, passwordless-sudo
+ * Owns the setup-specific concerns (host-key trust, passwordless-sudo
  * pre-flight, the `prepare-server.yml` extra-vars contract) and delegates the
  * actual ansible-playbook spawn to the single, shared {@link AnsibleRunnerService}
  * in core/. No ansible spawning lives here.
@@ -73,12 +73,12 @@ export class ServerSetupAnsibleService {
     private readonly ansibleRunner: AnsibleRunnerService,
   ) {}
 
-  async runPreparation(
+  async runSetup(
     server: Server,
-    input: RunPreparationInput,
-    options: RunPreparationOptions,
-    callbacks?: RunPreparationCallbacks,
-  ): Promise<RunPreparationResult> {
+    input: RunSetupInput,
+    options: RunSetupOptions,
+    callbacks?: RunSetupCallbacks,
+  ): Promise<RunSetupResult> {
     assertSafeLinuxUsername(server.username);
     if (input.roles.length === 0) {
       throw new BadRequestException(
@@ -119,7 +119,7 @@ export class ServerSetupAnsibleService {
           playbookPath,
           extraVars: {
             selected_roles: input.roles,
-            preparation_options: input.selectedOptions,
+            setup_options: input.selectedOptions,
             gitlab_runner_executor: input.gitlabRunnerExecutor,
             reinstall_options: input.reinstallOptions ?? [],
             managed_by: 'internal-devops-platform-control-node',

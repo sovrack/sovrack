@@ -271,15 +271,15 @@ export class DeploymentsValidationService {
       };
     }
 
-    // Verify the server has been fully prepared (tools installed) and check
+    // Verify the server has been fully set up (tools installed) and check
     // which of the required tools are confirmed installed vs missing.
-    const [confirmedTools, latestPrep] = await Promise.all([
+    const [confirmedTools, latestSetup] = await Promise.all([
       this.getConfirmedToolsFromDb(server.id),
-      this.getLatestSuccessfulPreparation(server.id),
+      this.getLatestSuccessfulSetup(server.id),
     ]);
 
-    // If the server has never been successfully prepared, all tools are missing.
-    if (!latestPrep) {
+    // If the server has never been successfully set up, all tools are missing.
+    if (!latestSetup) {
       const required = requirements.map((r) => ({
         binary: r.binary,
         label: r.label,
@@ -419,7 +419,7 @@ export class DeploymentsValidationService {
    * Used to ensure a server has been fully prepared (tools installed) before
    * allowing a deployment — not just SSH-validated (isVerified).
    */
-  private async getLatestSuccessfulPreparation(
+  private async getLatestSuccessfulSetup(
     serverId: string,
   ): Promise<{ id: string; finishedAt: Date | null } | null> {
     return this.prisma.serverRun.findFirst({

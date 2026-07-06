@@ -30,7 +30,7 @@ import {
 import { ServerSetupGateway } from '../gateways/server-setup.gateway';
 import {
   ServerSetupStateService,
-  ACTIVE_PREPARATION_STATUSES,
+  ACTIVE_SETUP_STATUSES,
 } from './setup/server-setup-state.service';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
 import {
@@ -92,7 +92,7 @@ export class InfraSetupRunnerService {
           where: {
             serverId: server.id,
             kind: ServerRunKind.PREPARATION,
-            status: { in: ACTIVE_PREPARATION_STATUSES },
+            status: { in: ACTIVE_SETUP_STATUSES },
           },
         });
         if (active > 0) {
@@ -212,10 +212,7 @@ export class InfraSetupRunnerService {
         where: { id: jobId },
       });
       await this.jobs.assertJobLock(job);
-      await this.state.transitionSetup(
-        setupId,
-        ServerRunStatus.RUNNING,
-      );
+      await this.state.transitionSetup(setupId, ServerRunStatus.RUNNING);
       await this.prisma.serverJob.update({
         where: { id: jobId },
         data: {
@@ -293,18 +290,11 @@ export class InfraSetupRunnerService {
         );
       }
 
-      await this.state.markAllRemainingTasks(
-        setupId,
-        ServerRunStepStatus.OK,
-      );
-      await this.state.transitionSetup(
-        setupId,
-        ServerRunStatus.SUCCEEDED,
-        {
-          finishedAt: new Date(),
-          summary: 'Server provisioning completed successfully.',
-        },
-      );
+      await this.state.markAllRemainingTasks(setupId, ServerRunStepStatus.OK);
+      await this.state.transitionSetup(setupId, ServerRunStatus.SUCCEEDED, {
+        finishedAt: new Date(),
+        summary: 'Server provisioning completed successfully.',
+      });
       await this.prisma.serverJob.update({
         where: { id: jobId },
         data: {
@@ -333,12 +323,7 @@ export class InfraSetupRunnerService {
         status: ServerRunStatus.SUCCEEDED,
       });
     } catch (error) {
-      await this.handleSetupFailure(
-        server.id,
-        setupId,
-        jobId,
-        error,
-      );
+      await this.handleSetupFailure(server.id, setupId, jobId, error);
     } finally {
       this.runningControllers.delete(setupId);
       this.currentRoleBySetup.delete(setupId);
@@ -380,10 +365,10 @@ export class InfraSetupRunnerService {
         },
       })) > 0;
 
-    const { prepStatus, serverStatus, displayError, displaySummary } =
+    const { setupStatus, serverStatus, displayError, displaySummary } =
       resolveSetupFailureOutcome(message, hasSuccessfulTask);
 
-    await this.state.transitionSetup(setupId, prepStatus, {
+    await this.state.transitionSetup(setupId, setupStatus, {
       finishedAt: new Date(),
       errorMessage: this.redactSecrets(displayError),
       summary: displaySummary,
@@ -411,7 +396,7 @@ export class InfraSetupRunnerService {
     );
     this.gateway.emitFinished({
       setupId: setupId,
-      status: prepStatus,
+      status: setupStatus,
       errorMessage: this.redactSecrets(message),
     });
   }
