@@ -69,6 +69,14 @@ export function ServerValidationCard({ results }: Props) {
           </div>
         </dl>
       )}
+
+      {latest &&
+        !latest.authSucceeded &&
+        latest.validationMessage?.trim() && (
+          <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+            {latest.validationMessage}
+          </p>
+        )}
     </div>
   );
 }

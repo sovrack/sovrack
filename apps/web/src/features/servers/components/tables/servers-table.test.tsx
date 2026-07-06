@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ServersTable } from "./servers-table";
 import type { Server } from "@/features/servers/types/server";
 
@@ -123,5 +123,42 @@ describe("ServersTable — columns (Task 2)", () => {
       />,
     );
     expect(screen.queryByText("Docker Engine")).not.toBeInTheDocument();
+  });
+
+  // Regression: onValidateSsh was declared in this component's props but
+  // never destructured/forwarded to ServerRowActionsMenu, making the row
+  // menu's "Validate SSH" item a silent no-op.
+  it("forwards onValidateSsh to the row actions menu", () => {
+    const onValidateSsh = vi.fn();
+    render(
+      <ServersTable
+        {...baseProps}
+        servers={[makeServer()]}
+        isReachable={{}}
+        onValidateSsh={onValidateSsh}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
+    fireEvent.click(screen.getByText("Validate SSH"));
+    expect(onValidateSsh).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "s1" }),
+    );
+  });
+
+  it("forwards onDetect to the row actions menu", () => {
+    const onDetect = vi.fn();
+    render(
+      <ServersTable
+        {...baseProps}
+        servers={[makeServer()]}
+        isReachable={{}}
+        onDetect={onDetect}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
+    fireEvent.click(screen.getByText("Detect Info"));
+    expect(onDetect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "s1" }),
+    );
   });
 });

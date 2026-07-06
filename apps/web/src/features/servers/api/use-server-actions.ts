@@ -185,7 +185,13 @@ export function useServerActions() {
                 finished?.status === "FAILED" ||
                 finished?.status === "TIMEOUT"
               ) {
-                showToast(`${formatJobType(prev.type)} failed`, "error");
+                const reason = finished?.error?.trim();
+                showToast(
+                  reason
+                    ? `${formatJobType(prev.type)} failed: ${reason}`
+                    : `${formatJobType(prev.type)} failed`,
+                  "error",
+                );
               }
               dispatch({ type: "SET_JOBS_FOR_SERVER", serverId, jobs });
             })
@@ -291,6 +297,9 @@ export function useServerActions() {
       showToast("SSH validation started", "success");
       await refreshJobs(id);
       await fetchServers();
+      await queryClient.invalidateQueries({
+        queryKey: serverKeys.setupReadiness(id),
+      });
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
     } finally {

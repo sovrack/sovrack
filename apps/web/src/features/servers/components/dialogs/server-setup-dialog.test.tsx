@@ -9,10 +9,36 @@ import type { Server } from "@/features/servers/types/server";
 vi.mock("@/features/servers/api/servers.service", () => ({
   serversService: {
     getSetupReadiness: vi.fn(),
+    getSetupOptions: vi.fn(),
   },
 }));
 
 const mocked = vi.mocked(serversService);
+
+const setupOptions = {
+  controlNodeOnly: true,
+  message: "",
+  profiles: [],
+  profileDefaults: {},
+  options: [
+    {
+      key: "reverseProxy",
+      label: "Reverse Proxy (Traefik + HTTPS)",
+      description: "Install Traefik on ports 80/443 with automatic HTTPS.",
+      role: "traefik",
+      dependencies: ["docker"],
+      recommended: false,
+    },
+    {
+      key: "gitlabRunner",
+      label: "GitLab Runner",
+      description: "Install GitLab Runner.",
+      role: "gitlab_runner",
+      dependencies: ["systemUpdate"],
+      recommended: false,
+    },
+  ],
+};
 
 function setup() {
   const client = new QueryClient({
@@ -46,11 +72,16 @@ const ready = {
   },
 };
 
-// P3 (mission finale, D4) : le dialog Setup Server n'a plus de cases ni de
-// profil — une liste fixe (lecture seule) de ce qui est installé + un bouton
-// "Setup Server" (jeu fixe) + un bouton "Setup Monitoring" séparé.
-describe("ServerSetupDialog — fixed Setup Server (P3)", () => {
-  beforeEach(() => vi.clearAllMocks());
+// D4 (rework) : "Setup Server" installe un jeu fixe (lecture seule) + une
+// liste à cocher unique pour les options avancées (Reverse Proxy, GitLab
+// Runner), sourcée du catalogue backend — plus de bouton "Setup Monitoring"
+// séparé ici (ce rôle n'installait qu'un agent léger et ne débloquait jamais
+// les tableaux de bord ; la vraie stack s'installe depuis la page Monitoring).
+describe("ServerSetupDialog — fixed core + optional checkboxes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocked.getSetupOptions.mockResolvedValue(setupOptions as never);
+  });
 
   function renderDialog(props: Record<string, unknown> = {}) {
     return render(
@@ -67,7 +98,7 @@ describe("ServerSetupDialog — fixed Setup Server (P3)", () => {
     );
   }
 
-  it("shows the fixed install list and both action buttons, no checkboxes", async () => {
+  it("shows the fixed install list, a single Setup Server button, and the optional checkboxes", async () => {
     mocked.getSetupReadiness.mockResolvedValue(ready as never);
     renderDialog();
 
@@ -75,19 +106,33 @@ describe("ServerSetupDialog — fixed Setup Server (P3)", () => {
       expect(screen.getByText("Docker TLS Connection")).toBeInTheDocument(),
     );
     expect(screen.getByText("Nixpacks")).toBeInTheDocument();
-    // Deux actions, un jeu fixe (pas de sélection).
     expect(
       screen.getByRole("button", { name: "Setup Server" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Setup Monitoring" }),
+      screen.queryByRole("button", { name: "Setup Reverse Proxy" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Setup Monitoring" }),
+    ).not.toBeInTheDocument();
+    // Options avancées : cases à cocher, sourcées du catalogue backend.
+    await waitFor(() =>
+      expect(
+        screen.getByText("Reverse Proxy (Traefik + HTTPS)"),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByText("GitLab Runner")).toBeInTheDocument();
+    expect(document.querySelectorAll('input[type="checkbox"]')).toHaveLength(
+      2,
+    );
+    // Monitoring n'est proposé nulle part dans ce dialogue.
+    expect(screen.queryByText("Monitoring agent")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/installed separately from the Monitoring page/i),
     ).toBeInTheDocument();
-    // Plus aucune case à cocher ni sélecteur de profil.
-    expect(document.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
-    expect(document.querySelector("select")).toBeNull();
   });
 
-  it("runs Setup Server with the fixed essential payload", async () => {
+  it("runs Setup Server with the fixed essential payload when no extra is checked", async () => {
     mocked.getSetupReadiness.mockResolvedValue(ready as never);
     const onPrepare = vi.fn().mockResolvedValue(undefined);
     renderDialog({ onPrepare });
@@ -104,39 +149,53 @@ describe("ServerSetupDialog — fixed Setup Server (P3)", () => {
       firewall: true,
       securityHardening: true,
     });
-    // Setup Server n'installe PAS nginx/postgres/redis/nodejs/backup.
+    // Setup Server n'installe PAS nginx/postgres/redis/nodejs/backup/monitoring.
     expect(payload.nginx).toBeUndefined();
     expect(payload.postgres).toBeUndefined();
+    expect(payload.reverseProxy).toBeUndefined();
+    expect(payload.gitlabRunner).toBeUndefined();
+    expect((payload as Record<string, unknown>).monitoring).toBeUndefined();
   });
 
-  it("runs Setup Reverse Proxy with the Traefik payload (P3.5)", async () => {
+  it("bundles Reverse Proxy into the same Setup Server run when checked", async () => {
     mocked.getSetupReadiness.mockResolvedValue(ready as never);
     const onPrepare = vi.fn().mockResolvedValue(undefined);
     renderDialog({ onPrepare });
 
-    const btn = await screen.findByRole("button", {
-      name: "Setup Reverse Proxy",
-    });
-    await waitFor(() => expect(btn).toBeEnabled());
+    await waitFor(() =>
+      expect(
+        screen.getByText("Reverse Proxy (Traefik + HTTPS)"),
+      ).toBeInTheDocument(),
+    );
+    const [reverseProxyCheckbox] = document.querySelectorAll(
+      'input[type="checkbox"]',
+    );
+    fireEvent.click(reverseProxyCheckbox);
+
+    const btn = screen.getByRole("button", { name: "Setup Server" });
     fireEvent.click(btn);
     const [, payload] = onPrepare.mock.calls[0];
     expect(payload).toMatchObject({ reverseProxy: true, docker: true });
   });
 
-  it("runs Setup Monitoring with the monitoring payload", async () => {
+  it("bundles GitLab Runner into the same Setup Server run when checked", async () => {
     mocked.getSetupReadiness.mockResolvedValue(ready as never);
     const onPrepare = vi.fn().mockResolvedValue(undefined);
     renderDialog({ onPrepare });
 
-    const btn = await screen.findByRole("button", { name: "Setup Monitoring" });
-    await waitFor(() => expect(btn).toBeEnabled());
+    await waitFor(() =>
+      expect(screen.getByText("GitLab Runner")).toBeInTheDocument(),
+    );
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    fireEvent.click(checkboxes[1]);
+
+    const btn = screen.getByRole("button", { name: "Setup Server" });
     fireEvent.click(btn);
     const [, payload] = onPrepare.mock.calls[0];
-    expect(payload).toMatchObject({ monitoring: true });
-    expect(payload.docker).toBeUndefined();
+    expect(payload).toMatchObject({ gitlabRunner: true, docker: true });
   });
 
-  it("blocks and offers 'Validate SSH now' when SSH validation is the blocker", async () => {
+  it("blocks and offers Validate SSH when SSH validation is the blocker", async () => {
     mocked.getSetupReadiness.mockResolvedValue({
       isReady: false,
       blockingReasons: ["La validation SSH doit réussir avant la préparation."],
@@ -153,14 +212,14 @@ describe("ServerSetupDialog — fixed Setup Server (P3)", () => {
     const onVerify = vi.fn().mockResolvedValue(undefined);
     renderDialog({ onVerify, verifyingId: null });
 
-    const verify = await screen.findByText("Validate SSH now");
+    const verify = await screen.findByText("Validate SSH");
     fireEvent.click(verify);
     expect(onVerify).toHaveBeenCalledWith(server);
     // Bloqué : le bouton Setup Server est désactivé.
     expect(screen.getByRole("button", { name: "Setup Server" })).toBeDisabled();
   });
 
-  it("hides 'Validate SSH now' when SSH is validated but another blocker applies", async () => {
+  it("still offers Validate SSH when SSH is validated but another blocker applies", async () => {
     mocked.getSetupReadiness.mockResolvedValue({
       isReady: false,
       blockingReasons: ["Une préparation serveur est déjà en cours."],
@@ -177,6 +236,6 @@ describe("ServerSetupDialog — fixed Setup Server (P3)", () => {
     renderDialog({ onVerify: vi.fn(), verifyingId: null });
 
     await screen.findByText("Setup blocked");
-    expect(screen.queryByText("Validate SSH now")).not.toBeInTheDocument();
+    expect(screen.getByText("Validate SSH")).toBeInTheDocument();
   });
 });

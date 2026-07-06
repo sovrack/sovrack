@@ -1,9 +1,13 @@
 "use client";
 
-import { Activity, Check, Globe, Wrench, Zap } from "lucide-react";
+import { useState } from "react";
+import { Check, GitBranch, Globe, Wrench, Zap } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
-import { useSetupReadiness } from "@/features/servers/api/use-servers";
+import {
+  useSetupReadiness,
+  useServerSetupOptions,
+} from "@/features/servers/api/use-servers";
 import type {
   Server,
   StartServerSetupPayload,
@@ -11,16 +15,12 @@ import type {
 
 export type PrepareOptions = StartServerSetupPayload;
 
-// P3 (mission finale, décision D4) : plus de cases à cocher ni de profil. Deux
-// actions à jeu FIXE, choisi par la plateforme :
-//  - "Setup Server" installe l'ensemble essentiel pour rendre le serveur
-//    déployable + sécurisé (un serveur peut builder n'importe quelle app dès le
-//    départ grâce à Docker + Nixpacks ; docker_tls le rend pilotable par la
-//    plateforme). Volontairement SANS nginx/certbot (conflit Traefik),
-//    postgres/redis/nodejs hôte (lancés en conteneurs) ni backup (obsolète).
-//  - "Setup Monitoring" installe la brique d'observabilité, séparément.
-// gitlab_runner (transformer le VPS en runner CI) reste une action avancée non
-// exposée ici.
+// P3 (mission finale, décision D4) : "Setup Server" installe un jeu FIXE
+// (pas de cases à cocher), choisi par la plateforme — un serveur peut builder
+// n'importe quelle app dès le départ grâce à Docker + Nixpacks ; docker_tls le
+// rend pilotable par la plateforme. Volontairement SANS nginx/certbot
+// (conflit Traefik), postgres/redis/nodejs hôte (lancés en conteneurs) ni
+// backup (obsolète).
 const SETUP_SERVER_PAYLOAD: StartServerSetupPayload = {
   profile: "CUSTOM",
   systemUpdate: true,
@@ -36,16 +36,22 @@ const SETUP_SERVER_PAYLOAD: StartServerSetupPayload = {
   autoUpdates: true,
 };
 
-const SETUP_MONITORING_PAYLOAD: StartServerSetupPayload = {
-  profile: "CUSTOM",
-  monitoring: true,
-};
+// Options avancées, optionnelles, ajoutées à la même exécution si cochées.
+// Le catalogue complet (useServerSetupOptions) contient aussi "monitoring" —
+// volontairement exclu ici : ce rôle n'installe qu'un agent léger et ne
+// débloque jamais les tableaux de bord Grafana/Prometheus/Loki (uniquement
+// la page Monitoring le fait). L'y proposer ici recrée la confusion "deux
+// boutons Setup Monitoring qui ne font pas la même chose".
+const EXTRA_OPTION_KEYS: (keyof StartServerSetupPayload)[] = [
+  "reverseProxy",
+  "gitlabRunner",
+];
 
-// P3.5 (D5) : reverse proxy Traefik + Let's Encrypt (HTTPS automatique).
-const SETUP_REVERSE_PROXY_PAYLOAD: StartServerSetupPayload = {
-  profile: "CUSTOM",
-  docker: true,
-  reverseProxy: true,
+const EXTRA_OPTION_ICONS: Partial<
+  Record<keyof StartServerSetupPayload, typeof Globe>
+> = {
+  reverseProxy: Globe,
+  gitlabRunner: GitBranch,
 };
 
 // Liste lisible de ce que "Setup Server" installe (lecture seule, informative).
@@ -96,6 +102,10 @@ export function ServerSetupDialog({
   const readinessQuery = useSetupReadiness(
     open && server ? server.id : "",
   );
+  const optionsQuery = useServerSetupOptions();
+  const [selectedExtras, setSelectedExtras] = useState<
+    Partial<Record<keyof StartServerSetupPayload, boolean>>
+  >({});
 
   if (!server) return null;
 
@@ -112,13 +122,28 @@ export function ServerSetupDialog({
       : (readiness?.blockingReasons ?? []);
   const isReady =
     !readinessLoading && !readinessError && Boolean(readiness?.isReady);
-  const needsSshValidation = Boolean(
-    readiness?.checks &&
-      (!readiness.checks.sshValidated ||
-        !readiness.checks.sshReachable ||
-        !readiness.checks.authSucceeded),
-  );
   const busyThis = preparingId === server.id;
+
+  const extraOptions = (optionsQuery.data?.options ?? []).filter((o) =>
+    EXTRA_OPTION_KEYS.includes(o.key),
+  );
+
+  const toggleExtra = (key: keyof StartServerSetupPayload) => {
+    setSelectedExtras((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const runSetup = () => {
+    const payload: StartServerSetupPayload = { ...SETUP_SERVER_PAYLOAD };
+    // reverseProxy needs docker (already true above); each extra is just an
+    // extra boolean on the same flat payload — resolvePreparationOptions
+    // (backend) fills in role dependencies on its own.
+    for (const key of EXTRA_OPTION_KEYS) {
+      if (selectedExtras[key]) {
+        (payload as Record<string, unknown>)[key] = true;
+      }
+    }
+    void onPrepare(server, payload);
+  };
 
   return (
     <Modal
@@ -134,7 +159,7 @@ export function ServerSetupDialog({
             Cancel
           </Button>
           <Button
-            onClick={() => void onPrepare(server, SETUP_SERVER_PAYLOAD)}
+            onClick={runSetup}
             disabled={isBusy || !isReady}
             loading={busyThis}
             icon={busyThis ? undefined : <Wrench size={14} />}
@@ -179,56 +204,59 @@ export function ServerSetupDialog({
           </ul>
         </div>
 
-        {/* Actions optionnelles séparées */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
-              Reverse Proxy — HTTPS (optional)
+        {/* Options avancées : une seule liste à cocher, ajoutées à la même
+            exécution que "Setup Server" ci-dessus si sélectionnées. */}
+        {extraOptions.length > 0 && (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-secondary)]">
+              Optional
             </p>
-            <p className="text-xs text-[var(--text-secondary)]">
-              Install Traefik (80/443) with automatic Let’s Encrypt
-              certificates. Services with a domain then get HTTPS at deploy.
+            <div className="space-y-2">
+              {extraOptions.map((option) => {
+                const Icon = EXTRA_OPTION_ICONS[option.key] ?? Globe;
+                return (
+                  <label
+                    key={option.key}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+                  >
+                    <span className="flex min-w-0 items-start gap-2">
+                      <Icon
+                        size={14}
+                        className="mt-0.5 shrink-0 text-[var(--text-secondary)]"
+                        aria-hidden
+                      />
+                      <span>
+                        <span className="font-semibold text-[var(--text-primary)]">
+                          {option.label}
+                        </span>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                          {option.description}
+                        </p>
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(selectedExtras[option.key])}
+                      onChange={() => toggleExtra(option.key)}
+                      disabled={isBusy || !isReady}
+                      className="mt-1 shrink-0 accent-zinc-600"
+                    />
+                  </label>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-[var(--text-secondary)]">
+              Looking for the monitoring stack (Grafana/Prometheus/Loki)?
+              It&apos;s installed separately from the Monitoring page.
             </p>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={isBusy || !isReady}
-            loading={busyThis}
-            onClick={() => void onPrepare(server, SETUP_REVERSE_PROXY_PAYLOAD)}
-            icon={busyThis ? undefined : <Globe size={13} />}
-          >
-            Setup Reverse Proxy
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
-              Monitoring (optional)
-            </p>
-            <p className="text-xs text-[var(--text-secondary)]">
-              Install the observability agent on this server, separately from
-              the core setup.
-            </p>
-          </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={isBusy || !isReady}
-            loading={busyThis}
-            onClick={() => void onPrepare(server, SETUP_MONITORING_PAYLOAD)}
-            icon={busyThis ? undefined : <Activity size={13} />}
-          >
-            Setup Monitoring
-          </Button>
-        </div>
+        )}
 
         {!isReady && (
           <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             <div className="flex items-center justify-between gap-3">
               <p className="font-semibold">Setup blocked</p>
-              {needsSshValidation && onVerify && (
+              {onVerify && (
                 <Button
                   variant="secondary"
                   size="sm"
@@ -238,7 +266,7 @@ export function ServerSetupDialog({
                     verifyingId === server.id ? undefined : <Zap size={13} />
                   }
                 >
-                  Validate SSH now
+                  Validate SSH
                 </Button>
               )}
             </div>

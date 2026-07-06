@@ -4,6 +4,8 @@ import {
   Eye,
   MoreHorizontal,
   Pencil,
+  ScanSearch,
+  ShieldCheck,
   Terminal,
   Trash2,
   Wrench,
@@ -23,13 +25,15 @@ type ServerRowActionsMenuProps = {
   onOpenDetails: (server: Server) => void;
   onEdit: (server: Server) => void;
   onDelete: (server: Server) => void;
+  onValidateSsh?: (server: Server) => void;
+  onDetect?: (server: Server) => void;
 };
 
 /**
  * Compact "⋯" actions menu for a server table row. Uses the shared portal-based
  * DropdownMenu (Phase 1.1) so the menu escapes the table's `overflow-x-auto`
  * wrapper — the previous `absolute` menu was clipped and caused a stray
- * scrollbar. Exactly the 5 actions the compact table needs.
+ * scrollbar.
  */
 export function ServerRowActionsMenu({
   server,
@@ -39,6 +43,8 @@ export function ServerRowActionsMenu({
   onOpenDetails,
   onEdit,
   onDelete,
+  onValidateSsh,
+  onDetect,
 }: ServerRowActionsMenuProps) {
   return (
     <DropdownMenu
@@ -62,6 +68,15 @@ export function ServerRowActionsMenu({
             Enter Terminal
           </DropdownItem>
           <DropdownItem
+            icon={<ShieldCheck size={14} />}
+            onClick={() => {
+              close();
+              onValidateSsh?.(server);
+            }}
+          >
+            Validate SSH
+          </DropdownItem>
+          <DropdownItem
             icon={<Wrench size={14} />}
             onClick={() => {
               close();
@@ -69,6 +84,15 @@ export function ServerRowActionsMenu({
             }}
           >
             Setup Server
+          </DropdownItem>
+          <DropdownItem
+            icon={<ScanSearch size={14} />}
+            onClick={() => {
+              close();
+              onDetect?.(server);
+            }}
+          >
+            Detect Info
           </DropdownItem>
           <DropdownItem
             icon={<Pencil size={14} />}

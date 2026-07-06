@@ -16,6 +16,8 @@ type ServersTableProps = {
   onOpenDetails: (server: Server) => void;
   onEdit: (server: Server) => void;
   onDelete: (server: Server) => void;
+  onValidateSsh?: (server: Server) => void;
+  onDetect?: (server: Server) => void;
 };
 
 function ReachabilityDot({ value }: { value: boolean | undefined }) {
@@ -42,6 +44,31 @@ function ReachabilityDot({ value }: { value: boolean | undefined }) {
 const th = "px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
 const td = "px-3 py-2.5 align-middle";
 
+function SshVerifiedBadge({ isVerified }: { isVerified: boolean | null }) {
+  if (isVerified === null) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
+        Pending
+      </span>
+    );
+  }
+  if (isVerified) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-green-400">
+        <Check size={12} />
+        Verified
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-red-400">
+      <X size={12} />
+      Failed
+    </span>
+  );
+}
+
 /**
  * Compact server table (Task 2, "Sécurité database + UI" mission) —
  * replaces the previous large-card list. Deliberately does NOT show
@@ -58,6 +85,8 @@ export function ServersTable({
   onOpenDetails,
   onEdit,
   onDelete,
+  onValidateSsh,
+  onDetect,
 }: ServersTableProps) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
@@ -70,6 +99,7 @@ export function ServersTable({
             <th className={th}>Port</th>
             <th className={th}>Username</th>
             <th className={th}>SSH Key</th>
+            <th className={th}>SSH Verified</th>
             <th className={th}>Created</th>
             <th className={`${th} text-right`}>Actions</th>
           </tr>
@@ -113,6 +143,9 @@ export function ServersTable({
                     <X size={15} className="text-[var(--text-muted)]" aria-label="No SSH key" />
                   )}
                 </td>
+                <td className={td}>
+                  <SshVerifiedBadge isVerified={server.isVerified} />
+                </td>
                 <td className={`${td} text-xs text-[var(--text-secondary)]`}>
                   {new Date(server.createdAt).toLocaleDateString("en-GB", {
                     day: "2-digit",
@@ -129,6 +162,8 @@ export function ServersTable({
                     onOpenDetails={onOpenDetails}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onValidateSsh={onValidateSsh}
+                    onDetect={onDetect}
                   />)}
                 </td>
               </tr>
