@@ -28,7 +28,7 @@ import {
 } from '../../servers/dto/server-response.dto';
 import { ServerSetupService } from '../services/infra-setup.service';
 
-@ApiTags('Servers Preparation')
+@ApiTags('Servers Setup')
 @ApiBearerAuth()
 @Controller('servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -41,13 +41,13 @@ export class ServerSetupController {
   @Post(':id/setups')
   @ApiOperation({ summary: 'Start a server provisioning job' })
   @ApiCreatedResponse({ type: ServerSetupDto })
-  async startPreparation(
+  async startSetup(
     @Param('id') id: string,
     @Body() dto: StartServerSetupDto,
     @GetUser() user: JwtPayload,
   ) {
     try {
-      return await this.prep.startPreparation(id, dto, user.id);
+      return await this.prep.startSetup(id, dto, user.id);
     } catch (error) {
       // Re-throw NestJS HTTP exceptions (BadRequest, NotFound, etc.) directly
       if (
@@ -59,13 +59,13 @@ export class ServerSetupController {
       }
       // Log internal errors server-side, return clean message to client
       this.logger.error(
-        `Failed to start preparation for server ${id}: ${
+        `Failed to start setup for server ${id}: ${
           error instanceof Error ? error.message : String(error)
         }`,
         error instanceof Error ? error.stack : undefined,
       );
       throw new InternalServerErrorException(
-        'Preparation could not be started. Check server readiness or backend logs.',
+        'Setup could not be started. Check server readiness or backend logs.',
       );
     }
   }
@@ -73,17 +73,17 @@ export class ServerSetupController {
   @Get(':id/setups')
   @ApiOperation({ summary: "List the server's provisioning history" })
   @ApiOkResponse({ type: ServerSetupDto, isArray: true })
-  async listPreparations(@Param('id') id: string) {
-    return await this.prep.listPreparations(id);
+  async listSetups(@Param('id') id: string) {
+    return await this.prep.listSetups(id);
   }
 
-  @Get(':id/preparation-readiness')
+  @Get(':id/setup-readiness')
   @ApiOperation({
     summary:
       'Check whether the server is ready to start provisioning (SSH/sudo/state/lock).',
   })
   @ApiOkResponse({ type: ServerSetupReadinessDto })
-  async getPreparationReadiness(@Param('id') id: string) {
-    return await this.prep.getPreparationReadiness(id);
+  async getSetupReadiness(@Param('id') id: string) {
+    return await this.prep.getSetupReadiness(id);
   }
 }

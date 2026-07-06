@@ -4,8 +4,8 @@ import type { SetupRoleKey } from '../../servers/shared/server-setup-options';
 
 // ─── Input option types ──────────────────────────────────────────────────────
 
-export type StartPreparationOptions = {
-  retryOfPreparationId?: string;
+export type StartSetupOptions = {
+  retryOfSetupId?: string;
   triggerSource?: string;
   forcedRoles?: SetupRoleKey[];
 };
@@ -20,9 +20,9 @@ export type ServerSetupReadiness = {
   latestValidationAt: Date | null;
 };
 
-export type PreparationTaskView = {
+export type SetupTaskView = {
   id: string;
-  preparationId: string;
+  setupId: string;
   roleKey: string | null;
   taskName: string | null;
   orderIndex: number;
@@ -32,7 +32,7 @@ export type PreparationTaskView = {
   message: string | null;
 };
 
-export type PreparationView = {
+export type SetupView = {
   id: string;
   serverId: string | null;
   status: ServerRunStatus;
@@ -43,12 +43,12 @@ export type PreparationView = {
   finishedAt: Date | null;
   summary: string | null;
   errorMessage: string | null;
-  retryOfPreparationId: string | null;
+  retryOfSetupId: string | null;
   selectedOptionsJson: Prisma.JsonValue;
   resolvedRolesJson: Prisma.JsonValue;
   createdAt: Date;
   updatedAt: Date;
-  tasks: PreparationTaskView[];
+  tasks: SetupTaskView[];
 };
 
 // ─── DB includes ─────────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ export type RunWithSteps = Prisma.ServerRunGetPayload<{
 
 // ─── View transformer ─────────────────────────────────────────────────────────
 
-export function toPreparationView(run: RunWithSteps): PreparationView {
+export function toSetupView(run: RunWithSteps): SetupView {
   return {
     id: run.id,
     serverId: run.serverId,
@@ -75,14 +75,14 @@ export function toPreparationView(run: RunWithSteps): PreparationView {
     finishedAt: run.finishedAt,
     summary: run.summary,
     errorMessage: run.errorMessage,
-    retryOfPreparationId: run.retryOfId,
+    retryOfSetupId: run.retryOfId,
     selectedOptionsJson: run.paramsJson,
     resolvedRolesJson: run.resolvedJson ?? [],
     createdAt: run.createdAt,
     updatedAt: run.updatedAt,
     tasks: run.steps.map((step) => ({
       id: step.id,
-      preparationId: step.runId,
+      setupId: step.runId,
       roleKey: step.roleKey,
       taskName: step.taskName,
       orderIndex: step.orderIndex,

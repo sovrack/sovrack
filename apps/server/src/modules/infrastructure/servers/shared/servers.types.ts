@@ -35,12 +35,12 @@ export type CreateServerResult = ServerPublic & {
 
 // A2 (merge the separate "Logs" dialog into Job History): PREPARE_SERVER jobs
 // store the ServerRun (kind=PREPARATION) they triggered as
-// `payload.preparationId` — the only part of `payload` a client legitimately
+// `payload.setupId` — the only part of `payload` a client legitimately
 // needs, to fetch that run's step-by-step Ansible log. The rest of `payload`
-// (selectedOptions/resolvedRoles/retryOfPreparationId) is internal
+// (selectedOptions/resolvedRoles/retryOfSetupId) is internal
 // bookkeeping and stays stripped, same as before.
 export type ServerJobPublic = Omit<ServerJob, 'payload'> & {
-  preparationId: string | null;
+  setupId: string | null;
 };
 
 export type ServerExecutionOptions = {

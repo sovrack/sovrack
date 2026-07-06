@@ -199,7 +199,7 @@ export class ServerJobResponseDto {
     description:
       'For PREPARE_SERVER jobs: the id of the ServerRun (kind=PREPARATION) it triggered — fetch it for the step-by-step Ansible log. Null for job types that never ran Ansible (VERIFY/INSTALL_TOOLS/REGISTER_RUNNER).',
   })
-  preparationId!: string | null;
+  setupId!: string | null;
 }
 
 export class PaginatedServerJobsResponseDto {

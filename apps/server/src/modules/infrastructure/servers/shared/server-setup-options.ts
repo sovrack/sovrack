@@ -46,7 +46,7 @@ export type SetupRoleKey =
   | 'swap'
   | 'security_hardening';
 
-export type ResolvedPreparation = {
+export type ResolvedSetup = {
   profile: ServerPreparationProfile;
   selectedOptions: Record<SetupOptionKey, boolean>;
   roles: SetupRoleKey[];
@@ -64,8 +64,8 @@ export type SetupOptionDefinition = {
   recommended: boolean;
 };
 
-// Single source of truth for the full set of preparation roles. Exported so
-// consumers (e.g. the preparation orchestrator's role-tracking + retry filter)
+// Single source of truth for the full set of setup roles. Exported so
+// consumers (e.g. the setup orchestrator's role-tracking + retry filter)
 // never hardcode a partial list that silently drops a role like `nixpacks`.
 export const ROLE_ORDER: SetupRoleKey[] = [
   'system_base',
@@ -254,7 +254,7 @@ export const SETUP_OPTIONS: SetupOptionDefinition[] = [
   },
 ];
 
-export const PREPARATION_PROFILE_DEFAULTS: Record<
+export const SETUP_PROFILE_DEFAULTS: Record<
   ServerPreparationProfile,
   Partial<Record<SetupOptionKey, boolean>>
 > = {
@@ -328,15 +328,15 @@ export const PREPARATION_PROFILE_DEFAULTS: Record<
   CUSTOM: {},
 };
 
-export function resolvePreparationOptions(
+export function resolveSetupOptions(
   dto?: StartServerSetupDto,
-): ResolvedPreparation {
+): ResolvedSetup {
   const profile = dto?.profile ?? ServerPreparationProfile.BASIC;
   const selected = Object.fromEntries(
     SETUP_OPTIONS.map((option) => [option.key, false]),
   ) as Record<SetupOptionKey, boolean>;
 
-  Object.assign(selected, PREPARATION_PROFILE_DEFAULTS[profile]);
+  Object.assign(selected, SETUP_PROFILE_DEFAULTS[profile]);
 
   for (const option of SETUP_OPTIONS) {
     const explicit = dto?.[option.key];

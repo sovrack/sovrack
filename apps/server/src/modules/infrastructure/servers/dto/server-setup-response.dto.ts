@@ -11,7 +11,7 @@ export class ServerSetupTaskDto {
   id!: string;
 
   @ApiProperty()
-  preparationId!: string;
+  setupId!: string;
 
   @ApiProperty()
   roleKey!: string;
@@ -67,7 +67,7 @@ export class ServerSetupDto {
   errorMessage!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
-  retryOfPreparationId!: string | null;
+  retryOfSetupId!: string | null;
 
   @ApiProperty({ type: () => ServerSetupTaskDto, isArray: true })
   tasks!: ServerSetupTaskDto[];
@@ -78,7 +78,7 @@ export class ServerSetupLogDto {
   id!: string;
 
   @ApiProperty()
-  preparationId!: string;
+  setupId!: string;
 
   @ApiProperty({ enum: ServerLogLevel })
   level!: ServerLogLevel;
@@ -116,7 +116,7 @@ export class ServerSetupReadinessChecksDto {
   sudoAvailable!: boolean;
 
   @ApiProperty()
-  noActivePreparation!: boolean;
+  noActiveSetup!: boolean;
 }
 
 export class ServerSetupReadinessDto {

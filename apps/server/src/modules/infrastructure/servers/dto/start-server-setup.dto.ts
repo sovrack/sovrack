@@ -15,7 +15,7 @@ export class StartServerSetupDto {
     enum: ServerPreparationProfile,
     default: ServerPreparationProfile.BASIC,
     description:
-      'Reusable preparation profile. Explicit options override profile defaults.',
+      'Reusable setup profile. Explicit options override profile defaults.',
   })
   @IsOptional()
   @IsEnum(ServerPreparationProfile)

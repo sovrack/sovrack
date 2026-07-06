@@ -141,11 +141,11 @@ describe('ServersJobsService', () => {
   });
 
   // A2 (merge the separate "Logs" dialog into Job History): PREPARE_SERVER
-  // jobs store the ServerRun they triggered as `payload.preparationId` —
+  // jobs store the ServerRun they triggered as `payload.setupId` —
   // toPublicJob must surface just that one field, never the raw payload
-  // (selectedOptions/resolvedRoles/retryOfPreparationId stay internal).
+  // (selectedOptions/resolvedRoles/retryOfSetupId stay internal).
   describe('toPublicJob', () => {
-    it('derives preparationId from payload for a PREPARE_SERVER job', () => {
+    it('derives setupId from payload for a PREPARE_SERVER job', () => {
       const { service } = createService();
       const job = {
         id: 'job-1',
@@ -153,18 +153,35 @@ describe('ServersJobsService', () => {
         type: ServerJobType.PREPARE_SERVER,
         status: ServerJobStatus.SUCCESS,
         payload: {
-          preparationId: 'run-42',
+          setupId: 'run-42',
           selectedOptions: ['docker'],
           resolvedRoles: ['docker'],
-          retryOfPreparationId: null,
+          retryOfSetupId: null,
         },
       } as never;
       const result = service.toPublicJob(job);
-      expect(result.preparationId).toBe('run-42');
+      expect(result.setupId).toBe('run-42');
       expect(result).not.toHaveProperty('payload');
     });
 
-    it('returns null preparationId for job types with no payload (VERIFY, etc.)', () => {
+    // Regression: job payloads written before the preparation->setup rename
+    // still have the old key (JSON blob, no migration applies to it).
+    it('falls back to the legacy preparationId key for jobs created before the rename', () => {
+      const { service } = createService();
+      const job = {
+        id: 'job-legacy',
+        serverId: 'srv-1',
+        type: ServerJobType.PREPARE_SERVER,
+        status: ServerJobStatus.SUCCESS,
+        payload: {
+          preparationId: 'run-legacy',
+          selectedOptions: ['docker'],
+        },
+      } as never;
+      expect(service.toPublicJob(job).setupId).toBe('run-legacy');
+    });
+
+    it('returns null setupId for job types with no payload (VERIFY, etc.)', () => {
       const { service } = createService();
       const job = {
         id: 'job-2',
@@ -173,10 +190,10 @@ describe('ServersJobsService', () => {
         status: ServerJobStatus.SUCCESS,
         payload: null,
       } as never;
-      expect(service.toPublicJob(job).preparationId).toBeNull();
+      expect(service.toPublicJob(job).setupId).toBeNull();
     });
 
-    it('returns null preparationId when payload is present but has no preparationId key', () => {
+    it('returns null setupId when payload is present but has no setupId key', () => {
       const { service } = createService();
       const job = {
         id: 'job-3',
@@ -185,7 +202,7 @@ describe('ServersJobsService', () => {
         status: ServerJobStatus.SUCCESS,
         payload: { someOtherField: true },
       } as never;
-      expect(service.toPublicJob(job).preparationId).toBeNull();
+      expect(service.toPublicJob(job).setupId).toBeNull();
     });
   });
 

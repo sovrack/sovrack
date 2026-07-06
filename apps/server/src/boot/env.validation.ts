@@ -50,7 +50,7 @@ const envSchema = z.object({
 
   // ── Server preparation ───────────────────────────────────────────────────
   SERVER_JOB_TIMEOUT_MS: z.string().optional(),
-  SERVER_PREPARATION_TIMEOUT_MS: z.string().optional(),
+  SERVER_SETUP_TIMEOUT_MS: z.string().optional(),
   SERVER_AUTO_CONFIGURE_SUDOERS: z.string().optional(),
   SERVER_LEGACY_API_ENABLED: z.string().optional(),
   SERVER_LEGACY_API_SUNSET_DATE: z.string().optional(),

@@ -35,7 +35,7 @@ import {
 import { ServerRunsService } from '../../server-runs/server-runs.service';
 import {
   ROLE_ORDER,
-  ResolvedPreparation,
+  ResolvedSetup,
   SetupRoleKey,
 } from '../../servers/shared/server-setup-options';
 import {
@@ -47,14 +47,14 @@ import {
 import {
   runWithStepsInclude,
   RunWithSteps,
-  StartPreparationOptions,
+  StartSetupOptions,
 } from './infra-setup-planning.util';
 
 @Injectable()
 export class InfraSetupRunnerService {
   private readonly logger = new Logger(InfraSetupRunnerService.name);
   private readonly runningControllers = new Map<string, AbortController>();
-  private readonly currentRoleByPreparation = new Map<string, SetupRoleKey>();
+  private readonly currentRoleBySetup = new Map<string, SetupRoleKey>();
   readonly knownRoleKeys = new Set<SetupRoleKey>(ROLE_ORDER);
 
   constructor(
@@ -72,15 +72,15 @@ export class InfraSetupRunnerService {
   ) {}
 
   /**
-   * Creates the preparation ServerRun record and its per-role steps inside a
+   * Creates the setup ServerRun record and its per-role steps inside a
    * single advisory-lock transaction, then updates the server status to
    * PREPARATION_PENDING. Returns the created run with steps included.
    */
   async createRun(
     server: Server,
-    resolved: ResolvedPreparation,
+    resolved: ResolvedSetup,
     resolvedRoles: SetupRoleKey[],
-    options?: StartPreparationOptions,
+    options?: StartSetupOptions,
     actorId?: string,
   ): Promise<RunWithSteps> {
     let created: RunWithSteps;
@@ -129,7 +129,7 @@ export class InfraSetupRunnerService {
               _reinstallOptions: [...(resolved.reinstallOptions ?? [])],
             } as Prisma.InputJsonValue,
             resolvedJson: resolvedRoles as Prisma.InputJsonValue,
-            retryOfId: options?.retryOfPreparationId,
+            retryOfId: options?.retryOfSetupId,
             steps: {
               create: resolvedRoles.map((roleKey, index) => ({
                 roleKey,
@@ -170,41 +170,41 @@ export class InfraSetupRunnerService {
   /** Fire-and-forget wrapper around execute(). */
   runInBackground(
     server: Server,
-    preparationId: string,
+    setupId: string,
     jobId: string,
     roles: SetupRoleKey[],
   ): void {
-    void this.execute(server, preparationId, jobId, roles).catch((error) => {
+    void this.execute(server, setupId, jobId, roles).catch((error) => {
       this.logger.error(
-        `Preparation ${preparationId} background execution failed: ${
+        `Setup ${setupId} background execution failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
     });
   }
 
-  /** Aborts a running preparation by its ID. No-op if none is running. */
-  abort(preparationId: string): void {
-    this.runningControllers.get(preparationId)?.abort();
+  /** Aborts a running setup by its ID. No-op if none is running. */
+  abort(setupId: string): void {
+    this.runningControllers.get(setupId)?.abort();
   }
 
   private async execute(
     server: Server,
-    preparationId: string,
+    setupId: string,
     jobId: string,
     roles: SetupRoleKey[],
   ): Promise<void> {
-    const timeoutMs = this.resolvePreparationTimeoutMs(roles);
+    const timeoutMs = this.resolveSetupTimeoutMs(roles);
     const abortController = new AbortController();
-    this.runningControllers.set(preparationId, abortController);
+    this.runningControllers.set(setupId, abortController);
 
     try {
-      await this.state.transitionPreparation(
-        preparationId,
+      await this.state.transitionSetup(
+        setupId,
         ServerRunStatus.RESOLVING_OPTIONS,
       );
-      await this.state.transitionPreparation(
-        preparationId,
+      await this.state.transitionSetup(
+        setupId,
         ServerRunStatus.WAITING_FOR_LOCK,
       );
 
@@ -212,8 +212,8 @@ export class InfraSetupRunnerService {
         where: { id: jobId },
       });
       await this.jobs.assertJobLock(job);
-      await this.state.transitionPreparation(
-        preparationId,
+      await this.state.transitionSetup(
+        setupId,
         ServerRunStatus.RUNNING,
       );
       await this.prisma.serverJob.update({
@@ -230,14 +230,14 @@ export class InfraSetupRunnerService {
         data: { status: ServerStatus.PREPARING, onboardingStep: 'PREPARING' },
       });
       await this.appendLog(
-        preparationId,
+        setupId,
         ServerLogLevel.INFO,
         'orchestrator',
-        'Starting server preparation from the control node. The target VPS will not install Ansible.',
+        'Starting server setup from the control node. The target VPS will not install Ansible.',
       );
 
       const run = await this.prisma.serverRun.findUniqueOrThrow({
-        where: { id: preparationId },
+        where: { id: setupId },
       });
       const rawOptions = run.paramsJson as Record<string, unknown>;
       const { _gitlabRunnerExecutor, _reinstallOptions, ...boolOptions } =
@@ -256,7 +256,7 @@ export class InfraSetupRunnerService {
 
       const runResult = await this.ssh.withTimeout(
         async () =>
-          await this.ansible.runPreparation(
+          await this.ansible.runSetup(
             server,
             {
               roles,
@@ -267,9 +267,9 @@ export class InfraSetupRunnerService {
             { signal: abortController.signal, timeoutMs },
             {
               onLog: async (event) => {
-                await this.updateRoleStateFromLog(preparationId, event.message);
+                await this.updateRoleStateFromLog(setupId, event.message);
                 await this.appendLog(
-                  preparationId,
+                  setupId,
                   event.level,
                   event.source,
                   event.message,
@@ -288,17 +288,17 @@ export class InfraSetupRunnerService {
       if (roles.includes('docker_tls')) {
         await this.registerDockerTlsConnection(
           server,
-          preparationId,
+          setupId,
           runResult.dockerTls,
         );
       }
 
       await this.state.markAllRemainingTasks(
-        preparationId,
+        setupId,
         ServerRunStepStatus.OK,
       );
-      await this.state.transitionPreparation(
-        preparationId,
+      await this.state.transitionSetup(
+        setupId,
         ServerRunStatus.SUCCEEDED,
         {
           finishedAt: new Date(),
@@ -322,37 +322,37 @@ export class InfraSetupRunnerService {
         },
       });
       await this.appendLog(
-        preparationId,
+        setupId,
         ServerLogLevel.INFO,
         'orchestrator',
-        'Preparation completed successfully.',
+        'Setup completed successfully.',
       );
-      await this.refreshDetectionAfterPreparation(server, preparationId);
+      await this.refreshDetectionAfterSetup(server, setupId);
       this.gateway.emitFinished({
-        setupId: preparationId,
+        setupId: setupId,
         status: ServerRunStatus.SUCCEEDED,
       });
     } catch (error) {
-      await this.handlePreparationFailure(
+      await this.handleSetupFailure(
         server.id,
-        preparationId,
+        setupId,
         jobId,
         error,
       );
     } finally {
-      this.runningControllers.delete(preparationId);
-      this.currentRoleByPreparation.delete(preparationId);
+      this.runningControllers.delete(setupId);
+      this.currentRoleBySetup.delete(setupId);
     }
   }
 
-  private async handlePreparationFailure(
+  private async handleSetupFailure(
     serverId: string,
-    preparationId: string,
+    setupId: string,
     jobId: string,
     error: unknown,
   ): Promise<void> {
     const current = await this.prisma.serverRun.findUnique({
-      where: { id: preparationId },
+      where: { id: setupId },
       select: { status: true },
     });
     if (current?.status === ServerRunStatus.CANCELED) {
@@ -360,7 +360,7 @@ export class InfraSetupRunnerService {
         where: { id: jobId },
         data: {
           status: ServerJobStatus.FAILED,
-          error: 'Preparation canceled by administrator',
+          error: 'Setup canceled by administrator',
           finishedAt: new Date(),
         },
       });
@@ -369,11 +369,11 @@ export class InfraSetupRunnerService {
 
     const message = error instanceof Error ? error.message : String(error);
     const isTimeout = message.startsWith('JOB_TIMEOUT_');
-    await this.state.markFailedRunningTasks(preparationId, isTimeout);
+    await this.state.markFailedRunningTasks(setupId, isTimeout);
     const hasSuccessfulTask =
       (await this.prisma.serverRunStep.count({
         where: {
-          runId: preparationId,
+          runId: setupId,
           status: {
             in: [ServerRunStepStatus.OK, ServerRunStepStatus.CHANGED],
           },
@@ -383,7 +383,7 @@ export class InfraSetupRunnerService {
     const { prepStatus, serverStatus, displayError, displaySummary } =
       resolveSetupFailureOutcome(message, hasSuccessfulTask);
 
-    await this.state.transitionPreparation(preparationId, prepStatus, {
+    await this.state.transitionSetup(setupId, prepStatus, {
       finishedAt: new Date(),
       errorMessage: this.redactSecrets(displayError),
       summary: displaySummary,
@@ -404,25 +404,25 @@ export class InfraSetupRunnerService {
       },
     });
     await this.appendLog(
-      preparationId,
+      setupId,
       ServerLogLevel.ERROR,
       'orchestrator',
       this.redactSecrets(message),
     );
     this.gateway.emitFinished({
-      setupId: preparationId,
+      setupId: setupId,
       status: prepStatus,
       errorMessage: this.redactSecrets(message),
     });
   }
 
   private async appendLog(
-    preparationId: string,
+    setupId: string,
     level: ServerLogLevel,
     source: string,
     message: string,
   ): Promise<void> {
-    const created = await this.serverRuns.appendLog(preparationId, {
+    const created = await this.serverRuns.appendLog(setupId, {
       level,
       source,
       message: this.redactSecrets(message),
@@ -438,17 +438,17 @@ export class InfraSetupRunnerService {
   }
 
   private async updateRoleStateFromLog(
-    preparationId: string,
+    setupId: string,
     message: string,
   ): Promise<void> {
     const roleKey = parseRoleFromAnsibleLogLine(message, this.knownRoleKeys);
     if (!roleKey) return;
 
-    const previous = this.currentRoleByPreparation.get(preparationId);
+    const previous = this.currentRoleBySetup.get(setupId);
     if (previous && previous !== roleKey) {
       await this.prisma.serverRunStep.updateMany({
         where: {
-          runId: preparationId,
+          runId: setupId,
           roleKey: previous,
           status: ServerRunStepStatus.RUNNING,
         },
@@ -456,10 +456,10 @@ export class InfraSetupRunnerService {
       });
     }
 
-    this.currentRoleByPreparation.set(preparationId, roleKey);
+    this.currentRoleBySetup.set(setupId, roleKey);
     await this.prisma.serverRunStep.updateMany({
       where: {
-        runId: preparationId,
+        runId: setupId,
         roleKey,
         status: ServerRunStepStatus.PENDING,
       },
@@ -477,12 +477,12 @@ export class InfraSetupRunnerService {
    */
   private async registerDockerTlsConnection(
     server: Server,
-    preparationId: string,
+    setupId: string,
     material: DockerTlsMaterial | null,
   ): Promise<void> {
     if (!material) {
       await this.appendLog(
-        preparationId,
+        setupId,
         ServerLogLevel.ERROR,
         'orchestrator',
         'docker_tls: run succeeded but client certificates were not retrieved — ' +
@@ -502,7 +502,7 @@ export class InfraSetupRunnerService {
         tlsClientKey: material.key,
       });
       await this.appendLog(
-        preparationId,
+        setupId,
         ServerLogLevel.INFO,
         'orchestrator',
         `Docker TLS connection registered automatically (${endpoint}).`,
@@ -513,12 +513,12 @@ export class InfraSetupRunnerService {
         null,
         {
           endpoint,
-          via: 'preparation:docker_tls',
+          via: 'setup:docker_tls',
         },
       );
     } catch (error) {
       await this.appendLog(
-        preparationId,
+        setupId,
         ServerLogLevel.ERROR,
         'orchestrator',
         `docker_tls: automatic Docker connection registration failed: ${
@@ -532,14 +532,14 @@ export class InfraSetupRunnerService {
     try {
       const probe = await this.dockerConnections.probeReachability(server.id);
       await this.appendLog(
-        preparationId,
+        setupId,
         ServerLogLevel.INFO,
         'orchestrator',
         `Docker TLS connection verified (API v${probe.apiVersion ?? '?'}, ${String(probe.latencyMs)}ms).`,
       );
     } catch (error) {
       await this.appendLog(
-        preparationId,
+        setupId,
         ServerLogLevel.WARNING,
         'orchestrator',
         `Docker TLS connection registered but probe failed: ${
@@ -549,9 +549,9 @@ export class InfraSetupRunnerService {
     }
   }
 
-  private async refreshDetectionAfterPreparation(
+  private async refreshDetectionAfterSetup(
     server: Server,
-    preparationId: string,
+    setupId: string,
   ): Promise<void> {
     try {
       const current = await this.prisma.server.findUniqueOrThrow({
@@ -560,19 +560,19 @@ export class InfraSetupRunnerService {
       await this.detection.detect(current);
     } catch (error) {
       await this.appendLog(
-        preparationId,
+        setupId,
         ServerLogLevel.WARNING,
         'orchestrator',
-        `Preparation succeeded but post-detection failed: ${
+        `Setup succeeded but post-detection failed: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
     }
   }
 
-  private resolvePreparationTimeoutMs(roles: string[] = []): number {
+  private resolveSetupTimeoutMs(roles: string[] = []): number {
     const fromEnv = Number(
-      this.configService.get<string>('SERVER_PREPARATION_TIMEOUT_MS', '0'),
+      this.configService.get<string>('SERVER_SETUP_TIMEOUT_MS', '0'),
     );
     return computeSetupTimeoutMs(roles, fromEnv);
   }

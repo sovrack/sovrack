@@ -22,10 +22,10 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { StartServerSetupDto } from '../../servers/dto/start-server-setup.dto';
 import { RetryServerSetupDto } from '../../servers/dto/retry-server-setup.dto';
 import {
-  PREPARATION_PROFILE_DEFAULTS,
+  SETUP_PROFILE_DEFAULTS,
   SETUP_OPTIONS,
   SetupRoleKey,
-  resolvePreparationOptions,
+  resolveSetupOptions,
 } from '../../servers/shared/server-setup-options';
 import { ServersAuditService } from '../../servers/services/servers-audit.service';
 import { ServerSetupGateway } from '../gateways/server-setup.gateway';
@@ -33,22 +33,22 @@ import { ServersVerificationService } from '../../servers/services/servers-verif
 import { ServersJobsService } from '../../servers/services/servers-jobs.service';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
 import {
-  ACTIVE_PREPARATION_STATUSES,
+  ACTIVE_SETUP_STATUSES,
   ServerSetupStateService,
 } from './setup/server-setup-state.service';
 import { computeBlockingReasons } from './infra-setup.util';
 import {
   runWithStepsInclude,
-  toPreparationView,
-  StartPreparationOptions,
+  toSetupView,
+  StartSetupOptions,
   ServerSetupReadiness,
-  PreparationView,
+  SetupView,
 } from './infra-setup-planning.util';
 import { InfraSetupRunnerService } from './infra-setup-runner.service';
 
 export type {
-  PreparationTaskView,
-  PreparationView,
+  SetupTaskView,
+  SetupView,
 } from './infra-setup-planning.util';
 
 @Injectable()
@@ -70,7 +70,7 @@ export class ServerSetupService implements OnModuleInit {
     const orphaned = await this.prisma.serverRun.findMany({
       where: {
         kind: ServerRunKind.PREPARATION,
-        status: { in: ACTIVE_PREPARATION_STATUSES },
+        status: { in: ACTIVE_SETUP_STATUSES },
       },
       select: { id: true, serverId: true },
     });
@@ -78,12 +78,12 @@ export class ServerSetupService implements OnModuleInit {
     if (orphaned.length === 0) return;
 
     this.logger.warn(
-      `[startup] Found ${orphaned.length} orphaned preparation(s) in active state — marking FAILED`,
+      `[startup] Found ${orphaned.length} orphaned setup(s) in active state — marking FAILED`,
     );
 
     for (const prep of orphaned) {
       try {
-        await this.state.transitionPreparation(
+        await this.state.transitionSetup(
           prep.id,
           ServerRunStatus.FAILED,
           {
@@ -101,7 +101,7 @@ export class ServerSetupService implements OnModuleInit {
         }
       } catch (err) {
         this.logger.error(
-          `[startup] Failed to recover orphaned preparation ${prep.id}: ${err instanceof Error ? err.message : String(err)}`,
+          `[startup] Failed to recover orphaned setup ${prep.id}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
@@ -114,20 +114,20 @@ export class ServerSetupService implements OnModuleInit {
         'Ansible is executed from the backend/control node. Target VPS hosts are SSH-managed and do not install Ansible.',
       profiles: ['BASIC', 'WEB', 'DATABASE', 'RUNNER', 'FULL', 'CUSTOM'],
       options: SETUP_OPTIONS,
-      profileDefaults: PREPARATION_PROFILE_DEFAULTS,
+      profileDefaults: SETUP_PROFILE_DEFAULTS,
     };
   }
 
-  async getPreparationReadiness(
+  async getSetupReadiness(
     serverId: string,
   ): Promise<ServerSetupReadiness> {
     const server = await this.getServer(serverId);
     const validation = await this.verification.latestValidationResult(serverId);
-    const activePreparationCount = await this.prisma.serverRun.count({
+    const activeSetupCount = await this.prisma.serverRun.count({
       where: {
         serverId,
         kind: ServerRunKind.PREPARATION,
-        status: { in: ACTIVE_PREPARATION_STATUSES },
+        status: { in: ACTIVE_SETUP_STATUSES },
       },
     });
 
@@ -138,7 +138,7 @@ export class ServerSetupService implements OnModuleInit {
       sshReachable: Boolean(validation?.sshReachable),
       authSucceeded: Boolean(validation?.authSucceeded),
       sudoAvailable: Boolean(validation?.sudoAvailable),
-      noActivePreparation: activePreparationCount === 0,
+      noActiveSetup: activeSetupCount === 0,
     };
 
     const blockingReasons = computeBlockingReasons(checks);
@@ -152,16 +152,16 @@ export class ServerSetupService implements OnModuleInit {
     };
   }
 
-  async startPreparation(
+  async startSetup(
     serverId: string,
     dto: StartServerSetupDto | undefined,
     actorId?: string,
-    options?: StartPreparationOptions,
-  ): Promise<PreparationView> {
+    options?: StartSetupOptions,
+  ): Promise<SetupView> {
     const server = await this.getServer(serverId);
-    await this.assertPreparationPrerequisites(server);
+    await this.assertSetupPrerequisites(server);
 
-    const resolved = resolvePreparationOptions(dto);
+    const resolved = resolveSetupOptions(dto);
     const resolvedRoles =
       options?.forcedRoles && options.forcedRoles.length > 0
         ? options.forcedRoles
@@ -183,10 +183,10 @@ export class ServerSetupService implements OnModuleInit {
     let job: ServerJob;
     try {
       job = await this.jobs.createJob(server.id, ServerJobType.PREPARE_SERVER, {
-        preparationId: created.id,
+        setupId: created.id,
         selectedOptions: resolved.selectedOptions,
         resolvedRoles,
-        retryOfPreparationId: options?.retryOfPreparationId ?? null,
+        retryOfSetupId: options?.retryOfSetupId ?? null,
       });
     } catch (error) {
       if (
@@ -194,11 +194,11 @@ export class ServerSetupService implements OnModuleInit {
         error.code === 'P2002'
       ) {
         // Residual race: another job (VERIFY / REGISTER_RUNNER) was created for
-        // this server between the preparation transaction commit and here. The
+        // this server between the setup transaction commit and here. The
         // partial unique index `unique_active_server_job` rejected our
-        // PREPARE_SERVER job — roll the now-orphaned preparation back to FAILED
+        // PREPARE_SERVER job — roll the now-orphaned setup back to FAILED
         // and surface a clean 409 instead of a 500.
-        await this.state.transitionPreparation(
+        await this.state.transitionSetup(
           created.id,
           ServerRunStatus.FAILED,
           {
@@ -214,27 +214,27 @@ export class ServerSetupService implements OnModuleInit {
       throw error;
     }
 
-    await this.audit.record(server.id, 'SERVER_PREPARATION_START', actorId, {
-      preparationId: created.id,
+    await this.audit.record(server.id, 'SERVER_SETUP_START', actorId, {
+      setupId: created.id,
       profile: resolved.profile,
       roles: resolvedRoles,
     });
 
     this.runner.runInBackground(server, created.id, job.id, resolvedRoles);
-    return toPreparationView(created);
+    return toSetupView(created);
   }
 
-  async listPreparations(serverId: string): Promise<PreparationView[]> {
+  async listSetups(serverId: string): Promise<SetupView[]> {
     await this.getServer(serverId);
     const runs = await this.prisma.serverRun.findMany({
       where: { serverId, kind: ServerRunKind.PREPARATION },
       include: runWithStepsInclude,
       orderBy: { createdAt: 'desc' },
     });
-    return runs.map((run) => toPreparationView(run));
+    return runs.map((run) => toSetupView(run));
   }
 
-  async getPreparation(id: string): Promise<PreparationView> {
+  async getSetup(id: string): Promise<SetupView> {
     const run = await this.prisma.serverRun.findFirst({
       where: { id, kind: ServerRunKind.PREPARATION },
       include: runWithStepsInclude,
@@ -242,15 +242,15 @@ export class ServerSetupService implements OnModuleInit {
     if (!run) {
       throw new NotFoundException('Setup serveur introuvable');
     }
-    return toPreparationView(run);
+    return toSetupView(run);
   }
 
-  async getPreparationLogs(id: string, afterLine?: number) {
-    await this.getPreparation(id);
+  async getSetupLogs(id: string, afterLine?: number) {
+    await this.getSetup(id);
     const logs = await this.serverRuns.getLogs(id, afterLine);
     return logs.map((log) => ({
       id: log.id,
-      preparationId: log.runId,
+      setupId: log.runId,
       level: log.level,
       source: log.source,
       message: log.message,
@@ -259,12 +259,12 @@ export class ServerSetupService implements OnModuleInit {
     }));
   }
 
-  async retryPreparation(
+  async retrySetup(
     id: string,
     dto: RetryServerSetupDto,
     actorId?: string,
-  ): Promise<PreparationView> {
-    const previous = await this.getPreparation(id);
+  ): Promise<SetupView> {
+    const previous = await this.getSetup(id);
     if (!previous.serverId) {
       throw new NotFoundException('Setup serveur introuvable');
     }
@@ -283,14 +283,14 @@ export class ServerSetupService implements OnModuleInit {
         : 'docker';
     await this.audit.record(
       previous.serverId,
-      'SERVER_PREPARATION_RETRY',
+      'SERVER_SETUP_RETRY',
       actorId,
       {
-        retryOfPreparationId: id,
+        retryOfSetupId: id,
         reason: dto.reason ?? null,
       },
     );
-    return await this.startPreparation(
+    return await this.startSetup(
       previous.serverId,
       {
         ...boolOptions,
@@ -299,27 +299,27 @@ export class ServerSetupService implements OnModuleInit {
       } as StartServerSetupDto,
       actorId,
       {
-        retryOfPreparationId: id,
+        retryOfSetupId: id,
         triggerSource: 'RETRY',
         forcedRoles: restoredRoles,
       },
     );
   }
 
-  async cancelPreparation(id: string, actorId?: string) {
-    const preparation = await this.getPreparation(id);
-    const serverId = preparation.serverId;
+  async cancelSetup(id: string, actorId?: string) {
+    const setup = await this.getSetup(id);
+    const serverId = setup.serverId;
     if (!serverId) {
       throw new NotFoundException('Setup serveur introuvable');
     }
 
-    if (!ACTIVE_PREPARATION_STATUSES.includes(preparation.status)) {
+    if (!ACTIVE_SETUP_STATUSES.includes(setup.status)) {
       throw new BadRequestException('Ce setup ne peut plus être annulé.');
     }
 
     this.runner.abort(id);
 
-    // Immediately release the job lock so a new preparation can start without waiting
+    // Immediately release the job lock so a new setup can start without waiting
     const activeJob = await this.prisma.serverJob.findFirst({
       where: {
         serverId,
@@ -338,25 +338,25 @@ export class ServerSetupService implements OnModuleInit {
       });
     }
 
-    await this.state.transitionPreparation(id, ServerRunStatus.CANCELED, {
+    await this.state.transitionSetup(id, ServerRunStatus.CANCELED, {
       finishedAt: new Date(),
       summary: 'Provisioning canceled by an administrator.',
     });
-    const updated = await this.getPreparation(id);
+    const updated = await this.getSetup(id);
 
     await this.prisma.server.update({
       where: { id: serverId },
       data: { status: ServerStatus.PREPARATION_FAILED },
     });
-    await this.audit.record(serverId, 'SERVER_PREPARATION_CANCEL', actorId, {
-      preparationId: id,
+    await this.audit.record(serverId, 'SERVER_SETUP_CANCEL', actorId, {
+      setupId: id,
     });
     this.gateway.emitFinished({ setupId: id, status: updated.status });
     return updated;
   }
 
-  private async assertPreparationPrerequisites(server: Server): Promise<void> {
-    const readiness = await this.getPreparationReadiness(server.id);
+  private async assertSetupPrerequisites(server: Server): Promise<void> {
+    const readiness = await this.getSetupReadiness(server.id);
     if (readiness.isReady) {
       return;
     }

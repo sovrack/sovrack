@@ -319,7 +319,7 @@ export class ServersJobsService implements OnModuleInit {
   /**
    * Atomic "lock-before-create": the active-job check and the INSERT happen in a
    * single transaction guarded by a per-server advisory lock (same lock key as
-   * {@link InfraSetupService} preparation guard, so verify/register/prepare
+   * {@link ServerSetupService} setup guard, so verify/register/prepare
    * starts mutually exclude). The partial unique index `unique_active_server_job`
    * (status IN RUNNING/PENDING) is the hard DB backstop: even if two paths race
    * past the in-memory check, the second INSERT raises P2002 and is surfaced as a
@@ -380,14 +380,19 @@ export class ServersJobsService implements OnModuleInit {
 
   toPublicJob(job: ServerJob): ServerJobPublic {
     const { payload, ...publicJob } = job;
-    const preparationId =
-      payload &&
-      typeof payload === 'object' &&
-      !Array.isArray(payload) &&
-      typeof (payload as Record<string, unknown>).preparationId === 'string'
-        ? ((payload as Record<string, unknown>).preparationId as string)
+    const record =
+      payload && typeof payload === 'object' && !Array.isArray(payload)
+        ? (payload as Record<string, unknown>)
         : null;
-    return { ...publicJob, preparationId };
+    // setupId: renamed from preparationId — the fallback reads job payloads
+    // written before the rename (JSON blob, no migration applies to it).
+    const setupId =
+      typeof record?.setupId === 'string'
+        ? record.setupId
+        : typeof record?.preparationId === 'string'
+          ? record.preparationId
+          : null;
+    return { ...publicJob, setupId };
   }
 
   private resolveDefaultJobTimeoutMs(): number {

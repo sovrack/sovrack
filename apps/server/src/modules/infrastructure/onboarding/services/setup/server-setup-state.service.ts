@@ -7,17 +7,17 @@ import { Prisma, ServerRunStatus, ServerRunStepStatus } from '@prisma/client';
 import { PrismaService } from '../../../../../shared/database/prisma.service';
 import { ServerSetupGateway } from '../../gateways/server-setup.gateway';
 
-// PREPARATION runs live in the unified ServerRun table (kind=PREPARATION).
-// These statuses are exactly the preparation lifecycle states (ServerRunStatus
+// SETUP runs live in the unified ServerRun table (kind=PREPARATION).
+// These statuses are exactly the setup lifecycle states (ServerRunStatus
 // is a superset shared with AUTOMATION runs, which never reach this service).
-export const ACTIVE_PREPARATION_STATUSES: ServerRunStatus[] = [
+export const ACTIVE_SETUP_STATUSES: ServerRunStatus[] = [
   ServerRunStatus.QUEUED,
   ServerRunStatus.RESOLVING_OPTIONS,
   ServerRunStatus.WAITING_FOR_LOCK,
   ServerRunStatus.RUNNING,
 ];
 
-export const ALLOWED_PREPARATION_TRANSITIONS: Partial<
+export const ALLOWED_SETUP_TRANSITIONS: Partial<
   Record<ServerRunStatus, ServerRunStatus[]>
 > = {
   [ServerRunStatus.QUEUED]: [
@@ -55,13 +55,13 @@ export class ServerSetupStateService {
     private readonly gateway: ServerSetupGateway,
   ) {}
 
-  async transitionPreparation(
-    preparationId: string,
+  async transitionSetup(
+    setupId: string,
     status: ServerRunStatus,
     extra?: Prisma.ServerRunUpdateInput,
   ): Promise<void> {
     const current = await this.prisma.serverRun.findUnique({
-      where: { id: preparationId },
+      where: { id: setupId },
       select: { status: true },
     });
     if (!current) {
@@ -70,7 +70,7 @@ export class ServerSetupStateService {
 
     if (
       current.status !== status &&
-      !(ALLOWED_PREPARATION_TRANSITIONS[current.status] ?? []).includes(status)
+      !(ALLOWED_SETUP_TRANSITIONS[current.status] ?? []).includes(status)
     ) {
       throw new BadRequestException(
         `Transition invalide de ${current.status} vers ${status}`,
@@ -78,7 +78,7 @@ export class ServerSetupStateService {
     }
 
     await this.prisma.serverRun.update({
-      where: { id: preparationId },
+      where: { id: setupId },
       data: {
         status,
         ...(status === ServerRunStatus.RUNNING
@@ -87,16 +87,16 @@ export class ServerSetupStateService {
         ...extra,
       },
     });
-    this.gateway.emitStatus({ setupId: preparationId, status });
+    this.gateway.emitStatus({ setupId: setupId, status });
   }
 
   async markAllRemainingTasks(
-    preparationId: string,
+    setupId: string,
     status: ServerRunStepStatus,
   ): Promise<void> {
     await this.prisma.serverRunStep.updateMany({
       where: {
-        runId: preparationId,
+        runId: setupId,
         status: {
           in: [ServerRunStepStatus.PENDING, ServerRunStepStatus.RUNNING],
         },
@@ -106,12 +106,12 @@ export class ServerSetupStateService {
   }
 
   async markFailedRunningTasks(
-    preparationId: string,
+    setupId: string,
     timeout: boolean,
   ): Promise<void> {
     await this.prisma.serverRunStep.updateMany({
       where: {
-        runId: preparationId,
+        runId: setupId,
         status: ServerRunStepStatus.RUNNING,
       },
       data: {
@@ -123,7 +123,7 @@ export class ServerSetupStateService {
     });
     await this.prisma.serverRunStep.updateMany({
       where: {
-        runId: preparationId,
+        runId: setupId,
         status: ServerRunStepStatus.PENDING,
       },
       data: { status: ServerRunStepStatus.SKIPPED },
