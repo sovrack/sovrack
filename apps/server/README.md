@@ -34,20 +34,16 @@ npm run start:dev
 
 ## Delivery
 
-The repository now includes a GitLab release path in addition to validation.
+This repository never deploys itself (a control plane must not be its own
+workload). CI only builds and publishes:
 
-- `deploy:production` syncs the repository to a remote host over SSH and runs `docker compose up -d --build` there.
-- `verify:production` checks the public health endpoint after deployment.
+- `build:image` (stage `build`, Kaniko) builds the Docker image and pushes it
+  to this project's GitLab Container Registry, tagged `:$CI_COMMIT_SHORT_SHA`
+  and `:latest`. Runs only `if: $CI_COMMIT_BRANCH == "main"`.
 
-Required GitLab CI variables:
-
-- `DEPLOY_HOST`
-- `DEPLOY_USER`
-- `DEPLOY_SSH_PRIVATE_KEY`
-- `DEPLOY_BASE_URL`
-- `DEPLOY_PATH` is optional and defaults to `/opt/deploy-automation/backend`
-
-The remote host must already have Docker Compose available and a valid `.env` file for the backend.
+Actual production deployment (pulling the image, running migrations,
+starting the containers) lives in the separate **`deploy-automation-ops`**
+repository — see its README for install/update/rollback.
 
 ## Main Commands
 
@@ -69,3 +65,15 @@ npx prisma validate
   "no persistent Ansible agent" principle above, not a contradiction of it — no daemon is
   installed, only a Python library used by Ansible during the SSH-driven run.
 - `CONFIG_SECRET` must be stable across restarts to decrypt stored secrets.
+- `FRONTEND_URL` (or `FRONTEND_URLS`, comma-separated) is **required** when
+  `NODE_ENV=production` — boot fails fast otherwise (`boot-helpers.ts`). Also
+  drives the CORS allow-list, so it must match the exact origin used in the
+  browser.
+- `AUTH_COOKIE_SECURE` defaults to `NODE_ENV === 'production'` if unset. A
+  `Secure` cookie is silently dropped by browsers over plain HTTP — set this
+  to `false` explicitly until HTTPS is in front, or logins will appear to
+  succeed (`201`) while the session never sticks.
+- `TRUST_PROXY` must be set (e.g. `1`) once a reverse proxy (Caddy, Traefik)
+  sits in front of the backend — otherwise every request appears to come
+  from the proxy's IP, which breaks the per-IP login rate-limiter for all
+  users at once.
