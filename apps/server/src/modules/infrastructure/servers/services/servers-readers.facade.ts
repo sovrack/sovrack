@@ -4,7 +4,6 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersDetectionService } from './servers-detection.service';
 import { ServersVerificationService } from './servers-verification.service';
-import { ServerSetupService } from '../../onboarding/services/infra-setup.service';
 import { AuditService } from '../../../audit/audit.service';
 import { toPublicServer } from '../shared/server-public.util';
 import type { ServerPublic } from '../shared/servers.types';
@@ -16,7 +15,6 @@ export class ServersReadersFacade {
     private readonly audit: ServersAuditService,
     private readonly detection: ServersDetectionService,
     private readonly verification: ServersVerificationService,
-    private readonly preparation: ServerSetupService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -46,48 +44,8 @@ export class ServersReadersFacade {
     return this.verification.listValidationResults(id);
   }
 
-  async resetVerificationStatus(id: string) {
-    return this.verification.resetStatus(id);
-  }
-
   async getRecentVerificationLogs(id: string, limit = 50) {
     return this.verification.getRecentLogs(id, limit);
-  }
-
-  // ─── Preparation ──────────────────────────────────────────────────────────
-
-  async listPreparations(id: string) {
-    await this.assertServerExists(id);
-    return this.preparation.listPreparations(id);
-  }
-
-  async getPreparationReadiness(id: string) {
-    await this.assertServerExists(id);
-    return this.preparation.getPreparationReadiness(id);
-  }
-
-  getPreparationOptions() {
-    return this.preparation.getOptions();
-  }
-
-  async getPreparation(id: string) {
-    return this.preparation.getPreparation(id);
-  }
-
-  async getPreparationLogs(id: string, afterLine?: number) {
-    return this.preparation.getPreparationLogs(id, afterLine);
-  }
-
-  async retryPreparation(
-    id: string,
-    dto: Parameters<ServerSetupService['retryPreparation']>[1],
-    actorId: string,
-  ) {
-    return this.preparation.retryPreparation(id, dto, actorId);
-  }
-
-  async cancelPreparation(id: string, actorId: string) {
-    return this.preparation.cancelPreparation(id, actorId);
   }
 
   // ─── Infrastructure roles & environments ──────────────────────────────────

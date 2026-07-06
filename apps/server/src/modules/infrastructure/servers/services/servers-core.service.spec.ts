@@ -30,11 +30,7 @@ describe('ServersCoreService (facade)', () => {
     jobsFacade = {
       listJobs: jest.fn().mockResolvedValue([]),
       cancelJob: jest.fn().mockResolvedValue(undefined),
-      retryJob: jest.fn().mockResolvedValue({ id: 's1' }),
       verifyServer: jest.fn().mockResolvedValue({ id: 's1' }),
-      installTools: jest.fn().mockResolvedValue({ id: 's1' }),
-      prepareServer: jest.fn().mockResolvedValue({ id: 's1' }),
-      startPreparation: jest.fn().mockResolvedValue({ id: 's1' }),
       detectServer: jest.fn().mockResolvedValue({ id: 's1' }),
       registerRunner: jest.fn().mockResolvedValue({ id: 's1' }),
       installPublicKey: jest.fn().mockResolvedValue({ success: true }),
@@ -46,14 +42,6 @@ describe('ServersCoreService (facade)', () => {
       listCapabilities: jest.fn().mockResolvedValue([]),
       listInstalledTools: jest.fn().mockResolvedValue([]),
       listValidationResults: jest.fn().mockResolvedValue([]),
-      listPreparations: jest.fn().mockResolvedValue([]),
-      getPreparationReadiness: jest.fn().mockResolvedValue({}),
-      getPreparationOptions: jest.fn().mockReturnValue({}),
-      getPreparation: jest.fn().mockResolvedValue({}),
-      getPreparationLogs: jest.fn().mockResolvedValue([]),
-      retryPreparation: jest.fn().mockResolvedValue({}),
-      cancelPreparation: jest.fn().mockResolvedValue({}),
-      resetVerificationStatus: jest.fn().mockResolvedValue({}),
       getRecentVerificationLogs: jest.fn().mockResolvedValue([]),
       setServerInfraRole: jest.fn().mockResolvedValue({ id: 's1' }),
       listInfraEnvironments: jest.fn().mockResolvedValue([]),
@@ -94,28 +82,8 @@ describe('ServersCoreService (facade)', () => {
     await service.cancelJob('s1', 'j1');
     expect(jobsFacade.cancelJob).toHaveBeenCalledWith('s1', 'j1');
 
-    await service.retryJob('s1', 'j1');
-    expect(jobsFacade.retryJob).toHaveBeenCalledWith('s1', 'j1');
-
     await service.verifyServer('s1', 'admin');
     expect(jobsFacade.verifyServer).toHaveBeenCalledWith('s1', 'admin');
-
-    await service.installTools('s1');
-    expect(jobsFacade.installTools).toHaveBeenCalledWith('s1', undefined);
-
-    await service.prepareServer('s1');
-    expect(jobsFacade.prepareServer).toHaveBeenCalledWith(
-      's1',
-      undefined,
-      undefined,
-    );
-
-    await service.startPreparation('s1');
-    expect(jobsFacade.startPreparation).toHaveBeenCalledWith(
-      's1',
-      undefined,
-      undefined,
-    );
 
     await service.detectServer('s1');
     expect(jobsFacade.detectServer).toHaveBeenCalledWith('s1', undefined);
@@ -153,34 +121,6 @@ describe('ServersCoreService (facade)', () => {
 
     await service.listValidationResults('s1');
     expect(readersFacade.listValidationResults).toHaveBeenCalledWith('s1');
-
-    await service.listPreparations('s1');
-    expect(readersFacade.listPreparations).toHaveBeenCalledWith('s1');
-
-    await service.getPreparationReadiness('s1');
-    expect(readersFacade.getPreparationReadiness).toHaveBeenCalledWith('s1');
-
-    service.getPreparationOptions();
-    expect(readersFacade.getPreparationOptions).toHaveBeenCalled();
-
-    await service.getPreparation('s1');
-    expect(readersFacade.getPreparation).toHaveBeenCalledWith('s1');
-
-    await service.getPreparationLogs('s1', 10);
-    expect(readersFacade.getPreparationLogs).toHaveBeenCalledWith('s1', 10);
-
-    await service.retryPreparation('s1', {} as never, 'admin');
-    expect(readersFacade.retryPreparation).toHaveBeenCalledWith(
-      's1',
-      {},
-      'admin',
-    );
-
-    await service.cancelPreparation('s1', 'admin');
-    expect(readersFacade.cancelPreparation).toHaveBeenCalledWith('s1', 'admin');
-
-    await service.resetVerificationStatus('s1');
-    expect(readersFacade.resetVerificationStatus).toHaveBeenCalledWith('s1');
 
     await service.getRecentVerificationLogs('s1', 5);
     expect(readersFacade.getRecentVerificationLogs).toHaveBeenCalledWith(

@@ -4,7 +4,6 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersJobsService } from './servers-jobs.service';
 import { ServersConnectionService } from './servers-connection.service';
 import { ServersDetectionService } from './servers-detection.service';
-import { ServerSetupService } from '../../onboarding/services/infra-setup.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersVerificationService } from './servers-verification.service';
 import { ServersJobsFacade } from './servers-jobs.facade';
@@ -20,7 +19,6 @@ describe('ServersJobsFacade', () => {
     const jobs = {
       listJobs: jest.fn().mockResolvedValue({ items: [], total: 0 }),
       forceFailJob: jest.fn().mockResolvedValue({ id: 'job-1' }),
-      retryJob: jest.fn().mockResolvedValue({ id: 'srv-1' }),
       createJobAtomic: jest.fn().mockResolvedValue({ id: 'job-1' }),
       executeJobWithRetry: jest.fn().mockResolvedValue(undefined),
     } as unknown as ServersJobsService;
@@ -34,9 +32,6 @@ describe('ServersJobsFacade', () => {
     const detection = {
       detect: jest.fn().mockResolvedValue({ id: 'srv-1' }),
     } as unknown as ServersDetectionService;
-    const preparation = {
-      startPreparation: jest.fn().mockResolvedValue({ id: 'prep-1' }),
-    } as unknown as ServerSetupService;
     const audit = {
       record: jest.fn().mockResolvedValue(undefined),
     } as unknown as ServersAuditService;
@@ -48,7 +43,6 @@ describe('ServersJobsFacade', () => {
       jobs,
       ssh,
       detection,
-      preparation,
       audit,
       verification,
     );
@@ -58,7 +52,6 @@ describe('ServersJobsFacade', () => {
       jobs,
       ssh,
       detection,
-      preparation,
       audit,
       verification,
     };
@@ -111,22 +104,12 @@ describe('ServersJobsFacade', () => {
   });
 
   describe('delegation', () => {
-    it('listJobs / cancelJob / retryJob delegate to the jobs service', async () => {
+    it('listJobs / cancelJob delegate to the jobs service', async () => {
       const { facade, jobs } = build();
       await facade.listJobs('srv-1');
       await facade.cancelJob('srv-1', 'job-1');
-      await facade.retryJob('srv-1', 'job-1');
       expect(jobs.listJobs).toHaveBeenCalledWith('srv-1', undefined);
       expect(jobs.forceFailJob).toHaveBeenCalledWith('srv-1', 'job-1');
-      expect(jobs.retryJob).toHaveBeenCalledWith(
-        'srv-1',
-        'job-1',
-        expect.objectContaining({
-          verify: expect.any(Function),
-          install: expect.any(Function),
-          prepare: expect.any(Function),
-        }),
-      );
     });
   });
 
@@ -165,39 +148,6 @@ describe('ServersJobsFacade', () => {
       const { facade } = build(null);
       await expect(facade.verifyServer('ghost')).rejects.toBeInstanceOf(
         NotFoundException,
-      );
-    });
-  });
-
-  describe('installTools / prepareServer', () => {
-    it('installTools maps to a preparation payload and delegates', async () => {
-      const { facade, preparation } = build();
-      await facade.installTools('srv-1', {
-        docker: true,
-        runner: true,
-      } as never);
-      expect(preparation.startPreparation).toHaveBeenCalledWith(
-        'srv-1',
-        expect.objectContaining({
-          docker: true,
-          gitlabRunner: true,
-          systemUpdate: true,
-        }),
-        undefined,
-      );
-    });
-
-    it('prepareServer delegates to the preparation service', async () => {
-      const { facade, preparation } = build();
-      await facade.prepareServer(
-        'srv-1',
-        { profile: 'BASIC' } as never,
-        'user-1',
-      );
-      expect(preparation.startPreparation).toHaveBeenCalledWith(
-        'srv-1',
-        { profile: 'BASIC' },
-        'user-1',
       );
     });
   });

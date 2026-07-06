@@ -55,6 +55,7 @@ type ReconcileDeployment = {
   observedGeneration: number | null;
   dockerImage: string | null;
   imageSha: string | null;
+  buildId: string | null;
   isAutoHealed: boolean;
   createdAt: Date;
   containers: Array<{ id: string; dockerId: string; name: string }>;
@@ -81,6 +82,7 @@ const DEPLOYMENT_SELECT = {
   observedGeneration: true,
   dockerImage: true,
   imageSha: true,
+  buildId: true,
   isAutoHealed: true,
   createdAt: true,
   containers: {
@@ -281,6 +283,7 @@ export class ReconcilerService {
           Prisma.JsonNull) as Prisma.InputJsonValue,
         dockerImage: last.dockerImage,
         imageSha: last.imageSha,
+        buildId: last.buildId,
         observedGeneration: last.observedGeneration,
         isAutoHealed: true,
         autoHealReason: `container_${observedStatus}`,

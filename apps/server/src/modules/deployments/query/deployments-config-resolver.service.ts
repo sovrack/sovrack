@@ -4,6 +4,7 @@ import type { BuildSource } from '../../build/strategies/build-strategy.interfac
 import { CreateDeploymentDto } from '../dto/create-deployment.dto';
 import { BuildImageService } from '../../build/lifecycle/build-image.service';
 import { sanitizeDockerTag } from '../../../shared/utils/docker-tag.util';
+import { isLocalBuildSource } from '../utils/build-source.util';
 
 export type DeploymentConfig = {
   branch: string;
@@ -151,12 +152,7 @@ export class DeploymentsConfigResolver {
   }
 
   isLocalBuildSource(src: BuildSource): boolean {
-    return (
-      src === 'DOCKERFILE_LOCAL' ||
-      src === 'NIXPACKS_LOCAL' ||
-      src === 'STATIC' ||
-      src === 'DOCKER_COMPOSE'
-    );
+    return isLocalBuildSource(src);
   }
 
   buildSourceToBuildPack(src: BuildSource): BuildPack {

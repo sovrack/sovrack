@@ -21,7 +21,10 @@ import {
   buildAppSpecSnapshot,
   buildComposeSpecSnapshot,
 } from '../utils/spec-snapshot.util';
-import { resolveBuildSource } from '../utils/build-source.util';
+import {
+  resolveBuildSource,
+  isLocalBuildSource,
+} from '../utils/build-source.util';
 import { toJson } from '../../../shared/utils/prisma-json.util';
 import { acquireDeploySlot } from '../utils/deploy-slot.util';
 import { DeploymentPreflightService } from '../core/deployment-preflight.service';
@@ -252,11 +255,6 @@ export class DeploymentsAutoTriggerService {
         .nixpacksConfig as Prisma.InputJsonValue | null;
       const staticConfig = svcEnv.service
         .staticConfig as Prisma.InputJsonValue | null;
-      const isLocalBuild =
-        resolvedBuildPack === BuildPack.STATIC ||
-        resolvedBuildPack === BuildPack.DOCKER_COMPOSE ||
-        resolvedBuildPack === BuildPack.NIXPACKS ||
-        resolvedBuildPack === BuildPack.BUILDPACK;
 
       // Freeze the full spec at dispatch time so rollback/reconciler can use
       // the exact config that was active when this deploy was triggered.
@@ -265,6 +263,12 @@ export class DeploymentsAutoTriggerService {
         buildMode: svcEnv.service.buildMode,
         sourceType: svcEnv.service.sourceType,
       });
+      // Must derive from buildSource (buildPack + buildMode), not buildPack
+      // alone — otherwise DOCKERFILE+LOCAL (the default for a new service)
+      // and DOCKERFILE+REGISTRY are indistinguishable, and a webhook-triggered
+      // deploy can pull a registry image that was never pushed, or rebuild
+      // locally while ignoring a configured registryImage.
+      const isLocalBuild = isLocalBuildSource(buildSource);
       const specSnapshot =
         buildSource === 'DOCKER_COMPOSE'
           ? buildComposeSpecSnapshot({

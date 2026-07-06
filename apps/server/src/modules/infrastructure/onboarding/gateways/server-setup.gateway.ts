@@ -75,13 +75,13 @@ export class ServerSetupGateway implements OnGatewayConnection {
       }
       (client.data as { user: JwtPayload }).user = payload;
     } catch {
-      this.logger.warn(`Preparation socket rejected (id: ${client.id})`);
+      this.logger.warn(`Setup socket rejected (id: ${client.id})`);
       client.disconnect();
     }
   }
 
   @SubscribeMessage('join:setup')
-  async handleJoinPreparation(
+  async handleJoinSetup(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: JoinSetupPayload,
   ): Promise<{ ok: boolean; setupId?: string; error?: string }> {
@@ -90,16 +90,16 @@ export class ServerSetupGateway implements OnGatewayConnection {
       return { ok: false, error: 'setupId manquant' };
     }
 
-    const preparation = await this.prisma.serverRun.findFirst({
+    const setupRun = await this.prisma.serverRun.findFirst({
       where: { id: setupId, kind: ServerRunKind.PREPARATION },
       select: { id: true },
     });
-    if (!preparation) {
+    if (!setupRun) {
       return { ok: false, setupId, error: 'Setup introuvable' };
     }
 
     await client.join(this.roomName(setupId));
-    client.emit('preparation:joined', { setupId });
+    client.emit('setup:joined', { setupId });
     return { ok: true, setupId };
   }
 
@@ -111,7 +111,7 @@ export class ServerSetupGateway implements OnGatewayConnection {
     lineNumber: number;
     createdAt: Date;
   }): void {
-    this.server.to(this.roomName(payload.setupId)).emit('preparation:log', {
+    this.server.to(this.roomName(payload.setupId)).emit('setup:log', {
       ...payload,
       createdAt: payload.createdAt.toISOString(),
     });
@@ -120,7 +120,7 @@ export class ServerSetupGateway implements OnGatewayConnection {
   emitStatus(payload: { setupId: string; status: string }): void {
     this.server
       .to(this.roomName(payload.setupId))
-      .emit('preparation:status', payload);
+      .emit('setup:status', payload);
   }
 
   emitFinished(payload: {
@@ -131,7 +131,7 @@ export class ServerSetupGateway implements OnGatewayConnection {
   }): void {
     this.server
       .to(this.roomName(payload.setupId))
-      .emit('preparation:finished', payload);
+      .emit('setup:finished', payload);
   }
 
   private roomName(setupId: string): string {

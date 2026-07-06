@@ -295,6 +295,98 @@ describe('DeploymentsAutoTriggerService', () => {
       );
     });
 
+    it('builds locally for DOCKERFILE + buildMode LOCAL (default for a new service) instead of attempting a registry pull', async () => {
+      prisma.serviceEnvironment.findMany.mockResolvedValue([
+        makeSvcEnv({
+          service: {
+            buildPack: BuildPack.DOCKERFILE,
+            buildMode: 'LOCAL',
+            sourceType: null,
+            nixpacksConfig: null,
+            staticConfig: null,
+            repoPath: null,
+            dockerfile: null,
+            rootDir: '/',
+            port: 3000,
+            startCommand: null,
+            healthcheckPath: null,
+            replicas: 1,
+            cpuLimit: null,
+            memLimitMb: null,
+            buildArgs: null,
+          },
+        }),
+      ]);
+      prisma.deployment.findFirst.mockResolvedValue(null);
+      buildsService.create.mockResolvedValue({ id: BUILD_ID });
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
+      );
+      prisma.deployment.create.mockResolvedValue({
+        id: DEPLOYMENT_ID,
+        projectId: PROJECT_ID,
+        environmentId: ENV_ID,
+        status: DeploymentStatus.PENDING,
+        startedAt: new Date(),
+      });
+
+      await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
+
+      expect(buildsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          buildPack: BuildPack.DOCKERFILE,
+          isLocalBuild: true,
+        }),
+        prisma,
+      );
+    });
+
+    it('pulls from the registry for NIXPACKS + buildMode REGISTRY instead of rebuilding locally', async () => {
+      prisma.serviceEnvironment.findMany.mockResolvedValue([
+        makeSvcEnv({
+          service: {
+            buildPack: BuildPack.NIXPACKS,
+            buildMode: 'REGISTRY',
+            sourceType: null,
+            nixpacksConfig: null,
+            staticConfig: null,
+            repoPath: null,
+            dockerfile: null,
+            rootDir: '/',
+            port: 3000,
+            startCommand: null,
+            healthcheckPath: null,
+            replicas: 1,
+            cpuLimit: null,
+            memLimitMb: null,
+            buildArgs: null,
+          },
+        }),
+      ]);
+      prisma.deployment.findFirst.mockResolvedValue(null);
+      buildsService.create.mockResolvedValue({ id: BUILD_ID });
+      prisma.$transaction.mockImplementation(
+        async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma),
+      );
+      prisma.deployment.create.mockResolvedValue({
+        id: DEPLOYMENT_ID,
+        projectId: PROJECT_ID,
+        environmentId: ENV_ID,
+        status: DeploymentStatus.PENDING,
+        startedAt: new Date(),
+      });
+
+      await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
+
+      expect(buildsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          buildPack: BuildPack.NIXPACKS,
+          isLocalBuild: false,
+        }),
+        prisma,
+      );
+    });
+
     it('handles per-ServiceEnvironment errors gracefully without stopping others', async () => {
       const svcEnv2 = makeSvcEnv({ id: 'svcenv-2', environmentId: 'env-2' });
       prisma.serviceEnvironment.findMany.mockResolvedValue([

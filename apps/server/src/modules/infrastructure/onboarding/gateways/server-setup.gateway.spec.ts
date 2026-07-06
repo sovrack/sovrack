@@ -111,7 +111,7 @@ describe('ServerSetupGateway', () => {
     });
   });
 
-  describe('handleJoinPreparation', () => {
+  describe('handleJoinSetup', () => {
     it('returns error when setupId is missing', async () => {
       const { jwtService, prisma, configService } = makeDeps();
       const gw = new ServerSetupGateway(
@@ -119,7 +119,7 @@ describe('ServerSetupGateway', () => {
         prisma as never,
         configService as never,
       );
-      const result = await gw.handleJoinPreparation(makeClient(), {});
+      const result = await gw.handleJoinSetup(makeClient(), {});
       expect(result).toEqual({ ok: false, error: 'setupId manquant' });
     });
 
@@ -132,14 +132,14 @@ describe('ServerSetupGateway', () => {
         prisma as never,
         configService as never,
       );
-      const result = await gw.handleJoinPreparation(makeClient(), {
+      const result = await gw.handleJoinSetup(makeClient(), {
         setupId: 'prep1',
       });
       expect(result.ok).toBe(false);
       expect(result.error).toContain('introuvable');
     });
 
-    it('joins room and emits preparation:joined on success', async () => {
+    it('joins room and emits setup:joined on success', async () => {
       const { jwtService, prisma, configService } = makeDeps();
       const gw = new ServerSetupGateway(
         jwtService as never,
@@ -147,11 +147,11 @@ describe('ServerSetupGateway', () => {
         configService as never,
       );
       const client = makeClient();
-      const result = await gw.handleJoinPreparation(client, {
+      const result = await gw.handleJoinSetup(client, {
         setupId: 'prep1',
       });
       expect(client.join).toHaveBeenCalledWith('server-setup:prep1');
-      expect(client.emit).toHaveBeenCalledWith('preparation:joined', {
+      expect(client.emit).toHaveBeenCalledWith('setup:joined', {
         setupId: 'prep1',
       });
       expect(result).toEqual({ ok: true, setupId: 'prep1' });
@@ -164,7 +164,7 @@ describe('ServerSetupGateway', () => {
         prisma as never,
         configService as never,
       );
-      await gw.handleJoinPreparation(makeClient(), { setupId: 'prep1' });
+      await gw.handleJoinSetup(makeClient(), { setupId: 'prep1' });
       expect(prisma.serverRun.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'prep1', kind: ServerRunKind.PREPARATION },
@@ -204,7 +204,7 @@ describe('ServerSetupGateway', () => {
         createdAt: date,
       });
       expect(emitMock).toHaveBeenCalledWith(
-        'preparation:log',
+        'setup:log',
         expect.objectContaining({
           createdAt: '2026-06-01T12:00:00.000Z',
         }),
@@ -221,7 +221,7 @@ describe('ServerSetupGateway', () => {
       const { gw, emitMock } = makeGw();
       gw.emitFinished({ setupId: 'p1', status: 'SUCCESS' });
       expect(emitMock).toHaveBeenCalledWith(
-        'preparation:finished',
+        'setup:finished',
         expect.objectContaining({ status: 'SUCCESS' }),
       );
     });

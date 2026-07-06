@@ -3,7 +3,6 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersDetectionService } from './servers-detection.service';
 import { ServersVerificationService } from './servers-verification.service';
-import { ServerSetupService } from '../../onboarding/services/infra-setup.service';
 import { AuditService } from '../../../audit/audit.service';
 import { ServersReadersFacade } from './servers-readers.facade';
 
@@ -38,15 +37,6 @@ describe('ServersReadersFacade', () => {
       resetStatus: jest.fn().mockResolvedValue(undefined),
       getRecentLogs: jest.fn().mockResolvedValue([]),
     } as unknown as ServersVerificationService;
-    const preparation = {
-      listPreparations: jest.fn().mockResolvedValue([]),
-      getPreparationReadiness: jest.fn().mockResolvedValue({ isReady: true }),
-      getOptions: jest.fn().mockReturnValue({ profiles: [] }),
-      getPreparation: jest.fn().mockResolvedValue({ id: 'prep-1' }),
-      getPreparationLogs: jest.fn().mockResolvedValue([]),
-      retryPreparation: jest.fn().mockResolvedValue({ id: 'prep-2' }),
-      cancelPreparation: jest.fn().mockResolvedValue({ id: 'prep-1' }),
-    } as unknown as ServerSetupService;
     const auditService = {
       record: jest.fn().mockResolvedValue(undefined),
     } as unknown as AuditService;
@@ -55,7 +45,6 @@ describe('ServersReadersFacade', () => {
       audit,
       detection,
       verification,
-      preparation,
       auditService,
     );
     return {
@@ -64,7 +53,6 @@ describe('ServersReadersFacade', () => {
       audit,
       detection,
       verification,
-      preparation,
       auditService,
     };
   }
@@ -94,40 +82,9 @@ describe('ServersReadersFacade', () => {
     it('verification methods delegate', async () => {
       const { facade, verification } = build();
       await facade.listValidationResults('srv-1');
-      await facade.resetVerificationStatus('srv-1');
       await facade.getRecentVerificationLogs('srv-1', 10);
       expect(verification.listValidationResults).toHaveBeenCalledWith('srv-1');
-      expect(verification.resetStatus).toHaveBeenCalledWith('srv-1');
       expect(verification.getRecentLogs).toHaveBeenCalledWith('srv-1', 10);
-    });
-
-    it('preparation methods delegate', async () => {
-      const { facade, preparation } = build();
-      await facade.listPreparations('srv-1');
-      await facade.getPreparationReadiness('srv-1');
-      facade.getPreparationOptions();
-      await facade.getPreparation('prep-1');
-      await facade.getPreparationLogs('prep-1', 5);
-      await facade.retryPreparation(
-        'prep-1',
-        { reason: 'x' } as never,
-        'user-1',
-      );
-      await facade.cancelPreparation('prep-1', 'user-1');
-      expect(preparation.listPreparations).toHaveBeenCalledWith('srv-1');
-      expect(preparation.getPreparationReadiness).toHaveBeenCalledWith('srv-1');
-      expect(preparation.getOptions).toHaveBeenCalled();
-      expect(preparation.getPreparation).toHaveBeenCalledWith('prep-1');
-      expect(preparation.getPreparationLogs).toHaveBeenCalledWith('prep-1', 5);
-      expect(preparation.retryPreparation).toHaveBeenCalledWith(
-        'prep-1',
-        { reason: 'x' },
-        'user-1',
-      );
-      expect(preparation.cancelPreparation).toHaveBeenCalledWith(
-        'prep-1',
-        'user-1',
-      );
     });
   });
 

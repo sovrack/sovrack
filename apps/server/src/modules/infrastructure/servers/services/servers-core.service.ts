@@ -2,10 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { PaginationDto } from '../../../../shared/http/pagination.dto';
 import { CreateServerDto } from '../dto/create-server.dto';
 import { UpdateServerDto } from '../dto/update-server.dto';
-import { InstallToolsDto } from '../dto/install-tools.dto';
-import { PrepareServerDto } from '../dto/prepare-server.dto';
-import { StartServerSetupDto } from '../dto/start-server-setup.dto';
-import { ServerSetupService } from '../../onboarding/services/infra-setup.service';
 import {
   CreateServerResult,
   ServerJobsListResult,
@@ -75,35 +71,8 @@ export class ServersCoreService {
     return this.jobsFacade.cancelJob(serverId, jobId);
   }
 
-  async retryJob(id: string, jobId: string): Promise<ServerPublic> {
-    return this.jobsFacade.retryJob(id, jobId);
-  }
-
   async verifyServer(id: string, actorUserId?: string): Promise<ServerPublic> {
     return this.jobsFacade.verifyServer(id, actorUserId);
-  }
-
-  async installTools(
-    id: string,
-    tools?: InstallToolsDto,
-  ): Promise<ServerPublic> {
-    return this.jobsFacade.installTools(id, tools);
-  }
-
-  async prepareServer(
-    id: string,
-    prepare?: PrepareServerDto | StartServerSetupDto,
-    actorUserId?: string,
-  ): Promise<ServerPublic> {
-    return this.jobsFacade.prepareServer(id, prepare, actorUserId);
-  }
-
-  async startPreparation(
-    id: string,
-    prepare?: StartServerSetupDto,
-    actorUserId?: string,
-  ) {
-    return this.jobsFacade.startPreparation(id, prepare, actorUserId);
   }
 
   async detectServer(id: string, actorUserId?: string): Promise<ServerPublic> {
@@ -151,42 +120,6 @@ export class ServersCoreService {
 
   async listValidationResults(id: string) {
     return this.readersFacade.listValidationResults(id);
-  }
-
-  async listPreparations(id: string) {
-    return this.readersFacade.listPreparations(id);
-  }
-
-  async getPreparationReadiness(id: string) {
-    return this.readersFacade.getPreparationReadiness(id);
-  }
-
-  getPreparationOptions() {
-    return this.readersFacade.getPreparationOptions();
-  }
-
-  async getPreparation(id: string) {
-    return this.readersFacade.getPreparation(id);
-  }
-
-  async getPreparationLogs(id: string, afterLine?: number) {
-    return this.readersFacade.getPreparationLogs(id, afterLine);
-  }
-
-  async retryPreparation(
-    id: string,
-    dto: Parameters<ServerSetupService['retryPreparation']>[1],
-    actorId: string,
-  ) {
-    return this.readersFacade.retryPreparation(id, dto, actorId);
-  }
-
-  async cancelPreparation(id: string, actorId: string) {
-    return this.readersFacade.cancelPreparation(id, actorId);
-  }
-
-  async resetVerificationStatus(id: string) {
-    return this.readersFacade.resetVerificationStatus(id);
   }
 
   async getRecentVerificationLogs(id: string, limit = 50) {

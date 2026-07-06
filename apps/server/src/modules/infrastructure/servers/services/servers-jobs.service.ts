@@ -20,8 +20,6 @@ import {
   paginate,
 } from '../../../../shared/http/pagination.dto';
 import { ServersConnectionService } from './servers-connection.service';
-import { InstallToolsDto } from '../dto/install-tools.dto';
-import { StartServerSetupDto } from '../dto/start-server-setup.dto';
 import {
   ServerExecutionOptions,
   ServerJobPublic,
@@ -201,48 +199,6 @@ export class ServersJobsService implements OnModuleInit {
       total,
       page,
       limit,
-    );
-  }
-
-  async retryJob<T>(
-    id: string,
-    jobId: string,
-    handlers: {
-      verify: () => Promise<T>;
-      install: (payload?: InstallToolsDto) => Promise<T>;
-      prepare: (payload?: StartServerSetupDto) => Promise<T>;
-    },
-  ): Promise<T> {
-    const job = await this.prisma.serverJob.findFirst({
-      where: {
-        id: jobId,
-        serverId: id,
-      },
-    });
-
-    if (!job) {
-      throw new NotFoundException('Job serveur non trouvé');
-    }
-
-    if (job.type === ServerJobType.VERIFY) {
-      return await handlers.verify();
-    }
-
-    if (job.type === ServerJobType.INSTALL_TOOLS) {
-      const payload =
-        (job.payload as InstallToolsDto | null | undefined) ?? undefined;
-      return await handlers.install(payload);
-    }
-
-    if (job.type === ServerJobType.PREPARE_SERVER) {
-      const payload =
-        (job.payload as { selectedOptions?: StartServerSetupDto } | null)
-          ?.selectedOptions ?? undefined;
-      return await handlers.prepare(payload);
-    }
-
-    throw new BadRequestException(
-      'Ce type de job nécessite des paramètres non rejouables',
     );
   }
 

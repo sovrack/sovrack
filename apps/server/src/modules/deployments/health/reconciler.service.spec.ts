@@ -18,6 +18,7 @@ function makeCandidate(overrides: Record<string, unknown> = {}) {
         resolvedRefs: { serverId: 'srv1' },
         dockerImage: 'img:1',
         imageSha: 'sha256:abc',
+        buildId: 'build-1',
         isAutoHealed: false,
         createdAt: new Date(Date.now() - 3_600_000),
         containers: [{ id: 'c1', dockerId: 'dock1', name: 'app' }],
@@ -89,6 +90,11 @@ describe('ReconcilerService', () => {
       isAutoHealed: true,
       autoHealReason: 'container_exited',
       previousDeploymentId: 'd1',
+      // Regression: without this, the healed deployment has no Build
+      // relation, so the executor derives isLocalBuild=false regardless of
+      // how the original deployment was built — risking a registry pull of
+      // an image that was never pushed for a locally-built service.
+      buildId: 'build-1',
     });
     expect(executor.executeDeploy).toHaveBeenCalledWith('heal1', 'sha256:abc');
     expect(notifications.notifyAutoHeal).toHaveBeenCalledTimes(1);

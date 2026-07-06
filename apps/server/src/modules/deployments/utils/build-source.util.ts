@@ -29,3 +29,18 @@ export function resolveBuildSource(opts: {
   // Default: Dockerfile
   return buildMode === 'REGISTRY' ? 'DOCKERFILE_REGISTRY' : 'DOCKERFILE_LOCAL';
 }
+
+/**
+ * Whether a BuildSource is built on the target VPS (true) or pulled from a
+ * registry (false). Single source of truth — must be derived from BuildSource
+ * (buildPack + buildMode combined), never from buildPack alone, or e.g.
+ * DOCKERFILE_LOCAL and DOCKERFILE_REGISTRY become indistinguishable.
+ */
+export function isLocalBuildSource(src: BuildSource): boolean {
+  return (
+    src === 'DOCKERFILE_LOCAL' ||
+    src === 'NIXPACKS_LOCAL' ||
+    src === 'STATIC' ||
+    src === 'DOCKER_COMPOSE'
+  );
+}

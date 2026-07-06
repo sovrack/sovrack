@@ -15,12 +15,8 @@ import { PaginationDto } from '../../../../shared/http/pagination.dto';
 import { ServersJobsService } from './servers-jobs.service';
 import { ServersConnectionService } from './servers-connection.service';
 import { ServersDetectionService } from './servers-detection.service';
-import { ServerSetupService } from '../../onboarding/services/infra-setup.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersVerificationService } from './servers-verification.service';
-import { InstallToolsDto } from '../dto/install-tools.dto';
-import { PrepareServerDto } from '../dto/prepare-server.dto';
-import { StartServerSetupDto } from '../dto/start-server-setup.dto';
 import {
   RegisterRunnerPayload,
   ServerActiveJob,
@@ -43,7 +39,6 @@ export class ServersJobsFacade {
     private readonly jobs: ServersJobsService,
     private readonly ssh: ServersConnectionService,
     private readonly detection: ServersDetectionService,
-    private readonly preparation: ServerSetupService,
     private readonly audit: ServersAuditService,
     private readonly verification: ServersVerificationService,
   ) {}
@@ -101,14 +96,6 @@ export class ServersJobsFacade {
     return this.jobs.forceFailJob(serverId, jobId);
   }
 
-  async retryJob(id: string, jobId: string): Promise<ServerPublic> {
-    return this.jobs.retryJob(id, jobId, {
-      verify: async () => this.verifyServer(id),
-      install: async (payload) => this.installTools(id, payload),
-      prepare: async (payload) => this.prepareServer(id, payload),
-    });
-  }
-
   async verifyServer(id: string, actorUserId?: string): Promise<ServerPublic> {
     const server = await this.getServerById(id);
 
@@ -140,40 +127,6 @@ export class ServersJobsFacade {
     );
 
     return toPublicServer(server);
-  }
-
-  async installTools(
-    id: string,
-    tools?: InstallToolsDto,
-  ): Promise<ServerPublic> {
-    const payload: StartServerSetupDto = {
-      docker: tools?.docker ?? true,
-      dockerComposePlugin: tools?.docker ?? true,
-      gitlabRunner: tools?.runner ?? false,
-      systemUpdate: true,
-      securityHardening: true,
-      logrotate: true,
-    };
-    return this.prepareServer(id, payload);
-  }
-
-  async prepareServer(
-    id: string,
-    prepare?: PrepareServerDto | StartServerSetupDto,
-    actorUserId?: string,
-  ): Promise<ServerPublic> {
-    const server = await this.getServerById(id);
-    await this.preparation.startPreparation(server.id, prepare, actorUserId);
-    return toPublicServer(server);
-  }
-
-  async startPreparation(
-    id: string,
-    prepare?: StartServerSetupDto,
-    actorUserId?: string,
-  ) {
-    const server = await this.getServerById(id);
-    return this.preparation.startPreparation(server.id, prepare, actorUserId);
   }
 
   async detectServer(id: string, actorUserId?: string): Promise<ServerPublic> {
