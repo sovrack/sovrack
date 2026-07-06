@@ -239,7 +239,7 @@ export const serversService = {
     id: string,
   ): Promise<ServerSetupReadiness> {
     const res = await api.get<ServerSetupReadiness>(
-      `/servers/${id}/setup-readiness`,
+      `/servers/${id}/preparation-readiness`,
     );
     return res.data;
   },

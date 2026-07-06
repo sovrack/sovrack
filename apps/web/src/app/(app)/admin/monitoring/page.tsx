@@ -1,16 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Activity,
-  BarChart3,
-  ExternalLink,
   Loader2,
   RefreshCw,
-  ScrollText,
   Server as ServerIcon,
-  Wrench,
   XCircle,
 } from "lucide-react";
 import { monitoringService } from "@/features/monitoring";
@@ -20,6 +16,7 @@ import { ProtectedRoute } from "@/shared/common/protected-route";
 import { useI18n } from "@/shared/i18n/language-context";
 import { useToast } from "@/shared/contexts/toast-context";
 import type { MonitoredServer } from "@/features/monitoring";
+import { ServerMonitoringActionsMenu } from "@/features/monitoring/components/server-monitoring-actions-menu";
 
 const HEALTH_TONE: Record<string, string> = {
   HEALTHY: "border-green-500/30 bg-green-500/10 text-green-400",
@@ -41,9 +38,26 @@ function ServerRow({
   onSetup: (serverId: string) => void;
   settingUp: boolean;
 }) {
-  const { t } = useI18n();
-  const linkClass =
-    "inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]";
+  const router = useRouter();
+
+  const handleOpenGrafana = () => {
+    if (server.links?.grafanaUrl) {
+      window.open(server.links.grafanaUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleOpenPrometheus = () => {
+    if (server.links?.prometheusUrl) {
+      window.open(server.links.prometheusUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleOpenLoki = () => {
+    if (server.links?.lokiUrl) {
+      window.open(server.links.lokiUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--border)] px-4 py-3 first:border-t-0">
       <div className="flex min-w-0 basis-56 items-center gap-2.5">
@@ -71,57 +85,16 @@ function ServerRow({
       </div>
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
-        {server.links ? (
-          <>
-            <a
-              href={server.links.grafanaUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={linkClass}
-            >
-              <BarChart3 size={12} /> Grafana <ExternalLink size={10} />
-            </a>
-            <a
-              href={server.links.prometheusUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={linkClass}
-            >
-              <Activity size={12} /> Prometheus <ExternalLink size={10} />
-            </a>
-            <a
-              href={server.links.lokiUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={linkClass}
-            >
-              <ScrollText size={12} /> Loki <ExternalLink size={10} />
-            </a>
-          </>
-        ) : (
-          <>
-            <span className="text-xs text-[var(--text-muted)]">
-              {t("Monitoring stack not installed")}
-            </span>
-            {/* Demande utilisateur : bouton Setup Monitoring PAR serveur,
-                directement ici — installe la stack complète
-                (install_monitoring_stack) puis la ligne bascule sur les
-                liens dès que le run réussit (monitoringInstalledAt). */}
-            <button
-              type="button"
-              disabled={settingUp}
-              onClick={() => onSetup(server.serverId)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50"
-            >
-              {settingUp ? (
-                <Loader2 size={12} className="animate-spin" />
-              ) : (
-                <Wrench size={12} />
-              )}{" "}
-              {t("Setup Monitoring")}
-            </button>
-          </>
-        )}
+        {/* Actions menu */}
+        <ServerMonitoringActionsMenu
+          server={server}
+          disabled={settingUp}
+          onOpenGrafana={handleOpenGrafana}
+          onOpenPrometheus={handleOpenPrometheus}
+          onOpenLoki={handleOpenLoki}
+          onSetupMonitoring={() => onSetup(server.serverId)}
+          onViewDetails={() => router.push(`/admin/servers/${server.serverId}`)}
+        />
       </div>
     </div>
   );
