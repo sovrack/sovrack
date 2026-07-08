@@ -10,7 +10,14 @@ import { getApiErrorMessage } from "@/shared/lib/api";
 import { splitImageRef } from "@/features/deployments/utils";
 import { SectionCard } from "@/shared/layout/section-card";
 import { useProjectBranches } from "@/features/projects/api/use-project-branches";
-import { AutoDeployControl } from "./service-config-form.parts";
+import {
+  AutoDeployControl,
+  BuildArgsEditor,
+  RegistryImageFields,
+  RootDirField,
+  rowsToRecord,
+  type BuildArgRow,
+} from "./service-config-form.parts";
 import type {
   BuildPack,
   Service,
@@ -85,6 +92,17 @@ export function ServiceConfigForm({
     service.healthcheckPath ?? "",
   );
   const [dockerfile, setDockerfile] = useState(service.dockerfile ?? "");
+  // Monorepo: subfolder to build from (empty / "/" = repo root).
+  const [rootDir, setRootDir] = useState(
+    service.rootDir && service.rootDir !== "/" ? service.rootDir : "",
+  );
+  // Build-time variables, pre-filled from the service (GET returns buildArgs).
+  const [buildArgRows, setBuildArgRows] = useState<BuildArgRow[]>(
+    Object.entries(service.buildArgs ?? {}).map(([key, value]) => ({
+      key,
+      value: String(value ?? ""),
+    })),
+  );
   // B1: Provider + Repository path are locked forever once the service
   // exists — no setter, no fallback-to-default. A prior version let the user
   // click through a provider picker post-creation (silently inconsistent
@@ -199,6 +217,11 @@ export function ServiceConfigForm({
       setError("Docker image name is required.");
       return;
     }
+    // Root directory must stay inside the clone: relative, no traversal.
+    if (rootDir.includes("..")) {
+      setError("Root directory can't contain '..' (no path traversal).");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -210,6 +233,16 @@ export function ServiceConfigForm({
         port: port ? Number(port) : undefined,
         startCommand: startCommand.trim() || undefined,
         healthcheckPath: healthcheckPath.trim() || undefined,
+        // Monorepo + build-time vars: only meaningful for Git-sourced services
+        // (a DOCKER_IMAGE service has no build). Always sent (even in Registry
+        // mode) so switching modes never silently wipes the values; the backend
+        // simply ignores buildArgs when the CI does the build.
+        ...(!isExternalImage
+          ? {
+              rootDir: rootDir.trim().replace(/^\/+/, "") || "/",
+              buildArgs: rowsToRecord(buildArgRows),
+            }
+          : {}),
         ...(buildPack === "DOCKERFILE" && dockerfile.trim()
           ? { dockerfile }
           : {}),
@@ -380,6 +413,9 @@ export function ServiceConfigForm({
               )}
             </div>
           )}
+          {!isExternalImage && (
+            <RootDirField value={rootDir} onChange={setRootDir} />
+          )}
           <div>
             <label className={labelClass} htmlFor="svc-buildpack">
               Build pack
@@ -488,6 +524,13 @@ export function ServiceConfigForm({
               onChange={(e) => setHealthcheckPath(e.target.value)}
             />
           </div>
+          {!isExternalImage && (
+            <BuildArgsEditor
+              rows={buildArgRows}
+              onChange={setBuildArgRows}
+              isRegistryMode={isRegistryMode}
+            />
+          )}
           {buildPack === "DOCKERFILE" && (
             <div className="sm:col-span-2">
               <label className={labelClass} htmlFor="svc-dockerfile">
@@ -504,44 +547,12 @@ export function ServiceConfigForm({
             </div>
           )}
           {isRegistryMode && !isExternalImage && (
-            <>
-              <div>
-                <label className={labelClass} htmlFor="svc-regimage">
-                  Image registre
-                </label>
-                <input
-                  id="svc-regimage"
-                  className={`${inputClass} font-mono`}
-                  value={registryImageName}
-                  placeholder="registry.gitlab.com/grp/app"
-                  onChange={(e) => setRegistryImageName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className={labelClass} htmlFor="svc-regtag">
-                  Tag
-                </label>
-                <input
-                  id="svc-regtag"
-                  className={`${inputClass} font-mono`}
-                  value={registryTag}
-                  placeholder="latest"
-                  onChange={(e) => setRegistryTag(e.target.value)}
-                />
-              </div>
-              <div className="sm:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-xs text-[var(--text-muted)]">
-                In{" "}
-                <span className="font-semibold text-[var(--text-secondary)]">
-                  Registry
-                </span>{" "}
-                mode, the image is pulled from the registry at deploy time.
-                Leave empty to{" "}
-                <span className="font-semibold">derive it automatically</span>{" "}
-                from CI; set it to pin a specific image. Registry credentials
-                live in{" "}
-                <span className="font-semibold">Settings → Registry</span>.
-              </div>
-            </>
+            <RegistryImageFields
+              image={registryImageName}
+              setImage={setRegistryImageName}
+              tag={registryTag}
+              setTag={setRegistryTag}
+            />
           )}
         </div>
       </SectionCard>

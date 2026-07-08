@@ -17,7 +17,6 @@ type ServersTableProps = {
   onEdit: (server: Server) => void;
   onDelete: (server: Server) => void;
   onValidateSsh?: (server: Server) => void;
-  onDetect?: (server: Server) => void;
 };
 
 function ReachabilityDot({ value }: { value: boolean | undefined }) {
@@ -86,7 +85,6 @@ export function ServersTable({
   onEdit,
   onDelete,
   onValidateSsh,
-  onDetect,
 }: ServersTableProps) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
@@ -163,7 +161,6 @@ export function ServersTable({
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onValidateSsh={onValidateSsh}
-                    onDetect={onDetect}
                   />)}
                 </td>
               </tr>

@@ -4,7 +4,6 @@ import {
   Eye,
   MoreHorizontal,
   Pencil,
-  ScanSearch,
   ShieldCheck,
   Terminal,
   Trash2,
@@ -26,7 +25,6 @@ type ServerRowActionsMenuProps = {
   onEdit: (server: Server) => void;
   onDelete: (server: Server) => void;
   onValidateSsh?: (server: Server) => void;
-  onDetect?: (server: Server) => void;
 };
 
 /**
@@ -44,7 +42,6 @@ export function ServerRowActionsMenu({
   onEdit,
   onDelete,
   onValidateSsh,
-  onDetect,
 }: ServerRowActionsMenuProps) {
   return (
     <DropdownMenu
@@ -84,15 +81,6 @@ export function ServerRowActionsMenu({
             }}
           >
             Setup Server
-          </DropdownItem>
-          <DropdownItem
-            icon={<ScanSearch size={14} />}
-            onClick={() => {
-              close();
-              onDetect?.(server);
-            }}
-          >
-            Detect Info
           </DropdownItem>
           <DropdownItem
             icon={<Pencil size={14} />}

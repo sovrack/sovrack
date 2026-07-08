@@ -73,10 +73,10 @@ const ready = {
 };
 
 // D4 (rework) : "Setup Server" installe un jeu fixe (lecture seule) + une
-// liste à cocher unique pour les options avancées (Reverse Proxy, GitLab
-// Runner), sourcée du catalogue backend — plus de bouton "Setup Monitoring"
-// séparé ici (ce rôle n'installait qu'un agent léger et ne débloquait jamais
-// les tableaux de bord ; la vraie stack s'installe depuis la page Monitoring).
+// liste à cocher pour les options avancées (Reverse Proxy, GitLab Runner),
+// sourcée du catalogue backend, + un "Monitoring stack" CHAÎNÉ après le
+// setup (même action que la page Monitoring, pas le rôle agent léger —
+// voir server-setup-dialog.tsx).
 describe("ServerSetupDialog — fixed core + optional checkboxes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -122,14 +122,15 @@ describe("ServerSetupDialog — fixed core + optional checkboxes", () => {
       ).toBeInTheDocument(),
     );
     expect(screen.getByText("GitLab Runner")).toBeInTheDocument();
+    // Reverse Proxy + GitLab Runner (Ansible extras) + Monitoring stack
+    // (chained, separate action) = 3 checkboxes.
     expect(document.querySelectorAll('input[type="checkbox"]')).toHaveLength(
-      2,
+      3,
     );
-    // Monitoring n'est proposé nulle part dans ce dialogue.
+    // The lightweight "monitoring" agent role is never offered — only the
+    // real Grafana/Prometheus/Loki stack, as its own checkbox.
     expect(screen.queryByText("Monitoring agent")).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/installed separately from the Monitoring page/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Monitoring stack")).toBeInTheDocument();
   });
 
   it("runs Setup Server with the fixed essential payload when no extra is checked", async () => {
@@ -193,6 +194,39 @@ describe("ServerSetupDialog — fixed core + optional checkboxes", () => {
     fireEvent.click(btn);
     const [, payload] = onStartSetup.mock.calls[0];
     expect(payload).toMatchObject({ gitlabRunner: true, docker: true });
+  });
+
+  it("passes wantsMonitoring=true when the Monitoring stack checkbox is checked, without adding it to the Ansible payload", async () => {
+    mocked.getSetupReadiness.mockResolvedValue(ready as never);
+    const onStartSetup = vi.fn().mockResolvedValue(undefined);
+    renderDialog({ onStartSetup });
+
+    await waitFor(() =>
+      expect(screen.getByText("GitLab Runner")).toBeInTheDocument(),
+    );
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    // Reverse Proxy, GitLab Runner, Monitoring stack — in that render order.
+    expect(checkboxes).toHaveLength(3);
+    fireEvent.click(checkboxes[2]);
+
+    const btn = screen.getByRole("button", { name: "Setup Server" });
+    fireEvent.click(btn);
+    expect(onStartSetup).toHaveBeenCalledTimes(1);
+    const [, payload, wantsMonitoring] = onStartSetup.mock.calls[0];
+    expect(wantsMonitoring).toBe(true);
+    expect((payload as Record<string, unknown>).monitoring).toBeUndefined();
+  });
+
+  it("passes wantsMonitoring=false by default", async () => {
+    mocked.getSetupReadiness.mockResolvedValue(ready as never);
+    const onStartSetup = vi.fn().mockResolvedValue(undefined);
+    renderDialog({ onStartSetup });
+
+    const btn = await screen.findByRole("button", { name: "Setup Server" });
+    await waitFor(() => expect(btn).toBeEnabled());
+    fireEvent.click(btn);
+    const [, , wantsMonitoring] = onStartSetup.mock.calls[0];
+    expect(wantsMonitoring).toBe(false);
   });
 
   it("blocks and offers Validate SSH when SSH validation is the blocker", async () => {

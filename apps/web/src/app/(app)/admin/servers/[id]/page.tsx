@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Loader2, Radar, Wrench, Zap } from "lucide-react";
+import { ArrowLeft, Loader2, Wrench, Zap } from "lucide-react";
 import { PageHeader } from "@/shared/layout/page-header";
 import { SectionCard } from "@/shared/layout/section-card";
 import { Button } from "@/shared/ui/button";
@@ -22,9 +22,11 @@ import {
   type SetupDialogOptions,
 } from "@/features/servers/components/dialogs/server-setup-dialog";
 import { ServerAuditTimeline } from "@/features/servers/components/panels/server-audit-timeline";
+import { monitoringService } from "@/features/monitoring";
+import { useToast } from "@/shared/contexts/toast-context";
+import { getApiErrorMessage } from "@/shared/lib/api";
 import {
   useCancelSetup,
-  useDetectServerInfo,
   useDockerConnection,
   useInstalledTools,
   useSetupReadiness,
@@ -46,7 +48,17 @@ export default function AdminServerDetailPage() {
   const [selectedSetup, setSelectedSetup] =
     useState<ServerSetup | null>(null);
 
-  const serverQuery = useServer(serverId);
+  const serverQuery = useServer(serverId, {
+    // Detection now runs automatically right after SSH validation succeeds
+    // (no manual "Detect Info" click) — poll briefly while it's in flight so
+    // the page picks up the result without a manual refresh.
+    refetchInterval: (query) => {
+      const s = query.state.data;
+      const waitingOnDetect =
+        s?.isVerified && !s.lastDetectedAt && s.status !== "INFO_DETECTED";
+      return waitingOnDetect ? 3000 : false;
+    },
+  });
   const validationsQuery = useServerValidationResults(serverId);
   const capabilitiesQuery = useServerCapabilities(serverId);
   const toolsQuery = useInstalledTools(serverId);
@@ -55,18 +67,42 @@ export default function AdminServerDetailPage() {
   const auditEventsQuery = useServerAuditEvents(serverId);
   const dockerConnectionQuery = useDockerConnection(serverId);
   const validateMutation = useValidateServerSsh(serverId);
-  const detectMutation = useDetectServerInfo(serverId);
   const startSetup = useStartServerSetup(serverId);
   const retrySetup = useRetrySetup();
   const cancelSetup = useCancelSetup();
+  const toast = useToast();
 
   const server = serverQuery.data;
   const readiness = readinessQuery.data;
   const loading = serverQuery.isLoading;
 
-  const handleStartSetup = async (options: SetupDialogOptions) => {
+  const handleStartSetup = async (
+    options: SetupDialogOptions,
+    wantsMonitoring: boolean,
+  ) => {
     await startSetup.mutateAsync(options);
     setSetupDialogOpen(false);
+
+    if (wantsMonitoring) {
+      // Chained, not merged into the setup run above — same action as the
+      // Monitoring page's "Setup Monitoring" button. Best-effort: a failure
+      // here must not roll back the (already successful) server setup.
+      try {
+        await monitoringService.installMonitoring({
+          actionKey: "install_monitoring_stack",
+          serverIds: [serverId],
+        });
+        toast(
+          "Monitoring stack installation started — dashboards will appear on the Monitoring page in a few minutes.",
+          "success",
+        );
+      } catch (err) {
+        toast(
+          `Setup succeeded, but starting the monitoring install failed: ${getApiErrorMessage(err)}`,
+          "error",
+        );
+      }
+    }
   };
 
   const primaryAction: "validate" | "detect" | "setup" =
@@ -139,14 +175,10 @@ export default function AdminServerDetailPage() {
               </Button>
             )}
             {primaryAction === "detect" && (
-              <Button
-                icon={<Radar size={15} />}
-                loading={detectMutation.isPending}
-                onClick={() => detectMutation.mutate()}
-                disabled={!server.isVerified}
-              >
-                Detect Info
-              </Button>
+              <span className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)]">
+                <Loader2 size={14} className="animate-spin" />
+                Detecting server info…
+              </span>
             )}
             {primaryAction === "setup" && (
               <Button
@@ -199,9 +231,7 @@ export default function AdminServerDetailPage() {
           </div>
         )}
         <p className="text-sm text-[var(--text-secondary)]">
-          Ansible remains installed and executed on the backend/control node.
-          The VPS is only an SSH target, which centralizes security,
-          maintenance, logs and audit.
+          Managed via SSH — Ansible runs on the control node, not on this VPS.
         </p>
         {readiness &&
           !readiness.isReady &&
@@ -251,7 +281,9 @@ export default function AdminServerDetailPage() {
         isBusy={startSetup.isPending}
         settingUpId={startSetup.isPending ? server.id : null}
         onClose={() => setSetupDialogOpen(false)}
-        onStartSetup={(_s, options) => handleStartSetup(options)}
+        onStartSetup={(_s, options, wantsMonitoring) =>
+          handleStartSetup(options, wantsMonitoring)
+        }
       />
 
       <ServerSetupLogViewer

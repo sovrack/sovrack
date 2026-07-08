@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -38,8 +37,6 @@ function ServerRow({
   onSetup: (serverId: string) => void;
   settingUp: boolean;
 }) {
-  const router = useRouter();
-
   const handleOpenGrafana = () => {
     if (server.links?.grafanaUrl) {
       window.open(server.links.grafanaUrl, '_blank', 'noopener,noreferrer');
@@ -93,7 +90,6 @@ function ServerRow({
           onOpenPrometheus={handleOpenPrometheus}
           onOpenLoki={handleOpenLoki}
           onSetupMonitoring={() => onSetup(server.serverId)}
-          onViewDetails={() => router.push(`/admin/servers/${server.serverId}`)}
         />
       </div>
     </div>

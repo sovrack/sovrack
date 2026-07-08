@@ -171,6 +171,22 @@ export function ServerJobsPanel({
                   >
                     {job.status.replace("_", " ")}
                   </span>
+                  {/* Direct "Logs" button next to the status — opens the
+                      step-by-step Ansible log page without needing to expand
+                      the row first (only for jobs that produced a setup run). */}
+                  {setup && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewSetupLogs(setup);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                    >
+                      <ScrollText size={11} />
+                      Logs
+                    </button>
+                  )}
                   {canCancelJob?.(job) && onCancelJob && (
                     <button
                       type="button"
@@ -238,19 +254,8 @@ export function ServerJobsPanel({
                       No output recorded for this job.
                     </p>
                   )}
-                  {setup && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewSetupLogs(setup);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--hover)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
-                    >
-                      <ScrollText size={11} />
-                      View step-by-step Ansible log
-                    </button>
-                  )}
+                  {/* Step-by-step Ansible log now opens from the "Logs" button
+                      next to the status badge above (no need to expand first). */}
                 </div>
               )}
             </div>

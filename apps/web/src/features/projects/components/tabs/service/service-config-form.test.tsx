@@ -355,3 +355,120 @@ describe("ServiceConfigForm — passes its own serviceId to useProjectBranches (
     expect(mockedBranches).toHaveBeenCalledWith("p1", true, "svc1");
   });
 });
+
+// Monorepo (rootDir) + build-time variables (buildArgs): the engine already
+// supported both end to end (create-service.dto.ts, local-build.service.ts) —
+// this only exposes them in the form. Locks the payload wiring so a future
+// refactor can't silently drop them again.
+describe("ServiceConfigForm — root directory + build-time variables", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedEnvironments.getServiceLink.mockResolvedValue({
+      autoDeploy: false,
+      autoBranch: "main",
+    } as never);
+    mockedProjects.getSourceProviders.mockResolvedValue([] as never);
+    mockedBranches.mockReturnValue({ data: [], isLoading: false } as never);
+  });
+
+  it("pre-fills the root directory field from the service", async () => {
+    renderForm({ service: { ...service, rootDir: "apps/web" } });
+    const field = await screen.findByLabelText(/root directory/i);
+    expect((field as HTMLInputElement).value).toBe("apps/web");
+  });
+
+  it("leaves the root directory field empty when the service is at repo root", async () => {
+    renderForm({ service: { ...service, rootDir: "/" } });
+    const field = await screen.findByLabelText(/root directory/i);
+    expect((field as HTMLInputElement).value).toBe("");
+  });
+
+  it("sends the edited root directory in the update payload", async () => {
+    renderForm();
+    const field = await screen.findByLabelText(/root directory/i);
+    fireEvent.change(field, { target: { value: "apps/web" } });
+    fireEvent.click(screen.getByRole("button", { name: /save configuration/i }));
+
+    await waitFor(() => expect(mockedServices.update).toHaveBeenCalledTimes(1));
+    const [, , payload] = mockedServices.update.mock.calls[0];
+    expect(payload).toMatchObject({ rootDir: "apps/web" });
+  });
+
+  it("pre-fills existing build-time variables as editable rows", async () => {
+    renderForm({
+      service: {
+        ...service,
+        buildArgs: { NEXT_PUBLIC_API_URL: "https://api.example.com" },
+      },
+    });
+    expect(
+      await screen.findByDisplayValue("NEXT_PUBLIC_API_URL"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue("https://api.example.com"),
+    ).toBeInTheDocument();
+  });
+
+  it("adds a new build-time variable row and sends it in the payload", async () => {
+    renderForm();
+    fireEvent.click(await screen.findByRole("button", { name: /add variable/i }));
+
+    const [keyInput, valueInput] = screen.getAllByPlaceholderText(
+      /NEXT_PUBLIC_API_URL|https:\/\/api\.example\.com/,
+    );
+    fireEvent.change(keyInput, { target: { value: "NEXT_PUBLIC_FLAG" } });
+    fireEvent.change(valueInput, { target: { value: "on" } });
+    fireEvent.click(screen.getByRole("button", { name: /save configuration/i }));
+
+    await waitFor(() => expect(mockedServices.update).toHaveBeenCalledTimes(1));
+    const [, , payload] = mockedServices.update.mock.calls[0];
+    expect(payload).toMatchObject({
+      buildArgs: { NEXT_PUBLIC_FLAG: "on" },
+    });
+  });
+
+  it("removing a variable row drops it from the saved payload", async () => {
+    renderForm({
+      service: {
+        ...service,
+        buildArgs: { NEXT_PUBLIC_API_URL: "https://api.example.com" },
+      },
+    });
+    await screen.findByDisplayValue("NEXT_PUBLIC_API_URL");
+    fireEvent.click(screen.getByRole("button", { name: /remove variable/i }));
+    fireEvent.click(screen.getByRole("button", { name: /save configuration/i }));
+
+    await waitFor(() => expect(mockedServices.update).toHaveBeenCalledTimes(1));
+    const [, , payload] = mockedServices.update.mock.calls[0];
+    expect(payload).toMatchObject({ buildArgs: {} });
+  });
+
+  it("flags a malformed variable key without blocking the field", async () => {
+    renderForm();
+    fireEvent.click(await screen.findByRole("button", { name: /add variable/i }));
+    const [keyInput] = screen.getAllByPlaceholderText(/NEXT_PUBLIC_API_URL/);
+    fireEvent.change(keyInput, { target: { value: "FOO BAR" } });
+    expect(
+      await screen.findByText(/must be letters, digits, underscore only/i),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a Registry-mode notice that build-time variables are ignored", async () => {
+    renderForm({ service: { ...service, buildMode: "REGISTRY" } });
+    expect(
+      await screen.findByText(/ignored in registry mode/i),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show root directory or build-time variables for an external image service", () => {
+    renderForm({
+      service: {
+        ...service,
+        sourceType: "DOCKER_IMAGE",
+        repoPath: "nginx:latest",
+      },
+    });
+    expect(screen.queryByLabelText(/root directory/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/build-time variables/i)).not.toBeInTheDocument();
+  });
+});

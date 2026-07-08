@@ -1,18 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Users,
   CheckCircle,
   XCircle,
-  Rocket,
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
 import clsx from "clsx";
-import { DeployDialog } from "./deploy-dialog";
 import type { ProjectListItem } from "@/features/projects/types/project";
 
 type ProjectCardProps = {
@@ -20,9 +16,6 @@ type ProjectCardProps = {
 };
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const router = useRouter();
-  const [deployOpen, setDeployOpen] = useState(false);
-
   const hasGitlabConfig = project.hasGitlabConfig ?? false;
   const hasEnv = (project.environmentCount ?? 0) > 0;
   const isReadyToDeploy = hasGitlabConfig && hasEnv;
@@ -30,8 +23,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const initial = project.name.charAt(0).toUpperCase();
 
   return (
-    <>
-      <div className="group relative flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition hover:border-[var(--text-primary)]/20 hover:shadow-md">
+    <div className="group relative flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition hover:border-[var(--text-primary)]/20 hover:shadow-md">
         {/* Header */}
         <Link
           href={`/projects/${project.id}`}
@@ -112,35 +104,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
             >
               Configure
             </Link>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setDeployOpen(true);
-              }}
-              disabled={!isReadyToDeploy}
-              className={clsx(
-                "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition",
-                isReadyToDeploy
-                  ? "bg-[var(--text-primary)] text-[var(--bg-app)] hover:opacity-90"
-                  : "border border-[var(--border)] text-[var(--text-muted)] opacity-50 cursor-not-allowed",
-              )}
-            >
-              <Rocket size={11} /> Deploy
-            </button>
           </div>
         </div>
       </div>
-
-      <DeployDialog
-        open={deployOpen}
-        projectId={project.id}
-        onClose={() => setDeployOpen(false)}
-        onCreated={() => {
-          setDeployOpen(false);
-          router.push("/deployments");
-        }}
-      />
-    </>
   );
 }

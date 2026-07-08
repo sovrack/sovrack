@@ -78,7 +78,7 @@ describe("ServerJobsPanel — expand to reveal full detail (Task A2)", () => {
     expect(screen.getAllByText(/line1/)).toHaveLength(1);
   });
 
-  it("offers 'View step-by-step Ansible log' only for a PREPARE_SERVER job with a matching setup", () => {
+  it("offers a direct 'Logs' button (no expand needed) for a PREPARE_SERVER job with a matching setup", () => {
     const job = makeJob({
       type: "PREPARE_SERVER",
       setupId: "run-42",
@@ -93,41 +93,28 @@ describe("ServerJobsPanel — expand to reveal full detail (Task A2)", () => {
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Toggle details for PREPARE_SERVER job",
-      }),
-    );
-    const logButton = screen.getByRole("button", {
-      name: /view step-by-step ansible log/i,
-    });
+    // The "Logs" button sits next to the status badge — reachable without
+    // expanding the row.
+    const logButton = screen.getByRole("button", { name: /^logs$/i });
     fireEvent.click(logButton);
     expect(baseProps.onViewSetupLogs).toHaveBeenCalledWith(setup);
   });
 
-  it("does not offer the Ansible log button when no matching setup exists", () => {
+  it("does not offer the Logs button when no matching setup exists", () => {
     const job = makeJob({ type: "PREPARE_SERVER", setupId: "run-missing" });
     render(<ServerJobsPanel {...baseProps} jobs={[job]} setups={[]} />);
 
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Toggle details for PREPARE_SERVER job",
-      }),
-    );
     expect(
-      screen.queryByRole("button", { name: /view step-by-step ansible log/i }),
+      screen.queryByRole("button", { name: /^logs$/i }),
     ).not.toBeInTheDocument();
   });
 
-  it("does not offer the Ansible log button for non-PREPARE_SERVER job types", () => {
+  it("does not offer the Logs button for non-PREPARE_SERVER job types", () => {
     const job = makeJob({ type: "VERIFY" });
     render(<ServerJobsPanel {...baseProps} jobs={[job]} setups={[]} />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle details for VERIFY job" }),
-    );
     expect(
-      screen.queryByRole("button", { name: /view step-by-step ansible log/i }),
+      screen.queryByRole("button", { name: /^logs$/i }),
     ).not.toBeInTheDocument();
   });
 

@@ -11,7 +11,9 @@ const server = {
 } as Server;
 
 // The compact table's Actions column opens this menu — Enter Terminal /
-// Validate SSH / Setup Server / Detect Info / Edit / View Details / Delete.
+// Validate SSH / Setup Server / Edit / View Details / Delete. "Detect Info"
+// is no longer a manual action — detection now runs automatically right
+// after a successful SSH validation (see servers-jobs.facade.ts).
 // P1.2 (mission finale) : "Enter Terminal" ouvre désormais un DIALOG
 // (callback onOpenTerminal) au lieu de rediriger vers /terminal.
 describe("ServerRowActionsMenu", () => {
@@ -31,7 +33,6 @@ describe("ServerRowActionsMenu", () => {
     expect(screen.getByText("Enter Terminal")).toBeInTheDocument();
     expect(screen.getByText("Validate SSH")).toBeInTheDocument();
     expect(screen.getByText("Setup Server")).toBeInTheDocument();
-    expect(screen.getByText("Detect Info")).toBeInTheDocument();
     expect(screen.getByText("Edit")).toBeInTheDocument();
     expect(screen.getByText("View Details")).toBeInTheDocument();
     expect(screen.getByText("Delete")).toBeInTheDocument();
@@ -105,24 +106,6 @@ describe("ServerRowActionsMenu", () => {
     fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
     fireEvent.click(screen.getByText("Validate SSH"));
     expect(onValidateSsh).toHaveBeenCalledWith(server);
-  });
-
-  it("calls onDetect with the server when provided", () => {
-    const onDetect = vi.fn();
-    render(
-      <ServerRowActionsMenu
-        server={server}
-        onOpenTerminal={vi.fn()}
-        onOpenSetup={vi.fn()}
-        onOpenDetails={vi.fn()}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onDetect={onDetect}
-      />,
-    );
-    fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
-    fireEvent.click(screen.getByText("Detect Info"));
-    expect(onDetect).toHaveBeenCalledWith(server);
   });
 
   it("closes the menu when clicking outside", () => {

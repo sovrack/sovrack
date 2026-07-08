@@ -8,7 +8,6 @@ import {
   Layers,
   Loader2,
   Plus,
-  Rocket,
   Settings,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/api/use-auth";
@@ -23,7 +22,6 @@ import { ProjectEnvironmentsTab } from "@/features/projects/components/project-e
 import { ServicesList } from "@/features/projects/components/tabs/service/services-list";
 import { AddServiceWizard } from "@/features/projects/components/add-service-wizard";
 import { ProjectMembersTab } from "@/features/projects/components/project-members-tab";
-import { DeployDialog } from "@/features/projects/components/deploy-dialog";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { projectsService } from "@/features/projects/api/projects.service";
 
@@ -41,7 +39,6 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [addServiceOpen, setAddServiceOpen] = useState(false);
-  const [deployOpen, setDeployOpen] = useState(false);
   const [envOpen, setEnvOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -128,15 +125,6 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
               <ArrowLeft size={15} /> Projects
             </Link>
 
-            {/* Déployer — ouvre le même dialog que le bouton Deploy du service */}
-            <button
-              type="button"
-              onClick={() => setDeployOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
-            >
-              <Rocket size={15} /> Deploy
-            </button>
-
             {/* Gestion des environnements (dialog) */}
             <button
               type="button"
@@ -210,18 +198,6 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           setAddServiceOpen(false);
           void servicesQuery.refetch();
         }}
-      />
-
-      {/* Deploy — même dialog que le bouton Deploy d'un service */}
-      <DeployDialog
-        projectId={id}
-        open={deployOpen}
-        onClose={() => setDeployOpen(false)}
-        onCreated={() => {
-          setDeployOpen(false);
-          void servicesQuery.refetch();
-        }}
-        services={servicesQuery.data ?? []}
       />
 
       {/* Project Environment (gestion des environnements) */}

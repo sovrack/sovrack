@@ -145,20 +145,4 @@ describe("ServersTable — columns (Task 2)", () => {
     );
   });
 
-  it("forwards onDetect to the row actions menu", () => {
-    const onDetect = vi.fn();
-    render(
-      <ServersTable
-        {...baseProps}
-        servers={[makeServer()]}
-        isReachable={{}}
-        onDetect={onDetect}
-      />,
-    );
-    fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
-    fireEvent.click(screen.getByText("Detect Info"));
-    expect(onDetect).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "s1" }),
-    );
-  });
 });

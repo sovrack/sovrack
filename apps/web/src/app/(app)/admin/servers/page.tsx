@@ -212,7 +212,6 @@ export default function AdminServersPage() {
               setDeleteTarget(s);
             }}
             onValidateSsh={(s: ServerType) => servers.handleVerify(s.id)}
-            onDetect={(s: ServerType) => servers.handleDetect(s.id)}
           />
 
           <Pagination

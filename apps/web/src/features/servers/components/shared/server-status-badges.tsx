@@ -94,8 +94,8 @@ export function getServerOverallStatus(
 
   if (server.status === "SSH_VALIDATED") {
     return {
-      label: "Detection required",
-      description: "SSH validated — run Detect Info before setup",
+      label: "Detecting…",
+      description: "SSH validated — detecting server info automatically",
       tone: "info",
     };
   }
@@ -110,8 +110,8 @@ export function getServerOverallStatus(
 
   if (server.isVerified) {
     return {
-      label: "Detection required",
-      description: "SSH validated — run Detect Info before setup",
+      label: "Detecting…",
+      description: "SSH validated — detecting server info automatically",
       tone: "info",
     };
   }
@@ -140,8 +140,12 @@ export function ServerOverallStatusBadge({ server }: { server: Server }) {
 
 // A4: real per-server tool badges, driven by Server.installedTools (capability
 // detection) — not a generic/hardcoded pair like ServerWorkflowBadges'
-// Docker/Runner booleans below. Only tools actually detected as INSTALLED on
-// THIS server are shown.
+// Docker/Runner booleans below.
+//
+// Shows EVERY detected capability, installed (green) or missing (muted) —
+// this used to filter down to INSTALLED only, which silently hid anything
+// not installed instead of showing it as missing (looked identical to "not
+// checked yet"). Same visual language as ServerWorkflowBadges' ToolBadge.
 const TOOL_DISPLAY_PRIORITY = [
   "docker",
   "postgres",
@@ -152,17 +156,15 @@ const TOOL_DISPLAY_PRIORITY = [
 ];
 
 export function ServerToolBadges({ server }: { server: Server }) {
-  const installed = (server.installedTools ?? []).filter(
-    (tool) => tool.status === "INSTALLED",
-  );
-  if (installed.length === 0) {
+  const tools = server.installedTools ?? [];
+  if (tools.length === 0) {
     return (
       <p className="text-[11px] text-[var(--text-secondary)]">
-        No tools detected yet — run Detect Info.
+        No tools detected yet — detection runs automatically after SSH validation.
       </p>
     );
   }
-  const sorted = [...installed].sort((a, b) => {
+  const sorted = [...tools].sort((a, b) => {
     const ai = TOOL_DISPLAY_PRIORITY.indexOf(a.toolKey);
     const bi = TOOL_DISPLAY_PRIORITY.indexOf(b.toolKey);
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
@@ -170,13 +172,11 @@ export function ServerToolBadges({ server }: { server: Server }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {sorted.map((tool) => (
-        <span
+        <ToolBadge
           key={tool.toolKey}
-          title={tool.version ?? undefined}
-          className="inline-flex items-center gap-1 rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-[11px] font-semibold text-green-400"
-        >
-          <CheckCircle size={11} /> {tool.displayName}
-        </span>
+          label={tool.displayName}
+          active={tool.status === "INSTALLED"}
+        />
       ))}
     </div>
   );

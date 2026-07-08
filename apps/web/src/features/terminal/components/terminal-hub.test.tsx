@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock("@/features/auth/api/use-auth", () => ({
+vi.mock("@/features/auth", () => ({
   useAuth: () => ({ isAdmin: true, user: { role: "ADMIN" }, loading: false }),
 }));
 

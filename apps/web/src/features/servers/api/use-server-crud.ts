@@ -1,9 +1,15 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type Query,
+} from "@tanstack/react-query";
 import { serversService } from "@/features/servers/api/servers.service";
 import type {
   CreateServerPayload,
+  Server,
   UpdateServerPayload,
 } from "@/features/servers/types/server";
 import { serverKeys } from "./server-query-keys";
@@ -16,12 +22,21 @@ export function useServers() {
   });
 }
 
-export function useServer(id: string) {
+export function useServer(
+  id: string,
+  options?: {
+    refetchInterval?: number | ((query: Query<Server>) => number | false);
+  },
+) {
   return useQuery({
     queryKey: serverKeys.detail(id),
     queryFn: () => serversService.getById(id),
     enabled: Boolean(id),
     staleTime: 10_000,
+    // Optional short poll — used while waiting on a background step (e.g.
+    // auto-detection right after SSH validation) so the page reflects it
+    // finishing without a manual refresh. Undefined = no polling (default).
+    refetchInterval: options?.refetchInterval,
   });
 }
 

@@ -105,8 +105,8 @@ export function ServerDetailsDialog({
                   only home now. */}
               <ServerToolBadges server={server} />
               <p className="text-xs text-[var(--text-secondary)]">
-                Ansible is executed from the platform control node. This VPS is
-                managed through SSH and does not need Ansible installed locally.
+                Managed via SSH — Ansible runs on the control node, not on
+                this VPS.
               </p>
             </div>
           </div>

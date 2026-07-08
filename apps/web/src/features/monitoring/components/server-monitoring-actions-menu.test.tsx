@@ -24,7 +24,7 @@ function makeServer(links: MonitoredServer["links"] = null): MonitoredServer {
 }
 
 describe("ServerMonitoringActionsMenu", () => {
-  it("offers Grafana/Prometheus/Loki + View Details when the stack is installed", () => {
+  it("offers Grafana/Prometheus/Loki when the stack is installed", () => {
     render(
       <ServerMonitoringActionsMenu
         server={makeServer({
@@ -39,16 +39,18 @@ describe("ServerMonitoringActionsMenu", () => {
     expect(screen.getByText("Open Grafana")).toBeInTheDocument();
     expect(screen.getByText("Open Prometheus")).toBeInTheDocument();
     expect(screen.getByText("Open Loki")).toBeInTheDocument();
-    expect(screen.getByText("View Details")).toBeInTheDocument();
+    // "View Details" (→ /admin/servers/:id) removed — the monitoring menu is
+    // monitoring-only; server management lives on the Servers page.
+    expect(screen.queryByText("View Details")).not.toBeInTheDocument();
     expect(screen.queryByText("Setup Monitoring")).not.toBeInTheDocument();
   });
 
-  it("offers only Setup Monitoring + View Details when the stack is not installed", () => {
+  it("offers only Setup Monitoring when the stack is not installed", () => {
     render(<ServerMonitoringActionsMenu server={makeServer(null)} />);
     fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
 
     expect(screen.getByText("Setup Monitoring")).toBeInTheDocument();
-    expect(screen.getByText("View Details")).toBeInTheDocument();
+    expect(screen.queryByText("View Details")).not.toBeInTheDocument();
     expect(screen.queryByText("Open Grafana")).not.toBeInTheDocument();
   });
 
@@ -93,18 +95,5 @@ describe("ServerMonitoringActionsMenu", () => {
     fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
     fireEvent.click(screen.getByText("Setup Monitoring"));
     expect(onSetupMonitoring).toHaveBeenCalledTimes(1);
-  });
-
-  it("calls onViewDetails when clicked", () => {
-    const onViewDetails = vi.fn();
-    render(
-      <ServerMonitoringActionsMenu
-        server={makeServer(null)}
-        onViewDetails={onViewDetails}
-      />,
-    );
-    fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
-    fireEvent.click(screen.getByText("View Details"));
-    expect(onViewDetails).toHaveBeenCalledTimes(1);
   });
 });

@@ -10,7 +10,9 @@ function makeServer(installedTools: Server["installedTools"] = []): Server {
 // A4: real per-server tool badges — must reflect what capability detection
 // actually found on THIS server (installedTools), not a generic/fixed pair.
 describe("ServerToolBadges (Task A4)", () => {
-  it("shows a badge only for tools with status INSTALLED", () => {
+  // Regression: this used to filter down to INSTALLED-only, silently hiding
+  // anything MISSING — a missing tool looked identical to "never checked".
+  it("shows a badge for every detected tool, installed AND missing", () => {
     render(
       <ServerToolBadges
         server={makeServer([
@@ -22,13 +24,16 @@ describe("ServerToolBadges (Task A4)", () => {
     );
     expect(screen.getByText("Docker Engine")).toBeInTheDocument();
     expect(screen.getByText("Redis")).toBeInTheDocument();
-    expect(screen.queryByText("PostgreSQL")).not.toBeInTheDocument();
+    // Missing must be VISIBLE (as missing), not hidden.
+    expect(screen.getByText("PostgreSQL")).toBeInTheDocument();
   });
 
   it("shows a helpful message instead of a generic badge when nothing is detected yet", () => {
     render(<ServerToolBadges server={makeServer([])} />);
     expect(
-      screen.getByText("No tools detected yet — run Detect Info."),
+      screen.getByText(
+        "No tools detected yet — detection runs automatically after SSH validation.",
+      ),
     ).toBeInTheDocument();
   });
 

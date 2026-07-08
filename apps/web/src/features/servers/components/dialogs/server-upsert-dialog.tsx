@@ -72,6 +72,10 @@ export function ServerUpsertDialog({
 
     // Loaded in both modes now (A1): edit mode also offers switching this
     // server to a different existing SSH key, not just at creation time.
+    // Only loaded in create mode — editing the SSH key from this general
+    // "Edit" dialog is deliberately not offered (a wrong key silently breaks
+    // connectivity); rotating credentials is a separate, more careful flow.
+    if (mode !== "create") return;
     setKeysLoading(true);
     sshKeysService
       .getAll()
@@ -162,62 +166,53 @@ export function ServerUpsertDialog({
             </Alert>
           )}
 
-          {/* SSH Key selector — required at creation; optional at edit time
-              (A1: switch credentials without exposing/re-entering the
-              private key itself — leaving it on the default option keeps
-              the server's current key untouched). */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-              SSH Key{" "}
-              {mode === "create" && <span className="text-red-400">*</span>}
-            </label>
-            <div className="relative">
-              <select
-                value={values.sshKeyId}
-                onChange={(e) => set("sshKeyId", e.target.value)}
-                disabled={keysLoading}
-                className="h-11 w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 pr-10 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
-              >
-                <option value="">
-                  {keysLoading
-                    ? "Loading SSH keys…"
-                    : mode === "edit"
-                      ? "— Keep current SSH key —"
-                      : "— Select a SSH key —"}
-                </option>
-                {sshKeys.map((key) => (
-                  <option key={key.id} value={key.id}>
-                    {key.name} ({key.keyType.toUpperCase()})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={14}
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
-              />
-            </div>
-            {formErrors.sshKeyId && (
-              <p className="text-xs text-red-400">{formErrors.sshKeyId}</p>
-            )}
-            {mode === "edit" && values.sshKeyId && (
-              <p className="text-xs text-amber-500">
-                Switching keys will require re-verifying this server before
-                its next deployment.
-              </p>
-            )}
-            {sshKeys.length === 0 && !keysLoading && (
-              <p className="text-xs text-[var(--text-secondary)]">
-                No SSH keys found. Go to{" "}
-                <a
-                  href="/settings/ssh-keys"
-                  className="underline hover:text-[var(--text-primary)]"
+          {/* SSH Key selector — create mode only. Editing (rotating) the key
+              from this general "Edit" dialog is deliberately not offered: a
+              wrong selection silently breaks connectivity with no warning
+              until the next deploy. */}
+          {mode === "create" && (
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                SSH Key <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={values.sshKeyId}
+                  onChange={(e) => set("sshKeyId", e.target.value)}
+                  disabled={keysLoading}
+                  className="h-11 w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 pr-10 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
                 >
-                  Settings › SSH Keys
-                </a>{" "}
-                to create one first.
-              </p>
-            )}
-          </div>
+                  <option value="">
+                    {keysLoading ? "Loading SSH keys…" : "— Select a SSH key —"}
+                  </option>
+                  {sshKeys.map((key) => (
+                    <option key={key.id} value={key.id}>
+                      {key.name} ({key.keyType.toUpperCase()})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                />
+              </div>
+              {formErrors.sshKeyId && (
+                <p className="text-xs text-red-400">{formErrors.sshKeyId}</p>
+              )}
+              {sshKeys.length === 0 && !keysLoading && (
+                <p className="text-xs text-[var(--text-secondary)]">
+                  No SSH keys found. Go to{" "}
+                  <a
+                    href="/settings/ssh-keys"
+                    className="underline hover:text-[var(--text-primary)]"
+                  >
+                    Settings › SSH Keys
+                  </a>{" "}
+                  to create one first.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Main fields */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

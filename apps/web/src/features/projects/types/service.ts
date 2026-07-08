@@ -89,6 +89,10 @@ export type Service = {
   branch: string | null;
   providerId: string | null;
   rootDir: string | null;
+  // Build-time variables (baked into the image via --build-arg, e.g.
+  // NEXT_PUBLIC_*). Returned by GET /services (not omitted). Public by design.
+  // Optional: matches the generated contract's optionality + older mocks.
+  buildArgs?: Record<string, string> | null;
   buildPack: BuildPack | null;
   buildMode: string | null;
   deployTrigger: string | null;

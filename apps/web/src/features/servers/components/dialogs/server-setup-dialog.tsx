@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, GitBranch, Globe, Wrench, Zap } from "lucide-react";
+import { Activity, Check, GitBranch, Globe, Wrench, Zap } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
 import {
@@ -39,9 +39,11 @@ const SETUP_SERVER_PAYLOAD: StartServerSetupPayload = {
 // Options avancées, optionnelles, ajoutées à la même exécution si cochées.
 // Le catalogue complet (useServerSetupOptions) contient aussi "monitoring" —
 // volontairement exclu ici : ce rôle n'installe qu'un agent léger et ne
-// débloque jamais les tableaux de bord Grafana/Prometheus/Loki (uniquement
-// la page Monitoring le fait). L'y proposer ici recrée la confusion "deux
-// boutons Setup Monitoring qui ne font pas la même chose".
+// débloque jamais les tableaux de bord Grafana/Prometheus/Loki. Le vrai
+// stack (Grafana/Prometheus/Loki) est proposé séparément ci-dessous
+// (`installMonitoring` state), CHAÎNÉ après le setup plutôt que fusionné
+// dans ce run Ansible — même action que la page Monitoring, donc pas de
+// "deux boutons qui ne font pas la même chose".
 const EXTRA_OPTION_KEYS: (keyof StartServerSetupPayload)[] = [
   "reverseProxy",
   "gitlabRunner",
@@ -83,9 +85,15 @@ type ServerSetupDialogProps = {
   onVerify?: (server: Server) => Promise<void>;
   verifyingId?: string | null;
   onClose: () => void;
+  // `wantsMonitoring`: the full Grafana/Prometheus/Loki stack (same action
+  // as the Monitoring page), chained by the caller AFTER setup succeeds —
+  // not merged into the same Ansible run, and NOT the lightweight
+  // `monitoring` role (see EXTRA_OPTION_KEYS' comment below for why that one
+  // stays excluded here).
   onStartSetup: (
     server: Server,
     options: StartServerSetupPayload,
+    wantsMonitoring: boolean,
   ) => Promise<void>;
 };
 
@@ -106,6 +114,7 @@ export function ServerSetupDialog({
   const [selectedExtras, setSelectedExtras] = useState<
     Partial<Record<keyof StartServerSetupPayload, boolean>>
   >({});
+  const [installMonitoring, setInstallMonitoring] = useState(false);
 
   if (!server) return null;
 
@@ -142,7 +151,7 @@ export function ServerSetupDialog({
         (payload as Record<string, unknown>)[key] = true;
       }
     }
-    void onStartSetup(server, payload);
+    void onStartSetup(server, payload, installMonitoring);
   };
 
   return (
@@ -171,10 +180,8 @@ export function ServerSetupDialog({
     >
       <div className="space-y-5">
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
-          Ansible runs from the platform control node. The target VPS stays an
-          agentless SSH host — nothing is installed on it to manage it. The set
-          below is fixed (no choices): it makes the server deployable and
-          secure.
+          Managed via SSH from the control node — the fixed set below makes
+          the server deployable and secure.
         </div>
 
         {/* Ce que Setup Server installe (lecture seule) */}
@@ -204,53 +211,73 @@ export function ServerSetupDialog({
           </ul>
         </div>
 
-        {/* Options avancées : une seule liste à cocher, ajoutées à la même
-            exécution que "Setup Server" ci-dessus si sélectionnées. */}
-        {extraOptions.length > 0 && (
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-secondary)]">
-              Optional
-            </p>
-            <div className="space-y-2">
-              {extraOptions.map((option) => {
-                const Icon = EXTRA_OPTION_ICONS[option.key] ?? Globe;
-                return (
-                  <label
-                    key={option.key}
-                    className="flex items-start justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm"
-                  >
-                    <span className="flex min-w-0 items-start gap-2">
-                      <Icon
-                        size={14}
-                        className="mt-0.5 shrink-0 text-[var(--text-secondary)]"
-                        aria-hidden
-                      />
-                      <span>
-                        <span className="font-semibold text-[var(--text-primary)]">
-                          {option.label}
-                        </span>
-                        <p className="text-xs text-[var(--text-secondary)]">
-                          {option.description}
-                        </p>
-                      </span>
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(selectedExtras[option.key])}
-                      onChange={() => toggleExtra(option.key)}
-                      disabled={isBusy || !isReady}
-                      className="mt-1 shrink-0 accent-zinc-600"
+        {/* Options avancées : cases à cocher, ajoutées à la même exécution
+            (Ansible extras) ou chaînées juste après (monitoring stack). */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-secondary)]">
+            Optional
+          </p>
+          <div className="space-y-2">
+            {extraOptions.map((option) => {
+              const Icon = EXTRA_OPTION_ICONS[option.key] ?? Globe;
+              return (
+                <label
+                  key={option.key}
+                  className="flex items-start justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+                >
+                  <span className="flex min-w-0 items-start gap-2">
+                    <Icon
+                      size={14}
+                      className="mt-0.5 shrink-0 text-[var(--text-secondary)]"
+                      aria-hidden
                     />
-                  </label>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-[var(--text-secondary)]">
-              Looking for the monitoring stack (Grafana/Prometheus/Loki)?
-              It&apos;s installed separately from the Monitoring page.
-            </p>
+                    <span>
+                      <span className="font-semibold text-[var(--text-primary)]">
+                        {option.label}
+                      </span>
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        {option.description}
+                      </p>
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(selectedExtras[option.key])}
+                    onChange={() => toggleExtra(option.key)}
+                    disabled={isBusy || !isReady}
+                    className="mt-1 shrink-0 accent-zinc-600"
+                  />
+                </label>
+              );
+            })}
+            <label className="flex items-start justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm">
+              <span className="flex min-w-0 items-start gap-2">
+                <Activity
+                  size={14}
+                  className="mt-0.5 shrink-0 text-[var(--text-secondary)]"
+                  aria-hidden
+                />
+                <span>
+                  <span className="font-semibold text-[var(--text-primary)]">
+                    Monitoring stack
+                  </span>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Installs Grafana/Prometheus/Loki right after setup
+                    completes (same action as the Monitoring page — can also
+                    be installed later from there).
+                  </p>
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={installMonitoring}
+                onChange={(e) => setInstallMonitoring(e.target.checked)}
+                disabled={isBusy || !isReady}
+                className="mt-1 shrink-0 accent-zinc-600"
+              />
+            </label>
           </div>
-        )}
+        </div>
 
         {!isReady && (
           <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">

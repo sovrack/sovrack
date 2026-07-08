@@ -3,16 +3,11 @@
 import {
   Activity,
   BarChart3,
-  Eye,
   MoreHorizontal,
   ScrollText,
   Wrench,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownItem,
-  DropdownDivider,
-} from "@/shared/ui/dropdown-menu";
+import { DropdownMenu, DropdownItem } from "@/shared/ui/dropdown-menu";
 import type { MonitoredServer } from "@/features/monitoring/types/monitoring";
 
 type ServerMonitoringActionsMenuProps = {
@@ -22,7 +17,6 @@ type ServerMonitoringActionsMenuProps = {
   onOpenPrometheus?: () => void;
   onOpenLoki?: () => void;
   onSetupMonitoring?: () => void;
-  onViewDetails?: () => void;
 };
 
 /**
@@ -35,7 +29,6 @@ export function ServerMonitoringActionsMenu({
   onOpenPrometheus,
   onOpenLoki,
   onSetupMonitoring,
-  onViewDetails,
 }: ServerMonitoringActionsMenuProps) {
   const hasMonitoring = Boolean(server.links);
 
@@ -93,19 +86,6 @@ export function ServerMonitoringActionsMenu({
               Setup Monitoring
             </DropdownItem>
           )}
-
-          <DropdownDivider />
-
-          {/* View Details */}
-          <DropdownItem
-            icon={<Eye size={14} />}
-            onClick={() => {
-              close();
-              onViewDetails?.();
-            }}
-          >
-            View Details
-          </DropdownItem>
         </>
       )}
     </DropdownMenu>
