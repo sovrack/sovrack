@@ -1,7 +1,7 @@
 import { serializeBigInts } from './bigint.interceptor';
 
 describe('serializeBigInts', () => {
-  it('convertit les bigint imbriqués en string', () => {
+  it('converts nested bigints to string', () => {
     const input = {
       projectId: 'p1',
       gitlabId: BigInt('1234567890123456789'),
@@ -22,7 +22,7 @@ describe('serializeBigInts', () => {
     });
   });
 
-  it('laisse inchangés les objets non plain (ex: Date)', () => {
+  it('leaves non-plain objects unchanged (e.g. Date)', () => {
     const date = new Date('2026-05-07T12:00:00.000Z');
     const output = serializeBigInts({ createdAt: date }) as { createdAt: Date };
 

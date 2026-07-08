@@ -261,7 +261,7 @@ export class DeploymentsGateway
     }
 
     try {
-      const key = await this.logStreamService.subscribe(client, {
+      const key = this.logStreamService.subscribe(client, {
         deploymentId,
         serverId,
         containerName,

@@ -19,7 +19,7 @@ describe('buildAuthenticatedCloneUrl', () => {
     ).toBe('https://oauth2:TKN@gitlab.com/grp/app.git');
   });
 
-  it('gère un host self-hosted', () => {
+  it('handles a self-hosted host', () => {
     expect(
       buildAuthenticatedCloneUrl(
         'https://gitlab.master.ssd.vps.platform.com',

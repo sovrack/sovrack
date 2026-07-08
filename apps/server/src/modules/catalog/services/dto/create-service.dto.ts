@@ -19,6 +19,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Matches,
   Max,
   Min,
   ValidateIf,
@@ -85,6 +86,13 @@ export class CreateServiceDto {
   @ApiPropertyOptional({ example: '/' })
   @IsOptional()
   @IsString()
+  // Server-side enforcement of the monorepo subfolder constraint — the
+  // frontend already rejects ".." client-side, but that's not a security
+  // boundary: a direct API call could otherwise send rootDir="../../etc" and
+  // local-build.service.ts would happily build outside the cloned repo.
+  @Matches(/^(?!.*\.\.).*$/, {
+    message: 'rootDir must not contain ".." (no path traversal).',
+  })
   rootDir?: string;
 
   @ApiPropertyOptional({ enum: BuildPack, example: BuildPack.DOCKERFILE })

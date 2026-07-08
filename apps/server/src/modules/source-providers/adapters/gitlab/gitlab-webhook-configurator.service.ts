@@ -3,105 +3,115 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { GitlabFileService } from './gitlab-file.service';
-import type { WebhookConfigResult } from '../../contracts/git-provider.contract';
+import {
+  BaseWebhookConfigurator,
+  type NormalizedHook,
+  type WebhookRequestContext,
+} from '../shared/base-webhook-configurator';
 
 /**
- * Registers (or updates) a webhook on the GitLab project side.
- * Called by GitlabService.configureWebhook() — NOT by the build module.
+ * Registers a webhook on the GitLab project side.
+ * Called by GitlabAdapter.configureWebhook() — NOT by the build module.
  *
- * The webhookUrl and secret are provided by the caller
- * (WebhookManagementService), which owns the WebhookEndpoint lifecycle.
+ * Only the GitLab-specific bits live here (endpoint URL, PRIVATE-TOKEN header,
+ * body shape, response parsing, retry policy, error mapping). The idempotent
+ * flow (find-existing-before-create) + retry loop are inherited from
+ * {@link BaseWebhookConfigurator} — this is what fixes the historical
+ * "blind POST → duplicate hooks on every Re-register" bug for good.
  */
 @Injectable()
-export class GitlabWebhookConfiguratorService {
-  private readonly logger = new Logger(GitlabWebhookConfiguratorService.name);
+export class GitlabWebhookConfiguratorService extends BaseWebhookConfigurator {
+  protected readonly logger = new Logger(GitlabWebhookConfiguratorService.name);
 
   constructor(
-    private readonly httpService: HttpService,
+    http: HttpService,
     private readonly configService: ConfigService,
     private readonly fileService: GitlabFileService,
-  ) {}
+  ) {
+    super(http);
+  }
 
-  async configureWebhook(
+  protected async resolveContext(
     projectId: string,
-    webhookUrl: string,
-    secret: string,
     serviceId?: string,
-  ): Promise<WebhookConfigResult> {
+  ): Promise<WebhookRequestContext> {
     const context = await this.fileService.resolveRepositoryContext(
       projectId,
       serviceId,
     );
-
-    const maxAttempts = this.parsePositiveInt(
-      this.configService.get<string>('GITLAB_WEBHOOK_MAX_RETRIES', '3'),
-      3,
-    );
-    const retryDelayMs = this.parsePositiveInt(
-      this.configService.get<string>('GITLAB_WEBHOOK_RETRY_DELAY_MS', '1200'),
-      1200,
-    );
-
-    const hooksUrl = `${context.baseUrl}/api/v4/projects/${encodeURIComponent(String(context.gitlabProjectId))}/hooks`;
-    const headers = { 'PRIVATE-TOKEN': context.token };
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const res = await firstValueFrom(
-          this.httpService.post<{ id: number }>(
-            hooksUrl,
-            {
-              url: webhookUrl,
-              token: secret,
-              push_events: true,
-              pipeline_events: true,
-            },
-            { headers },
-          ),
-        );
-        this.logger.log(
-          `GitLab webhook configured for project ${String(context.gitlabProjectId)} (hookId=${res.data.id})`,
-        );
-        return { hookId: res.data.id, url: webhookUrl };
-      } catch (err: unknown) {
-        const status = this.fileService.extractHttpStatus(err);
-        const msg = this.fileService
-          .extractGitlabErrorMessage(err)
-          .toLowerCase();
-        const isDuplicate =
-          status === 409 ||
-          msg.includes('has already been taken') ||
-          msg.includes('already exists');
-
-        if (isDuplicate) {
-          this.logger.warn(
-            `GitLab webhook already exists for project ${String(context.gitlabProjectId)}.`,
-          );
-          return { hookId: 'existing', url: webhookUrl };
-        }
-
-        if (attempt < maxAttempts && this.isRetryable(err, status)) {
-          const backoff = retryDelayMs * attempt;
-          this.logger.warn(
-            `[GitLab] webhook attempt ${attempt}/${maxAttempts} failed. Retrying in ${backoff}ms…`,
-          );
-          await this.sleep(backoff);
-          continue;
-        }
-
-        this.fileService.throwGitlabMappedError(
-          'configuration du webhook GitLab',
-          err,
-          'Impossible de configurer le webhook GitLab.',
-        );
-      }
-    }
-
-    // Unreachable — throwGitlabMappedError always throws
-    return { hookId: '', url: webhookUrl };
+    const id = encodeURIComponent(String(context.gitlabProjectId));
+    return {
+      label: String(context.gitlabProjectId),
+      hooksUrl: `${context.baseUrl}/api/v4/projects/${id}/hooks`,
+      headers: { 'PRIVATE-TOKEN': context.token },
+    };
   }
 
-  private isRetryable(err: unknown, status: number | null): boolean {
+  protected async listHooks(
+    ctx: WebhookRequestContext,
+  ): Promise<NormalizedHook[]> {
+    const res = await firstValueFrom(
+      this.http.get<Array<{ id: number; url: string; token?: string }>>(
+        ctx.hooksUrl,
+        { headers: ctx.headers },
+      ),
+    );
+    return res.data.map((h) => ({
+      id: h.id,
+      url: h.url,
+      currentSecret: h.token,
+    }));
+  }
+
+  protected async createHook(
+    ctx: WebhookRequestContext,
+    webhookUrl: string,
+    secret: string,
+  ): Promise<number | string> {
+    const res = await firstValueFrom(
+      this.http.post<{ id: number }>(
+        ctx.hooksUrl,
+        {
+          url: webhookUrl,
+          token: secret,
+          push_events: true,
+          pipeline_events: true,
+        },
+        { headers: ctx.headers },
+      ),
+    );
+    return res.data.id;
+  }
+
+  protected async updateHookSecret(
+    ctx: WebhookRequestContext,
+    hookId: number | string,
+    secret: string,
+  ): Promise<void> {
+    await firstValueFrom(
+      this.http.put(
+        `${ctx.hooksUrl}/${hookId}`,
+        { token: secret },
+        { headers: ctx.headers },
+      ),
+    );
+  }
+
+  protected retryConfig(): { maxAttempts: number; baseDelayMs: number } {
+    return {
+      maxAttempts: this.parsePositiveInt(
+        this.configService.get<string>('GITLAB_WEBHOOK_MAX_RETRIES', '3'),
+        3,
+      ),
+      baseDelayMs: this.parsePositiveInt(
+        this.configService.get<string>('GITLAB_WEBHOOK_RETRY_DELAY_MS', '1200'),
+        1200,
+      ),
+    };
+  }
+
+  protected isRetryable(err: unknown): boolean {
+    const status = this.fileService.extractHttpStatus(err);
     if (status !== null) return [408, 429, 500, 502, 503, 504].includes(status);
     if (err && typeof err === 'object') {
       const code = (err as { code?: unknown }).code;
@@ -119,12 +129,18 @@ export class GitlabWebhookConfiguratorService {
     return false;
   }
 
+  protected mapError(err: unknown): never {
+    this.fileService.throwGitlabMappedError(
+      'configuration du webhook GitLab',
+      err,
+      'Impossible de configurer le webhook GitLab.',
+    );
+    // throwGitlabMappedError always throws; this satisfies the `never` return.
+    throw err instanceof Error ? err : new Error(String(err));
+  }
+
   private parsePositiveInt(raw: string | undefined, fallback: number): number {
     const v = Number.parseInt(raw ?? '', 10);
     return Number.isFinite(v) && v > 0 ? v : fallback;
-  }
-
-  private async sleep(ms: number): Promise<void> {
-    await new Promise<void>((resolve) => setTimeout(resolve, ms));
   }
 }

@@ -3,7 +3,7 @@ import { GithubActionsGenerator } from './github-actions.generator';
 describe('GithubActionsGenerator', () => {
   const gen = new GithubActionsGenerator();
 
-  it('génère un workflow déclenché sur push des branches fournies', () => {
+  it('generates a workflow triggered on push to the provided branches', () => {
     const out = gen.generate({
       projectType: 'nodejs',
       branches: ['main', 'qa'],
@@ -14,7 +14,7 @@ describe('GithubActionsGenerator', () => {
     expect(out).toContain('      - qa');
   });
 
-  it('émet l’étape de déclenchement du déploiement platform', () => {
+  it('emits the platform deployment trigger step', () => {
     const out = gen.generate({ projectType: 'nodejs', branches: ['main'] });
     expect(out).toContain('Trigger platform deployment');
     expect(out).toContain('secrets.PLATFORM_DEPLOY_HOOK');

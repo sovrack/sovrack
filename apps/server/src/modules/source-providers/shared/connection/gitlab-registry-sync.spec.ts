@@ -44,7 +44,7 @@ describe('GitProviderLegacySyncService.syncRegistry', () => {
     return { svc, prisma, http, created, updated };
   }
 
-  it('crée un registre lié (providerId) avec token réutilisé + username via API', async () => {
+  it('creates a linked registry (providerId) with reused token + username via API', async () => {
     const { svc, http, created } = make({ username: 'alice' });
     await svc.syncRegistry({
       id: 'p1',
@@ -68,7 +68,7 @@ describe('GitProviderLegacySyncService.syncRegistry', () => {
     });
   });
 
-  it('met à jour le registre existant au lieu d’en créer un doublon', async () => {
+  it('updates the existing registry instead of creating a duplicate', async () => {
     const { svc, prisma, updated } = make({ existing: { id: 'r1' } });
     await svc.syncRegistry({
       id: 'p1',
@@ -80,7 +80,7 @@ describe('GitProviderLegacySyncService.syncRegistry', () => {
     expect(updated[0]).toMatchObject({ providerId: 'p1', username: 'alice' });
   });
 
-  it('sans token → registre créé sans creds (à compléter), toujours lié', async () => {
+  it('without token → registry created without creds (to be completed), still linked', async () => {
     const { svc, created } = make({});
     await svc.syncRegistry({
       id: 'p1',

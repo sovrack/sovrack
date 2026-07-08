@@ -150,11 +150,40 @@ describe('ServersJobsFacade', () => {
         NotFoundException,
       );
     });
+
+    // Detection auto-triggers via the SERVER_EVENTS.SSH_VALIDATED event
+    // (ServersDetectionService.onSshValidated, covered in that service's own
+    // spec) — NOT chained explicitly here. An earlier version of this method
+    // also called detection.detect() directly after a successful validation,
+    // which ran detect() TWICE per validation (the event listener already
+    // does it) — two SSH round-trips and two concurrent writes to the same
+    // Server row for no benefit. Regression guard: verifyServer must stay a
+    // thin trigger and never call detection directly.
+    it("does not call detection.detect directly — that is the event listener's job alone", async () => {
+      const { facade, jobs, detection } = build({
+        id: 'srv-1',
+        onboardingStep: ServerOnboardingStep.READY,
+        isVerified: true,
+      });
+      (jobs.executeJobWithRetry as jest.Mock).mockResolvedValue({
+        id: 'srv-1',
+        isVerified: true,
+      });
+
+      await facade.verifyServer('srv-1', 'user-1');
+      await new Promise((r) => setImmediate(r));
+
+      expect(detection.detect).not.toHaveBeenCalled();
+    });
   });
 
   describe('installPublicKey', () => {
     it('installs the key and records an audit event', async () => {
-      const { facade, ssh, audit } = build();
+      const { facade, ssh, audit } = build({
+        id: 'srv-1',
+        onboardingStep: ServerOnboardingStep.KEY_INSTALLED,
+        isVerified: false,
+      });
       const result = await facade.installPublicKey('srv-1', 'pw', 'user-1');
       expect(ssh.installPublicKey).toHaveBeenCalledWith('srv-1', 'pw');
       expect(audit.record).toHaveBeenCalledWith(
@@ -164,6 +193,22 @@ describe('ServersJobsFacade', () => {
         { success: true },
       );
       expect(result.success).toBe(true);
+    });
+
+    // Clean onboarding: installing the key auto-chains SSH validation (which
+    // itself auto-chains detection) so the user doesn't click three buttons.
+    it('auto-triggers SSH validation after a successful key install', async () => {
+      const { facade, jobs } = build({
+        id: 'srv-1',
+        onboardingStep: ServerOnboardingStep.KEY_INSTALLED,
+        isVerified: false,
+      });
+      await facade.installPublicKey('srv-1', 'pw', 'user-1');
+      await new Promise((r) => setImmediate(r));
+      expect(jobs.createJobAtomic).toHaveBeenCalledWith(
+        'srv-1',
+        ServerJobType.VERIFY,
+      );
     });
   });
 

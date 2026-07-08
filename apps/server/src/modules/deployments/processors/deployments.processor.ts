@@ -7,6 +7,7 @@ import {
 import { Job, Worker } from 'bullmq';
 import { createDeploymentsWorker } from '../../../shared/queue/queue.provider';
 import type { DeployJobData } from '../../../shared/queue/queue.service';
+import { runsBackgroundWork } from '../../../shared/utils/process-role.util';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 
 @Injectable()
@@ -16,7 +17,14 @@ export class DeploymentsProcessor implements OnModuleInit, OnModuleDestroy {
 
   constructor(private readonly executor: DockerDeployExecutorService) {}
 
-  async onModuleInit(): Promise<void> {
+  onModuleInit(): void {
+    // Only the worker process CONSUMES deploy jobs. The API process still
+    // enqueues them (QueueService) but never starts a BullMQ Worker, so it
+    // never runs the heavy Docker-API execution itself.
+    if (!runsBackgroundWork()) {
+      this.logger.log('API role: deployments worker not started (worker-only)');
+      return;
+    }
     this.worker = createDeploymentsWorker(this.processJob.bind(this));
     this.worker.on('completed', (job: Job) => {
       this.logger.log(`Job ${job.id} (${job.name}) completed`);

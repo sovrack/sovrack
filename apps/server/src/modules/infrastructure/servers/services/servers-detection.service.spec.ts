@@ -50,6 +50,34 @@ describe('ServersDetectionService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  // This event listener is the ONLY place detection auto-triggers after a
+  // successful SSH validation (ServersJobsFacade.verifyServer deliberately
+  // does NOT also call detect() — see its spec's regression test — to avoid
+  // running detection twice per validation).
+  describe('onSshValidated (sole auto-detect trigger)', () => {
+    it('runs detect() for the server named in the event payload', async () => {
+      prisma.server.findUnique.mockResolvedValue(server);
+      await service.onSshValidated({ serverId: 's1' });
+      expect(prisma.server.update).toHaveBeenCalled();
+      const data = prisma.server.update.mock.calls[0][0].data;
+      expect(data.status).toBe(ServerStatus.INFO_DETECTED);
+    });
+
+    it('does nothing if the server no longer exists', async () => {
+      prisma.server.findUnique.mockResolvedValue(null);
+      await service.onSshValidated({ serverId: 'ghost' });
+      expect(prisma.server.update).not.toHaveBeenCalled();
+    });
+
+    it('never throws even if detection itself fails', async () => {
+      prisma.server.findUnique.mockResolvedValue(server);
+      ssh.openConnection.mockRejectedValueOnce(new Error('ssh down'));
+      await expect(
+        service.onSshValidated({ serverId: 's1' }),
+      ).resolves.toBeUndefined();
+    });
+  });
+
   it('detects tools, persists INFO_DETECTED + capabilities, audits, closes SSH', async () => {
     const updated = await service.detect(server, 'admin');
     expect(updated.status).toBe(ServerStatus.INFO_DETECTED);
@@ -120,6 +148,25 @@ describe('ServersDetectionService', () => {
       status: ServerStatus.INFO_DETECTED,
       onboardingStep: 'INFO_DETECTED',
     });
+  });
+
+  // Closes the "Setup Server installs 9 things, only 6 are ever verified" gap
+  // — swap/log rotation/security hardening previously had no detection
+  // command at all, so a server could show "Setup partial" or "Setup
+  // succeeded" with no way to tell if these 3 specifically worked.
+  it('detects swap, log rotation and security hardening as real, named capabilities', async () => {
+    await service.detect(server, 'admin');
+    const data = prisma.server.update.mock.calls[0][0].data;
+    const tools = data.installedTools as Array<{
+      toolKey: string;
+      displayName: string;
+      status: string;
+    }>;
+    const names = tools.map((t) => t.displayName);
+    expect(names).toEqual(
+      expect.arrayContaining(['Swap', 'Log rotation', 'Security hardening']),
+    );
+    expect(tools.every((t) => t.status === 'INSTALLED')).toBe(true);
   });
 
   it('marks a tool MISSING when its probe exits non-zero', async () => {

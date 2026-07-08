@@ -4,4 +4,3 @@
  */
 export { SourceProvidersModule } from './source-providers.module';
 export { GitlabModule } from './adapters/gitlab/gitlab.module';
-export { GithubModule } from './adapters/github/github.module';

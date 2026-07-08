@@ -5,7 +5,7 @@ import {
 } from './db-connection.util';
 
 describe('buildDbConnectionUrl', () => {
-  it('assemble une URL Postgres sur un hôte + port donnés', () => {
+  it('assembles a Postgres URL for a given host + port', () => {
     expect(
       buildDbConnectionUrl({
         databaseType: 'POSTGRES',
@@ -28,7 +28,7 @@ describe('buildDbConnectionUrl', () => {
     ).toBe('redis://cache:6379');
   });
 
-  it('port par défaut = port standard du moteur', () => {
+  it('default port = engine standard port', () => {
     expect(buildDbConnectionUrl({ databaseType: 'MYSQL', host: 'sql' })).toBe(
       'mysql://app:changeme@sql:3306/app',
     );
@@ -65,7 +65,7 @@ describe('buildDbConnectionEnv', () => {
     ).toEqual({ REDIS_URL: 'redis://cache:6379' });
   });
 
-  it('défauts app/changeme/app si creds absents', () => {
+  it('defaults to app/changeme/app when creds missing', () => {
     expect(
       buildDbConnectionEnv([{ name: 'db', databaseType: 'POSTGRES' }]),
     ).toEqual({ DATABASE_URL: 'postgresql://app:changeme@db:5432/app' });
@@ -88,7 +88,7 @@ describe('buildDbConnectionEnv', () => {
     });
   });
 
-  it('Postgres + Redis ensemble → les DEUX variables (cas du déploiement réel)', () => {
+  it('Postgres + Redis together → BOTH variables (real deployment case)', () => {
     const out = buildDbConnectionEnv([
       {
         name: 'postgres',

@@ -8,6 +8,7 @@ import {
   ServersVerificationService,
   ServersJobsService,
   ServersConnectionService,
+  SudoersHelper,
 } from '../servers/services';
 
 /**
@@ -28,6 +29,7 @@ import {
     ServersVerificationService,
     ServersDetectionService,
     ServersAuditService,
+    SudoersHelper,
   ],
   exports: [
     ServersConnectionService,
@@ -35,6 +37,7 @@ import {
     ServersVerificationService,
     ServersDetectionService,
     ServersAuditService,
+    SudoersHelper,
   ],
 })
 export class InfrastructureCoreModule {}

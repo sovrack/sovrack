@@ -45,6 +45,9 @@ import {
   SetupView,
 } from './infra-setup-planning.util';
 import { InfraSetupRunnerService } from './infra-setup-runner.service';
+import { SetupAbortBridge } from './setup-abort.bridge';
+import { QueueService } from '../../../../shared/queue/queue.service';
+import { runsBackgroundWork } from '../../../../shared/utils/process-role.util';
 
 export type { SetupTaskView, SetupView } from './infra-setup-planning.util';
 
@@ -61,9 +64,16 @@ export class ServerSetupService implements OnModuleInit {
     private readonly state: ServerSetupStateService,
     private readonly serverRuns: ServerRunsService,
     private readonly runner: InfraSetupRunnerService,
+    private readonly queue: QueueService,
+    private readonly abortBridge: SetupAbortBridge,
   ) {}
 
   async onModuleInit(): Promise<void> {
+    // Startup orphan-recovery only belongs to the process that OWNS setup
+    // execution (the worker). An API restart doesn't kill the worker's live
+    // setups, so it must not mark active ServerRuns FAILED. Single-process
+    // mode ("all") passes this guard and keeps recovering as before.
+    if (!runsBackgroundWork()) return;
     const orphaned = await this.prisma.serverRun.findMany({
       where: {
         kind: ServerRunKind.PREPARATION,
@@ -207,7 +217,16 @@ export class ServerSetupService implements OnModuleInit {
       roles: resolvedRoles,
     });
 
-    this.runner.runInBackground(server, created.id, job.id, resolvedRoles);
+    // Hand the heavy Ansible run to the worker process via the automation
+    // queue instead of running it in-process. The API returns immediately; the
+    // worker picks it up and streams logs/status back over the (Redis-adapted)
+    // WebSocket. In single-process mode the same process consumes the job.
+    await this.queue.enqueueSetup({
+      serverId: server.id,
+      setupId: created.id,
+      jobId: job.id,
+      roles: resolvedRoles,
+    });
     return toSetupView(created);
   }
 
@@ -299,7 +318,9 @@ export class ServerSetupService implements OnModuleInit {
       throw new BadRequestException('Ce setup ne peut plus être annulé.');
     }
 
-    this.runner.abort(id);
+    // Relay the abort to whichever process is running this setup (the worker,
+    // possibly a different process than this API one) via the Redis bridge.
+    await this.abortBridge.requestAbort(id);
 
     // Immediately release the job lock so a new setup can start without waiting
     const activeJob = await this.prisma.serverJob.findFirst({

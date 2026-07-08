@@ -8,6 +8,30 @@ import {
 import type { Request, Response } from 'express';
 import { LoggerService } from '../shared/logger/logger.service';
 
+const SANITIZE_QUERY_KEYS = [
+  'token',
+  'password',
+  'secret',
+  'api_key',
+  'private_key',
+  'access_token',
+];
+
+function sanitizeUrlForLogs(url: string): string {
+  try {
+    const questionIndex = url.indexOf('?');
+    if (questionIndex === -1) return url;
+    const path = url.slice(0, questionIndex);
+    const params = new URLSearchParams(url.slice(questionIndex + 1));
+    for (const key of SANITIZE_QUERY_KEYS) {
+      if (params.has(key)) params.set(key, '[REDACTED]');
+    }
+    return `${path}?${params.toString()}`;
+  } catch {
+    return url;
+  }
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(private readonly logger: LoggerService) {}
@@ -28,11 +52,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? 'Une erreur interne est survenue. Réessayez plus tard.'
         : internalMessage;
 
+    const safeUrl = sanitizeUrlForLogs(request.url);
+
     const payload = {
       statusCode,
       message,
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: safeUrl,
     };
 
     const context = 'AllExceptionsFilter';
@@ -42,13 +68,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? exception.stack
           : undefined;
       this.logger.error(
-        `${request.method} ${request.url} -> ${String(statusCode)}: ${internalMessage}`,
+        `${request.method} ${safeUrl} -> ${String(statusCode)}: ${internalMessage}`,
         trace,
         context,
       );
     } else {
       this.logger.warn(
-        `${request.method} ${request.url} -> ${String(statusCode)}: ${message}`,
+        `${request.method} ${safeUrl} -> ${String(statusCode)}: ${message}`,
         context,
       );
     }

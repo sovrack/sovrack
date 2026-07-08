@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { Cron } from '@nestjs/schedule';
+import { runsBackgroundWork } from '../utils/process-role.util';
 
 export interface QueueMetrics {
   waiting: number;
@@ -88,6 +89,7 @@ export class QueueMonitoringService {
    */
   @Cron('0 */5 * * * *') // Every 5 minutes
   async logMetrics() {
+    if (!runsBackgroundWork()) return;
     try {
       const metrics = await this.getMetrics();
 
@@ -122,6 +124,7 @@ export class QueueMonitoringService {
    */
   @Cron('0 0 * * * *') // Every hour
   async cleanupJobs() {
+    if (!runsBackgroundWork()) return;
     try {
       // Remove completed jobs older than 24 hours
       await this.queue.clean(24 * 60 * 60 * 1000, 0, 'completed');

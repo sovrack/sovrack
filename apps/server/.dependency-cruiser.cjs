@@ -48,7 +48,6 @@ module.exports = {
         // primitives serveur). À casser par ÉVÉNEMENTS quand l'app tourne
         // (runtime requis). Exclu ici pour que la règle détecte les NOUVEAUX cycles.
         pathNot: [
-          'src/modules/infrastructure/preparation/infrastructure\\.module\\.ts$',
           'src/modules/infrastructure/servers/servers-shared\\.module\\.ts$',
         ],
       },

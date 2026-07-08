@@ -5,118 +5,23 @@ import {
 } from '@nestjs/common';
 import { PassThrough } from 'stream';
 import Docker from 'dockerode';
-import { ConfigService } from '@nestjs/config';
 import { CircuitState } from '@prisma/client';
 import { DockerConnectionsService } from './docker-connections.service';
-
-// dockerode's buildImage/pull typings don't line up cleanly with our context /
-// options shapes; this narrow interface keeps the two call sites type-safe
-// (no `any` propagation) without changing any runtime behavior.
-interface DockerStreamApi {
-  buildImage(
-    context: unknown,
-    opts: Record<string, unknown>,
-  ): Promise<NodeJS.ReadableStream>;
-  pull(
-    ref: string,
-    opts: Record<string, unknown>,
-  ): Promise<NodeJS.ReadableStream>;
-}
-
-type DecryptedDockerTls = {
-  ca: string;
-  cert: string;
-  key: string;
-  endpoint: string;
-};
-
-/**
- * Unified Docker Engine API client over TLS.
- *
- * Provides structured access to Docker daemon operations (inspect, logs,
- * stats, lifecycle) for any server that has a DockerConnection configured.
- * Used by containers/, deployments/, and monitoring/ modules.
- *
- * Why TLS over SSH shell-outs:
- *  - No shell injection risk on image refs
- *  - Structured JSON responses (no text parsing)
- *  - Single TLS handshake cached per server, not a new SSH process per call
- */
-
-/** Maximum number of Docker clients held simultaneously (one per server). */
-const CACHE_MAX_SIZE = 100;
-/** Clients older than this are evicted and rebuilt on next access (10 min). */
-const CACHE_TTL_MS = 10 * 60 * 1_000;
+import { DockerClientFactory } from './docker-client.factory';
+import { DockerContainerOpsService } from './docker-container-ops.service';
+import { DockerImageService } from './docker-image.service';
 
 @Injectable()
 export class DockerApiService {
   private readonly logger = new Logger(DockerApiService.name);
 
-  /**
-   * LRU-with-TTL cache keyed by `serverId:endpoint:updatedAtMs`.
-   * - Max 100 entries: prevents unbounded growth with many servers.
-   * - 10-minute TTL: forces periodic renewal so stale TLS material is never
-   *   used indefinitely (complements the key rotation via updatedAt).
-   * - Pure-Map LRU: entries are deleted from the front and re-inserted on
-   *   access (Map iteration order = insertion order in V8).
-   */
-  private readonly clientCache = new Map<
-    string,
-    { client: Docker; endpoint: string; cachedAt: number }
-  >();
-
   constructor(
     private readonly dockerConnections: DockerConnectionsService,
-    private readonly configService: ConfigService,
+    private readonly clientFactory: DockerClientFactory,
+    private readonly containerOpsService: DockerContainerOpsService,
+    private readonly imageService: DockerImageService,
   ) {}
 
-  /** Résout un timeout configurable par variable d'environnement, avec repli. */
-  private getTimeoutMs(
-    envVar: 'DOCKER_BUILD_TIMEOUT_MS' | 'DOCKER_PULL_TIMEOUT_MS',
-    fallbackMs: number,
-  ): number {
-    const raw = this.configService.get<string>(envVar);
-    const parsed = raw !== undefined ? Number(raw) : NaN;
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs;
-  }
-
-  /**
-   * Fait courser `run()` contre un délai : si `timeoutMs` s'écoule avant que
-   * `run()` ne se résolve, la promesse retournée rejette avec un message
-   * explicite (au lieu de laisser l'appel Docker pendre indéfiniment), et le
-   * `AbortController` fourni à `run()` est signalé (best-effort pour libérer
-   * le flux HTTP sous-jacent si l'appelant peut le fermer).
-   */
-  private async withTimeout<T>(
-    label: string,
-    timeoutMs: number,
-    run: (controller: AbortController) => Promise<T>,
-  ): Promise<T> {
-    const controller = new AbortController();
-    let timer: NodeJS.Timeout | undefined;
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => {
-        controller.abort();
-        reject(
-          new Error(
-            `Docker ${label} a dépassé le délai de ${timeoutMs}ms — abandon.`,
-          ),
-        );
-      }, timeoutMs);
-    });
-    try {
-      return await Promise.race([run(controller), timeout]);
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  /**
-   * Capture les erreurs réseau (connexion perdue avec le daemon Docker) et les
-   * re-lève avec un message explicite et exploitable côté appelant, plutôt que
-   * de laisser remonter l'erreur brute de dockerode. Les erreurs non-réseau
-   * (ex: 404 déjà géré par `isNotFound`) continuent de se comporter comme avant.
-   */
   private async withNetworkErrorHandling<T>(
     operation: string,
     serverId: string,
@@ -132,56 +37,17 @@ export class DockerApiService {
   async getClient(serverId: string): Promise<Docker> {
     const conn = await this.dockerConnections.findForServer(serverId);
 
-    // Circuit ouvert (health-check a détecté 3+ échecs consécutifs) → on
-    // échoue vite plutôt que de tenter une connexion TCP+TLS qui attendrait
-    // le timeout réseau complet. Le health-check lui-même ne passe jamais par
-    // getClient() (il sonde via DockerConnectionsService.probeReachability()
-    // directement), donc ce garde-fou ne bloque jamais sa propre reprise
-    // CLOSED→HALF_OPEN→CLOSED.
     if (conn.circuitState === CircuitState.OPEN) {
       throw new ServiceUnavailableException(
         `Serveur Docker injoignable (circuit ouvert) pour le serveur ${serverId}, réessayez plus tard.`,
       );
     }
 
-    // Key includes updatedAt so a TLS cert/endpoint rotation yields a new key.
-    const cacheKey = `${serverId}:${conn.endpoint}:${conn.updatedAt.getTime()}`;
-    const now = Date.now();
-
-    const cached = this.clientCache.get(cacheKey);
-    if (cached && now - cached.cachedAt < CACHE_TTL_MS) {
-      // LRU: re-insert to move to end (most-recently-used).
-      this.clientCache.delete(cacheKey);
-      this.clientCache.set(cacheKey, cached);
-      return cached.client;
-    }
-
-    // Cache miss or TTL expired → evict all entries for this server (cert
-    // rotation safety) then build a fresh client.
-    this.invalidateCache(serverId);
-
-    const tls = await this.dockerConnections.getDecryptedTls(serverId);
-    const client = this.buildClient(conn.endpoint, tls);
-
-    // Evict the oldest entry when the cache is full (LRU eviction).
-    if (this.clientCache.size >= CACHE_MAX_SIZE) {
-      const oldestKey = this.clientCache.keys().next().value as
-        | string
-        | undefined;
-      if (oldestKey !== undefined) {
-        this.clientCache.delete(oldestKey);
-      }
-    }
-
-    this.clientCache.set(cacheKey, {
-      client,
-      endpoint: conn.endpoint,
-      cachedAt: now,
-    });
-    this.logger.log(
-      `Docker client initialized for server ${serverId} at ${conn.endpoint}`,
+    return this.clientFactory.getOrCreate(
+      serverId,
+      conn.endpoint,
+      conn.updatedAt,
     );
-    return client;
   }
 
   async inspectImage(
@@ -189,12 +55,7 @@ export class DockerApiService {
     imageRef: string,
   ): Promise<Docker.ImageInspectInfo | null> {
     const client = await this.getClient(serverId);
-    try {
-      return await client.getImage(imageRef).inspect();
-    } catch (error) {
-      if (isNotFound(error)) return null;
-      throw error;
-    }
+    return this.imageService.inspectImage(client, imageRef);
   }
 
   async inspectContainer(
@@ -206,7 +67,7 @@ export class DockerApiService {
       serverId,
       async () => {
         const client = await this.getClient(serverId);
-        return client.getContainer(containerName).inspect();
+        return this.containerOpsService.inspectContainer(client, containerName);
       },
     );
   }
@@ -272,7 +133,7 @@ export class DockerApiService {
       serverId,
       async () => {
         const client = await this.getClient(serverId);
-        return client.listContainers({ all });
+        return this.containerOpsService.listContainers(client, all);
       },
     );
   }
@@ -286,11 +147,7 @@ export class DockerApiService {
       serverId,
       async () => {
         const client = await this.getClient(serverId);
-        const container = await client.createContainer(spec);
-        this.logger.log(
-          `Container created: ${spec.Image} → ${container.id.slice(0, 12)}`,
-        );
-        return container;
+        return this.containerOpsService.createContainer(client, spec);
       },
     );
   }
@@ -301,34 +158,22 @@ export class DockerApiService {
       serverId,
       async () => {
         const client = await this.getClient(serverId);
-        await client.getContainer(containerName).start();
+        await this.containerOpsService.startContainer(client, containerName);
       },
     );
   }
 
-  /**
-   * Branche un conteneur sur un réseau Docker additionnel (ex: réseau partagé
-   * 'web' du reverse-proxy Traefik). Idempotent : ignore l'erreur « already
-   * exists »/« already in network ».
-   */
   async connectNetwork(
     serverId: string,
     network: string,
     containerName: string,
   ): Promise<void> {
     const client = await this.getClient(serverId);
-    try {
-      await client.getNetwork(network).connect({ Container: containerName });
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (
-        !/already exists|already in (the )?network|endpoint with name/i.test(
-          msg,
-        )
-      ) {
-        throw error;
-      }
-    }
+    await this.containerOpsService.connectNetwork(
+      client,
+      network,
+      containerName,
+    );
   }
 
   async stopContainer(
@@ -338,7 +183,11 @@ export class DockerApiService {
   ): Promise<void> {
     await this.withNetworkErrorHandling('stopContainer', serverId, async () => {
       const client = await this.getClient(serverId);
-      await client.getContainer(containerName).stop({ t: timeoutSec });
+      await this.containerOpsService.stopContainer(
+        client,
+        containerName,
+        timeoutSec,
+      );
     });
   }
 
@@ -352,7 +201,11 @@ export class DockerApiService {
       serverId,
       async () => {
         const client = await this.getClient(serverId);
-        await client.getContainer(containerName).restart({ t: timeoutSec });
+        await this.containerOpsService.restartContainer(
+          client,
+          containerName,
+          timeoutSec,
+        );
       },
     );
   }
@@ -367,16 +220,15 @@ export class DockerApiService {
       serverId,
       async () => {
         const client = await this.getClient(serverId);
-        await client.getContainer(containerName).remove({ force });
+        await this.containerOpsService.removeContainer(
+          client,
+          containerName,
+          force,
+        );
       },
     );
   }
 
-  /**
-   * Run a command inside a running container and capture its output. stdout is
-   * returned as raw bytes (so binary dumps survive intact); stderr is decoded
-   * as UTF-8 for diagnostics. Used by database backups (pg_dump / mysqldump).
-   */
   async execCapture(
     serverId: string,
     containerName: string,
@@ -416,11 +268,6 @@ export class DockerApiService {
     });
   }
 
-  /**
-   * Run a command inside a container, piping `input` to its STDIN (used to
-   * restore a DB dump into psql/mysql/mongorestore). Returns captured output +
-   * exit code. Uses a hijacked exec stream so we can write stdin then EOF.
-   */
   async execWithInput(
     serverId: string,
     containerName: string,
@@ -449,7 +296,6 @@ export class DockerApiService {
         err.on('data', (c: Buffer) => stderrChunks.push(c));
         client.modem.demuxStream(stream, out, err);
 
-        // Write the dump to STDIN, then close it so the command reads EOF and exits.
         stream.write(input);
         stream.end();
 
@@ -475,43 +321,8 @@ export class DockerApiService {
     context: { src: string[]; dockerfile: string } | string,
     opts: { tag?: string; remote?: string } = {},
   ): Promise<string> {
-    const timeoutMs = this.getTimeoutMs('DOCKER_BUILD_TIMEOUT_MS', 900_000);
-    const result = await this.withTimeout(
-      `buildImage (serveur ${serverId})`,
-      timeoutMs,
-      async (controller) => {
-        const client = await this.getClient(serverId);
-        const stream = await (client as unknown as DockerStreamApi).buildImage(
-          context,
-          {
-            t: opts.tag,
-            remote: opts.remote,
-            dockerfile:
-              typeof context === 'object' ? context.dockerfile : undefined,
-          },
-        );
-        const onAbort = () => {
-          (stream as unknown as { destroy?: () => void }).destroy?.();
-        };
-        controller.signal.addEventListener('abort', onAbort);
-        try {
-          return await new Promise<string>((resolve, reject) => {
-            client.modem.followProgress(stream, (err, res) => {
-              if (err) return reject(err);
-              const events = (res ?? []) as Array<{ aux?: { ID?: string } }>;
-              const last =
-                events.length > 0 ? events[events.length - 1] : undefined;
-              const imageId = last?.aux?.ID ?? opts.tag ?? 'unknown';
-              resolve(imageId);
-            });
-          });
-        } finally {
-          controller.signal.removeEventListener('abort', onAbort);
-        }
-      },
-    );
-    this.logger.log(`Image built: ${result}`);
-    return result;
+    const client = await this.getClient(serverId);
+    return this.imageService.buildImage(client, serverId, context, opts);
   }
 
   async pullImage(
@@ -519,53 +330,13 @@ export class DockerApiService {
     imageRef: string,
     auth?: { username: string; password: string; serveraddress?: string },
   ): Promise<void> {
-    const timeoutMs = this.getTimeoutMs('DOCKER_PULL_TIMEOUT_MS', 300_000);
-    await this.withTimeout(
-      `pullImage ${imageRef} (serveur ${serverId})`,
-      timeoutMs,
-      async (controller) => {
-        const client = await this.getClient(serverId);
-        const stream = await (client as unknown as DockerStreamApi).pull(
-          imageRef,
-          { authconfig: auth },
-        );
-        const onAbort = () => {
-          (stream as unknown as { destroy?: () => void }).destroy?.();
-        };
-        controller.signal.addEventListener('abort', onAbort);
-        try {
-          await new Promise<void>((resolve, reject) => {
-            client.modem.followProgress(
-              stream as unknown as NodeJS.ReadableStream,
-              (err) => {
-                if (err) return reject(err);
-                resolve();
-              },
-            );
-          });
-        } finally {
-          controller.signal.removeEventListener('abort', onAbort);
-        }
-      },
-    );
-    this.logger.log(`Image pulled: ${imageRef}`);
+    const client = await this.getClient(serverId);
+    await this.imageService.pullImage(client, serverId, imageRef, auth);
   }
 
-  /**
-   * Supprime les images « dangling » (couches orphelines des anciens builds) sur
-   * le serveur → évite que le disque du VPS se remplisse au fil des déploiements.
-   * Best-effort : ne bloque jamais un déploiement.
-   */
   async pruneDanglingImages(serverId: string): Promise<void> {
-    try {
-      const client = await this.getClient(serverId);
-      await client.pruneImages({ filters: { dangling: { true: true } } });
-      this.logger.log(`Pruned dangling images on server ${serverId}`);
-    } catch (err) {
-      this.logger.warn(
-        `Image prune skipped on ${serverId}: ${err instanceof Error ? err.message : 'unknown'}`,
-      );
-    }
+    const client = await this.getClient(serverId);
+    await this.imageService.pruneDanglingImages(client, serverId);
   }
 
   async createVolume(serverId: string, name: string): Promise<void> {
@@ -585,10 +356,6 @@ export class DockerApiService {
     });
   }
 
-  /**
-   * Create a Docker bridge network if it does not already exist.
-   * Throws if creation fails for any reason other than "already exists".
-   */
   async createNetwork(serverId: string, name: string): Promise<void> {
     const client = await this.getClient(serverId);
     try {
@@ -608,52 +375,11 @@ export class DockerApiService {
   }
 
   invalidateCache(serverId: string): void {
-    for (const key of this.clientCache.keys()) {
-      if (key.startsWith(`${serverId}:`)) {
-        this.clientCache.delete(key);
-        this.logger.log(`Evicted Docker client cache for server ${serverId}`);
-      }
-    }
-  }
-
-  private buildClient(
-    endpoint: string,
-    tls: DecryptedDockerTls | null,
-  ): Docker {
-    const url = new URL(endpoint);
-    // TLS material implies HTTPS transport even when the endpoint is written as
-    // tcp:// — a Docker daemon on 2376 speaks HTTPS; sending plain HTTP yields
-    // "Client sent an HTTP request to an HTTPS server".
-    const useHttps =
-      url.protocol === 'https:' || !!(tls && (tls.ca || tls.cert || tls.key));
-    const options: Docker.DockerOptions = {
-      host: url.hostname,
-      port: Number(url.port || (useHttps ? 2376 : 80)),
-      protocol: useHttps ? 'https' : 'http',
-    };
-    if (tls && (tls.ca || tls.cert || tls.key)) {
-      if (tls.ca) options.ca = tls.ca;
-      if (tls.cert) options.cert = tls.cert;
-      if (tls.key) options.key = tls.key;
-    } else if (url.protocol === 'https:') {
-      throw new Error(
-        `Docker endpoint ${endpoint} is https:// but no TLS material is configured.`,
-      );
-    }
-    return new Docker(options);
+    this.clientFactory.invalidateCache(serverId);
   }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function isNotFound(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const statusCode = (error as { statusCode?: number }).statusCode;
-  if (statusCode === 404) return true;
-  const message = (error as { message?: string }).message;
-  if (typeof message !== 'string') return false;
-  return /not found|no such image|image not found/i.test(message);
-}
 
 const NETWORK_ERROR_CODES = new Set([
   'ECONNREFUSED',
@@ -665,7 +391,6 @@ const NETWORK_ERROR_CODES = new Set([
   'EAI_AGAIN',
 ]);
 
-/** Détecte une perte de connexion réseau vers le daemon Docker (pas un 404/409 applicatif). */
 function isNetworkError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const code = (error as { code?: string }).code;
@@ -677,12 +402,6 @@ function isNetworkError(error: unknown): boolean {
   );
 }
 
-/**
- * Si `error` est une erreur réseau, retourne une nouvelle Error avec un
- * message explicite et exploitable côté appelant ; sinon retourne `error`
- * tel quel (les erreurs non-réseau, ex: 404 déjà géré par `isNotFound`,
- * gardent leur comportement d'origine).
- */
 function wrapIfNetworkError(
   error: unknown,
   operation: string,

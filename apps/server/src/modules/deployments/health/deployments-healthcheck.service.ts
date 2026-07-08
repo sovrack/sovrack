@@ -70,6 +70,18 @@ export class DeploymentsHealthcheckService {
       2,
     );
 
+    // Two probe targets:
+    //  - sshTarget (127.0.0.1): used when we probe from INSIDE the server over
+    //    SSH. Hitting loopback bypasses the VPS firewall — UFW only opens
+    //    22/80/443, so probing the PUBLIC IP on a custom app port (3000, 8000…)
+    //    was dropped by UFW and reported as CONN_ERR even though the container
+    //    was perfectly healthy. Loopback is never filtered.
+    //  - target (public host): only for the direct-HTTP fallback, where the
+    //    backend process reaches the server remotely and localhost is meaningless.
+    const sshTarget = this.buildHealthCheckTarget({
+      ...params,
+      serverHost: '127.0.0.1',
+    });
     const target = this.buildHealthCheckTarget(params);
 
     // ── Phase 1 — startup grace ─────────────────────────────────────────────
@@ -122,7 +134,7 @@ export class DeploymentsHealthcheckService {
           const curlTimeout = Math.ceil(timeoutMs / 1000);
           const result = await this.ssh.exec(
             sshConn,
-            `curl -sf --max-time ${String(curlTimeout)} -o /dev/null -w '%{http_code}' '${target}' 2>/dev/null || echo 'CONN_ERR'`,
+            `curl -sf --max-time ${String(curlTimeout)} -o /dev/null -w '%{http_code}' '${sshTarget}' 2>/dev/null || echo 'CONN_ERR'`,
           );
           const latency = Date.now() - startedAt;
           const code = result.stdout.trim();

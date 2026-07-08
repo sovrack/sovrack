@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import {
   ContainerStatus,
   Deployment,
@@ -6,7 +11,8 @@ import {
   Role,
 } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { AuditService } from '../../audit/audit.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
@@ -18,7 +24,7 @@ export class DeploymentsLifecycleService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly gateway: DeploymentEventsPublisher,
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly queryService: DeploymentsQueryService,

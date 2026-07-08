@@ -133,6 +133,24 @@ describe('EnvironmentsService', () => {
     });
   });
 
+  // Soft-deleted services (renamed `<name>_archived_<ts>` + archivedAt set)
+  // used to still appear in the Project environments dialog. findAll must
+  // filter serviceLinks to active links pointing at active services only.
+  it('findAll filters out archived service links and archived services', async () => {
+    prisma.projectMember.findUnique.mockResolvedValue({
+      role: ProjectRole.DEVELOPER,
+    });
+
+    await service.findAll('p1', 'u2', Role.DEVELOPER);
+
+    const arg = prisma.environment.findMany.mock.calls[0][0];
+    const serviceLinks = arg.include.serviceLinks;
+    expect(serviceLinks.where).toEqual({
+      archivedAt: null,
+      service: { archivedAt: null },
+    });
+  });
+
   it('forbids a non-member from reading project envs', async () => {
     prisma.projectMember.findUnique.mockResolvedValue(null);
     await expect(

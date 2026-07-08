@@ -3,6 +3,7 @@ import { ServerConnectionMode } from '@prisma/client';
 import { createServer } from 'net';
 import { ServersConnectionService } from './servers-connection.service';
 import { ServerConnectionModeDto } from '../dto/create-server.dto';
+import { withTimeout } from './connection-probe.util';
 
 function makeSvc() {
   const prisma = {
@@ -26,6 +27,10 @@ function makeSvc() {
   } as never;
   const config = { get: jest.fn().mockReturnValue('false') } as never;
   const sshExecutor = { connect: jest.fn() } as never;
+  const sudoers = {
+    tryEnablePasswordlessSudo: jest.fn().mockResolvedValue(true),
+    buildAutomationSudoersRule: jest.fn().mockReturnValue(''),
+  } as never;
   return {
     svc: new ServersConnectionService(
       prisma,
@@ -34,6 +39,7 @@ function makeSvc() {
       verification,
       config,
       sshExecutor,
+      sudoers,
     ),
     prisma,
     crypto,
@@ -41,6 +47,7 @@ function makeSvc() {
     verification,
     config,
     sshExecutor,
+    sudoers,
   };
 }
 
@@ -128,33 +135,27 @@ describe('ServersConnectionService', () => {
 
   describe('withTimeout', () => {
     it('resolves when task finishes before the timeout', async () => {
-      const { svc } = makeSvc();
-      const result = await svc.withTimeout(() => Promise.resolve('done'), 1000);
+      const result = await withTimeout(() => Promise.resolve('done'), 1000);
       expect(result).toBe('done');
     });
 
     it('rejects with JOB_TIMEOUT error when task exceeds timeout', async () => {
-      const { svc } = makeSvc();
       const never = new Promise<string>(() => {});
-      await expect(svc.withTimeout(() => never, 10)).rejects.toThrow(
+      await expect(withTimeout(() => never, 10)).rejects.toThrow(
         'JOB_TIMEOUT_10',
       );
     });
 
     it('calls onTimeout callback when timeout fires', async () => {
-      const { svc } = makeSvc();
       const onTimeout = jest.fn();
       const never = new Promise<string>(() => {});
-      await expect(
-        svc.withTimeout(() => never, 10, onTimeout),
-      ).rejects.toThrow();
+      await expect(withTimeout(() => never, 10, onTimeout)).rejects.toThrow();
       expect(onTimeout).toHaveBeenCalled();
     });
 
     it('clears the timer when task resolves before timeout', async () => {
-      const { svc } = makeSvc();
       const clearSpy = jest.spyOn(global, 'clearTimeout');
-      await svc.withTimeout(() => Promise.resolve(42), 500);
+      await withTimeout(() => Promise.resolve(42), 500);
       expect(clearSpy).toHaveBeenCalled();
       clearSpy.mockRestore();
     });

@@ -1,8 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ContainerStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 
 @Injectable()
 export class ContainersService {
@@ -11,7 +12,7 @@ export class ContainersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly projectAccess: ProjectAccessService,
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
   ) {}
 
   private async resolveProjectId(serverId: string): Promise<string> {

@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ContainerStatus, Server, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { TraefikRouteService } from './traefik-route.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 
@@ -19,7 +20,7 @@ export class DeployRoutingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly traefik: TraefikRouteService,
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly gateway: DeploymentEventsPublisher,
   ) {}
 

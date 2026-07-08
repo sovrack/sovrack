@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Server } from '@prisma/client';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import {
   LocalBuildService,
   type LocalBuildParams,
@@ -23,7 +24,7 @@ import { ok, err, type Result } from '../../../shared/types/result.type';
 @Injectable()
 export class ImageResolverService {
   constructor(
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly registryAuth: RegistryAuthService,
     private readonly localBuild: LocalBuildService,
     private readonly logEmitter: DeploymentLogEmitter,

@@ -10,6 +10,8 @@ import { AllExceptionsFilter } from './boot/http-exception.filter';
 import { LoggerService } from './shared/logger/logger.service';
 import { buildSwaggerConfig } from './boot/swagger';
 import { PrismaService } from './shared/database/prisma.service';
+import { RedisIoAdapter } from './boot/redis-io.adapter';
+import { runsBackgroundWork } from './shared/utils/process-role.util';
 import { BigIntSerializationInterceptor } from './boot/bigint.interceptor';
 import { runWithLogContext } from './shared/logger/log-context';
 import {
@@ -19,6 +21,7 @@ import {
   recoverInFlightDeployments,
   reportWebhookConfiguration,
   resolveAllowedOrigins,
+  verifyAnsibleCollectionVersions,
 } from './boot/boot-helpers';
 
 const SANITIZE_QUERY_KEYS = [
@@ -84,6 +87,18 @@ async function bootstrap() {
 
   app.useGlobalFilters(new AllExceptionsFilter(logger));
   app.useGlobalInterceptors(new BigIntSerializationInterceptor());
+
+  // Cross-process WebSocket broadcast: with the API and worker as separate
+  // processes, a gateway emit from the worker (live setup/automation logs) must
+  // reach clients connected to the API. The Redis adapter shares broadcast
+  // state across every Socket.IO server instance. No-op fallback if no Redis.
+  const redisUrl = process.env.REDIS_URL?.trim();
+  if (redisUrl) {
+    const redisIoAdapter = new RedisIoAdapter(app);
+    redisIoAdapter.connectToRedis(redisUrl);
+    app.useWebSocketAdapter(redisIoAdapter);
+    logger.log('WebSocket Redis adapter enabled (cross-process)', 'Bootstrap');
+  }
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     const startedAt = Date.now();
@@ -212,7 +227,17 @@ async function bootstrap() {
   }
 
   await assertRequiredTablesWithRetry(prisma, 5, 2000);
-  await recoverInFlightDeployments(app, logger);
+  // Startup recovery marks in-flight deployments FAILED on the assumption they
+  // died with this process. That's only true for the process that OWNS deploy
+  // execution (the worker) — an API restart must not FAIL the worker's live
+  // deployments. Single-process mode ("all") still runs it.
+  if (runsBackgroundWork()) {
+    await recoverInFlightDeployments(app, logger);
+    // Only the process that actually spawns ansible-playbook needs this —
+    // an API-only replica never touches Ansible, so it shouldn't pay the
+    // ~1-2s subprocess cost or care if a collection is stale.
+    await verifyAnsibleCollectionVersions(logger);
+  }
   reportWebhookConfiguration(logger);
 
   const port = Number(process.env.PORT ?? '3001') || 3001;

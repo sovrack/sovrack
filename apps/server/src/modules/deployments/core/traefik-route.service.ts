@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { SshExecutorService } from '../../../adapters/ssh/ssh-executor.service';
 import { ServersCryptoService } from '../../../adapters/ssh/servers-crypto.service';
 import { ServerHostKeyService } from '../../../adapters/ssh/server-host-key.service';
@@ -24,7 +25,7 @@ type SshServer = {
 export class TraefikRouteService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly ssh: SshExecutorService,
     private readonly serversCrypto: ServersCryptoService,
     private readonly serverHostKeys: ServerHostKeyService,

@@ -106,7 +106,7 @@ describe('BuildController', () => {
     const { ctrl, setupService } = build();
     await ctrl.getTemplates('p1', user);
     await ctrl.generateAll('p1', user);
-    await ctrl.getAvailableEngines();
+    ctrl.getAvailableEngines();
     expect(setupService.getTemplates).toHaveBeenCalledWith(
       'p1',
       'user-1',

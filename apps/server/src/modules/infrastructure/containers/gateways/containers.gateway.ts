@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -8,7 +8,8 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { DockerApiService } from '../../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../../adapters/container-runtime/ports/docker-runtime.port';
 import { ContainersService } from '../containers.service';
 import { resolveGatewayCorsOrigins } from '../../../../shared/http/cors-origins.util';
 
@@ -28,7 +29,7 @@ export class ContainersGateway implements OnGatewayDisconnect {
 
   constructor(
     private readonly containersService: ContainersService,
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
   ) {}
 
   handleDisconnect(client: Socket): void {

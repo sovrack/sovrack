@@ -8,40 +8,48 @@ import { PrismaModule } from '../../shared/database/prisma.module';
 import { AuditModule } from '../audit';
 import { ServersModule } from '../infrastructure';
 import { ProjectAccessModule } from '../catalog/authorization/project-access.module';
-import { DockerDeployExecutorService } from './core/docker-deploy-executor.service';
-import { ReplicaLauncherService } from './core/replica-launcher.service';
-import { DeployFailureRecoveryService } from './core/deploy-failure-recovery.service';
-import { ImageResolverService } from './core/image-resolver.service';
-import { DeploymentLogEmitter } from './core/deployment-log-emitter.service';
-import { DeploymentEnvService } from './core/deployment-env.service';
-import { DeploymentPrelaunchService } from './core/deployment-prelaunch.service';
-import { LocalBuildService } from './core/local-build.service';
-import { TraefikRouteService } from './core/traefik-route.service';
-import { DeployRoutingService } from './core/deploy-routing.service';
-import { ContainerLifecycleService } from './core/container-lifecycle.service';
-import { RegistryAuthService } from './core/registry-auth.service';
-import { DeploymentsAuthorizationService } from './query/deployments-authorization.service';
-import { DeploymentsHealthcheckService } from './health/deployments-healthcheck.service';
+import {
+  DockerDeployExecutorService,
+  ReplicaLauncherService,
+  DeployFailureRecoveryService,
+  ImageResolverService,
+  DeploymentLogEmitter,
+  DeploymentEnvService,
+  DeploymentPrelaunchService,
+  LocalBuildService,
+  TraefikRouteService,
+  DeployRoutingService,
+  ContainerLifecycleService,
+  RegistryAuthService,
+  DeploymentsCreateService,
+  DeploymentPreflightService,
+  DeploymentsLifecycleService,
+  DeploymentsRollbackService,
+} from './core';
+import {
+  DeploymentsAuthorizationService,
+  DeploymentsQueryService,
+  DeploymentsLogStreamService,
+  DeploymentContainerInspectorService,
+  DeploymentsValidationService,
+  DeploymentsLogSearchService,
+  DeploymentsConfigResolver,
+} from './query';
+import {
+  DeploymentsHealthcheckService,
+  DeploymentsStaleRecoveryService,
+  ReconcilerService,
+  PipelineRunsCleanupService,
+} from './health';
+import {
+  DeploymentsPipelineHandlerService,
+  DeploymentsAutoTriggerService,
+} from './triggers';
 import { DeploymentsController } from './deployments.controller';
 import { DeploymentsGateway } from './gateways/deployments.gateway';
 import { DeploymentEventsPublisher } from './events/deployment-events.publisher';
-import { DeploymentsQueryService } from './query/deployments-query.service';
-import { AppJwtModule } from '../../shared/jwt/jwt.module';
-import { DeploymentsCreateService } from './core/deployments-create.service';
-import { DeploymentPreflightService } from './core/deployment-preflight.service';
-import { DeploymentsLifecycleService } from './core/deployments-lifecycle.service';
-import { DeploymentsRollbackService } from './core/deployments-rollback.service';
-import { DeploymentsPipelineHandlerService } from './triggers/deployments-pipeline-handler.service';
-import { DeploymentsAutoTriggerService } from './triggers/deployments-auto-trigger.service';
-import { DeploymentsLogStreamService } from './query/deployments-log-stream.service';
-import { DeploymentContainerInspectorService } from './query/deployment-container-inspector.service';
-import { DeploymentsStaleRecoveryService } from './health/deployments-stale-recovery.service';
-import { ReconcilerService } from './health/reconciler.service';
-import { DeploymentsValidationService } from './query/deployments-validation.service';
-import { DeploymentsLogSearchService } from './query/deployments-log-search.service';
-import { DeploymentsConfigResolver } from './query/deployments-config-resolver.service';
 import { DeploymentsProcessor } from './processors/deployments.processor';
-import { PipelineRunsCleanupService } from './health/pipeline-runs-cleanup.service';
+import { AppJwtModule } from '../../shared/jwt/jwt.module';
 
 @Module({
   imports: [

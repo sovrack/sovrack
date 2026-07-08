@@ -20,6 +20,7 @@ import {
   getAutomationAction,
 } from '../shared/automation-options';
 import { AutomationRunnerService } from './automation-runner.service';
+import { QueueService } from '../../../shared/queue/queue.service';
 
 const ACTIVE_RUN_STATUSES: ServerRunStatus[] = [
   ServerRunStatus.QUEUED,
@@ -60,6 +61,7 @@ export class AutomationService {
     private readonly prisma: PrismaService,
     private readonly runner: AutomationRunnerService,
     private readonly serverRuns: ServerRunsService,
+    private readonly queue: QueueService,
   ) {}
 
   getActions() {
@@ -174,7 +176,9 @@ export class AutomationService {
     this.logger.log(
       `Automation run ${run.id} (${action.key}) started on ${String(serverIds.length)} server(s)`,
     );
-    this.runner.executeInBackground(run.id);
+    // Hand the Ansible run to the worker process via the automation-runs queue
+    // (in single-process mode the same process consumes it).
+    await this.queue.enqueueAutomationRun({ runId: run.id });
     return this.toAutomationRunShape(run);
   }
 
@@ -200,7 +204,7 @@ export class AutomationService {
         finishedAt: new Date(),
       },
     });
-    this.runner.cancel(id);
+    await this.runner.cancel(id);
     this.logger.warn(`Automation run ${id} canceled by administrator`);
 
     const canceledServerIds = run.steps

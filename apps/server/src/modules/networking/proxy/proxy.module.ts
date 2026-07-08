@@ -7,6 +7,6 @@ import { ProxyService } from './proxy.service';
   imports: [ProjectAccessModule],
   controllers: [ProxyController],
   providers: [ProxyService],
-  exports: [ProxyService],
+  // exports: [ProxyService],
 })
 export class ProxyModule {}

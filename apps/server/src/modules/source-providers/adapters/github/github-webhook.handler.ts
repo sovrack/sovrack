@@ -12,7 +12,7 @@ import {
   IWebhookHandler,
   WebhookEndpointContext,
   WebhookHandleResult,
-} from '../../interfaces/webhook-handler.interface';
+} from '../../../../shared/webhook/webhook-handler.interface';
 
 type GithubPushPayload = {
   ref?: string;
@@ -93,14 +93,13 @@ export class GithubWebhookHandler implements IWebhookHandler {
       return { status: 'ignored' };
     }
 
-    // Extract branch name from ref (refs/heads/main → main)
     const branch = ref.replace(/^refs\/heads\//, '');
     const serviceId = await this.resolveServiceId(endpoint);
 
     const autoDeployEvent: AutoDeployTriggerEvent = {
       projectId: endpoint.projectId,
       branch,
-      pipelineId: 0, // No GitLab-style pipeline equivalent for a raw push
+      pipelineId: 0,
       serviceId: serviceId ?? undefined,
     };
     await this.eventEmitter.emitAsync(
@@ -156,15 +155,9 @@ export class GithubWebhookHandler implements IWebhookHandler {
     return { status: 'ok' };
   }
 
-  /**
-   * Resolve the target serviceId for an endpoint: the bound
-   * ServiceEnvironment's service if present, else the project's primary
-   * service. Identity is always the endpoint, never the payload.
-   */
   private async resolveServiceId(
     endpoint: WebhookEndpointContext,
   ): Promise<string | null> {
-    // Webhook PAR SERVICE : identité directe.
     if (endpoint.serviceId) return endpoint.serviceId;
     if (endpoint.serviceEnvId) {
       const se = await this.prisma.serviceEnvironment.findUnique({

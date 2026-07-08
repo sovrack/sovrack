@@ -1,8 +1,29 @@
 ---
+# Bornes précises (mini connu-bon ET plafond) sur CHAQUE collection utilisée,
+# pas seulement celle qui a cassé — c'est la classe de bug, pas juste ce bug.
+# Seules 3 collections sont réellement utilisées (audité via grep FQCN sur
+# ansible/roles + ansible/playbooks) : community.docker (docker_container),
+# ansible.posix (sysctl), community.general (ufw). N'en ajoutez pas d'autres
+# ici sans un module réellement appelé quelque part.
+#
+# Mise à jour :   ansible-galaxy collection install -r requirements.yml
+# Cette install doit se faire AU BUILD de l'image Docker du backend (pas au
+# runtime, pas à la main sur un poste) — voir Dockerfile. Le cache utilisateur
+# (~/.ansible/collections) d'un poste de dev ne doit jamais être la source de
+# vérité : c'est exactement ce qui a permis à la version buggée de
+# community.docker (3.7.0, paquet apt système, jamais mise à jour) de rester
+# en place silencieusement pendant des mois.
 collections:
+  # >=3.10.4 OBLIGATOIRE : les versions antérieures embarquent un client Docker
+  # « vendored » (envoyé du control node vers la cible) incompatible avec
+  # requests>=2.32 côté cible → « Not supported URL scheme http+docker » sur
+  # chaque docker_container (traefik/postgres/redis). Corrigé en 3.10.4.
+  # Plafond <5.0.0 : pas de major non testée. Version connue-bonne : 4.8.7.
   - name: community.docker
-    version: ">=3.0.0"
+    version: ">=3.10.4,<5.0.0"
+  # ansible.posix.sysctl (rôle security_hardening). Connue-bonne : 1.5.4.
   - name: ansible.posix
-    version: ">=1.5.0"
+    version: ">=1.5.0,<2.0.0"
+  # community.general.ufw (rôle firewall). Connue-bonne : 8.3.0.
   - name: community.general
-    version: ">=8.0.0"
+    version: ">=8.0.0,<9.0.0"

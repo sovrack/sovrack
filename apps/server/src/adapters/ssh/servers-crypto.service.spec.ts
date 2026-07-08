@@ -1,8 +1,52 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import * as CryptoJS from 'crypto-js';
-import { generateKeyPairSync } from 'crypto';
+import {
+  createCipheriv,
+  createHash,
+  generateKeyPairSync,
+  randomBytes,
+} from 'crypto';
 import { ServersCryptoService } from './servers-crypto.service';
 import { CryptoService } from '../../shared/crypto/crypto.service';
+
+/** OpenSSL EVP_BytesToKey — reproduit le KDF de CryptoJS.AES.encrypt. */
+function evpBytesToKey(
+  password: string,
+  salt: Buffer,
+): { key: Buffer; iv: Buffer } {
+  const needed = 48;
+  const result = Buffer.alloc(needed);
+  let digest: Buffer | null = null;
+  let pos = 0;
+
+  while (pos < needed) {
+    const h = createHash('md5');
+    if (digest) h.update(digest);
+    h.update(Buffer.from(password, 'utf8'));
+    h.update(salt);
+    digest = h.digest();
+    const toCopy = Math.min(needed - pos, digest.length);
+    digest.copy(result, pos, 0, toCopy);
+    pos += toCopy;
+  }
+
+  return { key: result.subarray(0, 32), iv: result.subarray(32, 48) };
+}
+
+/** Chiffre en format legacy (CryptoJS-compatible OpenSSL). */
+function legacyEncrypt(plaintext: string, passphrase: string): string {
+  const salt = randomBytes(8);
+  const { key, iv } = evpBytesToKey(passphrase, salt);
+  const cipher = createCipheriv('aes-256-cbc', key, iv);
+  const encrypted = Buffer.concat([
+    cipher.update(Buffer.from(plaintext, 'utf8')),
+    cipher.final(),
+  ]);
+  return Buffer.concat([
+    Buffer.from('Salted__', 'utf8'),
+    salt,
+    encrypted,
+  ]).toString('base64');
+}
 
 describe('ServersCryptoService', () => {
   let service: ServersCryptoService;
@@ -104,10 +148,7 @@ describe('ServersCryptoService', () => {
     it('should decrypt legacy CryptoJS ciphertexts', () => {
       const plaintext = 'legacy-secret-data';
       const secret = 'this-is-a-test-secret-key-that-is-at-least-32-char';
-      const legacyEncrypted = CryptoJS.AES.encrypt(
-        plaintext,
-        secret,
-      ).toString();
+      const legacyEncrypted = legacyEncrypt(plaintext, secret);
 
       const decrypted = service.decrypt(legacyEncrypted);
       expect(decrypted).toBe(plaintext);

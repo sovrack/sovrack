@@ -105,9 +105,18 @@ function makeSvc(
   const runner = {
     createRun: jest.fn().mockResolvedValue({ id: 'run1' }),
     runInBackground: jest.fn(),
+    runSetupJob: jest.fn(),
     abort: jest.fn(),
     knownRoleKeys: new Set(['docker', 'nginx', 'system_base']),
   } as unknown as InfraSetupRunnerService;
+
+  const queue = {
+    enqueueSetup: jest.fn().mockResolvedValue('job-1'),
+  } as unknown as import('../../../../shared/queue/queue.service').QueueService;
+
+  const abortBridge = {
+    requestAbort: jest.fn().mockResolvedValue(undefined),
+  } as unknown as import('./setup-abort.bridge').SetupAbortBridge;
 
   const svc = new ServerSetupService(
     prisma,
@@ -118,8 +127,21 @@ function makeSvc(
     state,
     serverRuns,
     runner,
+    queue,
+    abortBridge,
   );
-  return { svc, prisma, jobs, verification, audit, gateway, state, runner };
+  return {
+    svc,
+    prisma,
+    jobs,
+    verification,
+    audit,
+    gateway,
+    state,
+    runner,
+    queue,
+    abortBridge,
+  };
 }
 
 // Minimal toSetupView-compatible run shape
@@ -158,6 +180,22 @@ describe('ServerSetupService', () => {
         ServerRunStatus.FAILED,
         expect.any(Object),
       );
+    });
+
+    it('skips recovery entirely in the API-only role (worker owns it)', async () => {
+      const previous = process.env.PROCESS_ROLE;
+      process.env.PROCESS_ROLE = 'api';
+      try {
+        const { svc, state, prisma } = makeSvc({
+          orphans: [{ id: 'prep-orphan', serverId: 'srv1' }],
+        });
+        await svc.onModuleInit();
+        expect(prisma.serverRun.findMany).not.toHaveBeenCalled();
+        expect(state.transitionSetup).not.toHaveBeenCalled();
+      } finally {
+        if (previous === undefined) delete process.env.PROCESS_ROLE;
+        else process.env.PROCESS_ROLE = previous;
+      }
     });
 
     it('continues processing remaining orphans even if one fails', async () => {
@@ -274,13 +312,13 @@ describe('ServerSetupService', () => {
       );
     });
 
-    it('aborts the runner and transitions to CANCELED', async () => {
-      const { svc, prisma, state, runner, gateway } = makeSvc();
+    it('aborts the run (via the cross-process bridge) and transitions to CANCELED', async () => {
+      const { svc, prisma, state, abortBridge, gateway } = makeSvc();
       (prisma.serverRun.findFirst as jest.Mock)
         .mockResolvedValueOnce(minRun(ServerRunStatus.RUNNING)) // getSetup first call
         .mockResolvedValueOnce(minRun(ServerRunStatus.CANCELED)); // getSetup second call (updated)
       await svc.cancelSetup('prep1');
-      expect(runner.abort).toHaveBeenCalledWith('prep1');
+      expect(abortBridge.requestAbort).toHaveBeenCalledWith('prep1');
       expect(state.transitionSetup).toHaveBeenCalledWith(
         'prep1',
         ServerRunStatus.CANCELED,

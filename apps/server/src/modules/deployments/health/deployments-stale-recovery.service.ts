@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DeploymentStatus } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { runsBackgroundWork } from '../../../shared/utils/process-role.util';
 import {
   conditionsToJson,
   staleDegradedCondition,
@@ -24,6 +25,7 @@ export class DeploymentsStaleRecoveryService {
 
   @Cron(CronExpression.EVERY_10_MINUTES)
   async recoverStaleDeployments(): Promise<void> {
+    if (!runsBackgroundWork()) return;
     const cutoff = new Date(Date.now() - STALE_THRESHOLD_MINUTES * 60 * 1_000);
 
     // Fetch first so we can APPEND the recovery note to the existing logs

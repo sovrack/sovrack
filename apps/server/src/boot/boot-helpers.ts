@@ -3,6 +3,11 @@
  * Each helper has a single responsibility and is fully testable in isolation.
  */
 import { INestApplication } from '@nestjs/common';
+import * as childProcess from 'child_process';
+import * as fs from 'fs';
+import { join } from 'path';
+import { promisify } from 'util';
+import * as yaml from 'js-yaml';
 import { PrismaService } from '../shared/database/prisma.service';
 import { LoggerService } from '../shared/logger/logger.service';
 import { DeploymentsLifecycleService } from '../modules/deployments/core/deployments-lifecycle.service';
@@ -145,6 +150,123 @@ export function reportWebhookConfiguration(logger: LoggerService): void {
       `WEBHOOK_URL invalid (expected absolute URL): ${rawWebhookUrl}`,
       'Bootstrap',
     );
+  }
+}
+
+type PinnedCollection = { name: string; version?: string };
+
+/** Extracts the `>=X.Y.Z` floor from a requirements.yml version constraint. */
+function parseFloorVersion(
+  constraint: string | undefined,
+): [number, number, number] | null {
+  const match = constraint?.match(/>=\s*(\d+)\.(\d+)\.(\d+)/);
+  if (!match) return null;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+function compareVersions(
+  a: [number, number, number],
+  b: [number, number, number],
+): number {
+  for (let i = 0; i < 3; i += 1) {
+    if (a[i] !== b[i]) return a[i] - b[i];
+  }
+  return 0;
+}
+
+/**
+ * Fail-loud (not fail-fast) sanity check: reads ansible/requirements.yml —
+ * the SAME file that pins collection versions — and verifies what's actually
+ * resolvable via `ansible-galaxy collection list` meets each floor. Root
+ * cause this guards against: an unpinned/stale collection (e.g.
+ * community.docker 3.7.0 from a system apt package) silently breaking every
+ * Ansible role that depends on it (docker_container → "Not supported URL
+ * scheme http+docker"), discovered only when a Setup Server run fails deep
+ * inside a play with a cryptic error.
+ *
+ * Deliberately non-throwing: most of the platform (dashboards, Docker-API
+ * deploys, webhooks) does not touch Ansible at all, so a stale collection
+ * must not crash the whole process — it logs loudly instead, at ERROR level,
+ * with the exact fix command. Also deliberately best-effort: if
+ * `ansible-galaxy` is unavailable or requirements.yml can't be parsed, it
+ * WARNS and returns rather than blocking boot.
+ */
+export async function verifyAnsibleCollectionVersions(
+  logger: LoggerService,
+): Promise<void> {
+  const requirementsPath =
+    process.env.ANSIBLE_REQUIREMENTS_PATH?.trim() ||
+    join(process.cwd(), 'ansible', 'requirements.yml');
+
+  let entries: PinnedCollection[];
+  try {
+    const parsed = yaml.load(fs.readFileSync(requirementsPath, 'utf8')) as {
+      collections?: PinnedCollection[];
+    };
+    entries = parsed?.collections ?? [];
+  } catch (error) {
+    logger.warn(
+      `Ansible collections integrity check skipped (could not read ${requirementsPath}): ${error instanceof Error ? error.message : 'unknown error'}`,
+      'Bootstrap',
+    );
+    return;
+  }
+
+  // Wrapped fresh (not at module scope) so it always resolves through the
+  // live `childProcess.execFile` binding — this also happens to be what
+  // makes the function mockable in tests via jest.spyOn(childProcess, ...).
+  const execFileAsync = promisify(childProcess.execFile);
+
+  for (const entry of entries) {
+    const floor = parseFloorVersion(entry.version);
+    if (!floor) continue;
+
+    try {
+      const { stdout } = await execFileAsync(
+        'ansible-galaxy',
+        ['collection', 'list', entry.name, '--format', 'json'],
+        { timeout: 5000 },
+      );
+      const byPath = JSON.parse(stdout) as Record<
+        string,
+        Record<string, { version: string }> | undefined
+      >;
+      // First path = highest-priority match in Ansible's own collection
+      // search order (ANSIBLE_COLLECTIONS_PATH, then ansible.cfg, then
+      // defaults) — the one actually used when a playbook runs.
+      const firstPath = Object.keys(byPath)[0];
+      const installedRaw = firstPath
+        ? byPath[firstPath]?.[entry.name]?.version
+        : undefined;
+
+      if (!installedRaw) {
+        logger.warn(
+          `Ansible collection "${entry.name}" not found (need >= ${floor.join('.')}). Run: ansible-galaxy collection install -r ansible/requirements.yml`,
+          'Bootstrap',
+        );
+        continue;
+      }
+
+      const installedMatch = installedRaw.match(/(\d+)\.(\d+)\.(\d+)/);
+      if (!installedMatch) continue;
+      const installed: [number, number, number] = [
+        Number(installedMatch[1]),
+        Number(installedMatch[2]),
+        Number(installedMatch[3]),
+      ];
+
+      if (compareVersions(installed, floor) < 0) {
+        logger.error(
+          `Ansible collection "${entry.name}" is ${installedRaw}, below the required minimum ${floor.join('.')} — Ansible roles using it (e.g. docker_container) may fail unpredictably. Fix: ansible-galaxy collection install -r ansible/requirements.yml`,
+          'Bootstrap',
+        );
+      }
+    } catch (error) {
+      logger.warn(
+        `Ansible collections integrity check for "${entry.name}" failed (ansible-galaxy unavailable?): ${error instanceof Error ? error.message : 'unknown error'}`,
+        'Bootstrap',
+      );
+    }
   }
 }
 

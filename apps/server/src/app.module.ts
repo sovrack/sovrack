@@ -29,10 +29,7 @@ import {
 import { DomainsModule, ProxyModule } from './modules/networking';
 import { MonitoringModule, DashboardModule } from './modules/observability';
 // Contextes standalone — importés via leur porte publique (barrel index.ts)
-import {
-  GitlabModule,
-  SourceProvidersModule,
-} from './modules/source-providers';
+import { SourceProvidersModule } from './modules/source-providers';
 import { WebhooksModule } from './modules/webhooks';
 import { BuildModule } from './modules/build';
 import { DeploymentsModule } from './modules/deployments';
@@ -83,7 +80,6 @@ import { QueueModule } from './shared/queue/queue.module';
     AuthModule,
     BuildModule,
     ProjectsModule,
-    GitlabModule,
     SourceProvidersModule,
     WebhooksModule,
     ServersModule,

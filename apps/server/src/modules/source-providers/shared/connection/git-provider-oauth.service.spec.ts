@@ -6,6 +6,7 @@ import { of, throwError } from 'rxjs';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { CryptoService } from '../../../../shared/crypto/crypto.service';
 import { GitProviderOauthService } from './git-provider-oauth.service';
+import { GitProviderLegacySyncService } from './git-provider-legacy-sync.service';
 
 describe('GitProviderOauthService — helpers', () => {
   let prisma: {
@@ -32,39 +33,8 @@ describe('GitProviderOauthService — helpers', () => {
       {} as unknown as HttpService,
       {} as unknown as CryptoService,
       config as unknown as ConfigService,
+      {} as unknown as GitProviderLegacySyncService,
     );
-  });
-
-  it('builds a frontend redirect with oauth status + params', () => {
-    const url = priv<string>(
-      'buildFrontendSettingsRedirect',
-      'success',
-      'done',
-      'p1',
-    );
-    expect(url).toContain('/settings/git');
-    expect(url).toContain('oauth=success');
-    expect(url).toContain('provider_id=p1');
-    expect(url).toContain('oauth_message=done');
-  });
-
-  it('omits optional params when not provided', () => {
-    const url = priv<string>('buildFrontendSettingsRedirect', 'error');
-    expect(url).toContain('oauth=error');
-    expect(url).not.toContain('provider_id=');
-    expect(url).not.toContain('oauth_message=');
-  });
-
-  it('normalizes a base URL by trimming trailing slashes', () => {
-    expect(
-      priv<string>('normalizeGitlabBaseUrl', 'https://gl.example.com///'),
-    ).toBe('https://gl.example.com');
-  });
-
-  it('normalizeOptional trims and nulls empties', () => {
-    expect(priv<string | null>('normalizeOptional', '  x  ')).toBe('x');
-    expect(priv<string | null>('normalizeOptional', '   ')).toBeNull();
-    expect(priv<string | null>('normalizeOptional', null)).toBeNull();
   });
 
   it('prefers the isDefault GitLab provider, else the oldest', async () => {
@@ -197,16 +167,22 @@ function makeFullSvc(
     get: jest.fn((_k: string, def?: string) => def ?? 'http://localhost:3000'),
   };
 
+  const legacySyncFull = {
+    syncDefaultConfig: jest.fn().mockResolvedValue(undefined),
+  };
+
   return {
     svc: new GitProviderOauthService(
       prismaFull as unknown as PrismaService,
       httpFull as unknown as HttpService,
       cryptoFull as unknown as CryptoService,
       configFull as unknown as ConfigService,
+      legacySyncFull as unknown as GitProviderLegacySyncService,
     ),
     prismaFull,
     httpFull,
     cryptoFull,
+    legacySyncFull,
   };
 }
 

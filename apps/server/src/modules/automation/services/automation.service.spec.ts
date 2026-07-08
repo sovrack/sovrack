@@ -19,8 +19,13 @@ describe('AutomationService', () => {
     server: { findMany: jest.Mock };
     auditLog: { createMany: jest.Mock };
   };
-  let runner: { executeInBackground: jest.Mock; cancel: jest.Mock };
+  let runner: {
+    executeInBackground: jest.Mock;
+    runAutomationJob: jest.Mock;
+    cancel: jest.Mock;
+  };
   let serverRuns: { getLogs: jest.Mock };
+  let queue: { enqueueAutomationRun: jest.Mock };
   let service: AutomationService;
 
   const actionKey = AUTOMATION_ACTIONS[0].key;
@@ -38,12 +43,18 @@ describe('AutomationService', () => {
       server: { findMany: jest.fn().mockResolvedValue([{ id: 's1' }]) },
       auditLog: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
     };
-    runner = { executeInBackground: jest.fn(), cancel: jest.fn() };
+    runner = {
+      executeInBackground: jest.fn(),
+      runAutomationJob: jest.fn(),
+      cancel: jest.fn().mockResolvedValue(undefined),
+    };
     serverRuns = { getLogs: jest.fn().mockResolvedValue([]) };
+    queue = { enqueueAutomationRun: jest.fn().mockResolvedValue('job-1') };
     service = new AutomationService(
       prisma as unknown as PrismaService,
       runner as unknown as AutomationRunnerService,
       serverRuns as unknown as ServerRunsService,
+      queue as unknown as import('../../../shared/queue/queue.service').QueueService,
     );
   });
 
@@ -70,11 +81,11 @@ describe('AutomationService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('creates a run, audits it, and kicks off the background runner', async () => {
+  it('creates a run, audits it, and enqueues it on the worker queue', async () => {
     await service.startRun({ actionKey, serverIds: ['s1'] } as never, 'admin');
     expect(prisma.serverRun.create).toHaveBeenCalled();
     expect(prisma.auditLog.createMany).toHaveBeenCalled();
-    expect(runner.executeInBackground).toHaveBeenCalledWith('run1');
+    expect(queue.enqueueAutomationRun).toHaveBeenCalledWith({ runId: 'run1' });
   });
 
   it('404s getRun for a missing automation run', async () => {

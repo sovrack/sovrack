@@ -1,5 +1,4 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import * as CryptoJS from 'crypto-js';
 import {
   createCipheriv,
   createDecipheriv,
@@ -99,20 +98,54 @@ export class CryptoService {
 
   private decryptLegacy(encryptedValue: string, secret: string): string {
     try {
-      const decrypted = CryptoJS.AES.decrypt(encryptedValue, secret).toString(
-        CryptoJS.enc.Utf8,
-      );
-      if (decrypted.trim().length === 0) {
-        throw new InternalServerErrorException(
-          'Décryptage échoué — valeur vide après décryptage legacy',
-        );
+      const buffer = Buffer.from(encryptedValue, 'base64');
+      const saltedMagic = Buffer.from('Salted__', 'utf8');
+
+      if (buffer.length <= 16 || !buffer.subarray(0, 8).equals(saltedMagic)) {
+        throw new Error('Format legacy invalide (Salted__ manquant)');
       }
-      return decrypted;
+
+      const salt = buffer.subarray(8, 16);
+      const ciphertext = buffer.subarray(16);
+      const derived = this.evpBytesToKey(secret, salt);
+      const key = derived.subarray(0, 32);
+      const iv = derived.subarray(32, 48);
+
+      const decipher = createDecipheriv('aes-256-cbc', key, iv);
+      decipher.setAutoPadding(true);
+      let decrypted = decipher.update(ciphertext);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      return decrypted.toString('utf8');
     } catch {
       throw new InternalServerErrorException(
         'Décryptage échoué. Vérifiez CONFIG_SECRET.',
       );
     }
+  }
+
+  /**
+   * OpenSSL EVP_BytesToKey (MD5, 1 iteration) — reproduit le KDF utilisé par
+   * CryptoJS.AES.encrypt dans l'ancienne version du chiffrement.
+   * Nécessaire uniquement pour déchiffrer les données legacy (pré-v2).
+   */
+  private evpBytesToKey(password: string, salt: Buffer): Buffer {
+    const needed = 48; // 32 key + 16 iv
+    const result = Buffer.alloc(needed);
+    let digest: Buffer | null = null;
+    let pos = 0;
+
+    while (pos < needed) {
+      const h = createHash('md5');
+      if (digest) h.update(digest);
+      h.update(Buffer.from(password, 'utf8'));
+      h.update(salt);
+      digest = h.digest();
+      const toCopy = Math.min(needed - pos, digest.length);
+      digest.copy(result, pos, 0, toCopy);
+      pos += toCopy;
+    }
+
+    return result;
   }
 
   private getSecret(): string {

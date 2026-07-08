@@ -17,16 +17,9 @@ import {
   ServerStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
-import { redactSecrets as redactSecretsUtil } from '../../../../shared/security/redact';
-import { DockerConnectionsService } from '../../../../adapters/container-runtime/docker-connections.service';
 import { ServersJobsService } from '../../servers/services/servers-jobs.service';
 import { ServersConnectionService } from '../../servers/services/servers-connection.service';
-import { ServersDetectionService } from '../../servers/services/servers-detection.service';
-import { ServersAuditService } from '../../servers/services/servers-audit.service';
-import {
-  ServerSetupAnsibleService,
-  type DockerTlsMaterial,
-} from './server-setup-ansible.service';
+import { ServerSetupAnsibleService } from './server-setup-ansible.service';
 import { ServerSetupGateway } from '../gateways/server-setup.gateway';
 import {
   ServerSetupStateService,
@@ -39,7 +32,6 @@ import {
   SetupRoleKey,
 } from '../../servers/shared/server-setup-options';
 import {
-  parseRoleFromAnsibleLogLine,
   resolveSetupFailureOutcome,
   roleDisplayName,
   computeSetupTimeoutMs,
@@ -49,6 +41,8 @@ import {
   RunWithSteps,
   StartSetupOptions,
 } from './infra-setup-planning.util';
+import { updateRoleStateFromLog, redactSecrets } from './setup-log-utils';
+import { SetupPostProcessorService } from './setup-post-processor.service';
 
 @Injectable()
 export class InfraSetupRunnerService {
@@ -62,13 +56,11 @@ export class InfraSetupRunnerService {
     private readonly jobs: ServersJobsService,
     private readonly ssh: ServersConnectionService,
     private readonly ansible: ServerSetupAnsibleService,
-    private readonly detection: ServersDetectionService,
-    private readonly audit: ServersAuditService,
     private readonly gateway: ServerSetupGateway,
     private readonly configService: ConfigService,
     private readonly state: ServerSetupStateService,
     private readonly serverRuns: ServerRunsService,
-    private readonly dockerConnections: DockerConnectionsService,
+    private readonly postProcessor: SetupPostProcessorService,
   ) {}
 
   /**
@@ -183,6 +175,31 @@ export class InfraSetupRunnerService {
     });
   }
 
+  /**
+   * Awaited entry point for the BullMQ automation worker. Same body as
+   * runInBackground, but returns the promise so the queue knows when the run
+   * finishes. Errors are swallowed (logged) on purpose: the run's own outcome
+   * is the authoritative source of truth (persisted as ServerRun status +
+   * ServerRunLog by execute()), not the BullMQ job status — so a failure or an
+   * abort must not bubble up and be mistaken for a queue-level fault to retry.
+   */
+  async runSetupJob(
+    server: Server,
+    setupId: string,
+    jobId: string,
+    roles: SetupRoleKey[],
+  ): Promise<void> {
+    try {
+      await this.execute(server, setupId, jobId, roles);
+    } catch (error) {
+      this.logger.error(
+        `Setup ${setupId} worker execution failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
   /** Aborts a running setup by its ID. No-op if none is running. */
   abort(setupId: string): void {
     this.runningControllers.get(setupId)?.abort();
@@ -264,7 +281,13 @@ export class InfraSetupRunnerService {
             { signal: abortController.signal, timeoutMs },
             {
               onLog: async (event) => {
-                await this.updateRoleStateFromLog(setupId, event.message);
+                await updateRoleStateFromLog(
+                  setupId,
+                  event.message,
+                  this.knownRoleKeys,
+                  this.currentRoleBySetup,
+                  this.prisma,
+                );
                 await this.appendLog(
                   setupId,
                   event.level,
@@ -283,7 +306,7 @@ export class InfraSetupRunnerService {
       // chiffré que la saisie manuelle via POST /servers/:id/docker-connection,
       // qui reste disponible telle quelle — rétrocompatibilité).
       if (roles.includes('docker_tls')) {
-        await this.registerDockerTlsConnection(
+        await this.postProcessor.registerDockerTlsConnection(
           server,
           setupId,
           runResult.dockerTls,
@@ -317,7 +340,7 @@ export class InfraSetupRunnerService {
         'orchestrator',
         'Setup completed successfully.',
       );
-      await this.refreshDetectionAfterSetup(server, setupId);
+      await this.postProcessor.refreshDetectionAfterSetup(server, setupId);
       this.gateway.emitFinished({
         setupId: setupId,
         status: ServerRunStatus.SUCCEEDED,
@@ -370,14 +393,14 @@ export class InfraSetupRunnerService {
 
     await this.state.transitionSetup(setupId, setupStatus, {
       finishedAt: new Date(),
-      errorMessage: this.redactSecrets(displayError),
+      errorMessage: redactSecrets(displayError),
       summary: displaySummary,
     });
     await this.prisma.serverJob.update({
       where: { id: jobId },
       data: {
         status: isTimeout ? ServerJobStatus.TIMEOUT : ServerJobStatus.FAILED,
-        error: this.redactSecrets(message),
+        error: redactSecrets(message),
         finishedAt: new Date(),
       },
     });
@@ -392,12 +415,12 @@ export class InfraSetupRunnerService {
       setupId,
       ServerLogLevel.ERROR,
       'orchestrator',
-      this.redactSecrets(message),
+      redactSecrets(message),
     );
     this.gateway.emitFinished({
       setupId: setupId,
       status: setupStatus,
-      errorMessage: this.redactSecrets(message),
+      errorMessage: redactSecrets(message),
     });
   }
 
@@ -410,7 +433,7 @@ export class InfraSetupRunnerService {
     const created = await this.serverRuns.appendLog(setupId, {
       level,
       source,
-      message: this.redactSecrets(message),
+      message: redactSecrets(message),
     });
     this.gateway.emitLog({
       setupId: created.runId,
@@ -422,147 +445,10 @@ export class InfraSetupRunnerService {
     });
   }
 
-  private async updateRoleStateFromLog(
-    setupId: string,
-    message: string,
-  ): Promise<void> {
-    const roleKey = parseRoleFromAnsibleLogLine(message, this.knownRoleKeys);
-    if (!roleKey) return;
-
-    const previous = this.currentRoleBySetup.get(setupId);
-    if (previous && previous !== roleKey) {
-      await this.prisma.serverRunStep.updateMany({
-        where: {
-          runId: setupId,
-          roleKey: previous,
-          status: ServerRunStepStatus.RUNNING,
-        },
-        data: { status: ServerRunStepStatus.OK, finishedAt: new Date() },
-      });
-    }
-
-    this.currentRoleBySetup.set(setupId, roleKey);
-    await this.prisma.serverRunStep.updateMany({
-      where: {
-        runId: setupId,
-        roleKey,
-        status: ServerRunStepStatus.PENDING,
-      },
-      data: { status: ServerRunStepStatus.RUNNING, startedAt: new Date() },
-    });
-  }
-
-  /**
-   * Enregistre la DockerConnection (endpoint mTLS 2376) à partir des certs
-   * client rapatriés par le rôle docker_tls. Chiffrement au repos identique à
-   * la saisie manuelle (DockerConnectionsService.upsert). Un échec ici ne fait
-   * PAS échouer la préparation (le serveur EST préparé) : il est loggé en
-   * ERROR et l'enregistrement manuel reste possible via l'API existante.
-   * AUCUN contenu PEM n'est loggé — uniquement l'endpoint et l'issue.
-   */
-  private async registerDockerTlsConnection(
-    server: Server,
-    setupId: string,
-    material: DockerTlsMaterial | null,
-  ): Promise<void> {
-    if (!material) {
-      await this.appendLog(
-        setupId,
-        ServerLogLevel.ERROR,
-        'orchestrator',
-        'docker_tls: run succeeded but client certificates were not retrieved — ' +
-          'Docker connection NOT registered. Register it manually via ' +
-          'POST /servers/:id/docker-connection.',
-      );
-      return;
-    }
-
-    const endpoint = `tcp://${server.host}:2376`;
-    try {
-      await this.dockerConnections.upsert({
-        serverId: server.id,
-        endpoint,
-        tlsCaCert: material.ca,
-        tlsClientCert: material.cert,
-        tlsClientKey: material.key,
-      });
-      await this.appendLog(
-        setupId,
-        ServerLogLevel.INFO,
-        'orchestrator',
-        `Docker TLS connection registered automatically (${endpoint}).`,
-      );
-      await this.audit.record(
-        server.id,
-        'DOCKER_CONNECTION_AUTO_REGISTERED',
-        null,
-        {
-          endpoint,
-          via: 'setup:docker_tls',
-        },
-      );
-    } catch (error) {
-      await this.appendLog(
-        setupId,
-        ServerLogLevel.ERROR,
-        'orchestrator',
-        `docker_tls: automatic Docker connection registration failed: ${
-          error instanceof Error ? error.message : String(error)
-        }. Register it manually via POST /servers/:id/docker-connection.`,
-      );
-      return;
-    }
-
-    // Probe best-effort : vérifie tout de suite que le démon répond en mTLS.
-    try {
-      const probe = await this.dockerConnections.probeReachability(server.id);
-      await this.appendLog(
-        setupId,
-        ServerLogLevel.INFO,
-        'orchestrator',
-        `Docker TLS connection verified (API v${probe.apiVersion ?? '?'}, ${String(probe.latencyMs)}ms).`,
-      );
-    } catch (error) {
-      await this.appendLog(
-        setupId,
-        ServerLogLevel.WARNING,
-        'orchestrator',
-        `Docker TLS connection registered but probe failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
-  }
-
-  private async refreshDetectionAfterSetup(
-    server: Server,
-    setupId: string,
-  ): Promise<void> {
-    try {
-      const current = await this.prisma.server.findUniqueOrThrow({
-        where: { id: server.id },
-      });
-      await this.detection.detect(current);
-    } catch (error) {
-      await this.appendLog(
-        setupId,
-        ServerLogLevel.WARNING,
-        'orchestrator',
-        `Setup succeeded but post-detection failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
-  }
-
   private resolveSetupTimeoutMs(roles: string[] = []): number {
     const fromEnv = Number(
       this.configService.get<string>('SERVER_SETUP_TIMEOUT_MS', '0'),
     );
     return computeSetupTimeoutMs(roles, fromEnv);
-  }
-
-  private redactSecrets(value: string): string {
-    return redactSecretsUtil(value);
   }
 }

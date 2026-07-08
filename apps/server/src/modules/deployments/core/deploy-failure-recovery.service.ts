@@ -1,7 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { DeploymentStatus } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { ContainerLifecycleService } from './container-lifecycle.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { NotificationsService } from '../../notifications/notifications.service';
@@ -35,7 +36,7 @@ export interface FailureHandlerParams {
 @Injectable()
 export class DeployFailureRecoveryService {
   constructor(
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly containerLifecycle: ContainerLifecycleService,
     private readonly prisma: PrismaService,
     private readonly gateway: DeploymentEventsPublisher,

@@ -2,9 +2,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GitProviderType, PipelineRunStatus } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { GitlabWebhookHandler } from './gitlab-webhook.handler';
-import { GitlabPipelinePersistenceService } from '../../../source-providers/adapters/gitlab/gitlab-pipeline-persistence.service';
+import { GitlabPipelinePersistenceService } from './gitlab-pipeline-persistence.service';
 import { DEPLOYMENT_AUTO_DEPLOY_TRIGGER } from '../../../../shared/events/events.catalog';
-import type { WebhookEndpointContext } from '../../interfaces/webhook-handler.interface';
+import type { WebhookEndpointContext } from '../../../../shared/webhook/webhook-handler.interface';
 
 /**
  * Verrouille le cœur CI/CD : un pipeline qui PASSE à success déclenche un
@@ -35,9 +35,6 @@ describe('GitlabWebhookHandler — pipeline → auto-deploy', () => {
     } as unknown as PrismaService;
     const emit = jest.fn().mockResolvedValue([]);
     const events = { emitAsync: emit } as unknown as EventEmitter2;
-    // Extracted from the handler into GitlabPipelinePersistenceService (see
-    // gitlab-pipeline-persistence.service.ts) — mocked here to reproduce the
-    // exact previousStatus/currentStatus pair the old inline logic returned.
     const pipelinePersistence = {
       upsertPipelineWithPreviousStatus: jest.fn().mockResolvedValue({
         previousStatus,

@@ -38,7 +38,7 @@ describe('CryptoService — secrets at rest (unit)', () => {
     });
   });
 
-  it('rejette un ciphertext GCM altéré (authentification)', () => {
+  it('rejects a tampered GCM ciphertext (authentication)', () => {
     withSecret(VALID_SECRET, () => {
       const crypto = new CryptoService();
       const ciphertext = crypto.encrypt('integrity-matters');

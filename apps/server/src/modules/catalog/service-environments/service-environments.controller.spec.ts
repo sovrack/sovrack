@@ -45,7 +45,7 @@ describe('ServiceEnvironmentsController', () => {
 
   it('findAll returns a guidance message', async () => {
     const { ctrl } = build();
-    const res = await ctrl.findAll('p1', user);
+    const res = ctrl.findAll('p1', user);
     expect(res.message).toContain('environments');
   });
 

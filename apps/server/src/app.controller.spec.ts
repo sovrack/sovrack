@@ -65,7 +65,7 @@ describe('AppController', () => {
       expect(result.timestamp).toBeDefined();
     });
 
-    it('retourne database disconnected si Prisma échoue', async () => {
+    it('returns database disconnected when Prisma fails', async () => {
       const app = await buildModule({
         $queryRaw: jest.fn().mockRejectedValue(new Error('DB down')),
       });
@@ -76,7 +76,7 @@ describe('AppController', () => {
       expect(result.database).toBe('disconnected');
     });
 
-    it('retourne redis connected quand le ping répond PONG', async () => {
+    it('returns redis connected when ping replies PONG', async () => {
       const app = await buildModule(
         { $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]) },
         {
@@ -121,7 +121,7 @@ describe('AppController', () => {
       expect(elapsedMs).toBeLessThan(5000);
     }, 10000);
 
-    it('expose le statut webhook configuré quand la base est joignable', async () => {
+    it('exposes webhook configured status when the database is reachable', async () => {
       const app = await buildModule({
         $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
       });
@@ -149,7 +149,7 @@ describe('AppController', () => {
       expect(result.webhook.callbackUrl).toBeNull();
     });
 
-    it('désactive autoConfigure quand GITLAB_WEBHOOK_AUTO_CONFIGURE=false', async () => {
+    it('disables autoConfigure when GITLAB_WEBHOOK_AUTO_CONFIGURE=false', async () => {
       mockConfigService.get.mockImplementationOnce(() => 'false');
       const app = await buildModule({
         $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),

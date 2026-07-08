@@ -25,7 +25,7 @@ const signals = (
 
 describe('project-detection.util', () => {
   describe('detectPackageManager', () => {
-    it('priorité pnpm > yarn > bun > npm', () => {
+    it('priority pnpm > yarn > bun > npm', () => {
       expect(detectPackageManager(new Set(['pnpm-lock.yaml']), signals())).toBe(
         'pnpm',
       );
@@ -90,7 +90,7 @@ describe('project-detection.util', () => {
   });
 
   describe('containsAny', () => {
-    it('insensible à la casse + null', () => {
+    it('case-insensitive + null', () => {
       expect(containsAny('Hello World', ['world'])).toBe(true);
       expect(containsAny('abc', ['xyz'])).toBe(false);
       expect(containsAny(null, ['x'])).toBe(false);

@@ -7,10 +7,10 @@ import {
 } from './container-spec.util';
 
 describe('buildServiceAlias', () => {
-  it('= nom du service normalisé (DNS stable)', () => {
+  it('= normalized service name (stable DNS)', () => {
     expect(buildServiceAlias('Postgres DB')).toBe('postgres-db');
   });
-  it('conserve un nom déjà valide', () => {
+  it('preserves an already-valid name', () => {
     expect(buildServiceAlias('api')).toBe('api');
   });
   it('retire les tirets en bord', () => {
@@ -23,7 +23,7 @@ describe('buildServiceAlias', () => {
 
 describe('container-spec.util', () => {
   describe('buildContainerPrefix', () => {
-    it('normalise en minuscules et remplace les caractères non Docker', () => {
+    it('normalizes to lowercase and replaces non-Docker characters', () => {
       expect(buildContainerPrefix('My Proj', 'API Svc')).toBe(
         'deploy-my-proj-api-svc-',
       );
@@ -34,7 +34,7 @@ describe('container-spec.util', () => {
   });
 
   describe('buildContainerName', () => {
-    it('= préfixe + 8 premiers caractères de l’ID', () => {
+    it('= prefix + first 8 characters of the ID', () => {
       expect(buildContainerName('proj', 'svc', 'abcdef1234567890')).toBe(
         'deploy-proj-svc-abcdef12',
       );

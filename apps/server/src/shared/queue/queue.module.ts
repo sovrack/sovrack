@@ -1,21 +1,35 @@
 import { Global, Module } from '@nestjs/common';
-import { bullQueueProvider } from './queue.provider';
+import {
+  bullQueueProvider,
+  bullSetupQueueProvider,
+  bullAutomationRunsQueueProvider,
+} from './queue.provider';
 import { QueueService } from './queue.service';
 import { QueueMonitoringService } from './queue-monitoring.service';
 import { ScheduleModule } from '@nestjs/schedule';
 
 // Loi d'architecture : core/ ne dépend JAMAIS d'un contexte métier.
-// DeploymentsProcessor (worker Bull) est enregistré dans DeploymentsModule,
-// pas ici — QueueModule reste générique.
+// DeploymentsProcessor / AutomationProcessor (workers Bull) sont enregistrés
+// dans leurs modules métier respectifs, pas ici — QueueModule reste générique.
 @Global()
 @Module({
   imports: [ScheduleModule.forRoot()],
-  providers: [bullQueueProvider, QueueService, QueueMonitoringService],
-  // 'DEPLOYMENTS_QUEUE' must be exported too, not just the services built on
-  // top of it: @Global() only makes EXPORTED providers resolvable from other
-  // modules. Without this, AppController's @Optional() @Inject('DEPLOYMENTS_QUEUE')
-  // silently resolved to undefined and the /health Redis check always reported
-  // "disconnected" regardless of Redis' real state (AUDIT_VERIFICATION_UI.md Point 1).
-  exports: [QueueService, QueueMonitoringService, 'DEPLOYMENTS_QUEUE'],
+  providers: [
+    bullQueueProvider,
+    bullSetupQueueProvider,
+    bullAutomationRunsQueueProvider,
+    QueueService,
+    QueueMonitoringService,
+  ],
+  // Les tokens de queue doivent être exportés (pas seulement les services au-
+  // dessus) : @Global() ne rend résolvables que les providers EXPORTÉS. Sans
+  // ça, un @Inject('DEPLOYMENTS_QUEUE') d'un autre module résout undefined.
+  exports: [
+    QueueService,
+    QueueMonitoringService,
+    'DEPLOYMENTS_QUEUE',
+    'SETUP_QUEUE',
+    'AUTOMATION_RUNS_QUEUE',
+  ],
 })
 export class QueueModule {}

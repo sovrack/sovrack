@@ -21,7 +21,7 @@ describe('GitlabProjectConfigService.assertRepoSource', () => {
     null as never,
   );
 
-  it('retombe sur repoPath quand externalId est absent (régression 404 /projects/0)', () => {
+  it('falls back to repoPath when externalId is missing (404 /projects/0 regression)', () => {
     const repoId = svc.assertRepoSource(
       cfg({
         sourceType: SourceType.GIT,
@@ -33,7 +33,7 @@ describe('GitlabProjectConfigService.assertRepoSource', () => {
     expect(repoId).toBe('grp/app');
   });
 
-  it('utilise l’ID numérique quand il est valide', () => {
+  it('uses the numeric ID when it is valid', () => {
     const repoId = svc.assertRepoSource(
       cfg({ sourceType: SourceType.GIT, repoPath: 'grp/app', externalId: 42 }),
       'action',
@@ -107,7 +107,7 @@ describe('GitlabProjectConfigService.getProjectConfig — résolution multi-serv
     return { svc, prisma };
   }
 
-  it('avec serviceId : résout EXACTEMENT le service demandé, pas un autre du même projet', async () => {
+  it('with serviceId: resolves EXACTLY the requested service, not another from the same project', async () => {
     const findFirst = jest.fn().mockImplementation(({ where }) => {
       // Simule Prisma : ne retourne que le service dont l'id matche le filtre.
       const candidates = [backendService, frontendService];
@@ -128,7 +128,7 @@ describe('GitlabProjectConfigService.getProjectConfig — résolution multi-serv
     expect(configBackend.defaultBranch).toBe('dev');
   });
 
-  it('sans serviceId : retombe sur un choix déterministe (le plus ancien), pas arbitraire', async () => {
+  it('without serviceId: falls back to a deterministic choice (oldest), not arbitrary', async () => {
     // Peu importe l'ordre dans lequel Prisma "retournerait" les lignes ici —
     // le orderBy est passé explicitement ; on vérifie qu'il est bien demandé
     // et qu'on résout bien le plus ancien des deux candidats fournis.
@@ -148,7 +148,7 @@ describe('GitlabProjectConfigService.getProjectConfig — résolution multi-serv
     );
   });
 
-  it('rejette un serviceId qui ne correspond à aucun service du projet', async () => {
+  it('rejects a serviceId that does not match any service in the project', async () => {
     const findFirst = jest.fn().mockResolvedValue(null);
     const { svc } = makeService(findFirst);
 

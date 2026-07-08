@@ -48,7 +48,7 @@ describe('ContainerRegistriesService.testRegistryConnection (Docker v2 Bearer)',
     data: {},
   };
 
-  it('réussit quand le realm renvoie un token (identifiants valides)', async () => {
+  it('succeeds when the realm returns a token (valid credentials)', async () => {
     const httpGet = jest
       .fn()
       // 1er appel : GET /v2/ → 401 Bearer
@@ -68,7 +68,7 @@ describe('ContainerRegistriesService.testRegistryConnection (Docker v2 Bearer)',
     );
   });
 
-  it('échoue proprement quand le realm refuse les identifiants (401)', async () => {
+  it('fails gracefully when the realm rejects credentials (401)', async () => {
     const httpGet = jest
       .fn()
       .mockReturnValueOnce(of(bearerChallenge))
@@ -82,7 +82,7 @@ describe('ContainerRegistriesService.testRegistryConnection (Docker v2 Bearer)',
     expect(res.message).toMatch(/read_registry/);
   });
 
-  it('réussit directement si /v2/ renvoie 200', async () => {
+  it('succeeds directly if /v2/ returns 200', async () => {
     const httpGet = jest
       .fn()
       .mockReturnValueOnce(of({ status: 200, headers: {}, data: {} }));

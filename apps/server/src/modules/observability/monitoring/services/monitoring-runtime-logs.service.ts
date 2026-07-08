@@ -1,12 +1,14 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { ContainerStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
-import { DockerApiService } from '../../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../../adapters/container-runtime/ports/docker-runtime.port';
 import {
   MonitoringLokiService,
   type LokiSearchResult,
@@ -37,7 +39,7 @@ type SearchOptions = {
 export class MonitoringRuntimeLogsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly loki: MonitoringLokiService,
   ) {}
 

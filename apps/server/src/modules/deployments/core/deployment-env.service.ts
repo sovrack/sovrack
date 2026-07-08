@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ManagedServiceType, Prisma, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { toDockerEnvArray } from '../../../shared/utils/container-spec.util';
@@ -8,7 +8,8 @@ import {
   getDatabaseContainerConfig,
   parseDbCredentials,
 } from '../../../shared/utils/database-spec.util';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { EnvLevel, resolveEnvDetailed } from '../utils/env-resolver.util';
 import { DeploymentLogEmitter } from './deployment-log-emitter.service';
@@ -28,7 +29,7 @@ export class DeploymentEnvService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly crypto: CryptoService,
     private readonly logEmitter: DeploymentLogEmitter,
   ) {}

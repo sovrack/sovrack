@@ -78,7 +78,7 @@ function makeGateway(
   const logStreamService = {
     unsubscribeAll: jest.fn().mockReturnValue(0),
     unsubscribe: jest.fn().mockReturnValue(true),
-    subscribe: jest.fn().mockResolvedValue('sub-key-1'),
+    subscribe: jest.fn().mockReturnValue('sub-key-1'),
   } as unknown as DeploymentsLogStreamService;
 
   const gateway = new DeploymentsGateway(
@@ -365,7 +365,7 @@ describe('DeploymentsGateway', () => {
 
     it('returns error when logStreamService returns null (no DockerConnection)', async () => {
       const { gateway, logStreamService } = makeGateway();
-      (logStreamService.subscribe as jest.Mock).mockResolvedValue(null);
+      (logStreamService.subscribe as jest.Mock).mockReturnValue(null);
       const client = makeSocket({
         userData: { user: { id: 'u1', role: Role.ADMIN, email: 'a@t.com' } },
       });

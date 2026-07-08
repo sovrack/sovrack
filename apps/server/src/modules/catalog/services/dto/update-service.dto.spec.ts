@@ -31,3 +31,38 @@ describe('UpdateServiceDto — externalPort (Task 4)', () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 });
+
+// Monorepo "Root directory" field (Add rootDir/buildArgs to the service form
+// mission): the frontend already rejects ".." client-side, but that's not a
+// security boundary — a direct API call could otherwise send
+// rootDir="../../etc" and local-build.service.ts would build outside the
+// cloned repo. Server-side rejection closes that gap.
+describe('UpdateServiceDto — rootDir path traversal', () => {
+  it('accepts a plain relative subfolder', async () => {
+    const instance = plainToInstance(UpdateServiceDto, { rootDir: 'apps/web' });
+    const errors = await validate(instance);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('accepts the repo-root default', async () => {
+    const instance = plainToInstance(UpdateServiceDto, { rootDir: '/' });
+    const errors = await validate(instance);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('rejects a path containing ".." anywhere', async () => {
+    const instance = plainToInstance(UpdateServiceDto, {
+      rootDir: '../../etc',
+    });
+    const errors = await validate(instance);
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('rejects ".." even when not at the start of the path', async () => {
+    const instance = plainToInstance(UpdateServiceDto, {
+      rootDir: 'apps/../../../etc',
+    });
+    const errors = await validate(instance);
+    expect(errors.length).toBeGreaterThan(0);
+  });
+});

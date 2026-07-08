@@ -18,10 +18,11 @@ describe('ServersJobsService', () => {
         findUnique: jest.fn(),
       },
       serverJob: {
-        findMany: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn(),
         findFirst: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       $transaction: jest.fn((cb: (t: typeof tx) => unknown) => cb(tx)),
     };
@@ -38,6 +39,31 @@ describe('ServersJobsService', () => {
 
     return { service, prisma, ssh, tx };
   }
+
+  describe('onModuleInit (startup zombie-recovery)', () => {
+    it('recovers ghost jobs in the default single-process role', async () => {
+      const { service, prisma } = createService();
+      prisma.serverJob.findMany.mockResolvedValue([
+        { id: 'ghost-1', serverId: 'srv-1' },
+      ]);
+      await service.onModuleInit();
+      expect(prisma.serverJob.findMany).toHaveBeenCalled();
+      expect(prisma.serverJob.updateMany).toHaveBeenCalled();
+    });
+
+    it('skips recovery in the API-only role (worker owns it)', async () => {
+      const previous = process.env.PROCESS_ROLE;
+      process.env.PROCESS_ROLE = 'api';
+      try {
+        const { service, prisma } = createService();
+        await service.onModuleInit();
+        expect(prisma.serverJob.findMany).not.toHaveBeenCalled();
+      } finally {
+        if (previous === undefined) delete process.env.PROCESS_ROLE;
+        else process.env.PROCESS_ROLE = previous;
+      }
+    });
+  });
 
   it('paginates server jobs at database level', async () => {
     const { service, prisma } = createService();

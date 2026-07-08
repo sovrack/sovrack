@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GitProviderType, PipelineRunStatus } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
-import { GitlabPipelinePersistenceService } from '../../../source-providers/adapters/gitlab/gitlab-pipeline-persistence.service';
+import { GitlabPipelinePersistenceService } from './gitlab-pipeline-persistence.service';
 import {
   DEPLOYMENT_PIPELINE_UPDATED,
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
@@ -13,12 +13,12 @@ import {
   IWebhookHandler,
   WebhookEndpointContext,
   WebhookHandleResult,
-} from '../../interfaces/webhook-handler.interface';
+} from '../../../../shared/webhook/webhook-handler.interface';
 
 export type GitlabWebhookPayload = {
   object_kind?: string;
   event_name?: string;
-  ref?: string; // push event: "refs/heads/<branch>"
+  ref?: string;
   group_id?: number;
   project_id?: number;
   project?: {
@@ -85,17 +85,10 @@ export class GitlabWebhookHandler implements IWebhookHandler {
     return this.processPayload(endpoint, rawPayload as GitlabWebhookPayload);
   }
 
-  /**
-   * Core GitLab pipeline-event processing. Pure function of (endpoint,
-   * payload): no identity lookup, no audit I/O (the controller already
-   * recorded the event).
-   */
   private async processPayload(
     endpoint: WebhookEndpointContext,
     payload: GitlabWebhookPayload,
   ): Promise<WebhookHandleResult> {
-    // Deploy-on-push : si le service est en mode PUSH, un push sur sa branche
-    // déclenche directement un déploiement (façon Coolify/Vercel).
     const isPushEvent =
       payload.object_kind === 'push' || payload.event_name === 'push';
     if (isPushEvent) {
@@ -156,7 +149,6 @@ export class GitlabWebhookHandler implements IWebhookHandler {
       pipelineSnapshot.currentStatus === PipelineRunStatus.SUCCESS &&
       pipelineSnapshot.previousStatus !== PipelineRunStatus.SUCCESS;
 
-    // Emit via EventEmitter — decouples GitlabModule from DeploymentsModule
     const pipelineEvent: PipelineUpdatedEvent = {
       pipelineId,
       webhookStatus,
@@ -167,9 +159,6 @@ export class GitlabWebhookHandler implements IWebhookHandler {
       pipelineEvent,
     );
 
-    // On ne déploie sur succès de pipeline QUE si le service est en mode
-    // PIPELINE_SUCCESS (sinon, ex. mode PUSH, le déclencheur est le push → on
-    // éviterait un double déploiement).
     if (transitionedToSuccess && target.deployTrigger === 'PIPELINE_SUCCESS') {
       const autoDeployEvent: AutoDeployTriggerEvent = {
         projectId: endpoint.projectId,
@@ -183,9 +172,6 @@ export class GitlabWebhookHandler implements IWebhookHandler {
       );
     }
 
-    // Keep the Build row in sync with the pipeline outcome. For REGISTRY
-    // builds the Build IS the pipeline; for LOCAL builds this is a no-op
-    // (their externalPipelineId is null).
     await this.syncBuildLifecycle(
       endpoint.projectId,
       target.serviceId ?? null,
@@ -198,19 +184,11 @@ export class GitlabWebhookHandler implements IWebhookHandler {
     return { status: 'ok' };
   }
 
-  /**
-   * Resolve the deploy target for an endpoint. Prefers the bound
-   * ServiceEnvironment (multi-service projects route per repo); otherwise
-   * falls back to the project's primary service. Returns the target
-   * serviceId + the effective default branch (env override > service).
-   */
   private async resolveTarget(endpoint: WebhookEndpointContext): Promise<{
     serviceId: string | null;
     branch: string | null;
     deployTrigger: string;
   }> {
-    // Webhook PAR SERVICE : identité directe (la branche du push route ensuite
-    // vers le bon environnement via ServiceEnvironment.autoBranch côté trigger).
     if (endpoint.serviceId) {
       const svc = await this.prisma.service.findUnique({
         where: { id: endpoint.serviceId },
@@ -253,11 +231,6 @@ export class GitlabWebhookHandler implements IWebhookHandler {
     };
   }
 
-  /**
-   * Find the Build row that corresponds to the given pipeline and update
-   * its status to match the pipeline outcome. Best-effort: if no Build
-   * matches, we silently no-op.
-   */
   private async syncBuildLifecycle(
     projectId: string,
     serviceId: string | null,

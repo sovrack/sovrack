@@ -12,6 +12,11 @@ import { of, throwError } from 'rxjs';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { CryptoService } from '../../../../shared/crypto/crypto.service';
 import { GitlabFileService } from './gitlab-file.service';
+import {
+  extractHttpStatus,
+  extractGitlabErrorMessage,
+  throwGitlabMappedError,
+} from './gitlab-error-mapper.util';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -173,34 +178,30 @@ describe('GitlabFileService.readFile', () => {
 
 // ─── extractHttpStatus ────────────────────────────────────────────────────────
 
-describe('GitlabFileService.extractHttpStatus', () => {
-  const { svc } = makeFullSvc();
-
+describe('extractHttpStatus', () => {
   it('extracts status from response.status', () => {
-    expect(svc.extractHttpStatus({ response: { status: 404 } })).toBe(404);
+    expect(extractHttpStatus({ response: { status: 404 } })).toBe(404);
   });
 
   it('extracts top-level status', () => {
-    expect(svc.extractHttpStatus({ status: 422 })).toBe(422);
+    expect(extractHttpStatus({ status: 422 })).toBe(422);
   });
 
   it('returns null for null', () => {
-    expect(svc.extractHttpStatus(null)).toBeNull();
+    expect(extractHttpStatus(null)).toBeNull();
   });
 
   it('returns null when no status is found', () => {
-    expect(svc.extractHttpStatus({ response: {} })).toBeNull();
+    expect(extractHttpStatus({ response: {} })).toBeNull();
   });
 });
 
 // ─── extractGitlabErrorMessage ────────────────────────────────────────────────
 
-describe('GitlabFileService.extractGitlabErrorMessage', () => {
-  const { svc } = makeFullSvc();
-
+describe('extractGitlabErrorMessage', () => {
   it('extracts message string from response.data.message', () => {
     expect(
-      svc.extractGitlabErrorMessage({
+      extractGitlabErrorMessage({
         response: { data: { message: 'branch not found' } },
       }),
     ).toBe('branch not found');
@@ -208,55 +209,54 @@ describe('GitlabFileService.extractGitlabErrorMessage', () => {
 
   it('extracts plain string body', () => {
     expect(
-      svc.extractGitlabErrorMessage({ response: { data: 'plain error' } }),
+      extractGitlabErrorMessage({ response: { data: 'plain error' } }),
     ).toBe('plain error');
   });
 
   it('joins message array', () => {
-    const result = svc.extractGitlabErrorMessage({
-      response: { data: { message: ['A', 'B'] } },
-    });
-    expect(result).toBe('A, B');
+    expect(
+      extractGitlabErrorMessage({
+        response: { data: { message: ['A', 'B'] } },
+      }),
+    ).toBe('A, B');
   });
 
   it('returns fallback for empty/unknown shape', () => {
-    expect(svc.extractGitlabErrorMessage({})).toBe('Erreur GitLab inconnue.');
+    expect(extractGitlabErrorMessage({})).toBe('Erreur GitLab inconnue.');
   });
 });
 
 // ─── throwGitlabMappedError ───────────────────────────────────────────────────
 
-describe('GitlabFileService.throwGitlabMappedError', () => {
-  const { svc } = makeFullSvc();
-
+describe('throwGitlabMappedError', () => {
   it('throws UnauthorizedException on 401', () => {
     expect(() =>
-      svc.throwGitlabMappedError('act', { response: { status: 401 } }, 'fb'),
+      throwGitlabMappedError('act', { response: { status: 401 } }, 'fb'),
     ).toThrow(UnauthorizedException);
   });
   it('throws ForbiddenException on 403', () => {
     expect(() =>
-      svc.throwGitlabMappedError('act', { response: { status: 403 } }, 'fb'),
+      throwGitlabMappedError('act', { response: { status: 403 } }, 'fb'),
     ).toThrow(ForbiddenException);
   });
   it('throws NotFoundException on 404', () => {
     expect(() =>
-      svc.throwGitlabMappedError('act', { response: { status: 404 } }, 'fb'),
+      throwGitlabMappedError('act', { response: { status: 404 } }, 'fb'),
     ).toThrow(NotFoundException);
   });
   it('throws ConflictException on 409', () => {
     expect(() =>
-      svc.throwGitlabMappedError('act', { response: { status: 409 } }, 'fb'),
+      throwGitlabMappedError('act', { response: { status: 409 } }, 'fb'),
     ).toThrow(ConflictException);
   });
   it('throws UnprocessableEntityException on 422', () => {
     expect(() =>
-      svc.throwGitlabMappedError('act', { response: { status: 422 } }, 'fb'),
+      throwGitlabMappedError('act', { response: { status: 422 } }, 'fb'),
     ).toThrow(UnprocessableEntityException);
   });
   it('throws BadRequestException for unknown codes', () => {
     expect(() =>
-      svc.throwGitlabMappedError('act', { response: { status: 500 } }, 'fb'),
+      throwGitlabMappedError('act', { response: { status: 500 } }, 'fb'),
     ).toThrow(BadRequestException);
   });
 });

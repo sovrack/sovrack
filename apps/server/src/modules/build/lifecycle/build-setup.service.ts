@@ -359,17 +359,15 @@ export class BuildSetupService {
     return { content, filePath };
   }
 
-  async getAvailableEngines(): Promise<
-    Array<{
-      key: string;
-      label: string;
-      description: string;
-      requiresDockerfile: boolean;
-      supportsLocal: boolean;
-      available: boolean;
-      installedVersion?: string;
-    }>
-  > {
+  getAvailableEngines(): Array<{
+    key: string;
+    label: string;
+    description: string;
+    requiresDockerfile: boolean;
+    supportsLocal: boolean;
+    available: boolean;
+    installedVersion?: string;
+  }> {
     const nixpacksVersion = this.nixpacksService.getVersion();
     return [
       {

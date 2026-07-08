@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { WebhookEventStatus } from '@prisma/client';
+import { runsBackgroundWork } from '../../../shared/utils/process-role.util';
 import { NotificationsService } from '../../notifications/notifications.service';
 import {
   IWebhookHandler,
@@ -27,6 +28,7 @@ export class WebhookRetryService {
 
   @Cron('*/2 * * * *', { name: 'webhook-retry' })
   async retryFailedWebhooks(): Promise<void> {
+    if (!runsBackgroundWork()) return;
     const due = await this.webhooksService.listDueRetries(20);
     if (due.length === 0) {
       return;

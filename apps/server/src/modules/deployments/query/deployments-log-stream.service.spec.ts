@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { DeploymentsLogStreamService } from './deployments-log-stream.service';
-import { DockerApiService as DockerRemoteService } from '../../../adapters/container-runtime/docker-api.service';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 
 /**
  * Per-socket log streaming manager.
@@ -65,7 +65,7 @@ describe('DeploymentsLogStreamService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         DeploymentsLogStreamService,
-        { provide: DockerRemoteService, useValue: dockerRemote },
+        { provide: DOCKER_RUNTIME, useValue: dockerRemote },
       ],
     }).compile();
     service = moduleRef.get(DeploymentsLogStreamService);
@@ -81,7 +81,7 @@ describe('DeploymentsLogStreamService', () => {
         new AbortController().signal,
       ),
     );
-    const key = await service.subscribe(mockSocket as never, {
+    const key = service.subscribe(mockSocket as never, {
       deploymentId: 'dep_1',
       serverId: 'srv_1',
       containerName: 'web',
@@ -115,12 +115,12 @@ describe('DeploymentsLogStreamService', () => {
     dockerRemote.streamContainerLogs.mockReturnValue(
       makeIterable([], new AbortController().signal),
     );
-    const key1 = await service.subscribe(mockSocket as never, {
+    const key1 = service.subscribe(mockSocket as never, {
       deploymentId: 'dep_1',
       serverId: 'srv_1',
       containerName: 'web',
     });
-    const key2 = await service.subscribe(mockSocket as never, {
+    const key2 = service.subscribe(mockSocket as never, {
       deploymentId: 'dep_1',
       serverId: 'srv_1',
       containerName: 'web',
@@ -142,7 +142,7 @@ describe('DeploymentsLogStreamService', () => {
         ac.signal,
       ),
     );
-    const key = await service.subscribe(mockSocket as never, {
+    const key = service.subscribe(mockSocket as never, {
       deploymentId: 'dep_1',
       serverId: 'srv_1',
       containerName: 'web',
@@ -173,12 +173,12 @@ describe('DeploymentsLogStreamService', () => {
         new AbortController().signal,
       ),
     );
-    await service.subscribe(mockSocket as never, {
+    service.subscribe(mockSocket as never, {
       deploymentId: 'dep_1',
       serverId: 'srv_1',
       containerName: 'web',
     });
-    await service.subscribe(mockSocket as never, {
+    service.subscribe(mockSocket as never, {
       deploymentId: 'dep_1',
       serverId: 'srv_1',
       containerName: 'sidecar',
@@ -198,7 +198,7 @@ describe('DeploymentsLogStreamService', () => {
       },
     };
     dockerRemote.streamContainerLogs.mockReturnValue(failingIterable);
-    const key = await service.subscribe(mockSocket as never, {
+    const key = service.subscribe(mockSocket as never, {
       deploymentId: 'dep_1',
       serverId: 'srv_1',
       containerName: 'web',
@@ -219,7 +219,7 @@ describe('DeploymentsLogStreamService', () => {
     dockerRemote.streamContainerLogs.mockReturnValue(
       makeIterable([], new AbortController().signal),
     );
-    await service.subscribe(mockSocket as never, {
+    service.subscribe(mockSocket as never, {
       deploymentId: 'dep_1',
       serverId: 'srv_1',
       containerName: 'web',
@@ -227,7 +227,7 @@ describe('DeploymentsLogStreamService', () => {
     const subs = (service as unknown as { subscriptions: Map<string, unknown> })
       .subscriptions;
     expect(subs.size).toBe(1);
-    await service.onModuleDestroy();
+    service.onModuleDestroy();
     expect(subs.size).toBe(0);
   });
 });

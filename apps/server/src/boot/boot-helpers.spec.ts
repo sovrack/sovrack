@@ -1,3 +1,5 @@
+import * as childProcess from 'child_process';
+import * as fs from 'fs';
 import {
   assertRequiredEnv,
   assertRequiredTables,
@@ -6,7 +8,21 @@ import {
   recoverInFlightDeployments,
   reportWebhookConfiguration,
   resolveAllowedOrigins,
+  verifyAnsibleCollectionVersions,
 } from './boot-helpers';
+
+// Node core modules export non-configurable properties under ESM interop —
+// jest.spyOn can't redefine them directly. Re-exporting through a factory
+// mock (keeping every other real export via requireActual) makes
+// readFileSync/execFile spy-able like any other object property.
+jest.mock('fs', () => ({
+  ...jest.requireActual('fs'),
+  readFileSync: jest.fn(),
+}));
+jest.mock('child_process', () => ({
+  ...jest.requireActual('child_process'),
+  execFile: jest.fn(),
+}));
 
 // ── assertRequiredEnv ─────────────────────────────────────────────────────────
 
@@ -201,6 +217,147 @@ describe('reportWebhookConfiguration', () => {
     process.env.WEBHOOK_URL = 'https://platform.example.com';
     reportWebhookConfiguration(logger);
     expect(logger.warn).not.toHaveBeenCalled();
+  });
+});
+
+// ── verifyAnsibleCollectionVersions ──────────────────────────────────────────
+// Regression coverage for the "community.docker 3.7.0 from a stale apt
+// package" incident: this must catch a below-floor collection at boot and
+// log loudly, without ever throwing (most of the platform never touches
+// Ansible at all).
+
+describe('verifyAnsibleCollectionVersions', () => {
+  const logger = { log: jest.fn(), warn: jest.fn(), error: jest.fn() } as never;
+  const requirementsYaml = [
+    'collections:',
+    '  - name: community.docker',
+    '    version: ">=3.10.4,<5.0.0"',
+    '  - name: ansible.posix',
+    '    version: ">=1.5.0,<2.0.0"',
+  ].join('\n');
+
+  function mockGalaxyList(
+    versionsByPath: Record<string, Record<string, string>>,
+  ) {
+    const byPath: Record<string, Record<string, { version: string }>> = {};
+    for (const [path, versions] of Object.entries(versionsByPath)) {
+      byPath[path] = {};
+      for (const [name, version] of Object.entries(versions)) {
+        byPath[path][name] = { version };
+      }
+    }
+    return JSON.stringify(byPath);
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (fs.readFileSync as jest.Mock).mockReturnValue(requirementsYaml);
+  });
+
+  it('errors loudly when an installed collection is below its pinned floor', async () => {
+    (childProcess.execFile as jest.Mock).mockImplementation(
+      (_file, _args, _opts, callback) => {
+        const cb = callback as (
+          err: Error | null,
+          result: { stdout: string; stderr: string },
+        ) => void;
+        cb(null, {
+          stdout: mockGalaxyList({
+            '/usr/lib/python3/dist-packages/ansible_collections': {
+              'community.docker': '3.7.0',
+            },
+          }),
+          stderr: '',
+        });
+        return {} as childProcess.ChildProcess;
+      },
+    );
+
+    await verifyAnsibleCollectionVersions(logger);
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('community.docker" is 3.7.0'),
+      'Bootstrap',
+    );
+  });
+
+  it('does not error when the installed collection meets the pinned floor', async () => {
+    (childProcess.execFile as jest.Mock).mockImplementation(
+      (_file, _args, _opts, callback) => {
+        const cb = callback as (
+          err: Error | null,
+          result: { stdout: string; stderr: string },
+        ) => void;
+        cb(null, {
+          stdout: mockGalaxyList({
+            '/home/user/.ansible/collections/ansible_collections': {
+              'community.docker': '4.8.7',
+              'ansible.posix': '1.5.4',
+            },
+          }),
+          stderr: '',
+        });
+        return {} as childProcess.ChildProcess;
+      },
+    );
+
+    await verifyAnsibleCollectionVersions(logger);
+
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('warns (does not throw) when the collection is not found at all', async () => {
+    (childProcess.execFile as jest.Mock).mockImplementation(
+      (_file, _args, _opts, callback) => {
+        const cb = callback as (
+          err: Error | null,
+          result: { stdout: string; stderr: string },
+        ) => void;
+        cb(null, { stdout: mockGalaxyList({}), stderr: '' });
+        return {} as childProcess.ChildProcess;
+      },
+    );
+
+    await expect(
+      verifyAnsibleCollectionVersions(logger),
+    ).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('not found'),
+      'Bootstrap',
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('warns (does not throw) when ansible-galaxy itself is unavailable', async () => {
+    (childProcess.execFile as jest.Mock).mockImplementation(
+      (_file, _args, _opts, callback) => {
+        const cb = callback as (err: Error | null) => void;
+        cb(new Error('command not found: ansible-galaxy'));
+        return {} as childProcess.ChildProcess;
+      },
+    );
+
+    await expect(
+      verifyAnsibleCollectionVersions(logger),
+    ).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('ansible-galaxy unavailable'),
+      'Bootstrap',
+    );
+  });
+
+  it('warns (does not throw) when requirements.yml cannot be read', async () => {
+    (fs.readFileSync as jest.Mock).mockImplementation(() => {
+      throw new Error('ENOENT');
+    });
+
+    await expect(
+      verifyAnsibleCollectionVersions(logger),
+    ).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('integrity check skipped'),
+      'Bootstrap',
+    );
   });
 });
 

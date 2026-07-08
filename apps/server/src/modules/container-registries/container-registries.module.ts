@@ -10,6 +10,6 @@ import { RegistryConnectionTestService } from './registry-connection-test.servic
   imports: [PrismaModule, HttpModule, CryptoModule],
   controllers: [ContainerRegistriesController],
   providers: [ContainerRegistriesService, RegistryConnectionTestService],
-  exports: [ContainerRegistriesService],
+  // exports: [ContainerRegistriesService],
 })
 export class ContainerRegistriesModule {}

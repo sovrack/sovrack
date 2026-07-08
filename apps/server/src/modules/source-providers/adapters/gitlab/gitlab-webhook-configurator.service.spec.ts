@@ -17,20 +17,15 @@ function makeContext(overrides = {}) {
 }
 
 function makeHttpError(status: number, message = 'error') {
-  return {
-    response: {
-      status,
-      data: { message },
-    },
-  };
+  return { response: { status, data: { message } } };
 }
 
 function makeSvc(
   opts: {
     maxRetries?: string;
     retryDelayMs?: string;
-    httpResponse?: unknown;
-    httpError?: unknown;
+    // Hooks returned by the GET listHooks call (default: none).
+    existingHooks?: Array<{ id: number; url: string }>;
     resolveCtxError?: unknown;
   } = {},
 ) {
@@ -39,9 +34,9 @@ function makeSvc(
   const fileService = {
     resolveRepositoryContext: jest.fn().mockResolvedValue(context),
     extractHttpStatus: jest.fn((err: unknown) => {
-      const status = (err as { response?: { status?: number } })?.response
-        ?.status;
-      return status ?? null;
+      return (
+        (err as { response?: { status?: number } })?.response?.status ?? null
+      );
     }),
     extractGitlabErrorMessage: jest.fn((err: unknown) => {
       return (
@@ -73,16 +68,11 @@ function makeSvc(
   } as unknown as ConfigService;
 
   const httpService = {
-    post: jest.fn(),
+    // listHooks (GET) — returns existing hooks (default: empty → proceed to POST).
+    get: jest.fn().mockReturnValue(of({ data: opts.existingHooks ?? [] })),
+    // createHook (POST) — default success with a fresh id.
+    post: jest.fn().mockReturnValue(of({ data: { id: 123 } })),
   } as unknown as HttpService;
-
-  if (opts.httpError) {
-    (httpService.post as jest.Mock).mockReturnValue(
-      throwError(() => opts.httpError),
-    );
-  } else {
-    (httpService.post as jest.Mock).mockReturnValue(of({ data: { id: 123 } }));
-  }
 
   const svc = new GitlabWebhookConfiguratorService(
     httpService,
@@ -93,8 +83,8 @@ function makeSvc(
 }
 
 describe('GitlabWebhookConfiguratorService', () => {
-  describe('configureWebhook (success paths)', () => {
-    it('creates a webhook and returns hookId + url', async () => {
+  describe('configureWebhook (create path)', () => {
+    it('creates a webhook and returns hookId + url when none exists', async () => {
       const { svc } = makeSvc();
       const result = await svc.configureWebhook(
         'proj1',
@@ -126,37 +116,61 @@ describe('GitlabWebhookConfiguratorService', () => {
     });
   });
 
-  describe('configureWebhook (duplicate detection)', () => {
-    it('returns hookId="existing" on HTTP 409', async () => {
-      const { svc } = makeSvc({ httpError: makeHttpError(409) });
+  // The core anti-duplication guarantee: if a hook with the same URL already
+  // exists, reuse it — NEVER POST a second one (fixes the 8-duplicate-hooks bug
+  // where every "Re-register" click created a new GitLab hook).
+  describe('configureWebhook (idempotence)', () => {
+    it('reuses an existing hook with the same URL and does NOT POST', async () => {
+      const { svc, httpService } = makeSvc({
+        existingHooks: [
+          { id: 555, url: 'https://platform.io/hook', token: 'secret' },
+        ],
+      });
       const result = await svc.configureWebhook(
         'proj1',
         'https://platform.io/hook',
         'secret',
       );
-      expect(result.hookId).toBe('existing');
+      expect(result.hookId).toBe(555);
+      expect(httpService.post).not.toHaveBeenCalled();
     });
 
-    it('returns hookId="existing" on "has already been taken" message', async () => {
-      const { svc } = makeSvc({
-        httpError: makeHttpError(422, 'URL has already been taken'),
+    it('creates a new hook when existing hooks point at DIFFERENT URLs', async () => {
+      const { svc, httpService } = makeSvc({
+        existingHooks: [{ id: 1, url: 'https://other.example/hook' }],
       });
       const result = await svc.configureWebhook(
         'proj1',
-        'https://hook.io',
-        'sec',
+        'https://platform.io/hook',
+        'secret',
       );
-      expect(result.hookId).toBe('existing');
+      expect(result.hookId).toBe(123);
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls through to create if listing hooks fails (best-effort)', async () => {
+      const { svc, httpService } = makeSvc();
+      (httpService.get as jest.Mock).mockReturnValue(
+        throwError(() => makeHttpError(500)),
+      );
+      const result = await svc.configureWebhook(
+        'proj1',
+        'https://platform.io/hook',
+        'secret',
+      );
+      expect(result.hookId).toBe(123);
     });
   });
 
   describe('configureWebhook (non-retryable error)', () => {
     it('propagates non-retryable errors after exhausting retries', async () => {
-      const { svc } = makeSvc({
+      const { svc, httpService } = makeSvc({
         maxRetries: '1',
         retryDelayMs: '1',
-        httpError: makeHttpError(400, 'bad request'),
       });
+      (httpService.post as jest.Mock).mockReturnValue(
+        throwError(() => makeHttpError(400, 'bad request')),
+      );
       await expect(
         svc.configureWebhook('proj1', 'https://platform.io/hook', 'secret'),
       ).rejects.toBeDefined();

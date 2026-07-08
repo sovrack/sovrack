@@ -7,3 +7,4 @@ export { ServersJobsService } from './servers-jobs.service';
 export { ServersVerificationService } from './servers-verification.service';
 export { ServersDetectionService } from './servers-detection.service';
 export { ServersAuditService } from './servers-audit.service';
+export { SudoersHelper } from './sudoers-helper.service';

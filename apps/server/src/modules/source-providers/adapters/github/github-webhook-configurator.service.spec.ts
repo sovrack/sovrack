@@ -1,3 +1,4 @@
+import { AxiosError } from 'axios';
 import { of, throwError } from 'rxjs';
 import { GithubWebhookConfiguratorService } from './github-webhook-configurator.service';
 
@@ -21,6 +22,7 @@ function makeSvc(
 
   const httpGet = jest.fn();
   const httpPost = jest.fn();
+  const httpPatch = jest.fn().mockReturnValue(of({}));
 
   if (opts.listError) {
     httpGet.mockReturnValue(throwError(() => new Error('network')));
@@ -48,11 +50,17 @@ function makeSvc(
     httpPost.mockReturnValue(of({ data: { id: 456 } }));
   }
 
-  const httpService = { get: httpGet, post: httpPost } as never;
+  const httpService = {
+    get: httpGet,
+    post: httpPost,
+    patch: httpPatch,
+  } as never;
+
   return {
     svc: new GithubWebhookConfiguratorService(httpService, fileService),
     httpPost,
     httpGet,
+    httpPatch,
   };
 }
 
@@ -82,8 +90,8 @@ describe('GithubWebhookConfiguratorService', () => {
       expect(body.config.secret).toBe('secret');
     });
 
-    it('returns existing hookId when webhook already exists for that URL', async () => {
-      const { svc, httpPost } = makeSvc({ existingHookId: 789 });
+    it('returns existing hookId and syncs secret via PATCH when webhook already exists', async () => {
+      const { svc, httpPost, httpPatch } = makeSvc({ existingHookId: 789 });
       const result = await svc.configureWebhook(
         'proj1',
         'https://platform.io/hook',
@@ -91,6 +99,12 @@ describe('GithubWebhookConfiguratorService', () => {
       );
       expect(result.hookId).toBe(789);
       expect(httpPost).not.toHaveBeenCalled();
+      // GitHub's API masks the returned secret → always issues PATCH to sync
+      expect(httpPatch).toHaveBeenCalledWith(
+        expect.stringContaining('/hooks/789'),
+        { config: { secret: 'secret' } },
+        expect.any(Object),
+      );
     });
 
     it('skips existing check gracefully when list call fails (network error)', async () => {
@@ -115,6 +129,86 @@ describe('GithubWebhookConfiguratorService', () => {
       await svc.configureWebhook('proj1', 'https://platform.io/hook', 'secret');
       const listUrl = httpGet.mock.calls[0][0] as string;
       expect(listUrl).toContain('/repos/org/repo/hooks');
+    });
+  });
+
+  describe('configureWebhook (retry)', () => {
+    it('retries on 503 and succeeds on second attempt', async () => {
+      const { svc, httpPost } = makeSvc();
+      httpPost
+        .mockReset()
+        .mockReturnValueOnce(
+          throwError(
+            () =>
+              new AxiosError(
+                'Service Unavailable',
+                undefined,
+                undefined,
+                undefined,
+                {
+                  status: 503,
+                  statusText: 'Service Unavailable',
+                  headers: {},
+                  data: {},
+                  config: {} as never,
+                } as never,
+              ),
+          ),
+        )
+        .mockReturnValue(of({ data: { id: 99 } }));
+      const result = await svc.configureWebhook(
+        'proj1',
+        'https://platform.io/hook',
+        'secret',
+      );
+      expect(result.hookId).toBe(99);
+      expect(httpPost).toHaveBeenCalledTimes(2);
+    });
+
+    it('retries on ECONNRESET and succeeds', async () => {
+      const { svc, httpPost } = makeSvc();
+      httpPost
+        .mockReset()
+        .mockReturnValueOnce(
+          throwError(
+            () =>
+              new AxiosError(
+                'read ECONNRESET',
+                'ECONNRESET',
+                undefined,
+                undefined,
+                undefined,
+              ),
+          ),
+        )
+        .mockReturnValue(of({ data: { id: 77 } }));
+      const result = await svc.configureWebhook(
+        'proj1',
+        'https://platform.io/hook',
+        'secret',
+      );
+      expect(result.hookId).toBe(77);
+      expect(httpPost).toHaveBeenCalledTimes(2);
+    });
+
+    it('propagates non-retryable error (400) without retry', async () => {
+      const { svc, httpPost } = makeSvc();
+      httpPost.mockReset().mockReturnValue(
+        throwError(
+          () =>
+            new AxiosError('Bad Request', undefined, undefined, undefined, {
+              status: 400,
+              statusText: 'Bad Request',
+              headers: {},
+              data: {},
+              config: {} as never,
+            } as never),
+        ),
+      );
+      await expect(
+        svc.configureWebhook('proj1', 'https://platform.io/hook', 'secret'),
+      ).rejects.toThrow();
+      expect(httpPost).toHaveBeenCalledTimes(1);
     });
   });
 });

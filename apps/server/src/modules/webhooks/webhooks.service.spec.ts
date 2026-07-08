@@ -67,11 +67,11 @@ describe('WebhooksService', () => {
   });
 
   describe('getOrCreateEndpoint', () => {
-    it('returns the existing endpoint without exposing its secret', async () => {
+    it('returns the existing endpoint with its decrypted secret (needed for provider sync)', async () => {
       prisma.webhookEndpoint.findFirst.mockResolvedValue({
         id: 'ep_1',
         webhookToken: 'tok-123',
-        secret: 'enc-secret', // déjà sécurisé → on ne ré-expose pas
+        secret: 'enc-secret', // already stored in DB
       });
       const result = await service.getOrCreateEndpoint({
         projectId: 'proj_1',
@@ -81,7 +81,7 @@ describe('WebhooksService', () => {
       expect(result).toEqual({
         id: 'ep_1',
         webhookToken: 'tok-123',
-        secret: '',
+        secret: 'enc-secret', // decrypted and returned for provider sync
       });
       expect(prisma.webhookEndpoint.create).not.toHaveBeenCalled();
     });

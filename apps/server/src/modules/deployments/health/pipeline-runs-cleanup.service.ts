@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { runsBackgroundWork } from '../../../shared/utils/process-role.util';
 
 /**
  * B-5 fix: PipelineRuns that stay PENDING indefinitely were never cleaned up.
@@ -23,6 +24,7 @@ export class PipelineRunsCleanupService {
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupStalePipelineRuns(): Promise<void> {
+    if (!runsBackgroundWork()) return;
     const now = new Date();
 
     const pendingCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

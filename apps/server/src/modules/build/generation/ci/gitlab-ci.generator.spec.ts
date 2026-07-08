@@ -10,7 +10,7 @@ describe('GitlabCiGenerator', () => {
     expect(out).toContain('  - notify');
   });
 
-  it('émet le job deploy qui curl le webhook platform (déclenchement CI)', () => {
+  it('emits the deploy job that curls the platform webhook (CI trigger)', () => {
     const out = gen.generate({ projectType: 'nodejs', branches: ['main'] });
     expect(out).toContain('deploy:');
     expect(out).toContain('$PLATFORM_DEPLOY_HOOK');
@@ -31,7 +31,7 @@ describe('GitlabCiGenerator', () => {
     expect(out).toContain('build:');
   });
 
-  it('reprend les branches fournies dans les règles only', () => {
+  it('uses the provided branches in the only rules', () => {
     const out = gen.generate({
       projectType: 'go',
       branches: ['develop', 'release'],

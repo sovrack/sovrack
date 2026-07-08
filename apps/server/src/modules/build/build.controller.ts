@@ -143,8 +143,8 @@ export class BuildController {
    */
   @Get('engines')
   @Roles(Role.ADMIN, Role.DEVELOPER)
-  async getAvailableEngines() {
-    return await this.setupService.getAvailableEngines();
+  getAvailableEngines() {
+    return this.setupService.getAvailableEngines();
   }
 
   /**

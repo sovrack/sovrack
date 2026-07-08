@@ -92,6 +92,35 @@ const DETECTION_TOOLS: DetectionTool[] = [
     capabilityKey: 'certbot.installed',
     command: 'certbot --version',
   },
+  // These 3 close a real gap: Setup Server's "Installs" list claims to set
+  // up Swap / Log rotation / Security hardening, but — unlike every other
+  // item above — none of them had ANY verification command, so there was no
+  // way to see from the UI whether they actually succeeded on a given
+  // server. Each command below is a direct, unprivileged, read-only check of
+  // that role's actual on-disk effect (not just "did the last Ansible run
+  // report OK", which can go stale if state changes outside the platform).
+  {
+    key: 'swap',
+    displayName: 'Swap',
+    capabilityKey: 'swap.active',
+    command: 'swapon --show --noheadings | grep -q .',
+  },
+  {
+    key: 'logrotate',
+    displayName: 'Log rotation',
+    capabilityKey: 'logrotate.configured',
+    // Matches logrotate_platform_path in roles/logrotate/defaults/main.yml.
+    command: 'test -f /etc/logrotate.d/platform-defaults',
+  },
+  {
+    key: 'security_hardening',
+    displayName: 'Security hardening',
+    capabilityKey: 'security_hardening.applied',
+    // Matches roles/security_hardening/tasks/main.yml: automatic security
+    // upgrades file + SSH password auth disabled.
+    command:
+      "test -f /etc/apt/apt.conf.d/20auto-upgrades && grep -qi '^PasswordAuthentication no' /etc/ssh/sshd_config",
+  },
 ];
 
 @Injectable()

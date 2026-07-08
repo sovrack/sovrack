@@ -116,6 +116,13 @@ export class ServersJobsFacade {
       jobId: job.id,
     });
 
+    // Detection auto-triggers on a successful validation via the
+    // SERVER_EVENTS.SSH_VALIDATED event (ServersDetectionService.onSshValidated,
+    // emitted by ServersVerificationService.markSshValidated, which
+    // verifyServerDirect() calls below) — no separate chaining needed here.
+    // An earlier version of this method ALSO chained detection explicitly,
+    // which ran detect() twice per validation (two SSH round-trips, two
+    // concurrent writes to the same Server row). Removed — one trigger only.
     this.runJobInBackground(
       job.id,
       this.jobs.executeJobWithRetry(
@@ -175,6 +182,19 @@ export class ServersJobsFacade {
     await this.audit.record(id, 'SERVER_INSTALL_SSH_KEY', actorUserId, {
       success: true,
     });
+
+    // Clean onboarding: installing the key is only step 1. SSH validation and
+    // capability detection are DISTINCT follow-ups that the user shouldn't have
+    // to trigger by hand — chain them automatically so "add server" flows
+    // NEW → KEY_INSTALLED → SSH_VALIDATED → INFO_DETECTED on its own.
+    // verifyServer() itself fire-and-forgets the job and (on success)
+    // auto-runs detection, so this is non-blocking; a failure only logs.
+    this.verifyServer(id, actorUserId).catch((error: unknown) => {
+      this.logger.warn(
+        `Auto-validation after key install failed for server ${id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    });
+
     return result;
   }
 

@@ -67,22 +67,26 @@ export class WebhooksService {
       },
     });
     if (existing) {
-      // Endpoint legacy sans secret → on en génère un et on le renvoie pour
-      // qu'il soit (re)posé chez le provider → sécurise les anciens webhooks
-      // au prochain « Connect ». Sinon on ne ré-expose jamais le secret existant.
-      if (!existing.secret) {
-        const secret = randomBytes(32).toString('hex');
+      // Endpoint existant : on déchiffre et renvoie le secret pour que le
+      // provider puisse le synchroniser (update du hook). Si le endpoint
+      // n'a pas de secret (legacy) ou que le déchiffrement échoue, on en
+      // génère un nouveau.
+      let secret = existing.secret
+        ? this.crypto.decryptSafe(existing.secret)
+        : null;
+      if (!secret) {
+        secret = randomBytes(32).toString('hex');
+        if (existing.secret) {
+          this.logger.warn(
+            `Endpoint ${existing.id}: existing secret was corrupted, generating new one.`,
+          );
+        }
         await this.prisma.webhookEndpoint.update({
           where: { id: existing.id },
           data: { secret: this.crypto.encrypt(secret) },
         });
-        return { id: existing.id, webhookToken: existing.webhookToken, secret };
       }
-      return {
-        id: existing.id,
-        webhookToken: existing.webhookToken,
-        secret: '', // never expose the existing secret again
-      };
+      return { id: existing.id, webhookToken: existing.webhookToken, secret };
     }
     const secret = randomBytes(32).toString('hex');
     const created = await this.prisma.webhookEndpoint.create({

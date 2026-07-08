@@ -1,13 +1,11 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   HttpException,
   Injectable,
   Logger,
   NotFoundException,
   UnauthorizedException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { SourceType } from '@prisma/client';
@@ -21,6 +19,13 @@ import type {
   GitCredentials,
 } from '../../contracts/git-provider.contract';
 import type { GitlabResolvedConfig } from './gitlab.types';
+import {
+  extractHttpStatus,
+  pickNestedNumber,
+  pickString,
+  shouldTryAlternate,
+  throwGitlabMappedError,
+} from './gitlab-error-mapper.util';
 
 type GitlabFilePayload = {
   branch: string;
@@ -38,15 +43,7 @@ export type GitlabRepositoryContext = {
   serviceId?: string;
 };
 
-/**
- * Low-level GitLab file I/O:
- *   - resolveRepositoryContext   → resolve project/service → GitLab project ID + token
- *   - readFile                   → GET  /repository/files/{path}?ref={ref}
- *   - writeFiles                 → PUT/POST per file (upsert)
- *   - resolveGitCredentials      → build https://oauth2:{token}@host/path.git for VPS clone
- *
- * Owned by source-providers/gitlab — NOT by build.
- */
+/** Low-level GitLab file I/O (source-providers/gitlab). */
 @Injectable()
 export class GitlabFileService {
   private readonly logger = new Logger(GitlabFileService.name);
@@ -56,6 +53,20 @@ export class GitlabFileService {
     private readonly httpService: HttpService,
     private readonly crypto: CryptoService,
   ) {}
+
+  /** @internal delegate – kept for GitlabWebhookConfiguratorService compatibility */
+  extractHttpStatus(err: unknown): number | null {
+    return extractHttpStatus(err);
+  }
+
+  /** @internal delegate – kept for GitlabWebhookConfiguratorService compatibility */
+  throwGitlabMappedError(
+    context: string,
+    err: unknown,
+    fallback: string,
+  ): never {
+    return throwGitlabMappedError(context, err, fallback);
+  }
 
   // ─── Public API ──────────────────────────────────────────────────────────
 
@@ -82,8 +93,8 @@ export class GitlabFileService {
       }
       return content;
     } catch (err: unknown) {
-      if (this.extractHttpStatus(err) === 404) return null;
-      this.throwGitlabMappedError(
+      if (extractHttpStatus(err) === 404) return null;
+      throwGitlabMappedError(
         'lecture du fichier',
         err,
         `Impossible de lire ${filePath}`,
@@ -152,11 +163,11 @@ export class GitlabFileService {
     projectId: string,
     serviceId?: string,
   ): Promise<GitlabRepositoryContext> {
-    // Quand serviceId est fourni, résoudre CE service (1 service = 1 dépôt) :
-    // l'ancien findFirst({projectId}) prenait un service ARBITRAIRE (ordre
-    // physique du heap Postgres) → sur un projet multi-dépôts, readFile/creds
-    // pouvaient viser le MAUVAIS dépôt (ex. le check Dockerfile du backend
-    // interrogeait le repo du frontend). Même famille que le bug B3 branches.
+    this.logger.log(
+      `[DEBUG resolveRepositoryContext] projectId=${projectId}, serviceId=${serviceId}`,
+    );
+    // Use serviceId to target the exact repository (fixes bug where any repo
+    // in a multi-repo project could be hit).
     const svc = serviceId
       ? await this.prisma.service.findFirst({
           where: { id: serviceId, projectId },
@@ -164,6 +175,9 @@ export class GitlabFileService {
       : await this.prisma.service.findFirst({
           where: { projectId, providerId: { not: null } },
         });
+    this.logger.log(
+      `[DEBUG resolveRepositoryContext] Resolved service: id=${svc?.id}, name=${svc?.name}, repoPath=${svc?.repoPath}`,
+    );
     if (!svc?.providerId)
       throw new BadRequestException('Configuration GitLab manquante');
 
@@ -193,10 +207,6 @@ export class GitlabFileService {
       providerId: gitProviderConfig.id,
     };
 
-    if (config.sourceType === SourceType.GIT && !serviceId) {
-      // serviceId is only needed for multi-repo setups; for single repos it's optional
-    }
-
     const service = serviceId
       ? await this.prisma.service.findUnique({
           where: { id: serviceId },
@@ -213,13 +223,22 @@ export class GitlabFileService {
 
     branch = service?.branch?.trim() || config.defaultBranch?.trim() || 'main';
     repositoryPath = svc.repoPath ?? null;
+    this.logger.log(
+      `[DEBUG resolveRepositoryContext] Initial repositoryPath from svc.repoPath: ${repositoryPath}`,
+    );
 
     if (!repositoryPath) {
+      this.logger.log(
+        `[DEBUG resolveRepositoryContext] repositoryPath is null, using fallback gitProviderRepo.findFirst with providerId=${config.providerId}`,
+      );
       const repoLink = await this.prisma.gitProviderRepo.findFirst({
         where: { providerId: config.providerId ?? undefined },
         select: { repoPath: true },
       });
       repositoryPath = repoLink?.repoPath ?? null;
+      this.logger.log(
+        `[DEBUG resolveRepositoryContext] Fallback repositoryPath: ${repositoryPath}`,
+      );
     }
 
     gitlabProjectId = repositoryPath;
@@ -235,9 +254,7 @@ export class GitlabFileService {
 
     const baseUrl = config.providerUrl.replace(/\/$/, '');
 
-    // Self-healing backfill: older projects stored only the numeric ID. Fetch the
-    // real path_with_namespace from the GitLab API once and persist it, so the
-    // clone URL never falls back to the (unclonable) numeric ID again.
+    // Backfill numeric-only IDs with real path_with_namespace.
     if (!repositoryPath && gitlabProjectId) {
       repositoryPath = await this.backfillPathNamespace(
         config.id ?? '',
@@ -259,12 +276,7 @@ export class GitlabFileService {
     };
   }
 
-  /**
-   * Fetches `path_with_namespace` from the GitLab API for a project that was
-   * stored without it, and persists it on the AppProviderLink (+ service when
-   * present) so subsequent clones use the path. Returns null on failure (the
-   * caller then surfaces a clear error instead of building a broken URL).
-   */
+  /** Backfill path_with_namespace for projects stored with numeric IDs only. */
   private async backfillPathNamespace(
     configId: string,
     baseUrl: string,
@@ -279,7 +291,7 @@ export class GitlabFileService {
           { headers: { 'PRIVATE-TOKEN': token } },
         ),
       );
-      const path = this.pickString(response.data, 'path_with_namespace');
+      const path = pickString(response.data, 'path_with_namespace');
       if (!path) return null;
       if (serviceId) {
         await this.prisma.service.update({
@@ -313,12 +325,12 @@ export class GitlabFileService {
           { headers: { 'PRIVATE-TOKEN': context.token } },
         ),
       );
-      const defaultBranch = this.pickString(response.data, 'default_branch');
+      const defaultBranch = pickString(response.data, 'default_branch');
       this.assertWritePermission(response.data);
       return { defaultBranch };
     } catch (err: unknown) {
       if (err instanceof HttpException) throw err;
-      this.throwGitlabMappedError(
+      throwGitlabMappedError(
         'vérification du projet GitLab',
         err,
         'Impossible de vérifier le projet GitLab cible.',
@@ -330,11 +342,11 @@ export class GitlabFileService {
     const permissionsRaw = projectData.permissions;
     if (!permissionsRaw || typeof permissionsRaw !== 'object') return;
     const permissions = permissionsRaw as Record<string, unknown>;
-    const projectAccess = this.pickNestedNumber(permissions, [
+    const projectAccess = pickNestedNumber(permissions, [
       'project_access',
       'access_level',
     ]);
-    const groupAccess = this.pickNestedNumber(permissions, [
+    const groupAccess = pickNestedNumber(permissions, [
       'group_access',
       'access_level',
     ]);
@@ -362,8 +374,8 @@ export class GitlabFileService {
       );
       return;
     } catch (err: unknown) {
-      if (this.extractHttpStatus(err) !== 404) {
-        this.throwGitlabMappedError(
+      if (extractHttpStatus(err) !== 404) {
+        throwGitlabMappedError(
           'vérification de la branche',
           err,
           'Impossible de vérifier la branche.',
@@ -385,8 +397,8 @@ export class GitlabFileService {
         ),
       );
     } catch (err: unknown) {
-      if (this.extractHttpStatus(err) === 409) return;
-      this.throwGitlabMappedError(
+      if (extractHttpStatus(err) === 409) return;
+      throwGitlabMappedError(
         `création de la branche "${context.branch}"`,
         err,
         `Branche "${context.branch}" introuvable et création automatique échouée.`,
@@ -448,37 +460,18 @@ export class GitlabFileService {
         return 'UPDATED';
       } catch (err: unknown) {
         lastError = err;
-        if (index === 0 && this.shouldTryAlternate(err, action)) continue;
-        this.throwGitlabMappedError(
+        if (index === 0 && shouldTryAlternate(err, action)) continue;
+        throwGitlabMappedError(
           `mise à jour de ${filePath}`,
           err,
           `Échec GitLab pour ${filePath}.`,
         );
       }
     }
-    this.throwGitlabMappedError(
+    throwGitlabMappedError(
       `mise à jour de ${filePath}`,
       lastError,
       `Échec GitLab pour ${filePath}.`,
-    );
-  }
-
-  private shouldTryAlternate(
-    err: unknown,
-    action: 'create' | 'update',
-  ): boolean {
-    const status = this.extractHttpStatus(err);
-    const msg = this.extractGitlabErrorMessage(err).toLowerCase();
-    if (action === 'create')
-      return (
-        status === 409 ||
-        msg.includes('already exists') ||
-        msg.includes('has already been taken')
-      );
-    return (
-      status === 404 ||
-      msg.includes('does not exist') ||
-      msg.includes('not found')
     );
   }
 
@@ -493,107 +486,12 @@ export class GitlabFileService {
       );
       return true;
     } catch (err: unknown) {
-      if (this.extractHttpStatus(err) === 404) return false;
-      this.throwGitlabMappedError(
+      if (extractHttpStatus(err) === 404) return false;
+      throwGitlabMappedError(
         'vérification du fichier',
         err,
         'Impossible de vérifier le fichier.',
       );
     }
-  }
-
-  // ─── Error helpers ────────────────────────────────────────────────────────
-
-  extractHttpStatus(err: unknown): number | null {
-    if (err && typeof err === 'object') {
-      const e = err as Record<string, unknown>;
-      if (e.response && typeof e.response === 'object') {
-        const resp = e.response as Record<string, unknown>;
-        if (typeof resp.status === 'number') return resp.status;
-      }
-      if (typeof e.status === 'number') return e.status;
-    }
-    return null;
-  }
-
-  private extractErrorBody(err: unknown): unknown {
-    if (err && typeof err === 'object') {
-      const e = err as Record<string, unknown>;
-      if (e.response && typeof e.response === 'object') {
-        const resp = e.response as Record<string, unknown>;
-        if ('data' in resp) return resp.data;
-      }
-    }
-    return null;
-  }
-
-  extractGitlabErrorMessage(err: unknown): string {
-    return this.parseGitlabError(this.extractErrorBody(err));
-  }
-
-  private parseGitlabError(body: unknown): string {
-    if (typeof body === 'string') return body.slice(0, 300);
-    if (Array.isArray(body))
-      return body.filter((i): i is string => typeof i === 'string').join(', ');
-    if (body && typeof body === 'object') {
-      const p = body as Record<string, unknown>;
-      if (typeof p.message === 'string' && p.message.trim()) return p.message;
-      if (Array.isArray(p.message))
-        return (p.message as unknown[])
-          .filter((i): i is string => typeof i === 'string')
-          .join(', ');
-      if (typeof p.error === 'string' && p.error.trim()) return p.error;
-    }
-    return 'Erreur GitLab inconnue.';
-  }
-
-  throwGitlabMappedError(
-    action: string,
-    error: unknown,
-    fallback: string,
-  ): never {
-    const status = this.extractHttpStatus(error);
-    const body = this.extractErrorBody(error);
-    const msg = this.parseGitlabError(body);
-    this.logger.error(
-      `[GitLab] ${action} failed (status=${String(status)}): ${JSON.stringify(body)}`,
-    );
-    if (status === 401)
-      throw new UnauthorizedException('Token GitLab invalide ou expiré.');
-    if (status === 403)
-      throw new ForbiddenException(
-        'Permission refusée par GitLab. Vérifiez les droits du token.',
-      );
-    if (status === 404)
-      throw new NotFoundException(
-        msg || `${fallback} (ressource introuvable).`,
-      );
-    if (status === 409)
-      throw new ConflictException(msg || `${fallback} (conflit GitLab).`);
-    if (status === 422) {
-      if (msg.toLowerCase().includes('invalid url'))
-        throw new UnprocessableEntityException(
-          `${fallback} GitLab a refusé l'URL.`,
-        );
-      throw new UnprocessableEntityException(
-        msg || `${fallback} (payload invalide).`,
-      );
-    }
-    throw new BadRequestException(msg || `${fallback} (erreur inattendue).`);
-  }
-
-  private pickString(obj: Record<string, unknown>, key: string): string | null {
-    const v = obj[key];
-    return typeof v === 'string' && v.trim() ? v.trim() : null;
-  }
-
-  private pickNestedNumber(
-    obj: Record<string, unknown>,
-    [first, second]: [string, string],
-  ): number | null {
-    const l1 = obj[first];
-    if (!l1 || typeof l1 !== 'object') return null;
-    const v = (l1 as Record<string, unknown>)[second];
-    return typeof v === 'number' && Number.isFinite(v) ? v : null;
   }
 }

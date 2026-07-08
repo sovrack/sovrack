@@ -7,7 +7,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Server, ServerConnectionMode, ServerStatus } from '@prisma/client';
 import { rm, writeFile } from 'fs/promises';
-import { Socket } from 'net';
 import { NodeSSH } from 'node-ssh';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { SshExecutorService } from '../../../../adapters/ssh/ssh-executor.service';
@@ -15,6 +14,7 @@ import { ServerConnectionModeDto } from '../dto/create-server.dto';
 import { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.service';
 import { ServerHostKeyService } from '../../../../adapters/ssh/server-host-key.service';
 import { ServersVerificationService } from './servers-verification.service';
+import { SudoersHelper } from './sudoers-helper.service';
 import { ServerExecutionOptions } from '../shared/servers.types';
 import {
   assertNotAborted as assertJobNotAborted,
@@ -22,22 +22,16 @@ import {
   onAbort,
   shellQuote,
 } from '../shared/servers-shell.util';
+import { pingReachable, withTimeout } from './connection-probe.util';
 
 type SshConnection = {
   target: NodeSSH;
   dispose: () => Promise<void>;
 };
 
-class JobTimeoutError extends Error {
-  constructor(timeoutMs: number) {
-    super(`JOB_TIMEOUT_${String(timeoutMs)}`);
-  }
-}
-
 @Injectable()
 export class ServersConnectionService {
   private readonly logger = new Logger(ServersConnectionService.name);
-  private readonly automationSudoersPath = '/etc/sudoers.d/platform-deploy';
 
   constructor(
     private readonly prisma: PrismaService,
@@ -46,6 +40,7 @@ export class ServersConnectionService {
     private readonly verification: ServersVerificationService,
     private readonly configService: ConfigService,
     private readonly sshExecutor: SshExecutorService,
+    private readonly sudoers: SudoersHelper,
   ) {}
 
   mapConnectionMode(mode?: ServerConnectionModeDto): ServerConnectionMode {
@@ -230,7 +225,7 @@ export class ServersConnectionService {
       );
 
       if (!passwordlessSudoReady && this.isAutoSudoersEnabled()) {
-        passwordlessSudoReady = await this.tryEnablePasswordlessSudo(
+        passwordlessSudoReady = await this.sudoers.tryEnablePasswordlessSudo(
           setupConnection,
           server.username,
           normalizedPassword,
@@ -304,36 +299,12 @@ export class ServersConnectionService {
     };
   }
 
-  /**
-   * A3: lightweight "is this server reachable right now" probe — a raw TCP
-   * connect-and-close to the SSH port, no authentication, no host-key
-   * pinning, no logging, no Server state mutation. Deliberately NOT
-   * verifyServerDirect (which opens an authenticated SSH session, runs
-   * sudo/os-release/python3 checks, writes verification logs, and persists
-   * status transitions) — that's far too heavy to poll every 30-60s from an
-   * open list page. Kept intentionally dependency-free (doesn't even need
-   * the server's SSH key) so it works for a server that isn't verified yet.
-   */
   async pingReachable(
     host: string,
     port: number,
     timeoutMs = 3000,
   ): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-      const socket = new Socket();
-      let settled = false;
-      const finish = (result: boolean) => {
-        if (settled) return;
-        settled = true;
-        socket.destroy();
-        resolve(result);
-      };
-      socket.setTimeout(timeoutMs);
-      socket.once('connect', () => finish(true));
-      socket.once('timeout', () => finish(false));
-      socket.once('error', () => finish(false));
-      socket.connect(port, host);
-    });
+    return pingReachable(host, port, timeoutMs);
   }
 
   async openConnection(
@@ -405,26 +376,7 @@ export class ServersConnectionService {
     timeoutMs: number,
     onTimeout?: () => void,
   ): Promise<T> {
-    let timeoutRef: NodeJS.Timeout | null = null;
-
-    const timeoutPromise = new Promise<T>((_, reject) => {
-      timeoutRef = setTimeout(() => {
-        try {
-          onTimeout?.();
-        } catch {
-          // Ne pas masquer l'erreur de timeout.
-        }
-        reject(new JobTimeoutError(timeoutMs));
-      }, timeoutMs);
-    });
-
-    try {
-      return await Promise.race([task(), timeoutPromise]);
-    } finally {
-      if (timeoutRef) {
-        clearTimeout(timeoutRef);
-      }
-    }
+    return withTimeout(task, timeoutMs, onTimeout);
   }
 
   async registerRunnerAndVerify(
@@ -487,49 +439,6 @@ export class ServersConnectionService {
       detachAbort();
       safeClose();
     }
-  }
-
-  private buildAutomationSudoersRule(username: string): string {
-    assertSafeLinuxUsername(username);
-    return `${username} ALL=(ALL) NOPASSWD: ALL`;
-  }
-
-  private async tryEnablePasswordlessSudo(
-    ssh: NodeSSH,
-    username: string,
-    password: string,
-  ): Promise<boolean> {
-    if (this.isRootUser(username)) {
-      return true;
-    }
-
-    const sudoersRule = this.buildAutomationSudoersRule(username);
-    const escapedPassword = shellQuote(password);
-    const escapedSudoersRule = shellQuote(sudoersRule);
-    const writeSudoersCommand = shellQuote(
-      `echo ${escapedSudoersRule} > ${this.automationSudoersPath} && chmod 0440 ${this.automationSudoersPath}`,
-    );
-
-    const result = await ssh.execCommand(
-      `printf '%s\\n' ${escapedPassword} | sudo -S -p '' sh -c ${writeSudoersCommand}`,
-    );
-
-    if (result.code !== 0) {
-      this.logger.warn(
-        `Passwordless sudo setup skipped for ${username}: ${result.stderr || result.stdout || 'unknown error'}`,
-      );
-      return false;
-    }
-
-    const verify = await ssh.execCommand('sudo -n true');
-    if (verify.code !== 0) {
-      this.logger.warn(
-        `Passwordless sudo verification failed for ${username}: ${verify.stderr || verify.stdout || 'unknown error'}`,
-      );
-      return false;
-    }
-
-    return true;
   }
 
   private async getServerById(id: string): Promise<Server> {

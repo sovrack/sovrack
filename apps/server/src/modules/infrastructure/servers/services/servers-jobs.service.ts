@@ -15,6 +15,7 @@ import {
   ServerJobType,
 } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
+import { runsBackgroundWork } from '../../../../shared/utils/process-role.util';
 import {
   PaginationDto,
   paginate,
@@ -41,6 +42,11 @@ export class ServersJobsService implements OnModuleInit {
   }
 
   async onModuleInit(): Promise<void> {
+    // Startup zombie-recovery only makes sense in the process that OWNS job
+    // execution (the worker). An API restart doesn't kill the worker's live
+    // jobs, so it must not mark RUNNING/PENDING rows FAILED. Single-process
+    // mode ("all") passes this guard and keeps recovering as before.
+    if (!runsBackgroundWork()) return;
     const ghostJobs = await this.prisma.serverJob.findMany({
       where: {
         status: { in: [ServerJobStatus.RUNNING, ServerJobStatus.PENDING] },
@@ -67,6 +73,7 @@ export class ServersJobsService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   async cleanupStaleJobs(): Promise<void> {
+    if (!runsBackgroundWork()) return;
     const runningCutoff = new Date(Date.now() - 2 * 60 * 60_000); // 2 hours
     const pendingCutoff = new Date(Date.now() - 10 * 60_000); // 10 minutes
     const stale = await this.prisma.serverJob.findMany({

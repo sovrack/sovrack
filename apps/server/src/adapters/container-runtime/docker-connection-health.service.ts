@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CircuitState } from '@prisma/client';
 import { DockerConnectionsService } from './docker-connections.service';
+import { runsBackgroundWork } from '../../shared/utils/process-role.util';
 
 export const DOCKER_CONNECTION_UNREACHABLE = 'docker-connection.unreachable';
 export const DOCKER_CONNECTION_RECOVERED = 'docker-connection.recovered';
@@ -68,7 +69,7 @@ export class DockerConnectionHealthService {
 
   @Cron(CronExpression.EVERY_5_MINUTES, { name: 'docker-connection-health' })
   async runHealthCheck(): Promise<void> {
-    if (!this.enabled) return;
+    if (!runsBackgroundWork() || !this.enabled) return;
     const connections = await this.dockerConnections.listForHealthCheck();
     if (connections.length === 0) return;
     this.logger.log(

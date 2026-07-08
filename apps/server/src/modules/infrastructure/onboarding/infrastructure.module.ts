@@ -9,6 +9,9 @@ import { ServerSetupService } from './services/infra-setup.service';
 import { ServerSetupAnsibleService } from './services/server-setup-ansible.service';
 import { ServerSetupStateService } from './services/setup/server-setup-state.service';
 import { InfraSetupRunnerService } from './services/infra-setup-runner.service';
+import { SetupPostProcessorService } from './services/setup-post-processor.service';
+import { SetupAbortBridge } from './services/setup-abort.bridge';
+import { SetupProcessor } from './processors/setup.processor';
 import { ServerSetupGateway } from './gateways/server-setup.gateway';
 
 /**
@@ -32,6 +35,9 @@ import { ServerSetupGateway } from './gateways/server-setup.gateway';
     ServerSetupStateService,
     ServerSetupGateway,
     InfraSetupRunnerService,
+    SetupPostProcessorService,
+    SetupAbortBridge,
+    SetupProcessor,
     ServerSetupService,
   ],
   exports: [ServerSetupService, ServerSetupAnsibleService],

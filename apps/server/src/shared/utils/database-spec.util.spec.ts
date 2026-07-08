@@ -59,7 +59,7 @@ describe('database-spec.util', () => {
         POSTGRES_DB: 'd',
       });
     });
-    it('Postgres défauts', () => {
+    it('Postgres defaults', () => {
       expect(buildDatabaseEnvVars('POSTGRES', null)).toEqual({
         POSTGRES_USER: 'app',
         POSTGRES_PASSWORD: 'changeme',

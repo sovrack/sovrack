@@ -2,6 +2,10 @@ import { FactoryProvider } from '@nestjs/common';
 import { Job, Queue, Worker } from 'bullmq';
 
 export const DEPLOYMENTS_QUEUE = 'deployments';
+// Server-setup (Ansible provisioning of ONE server) runs.
+export const SETUP_QUEUE = 'server-setups';
+// Automation (the /automation feature: one action across N servers) runs.
+export const AUTOMATION_RUNS_QUEUE = 'automation-runs';
 
 const REDIS_URL_HELP =
   '[BOOT ERROR] REDIS_URL is required.\n' +
@@ -27,6 +31,33 @@ export const bullQueueProvider: FactoryProvider<Queue> = {
   },
 };
 
+export const bullSetupQueueProvider: FactoryProvider<Queue> = {
+  provide: 'SETUP_QUEUE',
+  useFactory: () => {
+    return new Queue(SETUP_QUEUE, { connection: { url: requireRedisUrl() } });
+  },
+};
+
+export const bullAutomationRunsQueueProvider: FactoryProvider<Queue> = {
+  provide: 'AUTOMATION_RUNS_QUEUE',
+  useFactory: () => {
+    return new Queue(AUTOMATION_RUNS_QUEUE, {
+      connection: { url: requireRedisUrl() },
+    });
+  },
+};
+
+// Shared tuning for both Ansible-run queues (setup + automation): long jobs,
+// low concurrency (spawns ansible-playbook subprocesses), generous stall window.
+function ansibleWorkerOptions() {
+  return {
+    connection: { url: requireRedisUrl() },
+    concurrency: 3,
+    stalledInterval: 60000,
+    maxStalledCount: 1,
+  };
+}
+
 export function createDeploymentsWorker(
   processor: (job: Job) => Promise<void>,
 ): Worker {
@@ -43,4 +74,16 @@ export function createDeploymentsWorker(
       duration: 60000,
     },
   });
+}
+
+export function createSetupWorker(
+  processor: (job: Job) => Promise<void>,
+): Worker {
+  return new Worker(SETUP_QUEUE, processor, ansibleWorkerOptions());
+}
+
+export function createAutomationRunsWorker(
+  processor: (job: Job) => Promise<void>,
+): Worker {
+  return new Worker(AUTOMATION_RUNS_QUEUE, processor, ansibleWorkerOptions());
 }

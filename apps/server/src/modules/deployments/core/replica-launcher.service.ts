@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ContainerStatus, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { DeploymentLogEmitter } from './deployment-log-emitter.service';
 import { DeploymentPrelaunchService } from './deployment-prelaunch.service';
 import { buildContainerCreateSpec } from '../utils/container-create-spec.util';
@@ -61,7 +62,7 @@ export interface ReplicaLaunchResult {
 @Injectable()
 export class ReplicaLauncherService {
   constructor(
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly prisma: PrismaService,
     private readonly prelaunch: DeploymentPrelaunchService,
     private readonly logEmitter: DeploymentLogEmitter,

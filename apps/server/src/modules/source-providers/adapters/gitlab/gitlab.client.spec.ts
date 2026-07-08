@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 import { CryptoService } from '../../../../shared/crypto/crypto.service';
 import { GitlabClient } from './gitlab.client';
+import { throwGitlabRequestError } from './gitlab-pagination.helper';
 
 const id = (u: string) => u;
 const config = {
@@ -56,13 +57,13 @@ describe('GitlabClient', () => {
 
     it('adds a 401 hint about the token', () => {
       expect(() =>
-        client.throwGitlabRequestError('x', { response: { status: 401 } }),
+        throwGitlabRequestError('x', { response: { status: 401 } }),
       ).toThrow(/Token invalide/);
     });
 
     it('detects an unexpected HTML response (wrong API URL)', () => {
       expect(() =>
-        client.throwGitlabRequestError('x', {
+        throwGitlabRequestError('x', {
           response: { status: 200, data: '<!doctype html><html></html>' },
         }),
       ).toThrow(/HTML inattendue/);

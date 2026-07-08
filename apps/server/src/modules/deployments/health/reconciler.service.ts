@@ -1,8 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { DeploymentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import { runsBackgroundWork } from '../../../shared/utils/process-role.util';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 import { DeploymentPreflightService } from '../core/deployment-preflight.service';
@@ -112,7 +114,7 @@ export class ReconcilerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly dockerApi: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly dockerApi: IDockerRuntime,
     private readonly deployExecutor: DockerDeployExecutorService,
     private readonly notifications: NotificationsService,
     private readonly preflight: DeploymentPreflightService,
@@ -120,6 +122,7 @@ export class ReconcilerService {
 
   @Cron('*/1 * * * *', { name: 'deployment-reconciler' })
   async reconcile(): Promise<void> {
+    if (!runsBackgroundWork()) return;
     const serviceEnvs = await this.prisma.serviceEnvironment.findMany({
       where: { archivedAt: null },
       select: {

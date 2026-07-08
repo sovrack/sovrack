@@ -88,6 +88,18 @@ describe('DeploymentsHealthcheckService — progressive 3-phase', () => {
     expect(mockSshExec).toHaveBeenCalledTimes(4);
   });
 
+  // The SSH probe runs INSIDE the server, so it must hit loopback — not the
+  // public IP — otherwise UFW (which only opens 22/80/443) drops a probe to a
+  // custom app port like 3000 and reports a false CONN_ERR.
+  it('probes 127.0.0.1 (loopback) over SSH, not the public host', async () => {
+    sshResponses = ['200', '200'];
+    const service = makeService();
+    await service.runPostDeployHealthChecks(params);
+    const curlCmd = mockSshExec.mock.calls[0][1] as string;
+    expect(curlCmd).toContain('http://127.0.0.1:3000/health');
+    expect(curlCmd).not.toContain('10.0.0.1');
+  });
+
   it('accepts a 4xx as alive (server is up)', async () => {
     sshResponses = ['404', '404'];
     const service = makeService();

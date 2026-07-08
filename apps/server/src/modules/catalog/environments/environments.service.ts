@@ -22,6 +22,15 @@ const environmentsInclude = {
   // (it fetches variables via the dedicated service-environments/env-preview
   // endpoints instead).
   serviceLinks: {
+    // Hide soft-deleted links: a "removed" service is renamed
+    // `<name>_archived_<ts>` + archivedAt set (never hard-deleted, to keep
+    // deploy/build history). Without this filter those archived rows still
+    // showed up in the Project environments dialog. Excludes both an archived
+    // link AND a link pointing at an archived Service.
+    where: {
+      archivedAt: null,
+      service: { archivedAt: null },
+    },
     select: {
       id: true,
       serviceId: true,

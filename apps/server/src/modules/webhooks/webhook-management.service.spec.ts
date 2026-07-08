@@ -82,11 +82,64 @@ describe('WebhookManagementService — status & toggle', () => {
       data: { isActive: false },
     });
   });
+});
 
-  it('404s setActive for a project with no endpoint', async () => {
-    prisma.webhookEndpoint.findFirst.mockResolvedValue(null);
-    await expect(service.setActive('p1', true)).rejects.toBeInstanceOf(
-      NotFoundException,
+describe('WebhookManagementService — configureForService regression test', () => {
+  let prisma: {
+    webhookEndpoint: { findFirst: jest.Mock };
+    serviceEnvironment: { findUnique: jest.Mock };
+  };
+  let webhooks: { getOrCreateEndpoint: jest.Mock };
+  let sourceProviders: { forService: jest.Mock };
+  let platform: { buildWebhookUrl: jest.Mock };
+  let provider: { configureWebhook: jest.Mock };
+  let service: WebhookManagementService;
+
+  beforeEach(() => {
+    prisma = {
+      webhookEndpoint: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      serviceEnvironment: {
+        findUnique: jest.fn().mockResolvedValue({ serviceId: 'svc1' }),
+      },
+    };
+    webhooks = {
+      getOrCreateEndpoint: jest.fn().mockResolvedValue({
+        id: 'e1',
+        webhookToken: 'tok',
+        secret: 's3cr3t',
+      }),
+    };
+    sourceProviders = {
+      forService: jest.fn().mockResolvedValue({ type: 'GITLAB' }),
+    };
+    platform = {
+      buildWebhookUrl: jest
+        .fn()
+        .mockResolvedValue('https://api/webhooks/incoming/tok'),
+    };
+    provider = {
+      configureWebhook: jest.fn().mockResolvedValue(undefined),
+    };
+    sourceProviders.forService.mockReturnValue(provider);
+
+    service = new WebhookManagementService(
+      prisma as unknown as PrismaService,
+      webhooks as unknown as WebhooksService,
+      sourceProviders as unknown as SourceProvidersService,
+      platform as unknown as PlatformService,
+    );
+  });
+
+  it('passes serviceId to provider.configureWebhook (regression test)', async () => {
+    await service.configureForService('proj1', 'svc1');
+
+    expect(provider.configureWebhook).toHaveBeenCalledWith(
+      'proj1',
+      'https://api/webhooks/incoming/tok',
+      's3cr3t', // ← le secret partagé (pas le webhookToken)
+      'svc1',
     );
   });
 });

@@ -63,7 +63,7 @@ function build(overrides: {
 }
 
 describe('GitlabCiService.getPipelines (agrégation projet)', () => {
-  it('agrège les pipelines de tous les services et dédoublonne par id', async () => {
+  it('aggregates pipelines from all services and deduplicates by id', async () => {
     const { svc } = build({
       services: [{ repoPath: 'grp/a' }, { repoPath: 'grp/b' }],
       perRepo: { 'grp/a': [pipe(1), pipe(2)], 'grp/b': [pipe(2), pipe(3)] },
@@ -72,7 +72,7 @@ describe('GitlabCiService.getPipelines (agrégation projet)', () => {
     expect(out.map((p) => p.id)).toEqual([3, 2, 1]); // dédupliqué + trié desc
   });
 
-  it('ignore un dépôt en échec (best-effort, pas de 404 global)', async () => {
+  it('ignores a failing repository (best-effort, no global 404)', async () => {
     const { svc } = build({
       services: [{ repoPath: 'grp/a' }, { repoPath: 'grp/bad' }],
       perRepo: { 'grp/a': [pipe(5)], 'grp/bad': new Error('404') },
@@ -81,7 +81,7 @@ describe('GitlabCiService.getPipelines (agrégation projet)', () => {
     expect(out.map((p) => p.id)).toEqual([5]);
   });
 
-  it('repli sur l’historique persisté si aucun service', async () => {
+  it('falls back to persisted history when no services', async () => {
     const { svc, apiService } = build({
       services: [],
       persisted: [
@@ -100,7 +100,7 @@ describe('GitlabCiService.getPipelines (agrégation projet)', () => {
     expect(out[0]).toMatchObject({ id: 9, status: 'success' });
   });
 
-  it('repli sur l’historique persisté si tous les dépôts échouent', async () => {
+  it('falls back to persisted history when all repositories fail', async () => {
     const { svc } = build({
       services: [{ repoPath: 'grp/a' }],
       perRepo: { 'grp/a': new Error('boom') },

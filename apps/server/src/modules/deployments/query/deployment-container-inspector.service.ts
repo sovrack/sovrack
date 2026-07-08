@@ -1,10 +1,16 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import {
   SshExecutorService,
   type SshConnection,
 } from '../../../adapters/ssh/ssh-executor.service';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { DockerSshService } from '../../../adapters/container-runtime/docker-ssh.service';
 import { ServersCryptoService } from '../../../adapters/ssh/servers-crypto.service';
 import { ServerHostKeyService } from '../../../adapters/ssh/server-host-key.service';
@@ -23,7 +29,8 @@ export class DeploymentContainerInspectorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ssh: SshExecutorService,
-    private readonly dockerRemoteService: DockerApiService,
+    @Inject(DOCKER_RUNTIME)
+    private readonly dockerRemoteService: IDockerRuntime,
     private readonly dockerSsh: DockerSshService,
     private readonly serverHostKeyService: ServerHostKeyService,
     private readonly serversCryptoService: ServersCryptoService,

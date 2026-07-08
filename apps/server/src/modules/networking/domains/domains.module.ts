@@ -8,6 +8,6 @@ import { DomainsService } from './domains.service';
   imports: [PrismaModule, CryptoModule],
   controllers: [DomainsController],
   providers: [DomainsService],
-  exports: [DomainsService],
+  // exports: [DomainsService],
 })
 export class DomainsModule {}

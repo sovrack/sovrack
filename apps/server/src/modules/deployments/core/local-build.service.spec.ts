@@ -69,7 +69,7 @@ describe('LocalBuildService', () => {
     ).toBe(true);
   });
 
-  it('Dockerfile build active BuildKit + layer cache (parité Coolify/Dokploy)', async () => {
+  it('Dockerfile build enables BuildKit + layer cache (parity with Coolify/Dokploy)', async () => {
     const { svc, ssh } = make();
     await svc.run(params());
     const cmds = ssh.execOrThrow.mock.calls.map(
@@ -110,14 +110,14 @@ describe('LocalBuildService', () => {
     );
   });
 
-  it('rejette un repoPath non namespacé', async () => {
+  it('rejects a non-namespaced repoPath', async () => {
     const { svc } = make();
     await expect(
       svc.run(params({ repoPath: 'noslash' })),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('nettoie le workspace (rm -rf) à la fin', async () => {
+  it('cleans up the workspace (rm -rf) at the end', async () => {
     const { svc, ssh } = make();
     await svc.run(params());
     expect(ssh.exec).toHaveBeenCalled();
@@ -144,7 +144,7 @@ describe('LocalBuildService', () => {
     expect(build).toMatch(/timeout \d+ docker build/);
   });
 
-  it('écrit un .dockerignore par défaut (anti-fuite .env / contexte léger)', async () => {
+  it('writes a default .dockerignore (anti-leak .env / light context)', async () => {
     const { svc, ssh } = make();
     await svc.run(params());
     const all = [...ssh.execOrThrow.mock.calls, ...ssh.exec.mock.calls].map(
@@ -155,7 +155,7 @@ describe('LocalBuildService', () => {
     expect(di).toContain('.env');
   });
 
-  it('prune les images dangling après un build réussi (hygiène disque)', async () => {
+  it('prunes dangling images after a successful build (disk hygiene)', async () => {
     const { svc, ssh } = make();
     await svc.run(params());
     const execCmds = ssh.exec.mock.calls.map((c: unknown[]) => c[1] as string);

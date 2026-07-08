@@ -1,7 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ContainerStatus } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 
 export type ServiceContainer = { id: string; name: string };
@@ -16,7 +17,7 @@ export type ServiceContainer = { id: string; name: string };
 export class ContainerLifecycleService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly gateway: DeploymentEventsPublisher,
   ) {}
 

@@ -2,7 +2,10 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DockerApiService } from './docker-api.service';
+import { DockerClientFactory } from './docker-client.factory';
 import { DockerConnectionsService } from './docker-connections.service';
+import { DockerContainerOpsService } from './docker-container-ops.service';
+import { DockerImageService } from './docker-image.service';
 
 /**
  * DockerApiService (TLS Docker SDK).
@@ -21,6 +24,7 @@ import { DockerConnectionsService } from './docker-connections.service';
  */
 describe('DockerApiService', () => {
   let service: DockerApiService;
+  let clientFactory: DockerClientFactory;
   let dockerConnections: {
     findForServer: jest.Mock;
     getDecryptedTls: jest.Mock;
@@ -32,11 +36,26 @@ describe('DockerApiService', () => {
     pull: jest.Mock;
     modem: { followProgress: jest.Mock };
   };
-  let mockImage: { inspect: jest.Mock };
   let mockContainer: {
     inspect: jest.Mock;
     logs: jest.Mock;
     stats: jest.Mock;
+  };
+  let mockContainerOpsService: {
+    inspectContainer: jest.Mock;
+    listContainers: jest.Mock;
+    createContainer: jest.Mock;
+    startContainer: jest.Mock;
+    stopContainer: jest.Mock;
+    restartContainer: jest.Mock;
+    removeContainer: jest.Mock;
+    connectNetwork: jest.Mock;
+  };
+  let mockImageService: {
+    inspectImage: jest.Mock;
+    buildImage: jest.Mock;
+    pullImage: jest.Mock;
+    pruneDanglingImages: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -44,10 +63,25 @@ describe('DockerApiService', () => {
       findForServer: jest.fn(),
       getDecryptedTls: jest.fn(),
     };
-    mockImage = { inspect: jest.fn() };
     mockContainer = { inspect: jest.fn(), logs: jest.fn(), stats: jest.fn() };
+    mockContainerOpsService = {
+      inspectContainer: jest.fn(),
+      listContainers: jest.fn(),
+      createContainer: jest.fn(),
+      startContainer: jest.fn(),
+      stopContainer: jest.fn(),
+      restartContainer: jest.fn(),
+      removeContainer: jest.fn(),
+      connectNetwork: jest.fn(),
+    };
+    mockImageService = {
+      inspectImage: jest.fn(),
+      buildImage: jest.fn(),
+      pullImage: jest.fn(),
+      pruneDanglingImages: jest.fn(),
+    };
     mockClient = {
-      getImage: jest.fn().mockReturnValue(mockImage),
+      getImage: jest.fn(),
       getContainer: jest.fn().mockReturnValue(mockContainer),
       pull: jest.fn(),
       modem: { followProgress: jest.fn() },
@@ -71,19 +105,26 @@ describe('DockerApiService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         DockerApiService,
+        DockerClientFactory,
         { provide: DockerConnectionsService, useValue: dockerConnections },
         { provide: ConfigService, useValue: configService },
+        {
+          provide: DockerContainerOpsService,
+          useValue: mockContainerOpsService,
+        },
+        { provide: DockerImageService, useValue: mockImageService },
       ],
     }).compile();
 
     service = moduleRef.get(DockerApiService);
+    clientFactory = moduleRef.get(DockerClientFactory);
     // Seed the internal cache with a mock client — DockerApiService builds a
     // real `Docker` from dockerode which we can't easily mock at construction.
     // Cache key now includes the connection's updatedAt (for cert-rotation
     // invalidation) → must match the findForServer mock's updatedAt.
     const updatedAtMs = new Date('2026-01-01T00:00:00Z').getTime();
     (
-      service as unknown as { clientCache: Map<string, unknown> }
+      clientFactory as unknown as { clientCache: Map<string, unknown> }
     ).clientCache.set(`srv_1:tcp://docker.example.com:2376:${updatedAtMs}`, {
       client: mockClient,
       endpoint: 'tcp://docker.example.com:2376',
@@ -147,30 +188,35 @@ describe('DockerApiService', () => {
 
   describe('inspectImage (digest capture)', () => {
     it('returns the image inspect JSON when the image exists', async () => {
-      mockImage.inspect.mockResolvedValue({
+      const expected = {
         Id: 'sha256:abc',
         RepoDigests: ['registry.gitlab.com/group/app@sha256:abc'],
-      });
+      };
+      mockImageService.inspectImage.mockResolvedValue(expected);
       const result = await service.inspectImage('srv_1', 'app:tag');
-      expect(mockClient.getImage).toHaveBeenCalledWith('app:tag');
+      expect(mockImageService.inspectImage).toHaveBeenCalledWith(
+        mockClient,
+        'app:tag',
+      );
       expect(result).toMatchObject({ Id: 'sha256:abc' });
     });
 
     it('returns null when the image is not present (404)', async () => {
-      const err = Object.assign(new Error('Not Found'), { statusCode: 404 });
-      mockImage.inspect.mockRejectedValue(err);
+      mockImageService.inspectImage.mockResolvedValue(null);
       const result = await service.inspectImage('srv_1', 'missing:tag');
       expect(result).toBeNull();
     });
 
     it('returns null when the error message matches /not found/i (no statusCode)', async () => {
-      mockImage.inspect.mockRejectedValue(new Error('No such image: missing'));
+      mockImageService.inspectImage.mockResolvedValue(null);
       const result = await service.inspectImage('srv_1', 'missing:tag');
       expect(result).toBeNull();
     });
 
-    it('throws when the error is not a 404 (network, TLS, etc.)', async () => {
-      mockImage.inspect.mockRejectedValue(new Error('ECONNREFUSED'));
+    it('throws when the sub-service propagates an error', async () => {
+      mockImageService.inspectImage.mockRejectedValue(
+        new Error('ECONNREFUSED'),
+      );
       await expect(service.inspectImage('srv_1', 'app:tag')).rejects.toThrow(
         'ECONNREFUSED',
       );
@@ -179,17 +225,21 @@ describe('DockerApiService', () => {
 
   describe('inspectContainer', () => {
     it('returns the container inspect JSON', async () => {
-      mockContainer.inspect.mockResolvedValue({
+      const expected = {
         State: { Status: 'running', Health: { Status: 'healthy' } },
-      });
+      };
+      mockContainerOpsService.inspectContainer.mockResolvedValue(expected);
       const result = await service.inspectContainer('srv_1', 'my-app');
-      expect(mockClient.getContainer).toHaveBeenCalledWith('my-app');
+      expect(mockContainerOpsService.inspectContainer).toHaveBeenCalledWith(
+        mockClient,
+        'my-app',
+      );
       expect(result.State.Status).toBe('running');
       expect(result.State.Health?.Status).toBe('healthy');
     });
 
     it('wraps a network error with an explicit, exploitable message', async () => {
-      mockContainer.inspect.mockRejectedValue(
+      mockContainerOpsService.inspectContainer.mockRejectedValue(
         Object.assign(new Error('connect ECONNREFUSED 10.0.0.1:2376'), {
           code: 'ECONNREFUSED',
         }),
@@ -287,32 +337,29 @@ describe('DockerApiService', () => {
     it('drops all cached clients for the given serverId', () => {
       service.invalidateCache('srv_1');
       const cache = (
-        service as unknown as { clientCache: Map<string, unknown> }
+        clientFactory as unknown as { clientCache: Map<string, unknown> }
       ).clientCache;
       expect(cache.has('srv_1:tcp://docker.example.com:2376')).toBe(false);
     });
   });
 
-  describe('pullImage (configurable timeout)', () => {
-    afterEach(() => {
-      jest.useRealTimers();
+  describe('pullImage', () => {
+    it('delegates to DockerImageService', async () => {
+      mockImageService.pullImage.mockResolvedValue(undefined);
+      await service.pullImage('srv_1', 'app:latest');
+      expect(mockImageService.pullImage).toHaveBeenCalledWith(
+        mockClient,
+        'srv_1',
+        'app:latest',
+        undefined,
+      );
     });
 
-    it('rejects with an explicit error when the pull exceeds DOCKER_PULL_TIMEOUT_MS', async () => {
-      jest.useFakeTimers();
-      configService.get.mockImplementation((key: string) =>
-        key === 'DOCKER_PULL_TIMEOUT_MS' ? '50' : undefined,
+    it('propagates errors from the sub-service', async () => {
+      mockImageService.pullImage.mockRejectedValue(new Error('pull failed'));
+      await expect(service.pullImage('srv_1', 'app:latest')).rejects.toThrow(
+        'pull failed',
       );
-      mockClient.pull.mockResolvedValue({ destroy: jest.fn() });
-      // followProgress never invokes its callback → only the timeout settles.
-      mockClient.modem.followProgress.mockImplementation(() => undefined);
-
-      const pending = service.pullImage('srv_1', 'app:latest');
-      // Attach a rejection handler immediately so Jest doesn't flag the
-      // still-pending promise as an unhandled rejection while we advance timers.
-      const assertion = expect(pending).rejects.toThrow(/dépassé le délai/);
-      await jest.advanceTimersByTimeAsync(50);
-      await assertion;
     });
   });
 });

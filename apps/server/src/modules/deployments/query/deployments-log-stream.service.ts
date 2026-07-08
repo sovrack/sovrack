@@ -1,6 +1,7 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Socket } from 'socket.io';
-import { DockerApiService as DockerRemoteService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 
 /**
  * Per-socket log streaming manager.
@@ -33,7 +34,9 @@ export class DeploymentsLogStreamService implements OnModuleDestroy {
     { abort: AbortController; deploymentId: string; containerName: string }
   >();
 
-  constructor(private readonly dockerRemote: DockerRemoteService) {}
+  constructor(
+    @Inject(DOCKER_RUNTIME) private readonly dockerRemote: IDockerRuntime,
+  ) {}
 
   /**
    * Open a TLS log stream from the server's Docker daemon and pipe
@@ -50,7 +53,7 @@ export class DeploymentsLogStreamService implements OnModuleDestroy {
    *   - Any other error → emitted as `deployment:log-error` and the
    *     subscription is cleaned up.
    */
-  async subscribe(
+  subscribe(
     socket: Socket,
     params: {
       deploymentId: string;
@@ -58,7 +61,7 @@ export class DeploymentsLogStreamService implements OnModuleDestroy {
       containerName: string;
       tail?: number;
     },
-  ): Promise<string | null> {
+  ): string | null {
     const key = `${socket.id}:${params.deploymentId}:${params.containerName}`;
     if (this.subscriptions.has(key)) {
       // Idempotent: re-subscribing returns the existing key.
@@ -192,7 +195,7 @@ export class DeploymentsLogStreamService implements OnModuleDestroy {
     }
   }
 
-  async onModuleDestroy(): Promise<void> {
+  onModuleDestroy(): void {
     // On app shutdown, abort all active subscriptions so the
     // underlying TLS sockets close cleanly.
     for (const sub of this.subscriptions.values()) {

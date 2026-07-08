@@ -39,12 +39,12 @@ describe('DeploymentsProcessor', () => {
 
   describe('onModuleInit', () => {
     it('creates a BullMQ worker', async () => {
-      await processor.onModuleInit();
+      processor.onModuleInit();
       expect(createDeploymentsWorker).toHaveBeenCalledTimes(1);
     });
 
     it('registers completed and failed event listeners', async () => {
-      await processor.onModuleInit();
+      processor.onModuleInit();
       expect(mockWorker.on).toHaveBeenCalledWith(
         'completed',
         expect.any(Function),
@@ -58,7 +58,7 @@ describe('DeploymentsProcessor', () => {
 
   describe('onModuleDestroy', () => {
     it('closes the worker on destroy', async () => {
-      await processor.onModuleInit();
+      processor.onModuleInit();
       await processor.onModuleDestroy();
       expect(mockWorker.close).toHaveBeenCalledTimes(1);
     });
@@ -69,7 +69,7 @@ describe('DeploymentsProcessor', () => {
     });
 
     it('does not close twice on double-destroy', async () => {
-      await processor.onModuleInit();
+      processor.onModuleInit();
       await processor.onModuleDestroy();
       await processor.onModuleDestroy();
       expect(mockWorker.close).toHaveBeenCalledTimes(1);
@@ -78,7 +78,7 @@ describe('DeploymentsProcessor', () => {
 
   describe('job dispatch', () => {
     beforeEach(async () => {
-      await processor.onModuleInit();
+      processor.onModuleInit();
     });
 
     it('routes deploy job to executeDeploy', async () => {

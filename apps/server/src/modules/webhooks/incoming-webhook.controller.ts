@@ -24,7 +24,7 @@ import {
   IWebhookHandler,
   WebhookEndpointContext,
   WEBHOOK_HANDLER,
-} from './interfaces/webhook-handler.interface';
+} from '../../shared/webhook/webhook-handler.interface';
 
 /**
  * Unified, public, provider-agnostic webhook endpoint.
@@ -267,8 +267,16 @@ export class IncomingWebhookController {
   private serializeHeaders(
     rawHeaders: Record<string, string | string[] | undefined>,
   ): Record<string, string | null> {
+    const SENSITIVE = new Set([
+      'x-gitlab-token',
+      'x-hub-signature-256',
+      'authorization',
+      'cookie',
+      'set-cookie',
+    ]);
     const out: Record<string, string | null> = {};
     for (const [key, value] of Object.entries(rawHeaders)) {
+      if (SENSITIVE.has(key.toLowerCase())) continue;
       if (Array.isArray(value)) {
         out[key] = value[0] ?? null;
       } else {

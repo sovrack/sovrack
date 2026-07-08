@@ -10,13 +10,12 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersJobsService } from '../../servers/services/servers-jobs.service';
 import { ServersConnectionService } from '../../servers/services/servers-connection.service';
-import { ServersDetectionService } from '../../servers/services/servers-detection.service';
-import { ServersAuditService } from '../../servers/services/servers-audit.service';
 import { ServerSetupAnsibleService } from './server-setup-ansible.service';
 import { ServerSetupGateway } from '../gateways/server-setup.gateway';
 import { ServerSetupStateService } from './setup/server-setup-state.service';
 import { ServerRunsService } from '../../server-runs/server-runs.service';
 import { InfraSetupRunnerService } from './infra-setup-runner.service';
+import { SetupPostProcessorService } from './setup-post-processor.service';
 import type {
   SetupRoleKey,
   ResolvedSetup,
@@ -57,20 +56,6 @@ describe('InfraSetupRunnerService', () => {
     const jobs = {} as unknown as ServersJobsService;
     const ssh = {} as unknown as ServersConnectionService;
     const ansible = {} as unknown as ServerSetupAnsibleService;
-    const detection = {
-      detect: jest.fn().mockResolvedValue({}),
-    } as unknown as ServersDetectionService;
-    const audit = {
-      record: jest.fn().mockResolvedValue(undefined),
-    } as unknown as ServersAuditService;
-    const dockerConnections = {
-      upsert: jest.fn().mockResolvedValue({ id: 'conn-1' }),
-      probeReachability: jest.fn().mockResolvedValue({
-        isReachable: true,
-        apiVersion: '1.47',
-        latencyMs: 12,
-      }),
-    };
     const gateway = {
       emitLog: jest.fn(),
       emitFinished: jest.fn(),
@@ -93,19 +78,21 @@ describe('InfraSetupRunnerService', () => {
         createdAt: new Date(),
       }),
     } as unknown as ServerRunsService;
+    const postProcessor = {
+      registerDockerTlsConnection: jest.fn().mockResolvedValue(undefined),
+      refreshDetectionAfterSetup: jest.fn().mockResolvedValue(undefined),
+    } as unknown as SetupPostProcessorService;
 
     const runner = new InfraSetupRunnerService(
       prisma,
       jobs,
       ssh,
       ansible,
-      detection,
-      audit,
       gateway,
       config,
       state,
       serverRuns,
-      dockerConnections as never,
+      postProcessor,
     );
     return {
       runner,
@@ -114,10 +101,8 @@ describe('InfraSetupRunnerService', () => {
       gateway,
       state,
       serverRuns,
-      detection,
       config,
-      audit,
-      dockerConnections,
+      postProcessor,
     };
   }
 
@@ -259,142 +244,6 @@ describe('InfraSetupRunnerService', () => {
         expect.objectContaining({
           data: expect.objectContaining({ status: ServerJobStatus.TIMEOUT }),
         }),
-      );
-    });
-  });
-
-  // Mission docker_tls (T2): after a successful run that included the
-  // docker_tls role, the orchestrator registers the DockerConnection
-  // automatically with the fetched client certs — same encrypted storage path
-  // as a manual POST /servers/:id/docker-connection (upsert).
-  describe('registerDockerTlsConnection', () => {
-    const call = (
-      r: InfraSetupRunnerService,
-      ...args: unknown[]
-    ): Promise<void> =>
-      (
-        r as unknown as {
-          registerDockerTlsConnection: (...a: unknown[]) => Promise<void>;
-        }
-      ).registerDockerTlsConnection(...args);
-
-    const srv = { id: 'srv-1', host: '10.0.0.9' } as Server;
-    const material = { ca: 'CA_PEM', cert: 'CERT_PEM', key: 'KEY_PEM' };
-
-    it('upserts the connection on tcp://host:2376 with the fetched certs and probes it', async () => {
-      const { runner, dockerConnections, audit } = build();
-      await call(runner, srv, 'run-1', material);
-      expect(dockerConnections.upsert).toHaveBeenCalledWith({
-        serverId: 'srv-1',
-        endpoint: 'tcp://10.0.0.9:2376',
-        tlsCaCert: 'CA_PEM',
-        tlsClientCert: 'CERT_PEM',
-        tlsClientKey: 'KEY_PEM',
-      });
-      expect(dockerConnections.probeReachability).toHaveBeenCalledWith('srv-1');
-      expect(audit.record).toHaveBeenCalledWith(
-        'srv-1',
-        'DOCKER_CONNECTION_AUTO_REGISTERED',
-        null,
-        expect.objectContaining({ endpoint: 'tcp://10.0.0.9:2376' }),
-      );
-    });
-
-    it('logs an ERROR (no throw) when material is missing — manual endpoint remains the fallback', async () => {
-      const { runner, dockerConnections, serverRuns } = build();
-      await call(runner, srv, 'run-1', null);
-      expect(dockerConnections.upsert).not.toHaveBeenCalled();
-      expect(serverRuns.appendLog).toHaveBeenCalledWith(
-        'run-1',
-        expect.objectContaining({
-          level: ServerLogLevel.ERROR,
-          message: expect.stringContaining('NOT registered'),
-        }),
-      );
-    });
-
-    it('does not fail the setup when the upsert itself fails (logged as ERROR)', async () => {
-      const { runner, dockerConnections, serverRuns } = build();
-      dockerConnections.upsert.mockRejectedValueOnce(new Error('db down'));
-      await expect(
-        call(runner, srv, 'run-1', material),
-      ).resolves.toBeUndefined();
-      expect(serverRuns.appendLog).toHaveBeenCalledWith(
-        'run-1',
-        expect.objectContaining({ level: ServerLogLevel.ERROR }),
-      );
-      expect(dockerConnections.probeReachability).not.toHaveBeenCalled();
-    });
-
-    it('keeps the registration even when the post-registration probe fails (WARNING only)', async () => {
-      const { runner, dockerConnections, serverRuns } = build();
-      dockerConnections.probeReachability.mockRejectedValueOnce(
-        new Error('handshake refused'),
-      );
-      await call(runner, srv, 'run-1', material);
-      expect(dockerConnections.upsert).toHaveBeenCalled();
-      expect(serverRuns.appendLog).toHaveBeenCalledWith(
-        'run-1',
-        expect.objectContaining({ level: ServerLogLevel.WARNING }),
-      );
-    });
-
-    it('never logs the PEM contents themselves', async () => {
-      const { runner, serverRuns } = build();
-      await call(runner, srv, 'run-1', material);
-      const allMessages = (serverRuns.appendLog as jest.Mock).mock.calls
-        .map((c: unknown[]) => (c[1] as { message: string }).message)
-        .join('\n');
-      expect(allMessages).not.toContain('CA_PEM');
-      expect(allMessages).not.toContain('CERT_PEM');
-      expect(allMessages).not.toContain('KEY_PEM');
-    });
-  });
-
-  describe('updateRoleStateFromLog', () => {
-    const call = (
-      r: InfraSetupRunnerService,
-      ...args: unknown[]
-    ): Promise<void> =>
-      (
-        r as unknown as {
-          updateRoleStateFromLog: (...a: unknown[]) => Promise<void>;
-        }
-      ).updateRoleStateFromLog(...args);
-
-    it('does nothing when the log line carries no recognised role', async () => {
-      const { runner, prisma } = build();
-      await call(runner, 'run-1', 'some unrelated log line');
-      expect(prisma.serverRunStep.updateMany).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('refreshDetectionAfterSetup', () => {
-    const call = (
-      r: InfraSetupRunnerService,
-      ...args: unknown[]
-    ): Promise<void> =>
-      (
-        r as unknown as {
-          refreshDetectionAfterSetup: (...a: unknown[]) => Promise<void>;
-        }
-      ).refreshDetectionAfterSetup(...args);
-
-    it('runs detection on the refreshed server', async () => {
-      const { runner, detection } = build();
-      await call(runner, server, 'run-1');
-      expect(detection.detect).toHaveBeenCalled();
-    });
-
-    it('logs a warning (non-fatal) when detection fails', async () => {
-      const { runner, detection, serverRuns } = build();
-      (detection.detect as jest.Mock).mockRejectedValueOnce(
-        new Error('detect failed'),
-      );
-      await call(runner, server, 'run-1');
-      expect(serverRuns.appendLog).toHaveBeenCalledWith(
-        'run-1',
-        expect.objectContaining({ level: ServerLogLevel.WARNING }),
       );
     });
   });

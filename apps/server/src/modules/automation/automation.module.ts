@@ -6,12 +6,18 @@ import { AutomationGateway } from './automation.gateway';
 import { AutomationController } from './controllers/automation.controller';
 import { AutomationRunnerService } from './services/automation-runner.service';
 import { AutomationService } from './services/automation.service';
+import { AutomationRunsProcessor } from './processors/automation-runs.processor';
 import { AppJwtModule } from '../../shared/jwt/jwt.module';
 
 @Module({
   imports: [PrismaModule, InfrastructureModule, ServerRunsModule, AppJwtModule],
   controllers: [AutomationController],
-  providers: [AutomationService, AutomationRunnerService, AutomationGateway],
+  providers: [
+    AutomationService,
+    AutomationRunnerService,
+    AutomationGateway,
+    AutomationRunsProcessor,
+  ],
   exports: [AutomationService],
 })
 export class AutomationModule {}

@@ -22,7 +22,7 @@ describe('DeploymentsConfigResolver — mode REGISTRY (registryImage)', () => {
 
   beforeEach(() => buildDockerImage.mockClear());
 
-  it('tire registryImage tel quel quand il est défini (pas de dérivation CI)', async () => {
+  it('uses registryImage as-is when defined (no CI derivation)', async () => {
     const cfg = await resolver.resolve(
       {} as never,
       { ...baseService, registryImage: 'registry.gitlab.com/grp/app:1.2.3' },
@@ -32,7 +32,7 @@ describe('DeploymentsConfigResolver — mode REGISTRY (registryImage)', () => {
     expect(buildDockerImage).not.toHaveBeenCalled();
   });
 
-  it('dérive l’image via la CI quand registryImage est vide', async () => {
+  it('derives the image via CI when registryImage is empty', async () => {
     const cfg = await resolver.resolve(
       {} as never,
       { ...baseService, registryImage: '   ' },

@@ -72,14 +72,41 @@ export class ServersVerificationService {
       },
     });
 
+    // Re-validating SSH connectivity must NOT wipe the provisioning state: a
+    // server that already reached PREPARED/PARTIALLY_PREPARED (or the interim
+    // INFO_DETECTED) stays there — re-validating just refreshes isVerified /
+    // lastVerifiedAt. Without this, clicking "Re-validate SSH" on a ready
+    // server demoted it to SSH_VALIDATED (then auto-detect → INFO_DETECTED),
+    // producing the contradictory Deploy dialog ("server not ready" while
+    // "all tools installed") and blocking deploys. Same guard as
+    // ServersDetectionService.detect(). Only advance status on a fresh server.
+    const current = await this.prisma.server.findUnique({
+      where: { id: serverId },
+      select: { status: true, onboardingStep: true },
+    });
+    const preserveStatus =
+      fullyValidated &&
+      (current?.status === ServerStatus.PREPARED ||
+        current?.status === ServerStatus.PARTIALLY_PREPARED ||
+        current?.status === ServerStatus.INFO_DETECTED);
+
     const updated = await this.prisma.server.update({
       where: { id: serverId },
       data: {
-        status: fullyValidated
-          ? ServerStatus.SSH_VALIDATED
-          : ServerStatus.VALIDATION_FAILED,
+        ...(preserveStatus
+          ? {}
+          : {
+              status: fullyValidated
+                ? ServerStatus.SSH_VALIDATED
+                : ServerStatus.VALIDATION_FAILED,
+              onboardingStep: fullyValidated
+                ? 'SSH_VALIDATED'
+                : 'KEY_INSTALLED',
+            }),
+        // A failed re-validation must still flip status to VALIDATION_FAILED
+        // even on a previously-prepared server — handled above (preserveStatus
+        // is false when !fullyValidated).
         isVerified: fullyValidated,
-        onboardingStep: fullyValidated ? 'SSH_VALIDATED' : 'KEY_INSTALLED',
         lastVerifiedAt: new Date(),
         verificationError: fullyValidated
           ? null

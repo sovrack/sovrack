@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -9,6 +14,8 @@ import {
   ServerRunStepStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { RedisAbortChannel } from '../../../shared/queue/redis-abort-channel';
+import { runsBackgroundWork } from '../../../shared/utils/process-role.util';
 import { ServerSetupAnsibleService } from '../../infrastructure/onboarding/services/server-setup-ansible.service';
 import { ServerRunsService } from '../../infrastructure/server-runs/server-runs.service';
 import type { SetupRoleKey } from '../../infrastructure/servers/shared/server-setup-options';
@@ -37,9 +44,10 @@ type AutomationRunWithSteps = Prisma.ServerRunGetPayload<{
 }>;
 
 @Injectable()
-export class AutomationRunnerService {
+export class AutomationRunnerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AutomationRunnerService.name);
   private readonly controllers = new Map<string, AbortController>();
+  private readonly abortChannel: RedisAbortChannel;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -48,7 +56,21 @@ export class AutomationRunnerService {
     private readonly configService: ConfigService,
     private readonly events: EventEmitter2,
     private readonly serverRuns: ServerRunsService,
-  ) {}
+  ) {
+    this.abortChannel = new RedisAbortChannel(
+      'automation:abort',
+      runsBackgroundWork(),
+      (runId) => this.cancelLocal(runId),
+    );
+  }
+
+  onModuleInit(): void {
+    this.abortChannel.init();
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.abortChannel.close();
+  }
 
   executeInBackground(runId: string): void {
     void this.executeRun(runId).catch((error: unknown) => {
@@ -60,8 +82,36 @@ export class AutomationRunnerService {
     });
   }
 
-  cancel(runId: string): void {
+  /**
+   * Awaited entry point for the BullMQ automation-runs worker. Errors are
+   * swallowed (logged): the run's own ServerRun status is authoritative, so a
+   * failure/abort must not bubble up as a queue-level fault to retry.
+   */
+  async runAutomationJob(runId: string): Promise<void> {
+    try {
+      await this.executeRun(runId);
+    } catch (error) {
+      this.logger.error(
+        `Automation run ${runId} worker execution failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  /** Local (same-process) abort of a running automation run. */
+  private cancelLocal(runId: string): void {
     this.controllers.get(runId)?.abort();
+  }
+
+  /**
+   * Relay a cancellation to whichever process is running this automation run
+   * (the worker, possibly a different process than the API one), aborting
+   * locally too for single-process mode. Replaces the old in-process-only
+   * cancel().
+   */
+  async cancel(runId: string): Promise<void> {
+    await this.abortChannel.requestAbort(runId);
   }
 
   private async executeRun(runId: string): Promise<void> {

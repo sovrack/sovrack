@@ -1,1 +1,5 @@
-ansible>=9.0.0
+# Pin ansible-core itself, not just the collections (same class of drift
+# risk). ansible package 9.x ships ansible-core 2.16.x — the version this
+# platform is actually tested against (`ansible [core 2.16.3]`). Ceiling
+# avoids silently jumping to an untested ansible-core major/minor.
+ansible>=9.0.0,<10.0.0

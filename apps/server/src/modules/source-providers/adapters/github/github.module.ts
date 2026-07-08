@@ -8,6 +8,7 @@ import { GithubController } from './github.controller';
 import { GithubAdapter } from './github.adapter';
 import { GithubFileService } from './github-file.service';
 import { GithubWebhookConfiguratorService } from './github-webhook-configurator.service';
+import { GithubWebhookHandler } from './github-webhook.handler';
 
 @Module({
   imports: [PrismaModule, HttpModule, GitProviderConfigModule, PlatformModule],
@@ -17,12 +18,14 @@ import { GithubWebhookConfiguratorService } from './github-webhook-configurator.
     GithubClient,
     GithubFileService,
     GithubWebhookConfiguratorService,
+    GithubWebhookHandler,
   ],
   exports: [
     GithubAdapter,
     GithubClient,
     GithubFileService,
     GithubWebhookConfiguratorService,
+    GithubWebhookHandler,
   ],
 })
 export class GithubModule {}

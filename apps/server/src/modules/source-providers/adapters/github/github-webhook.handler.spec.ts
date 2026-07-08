@@ -5,7 +5,7 @@ import {
   DEPLOYMENT_PIPELINE_UPDATED,
 } from '../../../../shared/events/events.catalog';
 import { GithubWebhookHandler } from './github-webhook.handler';
-import type { WebhookEndpointContext } from '../../interfaces/webhook-handler.interface';
+import type { WebhookEndpointContext } from '../../../../shared/webhook/webhook-handler.interface';
 
 describe('GithubWebhookHandler', () => {
   let emit: jest.Mock;

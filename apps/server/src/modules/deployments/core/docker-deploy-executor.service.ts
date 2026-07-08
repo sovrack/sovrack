@@ -1,16 +1,11 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  Deployment,
-  DeploymentStatus,
-  DeploymentStrategy,
-  Prisma,
-  ServiceType,
-} from '@prisma/client';
+import { Deployment, DeploymentStatus, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import {
   buildContainerPrefix,
@@ -18,7 +13,8 @@ import {
   buildplatformLabels,
 } from '../../../shared/utils/container-spec.util';
 import { getDatabaseContainerConfig } from '../../../shared/utils/database-spec.util';
-import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
+import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { DeployRoutingService } from './deploy-routing.service';
 import { ContainerLifecycleService } from './container-lifecycle.service';
 import { ImageResolverService } from './image-resolver.service';
@@ -27,7 +23,6 @@ import { DeploymentEnvService } from './deployment-env.service';
 import { DeploymentPrelaunchService } from './deployment-prelaunch.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { NotificationsService } from '../../notifications/notifications.service';
-import { BLUE_GREEN_PORT_OFFSET } from '../utils/blue-green.constants';
 import {
   ReplicaLauncherService,
   type ResolvedRuntimeConfig,
@@ -44,29 +39,23 @@ import {
   setLogContext,
 } from '../../../shared/logger/log-context';
 import { randomUUID } from 'crypto';
-
-/** Subset of Deployment.specSnapshot the executor consumes (see deployments-create). */
-interface RuntimeSpecSnapshot {
-  port?: number | null;
-  startCommand?: string | null;
-  healthcheckPath?: string | null;
-  cpuLimit?: number | null;
-  memLimitMb?: number | null;
-  replicas?: number | null;
-}
+import {
+  resolvePortAssignment,
+  resolveRuntimeConfig,
+  buildDeploymentNotificationContext,
+  type RuntimeConfigInput,
+} from './deployment-executor-utils';
 
 @Injectable()
 export class DockerDeployExecutorService {
   private readonly logger = new Logger(DockerDeployExecutorService.name);
 
-  // Blue-green: the green container publishes on canonical+offset so it can run
-  // alongside the live (blue) container until it is verified healthy. Offset
-  // shared with DeploymentPreflightService (see blue-green.constants.ts).
+  // Green container publishes on canonical+offset until blue-green cutover.
   private static readonly BLUE_GREEN_DRAIN_MS = 3000;
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly docker: DockerApiService,
+    @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly gateway: DeploymentEventsPublisher,
     private readonly prelaunch: DeploymentPrelaunchService,
     private readonly imageResolver: ImageResolverService,
@@ -79,63 +68,16 @@ export class DockerDeployExecutorService {
     private readonly failureRecovery: DeployFailureRecoveryService,
   ) {}
 
-  /**
-   * Resolve the runtime config to apply to the container.
-   *
-   * For a ROLLBACK or AUTO-HEAL deployment we prefer the FROZEN specSnapshot
-   * captured at the original deploy (true point-in-time restore: same port,
-   * start command, healthcheck and resource limits as the release being
-   * restored), falling back to live config field-by-field if the snapshot is
-   * missing a value. A normal deploy has no snapshot yet, so it uses live
-   * config unchanged — behaviour identical to before this method existed.
-   *
-   * Env vars are deliberately NOT taken from the snapshot: secrets must never be
-   * stored there, so env always comes from live config (resolveDeploymentEnv).
-   *
-   * NB: la précédence snapshot→service→défaut 3000 est un point de
-   * synchronisation avec DeploymentPreflightService (voir
-   * EXPLORATION_BACKEND_DEPENDANCES.md section 3) — ne pas modifier sans
-   * mettre à jour le pré-vol en parallèle.
-   */
-  private resolveRuntimeConfig(deployment: {
-    isRollback: boolean;
-    isAutoHealed: boolean;
-    specSnapshot: Prisma.JsonValue;
-    service: {
-      port: number | null;
-      startCommand: string | null;
-      healthcheckPath: string | null;
-      cpuLimit: number | null;
-      memLimitMb: number | null;
-      replicas?: number | null;
-    } | null;
-  }): ResolvedRuntimeConfig {
-    const usePinned =
-      (deployment.isRollback || deployment.isAutoHealed) &&
-      deployment.specSnapshot != null &&
-      typeof deployment.specSnapshot === 'object' &&
-      !Array.isArray(deployment.specSnapshot);
-    const snap = usePinned
-      ? (deployment.specSnapshot as RuntimeSpecSnapshot)
-      : null;
-    const service = deployment.service;
-    return {
-      port: snap?.port ?? service?.port ?? 3000,
-      startCommand: snap?.startCommand ?? service?.startCommand ?? null,
-      healthcheckPath:
-        snap?.healthcheckPath ?? service?.healthcheckPath ?? null,
-      cpuLimit: snap?.cpuLimit ?? service?.cpuLimit ?? null,
-      memLimitMb: snap?.memLimitMb ?? service?.memLimitMb ?? null,
-      replicas: snap?.replicas ?? service?.replicas ?? 1,
-    };
+  private resolveRuntimeConfig(
+    deployment: RuntimeConfigInput,
+  ): ResolvedRuntimeConfig {
+    return resolveRuntimeConfig(deployment);
   }
 
   async executeDeploy(
     deploymentId: string,
     overrideImage?: string,
   ): Promise<Deployment> {
-    // Establish (or inherit) a logging context so every line emitted during the
-    // deploy carries the correlationId + deploymentId for end-to-end tracing.
     return runWithLogContext(
       {
         correlationId: getLogContext().correlationId ?? randomUUID(),
@@ -218,22 +160,14 @@ export class DockerDeployExecutorService {
 
     if (!deployment) throw new NotFoundException('Déploiement non trouvé');
 
-    // E3 (plan produit final) : l'exécuteur Compose a été retiré — la
-    // création de services COMPOSE est désactivée depuis la mission finale
-    // (wizard) et la chaîne n'a jamais été utilisable bout-en-bout. Refus
-    // explicite plutôt qu'un chemin mort maintenu (réintroduction possible
-    // depuis l'historique git si la feature revient un jour).
+    // DOCKER_COMPOSE builds are disabled (removed executor).
     if (deployment.service?.buildPack === 'DOCKER_COMPOSE') {
       throw new BadRequestException(
         'Les déploiements Docker Compose sont désactivés sur cette plateforme.',
       );
     }
 
-    // serviceEnvId is nullable in the schema only to preserve history when a
-    // ServiceEnvironment is archived (onDelete: SetNull). Every live path sets
-    // it; a null here is a malformed/legacy row that cannot bind to a cell —
-    // fail fast rather than deploy something that can't move the
-    // currentDeployment pointer or be reconciled/auto-healed.
+    // Null serviceEnvId = archived ServiceEnvironment; cannot bind cell.
     if (!deployment.serviceEnvId) {
       throw new BadRequestException(
         `Déploiement ${deployment.id} sans serviceEnvId (son ServiceEnvironment a peut-être été archivé). Exécution impossible.`,
@@ -244,11 +178,7 @@ export class DockerDeployExecutorService {
       userId: deployment.user?.id,
     });
 
-    // Résoudre le serveur cible, par ordre de priorité :
-    //  1) ServiceEnvironment.serverId (cible EXPLICITE — découplage serveur↔env :
-    //     un service choisit son serveur, un VPS peut héberger plusieurs envs),
-    //  2) le 1er serveur de l'environnement (comportement historique),
-    //  3) resolvedRefs.serverId (lignes legacy).
+    // Resolve target server: ServiceEnvironment.serverId > first env server > legacy resolvedRefs.
     const servers = deployment.serviceEnv?.environment.servers ?? [];
     const resolvedRefs = deployment.resolvedRefs as {
       serverId?: string;
@@ -279,11 +209,7 @@ export class DockerDeployExecutorService {
       serviceName,
     );
     const containerName = `${containerPrefix}${deployment.id.slice(0, 8)}`;
-    // Alias DNS stable (= nom du service) : joignable par les autres conteneurs
-    // du projet via un nom fixe, indépendant de l'ID de déploiement.
     const serviceAlias = buildServiceAlias(serviceName);
-    // Rollback/auto-heal restore the frozen specSnapshot config; normal deploys
-    // use live config (unchanged behaviour). See resolveRuntimeConfig.
     const runtime = this.resolveRuntimeConfig(deployment);
     let servicePort = runtime.port;
     const autoDbEnv =
@@ -319,25 +245,29 @@ export class DockerDeployExecutorService {
         serviceName,
       );
 
-    // Task 4 ("Sécurité database + UI" mission): a DATABASE service publishes
-    // NO host port unless the user explicitly set Service.externalPort (the
-    // "External Credentials" UI). Default = internal-only, reachable from
-    // other project services only via the Docker network alias.
-    const isDatabase = deployment.service?.type === ServiceType.DATABASE;
-    const dbExternalPort = deployment.service?.externalPort ?? null;
-    const dbHostPortDisabled = isDatabase && dbExternalPort == null;
-
-    const blueGreen =
-      deployment.strategy === DeploymentStrategy.BLUE_GREEN &&
+    // Inject PORT for PaaS convention (non-DATABASE, not user-defined).
+    if (
       deployment.service?.type !== ServiceType.DATABASE &&
-      !useTraefik;
-    const publishPort = blueGreen
-      ? servicePort + BLUE_GREEN_PORT_OFFSET
-      : isDatabase && dbExternalPort != null
-        ? dbExternalPort
-        : servicePort;
+      !envVars.some((e) => e.startsWith('PORT='))
+    ) {
+      envVars.push(`PORT=${String(servicePort)}`);
+    }
+
+    const {
+      blueGreen,
+      publishPort,
+      dbHostPortDisabled,
+      canOverlap,
+      publishesHostPort,
+    } = resolvePortAssignment({
+      strategy: deployment.strategy,
+      serviceType: deployment.service!.type,
+      useTraefik,
+      servicePort,
+      dbExternalPort: deployment.service?.externalPort ?? null,
+    });
     if (blueGreen) {
-      this.emitGatewayLog(
+      this.logEmitter.emit(
         deployment.id,
         `[BLUE-GREEN] Conteneur green sur le port ${publishPort} (blue reste actif).`,
         'info',
@@ -356,8 +286,6 @@ export class DockerDeployExecutorService {
       },
     });
 
-    // Tracked across try/catch so a failed deploy can roll the service back to
-    // the previous container(s) it had to stop (see the catch block).
     let stoppedOld: Array<{ id: string; name: string }> = [];
     const newContainerIds: string[] = [];
 
@@ -376,44 +304,16 @@ export class DockerDeployExecutorService {
         isLocalBuild,
         server,
         serverId,
-        // Vars non-secrètes → build-args (ex. NEXT_PUBLIC_* figées au build).
         envResolution.entries
           .filter((e) => !e.isSecret)
           .map((e) => `${e.key}=${e.value}`),
-        // Secrets → BuildKit --secret (jamais en build-arg : pas de fuite image).
         envResolution.entries
           .filter((e) => e.isSecret)
           .map((e) => `${e.key}=${e.value}`),
-        // Image épinglée (rollback / redeploy d'une image précise) → réutiliser
-        // l'image locale existante au lieu de rebuild. Un deploy frais (sans
-        // override) reconstruit toujours.
         Boolean(overrideImage),
       );
 
-      // NB: cette règle est dupliquée volontairement dans
-      // DeploymentPreflightService (Point 9) — voir
-      // EXPLORATION_BACKEND_DEPENDANCES.md section 3. Ne pas changer d'un
-      // côté sans l'autre.
-      // Task 4: un service DATABASE sans externalPort ne publie AUCUN port
-      // hôte (dbHostPortDisabled) → pas de check de conflit de port à faire.
-      const publishesHostPort =
-        !useTraefik &&
-        !dbHostPortDisabled &&
-        deployment.service?.type !== 'WORKER' &&
-        deployment.service?.type !== 'CRON';
-
-      // Start-before-stop (Coolify/Railway/Dokploy parity). The new container
-      // can run alongside the old one only when it won't collide on a host port:
-      //  - Traefik mode  → the container publishes no host port,
-      //  - blue-green    → the green publishes on an offset port.
-      // In those modes the OLD container keeps serving until the new one is
-      // healthy, then it is retired → true zero-downtime. Otherwise we must stop
-      // the old one first to free the port, but we remember it so a FAILED
-      // deploy brings it back (automatic recovery — never leave the service down).
-      const canOverlap = useTraefik || blueGreen;
-      // NB: DeploymentPreflightService appelle la MÊME méthode en pré-flight
-      // (défense en profondeur voulue, voir Point 9 du sprint de validation
-      // pré-déploiement) — ne pas retirer ce garde-fou ici.
+      // Stop old containers first unless Traefik/blue-green allows overlap.
       commandLogs += await this.containerLifecycle.assertNoForeignPortConflict(
         serverId,
         containerPrefix,
@@ -446,13 +346,12 @@ export class DockerDeployExecutorService {
         );
       }
 
-      // ── Ensure per-project Docker network exists ────────────────────────
       const projectNetwork = `project-${deployment.project.id}`;
       try {
         await this.docker.createNetwork(serverId, projectNetwork);
         commandLogs += `Network ${projectNetwork} ready.\n`;
       } catch {
-        // Network may already exist — not an error.
+        // Network already exists — nothing to do.
       }
 
       // ── Resolve app volumes ─────────────────────────────────────────────
@@ -463,8 +362,7 @@ export class DockerDeployExecutorService {
 
       const replicas = runtime.replicas;
 
-      // Guard: multiple replicas of APPLICATION services require Traefik.
-      // WORKER/CRON never publish a host port, so they can scale freely.
+      // Multiple APPLICATION replicas require Traefik.
       if (
         replicas > 1 &&
         !useTraefik &&
@@ -477,7 +375,7 @@ export class DockerDeployExecutorService {
         );
       }
 
-      this.emitGatewayLog(
+      this.logEmitter.emit(
         deployment.id,
         replicas > 1
           ? `Création de ${String(replicas)} répliques...`
@@ -549,9 +447,6 @@ export class DockerDeployExecutorService {
         });
       }
 
-      // New container healthy and serving → NOW retire the previous one(s).
-      // Blue-green retires the still-running blue inside cutoverBlueGreen, so
-      // here we only clean up the container(s) we had to stop up front.
       const toRetire = blueGreen ? stoppedOld : oldContainers;
       if (toRetire.length > 0) {
         commandLogs += await this.containerLifecycle.removeContainers(
@@ -565,7 +460,6 @@ export class DockerDeployExecutorService {
         serverId,
         imageRef,
       );
-      // Result<string,string> : on garde le fallback ET on logge la raison.
       if (!digestResult.ok) {
         this.logger.warn(
           `Digest non résolu pour ${imageRef}: ${digestResult.error}`,
@@ -573,17 +467,9 @@ export class DockerDeployExecutorService {
       }
       const imageDigest = digestResult.ok ? digestResult.value : null;
 
-      // Nettoyage best-effort des images orphelines (anciens builds) → évite que
-      // le disque du VPS se remplisse au fil des déploiements. Non bloquant.
       void this.docker.pruneDanglingImages(serverId);
 
-      // Pointeur "release courante" (L3) : ce déploiement devient LE live de sa
-      // cellule. Source unique du "live" (fin de l'heuristique "dernier SUCCESS
-      // deviné par date") — couvre déploiement normal, rollback ET pipeline CI,
-      // qui passent tous par ici. Le passage à SUCCESS et le déplacement du
-      // pointeur sont dans la même transaction : soit les deux écritures
-      // réussissent, soit aucune n'est appliquée (pas d'état intermédiaire où
-      // le déploiement serait SUCCESS sans que le pointeur ait bougé).
+      // Set current deployment pointer + status in a single transaction.
       const finished = await this.prisma.$transaction(async (tx) => {
         const updated = await tx.deployment.update({
           where: { id: deployment.id },
@@ -623,13 +509,7 @@ export class DockerDeployExecutorService {
         .notifyDeploymentFinished({
           deploymentId: finished.id,
           status: 'SUCCESS',
-          projectName: deployment.project.name,
-          environmentName:
-            deployment.serviceEnv?.environment?.name ??
-            deployment.environment?.name ??
-            '',
-          branch: deployment.branch ?? '',
-          triggeredBy: deployment.user?.email ?? 'auto',
+          ...buildDeploymentNotificationContext(deployment),
         })
         .catch(() => undefined);
 
@@ -642,23 +522,9 @@ export class DockerDeployExecutorService {
         commandLogs,
         newContainerIds,
         stoppedOld,
-        projectName: deployment.project.name,
-        environmentName:
-          deployment.serviceEnv?.environment?.name ??
-          deployment.environment?.name ??
-          '',
-        branch: deployment.branch ?? '',
-        triggeredBy: deployment.user?.email ?? 'auto',
+        ...buildDeploymentNotificationContext(deployment),
         error,
       });
     }
-  }
-
-  private emitGatewayLog(
-    deploymentId: string,
-    rawMessage: string,
-    fallbackLevel: 'info' | 'error',
-  ): void {
-    this.logEmitter.emit(deploymentId, rawMessage, fallbackLevel);
   }
 }

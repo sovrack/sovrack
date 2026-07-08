@@ -5,6 +5,10 @@ import { firstValueFrom } from 'rxjs';
 import { CryptoService } from '../../../../shared/crypto/crypto.service';
 import type { GitlabResolvedConfig } from './gitlab.types';
 import type { GitlabPipelineItem } from '../../contracts/gitlab-pipeline.types';
+import {
+  parseNullableHeaderInt,
+  throwGitlabRequestError,
+} from './gitlab-pagination.helper';
 
 export type { GitlabPipelineItem } from '../../contracts/gitlab-pipeline.types';
 
@@ -75,6 +79,62 @@ export class GitlabClient {
     private readonly crypto: CryptoService,
   ) {}
 
+  private normalizeBaseUrl(url: string): string {
+    return url.replace(/\/+$/, '');
+  }
+
+  private async getByConnection<T>(
+    baseUrl: string,
+    gitlabToken: string,
+    path: string,
+    errorLabel: string,
+  ): Promise<T> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<T>(`${this.normalizeBaseUrl(baseUrl)}${path}`, {
+          headers: { 'PRIVATE-TOKEN': gitlabToken },
+        }),
+      );
+      return response.data;
+    } catch (error: unknown) {
+      throwGitlabRequestError(errorLabel, error);
+    }
+  }
+
+  private async fetchProjectPath(
+    normalizeUrl: (url: string) => string,
+    gitlabToken: string,
+    providerUrl: string,
+    projectId: number | string,
+    normalizeRepositoryPath: (value: string) => string,
+  ): Promise<string | null> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get<GitlabProjectSummary>(
+          `${normalizeUrl(providerUrl)}/api/v4/projects/${encodeURIComponent(String(projectId))}`,
+          { headers: { 'PRIVATE-TOKEN': gitlabToken } },
+        ),
+      );
+      const fullPath = response.data.path_with_namespace;
+      if (typeof fullPath === 'string' && fullPath.trim()) {
+        return normalizeRepositoryPath(fullPath);
+      }
+      const namespacePath = response.data.namespace?.full_path;
+      const repoPath = response.data.path;
+      if (
+        typeof namespacePath === 'string' &&
+        namespacePath.trim() &&
+        typeof repoPath === 'string' &&
+        repoPath.trim()
+      ) {
+        return normalizeRepositoryPath(`${namespacePath}/${repoPath}`);
+      }
+    } catch {
+      // Best-effort lookup — fall through to the null return below.
+    }
+    return null;
+  }
+
   async getBranches(
     config: GitlabResolvedConfig,
     repoId: number | string,
@@ -96,7 +156,7 @@ export class GitlabClient {
 
       return response.data;
     } catch (error: unknown) {
-      this.throwGitlabRequestError('récupération des branches', error);
+      throwGitlabRequestError('récupération des branches', error);
     }
   }
 
@@ -121,7 +181,7 @@ export class GitlabClient {
 
       return response.data;
     } catch (error: unknown) {
-      this.throwGitlabRequestError('récupération des pipelines', error);
+      throwGitlabRequestError('récupération des pipelines', error);
     }
   }
 
@@ -148,10 +208,7 @@ export class GitlabClient {
 
       return response.data;
     } catch (error: unknown) {
-      this.throwGitlabRequestError(
-        `déclenchement du pipeline (${branch})`,
-        error,
-      );
+      throwGitlabRequestError(`déclenchement du pipeline (${branch})`, error);
     }
   }
 
@@ -174,7 +231,7 @@ export class GitlabClient {
       );
       return [response.data];
     } catch (error: unknown) {
-      this.throwGitlabRequestError('récupération du repository', error);
+      throwGitlabRequestError('récupération du repository', error);
     }
   }
 
@@ -201,10 +258,7 @@ export class GitlabClient {
       );
       return response.data;
     } catch (error: unknown) {
-      this.throwGitlabRequestError(
-        'récupération des repositories du groupe',
-        error,
-      );
+      throwGitlabRequestError('récupération des repositories du groupe', error);
     }
   }
 
@@ -233,38 +287,14 @@ export class GitlabClient {
 
     if (config.sourceType === SourceType.GIT && config.externalId) {
       const gitlabToken = this.crypto.decrypt(config.providerToken);
-
-      try {
-        const response = await firstValueFrom(
-          this.httpService.get<GitlabProjectSummary>(
-            `${normalizeUrl(config.providerUrl)}/api/v4/projects/${encodeURIComponent(String(config.externalId))}`,
-            {
-              headers: {
-                'PRIVATE-TOKEN': gitlabToken,
-              },
-            },
-          ),
-        );
-
-        const fullPath = response.data.path_with_namespace;
-        if (typeof fullPath === 'string' && fullPath.trim()) {
-          return normalizeRepositoryPath(fullPath);
-        }
-
-        const namespacePath = response.data.namespace?.full_path;
-        const repoPath = response.data.path;
-        if (
-          typeof namespacePath === 'string' &&
-          namespacePath.trim() &&
-          typeof repoPath === 'string' &&
-          repoPath.trim()
-        ) {
-          return normalizeRepositoryPath(`${namespacePath}/${repoPath}`);
-        }
-      } catch {
-        // Fallback silencieux.
-      }
-
+      const path = await this.fetchProjectPath(
+        normalizeUrl,
+        gitlabToken,
+        config.providerUrl,
+        config.externalId,
+        normalizeRepositoryPath,
+      );
+      if (path) return path;
       return `project-${String(config.externalId)}/${normalizedFallback}`;
     }
 
@@ -276,60 +306,32 @@ export class GitlabClient {
         preferredRepoId,
       );
 
-      try {
-        const response = await firstValueFrom(
-          this.httpService.get<GitlabProjectSummary>(
-            `${normalizeUrl(config.providerUrl)}/api/v4/projects/${encodeURIComponent(String(targetRepoId))}`,
-            {
-              headers: {
-                'PRIVATE-TOKEN': gitlabToken,
-              },
-            },
-          ),
-        );
-
-        const fullPath = response.data.path_with_namespace;
-        if (typeof fullPath === 'string' && fullPath.trim()) {
-          return normalizeRepositoryPath(fullPath);
-        }
-
-        const namespacePath = response.data.namespace?.full_path;
-        const repoPath = response.data.path;
-        if (
-          typeof namespacePath === 'string' &&
-          namespacePath.trim() &&
-          typeof repoPath === 'string' &&
-          repoPath.trim()
-        ) {
-          return normalizeRepositoryPath(`${namespacePath}/${repoPath}`);
-        }
-      } catch {
-        // Fallback silencieux.
-      }
+      const path = await this.fetchProjectPath(
+        normalizeUrl,
+        gitlabToken,
+        config.providerUrl,
+        targetRepoId,
+        normalizeRepositoryPath,
+      );
+      if (path) return path;
 
       try {
         const response = await firstValueFrom(
           this.httpService.get<GitlabGroupSummary>(
             `${normalizeUrl(config.providerUrl)}/api/v4/groups/${encodeURIComponent(String(config.externalGroupId))}`,
-            {
-              headers: {
-                'PRIVATE-TOKEN': gitlabToken,
-              },
-            },
+            { headers: { 'PRIVATE-TOKEN': gitlabToken } },
           ),
         );
-
         const groupPath =
           typeof response.data.full_path === 'string' &&
           response.data.full_path.trim()
             ? response.data.full_path
             : response.data.path;
-
         if (typeof groupPath === 'string' && groupPath.trim()) {
           return normalizeRepositoryPath(`${groupPath}/${normalizedFallback}`);
         }
       } catch {
-        // Fallback silencieux.
+        // Best-effort lookup — fall through to the fallback path below.
       }
 
       return `group-${String(config.externalGroupId)}/${normalizedFallback}`;
@@ -355,7 +357,7 @@ export class GitlabClient {
         ),
       );
     } catch (error: unknown) {
-      this.throwGitlabRequestError('connexion GitLab repository', error);
+      throwGitlabRequestError('connexion GitLab repository', error);
     }
   }
 
@@ -376,7 +378,7 @@ export class GitlabClient {
         ),
       );
     } catch (error: unknown) {
-      this.throwGitlabRequestError('connexion GitLab group', error);
+      throwGitlabRequestError('connexion GitLab group', error);
     }
   }
 
@@ -385,21 +387,12 @@ export class GitlabClient {
     gitlabProjectId: number | string,
     gitlabToken: string,
   ): Promise<GitlabProjectSummary> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get<GitlabProjectSummary>(
-          `${baseUrl.replace(/\/+$/, '')}/api/v4/projects/${encodeURIComponent(String(gitlabProjectId))}`,
-          {
-            headers: {
-              'PRIVATE-TOKEN': gitlabToken,
-            },
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.throwGitlabRequestError('connexion GitLab repository', error);
-    }
+    return this.getByConnection<GitlabProjectSummary>(
+      baseUrl,
+      gitlabToken,
+      `/api/v4/projects/${encodeURIComponent(String(gitlabProjectId))}`,
+      'connexion GitLab repository',
+    );
   }
 
   async listProjectBranchesByConnection(
@@ -407,24 +400,12 @@ export class GitlabClient {
     gitlabProjectId: number | string,
     gitlabToken: string,
   ): Promise<GitlabBranchItem[]> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get<GitlabBranchItem[]>(
-          `${baseUrl.replace(/\/+$/, '')}/api/v4/projects/${encodeURIComponent(String(gitlabProjectId))}/repository/branches`,
-          {
-            headers: {
-              'PRIVATE-TOKEN': gitlabToken,
-            },
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.throwGitlabRequestError(
-        'vérification de la branche par défaut',
-        error,
-      );
-    }
+    return this.getByConnection<GitlabBranchItem[]>(
+      baseUrl,
+      gitlabToken,
+      `/api/v4/projects/${encodeURIComponent(String(gitlabProjectId))}/repository/branches`,
+      'vérification de la branche par défaut',
+    );
   }
 
   async listGroupRepositoriesByConnection(
@@ -470,7 +451,7 @@ export class GitlabClient {
 
       const response = await firstValueFrom(
         this.httpService.get<GitlabRepoItem[]>(
-          `${baseUrl.replace(/\/+$/, '')}/api/v4/groups/${encodeURIComponent(String(gitlabGroupId))}/projects`,
+          `${this.normalizeBaseUrl(baseUrl)}/api/v4/groups/${encodeURIComponent(String(gitlabGroupId))}/projects`,
           {
             headers: {
               'PRIVATE-TOKEN': gitlabToken,
@@ -484,17 +465,12 @@ export class GitlabClient {
         pagination: {
           page: Number(response.headers['x-page'] ?? params.page),
           perPage: Number(response.headers['x-per-page'] ?? params.per_page),
-          total: this.parseNullableHeaderInt(response.headers['x-total']),
-          totalPages: this.parseNullableHeaderInt(
-            response.headers['x-total-pages'],
-          ),
+          total: parseNullableHeaderInt(response.headers['x-total']),
+          totalPages: parseNullableHeaderInt(response.headers['x-total-pages']),
         },
       };
     } catch (error: unknown) {
-      this.throwGitlabRequestError(
-        'récupération des repositories du groupe',
-        error,
-      );
+      throwGitlabRequestError('récupération des repositories du groupe', error);
     }
   }
 
@@ -503,82 +479,11 @@ export class GitlabClient {
     gitlabGroupId: number | string,
     gitlabToken: string,
   ): Promise<GitlabGroupSummary> {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get<GitlabGroupSummary>(
-          `${baseUrl.replace(/\/+$/, '')}/api/v4/groups/${encodeURIComponent(String(gitlabGroupId))}`,
-          {
-            headers: {
-              'PRIVATE-TOKEN': gitlabToken,
-            },
-          },
-        ),
-      );
-      return response.data;
-    } catch (error: unknown) {
-      this.throwGitlabRequestError('connexion GitLab group', error);
-    }
-  }
-
-  private parseNullableHeaderInt(value: unknown): number | null {
-    const raw: unknown = Array.isArray(value) ? value[0] : value;
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  throwGitlabRequestError(action: string, error: unknown): never {
-    const err = error as {
-      message?: string;
-      response?: { status?: number; data?: unknown };
-    };
-
-    const status = err.response?.status;
-    const data = err.response?.data;
-
-    let details = '';
-    const looksLikeHtml =
-      typeof data === 'string' && /<(?:!doctype|html|head|body)\b/i.test(data);
-
-    if (typeof data === 'string') {
-      details = looksLikeHtml
-        ? 'Réponse HTML inattendue (URL API incorrecte ou page Cloudflare).'
-        : data;
-    } else if (data && typeof data === 'object') {
-      const payload = data as { message?: unknown; error?: unknown };
-      if (typeof payload.message === 'string') {
-        details = payload.message;
-      } else if (Array.isArray(payload.message)) {
-        details = payload.message
-          .filter((item): item is string => typeof item === 'string')
-          .join(', ');
-      } else if (typeof payload.error === 'string') {
-        details = payload.error;
-      }
-    }
-
-    const parts = [
-      status ? `HTTP ${String(status)}` : null,
-      details || err.message || null,
-    ].filter((value): value is string => Boolean(value));
-
-    const baseMessage =
-      parts.length > 0
-        ? `GitLab: ${action} échoué (${parts.join(' - ')})`
-        : `GitLab: ${action} échoué`;
-
-    const hint =
-      status === 401
-        ? ' — Token invalide ou manquant. Vérifiez votre Admin Token ou Personal Access Token (scopes: api ou read_api).'
-        : status === 403
-          ? ' — Accès refusé. Le token ne possède pas les permissions nécessaires sur ce projet/groupe.'
-          : status === 404
-            ? " — Projet/groupe introuvable. Vérifiez l'ID et les permissions du token."
-            : '';
-
-    const htmlHint = looksLikeHtml
-      ? " — Utilisez l'URL GitLab base (ex: https://gitlab.com), l'API /api/v4 est ajoutée automatiquement."
-      : '';
-
-    throw new BadRequestException(baseMessage + hint + htmlHint);
+    return this.getByConnection<GitlabGroupSummary>(
+      baseUrl,
+      gitlabToken,
+      `/api/v4/groups/${encodeURIComponent(String(gitlabGroupId))}`,
+      'connexion GitLab group',
+    );
   }
 }
