@@ -4,23 +4,34 @@
     name: ufw
     state: present
 
-- name: "firewall | Set incoming policy"
-  community.general.ufw:
-    direction: incoming
-    policy: "{{ firewall_default_incoming }}"
+# Configuration + activation UNIQUEMENT si firewall_enabled (false par défaut).
+# Désactivé par défaut pour éviter tout drop réseau (timeouts) sur les
+# dashboards de monitoring et les applications déployées.
+- name: "firewall | Configure and enable UFW (when firewall_enabled)"
+  when: firewall_enabled | bool
+  block:
+    - name: "firewall | Set incoming policy"
+      community.general.ufw:
+        direction: incoming
+        policy: "{{ firewall_default_incoming }}"
 
-- name: "firewall | Set outgoing policy"
-  community.general.ufw:
-    direction: outgoing
-    policy: "{{ firewall_default_outgoing }}"
+    - name: "firewall | Set outgoing policy"
+      community.general.ufw:
+        direction: outgoing
+        policy: "{{ firewall_default_outgoing }}"
 
-- name: "firewall | Allow required ports"
-  community.general.ufw:
-    rule: allow
-    port: "{{ item.split('/')[0] }}"
-    proto: "{{ item.split('/')[1] | default('tcp') }}"
-  loop: "{{ firewall_allowed_ports }}"
+    - name: "firewall | Allow required ports"
+      community.general.ufw:
+        rule: allow
+        port: "{{ item.split('/')[0] }}"
+        proto: "{{ item.split('/')[1] | default('tcp') }}"
+      loop: "{{ firewall_allowed_ports }}"
 
-- name: "firewall | Enable UFW"
+    - name: "firewall | Enable UFW"
+      community.general.ufw:
+        state: enabled
+
+- name: "firewall | Ensure UFW is disabled (default — avoids network drops)"
+  when: not (firewall_enabled | bool)
   community.general.ufw:
-    state: enabled
+    state: disabled

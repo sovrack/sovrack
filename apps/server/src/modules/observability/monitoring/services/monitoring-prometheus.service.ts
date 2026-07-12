@@ -278,14 +278,22 @@ export class MonitoringPrometheusService {
    * (exposed by cAdvisor as `container_label_platform_service_env`). Powers the
    * per-service charts + deployment markers. Returns empty when the Prometheus
    * stack is not installed (graceful degradation → UI falls back to live).
+   *
+   * `prometheusUrlOverride` : URL du Prometheus du serveur RÉEL hébergeant ce
+   * service-env (résolue par l'appelant via MonitoringServerResolverService).
+   * Sans elle, on retomberait sur la config plateforme globale, figée sur le
+   * premier serveur ayant eu la stack installée — jamais forcément celui qui
+   * héberge ce service précis.
    */
   async getServiceMetricRange(params: {
     serviceEnvId: string;
     from: Date;
     to: Date;
     stepSeconds: number;
+    prometheusUrlOverride?: string;
   }): Promise<ServiceMetricRange> {
-    const { serviceEnvId, from, to, stepSeconds } = params;
+    const { serviceEnvId, from, to, stepSeconds, prometheusUrlOverride } =
+      params;
     const base: ServiceMetricRange = {
       configured: false,
       serviceEnvId,
@@ -295,9 +303,9 @@ export class MonitoringPrometheusService {
       series: { cpuPercent: [], memoryMb: [] },
     };
 
-    const prometheusUrl = await this.getConfigValue(
-      'MONITORING_PROMETHEUS_URL',
-    );
+    const prometheusUrl =
+      prometheusUrlOverride ??
+      (await this.getConfigValue('MONITORING_PROMETHEUS_URL'));
     if (!prometheusUrl) return base;
     const normalized = this.trimTrailingSlash(prometheusUrl);
 

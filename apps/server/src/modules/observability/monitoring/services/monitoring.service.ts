@@ -14,11 +14,14 @@ import {
 import {
   AUTOMATION_RUN_COMPLETED,
   type AutomationRunCompletedEvent,
+  SERVER_SETUP_COMPLETED,
+  type ServerSetupCompletedEvent,
 } from '../../../../shared/events/events.catalog';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringStatsService } from './monitoring-stats.service';
 import { MonitoringPrometheusService } from './monitoring-prometheus.service';
 import { MonitoringAlertsService } from './monitoring-alerts.service';
+import { MonitoringServerResolverService } from './monitoring-server-resolver.service';
 
 type AlertItem = {
   id: string;
@@ -43,6 +46,7 @@ export class MonitoringService {
     private readonly statsService: MonitoringStatsService,
     private readonly prometheusService: MonitoringPrometheusService,
     private readonly alertsService: MonitoringAlertsService,
+    private readonly serverResolver: MonitoringServerResolverService,
   ) {}
 
   async getOverview() {
@@ -169,11 +173,13 @@ export class MonitoringService {
 
   /**
    * B4/B5 : liens monitoring (Grafana/Prometheus/Loki) pour un
-   * service-environnement. Résolution PAR SERVEUR : le serveur cible du
-   * service-env (serverId explicite, sinon 1er serveur de l'environnement) ;
-   * si la stack y est installée (`monitoringInstalledAt`), les URLs se
-   * déduisent de son host. Fallback : URLs globales de la config plateforme
-   * (compat mono-serveur / Grafana externe).
+   * service-environnement. Résolution PAR SERVEUR via
+   * {@link MonitoringServerResolverService} — même résolution que les
+   * métriques et les logs (voir sa documentation). Si la stack est installée
+   * sur le serveur résolu (`monitoringInstalledAt`), les URLs se déduisent de
+   * son host. Fallback : URLs globales de la config plateforme (compat
+   * mono-serveur / Grafana externe), uniquement quand la résolution par
+   * serveur ne renvoie rien.
    */
   async getMonitoringLinksForServiceEnv(serviceEnvId: string): Promise<{
     installed: boolean;
@@ -183,25 +189,15 @@ export class MonitoringService {
     prometheusUrl: string | null;
     lokiUrl: string | null;
   }> {
-    const serviceEnv = await this.prisma.serviceEnvironment.findUnique({
+    const serviceEnvExists = await this.prisma.serviceEnvironment.findUnique({
       where: { id: serviceEnvId },
-      select: {
-        environmentId: true,
-        server: {
-          select: { host: true, monitoringInstalledAt: true },
-        },
-      },
+      select: { id: true },
     });
-    if (!serviceEnv) {
+    if (!serviceEnvExists) {
       throw new BadRequestException('Service-environnement introuvable');
     }
 
-    const server =
-      serviceEnv.server ??
-      (await this.prisma.server.findFirst({
-        where: { environmentId: serviceEnv.environmentId, archivedAt: null },
-        select: { host: true, monitoringInstalledAt: true },
-      }));
+    const server = await this.serverResolver.resolve(serviceEnvId);
 
     if (server?.monitoringInstalledAt) {
       return {
@@ -232,7 +228,14 @@ export class MonitoringService {
     };
   }
 
-  /** Historical CPU/memory time-series for one service-environment (containers). */
+  /**
+   * Historical CPU/memory time-series for one service-environment
+   * (containers). Résout d'abord le serveur réel du service-env
+   * (MonitoringServerResolverService) pour interroger SON Prometheus plutôt
+   * que la config plateforme globale — sinon, sur une plateforme à plusieurs
+   * serveurs, ce graphique interroge toujours le Prometheus du tout premier
+   * serveur ayant eu la stack installée, jamais celui du serveur réel.
+   */
   async getServiceMetricRange(
     serviceEnvId: string,
     rangeMinutes = 60,
@@ -242,11 +245,16 @@ export class MonitoringService {
     const safeStep = Math.min(Math.max(stepSeconds, 15), 3600);
     const to = new Date();
     const from = new Date(to.getTime() - safeRange * 60 * 1000);
+    const server = await this.serverResolver.resolve(serviceEnvId);
+    const prometheusUrlOverride = server?.monitoringInstalledAt
+      ? `http://${server.host}:9090`
+      : undefined;
     return await this.prometheusService.getServiceMetricRange({
       serviceEnvId,
       from,
       to,
       stepSeconds: safeStep,
+      prometheusUrlOverride,
     });
   }
 
@@ -408,17 +416,46 @@ export class MonitoringService {
   ): Promise<void> {
     const action = AUTOMATION_ACTIONS.find((a) => a.key === event.actionKey);
     if (!action || action.category !== 'monitoring') return;
-    const installsStack = (action.roles ?? []).some((r) =>
-      ['prometheus', 'grafana', 'loki'].includes(r),
-    );
-    if (!installsStack) return;
+    if (!this.rolesInstallStack(action.roles)) return;
     if (
       event.status !== ServerRunStatus.SUCCEEDED &&
       event.status !== ServerRunStatus.PARTIAL
     ) {
       return;
     }
-    const hosts = event.succeededHosts.filter(Boolean);
+    await this.markMonitoringInstalled(event.succeededHosts.filter(Boolean));
+  }
+
+  /**
+   * Le "Setup Server" installe la stack d'observabilité complète dans son jeu
+   * de rôles fixe : à chaque préparation réussie, on tamponne le serveur et on
+   * câble ses URLs — sinon la stack tournerait sur le VPS sans que la
+   * plateforme le sache (onglet Monitoring « non installé », graphiques « no
+   * data »). Miroir de {@link onAutomationRunCompleted} pour le chemin setup.
+   */
+  @OnEvent(SERVER_SETUP_COMPLETED)
+  async onServerSetupCompleted(
+    event: ServerSetupCompletedEvent,
+  ): Promise<void> {
+    if (event.status !== ServerRunStatus.SUCCEEDED) return;
+    if (!this.rolesInstallStack(event.roles)) return;
+    await this.markMonitoringInstalled([event.host]);
+  }
+
+  /** La liste de rôles installe-t-elle bien la vraie stack (pas juste un exporter) ? */
+  private rolesInstallStack(roles: string[] | undefined): boolean {
+    return (roles ?? []).some((r) =>
+      ['prometheus', 'grafana', 'loki'].includes(r),
+    );
+  }
+
+  /**
+   * Tamponne `monitoringInstalledAt` sur chaque serveur (le monitoring est
+   * scopé PAR SERVEUR, les URLs se déduisent de son `host`) et câble les URLs
+   * globales plateforme si absentes (fallback ; ne surcharge jamais une URL
+   * déjà posée par l'admin, ex. Grafana externe).
+   */
+  private async markMonitoringInstalled(hosts: string[]): Promise<void> {
     if (hosts.length === 0) return;
 
     await this.prisma.server.updateMany({
@@ -436,6 +473,7 @@ export class MonitoringService {
     await setIfAbsent('MONITORING_PROMETHEUS_URL', `http://${host}:9090`);
     await setIfAbsent('MONITORING_GRAFANA_URL', `http://${host}:3000`);
     await setIfAbsent('MONITORING_LOKI_URL', `http://${host}:3100`);
+    await setIfAbsent('MONITORING_ALERTMANAGER_URL', `http://${host}:9093`);
     this.logger.log(
       `Monitoring stack installed on ${hosts.join(', ')} → monitoringInstalledAt posé (+ URLs plateforme si absentes).`,
     );

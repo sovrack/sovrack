@@ -61,15 +61,23 @@ export class DeployFailureRecoveryService {
         ? p.error.message
         : 'Échec du déploiement Docker';
 
-    const failed = await this.prisma.deployment.update({
-      where: { id: p.deploymentId },
-      data: {
-        status: DeploymentStatus.FAILED,
-        conditions: conditionsToJson(dockerDeployFailedCondition(message)),
-        finishedAt: new Date(),
-        logs: `${p.priorLogs ?? ''}\n${p.commandLogs}${recoveryLogs}\n${message}`.trim(),
-      },
-    });
+    const failed = await this.prisma.deployment
+      .update({
+        where: { id: p.deploymentId },
+        data: {
+          status: DeploymentStatus.FAILED,
+          conditions: conditionsToJson(dockerDeployFailedCondition(message)),
+          finishedAt: new Date(),
+          logs: `${p.priorLogs ?? ''}\n${p.commandLogs}${recoveryLogs}\n${message}`.trim(),
+        },
+      })
+      .catch((): never => {
+        // Le déploiement a pu être supprimé pendant son exécution (Prisma P2025 :
+        // « record not found »). On ne laisse PAS cette erreur de persistance
+        // masquer la VRAIE cause de l'échec : on relance l'erreur d'origine.
+        if (p.error instanceof BadRequestException) throw p.error;
+        throw new BadRequestException(message);
+      });
 
     this.gateway.emitStatus({ deploymentId: failed.id, status: failed.status });
     this.gateway.emitFinished({

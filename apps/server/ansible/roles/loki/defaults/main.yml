@@ -11,3 +11,8 @@ loki_retention_period: 168h
 # en propageant les labels `platform.*` (relabeling) pour filtrer par service×env.
 promtail_image: grafana/promtail:3.1.1
 promtail_config_dir: /opt/monitoring/promtail
+
+# Shared bridge network so Promtail can push to Loki by container name
+# instead of 127.0.0.1 (each container has its own network namespace, so
+# 127.0.0.1 inside Promtail's container is Promtail itself, never Loki).
+monitoring_docker_network: platform_monitoring

@@ -11,7 +11,7 @@ positions:
   filename: /tmp/positions.yaml
 
 clients:
-  - url: http://127.0.0.1:{{ loki_port }}/loki/api/v1/push
+  - url: http://loki:{{ loki_port }}/loki/api/v1/push
 
 scrape_configs:
   - job_name: docker

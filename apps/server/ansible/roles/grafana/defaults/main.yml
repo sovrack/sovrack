@@ -8,5 +8,11 @@ grafana_admin_password: admin
 # Provisioning (datasource + default dashboards shipped out of the box).
 grafana_provisioning_dir: /opt/monitoring/grafana/provisioning
 grafana_dashboards_dir: /opt/monitoring/grafana/dashboards
-# Grafana runs in a container; reach the host-published Prometheus via the host IP.
-grafana_prometheus_url: "http://{{ ansible_default_ipv4.address | default('localhost') }}:9090"
+# Grafana and Prometheus share the monitoring Docker network: reach Prometheus
+# by container name, resolved by Docker's embedded DNS. This never breaks,
+# regardless of the host's IP, interfaces, NAT or firewall rules — unlike the
+# previous "http://<host-ip>:9090", which depended on the container being
+# able to route back out to the host's own address.
+grafana_prometheus_url: "http://prometheus:9090"
+# Shared bridge network so Grafana can reach Prometheus by container name.
+monitoring_docker_network: platform_monitoring

@@ -4,7 +4,7 @@
 
 import { ServerRunStatus, ServerStatus } from '@prisma/client';
 import { redactSecrets } from '../../../../shared/security/redact';
-import { SetupRoleKey } from '../../servers/shared/server-setup-options';
+import { SetupRoleKey } from '../../servers/shared/server-setup';
 
 // ─── Readiness checks ───────────────────────────────────────────────────────
 
@@ -63,21 +63,17 @@ const ROLE_LABELS: Record<SetupRoleKey, string> = {
   docker: 'Docker Engine',
   docker_tls: 'Connexion Docker TLS (mTLS 2376)',
   traefik: 'Reverse proxy Traefik (HTTPS Let’s Encrypt)',
-  nginx: 'Nginx',
   nixpacks: 'Nixpacks (builder d’images)',
-  nodejs: 'Node.js',
-  postgres: 'PostgreSQL',
-  redis: 'Redis',
   gitlab_runner: 'GitLab Runner',
   firewall: 'Pare-feu UFW',
   fail2ban: 'Fail2ban',
-  monitoring: 'Agent de monitoring',
+  system_diagnostics: 'Outils de diagnostic système (htop/iotop/sysstat)',
   node_exporter: 'Node Exporter',
   cadvisor: 'cAdvisor',
   prometheus: 'Prometheus',
   grafana: 'Grafana',
   alertmanager: 'Alertmanager',
-  backup: 'Sauvegardes',
+  loki: 'Loki (logs centralisés)',
   logrotate: 'Rotation des logs',
   swap: 'Swap',
   security_hardening: 'Durcissement sécurité',
@@ -94,21 +90,17 @@ const ROLE_BUDGET_MS: Record<string, number> = {
   system_base: 3 * 60_000, // 3 min — apt update + base packages
   docker: 20 * 60_000, // 20 min — download + install + start daemon
   nixpacks: 10 * 60_000, // 10 min
-  nodejs: 10 * 60_000, // 10 min
-  postgres: 10 * 60_000, // 10 min
-  redis: 5 * 60_000, //  5 min
   gitlab_runner: 10 * 60_000, // 10 min
-  nginx: 5 * 60_000,
   firewall: 3 * 60_000,
   fail2ban: 3 * 60_000,
   swap: 2 * 60_000,
-  monitoring: 5 * 60_000,
+  system_diagnostics: 5 * 60_000,
   node_exporter: 5 * 60_000,
   cadvisor: 5 * 60_000,
   prometheus: 8 * 60_000,
   grafana: 8 * 60_000,
   alertmanager: 5 * 60_000,
-  backup: 3 * 60_000,
+  loki: 5 * 60_000,
   logrotate: 2 * 60_000,
   security_hardening: 3 * 60_000,
 };

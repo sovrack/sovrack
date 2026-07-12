@@ -1,4 +1,9 @@
 ---
+# UFW volontairement DÉSACTIVÉ par défaut : dans l'environnement de test, la
+# politique deny provoquait des timeouts (ERR_CONNECTION_TIMED_OUT) sur les
+# dashboards de monitoring et les apps. Passer à `true` pour réactiver le
+# pare-feu (deny par défaut + autorisation de 22/80/443).
+firewall_enabled: false
 firewall_allowed_ports:
   - '22/tcp'
   - '80/tcp'

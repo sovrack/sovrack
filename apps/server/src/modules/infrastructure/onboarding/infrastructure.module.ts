@@ -4,7 +4,6 @@ import { InfrastructureCoreModule } from '../core/infrastructure-core.module';
 import { ServerRunsModule } from '../server-runs/server-runs.module';
 import { ServerSetupController } from './controllers/server-setup.controller';
 import { ServerSetupsController } from './controllers/server-setups.controller';
-import { ServerSetupOptionsController } from './controllers/server-setup-options.controller';
 import { ServerSetupService } from './services/infra-setup.service';
 import { ServerSetupAnsibleService } from './services/server-setup-ansible.service';
 import { ServerSetupStateService } from './services/setup/server-setup-state.service';
@@ -25,11 +24,7 @@ import { ServerSetupGateway } from './gateways/server-setup.gateway';
  */
 @Module({
   imports: [AppJwtModule, InfrastructureCoreModule, ServerRunsModule],
-  controllers: [
-    ServerSetupController,
-    ServerSetupsController,
-    ServerSetupOptionsController,
-  ],
+  controllers: [ServerSetupController, ServerSetupsController],
   providers: [
     ServerSetupAnsibleService,
     ServerSetupStateService,

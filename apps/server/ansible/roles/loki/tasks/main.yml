@@ -3,6 +3,14 @@
   ansible.builtin.command: docker --version
   changed_when: false
 
+- name: "loki | Ensure the monitoring Docker network exists"
+  ansible.builtin.command: docker network create {{ monitoring_docker_network }}
+  register: loki_network
+  failed_when: >
+    loki_network.rc != 0 and
+    'already exists' not in loki_network.stderr
+  changed_when: loki_network.rc == 0
+
 - name: "loki | Create config directories"
   ansible.builtin.file:
     path: "{{ item }}"
@@ -14,13 +22,18 @@
     - "{{ loki_config_dir }}"
     - "{{ promtail_config_dir }}"
 
-- name: "loki | Create storage directory"
+- name: "loki | Create storage directory (owner 10001 = loki uid)"
   ansible.builtin.file:
     path: "{{ loki_storage_dir }}"
     state: directory
-    owner: root
-    group: root
+    owner: "10001"
+    group: "10001"
     mode: '0755'
+
+- name: "loki | Fix existing storage permissions (idempotent)"
+  ansible.builtin.shell:
+    cmd: chown -R 10001:10001 "{{ loki_storage_dir }}"
+  changed_when: false
 
 - name: "loki | Render Loki configuration"
   ansible.builtin.template:
@@ -52,6 +65,8 @@
       - loki
       - --restart
       - unless-stopped
+      - --network
+      - "{{ monitoring_docker_network }}"
       - --publish
       - "{{ loki_port }}:{{ loki_port }}"
       - --volume
@@ -77,6 +92,8 @@
       - promtail
       - --restart
       - unless-stopped
+      - --network
+      - "{{ monitoring_docker_network }}"
       - --volume
       - "{{ promtail_config_dir }}/promtail-config.yml:/etc/promtail/promtail-config.yml:ro"
       - --volume

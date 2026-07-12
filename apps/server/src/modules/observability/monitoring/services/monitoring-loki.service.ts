@@ -66,10 +66,23 @@ export class MonitoringLokiService {
   /**
    * Interroge Loki pour les logs d'une instance service×env sur une fenêtre.
    * `search` est appliqué comme filtre de ligne LogQL insensible à la casse.
+   *
+   * `lokiUrlOverride` : URL du Loki du serveur RÉEL hébergeant ce
+   * service-env (résolue par l'appelant via MonitoringServerResolverService).
+   * Sans elle, on retomberait sur la config plateforme globale, figée sur le
+   * premier serveur ayant eu la stack installée — jamais forcément celui qui
+   * héberge ce service précis (c'est ce qui provoquait "Loki injoignable"
+   * pour un service tournant sur un AUTRE serveur que celui-là).
    */
   async queryServiceLogs(
     serviceEnvId: string,
-    opts: { from?: Date; to?: Date; search?: string; limit?: number } = {},
+    opts: {
+      from?: Date;
+      to?: Date;
+      search?: string;
+      limit?: number;
+      lokiUrlOverride?: string;
+    } = {},
   ): Promise<LokiSearchResult> {
     const to = opts.to ?? new Date();
     const from = opts.from ?? new Date(to.getTime() - 60 * 60 * 1000); // défaut : 1h
@@ -85,7 +98,8 @@ export class MonitoringLokiService {
       entries: [],
     };
 
-    const lokiUrl = await this.getConfigValue(LOKI_CONFIG_KEY);
+    const lokiUrl =
+      opts.lokiUrlOverride ?? (await this.getConfigValue(LOKI_CONFIG_KEY));
     if (!lokiUrl) {
       return { ...base, message: 'Loki n’est pas configuré.' };
     }

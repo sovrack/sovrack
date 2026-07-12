@@ -1,7 +1,7 @@
 import { ServerLogLevel, ServerRunStepStatus } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { parseRoleFromAnsibleLogLine } from './infra-setup.util';
-import { SetupRoleKey } from '../../servers/shared/server-setup-options';
+import { SetupRoleKey } from '../../servers/shared/server-setup';
 import { redactSecrets as redactSecretsUtil } from '../../../../shared/security/redact';
 
 export type LogEntry = {

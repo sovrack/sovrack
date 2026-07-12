@@ -3,6 +3,14 @@
   ansible.builtin.command: docker --version
   changed_when: false
 
+- name: "grafana | Ensure the monitoring Docker network exists"
+  ansible.builtin.command: docker network create {{ monitoring_docker_network }}
+  register: grafana_network
+  failed_when: >
+    grafana_network.rc != 0 and
+    'already exists' not in grafana_network.stderr
+  changed_when: grafana_network.rc == 0
+
 - name: "grafana | Create data + provisioning directories"
   ansible.builtin.file:
     path: "{{ item }}"
@@ -48,6 +56,8 @@
       - grafana
       - --restart
       - unless-stopped
+      - --network
+      - "{{ monitoring_docker_network }}"
       - --publish
       - "{{ grafana_port }}:3000"
       - --volume

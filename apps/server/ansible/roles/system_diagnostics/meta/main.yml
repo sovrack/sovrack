@@ -1,0 +1,7 @@
+---
+galaxy_info:
+  role_name: system_diagnostics
+  description: >-
+    Lightweight, human-interactive system diagnostics tools (htop, iotop,
+    sysstat) — not the Prometheus/Grafana observability stack (see the
+    prometheus/grafana/cadvisor/node_exporter/alertmanager/loki roles).

@@ -1,5 +1,5 @@
 import { ServerRunStatus, ServerStatus } from '@prisma/client';
-import { SetupRoleKey } from '../../servers/shared/server-setup-options';
+import { SetupRoleKey } from '../../servers/shared/server-setup';
 import {
   computeBlockingReasons,
   computeSetupTimeoutMs,

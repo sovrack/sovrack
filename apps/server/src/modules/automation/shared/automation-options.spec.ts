@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AUTOMATION_ACTIONS, getAutomationAction } from './automation-options';
-import { SETUP_OPTIONS } from '../../infrastructure/servers/shared/server-setup-options';
+import { resolveSetupOptions } from '../../infrastructure/servers/shared/server-setup';
 
 /**
  * E9 (plan produit final) — intégrité du catalogue d'actions Automation.
@@ -49,12 +49,16 @@ describe('AUTOMATION_ACTIONS catalog integrity', () => {
     }
   });
 
-  it('preparation options reference only whitelisted ansible roles too', () => {
+  it("Setup Server's fixed role bundle (with and without GitLab Runner) only references ansible-whitelisted roles", () => {
     const allowed = new Set(readAllowedSetupRoles());
-    for (const option of SETUP_OPTIONS) {
-      expect({ option: option.key, allowed: allowed.has(option.role) }).toEqual(
-        { option: option.key, allowed: true },
-      );
+    for (const gitlabRunner of [false, true]) {
+      const { roles } = resolveSetupOptions({ gitlabRunner } as never);
+      for (const role of roles) {
+        expect({ role, allowed: allowed.has(role) }).toEqual({
+          role,
+          allowed: true,
+        });
+      }
     }
   });
 

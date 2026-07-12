@@ -18,7 +18,7 @@ import { RedisAbortChannel } from '../../../shared/queue/redis-abort-channel';
 import { runsBackgroundWork } from '../../../shared/utils/process-role.util';
 import { ServerSetupAnsibleService } from '../../infrastructure/onboarding/services/server-setup-ansible.service';
 import { ServerRunsService } from '../../infrastructure/server-runs/server-runs.service';
-import type { SetupRoleKey } from '../../infrastructure/servers/shared/server-setup-options';
+import type { SetupRoleKey } from '../../infrastructure/servers/shared/server-setup';
 import { AutomationGateway } from '../automation.gateway';
 import {
   AUTOMATION_RUN_COMPLETED,
@@ -231,7 +231,6 @@ export class AutomationRunnerService implements OnModuleInit, OnModuleDestroy {
             server,
             {
               roles: cfg.roles,
-              selectedOptions: {},
               gitlabRunnerExecutor: cfg.gitlabRunnerExecutor,
             },
             { signal: controller.signal, timeoutMs: targetTimeoutMs },

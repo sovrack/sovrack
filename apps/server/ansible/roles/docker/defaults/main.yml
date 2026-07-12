@@ -2,4 +2,15 @@
 docker_install_compose_plugin: true
 docker_users:
   - "{{ ansible_user | default('ubuntu') }}"
-docker_daemon_options: {}
+# Docker ≥ 25 active par défaut le « containerd image store »
+# (io.containerd.snapshotter) sur les versions récentes (ex. Docker 29). Or
+# cAdvisor — qui alimente TOUTES les métriques conteneurs de Grafana et de
+# l'onglet Monitoring — ne sait PAS lire ce modèle de stockage : il ne récupère
+# alors ni le nom ni les labels platform des conteneurs → dashboards « No data ».
+# On force donc le driver historique overlay2 (containerd-snapshotter=false),
+# stable et pleinement supporté par cAdvisor. C'est indépendant de la distro et
+# de la version de Docker : tout hôte préparé aura des métriques conteneurs
+# exploitables.
+docker_daemon_options:
+  features:
+    containerd-snapshotter: false

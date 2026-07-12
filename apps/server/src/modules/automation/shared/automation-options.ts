@@ -38,36 +38,6 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
     requiresSudo: true,
   },
   {
-    key: 'install_nginx',
-    label: 'Installer Nginx',
-    description: 'Installe et configure Nginx comme reverse proxy.',
-    playbookPath: 'setup-server.yml',
-    category: 'web',
-    roles: ['nginx'],
-    requiresSshValidated: true,
-    requiresSudo: true,
-  },
-  {
-    key: 'install_postgres',
-    label: 'Installer PostgreSQL',
-    description: 'Installs PostgreSQL 16 and configures access.',
-    playbookPath: 'setup-server.yml',
-    category: 'database',
-    roles: ['postgres'],
-    requiresSshValidated: true,
-    requiresSudo: true,
-  },
-  {
-    key: 'install_redis',
-    label: 'Installer Redis',
-    description: 'Installe Redis pour le cache et les queues.',
-    playbookPath: 'setup-server.yml',
-    category: 'database',
-    roles: ['redis'],
-    requiresSshValidated: true,
-    requiresSudo: true,
-  },
-  {
     key: 'install_gitlab_runner',
     label: 'Installer GitLab Runner',
     description: 'Installe et enregistre GitLab Runner (executor Docker).',
@@ -108,21 +78,10 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
     requiresSudo: true,
   },
   {
-    key: 'install_monitoring',
-    label: 'Installer monitoring agent',
-    description:
-      'Installs the lightweight monitoring agent on each target VPS (node_exporter/sysstat).',
-    playbookPath: 'setup-server.yml',
-    category: 'monitoring',
-    roles: ['monitoring'],
-    requiresSshValidated: true,
-    requiresSudo: true,
-  },
-  {
     key: 'install_monitoring_stack',
     label: 'Installer monitoring stack',
     description:
-      'Installe la stack Prometheus + Grafana + Alertmanager + exporters via le control node.',
+      'Installe la stack Prometheus + Grafana + Loki + Alertmanager + exporters via le control node.',
     playbookPath: 'setup-server.yml',
     category: 'monitoring',
     roles: [
@@ -132,6 +91,7 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
       'prometheus',
       'grafana',
       'alertmanager',
+      'loki',
     ],
     requiresSshValidated: true,
     requiresSudo: true,
@@ -148,17 +108,6 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
     requiresSudo: true,
   },
   {
-    key: 'install_prometheus_grafana',
-    label: 'Installer Prometheus + Grafana',
-    description:
-      'Installs Prometheus, Grafana and Node Exporter for basic observability.',
-    playbookPath: 'setup-server.yml',
-    category: 'monitoring',
-    roles: ['docker', 'node_exporter', 'prometheus', 'grafana'],
-    requiresSshValidated: true,
-    requiresSudo: true,
-  },
-  {
     key: 'configure_swap',
     label: 'Configurer le swap',
     description: 'Creates and enables a 2 GB swap file.',
@@ -170,16 +119,11 @@ export const AUTOMATION_ACTIONS: AutomationAction[] = [
   },
   // enable_ssl (certbot) retiré avec la voie SSL certbot (E4) — le HTTPS
   // passe par Traefik + Let's Encrypt (Setup Reverse Proxy, D5).
-  {
-    key: 'install_nodejs',
-    label: 'Installer Node.js',
-    description: 'Installe Node.js LTS via NodeSource.',
-    playbookPath: 'setup-server.yml',
-    category: 'system',
-    roles: ['nodejs'],
-    requiresSshValidated: true,
-    requiresSudo: true,
-  },
+  // install_nginx/install_postgres/install_redis/install_nodejs retirés :
+  // nginx n'est jamais câblé au routage HTTPS automatique (Traefik est le
+  // seul), une base de données se déploie via un Service du catalogue
+  // (moteur Docker générique), et Node.js hôte n'est requis par aucun
+  // chemin du moteur de déploiement (tout tourne en conteneur).
 ];
 
 export function getAutomationAction(key: string): AutomationAction | undefined {

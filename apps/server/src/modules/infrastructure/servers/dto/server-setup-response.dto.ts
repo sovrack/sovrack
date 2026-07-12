@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  ServerPreparationProfile,
   ServerRunStatus,
   ServerRunStepStatus,
   ServerLogLevel,
@@ -45,8 +44,11 @@ export class ServerSetupDto {
   @ApiProperty({ enum: ServerRunStatus })
   status!: ServerRunStatus;
 
-  @ApiProperty({ enum: ServerPreparationProfile })
-  profile!: ServerPreparationProfile;
+  // Il n'y a plus de "profil" à choisir (Setup Server = un seul jeu fixe,
+  // décidé côté backend) — ce champ vaut toujours 'AUTO', conservé pour
+  // l'historique/l'affichage (ServerRun.profile est un simple String).
+  @ApiProperty()
+  profile!: string;
 
   @ApiProperty()
   triggerSource!: string;

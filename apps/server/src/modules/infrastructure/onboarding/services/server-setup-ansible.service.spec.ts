@@ -5,7 +5,7 @@ import type { ServersCryptoService } from '../../../../adapters/ssh/servers-cryp
 import type { ServerHostKeyService } from '../../../../adapters/ssh/server-host-key.service';
 import type { ServersConnectionService } from '../../servers/services/servers-connection.service';
 import type { AnsibleRunnerService } from '../../../../adapters/provisioning/ansible-runner.service';
-import type { SetupRoleKey } from '../../servers/shared/server-setup-options';
+import type { SetupRoleKey } from '../../servers/shared/server-setup';
 
 jest.mock('fs/promises', () => ({
   mkdtemp: jest.fn(),
@@ -74,7 +74,6 @@ describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
       server,
       {
         roles: ['docker', 'docker_tls'] as SetupRoleKey[],
-        selectedOptions: { docker: true, dockerTls: true },
         gitlabRunnerExecutor: 'docker',
       },
       options,
@@ -104,7 +103,6 @@ describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
       server,
       {
         roles: ['docker'] as SetupRoleKey[],
-        selectedOptions: { docker: true },
         gitlabRunnerExecutor: 'docker',
       },
       options,
@@ -125,7 +123,6 @@ describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
         server,
         {
           roles: ['docker', 'docker_tls'] as SetupRoleKey[],
-          selectedOptions: { docker: true, dockerTls: true },
           gitlabRunnerExecutor: 'docker',
         },
         options,
@@ -144,7 +141,6 @@ describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
       server,
       {
         roles: ['docker_tls'] as SetupRoleKey[],
-        selectedOptions: { dockerTls: true },
         gitlabRunnerExecutor: 'docker',
       },
       options,

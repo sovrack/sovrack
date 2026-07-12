@@ -1,3 +1,0 @@
----
-nginx_default_server_name: _
-nginx_default_root: /var/www/html

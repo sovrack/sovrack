@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   Prisma,
   Server,
@@ -30,7 +31,7 @@ import {
   ROLE_ORDER,
   ResolvedSetup,
   SetupRoleKey,
-} from '../../servers/shared/server-setup-options';
+} from '../../servers/shared/server-setup';
 import {
   resolveSetupFailureOutcome,
   roleDisplayName,
@@ -43,6 +44,10 @@ import {
 } from './infra-setup-planning.util';
 import { updateRoleStateFromLog, redactSecrets } from './setup-log-utils';
 import { SetupPostProcessorService } from './setup-post-processor.service';
+import {
+  SERVER_SETUP_COMPLETED,
+  type ServerSetupCompletedEvent,
+} from '../../../../shared/events/events.catalog';
 
 @Injectable()
 export class InfraSetupRunnerService {
@@ -61,6 +66,7 @@ export class InfraSetupRunnerService {
     private readonly state: ServerSetupStateService,
     private readonly serverRuns: ServerRunsService,
     private readonly postProcessor: SetupPostProcessorService,
+    private readonly events: EventEmitter2,
   ) {}
 
   /**
@@ -116,9 +122,7 @@ export class InfraSetupRunnerService {
             triggerSource: options?.triggerSource ?? 'USER',
             requestedById: actorId,
             paramsJson: {
-              ...resolved.selectedOptions,
               _gitlabRunnerExecutor: resolved.gitlabRunnerExecutor,
-              _reinstallOptions: [...(resolved.reinstallOptions ?? [])],
             } as Prisma.InputJsonValue,
             resolvedJson: resolvedRoles as Prisma.InputJsonValue,
             retryOfId: options?.retryOfSetupId,
@@ -254,19 +258,11 @@ export class InfraSetupRunnerService {
         where: { id: setupId },
       });
       const rawOptions = run.paramsJson as Record<string, unknown>;
-      const { _gitlabRunnerExecutor, _reinstallOptions, ...boolOptions } =
-        rawOptions;
-      const selectedOptions = boolOptions as Record<string, boolean>;
       const gitlabRunnerExecutor =
-        typeof _gitlabRunnerExecutor === 'string' &&
-        _gitlabRunnerExecutor.length > 0
-          ? _gitlabRunnerExecutor
+        typeof rawOptions._gitlabRunnerExecutor === 'string' &&
+        rawOptions._gitlabRunnerExecutor.length > 0
+          ? rawOptions._gitlabRunnerExecutor
           : 'docker';
-      const reinstallOptions = Array.isArray(_reinstallOptions)
-        ? (_reinstallOptions as string[]).filter(
-            (v): v is string => typeof v === 'string',
-          )
-        : [];
 
       const runResult = await this.ssh.withTimeout(
         async () =>
@@ -274,9 +270,7 @@ export class InfraSetupRunnerService {
             server,
             {
               roles,
-              selectedOptions,
               gitlabRunnerExecutor,
-              reinstallOptions,
             },
             { signal: abortController.signal, timeoutMs },
             {
@@ -341,6 +335,18 @@ export class InfraSetupRunnerService {
         'Setup completed successfully.',
       );
       await this.postProcessor.refreshDetectionAfterSetup(server, setupId);
+      // Le "Setup Server" installe la stack d'observabilité complète dans son
+      // jeu de rôles fixe : on signale la fin de préparation pour que le
+      // module observability tamponne `monitoringInstalledAt` + câble les URLs
+      // (mêmes conséquences que l'ancienne action install_monitoring_stack,
+      // désormais fusionnée dans le setup). Découplé par événement — pas de
+      // dépendance directe onboarding → observability.
+      this.events.emit(SERVER_SETUP_COMPLETED, {
+        serverId: server.id,
+        host: server.host,
+        roles,
+        status: ServerRunStatus.SUCCEEDED,
+      } satisfies ServerSetupCompletedEvent);
       this.gateway.emitFinished({
         setupId: setupId,
         status: ServerRunStatus.SUCCEEDED,

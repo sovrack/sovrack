@@ -103,7 +103,7 @@ function makeSvc(
   } as unknown as ServerRunsService;
 
   const runner = {
-    createRun: jest.fn().mockResolvedValue({ id: 'run1' }),
+    createRun: jest.fn().mockResolvedValue({ id: 'run1', steps: [] }),
     runInBackground: jest.fn(),
     runSetupJob: jest.fn(),
     abort: jest.fn(),
@@ -210,16 +210,6 @@ describe('ServerSetupService', () => {
         .mockResolvedValueOnce({});
       await expect(svc.onModuleInit()).resolves.toBeUndefined();
       expect(state.transitionSetup).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('getOptions', () => {
-    it('returns profiles and options without I/O', () => {
-      const { svc } = makeSvc();
-      const opts = svc.getOptions();
-      expect(opts.profiles).toContain('FULL');
-      expect(opts.options).toBeDefined();
-      expect(opts.profileDefaults).toBeDefined();
     });
   });
 
@@ -345,16 +335,14 @@ describe('ServerSetupService', () => {
   });
 
   describe('startSetup', () => {
-    it('throws BadRequestException when no roles are resolved', async () => {
-      const { svc } = makeSvc();
-      // All checkboxes false → resolveSetupOptions returns empty roles
-      await expect(
-        svc.startSetup('srv1', {
-          profile: 'CUSTOM',
-          docker: false,
-          systemUpdate: false,
-        } as never),
-      ).rejects.toThrow(BadRequestException);
+    it('always resolves a non-empty role bundle, even with an empty dto', async () => {
+      // Le jeu fixe (CORE_ROLES) n'est jamais vide — plus de garde-fou
+      // "aucune option sélectionnée" possible, contrairement à l'ancien
+      // système d'options où tout décocher pouvait produire une liste vide.
+      const { svc, runner } = makeSvc();
+      await svc.startSetup('srv1', {} as never);
+      const [, , resolvedRoles] = (runner.createRun as jest.Mock).mock.calls[0];
+      expect(resolvedRoles.length).toBeGreaterThan(0);
     });
 
     it('handles P2002 job conflict by transitioning run to FAILED and throwing ConflictException', async () => {

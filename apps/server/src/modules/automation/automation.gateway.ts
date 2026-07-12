@@ -69,7 +69,11 @@ export class AutomationGateway implements OnGatewayConnection {
 
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);
-      if (payload.role !== Role.ADMIN) {
+      // Même autorisation que les routes REST GET (automation.controller.ts) :
+      // un développeur peut consulter un run, il doit donc aussi pouvoir en
+      // recevoir les mises à jour en direct, pas seulement l'état figé au
+      // premier chargement.
+      if (payload.role !== Role.ADMIN && payload.role !== Role.DEVELOPER) {
         client.disconnect();
         return;
       }

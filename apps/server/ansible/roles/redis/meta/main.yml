@@ -1,4 +1,0 @@
----
-galaxy_info:
-  role_name: redis
-  description: Redis server (Docker container).

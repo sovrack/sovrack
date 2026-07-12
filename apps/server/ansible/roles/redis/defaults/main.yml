@@ -1,9 +1,0 @@
----
-# Redis exécuté en CONTENEUR Docker (pré-requis : rôle docker installé).
-# Les apps déployées le joignent par son nom de conteneur sur le réseau partagé.
-redis_image: redis:7-alpine
-redis_container_name: redis
-redis_network: web # même réseau que les apps → joignable via «redis:6379»
-redis_port: 6379 # publié sur 127.0.0.1 uniquement (jamais exposé publiquement)
-redis_volume: redis_data # volume nommé → persistance (AOF)
-redis_password: "" # vide = pas d'auth ; surcharger via extra-vars si besoin

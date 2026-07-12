@@ -13,6 +13,7 @@ import { MonitoringLokiService } from './services/monitoring-loki.service';
 import { MonitoringAlertsService } from './services/monitoring-alerts.service';
 import { MonitoringRuntimeLogsService } from './services/monitoring-runtime-logs.service';
 import { MonitoringAccessService } from './services/monitoring-access.service';
+import { MonitoringServerResolverService } from './services/monitoring-server-resolver.service';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { MonitoringAccessService } from './services/monitoring-access.service';
     MonitoringAlertsService,
     MonitoringRuntimeLogsService,
     MonitoringAccessService,
+    MonitoringServerResolverService,
   ],
   exports: [
     MonitoringService,

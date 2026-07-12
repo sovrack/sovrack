@@ -3,6 +3,14 @@
   ansible.builtin.command: docker --version
   changed_when: false
 
+- name: "alertmanager | Ensure the monitoring Docker network exists"
+  ansible.builtin.command: docker network create {{ monitoring_docker_network }}
+  register: alertmanager_network
+  failed_when: >
+    alertmanager_network.rc != 0 and
+    'already exists' not in alertmanager_network.stderr
+  changed_when: alertmanager_network.rc == 0
+
 - name: "alertmanager | Create configuration directory"
   ansible.builtin.file:
     path: "{{ alertmanager_config_dir }}"
@@ -33,6 +41,8 @@
       - alertmanager
       - --restart
       - unless-stopped
+      - --network
+      - "{{ monitoring_docker_network }}"
       - --publish
       - "{{ alertmanager_port }}:9093"
       - --volume

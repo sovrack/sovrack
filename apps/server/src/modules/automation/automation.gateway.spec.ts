@@ -86,7 +86,7 @@ describe('AutomationGateway', () => {
       expect(client.disconnect).toHaveBeenCalled();
     });
 
-    it('disconnects client when role is not ADMIN', () => {
+    it('accepts DEVELOPER token — same read access as the REST controller', () => {
       const { jwtService, prisma, configService } = makeDeps({
         jwtPayload: { sub: 'user1', role: 'DEVELOPER' },
       });
@@ -96,6 +96,20 @@ describe('AutomationGateway', () => {
         configService as never,
       );
       const client = makeClient({ authToken: 'developer-token' });
+      gw.handleConnection(client);
+      expect(client.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('disconnects client when role is neither ADMIN nor DEVELOPER (defensive: the global Role enum only has these two)', () => {
+      const { jwtService, prisma, configService } = makeDeps({
+        jwtPayload: { sub: 'user1', role: 'SOMETHING_ELSE' },
+      });
+      const gw = new AutomationGateway(
+        jwtService as never,
+        prisma as never,
+        configService as never,
+      );
+      const client = makeClient({ authToken: 'bogus-role-token' });
       gw.handleConnection(client);
       expect(client.disconnect).toHaveBeenCalled();
     });

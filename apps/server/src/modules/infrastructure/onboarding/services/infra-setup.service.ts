@@ -12,7 +12,6 @@ import {
   ServerJob,
   ServerJobStatus,
   ServerJobType,
-  ServerPreparationProfile,
   ServerRunKind,
   ServerRunStatus,
   ServerStatus,
@@ -22,11 +21,9 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { StartServerSetupDto } from '../../servers/dto/start-server-setup.dto';
 import { RetryServerSetupDto } from '../../servers/dto/retry-server-setup.dto';
 import {
-  SETUP_PROFILE_DEFAULTS,
-  SETUP_OPTIONS,
   SetupRoleKey,
   resolveSetupOptions,
-} from '../../servers/shared/server-setup-options';
+} from '../../servers/shared/server-setup';
 import { ServersAuditService } from '../../servers/services/servers-audit.service';
 import { ServerSetupGateway } from '../gateways/server-setup.gateway';
 import { ServersVerificationService } from '../../servers/services/servers-verification.service';
@@ -110,17 +107,6 @@ export class ServerSetupService implements OnModuleInit {
     }
   }
 
-  getOptions() {
-    return {
-      controlNodeOnly: true,
-      message:
-        'Ansible is executed from the backend/control node. Target VPS hosts are SSH-managed and do not install Ansible.',
-      profiles: ['BASIC', 'WEB', 'DATABASE', 'RUNNER', 'FULL', 'CUSTOM'],
-      options: SETUP_OPTIONS,
-      profileDefaults: SETUP_PROFILE_DEFAULTS,
-    };
-  }
-
   async getSetupReadiness(serverId: string): Promise<ServerSetupReadiness> {
     const server = await this.getServer(serverId);
     const validation = await this.verification.latestValidationResult(serverId);
@@ -163,15 +149,12 @@ export class ServerSetupService implements OnModuleInit {
     await this.assertSetupPrerequisites(server);
 
     const resolved = resolveSetupOptions(dto);
+    // Le jeu fixe de resolveSetupOptions() n'est jamais vide (CORE_ROLES) —
+    // resolvedRoles ne peut donc plus jamais être vide, forcedRoles ou pas.
     const resolvedRoles =
       options?.forcedRoles && options.forcedRoles.length > 0
         ? options.forcedRoles
         : resolved.roles;
-    if (resolvedRoles.length === 0) {
-      throw new BadRequestException(
-        'Au moins une option de setup doit être sélectionnée.',
-      );
-    }
 
     const created = await this.runner.createRun(
       server,
@@ -185,7 +168,6 @@ export class ServerSetupService implements OnModuleInit {
     try {
       job = await this.jobs.createJob(server.id, ServerJobType.PREPARE_SERVER, {
         setupId: created.id,
-        selectedOptions: resolved.selectedOptions,
         resolvedRoles,
         retryOfSetupId: options?.retryOfSetupId ?? null,
       });
@@ -275,7 +257,6 @@ export class ServerSetupService implements OnModuleInit {
       throw new NotFoundException('Setup serveur introuvable');
     }
     const rawOptions = previous.selectedOptionsJson as Record<string, unknown>;
-    const { _gitlabRunnerExecutor, ...boolOptions } = rawOptions;
     const restoredRoles = Array.isArray(previous.resolvedRolesJson)
       ? previous.resolvedRolesJson
           .filter((role): role is string => typeof role === 'string')
@@ -284,8 +265,8 @@ export class ServerSetupService implements OnModuleInit {
           )
       : [];
     const restoredExecutor =
-      typeof _gitlabRunnerExecutor === 'string'
-        ? _gitlabRunnerExecutor
+      typeof rawOptions._gitlabRunnerExecutor === 'string'
+        ? rawOptions._gitlabRunnerExecutor
         : 'docker';
     await this.audit.record(previous.serverId, 'SERVER_SETUP_RETRY', actorId, {
       retryOfSetupId: id,
@@ -294,8 +275,6 @@ export class ServerSetupService implements OnModuleInit {
     return await this.startSetup(
       previous.serverId,
       {
-        ...boolOptions,
-        profile: previous.profile as ServerPreparationProfile,
         gitlabRunnerExecutor: restoredExecutor,
       } as StartServerSetupDto,
       actorId,

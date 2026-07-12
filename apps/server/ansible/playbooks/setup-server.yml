@@ -8,7 +8,6 @@
   gather_facts: true
 
   vars:
-    setup_options: "{{ setup_options | default({}) }}"
     managed_by: "{{ managed_by | default('internal-devops-platform-control-node') }}"
 
   pre_tasks:
@@ -33,22 +32,17 @@
           - docker
           - docker_tls
           - traefik
-          - nginx
           - nixpacks
-          - nodejs
-          - postgres
-          - redis
           - gitlab_runner
           - firewall
           - fail2ban
-          - monitoring
+          - system_diagnostics
           - node_exporter
           - cadvisor
           - prometheus
           - grafana
           - alertmanager
           - loki
-          - backup
           - logrotate
           - swap
           - security_hardening

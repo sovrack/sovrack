@@ -13,6 +13,7 @@ import {
   MonitoringLokiService,
   type LokiSearchResult,
 } from './monitoring-loki.service';
+import { MonitoringServerResolverService } from './monitoring-server-resolver.service';
 
 export type RuntimeLogLine = { stream: 'stdout' | 'stderr'; line: string };
 export type RuntimeLogResult = {
@@ -41,6 +42,7 @@ export class MonitoringRuntimeLogsService {
     private readonly prisma: PrismaService,
     @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly loki: MonitoringLokiService,
+    private readonly serverResolver: MonitoringServerResolverService,
   ) {}
 
   /**
@@ -55,7 +57,14 @@ export class MonitoringRuntimeLogsService {
     opts: { from?: Date; to?: Date; search?: string; limit?: number },
   ): Promise<LokiSearchResult> {
     await this.assertCanAccess(serviceEnvId, userId, userRole);
-    return this.loki.queryServiceLogs(serviceEnvId, opts);
+    const server = await this.serverResolver.resolve(serviceEnvId);
+    const lokiUrlOverride = server?.monitoringInstalledAt
+      ? `http://${server.host}:3100`
+      : undefined;
+    return this.loki.queryServiceLogs(serviceEnvId, {
+      ...opts,
+      lokiUrlOverride,
+    });
   }
 
   async searchServiceLogs(

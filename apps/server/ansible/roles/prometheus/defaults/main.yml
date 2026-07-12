@@ -4,6 +4,13 @@ prometheus_port: 9090
 prometheus_config_dir: /opt/monitoring/prometheus
 prometheus_storage_dir: /opt/monitoring/prometheus/data
 prometheus_scrape_interval: 15s
-prometheus_target_node_exporter: "127.0.0.1:9100"
-prometheus_target_cadvisor: "127.0.0.1:8080"
-prometheus_target_alertmanager: "127.0.0.1:9093"
+# node_exporter, cAdvisor and Alertmanager are all containers on the shared
+# monitoring network: reach them by container name, resolved by Docker's
+# embedded DNS — never through the host's public network stack/firewall.
+prometheus_target_node_exporter: "node_exporter:9100"
+prometheus_target_cadvisor: "cadvisor:8080"
+prometheus_target_alertmanager: "alertmanager:9093"
+# Shared bridge network so Prometheus can reach cAdvisor/Alertmanager by
+# container name instead of 127.0.0.1 (each container has its own network
+# namespace, so 127.0.0.1 only ever means "this same container").
+monitoring_docker_network: platform_monitoring

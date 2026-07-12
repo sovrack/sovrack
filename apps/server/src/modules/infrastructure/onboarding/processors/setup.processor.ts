@@ -9,7 +9,7 @@ import { createSetupWorker } from '../../../../shared/queue/queue.provider';
 import type { SetupJobData } from '../../../../shared/queue/queue.service';
 import { runsBackgroundWork } from '../../../../shared/utils/process-role.util';
 import { PrismaService } from '../../../../shared/database/prisma.service';
-import type { SetupRoleKey } from '../../servers/shared/server-setup-options';
+import type { SetupRoleKey } from '../../servers/shared/server-setup';
 import { InfraSetupRunnerService } from '../services/infra-setup-runner.service';
 
 /**

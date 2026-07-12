@@ -1,12 +1,46 @@
 ---
-- name: "node_exporter | Install package"
-  ansible.builtin.package:
-    name: prometheus-node-exporter
-    state: present
+- name: "node_exporter | Ensure Docker is available"
+  ansible.builtin.command: docker --version
+  changed_when: false
 
-- name: "node_exporter | Ensure service is enabled"
+- name: "node_exporter | Stop and disable legacy systemd service if present"
   ansible.builtin.systemd:
     name: prometheus-node-exporter
-    state: started
-    enabled: true
+    state: stopped
+    enabled: false
   failed_when: false
+
+- name: "node_exporter | Ensure the monitoring Docker network exists"
+  ansible.builtin.command: docker network create {{ monitoring_docker_network }}
+  register: node_exporter_network
+  failed_when: >
+    node_exporter_network.rc != 0 and
+    'already exists' not in node_exporter_network.stderr
+  changed_when: node_exporter_network.rc == 0
+
+- name: "node_exporter | Remove previous container if present"
+  ansible.builtin.shell: docker rm -f node_exporter >/dev/null 2>&1 || true
+  changed_when: false
+
+- name: "node_exporter | Run Node Exporter container"
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - -d
+      - --name
+      - node_exporter
+      - --restart
+      - unless-stopped
+      - --network
+      - "{{ monitoring_docker_network }}"
+      - --volume=/proc:/host/proc:ro
+      - --volume=/sys:/host/sys:ro
+      - --volume=/:/rootfs:ro
+      - "{{ node_exporter_image }}"
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+  register: node_exporter_run
+  changed_when: node_exporter_run.rc == 0

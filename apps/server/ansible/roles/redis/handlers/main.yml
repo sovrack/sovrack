@@ -1,4 +1,0 @@
----
-- name: restart redis
-  ansible.builtin.command: "docker restart {{ redis_container_name }}"
-  changed_when: true

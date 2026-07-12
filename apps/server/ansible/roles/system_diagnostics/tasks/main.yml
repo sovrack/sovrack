@@ -1,0 +1,15 @@
+---
+- name: "system_diagnostics | Install packages"
+  ansible.builtin.package:
+    name: "{{ system_diagnostics_packages }}"
+    state: present
+
+- name: "system_diagnostics | Enable sysstat when installed"
+  ansible.builtin.lineinfile:
+    path: /etc/default/sysstat
+    regexp: '^ENABLED='
+    line: 'ENABLED="true"'
+    create: true
+    mode: '0644'
+  when: system_diagnostics_enable_sysstat | bool and ansible_os_family == 'Debian'
+  notify: restart sysstat

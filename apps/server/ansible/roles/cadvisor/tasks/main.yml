@@ -3,13 +3,55 @@
   ansible.builtin.command: docker --version
   changed_when: false
 
+# ── Détection préalable (portabilité TOUS environnements) ────────────────────
+# cAdvisor n'enrichit ses métriques avec le NOM et les LABELS des conteneurs
+# (container_label_platform_*) que s'il se connecte au daemon Docker ET peut
+# lire toute la hiérarchie cgroup. Sur cgroup v2 (Ubuntu 22.04+, Fedora, etc.)
+# cela EXIGE `--privileged` ; sans ça, dockerVersion reste vide → pas de nom,
+# pas de label → dashboards Grafana « No data ». On détecte donc l'environnement
+# au lieu de coder en dur une hypothèse Ubuntu.
+- name: "cadvisor | Detect cgroup v2 (unified hierarchy)"
+  ansible.builtin.stat:
+    path: /sys/fs/cgroup/cgroup.controllers
+  register: cadvisor_cgroup2
+
+- name: "cadvisor | Detect /dev/kmsg (some kernels/containers l'absentent)"
+  ansible.builtin.stat:
+    path: /dev/kmsg
+  register: cadvisor_kmsg
+
+- name: "cadvisor | Report detected environment"
+  ansible.builtin.debug:
+    msg: >-
+      cgroup {{ 'v2 (unified)' if cadvisor_cgroup2.stat.exists else 'v1 (legacy)' }},
+      /dev/kmsg {{ 'présent' if cadvisor_kmsg.stat.exists else 'absent' }}
+      → cAdvisor lancé en --privileged (portable v1/v2, toutes distros).
+
+- name: "cadvisor | Ensure the monitoring Docker network exists"
+  ansible.builtin.command: docker network create {{ monitoring_docker_network }}
+  register: cadvisor_network
+  failed_when: >
+    cadvisor_network.rc != 0 and
+    'already exists' not in cadvisor_network.stderr
+  changed_when: cadvisor_network.rc == 0
+
 - name: "cadvisor | Remove previous container if present"
   ansible.builtin.shell: docker rm -f cadvisor >/dev/null 2>&1 || true
   changed_when: false
 
-- name: "cadvisor | Run cAdvisor container"
-  ansible.builtin.command:
-    argv:
+# Arguments construits dynamiquement : --privileged toujours (débloque cgroup v2
+# + connexion Docker), --device=/dev/kmsg seulement s'il existe (sinon `docker
+# run` échouerait sur les systèmes qui ne l'exposent pas).
+- name: "cadvisor | Build portable run arguments"
+  ansible.builtin.set_fact:
+    cadvisor_run_argv: >-
+      {{
+        cadvisor_base_argv
+        + (['--device=/dev/kmsg'] if cadvisor_kmsg.stat.exists else [])
+        + cadvisor_tail_argv
+      }}
+  vars:
+    cadvisor_base_argv:
       - docker
       - run
       - -d
@@ -17,12 +59,24 @@
       - cadvisor
       - --restart
       - unless-stopped
+      - --network
+      - "{{ monitoring_docker_network }}"
+      # Requis pour lire toute la hiérarchie cgroup (v1 ET v2) et se connecter
+      # au daemon Docker afin d'enrichir les métriques avec nom + labels.
+      - --privileged
+    cadvisor_tail_argv:
       - --volume=/:/rootfs:ro
+      # /var/run contient docker.sock (+ containerd.sock) : source du nom et
+      # des labels des conteneurs. Sans cette connexion, aucun label platform.
       - --volume=/var/run:/var/run:ro
       - --volume=/sys:/sys:ro
       - --volume=/var/lib/docker/:/var/lib/docker:ro
       - --publish
       - "{{ cadvisor_port }}:8080"
       - "{{ cadvisor_image }}"
+
+- name: "cadvisor | Run cAdvisor container"
+  ansible.builtin.command:
+    argv: "{{ cadvisor_run_argv }}"
   register: cadvisor_run
   changed_when: cadvisor_run.rc == 0

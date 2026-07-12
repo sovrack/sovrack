@@ -1,4 +1,0 @@
----
-backup_packages:
-  - rsync
-backup_base_dir: /opt/platform-backups

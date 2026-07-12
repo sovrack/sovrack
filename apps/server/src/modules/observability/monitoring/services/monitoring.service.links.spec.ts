@@ -6,8 +6,12 @@ import { PlatformService } from '../../../platform/platform.service';
 import { AutomationService } from '../../../automation/services/automation.service';
 import { MonitoringStatsService } from './monitoring-stats.service';
 import { MonitoringPrometheusService } from './monitoring-prometheus.service';
+import { MonitoringServerResolverService } from './monitoring-server-resolver.service';
 import { MonitoringService } from './monitoring.service';
-import type { AutomationRunCompletedEvent } from '../../../../shared/events/events.catalog';
+import type {
+  AutomationRunCompletedEvent,
+  ServerSetupCompletedEvent,
+} from '../../../../shared/events/events.catalog';
 
 /**
  * B4/B5 (plan produit final) : le monitoring est scopé PAR SERVEUR.
@@ -20,14 +24,22 @@ import type { AutomationRunCompletedEvent } from '../../../../shared/events/even
 function makeService(overrides: {
   serviceEnv?: unknown;
   fallbackServer?: unknown;
+  lastSuccessDeployment?: unknown;
+  resolvedServer?: unknown;
   platformValues?: Record<string, string | null>;
 }) {
   const prisma = {
     serviceEnvironment: {
       findUnique: jest.fn().mockResolvedValue(overrides.serviceEnv ?? null),
     },
+    deployment: {
+      findFirst: jest
+        .fn()
+        .mockResolvedValue(overrides.lastSuccessDeployment ?? null),
+    },
     server: {
       findFirst: jest.fn().mockResolvedValue(overrides.fallbackServer ?? null),
+      findUnique: jest.fn().mockResolvedValue(overrides.resolvedServer ?? null),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     platformConfig: {
@@ -47,6 +59,9 @@ function makeService(overrides: {
       ),
     set: jest.fn().mockResolvedValue(undefined),
   };
+  const serverResolver = new MonitoringServerResolverService(
+    prisma as unknown as PrismaService,
+  );
   const service = new MonitoringService(
     prisma as unknown as PrismaService,
     {} as unknown as HttpService,
@@ -55,6 +70,7 @@ function makeService(overrides: {
     {} as unknown as MonitoringStatsService,
     {} as unknown as MonitoringPrometheusService,
     {} as never,
+    serverResolver,
   );
   return { service, prisma, platform };
 }
@@ -122,6 +138,59 @@ describe('MonitoringService.getMonitoringLinksForServiceEnv', () => {
     });
   });
 
+  it('prefers the server frozen in the last SUCCESS deployment (resolvedRefs) over the live service-env binding', async () => {
+    const { service, prisma } = makeService({
+      // Live binding now points at a DIFFERENT server than what actually ran
+      // the last successful deployment (e.g. the environment's server
+      // assignment changed after that deploy, or several servers share the
+      // environment and this is not the one the container is really on).
+      serviceEnv: {
+        environmentId: 'env1',
+        server: { host: '10.0.0.99', monitoringInstalledAt: new Date() },
+      },
+      lastSuccessDeployment: { resolvedRefs: { serverId: 'srv-real' } },
+      resolvedServer: { host: '10.5.5.5', monitoringInstalledAt: new Date() },
+    });
+    const links = await service.getMonitoringLinksForServiceEnv('se1');
+    expect(prisma.deployment.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { serviceEnvId: 'se1', status: 'SUCCESS' },
+      }),
+    );
+    expect(prisma.server.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'srv-real' } }),
+    );
+    expect(links).toMatchObject({
+      source: 'server',
+      serverHost: '10.5.5.5',
+      grafanaUrl: 'http://10.5.5.5:3000',
+    });
+  });
+
+  it('falls back to the live service-env binding when no successful deployment exists yet', async () => {
+    const { service } = makeService({
+      serviceEnv: {
+        environmentId: 'env1',
+        server: { host: '10.1.2.3', monitoringInstalledAt: new Date() },
+      },
+      lastSuccessDeployment: null,
+    });
+    const links = await service.getMonitoringLinksForServiceEnv('se1');
+    expect(links.serverHost).toBe('10.1.2.3');
+  });
+
+  it('falls back to the live binding when the last deployment has no resolvedRefs.serverId', async () => {
+    const { service } = makeService({
+      serviceEnv: {
+        environmentId: 'env1',
+        server: { host: '10.1.2.3', monitoringInstalledAt: new Date() },
+      },
+      lastSuccessDeployment: { resolvedRefs: null },
+    });
+    const links = await service.getMonitoringLinksForServiceEnv('se1');
+    expect(links.serverHost).toBe('10.1.2.3');
+  });
+
   it('reports not installed when neither server stack nor platform URL exist', async () => {
     const { service } = makeService({
       serviceEnv: {
@@ -140,7 +209,7 @@ describe('MonitoringService.getMonitoringLinksForServiceEnv', () => {
 describe('MonitoringService.onAutomationRunCompleted (B4)', () => {
   const baseEvent: AutomationRunCompletedEvent = {
     runId: 'run1',
-    actionKey: 'install_prometheus_grafana',
+    actionKey: 'install_monitoring_stack',
     status: ServerRunStatus.SUCCEEDED,
     succeededHosts: ['10.1.1.1', '10.2.2.2'],
     failedHosts: [],
@@ -165,6 +234,57 @@ describe('MonitoringService.onAutomationRunCompleted (B4)', () => {
     await service.onAutomationRunCompleted({
       ...baseEvent,
       actionKey: 'unknown_action',
+    });
+    expect(prisma.server.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('MonitoringService.onServerSetupCompleted (setup installe la stack)', () => {
+  const baseEvent: ServerSetupCompletedEvent = {
+    serverId: 'srv1',
+    host: '10.3.3.3',
+    roles: [
+      'system_base',
+      'docker',
+      'prometheus',
+      'grafana',
+      'loki',
+      'alertmanager',
+    ],
+    status: ServerRunStatus.SUCCEEDED,
+  };
+
+  it('stamps monitoringInstalledAt + wires all four URLs (incl. alertmanager) after a successful setup', async () => {
+    const { service, prisma, platform } = makeService({ platformValues: {} });
+    await service.onServerSetupCompleted(baseEvent);
+    expect(prisma.server.updateMany).toHaveBeenCalledWith({
+      where: { host: { in: ['10.3.3.3'] } },
+      data: { monitoringInstalledAt: expect.any(Date) },
+    });
+    expect(platform.set).toHaveBeenCalledWith(
+      'MONITORING_PROMETHEUS_URL',
+      'http://10.3.3.3:9090',
+    );
+    expect(platform.set).toHaveBeenCalledWith(
+      'MONITORING_ALERTMANAGER_URL',
+      'http://10.3.3.3:9093',
+    );
+  });
+
+  it('does nothing on a failed setup', async () => {
+    const { service, prisma } = makeService({ platformValues: {} });
+    await service.onServerSetupCompleted({
+      ...baseEvent,
+      status: ServerRunStatus.FAILED,
+    });
+    expect(prisma.server.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('does nothing if the roles do not include the real stack', async () => {
+    const { service, prisma } = makeService({ platformValues: {} });
+    await service.onServerSetupCompleted({
+      ...baseEvent,
+      roles: ['system_base', 'docker', 'firewall'],
     });
     expect(prisma.server.updateMany).not.toHaveBeenCalled();
   });

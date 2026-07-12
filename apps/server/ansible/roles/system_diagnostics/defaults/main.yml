@@ -1,0 +1,6 @@
+---
+system_diagnostics_packages:
+  - htop
+  - iotop
+  - sysstat
+system_diagnostics_enable_sysstat: true

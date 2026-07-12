@@ -10,7 +10,7 @@ import {
   AnsibleRunnerService,
   type AnsibleLogEvent as CoreAnsibleLogEvent,
 } from '../../../../adapters/provisioning/ansible-runner.service';
-import type { SetupRoleKey } from '../../servers/shared/server-setup-options';
+import type { SetupRoleKey } from '../../servers/shared/server-setup';
 import { assertSafeLinuxUsername } from '../../servers/shared/servers-shell.util';
 
 type AnsibleLogEvent = {
@@ -21,9 +21,7 @@ type AnsibleLogEvent = {
 
 export type RunSetupInput = {
   roles: SetupRoleKey[];
-  selectedOptions: Record<string, boolean>;
   gitlabRunnerExecutor: string;
-  reinstallOptions?: string[];
 };
 
 export type RunSetupCallbacks = {
@@ -119,9 +117,7 @@ export class ServerSetupAnsibleService {
           playbookPath,
           extraVars: {
             selected_roles: input.roles,
-            setup_options: input.selectedOptions,
             gitlab_runner_executor: input.gitlabRunnerExecutor,
-            reinstall_options: input.reinstallOptions ?? [],
             managed_by: 'internal-devops-platform-control-node',
             ...(tlsFetchDir
               ? {

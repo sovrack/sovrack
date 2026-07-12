@@ -3,6 +3,14 @@
   ansible.builtin.command: docker --version
   changed_when: false
 
+- name: "prometheus | Ensure the monitoring Docker network exists"
+  ansible.builtin.command: docker network create {{ monitoring_docker_network }}
+  register: prometheus_network
+  failed_when: >
+    prometheus_network.rc != 0 and
+    'already exists' not in prometheus_network.stderr
+  changed_when: prometheus_network.rc == 0
+
 - name: "prometheus | Create configuration directory"
   ansible.builtin.file:
     path: "{{ prometheus_config_dir }}"
@@ -41,6 +49,8 @@
       - prometheus
       - --restart
       - unless-stopped
+      - --network
+      - "{{ monitoring_docker_network }}"
       - --publish
       - "{{ prometheus_port }}:9090"
       - --volume

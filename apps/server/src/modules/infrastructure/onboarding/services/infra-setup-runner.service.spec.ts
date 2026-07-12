@@ -7,6 +7,7 @@ import {
   ServerRunStatus,
 } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersJobsService } from '../../servers/services/servers-jobs.service';
 import { ServersConnectionService } from '../../servers/services/servers-connection.service';
@@ -19,7 +20,7 @@ import { SetupPostProcessorService } from './setup-post-processor.service';
 import type {
   SetupRoleKey,
   ResolvedSetup,
-} from '../../servers/shared/server-setup-options';
+} from '../../servers/shared/server-setup';
 
 describe('InfraSetupRunnerService', () => {
   function build() {
@@ -82,6 +83,7 @@ describe('InfraSetupRunnerService', () => {
       registerDockerTlsConnection: jest.fn().mockResolvedValue(undefined),
       refreshDetectionAfterSetup: jest.fn().mockResolvedValue(undefined),
     } as unknown as SetupPostProcessorService;
+    const events = { emit: jest.fn() } as unknown as EventEmitter2;
 
     const runner = new InfraSetupRunnerService(
       prisma,
@@ -93,6 +95,7 @@ describe('InfraSetupRunnerService', () => {
       state,
       serverRuns,
       postProcessor,
+      events,
     );
     return {
       runner,
@@ -103,18 +106,16 @@ describe('InfraSetupRunnerService', () => {
       serverRuns,
       config,
       postProcessor,
+      events,
     };
   }
 
   const server = { id: 'srv-1' } as Server;
   const resolved: ResolvedSetup = {
-    profile: 'BASIC',
-    selectedOptions: { docker: true } as never,
+    profile: 'AUTO',
     roles: ['system_base'] as SetupRoleKey[],
     gitlabRunnerExecutor: 'docker',
-    reinstallOptions: new Set<string>(),
-    warnings: [],
-  } as ResolvedSetup;
+  };
   const roles = ['system_base'] as SetupRoleKey[];
 
   describe('createRun', () => {

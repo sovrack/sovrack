@@ -1,6 +1,6 @@
 import { Prisma, ServerRunStatus, ServerRunStepStatus } from '@prisma/client';
 import type { SetupReadinessChecks } from './infra-setup.util';
-import type { SetupRoleKey } from '../../servers/shared/server-setup-options';
+import type { SetupRoleKey } from '../../servers/shared/server-setup';
 
 // ─── Input option types ──────────────────────────────────────────────────────
 
