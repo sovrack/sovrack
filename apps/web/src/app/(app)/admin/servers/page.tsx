@@ -13,6 +13,7 @@ import { ServersTable } from "@/features/servers/components/tables/servers-table
 import { useAuth } from "@/features/auth/api/use-auth";
 import { ServerDetailsDialog } from "@/features/servers/components/dialogs/server-details-dialog";
 import { ServerKeyInstallDialog } from "@/features/servers/components/dialogs/server-key-install-dialog";
+import { ServerMonitoringDialog } from "@/features/servers/components/dialogs/server-monitoring-dialog";
 import { ServerSetupDialog } from "@/features/servers/components/dialogs/server-setup-dialog";
 import { ServerTerminalDialog } from "@/features/servers/components/dialogs/server-terminal-dialog";
 import {
@@ -40,6 +41,9 @@ export default function AdminServersPage() {
   );
   const [installKeyError, setInstallKeyError] = useState<string | null>(null);
   const [setupServer, setSetupServer] = useState<ServerType | null>(null);
+  const [monitoringServer, setMonitoringServer] = useState<ServerType | null>(
+    null,
+  );
   const [detailsServer, setDetailsServer] = useState<ServerType | null>(null);
   const [terminalServer, setTerminalServer] = useState<ServerType | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServerType | null>(null);
@@ -79,6 +83,7 @@ export default function AdminServersPage() {
   };
 
   const activeSetupServer = resolveLiveServer(setupServer);
+  const activeMonitoringServer = resolveLiveServer(monitoringServer);
   const activeDetailsServer = resolveLiveServer(detailsServer);
   const activeDetailsJobs = activeDetailsServer
     ? (servers.jobsByServer[activeDetailsServer.id] ?? [])
@@ -202,6 +207,7 @@ export default function AdminServersPage() {
             getServerBusy={getServerBusy}
             onOpenTerminal={setTerminalServer}
             onOpenSetup={setSetupServer}
+            onOpenMonitoring={setMonitoringServer}
             onOpenDetails={setDetailsServer}
             onEdit={(s) => {
               setEditError(null);
@@ -251,6 +257,13 @@ export default function AdminServersPage() {
         verifyingId={servers.verifyingId}
         onClose={() => setSetupServer(null)}
         onStartSetup={servers.handleStartSetup}
+      />
+
+      <ServerMonitoringDialog
+        open={Boolean(activeMonitoringServer)}
+        server={activeMonitoringServer}
+        onClose={() => setMonitoringServer(null)}
+        onInstallMonitoring={servers.handleInstallMonitoring}
       />
 
       <ServerDetailsDialog

@@ -13,6 +13,7 @@ type ServersTableProps = {
   onOpenTerminal: (server: Server) => void;
   readOnly?: boolean;
   onOpenSetup: (server: Server) => void;
+  onOpenMonitoring: (server: Server) => void;
   onOpenDetails: (server: Server) => void;
   onEdit: (server: Server) => void;
   onDelete: (server: Server) => void;
@@ -81,6 +82,7 @@ export function ServersTable({
   getServerBusy,
   onOpenTerminal,
   onOpenSetup,
+  onOpenMonitoring,
   onOpenDetails,
   onEdit,
   onDelete,
@@ -157,6 +159,7 @@ export function ServersTable({
                     disabled={getServerBusy(server)}
                     onOpenTerminal={onOpenTerminal}
                     onOpenSetup={onOpenSetup}
+                    onOpenMonitoring={onOpenMonitoring}
                     onOpenDetails={onOpenDetails}
                     onEdit={onEdit}
                     onDelete={onDelete}

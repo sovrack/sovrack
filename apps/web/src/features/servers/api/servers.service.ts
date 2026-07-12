@@ -13,7 +13,6 @@ import type {
   ServerSetup,
   ServerSetupLog,
   ServerSetupReadiness,
-  ServerSetupOptionsResponse,
   ServerAuditEvent,
   ServerValidationResult,
   StartServerSetupPayload,
@@ -217,13 +216,6 @@ export const serversService = {
   async cancelJob(id: string, jobId: string): Promise<ServerJob> {
     const res = await api.post<ServerJob>(
       `/servers/${id}/jobs/${jobId}/cancel`,
-    );
-    return res.data;
-  },
-
-  async getSetupOptions(): Promise<ServerSetupOptionsResponse> {
-    const res = await api.get<ServerSetupOptionsResponse>(
-      "/server-setup-options",
     );
     return res.data;
   },

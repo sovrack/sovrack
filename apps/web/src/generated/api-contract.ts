@@ -1746,23 +1746,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/server-setup-options": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List provisioning options and profiles */
-        get: operations["ServerSetupOptionsController_options"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/deployments/validate": {
         parameters: {
             query?: never;
@@ -3576,73 +3559,10 @@ export interface components {
         };
         StartServerSetupDto: {
             /**
-             * @description Reusable setup profile. Explicit options override profile defaults.
-             * @default BASIC
-             * @enum {string}
-             */
-            profile?: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
-            /** @example true */
-            systemUpdate?: boolean;
-            /** @example true */
-            docker?: boolean;
-            /** @example true */
-            dockerComposePlugin?: boolean;
-            /**
-             * @description Configure Docker daemon mTLS (port 2376) and auto-register the DockerConnection — required for the platform to deploy on this server.
-             * @example true
-             */
-            dockerTls?: boolean;
-            /**
-             * @description Install Traefik reverse proxy (ports 80/443) with automatic Let’s Encrypt HTTPS. Services with a domain then get certificates at deploy.
-             * @example true
-             */
-            reverseProxy?: boolean;
-            /** @example true */
-            nginx?: boolean;
-            /** @example false */
-            nixpacks?: boolean;
-            /** @example false */
-            nodejs?: boolean;
-            /** @example false */
-            postgres?: boolean;
-            /**
-             * @deprecated
-             * @example false
-             */
-            postgresql?: boolean;
-            /** @example false */
-            redis?: boolean;
-            /** @example false */
-            gitlabRunner?: boolean;
-            /** @example true */
-            firewall?: boolean;
-            /** @example true */
-            fail2ban?: boolean;
-            /** @example true */
-            swap?: boolean;
-            /** @example false */
-            monitoring?: boolean;
-            /** @example false */
-            backup?: boolean;
-            /** @example true */
-            logrotate?: boolean;
-            /** @example true */
-            securityHardening?: boolean;
-            /** @example true */
-            autoUpdates?: boolean;
-            /**
              * @description Executor mode for GitLab Runner. docker implies Docker dependency.
              * @example docker
              */
             gitlabRunnerExecutor?: string;
-            /**
-             * @description Option keys that should be forced-reinstalled even if the tool is already detected as installed. By default, roles for already-installed tools still run (idempotent), but this flag signals explicit user intent to reinstall/reconfigure.
-             * @example [
-             *       "docker",
-             *       "nginx"
-             *     ]
-             */
-            reinstallOptions?: string[];
         };
         ServerSetupTaskDto: {
             id: string;
@@ -3663,8 +3583,7 @@ export interface components {
             serverId: string;
             /** @enum {string} */
             status: "QUEUED" | "RESOLVING_OPTIONS" | "WAITING_FOR_LOCK" | "RUNNING" | "SUCCEEDED" | "PARTIAL" | "FAILED" | "TIMEOUT" | "CANCELED";
-            /** @enum {string} */
-            profile: "BASIC" | "WEB" | "DATABASE" | "RUNNER" | "FULL" | "CUSTOM";
+            profile: string;
             triggerSource: string;
             requestedById?: string | null;
             /** Format: date-time */
@@ -3917,7 +3836,7 @@ export interface components {
         };
         CreateAutomationRunDto: {
             /** @enum {string} */
-            actionKey: "system_update" | "install_docker" | "install_nginx" | "install_postgres" | "install_redis" | "install_gitlab_runner" | "configure_firewall" | "install_fail2ban" | "security_hardening" | "install_monitoring" | "install_monitoring_stack" | "install_loki" | "install_prometheus_grafana" | "configure_swap" | "install_nodejs";
+            actionKey: "system_update" | "install_docker" | "install_gitlab_runner" | "configure_firewall" | "install_fail2ban" | "security_hardening" | "install_monitoring_stack" | "install_loki" | "configure_swap";
             serverIds: string[];
             gitlabRunnerExecutor?: string;
         };
@@ -5972,7 +5891,6 @@ export interface operations {
         parameters: {
             query: {
                 serviceId: string;
-                serviceEnvId: string;
             };
             header?: never;
             path: {
@@ -5994,12 +5912,9 @@ export interface operations {
         parameters: {
             query: {
                 serviceId: string;
-                serviceEnvId: string;
             };
             header?: never;
-            path: {
-                projectId: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -6016,12 +5931,9 @@ export interface operations {
         parameters: {
             query: {
                 serviceId: string;
-                serviceEnvId: string;
             };
             header?: never;
-            path: {
-                projectId: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -6038,12 +5950,9 @@ export interface operations {
         parameters: {
             query: {
                 serviceId: string;
-                serviceEnvId: string;
             };
             header?: never;
-            path: {
-                projectId: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -7512,23 +7421,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ServerSetupDto"];
                 };
-            };
-        };
-    };
-    ServerSetupOptionsController_options: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };

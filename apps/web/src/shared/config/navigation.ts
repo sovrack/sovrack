@@ -60,12 +60,6 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
         adminOnly: true,
       },
       {
-        href: "/admin/monitoring",
-        label: "Monitoring",
-        icon: Activity,
-        adminOnly: true,
-      },
-      {
         href: "/automation",
         label: "Automation",
         icon: Wrench,

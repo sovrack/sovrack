@@ -25,7 +25,6 @@ export {
   useDockerConnection,
   useServerSetups,
   useStartServerSetup,
-  useServerSetupOptions,
   useSetup,
   useSetupReadiness,
   useSetupLogs,

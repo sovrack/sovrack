@@ -2242,14 +2242,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "serviceEnvId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -2272,23 +2264,7 @@
         "operationId": "WebhookManagementController_status",
         "parameters": [
           {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceEnvId",
             "required": true,
             "in": "query",
             "schema": {
@@ -2316,23 +2292,7 @@
         "operationId": "WebhookManagementController_pause",
         "parameters": [
           {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceEnvId",
             "required": true,
             "in": "query",
             "schema": {
@@ -2360,23 +2320,7 @@
         "operationId": "WebhookManagementController_resume",
         "parameters": [
           {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "serviceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "serviceEnvId",
             "required": true,
             "in": "query",
             "schema": {
@@ -4678,26 +4622,6 @@
         "summary": "Cancel a provisioning job if still active",
         "tags": [
           "Server Setups"
-        ]
-      }
-    },
-    "/server-setup-options": {
-      "get": {
-        "operationId": "ServerSetupOptionsController_options",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List provisioning options and profiles",
-        "tags": [
-          "Server Setup Options"
         ]
       }
     },
@@ -9354,118 +9278,11 @@
       "StartServerSetupDto": {
         "type": "object",
         "properties": {
-          "profile": {
-            "enum": [
-              "BASIC",
-              "WEB",
-              "DATABASE",
-              "RUNNER",
-              "FULL",
-              "CUSTOM"
-            ],
-            "type": "string",
-            "default": "BASIC",
-            "description": "Reusable setup profile. Explicit options override profile defaults."
-          },
-          "systemUpdate": {
-            "type": "boolean",
-            "example": true
-          },
-          "docker": {
-            "type": "boolean",
-            "example": true
-          },
-          "dockerComposePlugin": {
-            "type": "boolean",
-            "example": true
-          },
-          "dockerTls": {
-            "type": "boolean",
-            "example": true,
-            "description": "Configure Docker daemon mTLS (port 2376) and auto-register the DockerConnection — required for the platform to deploy on this server."
-          },
-          "reverseProxy": {
-            "type": "boolean",
-            "example": true,
-            "description": "Install Traefik reverse proxy (ports 80/443) with automatic Let’s Encrypt HTTPS. Services with a domain then get certificates at deploy."
-          },
-          "nginx": {
-            "type": "boolean",
-            "example": true
-          },
-          "nixpacks": {
-            "type": "boolean",
-            "example": false
-          },
-          "nodejs": {
-            "type": "boolean",
-            "example": false
-          },
-          "postgres": {
-            "type": "boolean",
-            "example": false
-          },
-          "postgresql": {
-            "type": "boolean",
-            "example": false,
-            "deprecated": true
-          },
-          "redis": {
-            "type": "boolean",
-            "example": false
-          },
-          "gitlabRunner": {
-            "type": "boolean",
-            "example": false
-          },
-          "firewall": {
-            "type": "boolean",
-            "example": true
-          },
-          "fail2ban": {
-            "type": "boolean",
-            "example": true
-          },
-          "swap": {
-            "type": "boolean",
-            "example": true
-          },
-          "monitoring": {
-            "type": "boolean",
-            "example": false
-          },
-          "backup": {
-            "type": "boolean",
-            "example": false
-          },
-          "logrotate": {
-            "type": "boolean",
-            "example": true
-          },
-          "securityHardening": {
-            "type": "boolean",
-            "example": true
-          },
-          "autoUpdates": {
-            "type": "boolean",
-            "example": true
-          },
           "gitlabRunnerExecutor": {
             "type": "string",
             "maxLength": 32,
             "example": "docker",
             "description": "Executor mode for GitLab Runner. docker implies Docker dependency."
-          },
-          "reinstallOptions": {
-            "example": [
-              "docker",
-              "nginx"
-            ],
-            "description": "Option keys that should be forced-reinstalled even if the tool is already detected as installed. By default, roles for already-installed tools still run (idempotent), but this flag signals explicit user intent to reinstall/reconfigure.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         }
       },
@@ -9549,14 +9366,6 @@
             "type": "string"
           },
           "profile": {
-            "enum": [
-              "BASIC",
-              "WEB",
-              "DATABASE",
-              "RUNNER",
-              "FULL",
-              "CUSTOM"
-            ],
             "type": "string"
           },
           "triggerSource": {
@@ -10429,19 +10238,13 @@
             "enum": [
               "system_update",
               "install_docker",
-              "install_nginx",
-              "install_postgres",
-              "install_redis",
               "install_gitlab_runner",
               "configure_firewall",
               "install_fail2ban",
               "security_hardening",
-              "install_monitoring",
               "install_monitoring_stack",
               "install_loki",
-              "install_prometheus_grafana",
-              "configure_swap",
-              "install_nodejs"
+              "configure_swap"
             ]
           },
           "serverIds": {
@@ -10789,6 +10592,7 @@
           },
           "rootDir": {
             "type": "string",
+            "pattern": "^(?!.*\\.\\.).*$",
             "example": "/"
           },
           "buildPack": {
@@ -11016,6 +10820,7 @@
           },
           "rootDir": {
             "type": "string",
+            "pattern": "^(?!.*\\.\\.).*$",
             "example": "/"
           },
           "buildPack": {

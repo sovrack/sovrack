@@ -23,6 +23,7 @@ describe("ServerRowActionsMenu", () => {
         server={server}
         onOpenTerminal={vi.fn()}
         onOpenSetup={vi.fn()}
+        onOpenMonitoring={vi.fn()}
         onOpenDetails={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
@@ -33,6 +34,7 @@ describe("ServerRowActionsMenu", () => {
     expect(screen.getByText("Enter Terminal")).toBeInTheDocument();
     expect(screen.getByText("Validate SSH")).toBeInTheDocument();
     expect(screen.getByText("Setup Server")).toBeInTheDocument();
+    expect(screen.getByText("Monitoring")).toBeInTheDocument();
     expect(screen.getByText("Edit")).toBeInTheDocument();
     expect(screen.getByText("View Details")).toBeInTheDocument();
     expect(screen.getByText("Delete")).toBeInTheDocument();
@@ -45,6 +47,7 @@ describe("ServerRowActionsMenu", () => {
         server={server}
         onOpenTerminal={onOpenTerminal}
         onOpenSetup={vi.fn()}
+        onOpenMonitoring={vi.fn()}
         onOpenDetails={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
@@ -57,8 +60,9 @@ describe("ServerRowActionsMenu", () => {
     expect(onOpenTerminal).toHaveBeenCalledWith(server);
   });
 
-  it("calls onOpenSetup, onEdit, onOpenDetails, onDelete with the server", () => {
+  it("calls onOpenSetup, onOpenMonitoring, onEdit, onOpenDetails, onDelete with the server", () => {
     const onOpenSetup = vi.fn();
+    const onOpenMonitoring = vi.fn();
     const onOpenDetails = vi.fn();
     const onEdit = vi.fn();
     const onDelete = vi.fn();
@@ -67,6 +71,7 @@ describe("ServerRowActionsMenu", () => {
         server={server}
         onOpenTerminal={vi.fn()}
         onOpenSetup={onOpenSetup}
+        onOpenMonitoring={onOpenMonitoring}
         onOpenDetails={onOpenDetails}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -76,6 +81,10 @@ describe("ServerRowActionsMenu", () => {
     fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
     fireEvent.click(screen.getByText("Setup Server"));
     expect(onOpenSetup).toHaveBeenCalledWith(server);
+
+    fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
+    fireEvent.click(screen.getByText("Monitoring"));
+    expect(onOpenMonitoring).toHaveBeenCalledWith(server);
 
     fireEvent.click(screen.getByLabelText("Actions for vps-prod"));
     fireEvent.click(screen.getByText("Edit"));
@@ -97,6 +106,7 @@ describe("ServerRowActionsMenu", () => {
         server={server}
         onOpenTerminal={vi.fn()}
         onOpenSetup={vi.fn()}
+        onOpenMonitoring={vi.fn()}
         onOpenDetails={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
@@ -115,6 +125,7 @@ describe("ServerRowActionsMenu", () => {
           server={server}
           onOpenTerminal={vi.fn()}
           onOpenSetup={vi.fn()}
+          onOpenMonitoring={vi.fn()}
           onOpenDetails={vi.fn()}
           onEdit={vi.fn()}
           onDelete={vi.fn()}

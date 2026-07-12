@@ -22,9 +22,6 @@ import {
   type SetupDialogOptions,
 } from "@/features/servers/components/dialogs/server-setup-dialog";
 import { ServerAuditTimeline } from "@/features/servers/components/panels/server-audit-timeline";
-import { monitoringService } from "@/features/monitoring";
-import { useToast } from "@/shared/contexts/toast-context";
-import { getApiErrorMessage } from "@/shared/lib/api";
 import {
   useCancelSetup,
   useDockerConnection,
@@ -70,39 +67,14 @@ export default function AdminServerDetailPage() {
   const startSetup = useStartServerSetup(serverId);
   const retrySetup = useRetrySetup();
   const cancelSetup = useCancelSetup();
-  const toast = useToast();
 
   const server = serverQuery.data;
   const readiness = readinessQuery.data;
   const loading = serverQuery.isLoading;
 
-  const handleStartSetup = async (
-    options: SetupDialogOptions,
-    wantsMonitoring: boolean,
-  ) => {
+  const handleStartSetup = async (options: SetupDialogOptions) => {
     await startSetup.mutateAsync(options);
     setSetupDialogOpen(false);
-
-    if (wantsMonitoring) {
-      // Chained, not merged into the setup run above — same action as the
-      // Monitoring page's "Setup Monitoring" button. Best-effort: a failure
-      // here must not roll back the (already successful) server setup.
-      try {
-        await monitoringService.installMonitoring({
-          actionKey: "install_monitoring_stack",
-          serverIds: [serverId],
-        });
-        toast(
-          "Monitoring stack installation started — dashboards will appear on the Monitoring page in a few minutes.",
-          "success",
-        );
-      } catch (err) {
-        toast(
-          `Setup succeeded, but starting the monitoring install failed: ${getApiErrorMessage(err)}`,
-          "error",
-        );
-      }
-    }
   };
 
   const primaryAction: "validate" | "detect" | "setup" =
@@ -281,9 +253,7 @@ export default function AdminServerDetailPage() {
         isBusy={startSetup.isPending}
         settingUpId={startSetup.isPending ? server.id : null}
         onClose={() => setSetupDialogOpen(false)}
-        onStartSetup={(_s, options, wantsMonitoring) =>
-          handleStartSetup(options, wantsMonitoring)
-        }
+        onStartSetup={(_s, options) => handleStartSetup(options)}
       />
 
       <ServerSetupLogViewer

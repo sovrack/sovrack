@@ -13,9 +13,6 @@ export type ServerSetupStatus =
   ApiSchema["ServerSetupDto"]["status"];
 export type ServerSetupTaskStatus =
   ApiSchema["ServerSetupTaskDto"]["status"];
-export type ServerPreparationProfile = NonNullable<
-  ApiSchema["StartServerSetupDto"]["profile"]
->;
 export type ServerConnectionMode =
   ApiSchema["ServerResponseDto"]["connectionMode"];
 
@@ -56,10 +53,7 @@ export type UpdateServerPayload = ApiSchema["UpdateServerDto"] & {
 
 export type InstallToolsPayload = Record<string, unknown>;
 
-export type StartServerSetupPayload =
-  ApiSchema["StartServerSetupDto"] & {
-    reinstallOptions?: string[];
-  };
+export type StartServerSetupPayload = ApiSchema["StartServerSetupDto"];
 
 export type RegisterRunnerPayload = ApiSchema["RegisterRunnerDto"];
 
@@ -146,26 +140,6 @@ export type ServerAuditEvent = Omit<
 > & {
   actorId?: string | null;
   payloadJson?: Record<string, unknown> | null;
-};
-
-export type SetupOptionDefinition = {
-  key: keyof StartServerSetupPayload;
-  label: string;
-  description: string;
-  role: string | null;
-  dependencies: string[];
-  recommended: boolean;
-};
-
-export type ServerSetupOptionsResponse = {
-  controlNodeOnly: boolean;
-  message: string;
-  profiles: ServerPreparationProfile[];
-  options: SetupOptionDefinition[];
-  profileDefaults: Record<
-    ServerPreparationProfile,
-    Partial<Record<SetupOptionDefinition["key"], boolean>>
-  >;
 };
 
 export type VerifyServerResult = Server;

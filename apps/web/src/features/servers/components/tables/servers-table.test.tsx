@@ -28,6 +28,7 @@ const baseProps = {
   getServerBusy: () => false,
   onOpenTerminal: vi.fn(),
   onOpenSetup: vi.fn(),
+  onOpenMonitoring: vi.fn(),
   onOpenDetails: vi.fn(),
   onEdit: vi.fn(),
   onDelete: vi.fn(),

@@ -8,6 +8,7 @@ import {
   serversService,
   type StartSetupPayload,
 } from "@/features/servers/api/servers.service";
+import { monitoringService } from "@/features/monitoring";
 import {
   canCancelJob,
   canRetryJob,
@@ -24,18 +25,17 @@ import type {
 } from "@/features/servers/types/server";
 
 /* ─── State + reducer ──────────────────────────────────────────────────────
- * The 12 pieces of local state (verifyingId, detectingId, settingUpId,
+ * The 11 pieces of local state (verifyingId, detectingId, settingUpId,
  * installingKeyId, deletingId, updatingId, creating, loadingJobsByServer,
- * jobsByServer, retryingJobId, cancelingJobId, setupDrafts) were
- * previously 12 independent useState calls. Consolidated into one
- * ServerActionsState + a reducer. The single-id fields (verifyingId etc.)
- * deliberately stay individual nullable-id fields rather than a shared
- * Record<id, action> map: they already behave as "one global slot per
- * action type" in the original code (a second concurrent call on a
- * different id silently overwrites the first), and merging them into a
- * shared map would change that observable behavior. The hook's returned
- * API is unchanged so all consumers (admin/servers/page.tsx and children)
- * need no changes. */
+ * jobsByServer, retryingJobId, cancelingJobId) were previously 11
+ * independent useState calls. Consolidated into one ServerActionsState + a
+ * reducer. The single-id fields (verifyingId etc.) deliberately stay
+ * individual nullable-id fields rather than a shared Record<id, action>
+ * map: they already behave as "one global slot per action type" in the
+ * original code (a second concurrent call on a different id silently
+ * overwrites the first), and merging them into a shared map would change
+ * that observable behavior. The hook's returned API is unchanged so all
+ * consumers (admin/servers/page.tsx and children) need no changes. */
 
 type ServerActionsState = {
   verifyingId: string | null;
@@ -49,7 +49,6 @@ type ServerActionsState = {
   jobsByServer: Record<string, ServerJob[]>;
   retryingJobId: string | null;
   cancelingJobId: string | null;
-  setupDrafts: Record<string, StartSetupPayload>;
 };
 
 const initialState: ServerActionsState = {
@@ -64,7 +63,6 @@ const initialState: ServerActionsState = {
   jobsByServer: {},
   retryingJobId: null,
   cancelingJobId: null,
-  setupDrafts: {},
 };
 
 type SetFieldAction = {
@@ -79,9 +77,7 @@ type ServerActionsReducerAction =
   | SetFieldAction
   | { type: "SET_LOADING_JOBS_FOR_SERVER"; serverId: string; loading: boolean }
   | { type: "SET_JOBS_FOR_SERVER"; serverId: string; jobs: ServerJob[] }
-  | { type: "REMOVE_JOBS_FOR_SERVER"; serverId: string }
-  | { type: "SET_SETUP_DRAFT"; serverId: string; draft: StartSetupPayload }
-  | { type: "CLEAR_SETUP_DRAFT"; serverId: string };
+  | { type: "REMOVE_JOBS_FOR_SERVER"; serverId: string };
 
 function serverActionsReducer(
   state: ServerActionsState,
@@ -108,16 +104,6 @@ function serverActionsReducer(
       delete next[action.serverId];
       return { ...state, jobsByServer: next };
     }
-    case "SET_SETUP_DRAFT":
-      return {
-        ...state,
-        setupDrafts: { ...state.setupDrafts, [action.serverId]: action.draft },
-      };
-    case "CLEAR_SETUP_DRAFT": {
-      const next = { ...state.setupDrafts };
-      delete next[action.serverId];
-      return { ...state, setupDrafts: next };
-    }
     default:
       return state;
   }
@@ -138,7 +124,6 @@ export function useServerActions() {
     jobsByServer,
     retryingJobId,
     cancelingJobId,
-    setupDrafts,
   } = state;
 
   const setField = useCallback(
@@ -236,31 +221,6 @@ export function useServerActions() {
     }
   };
 
-  const getSetupDraft = (server: ServerType): StartSetupPayload => {
-    return (
-      setupDrafts[server.id] ?? {
-        gitlabRunnerExecutor: "docker",
-      }
-    );
-  };
-
-  const handleSetupOptionChange = (
-    server: ServerType,
-    field: keyof StartSetupPayload,
-    value: boolean | string | string[],
-  ) => {
-    const current = getSetupDraft(server);
-    dispatch({
-      type: "SET_SETUP_DRAFT",
-      serverId: server.id,
-      draft: { ...current, [field]: value },
-    });
-  };
-
-  const clearSetupDraft = (serverId: string) => {
-    dispatch({ type: "CLEAR_SETUP_DRAFT", serverId });
-  };
-
   const handleCreate = async (payload: CreateServerPayload) => {
     setField("creating", true);
     try {
@@ -320,26 +280,34 @@ export function useServerActions() {
     }
   };
 
-  // P3 (mission finale) : le dialog Setup Server envoie un JEU DE BOOLÉENS FIXE
-  // (bouton "Setup Server" ou "Setup Monitoring") via `overrideOptions`, au
-  // lieu d'un brouillon de cases à cocher — d'où ce paramètre optionnel.
+  // Setup Server envoie un jeu fixe décidé côté backend — au plus
+  // `{ gitlabRunner }`, la seule vraie option restante (voir
+  // server-setup-dialog.tsx).
   const handleStartSetup = async (
     server: ServerType,
-    overrideOptions?: StartSetupPayload,
+    payload: StartSetupPayload,
   ) => {
-    const payload = overrideOptions ?? getSetupDraft(server);
     setField("settingUpId", server.id);
     try {
       await serversService.startSetup(server.id, payload);
       showToast("Setup started", "success");
       await refreshJobs(server.id);
       await fetchServers();
-      clearSetupDraft(server.id);
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
     } finally {
       setField("settingUpId", null);
     }
+  };
+
+  // Action "Monitoring" dédiée, par serveur — plus une case à cocher noyée
+  // dans Setup Server. Même action backend (install_monitoring_stack) que
+  // l'ancienne page Monitoring générale, désormais retirée.
+  const handleInstallMonitoring = async (serverId: string) => {
+    await monitoringService.installMonitoring({
+      actionKey: "install_monitoring_stack",
+      serverIds: [serverId],
+    });
   };
 
   const handleInstallKey = async (serverId: string, password: string) => {
@@ -427,13 +395,12 @@ export function useServerActions() {
     cancelingJobId,
     fetchServers,
     refreshJobs,
-    getSetupDraft,
-    handleSetupOptionChange,
     handleCreate,
     handleUpdate,
     handleVerify,
     handleDetect,
     handleStartSetup,
+    handleInstallMonitoring,
     handleInstallKey,
     handleDelete,
     handleRetryJob,

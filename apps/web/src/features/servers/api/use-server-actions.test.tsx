@@ -144,56 +144,21 @@ describe("useServerActions — state management (useReducer)", () => {
     );
   });
 
-  it("getSetupDraft defaults to docker executor, handleSetupOptionChange updates the draft", async () => {
-    const { result } = setup();
-    await waitFor(() => expect(result.current.servers).toHaveLength(1));
-
-    const server = aServer();
-    expect(result.current.getSetupDraft(server)).toEqual({
-      gitlabRunnerExecutor: "docker",
-    });
-
-    act(() =>
-      result.current.handleSetupOptionChange(
-        server,
-        "gitlabRunnerExecutor",
-        "shell",
-      ),
-    );
-
-    await waitFor(() =>
-      expect(result.current.getSetupDraft(server)).toEqual({
-        gitlabRunnerExecutor: "shell",
-      }),
-    );
-  });
-
-  it("handleStartSetup clears the setup draft for the server after success", async () => {
+  it("handleStartSetup sends the given payload as-is and resets settingUpId after success", async () => {
     mocked.startSetup.mockResolvedValue(undefined as never);
     mocked.getJobs.mockResolvedValue([]);
     const { result } = setup();
     await waitFor(() => expect(result.current.servers).toHaveLength(1));
 
     const server = aServer();
-    act(() =>
-      result.current.handleSetupOptionChange(
-        server,
-        "gitlabRunnerExecutor",
-        "shell",
-      ),
-    );
-    await waitFor(() =>
-      expect(result.current.getSetupDraft(server).gitlabRunnerExecutor).toBe(
-        "shell",
-      ),
-    );
-
     await act(async () => {
-      await result.current.handleStartSetup(server);
+      await result.current.handleStartSetup(server, {
+        gitlabRunnerExecutor: "shell",
+      });
     });
 
-    expect(result.current.getSetupDraft(server)).toEqual({
-      gitlabRunnerExecutor: "docker",
+    expect(mocked.startSetup).toHaveBeenCalledWith(server.id, {
+      gitlabRunnerExecutor: "shell",
     });
     expect(result.current.settingUpId).toBeNull();
   });

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Activity,
   Eye,
   MoreHorizontal,
   Pencil,
@@ -21,6 +22,7 @@ type ServerRowActionsMenuProps = {
   disabled?: boolean;
   onOpenTerminal: (server: Server) => void;
   onOpenSetup: (server: Server) => void;
+  onOpenMonitoring: (server: Server) => void;
   onOpenDetails: (server: Server) => void;
   onEdit: (server: Server) => void;
   onDelete: (server: Server) => void;
@@ -38,6 +40,7 @@ export function ServerRowActionsMenu({
   disabled,
   onOpenTerminal,
   onOpenSetup,
+  onOpenMonitoring,
   onOpenDetails,
   onEdit,
   onDelete,
@@ -81,6 +84,15 @@ export function ServerRowActionsMenu({
             }}
           >
             Setup Server
+          </DropdownItem>
+          <DropdownItem
+            icon={<Activity size={14} />}
+            onClick={() => {
+              close();
+              onOpenMonitoring(server);
+            }}
+          >
+            Monitoring
           </DropdownItem>
           <DropdownItem
             icon={<Pencil size={14} />}

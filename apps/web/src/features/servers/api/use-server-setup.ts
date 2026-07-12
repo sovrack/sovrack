@@ -60,14 +60,6 @@ export function useStartServerSetup(id: string) {
   });
 }
 
-export function useServerSetupOptions() {
-  return useQuery({
-    queryKey: serverKeys.setupOptions(),
-    queryFn: () => serversService.getSetupOptions(),
-    staleTime: 60_000,
-  });
-}
-
 export function useSetup(id: string | null) {
   return useQuery({
     queryKey: id
