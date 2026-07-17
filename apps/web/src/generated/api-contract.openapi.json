@@ -7588,7 +7588,7 @@
     }
   },
   "info": {
-    "title": "DevOps Platform API",
+    "title": "Deploy Automation API",
     "description": "API de la plateforme centralisée de déploiement",
     "version": "1.0",
     "contact": {}
@@ -7610,7 +7610,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "dev@devops.com"
+            "example": "dev@deployautomation.local"
           },
           "password": {
             "type": "string",
@@ -8105,7 +8105,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "dev@devops.com"
+            "example": "dev@deployautomation.local"
           },
           "role": {
             "enum": [

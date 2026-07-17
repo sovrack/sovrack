@@ -188,7 +188,7 @@ export function RegistryForm({
               }))
             }
             className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
-            placeholder="https://registry.example.com"
+            placeholder="https://registry.ton-registre.com"
           />
         </div>
       )}

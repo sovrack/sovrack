@@ -2923,7 +2923,7 @@ export interface components {
         CreateUserDto: {
             /**
              * Format: email
-             * @example dev@devops.com
+             * @example dev@deployautomation.local
              */
             email: string;
             /** @example StrongPassword123! */
@@ -3140,7 +3140,7 @@ export interface components {
             userId?: string;
             /**
              * Format: email
-             * @example dev@devops.com
+             * @example dev@deployautomation.local
              */
             email?: string;
             /**

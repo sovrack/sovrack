@@ -23,7 +23,7 @@ describe("ServiceCiGenerator", () => {
     vi.clearAllMocks();
     (webhooksService.status as ReturnType<typeof vi.fn>).mockResolvedValue({
       configured: true,
-      webhookUrl: "https://platform/hook/abc",
+      webhookUrl: "https://deployautomation/hook/abc",
     });
   });
 
@@ -47,7 +47,7 @@ describe("ServiceCiGenerator", () => {
     expect(screen.getAllByText("Dockerfile").length).toBeGreaterThan(0);
     // How-to + the webhook URL are surfaced for the user.
     expect(screen.getByText(/Paste each file/)).toBeInTheDocument();
-    expect(screen.getByText("https://platform/hook/abc")).toBeInTheDocument();
+    expect(screen.getByText("https://deployautomation/hook/abc")).toBeInTheDocument();
   });
 
   it("shows an error when generation fails", async () => {

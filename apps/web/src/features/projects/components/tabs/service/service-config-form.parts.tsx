@@ -174,7 +174,7 @@ export function BuildArgsEditor({
                 <input
                   className={`${inputClass} font-mono`}
                   value={row.value}
-                  placeholder="https://api.example.com"
+                  placeholder="https://api.ton-domaine.com"
                   onChange={(e) => update(i, "value", e.target.value)}
                 />
                 <button

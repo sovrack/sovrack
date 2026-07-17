@@ -86,8 +86,8 @@ export const FR: Record<string, string> = {
   "in your Git repository (GitLab: Settings → CI/CD → Variables; GitHub: Settings → Secrets and variables → Actions):":
     "dans ton dépôt Git (GitLab : Settings → CI/CD → Variables ; GitHub : Settings → Secrets and variables → Actions) :",
   "3. Push": "3. Push",
-  "→ the CI builds the image then triggers the platform deployment.":
-    "→ la CI build l'image puis déclenche le déploiement platform.",
+  "→ the CI builds the image then triggers the Deploy Automation deployment.":
+    "→ la CI build l'image puis déclenche le déploiement Deploy Automation.",
   "(set up the webhook in the Webhooks tab)":
     "(configure le webhook dans l'onglet Webhooks)",
   "= the webhook secret (Webhooks tab)":

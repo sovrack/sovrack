@@ -11,7 +11,7 @@ COPY . .
 # Build args passed at build time
 ARG NEXT_PUBLIC_API_URL=http://localhost:3001
 ARG NEXT_PUBLIC_WS_URL=http://localhost:3001
-ARG NEXT_PUBLIC_APP_NAME="platform"
+ARG NEXT_PUBLIC_APP_NAME="Deploy Automation"
 ARG NEXT_PUBLIC_APP_VERSION="1.0.0"
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL

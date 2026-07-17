@@ -4,8 +4,8 @@ import { Providers } from "@/shared/providers";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "platform Deploy Platform",
-  description: "Deployment automation workspace powered by platform",
+  title: "Deploy Automation",
+  description: "Deployment automation platform",
 };
 
 export const viewport = {

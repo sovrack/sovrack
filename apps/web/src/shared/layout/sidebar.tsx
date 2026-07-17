@@ -93,7 +93,7 @@ export function Sidebar() {
           </div>
           {!collapsed && (
             <span className="truncate text-[17px] font-semibold text-zinc-900 dark:text-white">
-              platform
+              Deploy
             </span>
           )}
         </Link>

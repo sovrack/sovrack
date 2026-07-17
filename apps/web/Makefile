@@ -1,5 +1,5 @@
 # =============================================================================
-# Frontend Makefile — platform Deploy Automation
+# Frontend Makefile — Deploy Automation
 # =============================================================================
 .PHONY: help build run test lint clean
 
@@ -12,7 +12,7 @@ help: ## Show this help
 # ─── Application ─────────────────────────────────────────────────────────────
 
 build: ## Build Docker image
-	docker build -t platform/frontend:latest .
+	docker build -t deployautomation/frontend:latest .
 
 run: ## Run with Docker Compose
 	docker compose up -d --build
@@ -81,9 +81,9 @@ contract:generate: ## Generate OpenAPI contract from backend
 # ─── Deployment Helpers ───────────────────────────────────────────────────
 
 deploy:staging: ## Build and deploy to staging
-	docker build -t registry.example.com/platform/frontend:staging .
-	docker push registry.example.com/platform/frontend:staging
+	docker build -t ${REGISTRY:-registry.gitlab.com/deploy-automation}/deploy-automation-frontend:staging .
+	docker push ${REGISTRY:-registry.gitlab.com/deploy-automation}/deploy-automation-frontend:staging
 
 deploy:prod: ## Build and deploy to production
-	docker build -t registry.example.com/platform/frontend:latest .
-	docker push registry.example.com/platform/frontend:latest
+	docker build -t ${REGISTRY:-registry.gitlab.com/deploy-automation}/deploy-automation-frontend:latest .
+	docker push ${REGISTRY:-registry.gitlab.com/deploy-automation}/deploy-automation-frontend:latest

@@ -170,7 +170,7 @@ export default function SystemStatusPage() {
       </SectionCard>
 
       {/* C2 (plan produit final) : ressources de la machine qui HÉBERGE
-          platform — un disque qui se remplit (images Docker, logs) arrête
+          Deploy Automation — un disque qui se remplit (images Docker, logs) arrête
           Postgres sans aucun autre signal préalable sur cette page. Seuils
           visuels : >80% orange, >90% rouge. */}
       {h?.host && (

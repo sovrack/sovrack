@@ -137,7 +137,7 @@ export function ServiceCiGenerator({
               )}
               <div className="mt-1.5 space-y-1">
                 <VarLine
-                  name="PLATFORM_DEPLOY_HOOK"
+                  name="DA_DEPLOY_HOOK"
                   value={
                     webhookUrl ??
                     t("(set up the webhook in the Webhooks tab)")
@@ -147,7 +147,7 @@ export function ServiceCiGenerator({
                   onCopy={() => webhookUrl && void copy("hook", webhookUrl)}
                 />
                 <VarLine
-                  name="platform_DEPLOY_TOKEN"
+                  name="DA_DEPLOY_TOKEN"
                   value={t("= the webhook secret (Webhooks tab)")}
                   copyable={false}
                 />
@@ -158,7 +158,7 @@ export function ServiceCiGenerator({
                 {t("3. Push")}
               </span>{" "}
               {t(
-                "→ the CI builds the image then triggers the platform deployment.",
+                "→ the CI builds the image then triggers the Deploy Automation deployment.",
               )}
             </li>
           </ol>

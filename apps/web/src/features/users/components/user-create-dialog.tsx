@@ -183,7 +183,7 @@ export function UserCreateDialog({
               type="email"
               value={form.email}
               onChange={(event) => setField("email", event.target.value)}
-              placeholder="dev@devops.com"
+              placeholder="dev@deployautomation.local"
               className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20"
             />
             {errors.email && (

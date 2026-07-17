@@ -69,7 +69,7 @@ export function LoginScreen() {
               <Zap size={18} className="text-white" />
             </div>
             <span className="text-lg font-bold tracking-tight text-gray-900">
-              platform
+              Deploy Automation
             </span>
           </div>
 
@@ -132,7 +132,7 @@ export function LoginScreen() {
         </div>
       </section>
 
-      {/* Right — platform gradient branding panel */}
+      {/* Right — Deploy Automation gradient branding panel */}
       <section
         className="hidden lg:flex lg:flex-col lg:items-center lg:justify-center lg:px-12 lg:py-16"
         style={{

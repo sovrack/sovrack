@@ -134,7 +134,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
     }),
     {
-      name: "platform-auth",
+      name: "deploy-automation-auth",
       partialize: (state) => ({ user: state.user }),
     },
   ),
