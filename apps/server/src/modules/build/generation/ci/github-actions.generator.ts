@@ -188,22 +188,22 @@ export class GithubActionsGenerator implements ICiGenerator {
       '          cache-from: type=gha',
       '          cache-to: type=gha,mode=max',
       '',
-      // Déclenche le déploiement platform (deployTrigger = PIPELINE_SUCCESS / CI_HOOK).
-      // Renseigne les secrets repo PLATFORM_DEPLOY_HOOK (URL webhook du service) +
-      // platform_DEPLOY_TOKEN (secret du webhook) pour activer le déclenchement.
-      '      - name: Trigger platform deployment',
+      // Déclenche le déploiement Deploy Automation (deployTrigger = PIPELINE_SUCCESS / CI_HOOK).
+      // Renseigne les secrets repo DA_DEPLOY_HOOK (URL webhook du service) +
+      // DA_DEPLOY_TOKEN (secret du webhook) pour activer le déclenchement.
+      '      - name: Trigger Deploy Automation deployment',
       '        env:',
-      '          PLATFORM_DEPLOY_HOOK: ${{ secrets.PLATFORM_DEPLOY_HOOK }}',
-      '          platform_DEPLOY_TOKEN: ${{ secrets.platform_DEPLOY_TOKEN }}',
+      '          DA_DEPLOY_HOOK: ${{ secrets.DA_DEPLOY_HOOK }}',
+      '          DA_DEPLOY_TOKEN: ${{ secrets.DA_DEPLOY_TOKEN }}',
       '        run: |',
       '          echo "Image pushed: ${{ steps.meta.outputs.tags }}"',
-      '          if [ -n "$PLATFORM_DEPLOY_HOOK" ]; then',
-      '            curl -fsSL -X POST "$PLATFORM_DEPLOY_HOOK" \\',
+      '          if [ -n "$DA_DEPLOY_HOOK" ]; then',
+      '            curl -fsSL -X POST "$DA_DEPLOY_HOOK" \\',
       '              -H "Content-Type: application/json" \\',
-      '              -H "X-Hub-Signature-256: $platform_DEPLOY_TOKEN" \\',
+      '              -H "X-Hub-Signature-256: $DA_DEPLOY_TOKEN" \\',
       '              -d "{\\"ref\\":\\"${{ github.ref_name }}\\",\\"sha\\":\\"${{ github.sha }}\\"}"',
       '          else',
-      '            echo "PLATFORM_DEPLOY_HOOK non défini — déploiement non déclenché.";',
+      '            echo "DA_DEPLOY_HOOK non défini — déploiement non déclenché.";',
       '          fi',
     );
 

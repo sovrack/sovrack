@@ -51,7 +51,7 @@ function makeDeps(
   };
 
   const configService = {
-    get: jest.fn().mockReturnValue('platform_auth'),
+    get: jest.fn().mockReturnValue('deployautomation_auth'),
   };
 
   return { jwtService, prisma, configService };

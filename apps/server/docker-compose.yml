@@ -7,15 +7,15 @@
 services:
   database:
     image: postgres:16-alpine
-    container_name: platform_backend_db
+    container_name: deployautomation_backend_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-devops_platform}
+      POSTGRES_DB: ${DB_NAME:-deploy_automation}
     healthcheck:
       test:
-        ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-devops_platform}']
+        ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-deploy_automation}']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -33,7 +33,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: platform_backend_redis
+    container_name: deployautomation_backend_redis
     restart: unless-stopped
     command: ['redis-server', '--appendonly', 'yes', '--save', '900 1', '--save', '300 10']
     healthcheck:
@@ -56,7 +56,7 @@ services:
   backend:
     build:
       context: .
-    container_name: platform_backend
+    container_name: deployautomation_backend
     restart: unless-stopped
     depends_on:
       database:
@@ -66,7 +66,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@database:5432/${DB_NAME:-devops_platform}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@database:5432/${DB_NAME:-deploy_automation}
       REDIS_URL: redis://redis:6379
       ANSIBLE_PLAYBOOKS_PATH: /app/ansible/playbooks
       NODE_ENV: production

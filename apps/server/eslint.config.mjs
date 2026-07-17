@@ -14,7 +14,7 @@ export default tseslint.config(
   eslintPluginPrettierRecommended,
   {
     plugins: {
-      'platform-safety': {
+      'deploy-automation-safety': {
         rules: {
           'no-skip-without-trigger': noSkipWithoutTrigger,
         },
@@ -63,7 +63,7 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
       // P1-07 safety net: catches `if (skipX) return;` early-return patterns
       // in service files. Anti-pattern that led to the original bug class.
-      'platform-safety/no-skip-without-trigger': 'warn',
+      'deploy-automation-safety/no-skip-without-trigger': 'warn',
     },
   },
   // ── Per-area overrides (MUST stay last so they win in flat-config order) ──

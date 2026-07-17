@@ -5,7 +5,7 @@ import { DeploymentsLogSearchService } from './deployments-log-search.service';
 
 describe('DeploymentsLogSearchService', () => {
   const LOGS = [
-    'Pulling image platform/app:main',
+    'Pulling image deployautomation/app:main',
     '[HEALTH] Attempt 1/6 -> HTTP 503 (app starting...)',
     'ERROR: connection refused on port 3000',
     '[HEALTH] Attempt 2/6 -> HTTP 200 OK',

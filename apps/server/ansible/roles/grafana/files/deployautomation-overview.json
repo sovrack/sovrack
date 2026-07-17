@@ -3,9 +3,9 @@
   "editable": true,
   "graphTooltip": 0,
   "schemaVersion": 39,
-  "tags": ["platform"],
-  "title": "platform — Overview",
-  "uid": "platform-overview",
+  "tags": ["deployautomation"],
+  "title": "Deployautomation — Overview",
+  "uid": "deployautomation-overview",
   "time": { "from": "now-6h", "to": "now" },
   "templating": { "list": [] },
   "panels": [
@@ -17,7 +17,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "count(container_last_seen{container_label_platform_managed=\"true\"})",
+          "expr": "count(container_last_seen{container_label_deployautomation_managed=\"true\"})",
           "legendFormat": "containers"
         }
       ]
@@ -31,8 +31,8 @@
       "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
       "targets": [
         {
-          "expr": "sum by (container_label_platform_service_name) (rate(container_cpu_usage_seconds_total{container_label_platform_managed=\"true\"}[5m]))",
-          "legendFormat": "{{container_label_platform_service_name}}"
+          "expr": "sum by (container_label_deployautomation_service_name) (rate(container_cpu_usage_seconds_total{container_label_deployautomation_managed=\"true\"}[5m]))",
+          "legendFormat": "{{container_label_deployautomation_service_name}}"
         }
       ]
     },
@@ -45,8 +45,8 @@
       "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
       "targets": [
         {
-          "expr": "sum by (container_label_platform_service_name) (container_memory_usage_bytes{container_label_platform_managed=\"true\"})",
-          "legendFormat": "{{container_label_platform_service_name}}"
+          "expr": "sum by (container_label_deployautomation_service_name) (container_memory_usage_bytes{container_label_deployautomation_managed=\"true\"})",
+          "legendFormat": "{{container_label_deployautomation_service_name}}"
         }
       ]
     },
@@ -59,12 +59,12 @@
       "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
       "targets": [
         {
-          "expr": "sum by (container_label_platform_service_name) (rate(container_network_receive_bytes_total{container_label_platform_managed=\"true\"}[5m]))",
-          "legendFormat": "rx {{container_label_platform_service_name}}"
+          "expr": "sum by (container_label_deployautomation_service_name) (rate(container_network_receive_bytes_total{container_label_deployautomation_managed=\"true\"}[5m]))",
+          "legendFormat": "rx {{container_label_deployautomation_service_name}}"
         },
         {
-          "expr": "sum by (container_label_platform_service_name) (rate(container_network_transmit_bytes_total{container_label_platform_managed=\"true\"}[5m]))",
-          "legendFormat": "tx {{container_label_platform_service_name}}"
+          "expr": "sum by (container_label_deployautomation_service_name) (rate(container_network_transmit_bytes_total{container_label_deployautomation_managed=\"true\"}[5m]))",
+          "legendFormat": "tx {{container_label_deployautomation_service_name}}"
         }
       ]
     }

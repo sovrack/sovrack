@@ -10,11 +10,11 @@ describe('GitlabCiGenerator', () => {
     expect(out).toContain('  - notify');
   });
 
-  it('emits the deploy job that curls the platform webhook (CI trigger)', () => {
+  it('emits the deploy job that curls the Deploy Automation webhook (CI trigger)', () => {
     const out = gen.generate({ projectType: 'nodejs', branches: ['main'] });
     expect(out).toContain('deploy:');
-    expect(out).toContain('$PLATFORM_DEPLOY_HOOK');
-    expect(out).toContain('X-Gitlab-Token: $platform_DEPLOY_TOKEN');
+    expect(out).toContain('$DA_DEPLOY_HOOK');
+    expect(out).toContain('X-Gitlab-Token: $DA_DEPLOY_TOKEN');
     // No-op explicite si la variable n'est pas définie.
     expect(out).toContain('déploiement non déclenché');
   });

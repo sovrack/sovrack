@@ -1,5 +1,5 @@
 ---
-# Internal DevOps Platform - Setup Server
+# Deploy Automation - Setup Server
 # Ansible runs only on the control node. Target VPS hosts are agentless SSH targets.
 
 - name: "Internal Platform | Setup remote VPS from control node"
@@ -8,7 +8,7 @@
   gather_facts: true
 
   vars:
-    managed_by: "{{ managed_by | default('internal-devops-platform-control-node') }}"
+    managed_by: "{{ managed_by | default('deployautomation-control-node') }}"
 
   pre_tasks:
     - name: "Setup | Set default roles when not provided via extra-vars"

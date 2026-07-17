@@ -56,7 +56,7 @@ describe('Rollback (e2e)', () => {
     const oldDeployment = await ctx.prisma.deployment.create({
       data: {
         ...base,
-        dockerImage: 'platform/e2e:old',
+        dockerImage: 'deployautomation/e2e:old',
         imageSha: OLD_SHA,
         createdAt: new Date(Date.now() - 60_000),
         startedAt: new Date(Date.now() - 60_000),
@@ -68,7 +68,7 @@ describe('Rollback (e2e)', () => {
     const newDeployment = await ctx.prisma.deployment.create({
       data: {
         ...base,
-        dockerImage: 'platform/e2e:new',
+        dockerImage: 'deployautomation/e2e:new',
         imageSha: NEW_SHA,
         createdAt: new Date(),
         startedAt: new Date(),

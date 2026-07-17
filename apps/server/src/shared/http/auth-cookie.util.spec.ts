@@ -27,7 +27,7 @@ describe('auth-cookie.util', () => {
   });
 
   describe('extractTokenFromCookieHeader', () => {
-    const NAME = 'devops_platform_token';
+    const NAME = 'deploy_automation_token';
     it('returns null when no header', () => {
       expect(extractTokenFromCookieHeader(undefined, NAME)).toBeNull();
     });

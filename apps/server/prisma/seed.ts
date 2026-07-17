@@ -4,8 +4,8 @@ import { PrismaClient, Role } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
-  const adminEmail = 'admin@devops.com';
-  const developerEmail = 'dev@devops.com';
+  const adminEmail = 'admin@deployautomation.local';
+  const developerEmail = 'dev@deployautomation.local';
   const platformKeys = ['GITLAB_URL', 'GITLAB_TOKEN', 'PLATFORM_NAME', 'WEBHOOK_BASE_URL'];
 
   // Nettoyage global: on supprime les données de test/projet/serveur
@@ -28,8 +28,8 @@ async function main(): Promise<void> {
     }),
   ]);
 
-  const adminPassword = await bcrypt.hash('Admin@2025!', 10);
-  const developerPassword = await bcrypt.hash('Dev@2025!', 10);
+  const adminPassword = await bcrypt.hash('CHANGE_MOI_ADMIN_PASSWORD', 10);
+  const developerPassword = await bcrypt.hash('CHANGE_MOI_DEV_PASSWORD', 10);
 
   await prisma.user.upsert({
     where: { email: adminEmail },

@@ -1,5 +1,5 @@
 # =============================================================================
-# Backend Makefile — platform Deploy Automation
+# Backend Makefile — Deploy Automation
 # =============================================================================
 .PHONY: help build run test lint clean db db-stop db-reset
 
@@ -15,8 +15,8 @@ db: ## Start PostgreSQL + Redis (idempotent) and wait until healthy
 	docker compose -f docker-compose.db.yml up -d
 	@echo "Waiting for PostgreSQL and Redis to be healthy..."
 	@for i in $$(seq 1 30); do \
-		status=$$(docker inspect --format '{{.State.Health.Status}}' nestjs_devops_db 2>/dev/null || echo missing); \
-		redis_status=$$(docker inspect --format '{{.State.Health.Status}}' nestjs_devops_redis 2>/dev/null || echo missing); \
+		status=$$(docker inspect --format '{{.State.Health.Status}}' deployautomation_db 2>/dev/null || echo missing); \
+		redis_status=$$(docker inspect --format '{{.State.Health.Status}}' deployautomation_redis 2>/dev/null || echo missing); \
 		if [ "$$status" = "healthy" ] && [ "$$redis_status" = "healthy" ]; then \
 			echo "PostgreSQL and Redis are healthy."; exit 0; \
 		fi; \
@@ -35,7 +35,7 @@ db-reset: ## DANGER: drop the DB volume and recreate (wipes all data)
 # ─── Application ─────────────────────────────────────────────────────────────
 
 build: ## Build Docker image
-	docker build -t platform/backend:latest .
+	docker build -t deployautomation/backend:latest .
 
 run: ## Run with Docker Compose (production mode)
 	docker compose up -d --build

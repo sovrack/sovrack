@@ -10,7 +10,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import {
   buildContainerPrefix,
   buildServiceAlias,
-  buildplatformLabels,
+  buildDeployautomationLabels,
 } from '../../../shared/utils/container-spec.util';
 import { getDatabaseContainerConfig } from '../../../shared/utils/database-spec.util';
 import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
@@ -383,7 +383,7 @@ export class DockerDeployExecutorService {
         'info',
       );
       const stopTimeout = deployment.service?.shutdownTimeout ?? 30;
-      const platformLabels = buildplatformLabels({
+      const deployautomationLabels = buildDeployautomationLabels({
         projectId: deployment.project.id,
         projectName: deployment.project.name,
         serviceId: deployment.service?.id,
@@ -414,7 +414,7 @@ export class DockerDeployExecutorService {
           publishPort,
           useTraefik,
           dbHostPortDisabled,
-          platformLabels,
+          deployautomationLabels,
           dbVolumeName,
           dbVolumePath,
           appBinds,

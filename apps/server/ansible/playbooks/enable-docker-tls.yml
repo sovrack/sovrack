@@ -60,7 +60,7 @@
     - name: Generate CA cert
       ansible.builtin.command: >
         openssl req -new -x509 -days {{ docker_tls_days }} -key {{ docker_tls_dir }}/ca-key.pem
-        -sha256 -out {{ docker_tls_dir }}/ca.pem -subj "/CN=platform-docker-ca"
+        -sha256 -out {{ docker_tls_dir }}/ca.pem -subj "/CN=deployautomation-docker-ca"
       args: { creates: "{{ docker_tls_dir }}/ca.pem" }
 
     # ── Server cert (SAN = IP + hostname) ──────────────────────────────────
@@ -97,7 +97,7 @@
     - name: Generate client CSR
       ansible.builtin.command: >
         openssl req -new -key {{ docker_tls_dir }}/client-key.pem
-        -out {{ docker_tls_dir }}/client.csr -subj "/CN=platform-platform"
+        -out {{ docker_tls_dir }}/client.csr -subj "/CN=deployautomation-platform"
       args: { creates: "{{ docker_tls_dir }}/client.csr" }
 
     - name: Write client extfile

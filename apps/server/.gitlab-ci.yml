@@ -13,7 +13,7 @@ default:
   image: node:20
 
 variables:
-  DATABASE_URL: postgresql://postgres:postgres@postgres:5432/platform_test
+  DATABASE_URL: postgresql://postgres:postgres@postgres:5432/deploy_automation_test
   REDIS_URL: redis://redis:6379
   CONFIG_SECRET: ci-config-secret-minimum-32-characters-ok
   JWT_SECRET: ci-jwt-secret-minimum-32-characters-ok
@@ -68,7 +68,7 @@ test:unit:
   variables:
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
-    POSTGRES_DB: platform_test
+    POSTGRES_DB: deploy_automation_test
   script:
     - npm ci
     - npx prisma migrate deploy
@@ -96,7 +96,7 @@ test:e2e:
   variables:
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
-    POSTGRES_DB: platform_test
+    POSTGRES_DB: deploy_automation_test
   script:
     - npm ci
     - npx prisma migrate deploy

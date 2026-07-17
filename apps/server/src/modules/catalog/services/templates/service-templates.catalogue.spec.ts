@@ -93,7 +93,7 @@ describe('resolveServiceTemplateComponents', () => {
     });
     const env = JSON.parse(pgadmin.env as string) as Record<string, string>;
     expect(env.PGADMIN_DEFAULT_PASSWORD).toBe('fixed-secret');
-    expect(env.PGADMIN_DEFAULT_EMAIL).toBe('admin@platform.local');
+    expect(env.PGADMIN_DEFAULT_EMAIL).toBe('admin@deployautomation.local');
   });
 
   it('uses a fresh random secret per call when no generator is injected', () => {

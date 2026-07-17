@@ -182,7 +182,7 @@ export class DockerConnectionsService {
 
       socket.on('secureConnect', () => {
         socket.write(
-          `GET /_ping HTTP/1.1\r\nHost: ${parsed.host}\r\nConnection: close\r\nUser-Agent: platform-platform-probe\r\n\r\n`,
+          `GET /_ping HTTP/1.1\r\nHost: ${parsed.host}\r\nConnection: close\r\nUser-Agent: deployautomation-platform-probe\r\n\r\n`,
         );
       });
       socket.on('data', (chunk: Buffer) => {

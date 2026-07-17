@@ -59,7 +59,7 @@ export const SERVICE_TEMPLATES: ServiceTemplate[] = [
         repoPath: 'dpage/pgadmin4:latest',
         buildPack: BuildPack.NONE,
         port: 80,
-        env: { PGADMIN_DEFAULT_EMAIL: 'admin@platform.local' },
+        env: { PGADMIN_DEFAULT_EMAIL: 'admin@deployautomation.local' },
         generateSecretEnvKey: 'PGADMIN_DEFAULT_PASSWORD',
       },
     ],

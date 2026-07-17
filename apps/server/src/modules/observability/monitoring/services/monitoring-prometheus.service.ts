@@ -274,8 +274,8 @@ export class MonitoringPrometheusService {
 
   /**
    * Historical CPU/memory time-series for a SERVICE-ENVIRONMENT's container(s),
-   * via cAdvisor metrics filtered on the `platform.service_env` Docker label
-   * (exposed by cAdvisor as `container_label_platform_service_env`). Powers the
+   * via cAdvisor metrics filtered on the `deployautomation.service_env` Docker label
+   * (exposed by cAdvisor as `container_label_deployautomation_service_env`). Powers the
    * per-service charts + deployment markers. Returns empty when the Prometheus
    * stack is not installed (graceful degradation → UI falls back to live).
    *
@@ -312,7 +312,7 @@ export class MonitoringPrometheusService {
     // Escape regex/quote so the id can neither alter the regex nor break the
     // PromQL string literal.
     const id = serviceEnvId.replace(/["\\.*+?^${}()|[\]]/g, '\\$&');
-    const sel = `container_label_platform_service_env="${id}"`;
+    const sel = `container_label_deployautomation_service_env="${id}"`;
 
     const [cpu, mem] = await Promise.all([
       this.queryRangePrometheus(

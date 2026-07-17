@@ -38,10 +38,10 @@ describe('ImageResolverService.resolveImageRef', () => {
       ...base,
       build: { imageSha: 'abc123' },
     });
-    expect(ref).toBe('platform/p1:abc123');
+    expect(ref).toBe('deployautomation/p1:abc123');
   });
 
-  it('falls back to platform/<project>:<branch>', () => {
-    expect(svc.resolveImageRef(base)).toBe('platform/p1:main');
+  it('falls back to deployautomation/<project>:<branch>', () => {
+    expect(svc.resolveImageRef(base)).toBe('deployautomation/p1:main');
   });
 });

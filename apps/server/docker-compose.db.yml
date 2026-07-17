@@ -1,5 +1,5 @@
 # =============================================================================
-# DOCKER COMPOSE - BACKEND DEVOPS PLATFORM (DB ONLY FOR LOCAL APP MODE)
+# DOCKER COMPOSE - BACKEND DEPLOY AUTOMATION (DB ONLY FOR LOCAL APP MODE)
 # =============================================================================
 # Ce fichier lance la base PostgreSQL pour travailler en local avec:
 # - backend lance en local (npm run start:dev)
@@ -25,18 +25,18 @@ services:
   # - Expose le port DB_PORT vers l'hote pour DBeaver ou autres clients.
   database:
     image: postgres:16-alpine
-    container_name: nestjs_devops_db
+    container_name: deployautomation_db
     restart: unless-stopped
 
     # Variables d'initialisation de PostgreSQL.
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-devops_platform}
+      POSTGRES_DB: ${DB_NAME:-deploy_automation}
 
     # Healthcheck: permet a Compose de savoir quand la DB est vraiment prete.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-devops_platform}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-deploy_automation}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -60,7 +60,7 @@ services:
   # - Le backend lit REDIS_URL=redis://localhost:6379 depuis backend/.env
   redis:
     image: redis:7-alpine
-    container_name: nestjs_devops_redis
+    container_name: deployautomation_redis
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -79,7 +79,7 @@ services:
   # Demande utilisateur: garder la partie backend en commentaire (ne pas retirer).
   # backend:
   #   image: node:22-alpine
-  #   container_name: nestjs_devops_api
+  #   container_name: deployautomation_api
   #   restart: unless-stopped
   #   working_dir: /app
   #   depends_on:
@@ -97,5 +97,5 @@ services:
   #     - /app/node_modules
 
 volumes:
-  postgres_data:
-  redis_data:
+  deployautomation_pgdata:
+  deployautomation_redisdata:

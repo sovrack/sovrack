@@ -9,7 +9,7 @@ app_environment: "{{ server_role | default('production') }}"
 app_db_name: "deploy_automation"
 app_db_user: "deploy_user"
 app_db_password: "{{ vault_app_db_password }}"  # Use Ansible vault for this
-app_domain: "example.com"
+app_domain: "ton-domaine.com"
 app_email: "admin@{{ app_domain }}"
 app_domains:
   - "{{ app_domain }}"

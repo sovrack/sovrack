@@ -1,7 +1,7 @@
 ---
 # Promtail config — rendu par le rôle Ansible `loki`.
 # Découvre les conteneurs Docker locaux et expédie leurs logs à Loki, en
-# propageant les labels `platform.*` (posés au déploiement par buildplatformLabels)
+# propageant les labels `deployautomation.*` (posés au déploiement par buildDeployautomationLabels)
 # comme labels Loki → filtrage par projet / service / service×env / déploiement.
 server:
   http_listen_port: 9080
@@ -20,17 +20,17 @@ scrape_configs:
         refresh_interval: 10s
     relabel_configs:
       # Ne shipper QUE les conteneurs gérés par la plateforme.
-      - source_labels: ['__meta_docker_container_label_platform_managed']
+      - source_labels: ['__meta_docker_container_label_deployautomation_managed']
         regex: 'true'
         action: keep
-      # Labels `platform.*` (les points deviennent `_` côté meta) → labels Loki.
-      - source_labels: ['__meta_docker_container_label_platform_project']
-        target_label: 'platform_project'
-      - source_labels: ['__meta_docker_container_label_platform_service']
-        target_label: 'platform_service'
-      - source_labels: ['__meta_docker_container_label_platform_service_env']
-        target_label: 'platform_service_env'
-      - source_labels: ['__meta_docker_container_label_platform_deployment']
-        target_label: 'platform_deployment'
+      # Labels `deployautomation.*` (les points deviennent `_` côté meta) → labels Loki.
+      - source_labels: ['__meta_docker_container_label_deployautomation_project']
+        target_label: 'deployautomation_project'
+      - source_labels: ['__meta_docker_container_label_deployautomation_service']
+        target_label: 'deployautomation_service'
+      - source_labels: ['__meta_docker_container_label_deployautomation_service_env']
+        target_label: 'deployautomation_service_env'
+      - source_labels: ['__meta_docker_container_label_deployautomation_deployment']
+        target_label: 'deployautomation_deployment'
       - source_labels: ['__meta_docker_container_name']
         target_label: 'container'

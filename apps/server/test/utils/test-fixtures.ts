@@ -17,7 +17,7 @@ export async function createTestFixtures(prisma: PrismaClient) {
   await prisma.user.create({
     data: {
       id: userId,
-      email: `admin-${userId.slice(0, 8)}@platform.test`,
+      email: `admin-${userId.slice(0, 8)}@deployautomation.test`,
       password: '$2b$10$dummyhashneverusedfore2e',
       fullName: 'E2E Admin',
       role: Role.ADMIN,
@@ -126,7 +126,7 @@ export async function createTestFixtures(prisma: PrismaClient) {
       name: `e2e-service-${serviceId.slice(0, 8)}`,
       type: ServiceType.APPLICATION,
       sourceType: SourceType.GIT,
-      repoPath: 'platform/e2e',
+      repoPath: 'deployautomation/e2e',
       branch: 'main',
       buildPack: BuildPack.DOCKERFILE,
       providerId,
@@ -165,7 +165,7 @@ export async function createTestService(
       name: `e2e-service-${serviceId.slice(0, 8)}`,
       type: ServiceType.APPLICATION,
       sourceType: SourceType.GIT,
-      repoPath: 'platform/e2e',
+      repoPath: 'deployautomation/e2e',
       branch: 'main',
       buildPack: (args.buildPack as BuildPack) ?? BuildPack.DOCKERFILE,
     } as any,

@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import type { CookieOptions } from 'express';
 
-export const AUTH_COOKIE_NAME_DEFAULT = 'devops_platform_token';
+export const AUTH_COOKIE_NAME_DEFAULT = 'deploy_automation_token';
 const AUTH_COOKIE_MAX_AGE_MS_DEFAULT = 24 * 60 * 60 * 1000;
 
 type SameSiteValue = 'lax' | 'strict' | 'none';

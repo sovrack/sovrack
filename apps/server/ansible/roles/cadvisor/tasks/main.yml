@@ -5,7 +5,7 @@
 
 # ── Détection préalable (portabilité TOUS environnements) ────────────────────
 # cAdvisor n'enrichit ses métriques avec le NOM et les LABELS des conteneurs
-# (container_label_platform_*) que s'il se connecte au daemon Docker ET peut
+# (container_label_deployautomation_*) que s'il se connecte au daemon Docker ET peut
 # lire toute la hiérarchie cgroup. Sur cgroup v2 (Ubuntu 22.04+, Fedora, etc.)
 # cela EXIGE `--privileged` ; sans ça, dockerVersion reste vide → pas de nom,
 # pas de label → dashboards Grafana « No data ». On détecte donc l'environnement
@@ -67,7 +67,7 @@
     cadvisor_tail_argv:
       - --volume=/:/rootfs:ro
       # /var/run contient docker.sock (+ containerd.sock) : source du nom et
-      # des labels des conteneurs. Sans cette connexion, aucun label platform.
+      # des labels des conteneurs. Sans cette connexion, aucun label deployautomation.
       - --volume=/var/run:/var/run:ro
       - --volume=/sys:/sys:ro
       - --volume=/var/lib/docker/:/var/lib/docker:ro

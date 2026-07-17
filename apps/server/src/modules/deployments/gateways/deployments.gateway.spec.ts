@@ -72,7 +72,7 @@ function makeGateway(
   } as unknown as PrismaService;
 
   const configService = {
-    get: jest.fn().mockReturnValue('platform_auth'),
+    get: jest.fn().mockReturnValue('deployautomation_auth'),
   } as unknown as ConfigService;
 
   const logStreamService = {

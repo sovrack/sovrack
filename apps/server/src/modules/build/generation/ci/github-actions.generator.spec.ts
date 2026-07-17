@@ -14,11 +14,11 @@ describe('GithubActionsGenerator', () => {
     expect(out).toContain('      - qa');
   });
 
-  it('emits the platform deployment trigger step', () => {
+  it('emits the Deploy Automation deployment trigger step', () => {
     const out = gen.generate({ projectType: 'nodejs', branches: ['main'] });
-    expect(out).toContain('Trigger platform deployment');
-    expect(out).toContain('secrets.PLATFORM_DEPLOY_HOOK');
-    expect(out).toContain('X-Hub-Signature-256: $platform_DEPLOY_TOKEN');
+    expect(out).toContain('Trigger Deploy Automation deployment');
+    expect(out).toContain('secrets.DA_DEPLOY_HOOK');
+    expect(out).toContain('X-Hub-Signature-256: $DA_DEPLOY_TOKEN');
     expect(out).toContain('déploiement non déclenché');
   });
 

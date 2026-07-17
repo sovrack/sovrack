@@ -816,7 +816,7 @@ model GitProviderRepo {
   webhookSecret String?           @db.Text
   // ID of the webhook created on the Git provider side (for update/delete).
   webhookId     String?
-  // Optional link to a platform project.
+  // Optional link to a Deploy Automation project.
   projectId     String?
   project       Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
   // Optional link to a specific Service (for webhook routing to the right service).

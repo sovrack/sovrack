@@ -58,7 +58,7 @@ export type NixpacksBuildResult = {
  *   - Generates a Dockerfile automatically (no Dockerfile needed)
  *   - Builds the image with a Nix-based cache for fast rebuilds
  *
- * platform uses Nixpacks in two places:
+ * Deploy Automation uses Nixpacks in two places:
  *
  *   1. `generatePlan()` — backend previews the build (for the UI: "What will
  *      Nixpacks do?") and pushes the generated Dockerfile to the repo.
@@ -170,7 +170,7 @@ export class NixpacksService implements OnModuleInit {
    * tagged with `imageTag`.
    *
    * Requires Nixpacks binary on the host AND Docker daemon access. The
-   * default platform deployment delegates the build to the VPS via Ansible
+   * default Deploy Automation deployment delegates the build to the VPS via Ansible
    * (see `deploy-nixpacks.yml`), so this method is mainly for testing
    * and for the future "build on backend, push to registry" path.
    */

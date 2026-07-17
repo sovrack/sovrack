@@ -60,7 +60,7 @@ describe('DockerDeployExecutorService.executeDeploy — failure paths (e2e)', ()
         userId: f.userId,
         branch: 'main',
         status: DeploymentStatus.PENDING,
-        dockerImage: 'platform/e2e:test',
+        dockerImage: 'deployautomation/e2e:test',
       },
       select: { id: true },
     });

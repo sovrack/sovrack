@@ -30,8 +30,8 @@ export async function startTestDatabase(): Promise<{
   }
 
   const pg = await new PostgreSqlContainer('postgres:16-alpine')
-    .withDatabase('platform_e2e')
-    .withUsername('platform')
+    .withDatabase('deployautomation_e2e')
+    .withUsername('deployautomation')
     .withPassword('test_pwd')
     .withReuse()
     .start();

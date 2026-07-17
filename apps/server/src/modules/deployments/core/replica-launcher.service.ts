@@ -36,7 +36,7 @@ export interface ReplicaLaunchParams {
   useTraefik: boolean;
   /** DATABASE service without externalPort → no host port published (Task 4). */
   dbHostPortDisabled?: boolean;
-  platformLabels: Record<string, string>;
+  deployautomationLabels: Record<string, string>;
   dbVolumeName: string | null | undefined;
   dbVolumePath: string | null | undefined;
   appBinds: string[];
@@ -87,7 +87,7 @@ export class ReplicaLauncherService {
         buildContainerCreateSpec({
           imageRef: p.imageRef,
           containerName: replicaName,
-          labels: p.platformLabels,
+          labels: p.deployautomationLabels,
           envVars: p.envVars,
           servicePort: p.servicePort,
           publishPort: p.publishPort,

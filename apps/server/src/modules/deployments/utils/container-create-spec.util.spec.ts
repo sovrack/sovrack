@@ -6,7 +6,7 @@ import {
 const base = (over: Partial<ContainerSpecInput> = {}): ContainerSpecInput => ({
   imageRef: 'repo/app:1',
   containerName: 'app-123',
-  labels: { 'platform.project': 'p1' },
+  labels: { 'deployautomation.project': 'p1' },
   envVars: ['A=1'],
   servicePort: 3000,
   publishPort: 8080,

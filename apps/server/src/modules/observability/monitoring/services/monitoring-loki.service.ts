@@ -36,16 +36,16 @@ type LokiQueryRangeResponse = {
 
 const LOKI_CONFIG_KEY = 'MONITORING_LOKI_URL';
 /**
- * Le driver de log Loki sanitise les labels Docker `platform.service_env`
- * (point interdit dans un nom de label Loki) → `platform_service_env`.
- * Voir buildplatformLabels (container-spec.util).
+ * Le driver de log Loki sanitise les labels Docker `deployautomation.service_env`
+ * (point interdit dans un nom de label Loki) → `deployautomation_service_env`.
+ * Voir buildDeployautomationLabels (container-spec.util).
  */
-const SERVICE_ENV_LABEL = 'platform_service_env';
+const SERVICE_ENV_LABEL = 'deployautomation_service_env';
 
 /**
  * Recherche de logs runtime HISTORIQUES via Loki (stockage centralisé), par
  * opposition au tail live de MonitoringRuntimeLogsService (N dernières lignes via l'API
- * Docker). Filtre par instance service×env grâce aux labels `platform.*` déjà
+ * Docker). Filtre par instance service×env grâce aux labels `deployautomation.*` déjà
  * posés au déploiement. Dégradation gracieuse : si MONITORING_LOKI_URL est
  * absente, `configured=false` et l'UI bascule sur le tail live.
  */

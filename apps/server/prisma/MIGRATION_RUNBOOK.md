@@ -1,4 +1,4 @@
-# Migration Runbook — platform backend
+# Migration Runbook — Deploy Automation backend
 
 > Procédure obligatoire pour appliquer des migrations Prisma **destructives**
 > (qui suppriment des tables/colonnes ou des données). But : zéro perte de

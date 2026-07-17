@@ -33,13 +33,13 @@
 - name: "grafana | Provision the dashboards provider"
   ansible.builtin.copy:
     src: dashboards-provider.yml
-    dest: "{{ grafana_provisioning_dir }}/dashboards/platform.yml"
+    dest: "{{ grafana_provisioning_dir }}/dashboards/deployautomation.yml"
     mode: '0644'
 
-- name: "grafana | Ship the default platform dashboard"
+- name: "grafana | Ship the default deployautomation dashboard"
   ansible.builtin.copy:
-    src: platform-overview.json
-    dest: "{{ grafana_dashboards_dir }}/platform-overview.json"
+    src: deployautomation-overview.json
+    dest: "{{ grafana_dashboards_dir }}/deployautomation-overview.json"
     mode: '0644'
 
 - name: "grafana | Remove previous container if present"

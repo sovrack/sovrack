@@ -17,7 +17,7 @@ import { Public } from './shared/decorators/public.decorator';
 
 type ComponentStatus = 'connected' | 'disconnected';
 
-// C2 (plan produit final) : ressources de la machine qui HÉBERGE platform —
+// C2 (plan produit final) : ressources de la machine qui HÉBERGE Deploy Automation —
 // le disque qui se remplit (images Docker, logs) est la panne silencieuse
 // n°1 : Postgres s'arrête sans aucun signal préalable dans System Status.
 type HostResources = {

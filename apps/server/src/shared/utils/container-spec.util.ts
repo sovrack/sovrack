@@ -45,7 +45,7 @@ export function toDockerEnvArray(
   return entries.map((entry) => `${entry.key}=${entry.value}`);
 }
 
-export type platformLabelInput = {
+export type DeployautomationLabelInput = {
   projectId: string;
   projectName: string;
   serviceId?: string | null;
@@ -56,21 +56,21 @@ export type platformLabelInput = {
 };
 
 /**
- * Labels `platform.*` posés sur le conteneur → exposés par cAdvisor
- * (container_label_platform_*) pour filtrer le monitoring par projet / service /
+ * Labels `deployautomation.*` posés sur le conteneur → exposés par cAdvisor
+ * (container_label_deployautomation_*) pour filtrer le monitoring par projet / service /
  * environnement / déploiement.
  */
-export function buildplatformLabels(
-  input: platformLabelInput,
+export function buildDeployautomationLabels(
+  input: DeployautomationLabelInput,
 ): Record<string, string> {
   return {
-    'platform.managed': 'true',
-    'platform.project': input.projectId,
-    'platform.project_name': input.projectName,
-    'platform.service': input.serviceId ?? '',
-    'platform.service_name': input.serviceName,
-    'platform.environment': input.environmentName ?? '',
-    'platform.service_env': input.serviceEnvId ?? '',
-    'platform.deployment': input.deploymentId,
+    'deployautomation.managed': 'true',
+    'deployautomation.project': input.projectId,
+    'deployautomation.project_name': input.projectName,
+    'deployautomation.service': input.serviceId ?? '',
+    'deployautomation.service_name': input.serviceName,
+    'deployautomation.environment': input.environmentName ?? '',
+    'deployautomation.service_env': input.serviceEnvId ?? '',
+    'deployautomation.deployment': input.deploymentId,
   };
 }

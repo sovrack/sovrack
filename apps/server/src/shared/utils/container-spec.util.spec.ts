@@ -2,7 +2,7 @@ import {
   buildContainerName,
   buildContainerPrefix,
   buildServiceAlias,
-  buildplatformLabels,
+  buildDeployautomationLabels,
   toDockerEnvArray,
 } from './container-spec.util';
 
@@ -55,28 +55,28 @@ describe('container-spec.util', () => {
     });
   });
 
-  describe('buildplatformLabels', () => {
-    it('pose tous les labels platform.* avec repli sur ""', () => {
+  describe('buildDeployautomationLabels', () => {
+    it('pose tous les labels deployautomation.* avec repli sur ""', () => {
       expect(
-        buildplatformLabels({
+        buildDeployautomationLabels({
           projectId: 'p1',
           projectName: 'proj',
           serviceName: 'svc',
           deploymentId: 'd1',
         }),
       ).toEqual({
-        'platform.managed': 'true',
-        'platform.project': 'p1',
-        'platform.project_name': 'proj',
-        'platform.service': '',
-        'platform.service_name': 'svc',
-        'platform.environment': '',
-        'platform.service_env': '',
-        'platform.deployment': 'd1',
+        'deployautomation.managed': 'true',
+        'deployautomation.project': 'p1',
+        'deployautomation.project_name': 'proj',
+        'deployautomation.service': '',
+        'deployautomation.service_name': 'svc',
+        'deployautomation.environment': '',
+        'deployautomation.service_env': '',
+        'deployautomation.deployment': 'd1',
       });
     });
     it('remplit service/env/serviceEnv quand fournis', () => {
-      const labels = buildplatformLabels({
+      const labels = buildDeployautomationLabels({
         projectId: 'p1',
         projectName: 'proj',
         serviceId: 's1',
@@ -85,9 +85,9 @@ describe('container-spec.util', () => {
         serviceEnvId: 'se1',
         deploymentId: 'd1',
       });
-      expect(labels['platform.service']).toBe('s1');
-      expect(labels['platform.environment']).toBe('PRODUCTION');
-      expect(labels['platform.service_env']).toBe('se1');
+      expect(labels['deployautomation.service']).toBe('s1');
+      expect(labels['deployautomation.environment']).toBe('PRODUCTION');
+      expect(labels['deployautomation.service_env']).toBe('se1');
     });
   });
 });

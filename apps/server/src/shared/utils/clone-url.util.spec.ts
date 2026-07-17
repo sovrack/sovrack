@@ -22,12 +22,12 @@ describe('buildAuthenticatedCloneUrl', () => {
   it('handles a self-hosted host', () => {
     expect(
       buildAuthenticatedCloneUrl(
-        'https://gitlab.master.ssd.vps.platform.com',
-        'team/svc',
+        'https://gitlab.com',
+        'deploy-automation/svc',
         'glpat-xxx',
       ),
     ).toBe(
-      'https://oauth2:glpat-xxx@gitlab.master.ssd.vps.platform.com/team/svc.git',
+      'https://oauth2:glpat-xxx@gitlab.com/deploy-automation/svc.git',
     );
   });
 

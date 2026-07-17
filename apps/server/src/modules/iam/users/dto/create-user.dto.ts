@@ -12,7 +12,7 @@ import {
  * DTO de création utilisateur par un administrateur.
  */
 export class CreateUserDto {
-  @ApiProperty({ example: 'dev@devops.com' })
+  @ApiProperty({ example: 'dev@deployautomation.local' })
   @IsEmail({}, { message: 'Email invalide' })
   @IsNotEmpty({ message: 'Email requis' })
   email: string;

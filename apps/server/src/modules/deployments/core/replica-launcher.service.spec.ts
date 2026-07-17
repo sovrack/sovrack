@@ -56,7 +56,7 @@ describe('ReplicaLauncherService.launchReplicas', () => {
     servicePort: 3000,
     publishPort: 3000,
     useTraefik: false,
-    platformLabels: {},
+    deployautomationLabels: {},
     dbVolumeName: null,
     dbVolumePath: null,
     appBinds: [],

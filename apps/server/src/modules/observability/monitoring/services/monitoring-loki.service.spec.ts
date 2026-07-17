@@ -26,30 +26,30 @@ describe('MonitoringLokiService.buildLogQL', () => {
   const { service } = makeService({});
 
   it('builds a stream selector on the service-env label', () => {
-    expect(service.buildLogQL('env-1')).toBe('{platform_service_env="env-1"}');
+    expect(service.buildLogQL('env-1')).toBe('{deployautomation_service_env="env-1"}');
   });
 
   it('adds a case-insensitive line filter when a search term is given', () => {
     expect(service.buildLogQL('env-1', 'Error')).toBe(
-      '{platform_service_env="env-1"} |~ "(?i)Error"',
+      '{deployautomation_service_env="env-1"} |~ "(?i)Error"',
     );
   });
 
   it('escapes quotes/backslashes in the label value (no injection)', () => {
     expect(service.buildLogQL('a"b\\c')).toBe(
-      '{platform_service_env="a\\"b\\\\c"}',
+      '{deployautomation_service_env="a\\"b\\\\c"}',
     );
   });
 
   it('escapes regex metacharacters in the search term', () => {
     expect(service.buildLogQL('env-1', 'a.b*c')).toBe(
-      '{platform_service_env="env-1"} |~ "(?i)a\\.b\\*c"',
+      '{deployautomation_service_env="env-1"} |~ "(?i)a\\.b\\*c"',
     );
   });
 
   it('ignores a blank search term', () => {
     expect(service.buildLogQL('env-1', '   ')).toBe(
-      '{platform_service_env="env-1"}',
+      '{deployautomation_service_env="env-1"}',
     );
   });
 });
@@ -71,7 +71,7 @@ describe('MonitoringLokiService.queryServiceLogs', () => {
         data: {
           result: [
             {
-              stream: { platform_service_env: 'env-1' },
+              stream: { deployautomation_service_env: 'env-1' },
               values: [
                 ['2000000000', 'older line'], // 2000ms
                 ['5000000000', 'newer line'], // 5000ms

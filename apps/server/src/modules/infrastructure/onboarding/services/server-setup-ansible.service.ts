@@ -118,7 +118,7 @@ export class ServerSetupAnsibleService {
           extraVars: {
             selected_roles: input.roles,
             gitlab_runner_executor: input.gitlabRunnerExecutor,
-            managed_by: 'internal-devops-platform-control-node',
+            managed_by: 'deployautomation-control-node',
             ...(tlsFetchDir
               ? {
                   docker_tls_fetch_dir: tlsFetchDir,

@@ -9,10 +9,10 @@ describe('buildSafeSpawnEnv', () => {
 
   it('carries through allow-listed keys present in process.env', () => {
     process.env.PATH = '/usr/bin:/bin';
-    process.env.HOME = '/home/platform';
+    process.env.HOME = '/home/deployautomation';
     const env = buildSafeSpawnEnv();
     expect(env.PATH).toBe('/usr/bin:/bin');
-    expect(env.HOME).toBe('/home/platform');
+    expect(env.HOME).toBe('/home/deployautomation');
   });
 
   it('does not leak arbitrary app secrets from process.env', () => {

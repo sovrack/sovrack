@@ -70,9 +70,9 @@ export class ImageResolverService {
     }
 
     if (deployment.build?.imageSha) {
-      return `platform/${deployment.project.id}:${deployment.build.imageSha}`;
+      return `deployautomation/${deployment.project.id}:${deployment.build.imageSha}`;
     }
-    return `platform/${deployment.project.id}:${deployment.branch || 'latest'}`;
+    return `deployautomation/${deployment.project.id}:${deployment.branch || 'latest'}`;
   }
 
   /** Build the image on the server (local build) or pull it from a registry. */

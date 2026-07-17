@@ -1,4 +1,4 @@
-# Tests de charge & SLO — platform API
+# Tests de charge & SLO — Deploy Automation API
 
 Scénario [k6](https://k6.io) qui exerce les chemins de lecture les plus chauds de
 l'API sous charge, avec des seuils (SLO) bloquants.
@@ -7,7 +7,7 @@ l'API sous charge, avec des seuils (SLO) bloquants.
 ```bash
 # k6 doit être installé (https://k6.io/docs/get-started/installation/)
 API=http://localhost:3001 \
-EMAIL=admin@devops.com PASSWORD='Admin@2025!' \
+EMAIL=admin@deployautomation.local PASSWORD='CHANGE_MOI_ADMIN_PASSWORD' \
 k6 run backend/test/load/api-load.k6.js
 ```
 Profil : montée à **20 VUs**, palier 1 min, descente. Login **une seule fois**

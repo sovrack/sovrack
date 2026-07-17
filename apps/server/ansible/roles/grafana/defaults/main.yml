@@ -15,4 +15,4 @@ grafana_dashboards_dir: /opt/monitoring/grafana/dashboards
 # able to route back out to the host's own address.
 grafana_prometheus_url: "http://prometheus:9090"
 # Shared bridge network so Grafana can reach Prometheus by container name.
-monitoring_docker_network: platform_monitoring
+monitoring_docker_network: deployautomation_monitoring

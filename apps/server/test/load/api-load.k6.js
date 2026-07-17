@@ -1,9 +1,9 @@
 /* eslint-disable */
-// k6 load test for the platform API read paths.
+// k6 load test for the Deploy Automation API read paths.
 //
 // Run (needs k6 installed: https://k6.io):
 //   API=http://localhost:3001 \
-//   EMAIL=admin@devops.com PASSWORD='Admin@2025!' \
+//   EMAIL=admin@deployautomation.local PASSWORD='CHANGE_MOI_ADMIN_PASSWORD' \
 //   k6 run backend/test/load/api-load.k6.js
 //
 // Logs in ONCE in setup() (the /auth/login route is rate-limited 5/min) and
@@ -12,8 +12,8 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 const API = __ENV.API || 'http://localhost:3001';
-const EMAIL = __ENV.EMAIL || 'admin@devops.com';
-const PASSWORD = __ENV.PASSWORD || 'Admin@2025!';
+const EMAIL = __ENV.EMAIL || 'admin@deployautomation.local';
+const PASSWORD = __ENV.PASSWORD || 'CHANGE_MOI_ADMIN_PASSWORD';
 
 export const options = {
   // Ramp to 20 concurrent users, hold, ramp down.

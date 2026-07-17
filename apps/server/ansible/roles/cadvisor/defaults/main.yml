@@ -3,4 +3,4 @@ cadvisor_image: gcr.io/cadvisor/cadvisor:v0.47.2
 cadvisor_port: 8080
 # Shared bridge network so Prometheus can reach cAdvisor by container name
 # instead of 127.0.0.1 (each container has its own network namespace).
-monitoring_docker_network: platform_monitoring
+monitoring_docker_network: deployautomation_monitoring

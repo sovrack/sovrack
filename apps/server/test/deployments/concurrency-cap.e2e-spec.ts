@@ -46,7 +46,7 @@ describe('Deploy concurrency cap (e2e)', () => {
         name: `e2e-service2-${svc2Id.slice(0, 8)}`,
         type: ServiceType.APPLICATION,
         sourceType: SourceType.GIT,
-        repoPath: 'platform/e2e',
+        repoPath: 'deployautomation/e2e',
         branch: 'main',
         providerId: svc1?.providerId ?? undefined,
       },

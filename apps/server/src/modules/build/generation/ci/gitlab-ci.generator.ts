@@ -179,16 +179,16 @@ export class GitlabCiGenerator implements ICiGenerator {
       '  script:',
       '    - echo "Pipeline OK for $CI_COMMIT_SHA on $CI_COMMIT_REF_NAME"',
       '    - echo "Image pushed:$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"',
-      // Déclenche le déploiement platform (deployTrigger = PIPELINE_SUCCESS / CI_HOOK).
-      // Définis la variable CI `PLATFORM_DEPLOY_HOOK` = URL du webhook du service.
+      // Déclenche le déploiement Deploy Automation (deployTrigger = PIPELINE_SUCCESS / CI_HOOK).
+      // Définis la variable CI `DA_DEPLOY_HOOK` = URL du webhook du service.
       '    - |',
-      '      if [ -n "$PLATFORM_DEPLOY_HOOK" ]; then',
-      '        curl -fsSL -X POST "$PLATFORM_DEPLOY_HOOK" \\',
+      '      if [ -n "$DA_DEPLOY_HOOK" ]; then',
+      '        curl -fsSL -X POST "$DA_DEPLOY_HOOK" \\',
       '          -H "Content-Type: application/json" \\',
-      '          -H "X-Gitlab-Token: $platform_DEPLOY_TOKEN" \\',
+      '          -H "X-Gitlab-Token: $DA_DEPLOY_TOKEN" \\',
       '          -d "{\\"ref\\":\\"$CI_COMMIT_REF_NAME\\",\\"sha\\":\\"$CI_COMMIT_SHA\\",\\"image\\":\\"$IMAGE_TAG\\"}"',
       '      else',
-      '        echo "PLATFORM_DEPLOY_HOOK non défini — déploiement non déclenché.";',
+      '        echo "DA_DEPLOY_HOOK non défini — déploiement non déclenché.";',
       '      fi',
       '  when: on_success',
       '  only:',

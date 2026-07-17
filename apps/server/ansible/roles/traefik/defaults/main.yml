@@ -14,6 +14,6 @@ traefik_network: "web"
 traefik_data_dir: "/opt/traefik"
 traefik_dynamic_dir: "/opt/traefik/dynamic"
 # Email Let's Encrypt (enregistrement + alertes d'expiration) — override en extra-vars.
-traefik_letsencrypt_email: "admin@platform.local"
+traefik_letsencrypt_email: "admin@deployautomation.local"
 traefik_http_port: 80
 traefik_https_port: 443
