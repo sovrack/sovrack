@@ -26,9 +26,7 @@ describe('buildAuthenticatedCloneUrl', () => {
         'deploy-automation/svc',
         'glpat-xxx',
       ),
-    ).toBe(
-      'https://oauth2:glpat-xxx@gitlab.com/deploy-automation/svc.git',
-    );
+    ).toBe('https://oauth2:glpat-xxx@gitlab.com/deploy-automation/svc.git');
   });
 
   it('n’injecte pas le token sur une URL non-https (comportement historique)', () => {

@@ -26,7 +26,9 @@ describe('MonitoringLokiService.buildLogQL', () => {
   const { service } = makeService({});
 
   it('builds a stream selector on the service-env label', () => {
-    expect(service.buildLogQL('env-1')).toBe('{deployautomation_service_env="env-1"}');
+    expect(service.buildLogQL('env-1')).toBe(
+      '{deployautomation_service_env="env-1"}',
+    );
   });
 
   it('adds a case-insensitive line filter when a search term is given', () => {

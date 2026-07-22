@@ -94,6 +94,7 @@ test:e2e:
     - name: redis:7-alpine
       alias: redis
   variables:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/deploy_automation_test
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
     POSTGRES_DB: deploy_automation_test

@@ -76,7 +76,9 @@ describe('DeploymentsCreateService (e2e)', () => {
     dockerImageMock = {
       buildDockerImage: jest
         .fn()
-        .mockResolvedValue('registry.gitlab.example.com/deployautomation/e2e:main'),
+        .mockResolvedValue(
+          'registry.gitlab.example.com/deployautomation/e2e:main',
+        ),
     };
 
     const dockerExecMock = mockDockerDeployExecutorService().useValue;
