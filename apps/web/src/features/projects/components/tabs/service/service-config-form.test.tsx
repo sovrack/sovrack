@@ -414,7 +414,7 @@ describe("ServiceConfigForm — root directory + build-time variables", () => {
     fireEvent.click(await screen.findByRole("button", { name: /add variable/i }));
 
     const [keyInput, valueInput] = screen.getAllByPlaceholderText(
-      /NEXT_PUBLIC_API_URL|https:\/\/api\.example\.com/,
+      /NEXT_PUBLIC_API_URL|https:\/\/api\./,
     );
     fireEvent.change(keyInput, { target: { value: "NEXT_PUBLIC_FLAG" } });
     fireEvent.change(valueInput, { target: { value: "on" } });
