@@ -58,7 +58,10 @@ import { QueueModule } from './shared/queue/queue.module';
     }),
     EventEmitterModule.forRoot({ wildcard: false, global: true }),
     ScheduleModule.forRoot(),
-    PrometheusModule.register({ path: '/metrics', defaultMetrics: { enabled: true } }),
+    PrometheusModule.register({
+      path: '/metrics',
+      defaultMetrics: { enabled: true },
+    }),
     ThrottlerModule.forRootAsync({
       useFactory: () => {
         const redisUrl = process.env.REDIS_URL?.trim();
