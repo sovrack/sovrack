@@ -11,7 +11,6 @@ import { AuthService, AuthResponse } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../shared/guards/roles.guard';
-import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import { Roles } from '../../../shared/decorators/roles.decorator';
 import { Public } from '../../../shared/decorators/public.decorator';
@@ -46,7 +45,6 @@ export class AuthController {
   @Post('login')
   @Public() // unauthenticated by definition — this is where you obtain the JWT
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
-  @UseGuards(LoginRateLimitGuard)
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({
     status: 200,

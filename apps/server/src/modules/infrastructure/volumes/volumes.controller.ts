@@ -9,12 +9,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { CreateVolumeDto, UpdateVolumeDto } from './dto/volume.dto';
 import { VolumesService } from './volumes.service';
 
 @ApiTags('volumes')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('volumes')
 export class VolumesController {

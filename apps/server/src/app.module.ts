@@ -4,6 +4,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppJwtModule } from './shared/jwt/jwt.module';
@@ -57,6 +58,7 @@ import { QueueModule } from './shared/queue/queue.module';
     }),
     EventEmitterModule.forRoot({ wildcard: false, global: true }),
     ScheduleModule.forRoot(),
+    PrometheusModule.register({ path: '/metrics', defaultMetrics: { enabled: true } }),
     ThrottlerModule.forRootAsync({
       useFactory: () => {
         const redisUrl = process.env.REDIS_URL?.trim();

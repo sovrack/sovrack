@@ -5,6 +5,7 @@ import { SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
 import type { Application, NextFunction, Request, Response } from 'express';
+import express from 'express';
 import { randomUUID } from 'crypto';
 import { AllExceptionsFilter } from './boot/http-exception.filter';
 import { LoggerService } from './shared/logger/logger.service';
@@ -51,12 +52,26 @@ function sanitizeUrlForLogs(url: string): string {
 async function bootstrap() {
   assertRequiredEnv();
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  app.use(express.json({ limit: '10mb' }));
   const logger = app.get(LoggerService);
   const prisma = app.get(PrismaService);
   const allowedOrigins = new Set(resolveAllowedOrigins());
 
   const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
-  app.use(helmet({ contentSecurityPolicy: isProd ? undefined : false }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: isProd ? undefined : false,
+      strictTransportSecurity: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+      referrerPolicy: { policy: 'same-origin' },
+      xContentTypeOptions: true,
+      frameguard: { action: 'deny' },
+      hidePoweredBy: true,
+    }),
+  );
   app.use(compression());
 
   // Parse TRUST_PROXY : nombre, "true"/"false", ou IP.
