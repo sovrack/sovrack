@@ -18,10 +18,16 @@ export default async function globalSetup(): Promise<void> {
   // the spun-up container is a network sibling, never reachable on
   // localhost, so the wait strategy times out after 120s (real failure seen
   // on pipeline #27885 / job #129657).
-  if (process.env.CI && process.env.DATABASE_URL) {
-    console.log(
-      `[e2e] Using CI-provided Postgres at ${process.env.DATABASE_URL}`,
-    );
+  if (process.env.CI || process.env.GITLAB_CI) {
+    if (process.env.DATABASE_URL) {
+      console.log(
+        `[e2e] Using CI-provided Postgres at ${process.env.DATABASE_URL}`,
+      );
+    } else {
+      console.warn(
+        '[e2e] CI detected but DATABASE_URL is not set — e2e tests will likely fail with a connection error',
+      );
+    }
     return;
   }
 
