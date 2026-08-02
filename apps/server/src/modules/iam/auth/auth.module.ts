@@ -7,13 +7,22 @@ import { RolesGuard } from '../../../shared/guards/roles.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import { AppJwtModule } from '../../../shared/jwt/jwt.module';
 import { AuditModule } from '../../audit';
+import { TeamsModule } from '../teams/teams.module';
+import { BillingModule } from '../../billing';
 
 /**
  * Module d'authentification
- * Gère la connexion et la validation JWT
+ * Gère l'inscription, la connexion et la validation JWT
  */
 @Module({
-  imports: [UsersModule, PassportModule, AppJwtModule, AuditModule],
+  imports: [
+    UsersModule,
+    PassportModule,
+    AppJwtModule,
+    AuditModule,
+    TeamsModule,
+    BillingModule,
+  ],
   providers: [AuthService, RolesGuard, LoginRateLimitGuard],
   controllers: [AuthController],
 })

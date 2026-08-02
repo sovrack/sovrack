@@ -135,6 +135,52 @@ export class ManagedServersService {
   }
 
   /**
+   * Renseigne l'hôte réel (IP/hostname) d'un serveur managé une fois le VPS
+   * provisionné par la plateforme. Le provisioning automatique (vérification
+   * SSH + préparation Ansible) prend alors le relais à la prochaine passe du
+   * cron ManagedServersProvisioningService.
+   */
+  async setHost(
+    serverId: string,
+    host: string,
+    teamId: string,
+    actorUserId: string,
+  ) {
+    const server = await this.prisma.server.findFirst({
+      where: { id: serverId, teamId, isManaged: true },
+    });
+    if (!server) {
+      throw new NotFoundException('Serveur managé introuvable');
+    }
+
+    const updated = await this.prisma.server.update({
+      where: { id: serverId },
+      data: {
+        host: host.trim(),
+        status: ServerStatus.NEW,
+        verificationError: null,
+      },
+    });
+
+    await this.audit.record(server.id, 'SERVER_UPDATE', actorUserId, {
+      managed: true,
+      host: host.trim(),
+    });
+
+    this.logger.log(
+      `Managed server ${server.id} host set to ${host.trim()} — provisioning will resume`,
+    );
+
+    return {
+      id: updated.id,
+      host: updated.host,
+      status: updated.status,
+      message:
+        'Hôte enregistré. La vérification SSH et la préparation démarrent automatiquement.',
+    };
+  }
+
+  /**
    * Liste les serveurs managés d'une team.
    */
   async listManaged(teamId: string) {

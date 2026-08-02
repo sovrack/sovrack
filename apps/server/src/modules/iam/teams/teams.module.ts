@@ -8,6 +8,6 @@ import { BillingModule } from '../../billing';
   imports: [BillingModule],
   controllers: [TeamsController, ProjectTeamsController],
   providers: [TeamsService],
-  // exports: [TeamsService],
+  exports: [TeamsService],
 })
 export class TeamsModule {}

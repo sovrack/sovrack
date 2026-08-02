@@ -8,9 +8,12 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { PasswordHasher } from '../security/password-hasher.service';
 import { LoginDto } from './dto/login.dto';
-import { User } from '@prisma/client';
+import { RegisterDto } from './dto/register.dto';
+import { Role, User } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import { TeamsService } from '../teams/teams.service';
+import { BillingService } from '../../billing/billing.service';
 
 /**
  * Réponse d'authentification
@@ -30,7 +33,64 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly passwordHasher: PasswordHasher,
+    private readonly teamsService: TeamsService,
+    private readonly billingService: BillingService,
   ) {}
+
+  /**
+   * Inscription publique : crée le compte, l'équipe (créateur = membre) et
+   * l'abonnement d'essai, puis connecte l'utilisateur.
+   * @param dto - Données d'inscription
+   * @returns Token JWT et utilisateur sans mot de passe
+   */
+  async register(dto: RegisterDto): Promise<AuthResponse> {
+    const user = await this.usersService.create({
+      email: dto.email,
+      password: dto.password,
+      fullName: dto.fullName,
+      role: Role.DEVELOPER,
+    });
+
+    try {
+      const team = await this.teamsService.create(
+        { name: dto.teamName },
+        user.id,
+      );
+      await this.billingService.ensureSubscription(team.id);
+
+      await this.auditService.record(
+        user.id,
+        'AUTH_REGISTER',
+        'User',
+        user.id,
+        { email: user.email, teamId: team.id },
+      );
+
+      this.logger.log(
+        `User ${user.email} (${user.id}) registered with team ${team.name} (${team.id})`,
+      );
+    } catch (err) {
+      // Échec de l'étape onboarding : on nettoie le compte pour ne pas laisser
+      // un utilisateur orphelin impossible à connecter.
+      this.logger.error(
+        `Onboarding échoué pour ${user.email}: ${
+          err instanceof Error ? err.message : 'erreur inconnue'
+        } — suppression du compte`,
+      );
+      await this.prisma.user
+        .delete({ where: { id: user.id } })
+        .catch(() => undefined);
+      throw err;
+    }
+
+    const access_token = this.generateTokenForId(
+      user.id,
+      user.email,
+      user.role,
+    );
+
+    return { access_token, user };
+  }
 
   /**
    * Connecte un utilisateur existant
@@ -131,10 +191,14 @@ export class AuthService {
   }
 
   private generateToken(user: User): string {
+    return this.generateTokenForId(user.id, user.email, user.role);
+  }
+
+  private generateTokenForId(id: string, email: string, role: Role): string {
     const payload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
+      id,
+      email,
+      role,
     };
     return this.jwtService.sign(payload);
   }

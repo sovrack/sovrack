@@ -52,7 +52,18 @@ function sanitizeUrlForLogs(url: string): string {
 async function bootstrap() {
   assertRequiredEnv();
   const app = await NestFactory.create(AppModule, { rawBody: true });
-  app.use(express.json({ limit: '10mb' }));
+  app.use(
+    express.json({
+      limit: '10mb',
+      verify: (req, _res, buf) => {
+        // Conserve le body brut pour les webhooks signés (Stripe) même si le
+        // body JSON a déjà été parsé par express.json.
+        if (buf?.length) {
+          (req as Request & { rawBody?: Buffer }).rawBody = buf;
+        }
+      },
+    }),
+  );
   const logger = app.get(LoggerService);
   const prisma = app.get(PrismaService);
   const allowedOrigins = new Set(resolveAllowedOrigins());

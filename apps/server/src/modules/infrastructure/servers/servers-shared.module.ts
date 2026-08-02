@@ -10,6 +10,7 @@ import { ServersCrudService } from './services/servers-crud.service';
 import { ServersJobsFacade } from './services/servers-jobs.facade';
 import { ServersReadersFacade } from './services/servers-readers.facade';
 import { ManagedServersService } from './services/managed-servers.service';
+import { ManagedServersProvisioningService } from './services/managed-servers-provisioning.service';
 
 /**
  * Server lifecycle facade (ServersCoreService). The shared primitives (SSH,
@@ -34,6 +35,7 @@ import { ManagedServersService } from './services/managed-servers.service';
     ServersCrudService,
     ServersCoreService,
     ManagedServersService,
+    ManagedServersProvisioningService,
   ],
   exports: [
     ServersCoreService,

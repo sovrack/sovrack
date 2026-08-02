@@ -20,17 +20,17 @@ describe('TeamsController', () => {
     const { ctrl, teamsService } = build();
     await ctrl.findAll();
     await ctrl.findOne('t1');
-    await ctrl.create({ name: 'team' } as never, {
-      id: 'u1',
-    } as never);
+    await ctrl.create(
+      { name: 'team' } as never,
+      {
+        id: 'u1',
+      } as never,
+    );
     await ctrl.update('t1', { name: 'team2' } as never);
     await ctrl.remove('t1');
     expect(teamsService.findAll).toHaveBeenCalled();
     expect(teamsService.findOne).toHaveBeenCalledWith('t1');
-    expect(teamsService.create).toHaveBeenCalledWith(
-      { name: 'team' },
-      'u1',
-    );
+    expect(teamsService.create).toHaveBeenCalledWith({ name: 'team' }, 'u1');
     expect(teamsService.update).toHaveBeenCalledWith('t1', { name: 'team2' });
     expect(teamsService.remove).toHaveBeenCalledWith('t1');
   });

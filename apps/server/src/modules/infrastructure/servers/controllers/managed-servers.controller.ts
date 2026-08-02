@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -26,6 +34,12 @@ class CreateManagedServerDto {
   @IsOptional()
   @IsString()
   serverSize?: string;
+}
+
+class SetManagedHostDto {
+  @IsString()
+  @IsNotEmpty({ message: "L'hôte (IP ou hostname) est obligatoire" })
+  host!: string;
 }
 
 /**
@@ -76,5 +90,19 @@ export class ManagedServersController {
   async publicKey(@Param('id') id: string, @GetUser() user: JwtPayload) {
     const teamId = await this.managed.getTeamId(user.id);
     return this.managed.getPublicKey(id, teamId);
+  }
+
+  @Patch(':id/host')
+  @ApiOperation({
+    summary:
+      "Renseigner l'hôte réel (IP/hostname) du serveur managé après provisionnement — déclenche la vérification SSH puis la préparation",
+  })
+  async setHost(
+    @Param('id') id: string,
+    @Body() dto: SetManagedHostDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    const teamId = await this.managed.getTeamId(user.id);
+    return this.managed.setHost(id, dto.host, teamId, user.id);
   }
 }

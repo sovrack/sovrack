@@ -35,6 +35,7 @@ function makeSvc(
   const usersService = {
     findByEmail: jest.fn().mockResolvedValue(user),
     findById: jest.fn().mockResolvedValue(user),
+    create: jest.fn().mockResolvedValue(makeUser()),
   } as never;
 
   const jwtService = {
@@ -46,6 +47,7 @@ function makeSvc(
       update: opts.rehashError
         ? jest.fn().mockRejectedValue(new Error('db error'))
         : jest.fn().mockResolvedValue({}),
+      delete: jest.fn().mockResolvedValue(undefined),
     },
   } as never;
 
@@ -59,6 +61,14 @@ function makeSvc(
     hash: jest.fn().mockResolvedValue('new-argon2-hash'),
   } as never;
 
+  const teamsService = {
+    create: jest.fn().mockResolvedValue({ id: 'team-1', name: 'Mon équipe' }),
+  } as never;
+
+  const billingService = {
+    ensureSubscription: jest.fn().mockResolvedValue({ id: 'sub-1' }),
+  } as never;
+
   return {
     svc: new AuthService(
       usersService,
@@ -66,12 +76,16 @@ function makeSvc(
       prisma,
       auditService,
       passwordHasher,
+      teamsService,
+      billingService,
     ),
     usersService,
     jwtService,
     auditService,
     passwordHasher,
     prisma,
+    teamsService,
+    billingService,
   };
 }
 
@@ -177,6 +191,63 @@ describe('AuthService', () => {
         { sub: 'user-1', role: 'ADMIN' },
         { expiresIn: '5m' },
       );
+    });
+  });
+
+  describe('register', () => {
+    const dto = {
+      email: 'new@example.com',
+      password: 'StrongPass123!',
+      fullName: 'New User',
+      teamName: 'New Team',
+    };
+
+    it('creates user + team + subscription and returns a JWT', async () => {
+      const {
+        svc,
+        usersService,
+        teamsService,
+        billingService,
+        auditService,
+        jwtService,
+      } = makeSvc();
+      const createdUser = makeUser({ id: 'user-1', email: dto.email });
+      const { password: _pw, ...userWithoutPassword } = createdUser;
+      usersService.create = jest.fn().mockResolvedValue(userWithoutPassword);
+      const result = await svc.register(dto);
+      expect(usersService.create).toHaveBeenCalledWith({
+        email: dto.email,
+        password: dto.password,
+        fullName: dto.fullName,
+        role: 'DEVELOPER',
+      });
+      expect(teamsService.create).toHaveBeenCalledWith(
+        { name: 'New Team' },
+        'user-1',
+      );
+      expect(billingService.ensureSubscription).toHaveBeenCalledWith('team-1');
+      expect(auditService.record).toHaveBeenCalledWith(
+        'user-1',
+        'AUTH_REGISTER',
+        'User',
+        'user-1',
+        expect.objectContaining({ email: dto.email, teamId: 'team-1' }),
+      );
+      expect(jwtService.sign).toHaveBeenCalled();
+      expect(result.access_token).toBe('jwt-token');
+      expect(result.user).not.toHaveProperty('password');
+    });
+
+    it('rolls back the user when onboarding fails and rethrows', async () => {
+      const { svc, prisma, teamsService, billingService } = makeSvc();
+      teamsService.create = jest
+        .fn()
+        .mockRejectedValue(new Error('team conflict'));
+      await expect(svc.register(dto)).rejects.toThrow('team conflict');
+      expect(prisma.user.delete).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+      });
+      expect(billingService.ensureSubscription).not.toHaveBeenCalled();
     });
   });
 });

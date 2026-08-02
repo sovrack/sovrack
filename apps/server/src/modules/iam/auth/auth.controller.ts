@@ -9,6 +9,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthService, AuthResponse } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../shared/guards/roles.guard';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
@@ -35,6 +36,43 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * Inscription publique : compte + équipe + essai billing, puis connexion.
+   * POST /auth/register
+   * @param dto - Données d'inscription
+   * @returns Token JWT et utilisateur
+   */
+  @Post('register')
+  @Public() // unauthenticated by definition — self-service signup
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @ApiOperation({
+    summary: 'Public self-service signup (account + team + trial)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Account created with JWT token',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Email déjà utilisé',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many registration attempts',
+  })
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthResponse> {
+    const result = await this.authService.register(dto);
+    response.cookie(
+      resolveAuthCookieName(this.configService),
+      result.access_token,
+      buildAuthCookieOptions(this.configService),
+    );
+    return result;
+  }
 
   /**
    * Route de connexion d'un utilisateur
