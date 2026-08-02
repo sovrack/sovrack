@@ -136,7 +136,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-10 flex items-center justify-center gap-4">
             <Link
-              href="/login"
+              href="/register"
               className="rounded-xl bg-blue-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700"
             >
               Commencer gratuitement
@@ -285,7 +285,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8">
             <Link
-              href="/login"
+              href="/register"
               className="rounded-xl bg-blue-600 px-10 py-4 text-base font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700"
             >
               Commencer gratuitement

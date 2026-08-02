@@ -5,6 +5,7 @@ const AUTH_COOKIE_NAME = "deploy_automation_token";
 
 const PUBLIC_PATHS = [
   "/login",
+  "/register",
   "/pricing",
   "/docs",
   "/status",
@@ -100,6 +101,7 @@ export function middleware(request: NextRequest) {
       pathname === "/" ||
       pathname === "/pricing" ||
       pathname === "/login" ||
+      pathname === "/register" ||
       LEGACY_LOGIN_ALIASES.includes(pathname)
     ) {
       return NextResponse.redirect(

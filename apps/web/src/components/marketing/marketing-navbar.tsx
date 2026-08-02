@@ -104,7 +104,7 @@ export function MarketingNavbar() {
                 Connexion
               </Link>
               <Link
-                href="/login"
+                href="/register"
                 className="rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white shadow-sm transition hover:bg-blue-700"
               >
                 Créer mon compte
@@ -153,7 +153,7 @@ export function MarketingNavbar() {
             )}
             {!isAuthenticated && (
               <Link
-                href="/login"
+                href="/register"
                 onClick={() => setMenuOpen(false)}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-center font-semibold text-white"
               >

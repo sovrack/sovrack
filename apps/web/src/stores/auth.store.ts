@@ -19,6 +19,12 @@ type AuthActions = {
   clearAuth: () => void;
   clearError: () => void;
   login: (email: string, password: string) => Promise<void>;
+  register: (input: {
+    email: string;
+    password: string;
+    fullName: string;
+    teamName: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   initialize: () => Promise<void>;
@@ -88,6 +94,39 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           const response = await api.post<LoginResponse>("/auth/login", {
             email,
             password,
+          });
+
+          set({
+            user: response.data.user,
+            loading: false,
+            error: null,
+            isAuthenticated: true,
+            isAdmin: response.data.user.role === "ADMIN",
+            initialized: true,
+          });
+        } catch (error) {
+          set({
+            loading: false,
+            error: getApiErrorMessage(error),
+          });
+          throw error;
+        }
+      },
+
+      register: async (input: {
+        email: string;
+        password: string;
+        fullName: string;
+        teamName: string;
+      }) => {
+        set({ loading: true, error: null });
+
+        try {
+          const response = await api.post<LoginResponse>("/auth/register", {
+            email: input.email,
+            password: input.password,
+            fullName: input.fullName,
+            teamName: input.teamName,
           });
 
           set({

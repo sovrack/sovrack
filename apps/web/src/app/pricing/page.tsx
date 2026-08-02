@@ -66,7 +66,7 @@ export default function PricingPage() {
     }
   }, [isAuthenticated, loading, router]);
 
-  const targetHref = isAuthenticated ? "/settings/billing" : "/login";
+  const targetHref = isAuthenticated ? "/settings/billing" : "/register";
 
   return (
     <div className="min-h-screen bg-white">

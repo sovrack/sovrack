@@ -126,8 +126,11 @@ export function LoginScreen() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-gray-400">
-            NestJS 11 · Next.js 15 · Ansible · GitLab CI
+          <p className="mt-6 text-center text-sm text-gray-500">
+            Pas encore de compte ?{" "}
+            <a href="/register" className="font-medium text-[#2D6BB5] hover:underline">
+              Créer un compte gratuitement
+            </a>
           </p>
         </div>
       </section>

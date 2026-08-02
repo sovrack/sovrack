@@ -14,7 +14,7 @@ export default function MarketingFooter() {
           <h4 className="mb-3 font-semibold text-white">Produit</h4>
           <ul className="space-y-2 text-slate-400">
             <li><Link href="/pricing" className="transition hover:text-white">Tarifs</Link></li>
-            <li><Link href="/login" className="transition hover:text-white">Créer un compte</Link></li>
+            <li><Link href="/register" className="transition hover:text-white">Créer un compte</Link></li>
             <li><Link href="/login" className="transition hover:text-white">Connexion</Link></li>
           </ul>
         </div>
