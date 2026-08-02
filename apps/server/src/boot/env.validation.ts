@@ -70,6 +70,26 @@ const envSchema = z.object({
   TERMINAL_SSH_INACTIVITY_TIMEOUT_MS: z.string().optional(),
   DOCKER_BUILD_TIMEOUT_MS: z.string().default('900000'), // 15 min
   DOCKER_PULL_TIMEOUT_MS: z.string().default('300000'), // 5 min
+
+  // ── Email (factures, notifications de facturation) ───────────────────────
+  // Optionnels : si absents, les mails de facturation sont désactivés
+  // (le paiement est toujours possible depuis le dashboard).
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_SECURE: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+
+  // ── Paiement (Stripe) ────────────────────────────────────────────────────
+  // Optionnels : sans clé, le billing fonctionne en mode facturation manuelle
+  // (factures PENDING → marquées PAID par l'admin).
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRICE_FREE: z.string().optional(),
+  STRIPE_PRICE_STARTER: z.string().optional(),
+  STRIPE_PRICE_PRO: z.string().optional(),
+  STRIPE_PRICE_ENTERPRISE: z.string().optional(),
 });
 
 export function validateEnv(

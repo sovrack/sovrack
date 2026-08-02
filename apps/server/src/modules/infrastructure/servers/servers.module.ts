@@ -6,6 +6,7 @@ import { DockerConnectionController } from './controllers/docker-connection.cont
 import { ServerAuditController } from './controllers/server-audit.controller';
 import { ServerValidationController } from './controllers/server-validation.controller';
 import { ServerDetectionController } from './controllers/server-detection.controller';
+import { ManagedServersController } from './controllers/managed-servers.controller';
 
 @Module({
   imports: [AppJwtModule, ServersSharedModule],
@@ -15,6 +16,7 @@ import { ServerDetectionController } from './controllers/server-detection.contro
     ServerAuditController,
     ServerValidationController,
     ServerDetectionController,
+    ManagedServersController,
   ],
   providers: [],
   exports: [ServersSharedModule],

@@ -9,6 +9,7 @@ import { ServersCoreService } from './services';
 import { ServersCrudService } from './services/servers-crud.service';
 import { ServersJobsFacade } from './services/servers-jobs.facade';
 import { ServersReadersFacade } from './services/servers-readers.facade';
+import { ManagedServersService } from './services/managed-servers.service';
 
 /**
  * Server lifecycle facade (ServersCoreService). The shared primitives (SSH,
@@ -32,7 +33,12 @@ import { ServersReadersFacade } from './services/servers-readers.facade';
     ServersReadersFacade,
     ServersCrudService,
     ServersCoreService,
+    ManagedServersService,
   ],
-  exports: [ServersCoreService, InfrastructureCoreModule],
+  exports: [
+    ServersCoreService,
+    InfrastructureCoreModule,
+    ManagedServersService,
+  ],
 })
 export class ServersSharedModule {}

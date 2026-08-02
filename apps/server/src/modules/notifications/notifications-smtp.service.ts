@@ -84,6 +84,31 @@ export class NotificationsSmtpService {
     }
   }
 
+  async sendBillingEmail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<void> {
+    try {
+      const K = CONFIG_KEYS;
+      const [transporter, from] = await Promise.all([
+        this.getTransporter(),
+        this.config.get(K.SMTP_FROM),
+      ]);
+      if (!transporter) return;
+      await transporter.sendMail({
+        from: from ?? 'billing@sovrack.tn',
+        to,
+        subject: `[Sovrack] ${subject}`,
+        html,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Billing email failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
+  }
+
   async sendDeploymentEmail(
     payload: DeploymentNotificationPayload,
   ): Promise<void> {

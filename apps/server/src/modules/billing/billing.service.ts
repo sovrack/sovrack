@@ -8,6 +8,7 @@ import {
 import { Plan } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsSmtpService } from '../notifications/notifications-smtp.service';
 
 /**
  * Prix par plan en millimes (1 TND = 1000 millimes).
@@ -75,6 +76,7 @@ export class BillingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly smtp?: NotificationsSmtpService,
   ) {}
 
   /** Retourne les limites du plan (base de données avec fallback défauts). */
@@ -263,6 +265,7 @@ export class BillingService {
     }
 
     this.logger.log(`Team ${teamId}: plan ${current} → ${plan}`);
+    await this.sendPlanChangeEmail(teamId, plan, amount);
     return { success: true, message: `Plan ${plan} activé.`, plan };
   }
 
@@ -320,5 +323,43 @@ export class BillingService {
       ENTERPRISE: 3,
     };
     return order[target] < order[current];
+  }
+
+  /** Email de confirmation de changement de plan (équipe + admin). */
+  private async sendPlanChangeEmail(
+    teamId: string,
+    plan: Plan,
+    amount: number,
+  ): Promise<void> {
+    if (!this.smtp) return;
+    const [team, owner] = await Promise.all([
+      this.prisma.team.findUnique({ where: { id: teamId } }),
+      this.prisma.teamMember.findFirst({
+        where: { teamId },
+        include: { user: true },
+        orderBy: { joinedAt: 'asc' },
+      }),
+    ]);
+    if (!team || !owner) return;
+
+    const amountTnd = (amount / 1000).toFixed(3).replace(/\.000$/, '');
+    const html = `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px">
+  <div style="background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:12px;padding:24px;color:#fff;text-align:center">
+    <h2 style="margin:0">Sovrack — Plan ${plan}</h2>
+  </div>
+  <div style="padding:24px;border:1px solid #e5e7eb;border-radius:0 0 12px 12px">
+    <p>Bonjour ${owner.user.fullName},</p>
+    <p>L'équipe <strong>${team.name}</strong> est maintenant sur le plan
+       <strong>${plan}</strong>${amount > 0 ? ` (${amountTnd} DT / mois)` : ' (essai gratuit)'}.</p>
+    <p>Votre facture est disponible depuis le dashboard → Facturation.</p>
+    <p style="color:#6b7280;font-size:12px;margin-top:24px">Sovrack — déployez sans limites</p>
+  </div>
+</div>`;
+    await this.smtp.sendBillingEmail(
+      owner.user.email,
+      `Votre plan ${plan} est actif`,
+      html,
+    );
   }
 }
