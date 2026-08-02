@@ -61,7 +61,10 @@ export class TeamsService {
     return team;
   }
 
-  async create(dto: CreateTeamDto): Promise<TeamWithMembers> {
+  async create(
+    dto: CreateTeamDto,
+    creatorUserId?: string,
+  ): Promise<TeamWithMembers> {
     const existing = await this.prisma.team.findUnique({
       where: { name: dto.name },
     });
@@ -70,7 +73,13 @@ export class TeamsService {
     }
 
     const team = await this.prisma.team.create({
-      data: { name: dto.name, description: dto.description },
+      data: {
+        name: dto.name,
+        description: dto.description,
+        ...(creatorUserId
+          ? { members: { create: { userId: creatorUserId } } }
+          : {}),
+      },
       include: teamWithMembersInclude,
     });
     this.logger.log(`Team "${team.name}" (${team.id}) created`);

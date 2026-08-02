@@ -18,8 +18,10 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../../shared/decorators/roles.decorator';
+import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../shared/guards/roles.guard';
+import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { AddTeamMemberDto } from './dto/add-team-member.dto';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
@@ -52,8 +54,8 @@ export class TeamsController {
   @ApiOperation({ summary: 'Create a team' })
   @ApiResponse({ status: 201, description: 'Team created successfully' })
   @ApiResponse({ status: 409, description: 'Name already in use' })
-  async create(@Body() dto: CreateTeamDto) {
-    return this.teamsService.create(dto);
+  async create(@Body() dto: CreateTeamDto, @GetUser() user: JwtPayload) {
+    return this.teamsService.create(dto, user.id);
   }
 
   @Put(':id')
