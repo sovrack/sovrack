@@ -3,7 +3,16 @@ import type { NextRequest } from "next/server";
 
 const AUTH_COOKIE_NAME = "deploy_automation_token";
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/pricing",
+  "/docs",
+  "/status",
+  "/legal",
+];
+
+const AUTHENTICATED_REDIRECT = "/dashboard";
+
 const LEGACY_LOGIN_ALIASES = [
   "/auth/login",
   "/auth/login/admin",
@@ -85,7 +94,19 @@ export function middleware(request: NextRequest) {
   }
 
   if (token && isPublicPath(pathname)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    // Les utilisateurs connectés sont renvoyés vers le dashboard depuis les
+    // pages marketing (sauf depuis le status/legal qui restent consultables).
+    if (
+      pathname === "/" ||
+      pathname === "/pricing" ||
+      pathname === "/login" ||
+      LEGACY_LOGIN_ALIASES.includes(pathname)
+    ) {
+      return NextResponse.redirect(
+        new URL(AUTHENTICATED_REDIRECT, request.url),
+      );
+    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();

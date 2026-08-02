@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   ClipboardList,
+  CreditCard,
   Database,
   FolderGit2,
   GitBranch,
@@ -97,6 +98,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     label: "Settings",
     items: [
       { href: "/settings/account", label: "My Account", icon: Users },
+      { href: "/settings/billing", label: "Billing", icon: CreditCard },
       {
         href: "/settings",
         label: "Platform Settings",
