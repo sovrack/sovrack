@@ -2,6 +2,9 @@ import { BadRequestException } from '@nestjs/common';
 import { ServerStatus } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersCrudService } from './servers-crud.service';
+import { BillingService } from '../../../billing/billing.service';
+import { UsageGuardService } from '../../../billing/usage-guard.service';
+import { AuditService } from '../../../audit/audit.service';
 
 // Moved from servers-core.service.spec.ts when the real CRUD logic was
 // extracted into ServersCrudService (ServersCoreService is now a pure
@@ -40,6 +43,12 @@ describe('ServersCrudService', () => {
     container: { updateMany: jest.Mock };
     sshKey: { findUnique: jest.Mock };
     serverRun: { findMany: jest.Mock };
+    teamMember: { findFirst: jest.Mock; count: jest.Mock };
+    server: { count: jest.Mock };
+    project: { count: jest.Mock };
+    volume: { count: jest.Mock };
+    subscription: { findUnique: jest.Mock; create: jest.Mock };
+    planLimit: { findUnique: jest.Mock };
     $transaction: jest.Mock;
   };
   let crypto: {
@@ -70,6 +79,27 @@ describe('ServersCrudService', () => {
       container: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
       sshKey: { findUnique: jest.fn().mockResolvedValue(null) },
       serverRun: { findMany: jest.fn().mockResolvedValue([]) },
+      teamMember: {
+        findFirst: jest.fn().mockResolvedValue({ teamId: 't1' }),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      project: { count: jest.fn().mockResolvedValue(0) },
+      volume: { count: jest.fn().mockResolvedValue(0) },
+      subscription: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 's1',
+          teamId: 't1',
+          plan: 'FREE',
+          status: 'TRIALING',
+        }),
+        create: jest.fn().mockResolvedValue({
+          id: 's1',
+          teamId: 't1',
+          plan: 'FREE',
+          status: 'TRIALING',
+        }),
+      },
+      planLimit: { findUnique: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn().mockResolvedValue([]),
     };
     crypto = {
@@ -86,6 +116,14 @@ describe('ServersCrudService', () => {
     jobsFacade = { loadActiveJobs: jest.fn().mockResolvedValue(new Map()) };
     audit = { record: jest.fn().mockResolvedValue(undefined) };
     auditService = { record: jest.fn().mockResolvedValue(undefined) };
+    const billing = new BillingService(
+      prisma as unknown as PrismaService,
+      auditService as unknown as AuditService,
+    );
+    const usageGuard = new UsageGuardService(
+      prisma as unknown as PrismaService,
+      billing,
+    );
 
     service = new ServersCrudService(
       prisma as unknown as PrismaService,
@@ -94,6 +132,8 @@ describe('ServersCrudService', () => {
       jobsFacade as never,
       audit as never,
       auditService as never,
+      billing,
+      usageGuard,
     );
   });
 

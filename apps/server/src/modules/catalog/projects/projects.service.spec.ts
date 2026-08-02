@@ -8,6 +8,8 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { ProjectsService } from './projects.service';
 import { ProjectAccessService } from '../authorization/project-access.service';
+import { UsageGuardService } from '../../billing/usage-guard.service';
+import { BillingService } from '../../billing/billing.service';
 
 describe('ProjectsService', () => {
   let prisma: {
@@ -20,6 +22,11 @@ describe('ProjectsService', () => {
     };
     user: { findUnique: jest.Mock };
     projectMember: { findUnique: jest.Mock };
+    teamMember: { findFirst: jest.Mock; count: jest.Mock };
+    server: { count: jest.Mock };
+    volume: { count: jest.Mock };
+    subscription: { findUnique: jest.Mock; create: jest.Mock };
+    planLimit: { findUnique: jest.Mock };
     $transaction: jest.Mock;
   };
   let audit: { record: jest.Mock };
@@ -42,13 +49,44 @@ describe('ProjectsService', () => {
           .mockResolvedValue({ id: 'o1', role: Role.DEVELOPER }),
       },
       projectMember: { findUnique: jest.fn().mockResolvedValue(null) },
+      teamMember: {
+        findFirst: jest.fn().mockResolvedValue({ teamId: 't1' }),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      server: { count: jest.fn().mockResolvedValue(0) },
+      volume: { count: jest.fn().mockResolvedValue(0) },
+      subscription: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 's1',
+          teamId: 't1',
+          plan: 'FREE',
+          status: 'TRIALING',
+        }),
+        create: jest.fn().mockResolvedValue({
+          id: 's1',
+          teamId: 't1',
+          plan: 'FREE',
+          status: 'TRIALING',
+        }),
+      },
+      planLimit: { findUnique: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn(),
     };
     audit = { record: jest.fn().mockResolvedValue(undefined) };
+    const billing = new BillingService(
+      prisma as unknown as PrismaService,
+      audit as unknown as AuditService,
+    );
+    const usageGuard = new UsageGuardService(
+      prisma as unknown as PrismaService,
+      billing,
+    );
     service = new ProjectsService(
       prisma as unknown as PrismaService,
       audit as unknown as AuditService,
       new ProjectAccessService(prisma as unknown as PrismaService),
+      usageGuard,
+      billing,
     );
   });
 

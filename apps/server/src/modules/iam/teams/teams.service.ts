@@ -9,6 +9,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { AddTeamMemberDto } from './dto/add-team-member.dto';
+import { UsageGuardService } from '../../billing/usage-guard.service';
 
 const teamWithMembersInclude = {
   members: {
@@ -37,7 +38,10 @@ type TeamWithMembers = Prisma.TeamGetPayload<{
 export class TeamsService {
   private readonly logger = new Logger(TeamsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly usageGuard: UsageGuardService,
+  ) {}
 
   async findAll(): Promise<TeamWithMembers[]> {
     return this.prisma.team.findMany({
@@ -113,6 +117,7 @@ export class TeamsService {
 
   async addMember(id: string, dto: AddTeamMemberDto): Promise<TeamWithMembers> {
     await this.findOne(id);
+    await this.usageGuard.guardForTeam(id, 'ADD_TEAM_MEMBER');
 
     const user = await this.prisma.user.findUnique({
       where: { id: dto.userId },

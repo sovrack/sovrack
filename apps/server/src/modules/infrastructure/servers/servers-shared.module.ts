@@ -4,6 +4,7 @@ import { AppJwtModule } from '../../../shared/jwt/jwt.module';
 import { InfrastructureModule } from '../onboarding/infrastructure.module';
 import { InfrastructureCoreModule } from '../core/infrastructure-core.module';
 import { AuditModule } from '../../audit';
+import { BillingModule } from '../../billing';
 import { ServersCoreService } from './services';
 import { ServersCrudService } from './services/servers-crud.service';
 import { ServersJobsFacade } from './services/servers-jobs.facade';
@@ -24,6 +25,7 @@ import { ServersReadersFacade } from './services/servers-readers.facade';
     InfrastructureCoreModule,
     InfrastructureModule,
     AuditModule,
+    BillingModule,
   ],
   providers: [
     ServersJobsFacade,

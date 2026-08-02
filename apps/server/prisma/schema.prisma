@@ -186,6 +186,13 @@ enum ServerInfraRole {
   PRODUCTION
 }
 
+// Fournisseur d'un serveur managé Sovrack (provisionné par la plateforme).
+enum ManagedServerProvider {
+  VPS
+  DOCKER_HOST
+  K8S
+}
+
 enum ContainerStatus {
   CREATED
   RUNNING
@@ -219,41 +226,45 @@ enum CircuitState {
 }
 
 model User {
-  id                          String              @id @default(uuid())
-  email                       String              @unique
-  password                    String
-  fullName                    String
-  role                        Role                @default(DEVELOPER)
-  isActive                    Boolean             @default(true)
-  projects                    ProjectMember[]
-  teams                       TeamMember[]
-  deployments                 Deployment[]
-  builds                      Build[]
-  auditLogs                   AuditLog[]
-  sshKeys                     SshKey[]
-  serverRunsRequested         ServerRun[]         @relation("ServerRunRequestedBy")
-  createdAt                   DateTime            @default(now())
-  updatedAt                   DateTime            @updatedAt
+  id                  String          @id @default(uuid())
+  email               String          @unique
+  password            String
+  fullName            String
+  role                Role            @default(DEVELOPER)
+  isActive            Boolean         @default(true)
+  projects            ProjectMember[]
+  teams               TeamMember[]
+  deployments         Deployment[]
+  builds              Build[]
+  auditLogs           AuditLog[]
+  sshKeys             SshKey[]
+  serverRunsRequested ServerRun[]     @relation("ServerRunRequestedBy")
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 }
 
 model Project {
-  id               String            @id @default(uuid())
-  name             String
-  description      String?
+  id                   String            @id @default(uuid())
+  name                 String
+  description          String?
   // Multi-tenant fair-share: cap simultaneous in-flight deployments for this
   // project so one tenant can't monopolize the deploy workers. Null = unlimited.
   maxConcurrentDeploys Int?
-  members          ProjectMember[]
-  environments     Environment[]
-  services         Service[]
-  webhookEndpoints WebhookEndpoint[]
-  domains          Domain[]
-  providerRepos    GitProviderRepo[]
-  deployments      Deployment[]
-  builds           Build[]
-  pipelineRuns     PipelineRun[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Tenant (billing scope) de la Team propriétaire. Null = projet legacy
+  // (créé avant la fusion SaaS/platform) — backfill par la migration v2.
+  teamId               String?
+  team                 Team?             @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  members              ProjectMember[]
+  environments         Environment[]
+  services             Service[]
+  webhookEndpoints     WebhookEndpoint[]
+  domains              Domain[]
+  providerRepos        GitProviderRepo[]
+  deployments          Deployment[]
+  builds               Build[]
+  pipelineRuns         PipelineRun[]
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 }
 
 model ProjectMember {
@@ -271,54 +282,62 @@ model ProjectMember {
 }
 
 model Server {
-  id                String                   @id @default(uuid())
-  name              String
-  host              String
-  port              Int                      @default(22)
-  username          String                   @default("ubuntu")
-  sshKey            String
-  sshPublicKey      String?                  @db.Text
-  connectionMode    ServerConnectionMode     @default(SSH)
-  isActive          Boolean                  @default(true)
-  isVerified        Boolean                  @default(false)
-  status            ServerStatus             @default(NEW)
-  verificationError String?                  @db.Text
-  infraRole         ServerInfraRole?
-  lastVerifiedAt    DateTime?
-  lastDetectedAt    DateTime?
-  lastPreparedAt    DateTime?
+  id                    String                   @id @default(uuid())
+  name                  String
+  host                  String
+  port                  Int                      @default(22)
+  username              String                   @default("ubuntu")
+  sshKey                String
+  sshPublicKey          String?                  @db.Text
+  connectionMode        ServerConnectionMode     @default(SSH)
+  isActive              Boolean                  @default(true)
+  isVerified            Boolean                  @default(false)
+  status                ServerStatus             @default(NEW)
+  verificationError     String?                  @db.Text
+  infraRole             ServerInfraRole?
+  // Tenant (billing scope). Null = legacy. Servers managés Sovrack =
+  // isManaged true + ownedByTeamId renseigné.
+  teamId                String?
+  team                  Team?                    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  isManaged             Boolean                  @default(false)
+  provider              ManagedServerProvider?
+  serverSize            String?
+  monthlyCostMillimes   Int?                     @default(0)
+  lastVerifiedAt        DateTime?
+  lastDetectedAt        DateTime?
+  lastPreparedAt        DateTime?
   // Posé quand la stack monitoring (Prometheus/Grafana/Loki) est installée
   // avec succès SUR CE serveur — les URLs Grafana/Prometheus/Loki se déduisent
   // alors de `host` (ports standard). Remplace l'ancienne config plateforme
   // globale unique (premier serveur installé "gagnait" l'URL pour toujours).
   monitoringInstalledAt DateTime?
-  onboardingStep    ServerOnboardingStep     @default(PENDING)
+  onboardingStep        ServerOnboardingStep     @default(PENDING)
   // hasDocker/hasRunner removed — derived from `capabilities` via
   // serverHasDocker/serverHasRunner (server-capabilities.util). Single source
   // of truth = the capabilities JSON written by detection.
-  jobs              ServerJob[]
-  logs              ServerLog[]
-  validationResults ServerValidationResult[]
+  jobs                  ServerJob[]
+  logs                  ServerLog[]
+  validationResults     ServerValidationResult[]
   // Detected capabilities as a flat JSON map { "os.name": "Ubuntu", "docker": "true", ... }
   // and installed tools as a JSON array [{ toolKey, displayName, version, status, ... }].
   // Replaces the former ServerCapability / ServerInstalledTool join tables — a single
   // source of truth, no joins, no 3-way drift on "does this server have Docker".
-  capabilities      Json?                    @default("{}")
-  installedTools    Json?                    @default("[]")
-  serverRuns        ServerRun[]             @relation("ServerRuns")
-  serverRunSteps    ServerRunStep[]         @relation("ServerRunSteps")
-  dockerConnection  DockerConnection?
-  containers       Container[]
-  volumes          Volume[]
-  proxyRules        ProxyRule[]
-  serviceEnvironments ServiceEnvironment[]
-  environmentId     String?
-  environment       Environment?             @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+  capabilities          Json?                    @default("{}")
+  installedTools        Json?                    @default("[]")
+  serverRuns            ServerRun[]              @relation("ServerRuns")
+  serverRunSteps        ServerRunStep[]          @relation("ServerRunSteps")
+  dockerConnection      DockerConnection?
+  containers            Container[]
+  volumes               Volume[]
+  proxyRules            ProxyRule[]
+  serviceEnvironments   ServiceEnvironment[]
+  environmentId         String?
+  environment           Environment?             @relation(fields: [environmentId], references: [id], onDelete: SetNull)
   // Soft-delete: NULL = active. Set instead of DELETE so server logs,
   // preparations and audit history survive.
-  archivedAt        DateTime?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
+  archivedAt            DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
 
   @@index([environmentId])
 }
@@ -424,8 +443,8 @@ model ServiceEnvironment {
   // ce service-env déploie sur CE serveur ; sinon fallback sur le 1er serveur de
   // l'environnement (comportement historique). Permet à un même VPS d'héberger
   // plusieurs environnements/projets (modèle Coolify/Dokploy).
-  serverId      String?
-  server        Server?     @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  serverId String?
+  server   Server? @relation(fields: [serverId], references: [id], onDelete: SetNull)
 
   // Overrides — all optional (null = use default from Service)
   branch          String?
@@ -438,49 +457,49 @@ model ServiceEnvironment {
   // Desired-state revision : incrémentée à chaque changement de config (Service
   // ou cet override). Deployment.observedGeneration gèle la valeur déployée →
   // base de la réconciliation désiré↔observé.
-  generation      Int        @default(1)
+  generation Int @default(1)
 
   // Auto-deploy: when true, a git push on `autoBranch` automatically triggers
   // a deployment for this service in this environment. The branch supports
   // exact match only (e.g. "main", "release/v2"). Set autoBranch to null to
   // match any branch.
-  autoDeploy      Boolean    @default(false)
-  autoBranch      String?    @default("main")
+  autoDeploy Boolean @default(false)
+  autoBranch String? @default("main")
 
   // Ephemeral preview environments (one per merge/pull request). When isPreview
   // is true this ServiceEnvironment is disposable and tied to previewMrId.
-  isPreview       Boolean    @default(false)
-  previewMrId     String?
-  previewBranch   String?
-  env             String?     @db.Text // JSON — variables NON-secrètes (merge final: this > Environment.env > Service.env)
-  secretsEnv      String?     @db.Text // JSON — secrets (chiffré au repos ; même ordre de fusion)
+  isPreview     Boolean @default(false)
+  previewMrId   String?
+  previewBranch String?
+  env           String? @db.Text // JSON — variables NON-secrètes (merge final: this > Environment.env > Service.env)
+  secretsEnv    String? @db.Text // JSON — secrets (chiffré au repos ; même ordre de fusion)
 
   // Soft-delete : "retirer" un service d'un environnement pose archivedAt au
   // lieu de DELETE, ce qui préserve l'historique (Deployment/Build) qui pointe
   // encore vers cette ligne. Réactiver = repasser archivedAt à null (même
   // ligne réutilisée pour respecter @@unique([serviceId, environmentId])).
-  archivedAt      DateTime?
+  archivedAt DateTime?
 
-  deployments      Deployment[] @relation("ServiceEnvDeployments")
-  containers       Container[]
-  volumes          Volume[]
-  proxyRules       ProxyRule[]
-  domains          Domain[]
-  builds           Build[]
-  webhookEndpoints WebhookEndpoint[]
-  dnsRecords       DnsRecord[]
-  pipelineRuns     PipelineRun[]
+  deployments         Deployment[]      @relation("ServiceEnvDeployments")
+  containers          Container[]
+  volumes             Volume[]
+  proxyRules          ProxyRule[]
+  domains             Domain[]
+  builds              Build[]
+  webhookEndpoints    WebhookEndpoint[]
+  dnsRecords          DnsRecord[]
+  pipelineRuns        PipelineRun[]
   // Pointeur "release courante" : LE déploiement qui sert RÉELLEMENT cette cellule
   // (état désiré = ce qui doit tourner). Met fin à l'heuristique "dernier SUCCESS
   // deviné par date" (fausse après un rollback). Rollback = on DÉPLACE ce pointeur.
   // Lu par le reconciler et l'UI (matrice) comme source unique du "live".
   currentDeploymentId String?
-  currentDeployment   Deployment? @relation("CurrentDeployment", fields: [currentDeploymentId], references: [id], onDelete: SetNull)
+  currentDeployment   Deployment?       @relation("CurrentDeployment", fields: [currentDeploymentId], references: [id], onDelete: SetNull)
 
-  createdAt        DateTime    @default(now())
+  createdAt DateTime @default(now())
   // @default(now()) (in addition to @updatedAt) so the column has a DB default —
   // required for `prisma db push` to add it to a non-empty table (e2e harness).
-  updatedAt        DateTime    @default(now()) @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([serviceId, environmentId])
   @@index([environmentId])
@@ -488,62 +507,61 @@ model ServiceEnvironment {
   @@index([currentDeploymentId])
 }
 
-
 model Deployment {
-  id                 String             @id @default(uuid())
-  status             DeploymentStatus   @default(PENDING)
-  strategy           DeploymentStrategy @default(STANDARD)
-  logs               String?
-  dockerImage        String?
+  id                    String               @id @default(uuid())
+  status                DeploymentStatus     @default(PENDING)
+  strategy              DeploymentStrategy   @default(STANDARD)
+  logs                  String?
+  dockerImage           String?
   // Image digest (sha256:...). Preferred over dockerImage for rollback
   // because it's immutable: the same digest is guaranteed to refer to the
   // exact same image content even if the mutable tag was overwritten.
-  imageSha           String?
+  imageSha              String?
   // Immutable Release model: the FROZEN desired state captured at deploy time
   // (source ref, build strategy/config, strategy). Enables exact rollback,
   // audit and diff — the deployment is an immutable revision, not mutated.
-  specSnapshot       Json?
+  specSnapshot          Json?
   // The CONCRETE refs this deployment resolved to (server, environment, …) —
   // the orchestrator output. Separates "what was desired" (specSnapshot) from
   // "what it was bound to" (resolvedRefs).
-  resolvedRefs       Json?
+  resolvedRefs          Json?
   // Reconciliation status (K8s-style): structured conditions (Ready /
   // Progressing / Degraded with reason+message) and the generation of the
   // spec this status reflects — the basis for a desired-state reconciler.
-  conditions         Json?
-  observedGeneration Int?
+  conditions            Json?
+  observedGeneration    Int?
   // Reference to a Build record (see model Build). Nullable for legacy
   // rows pre-dating the Build table; new code paths must always set it.
-  buildId            String?
-  build              Build?             @relation("BuildToDeployment", fields: [buildId], references: [id], onDelete: SetNull)
-  externalPipelineId BigInt?
-  isRollback         Boolean            @default(false)
-  rolledBackAt       DateTime?
+  buildId               String?
+  build                 Build?               @relation("BuildToDeployment", fields: [buildId], references: [id], onDelete: SetNull)
+  externalPipelineId    BigInt?
+  isRollback            Boolean              @default(false)
+  rolledBackAt          DateTime?
   // Self-healing: set when the reconciler recreated a crashed container.
-  isAutoHealed       Boolean            @default(false)
-  autoHealReason     String?
-  branch             String
-  serviceId          String?
-  service            Service?           @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  isAutoHealed          Boolean              @default(false)
+  autoHealReason        String?
+  branch                String
+  serviceId             String?
+  service               Service?             @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   // Nullable is INTENTIONAL: set to null via onDelete:SetNull when the parent
   // ServiceEnvironment is archived (soft-delete), so deployment history survives
   // for audit/rollback without a dangling FK. All live deploy paths (create,
   // rollback, auto-heal) always set it; the executor fails fast on a null cell
   // (a deploy without a cell can't move currentDeploymentId or be reconciled).
-  serviceEnvId       String?
-  serviceEnv         ServiceEnvironment? @relation("ServiceEnvDeployments", fields: [serviceEnvId], references: [id], onDelete: SetNull)
+  serviceEnvId          String?
+  serviceEnv            ServiceEnvironment?  @relation("ServiceEnvDeployments", fields: [serviceEnvId], references: [id], onDelete: SetNull)
   // Back-relation du pointeur "release courante" (ServiceEnvironment.currentDeployment).
   currentForServiceEnvs ServiceEnvironment[] @relation("CurrentDeployment")
-  environment        Environment        @relation(fields: [environmentId], references: [id], onDelete: Cascade)
-  environmentId      String
-  project            Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId          String
-  user               User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId             String?
-  startedAt          DateTime?
-  finishedAt         DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  environment           Environment          @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  environmentId         String
+  project               Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId             String
+  user                  User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId                String?
+  startedAt             DateTime?
+  finishedAt            DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   previousDeploymentId String?
   previousDeployment   Deployment?   @relation("DeploymentHistory", fields: [previousDeploymentId], references: [id], onDelete: SetNull)
@@ -585,11 +603,11 @@ model Deployment {
 //   - gitlabPipelineId → Build.gitlabPipelineId
 //   - dockerImage + imageSha → Build.imageRepository + imageTag + imageSha
 model Build {
-  id                 String       @id @default(uuid())
+  id                 String              @id @default(uuid())
   projectId          String
-  project            Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   serviceId          String?
-  service            Service?     @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  service            Service?            @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   serviceEnvId       String?
   serviceEnv         ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
   branch             String
@@ -598,9 +616,9 @@ model Build {
   // True when the build (and deploy) happens directly on the target VPS.
   // False when a pre-built image is pulled from a registry (GitLab CI flow).
   // Replaces the legacy Deployment.buildMode (LOCAL/REGISTRY) distinction.
-  isLocalBuild       Boolean      @default(false)
-  status             BuildStatus  @default(NOT_BUILT)
-  triggeredBy        BuildTrigger @default(MANUAL)
+  isLocalBuild       Boolean             @default(false)
+  status             BuildStatus         @default(NOT_BUILT)
+  triggeredBy        BuildTrigger        @default(MANUAL)
   // Image digest (sha256:...) — immutable, used for rollback pinning.
   imageSha           String?
   // Release directory for STATIC builds (ex: /var/www/slug/releases/ts-sha8/).
@@ -610,7 +628,7 @@ model Build {
   imageRepository    String?
   imageTag           String?
   // Full build log (was Deployment.buildLog).
-  logs               String?      @db.Text
+  logs               String?             @db.Text
   startedAt          DateTime?
   finishedAt         DateTime?
   // CI/CD pipeline ID (GitLab pipeline ID or GitHub Actions run ID).
@@ -619,11 +637,11 @@ model Build {
   nixpacksConfig     Json?
   staticConfig       Json?
   // Error message when status=FAILED.
-  errorMessage       String?      @db.Text
+  errorMessage       String?             @db.Text
   userId             String?
-  user               User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  user               User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   deployments Deployment[] @relation("BuildToDeployment")
 
@@ -642,22 +660,22 @@ model Build {
 // Created by the platform when a deployment runs; synced from Docker Engine API.
 // ============================================================================
 model Container {
-  id           String          @id @default(uuid())
+  id           String              @id @default(uuid())
   dockerId     String
   name         String
   imageRef     String
-  status       ContainerStatus @default(CREATED)
+  status       ContainerStatus     @default(CREATED)
   deploymentId String?
-  deployment   Deployment?     @relation(fields: [deploymentId], references: [id], onDelete: SetNull)
+  deployment   Deployment?         @relation(fields: [deploymentId], references: [id], onDelete: SetNull)
   serverId     String
-  server       Server          @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  serviceId     String?
-  service       Service?        @relation(fields: [serviceId], references: [id], onDelete: SetNull)
-  serviceEnvId  String?
-  serviceEnv    ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
-  lastSeenAt    DateTime?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  server       Server              @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serviceId    String?
+  service      Service?            @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  serviceEnvId String?
+  serviceEnv   ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
+  lastSeenAt   DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   @@index([serverId, status])
   @@index([deploymentId])
@@ -672,18 +690,18 @@ model Container {
 // Attached to a service or a managed service.
 // ============================================================================
 model Volume {
-  id        String   @id @default(uuid())
-  name      String
-  mountPath String?
-  sizeGb    Int?
-  serverId  String
-  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  serviceId     String?
-  service       Service?                       @relation(fields: [serviceId], references: [id], onDelete: SetNull)
-  serviceEnvId  String?
-  serviceEnv    ServiceEnvironment?             @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
-  createdAt     DateTime                        @default(now())
-  updatedAt     DateTime                        @updatedAt
+  id           String              @id @default(uuid())
+  name         String
+  mountPath    String?
+  sizeGb       Int?
+  serverId     String
+  server       Server              @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serviceId    String?
+  service      Service?            @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  serviceEnvId String?
+  serviceEnv   ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   @@index([serverId])
   @@index([serviceId])
@@ -695,39 +713,42 @@ model Volume {
 // SSL is managed by the proxy module (Let's Encrypt by default).
 // ============================================================================
 model ProxyRule {
-  id            String        @id @default(uuid())
+  id           String              @id @default(uuid())
   // Hostname (kept denormalized for Traefik config generation + the existing
   // [serverId, domain] uniqueness). Prefer domainRef as the source of truth.
-  domain        String
+  domain       String
   // FK to the Domain row for this hostname (nullable: legacy rules + rules made
   // before a Domain exists). onDelete:Cascade so deleting a Domain removes its
   // proxy rule instead of leaving an orphan. @unique → one ProxyRule per Domain.
-  domainId      String?       @unique
-  domainRef     Domain?       @relation("ProxyRuleDomain", fields: [domainId], references: [id], onDelete: Cascade)
-  targetPort    Int
-  sslEnabled    Boolean       @default(true)
-  certType      ProxyCertType @default(LETS_ENCRYPT)
-  isActive      Boolean       @default(true)
-  serverId      String
-  server        Server        @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  serviceEnvId  String?
-  serviceEnv    ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  domainId     String?             @unique
+  domainRef    Domain?             @relation("ProxyRuleDomain", fields: [domainId], references: [id], onDelete: Cascade)
+  targetPort   Int
+  sslEnabled   Boolean             @default(true)
+  certType     ProxyCertType       @default(LETS_ENCRYPT)
+  isActive     Boolean             @default(true)
+  serverId     String
+  server       Server              @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serviceEnvId String?
+  serviceEnv   ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   @@unique([serverId, domain])
   @@index([serverId])
   @@index([serviceEnvId])
 }
 
-
 model Team {
-  id          String       @id @default(uuid())
-  name        String       @unique
-  description String?
-  members     TeamMember[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id           String        @id @default(uuid())
+  name         String        @unique
+  description  String?
+  members      TeamMember[]
+  projects     Project[]
+  servers      Server[]
+  subscription Subscription?
+  invoices     Invoice[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model TeamMember {
@@ -739,6 +760,80 @@ model TeamMember {
   joinedAt DateTime @default(now())
 
   @@unique([teamId, userId])
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum BillingStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  VOID
+}
+
+// Abonnement d'une équipe — le billing est attaché au tenant (Team),
+// exactement comme Dokploy (Organization) et Coolify (Team) : une seule
+// base, le paiement vit dans le produit, pas dans une app séparée.
+model Subscription {
+  id                   String        @id @default(uuid())
+  teamId               String        @unique
+  team                 Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  plan                 Plan          @default(FREE)
+  status               BillingStatus @default(TRIALING)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  trialEndsAt          DateTime?
+  canceledAt           DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([status])
+  @@index([plan])
+}
+
+model Invoice {
+  id              String        @id @default(uuid())
+  teamId          String
+  team            Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  stripeInvoiceId String?
+  amountMillimes  Int           @default(0)
+  currency        String        @default("TND")
+  status          InvoiceStatus @default(PENDING)
+  pdfUrl          String?
+  paidAt          DateTime?
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  createdAt       DateTime      @default(now())
+
+  @@index([teamId])
+  @@index([teamId, status])
+}
+
+// Limites par plan — stockées en base (données, pas du code) pour pouvoir
+// ajuster un plan sans redéploiement (modèle Railway : Free=1 volume, Hobby=10).
+model PlanLimit {
+  id             String   @id @default(uuid())
+  plan           Plan     @unique
+  maxProjects    Int      @default(1)
+  maxServers     Int      @default(1)
+  maxTeamMembers Int      @default(3)
+  storageLimitMb Int      @default(500)
+  maxBackups     Int      @default(1)
+  updatedAt      DateTime @updatedAt
 }
 
 model AuditLog {
@@ -810,7 +905,7 @@ model GitProviderRepo {
   id            String            @id @default(uuid())
   provider      GitProviderConfig @relation(fields: [providerId], references: [id], onDelete: Cascade)
   providerId    String
-  repoPath      String            // "group/project" ou "owner/repo"
+  repoPath      String // "group/project" ou "owner/repo"
   defaultBranch String            @default("main")
   // Per-repo webhook secret (encrypted with CONFIG_SECRET). Used for HMAC verification.
   webhookSecret String?           @db.Text
@@ -851,7 +946,6 @@ model RegistryConfig {
   @@index([providerId])
 }
 
-
 model DnsProvider {
   id        String          @id @default(uuid())
   name      String
@@ -867,21 +961,21 @@ model DnsProvider {
 }
 
 model Domain {
-  id         String       @id @default(uuid())
-  name       String
-  providerId String?
-  provider   DnsProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
-  projectId  String?
-  project    Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  serviceEnvId String?
-  serviceEnv   ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
-  verified     Boolean             @default(false)
-  records      DnsRecord[]
+  id             String              @id @default(uuid())
+  name           String
+  providerId     String?
+  provider       DnsProvider?        @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  projectId      String?
+  project        Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  serviceEnvId   String?
+  serviceEnv     ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
+  verified       Boolean             @default(false)
+  records        DnsRecord[]
   sslCertificate SslCertificate?
   // Reverse-proxy rule for this hostname (1:1). Cascade-deletes with the Domain.
   proxyRule      ProxyRule?          @relation("ProxyRuleDomain")
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   @@unique([projectId, name])
   @@index([providerId])
@@ -896,33 +990,33 @@ model Domain {
 // Modélisée ici pour des accès Prisma typés.
 // ============================================================================
 model SslCertificate {
-  id              String   @id @default(uuid())
-  domainId        String   @unique
-  domain          Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  id                   String    @id @default(uuid())
+  domainId             String    @unique
+  domain               Domain    @relation(fields: [domainId], references: [id], onDelete: Cascade)
   // Dénormalisé depuis Domain.name : le cron de renouvellement filtre dessus
   // sans jointure, et c'est la clé d'upsert (un certificat par nom d'hôte).
-  domainName      String   @unique
-  certificatePath String
-  keyPath         String
-  expiresAt       DateTime
-  autoRenewal     Boolean  @default(true)
+  domainName           String    @unique
+  certificatePath      String
+  keyPath              String
+  expiresAt            DateTime
+  autoRenewal          Boolean   @default(true)
   lastRenewalAttemptAt DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   // Sert la requête getExpiringCertificates (expiresAt < seuil AND autoRenewal).
   @@index([autoRenewal, expiresAt])
 }
 
 model DnsRecord {
-  id            String        @id @default(uuid())
-  domainId      String
-  domain        Domain        @relation(fields: [domainId], references: [id], onDelete: Cascade)
-  type          DnsRecordType
-  name          String
-  value         String
-  ttl           Int           @default(300)
-  proxied       Boolean?
+  id           String              @id @default(uuid())
+  domainId     String
+  domain       Domain              @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  type         DnsRecordType
+  name         String
+  value        String
+  ttl          Int                 @default(300)
+  proxied      Boolean?
   serviceEnvId String?
   serviceEnv   ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
   createdAt    DateTime            @default(now())
@@ -962,9 +1056,9 @@ model DnsRecord {
 // Phase 2 (breaking): unify under a single `POST /webhooks/:endpointId`
 // endpoint and dispatch by token. Drop the per-provider webhook URLs.
 model WebhookEndpoint {
-  id           String          @id @default(uuid())
+  id           String              @id @default(uuid())
   projectId    String
-  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   serviceEnvId String?
   serviceEnv   ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
   // Webhook PAR SERVICE (1 service = 1 repo = 1 webhook). La branche du push
@@ -980,7 +1074,7 @@ model WebhookEndpoint {
   // Provider type (GitLab / GitHub / future). Stored so we know which
   // signature scheme to use for `verifyWebhookToken` at routing time.
   provider     GitProviderType
-  isActive     Boolean         @default(true)
+  isActive     Boolean             @default(true)
   // Subset of events we want to receive (push, pull_request, etc.).
   // The platform still receives everything but ignores events not in
   // this list (returns 200 OK with status=IGNORED).
@@ -988,8 +1082,8 @@ model WebhookEndpoint {
   // Last time we received a webhook for this endpoint. Useful for the
   // admin UI to detect "endpoint configured but no events for 30 days".
   lastEventAt  DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   webhookEvents WebhookEvent[]
 
@@ -1052,34 +1146,34 @@ model WebhookEvent {
 // can configure Docker connections out-of-band (manually or via the
 // Ansible `docker` role in a future PR).
 model DockerConnection {
-  id            String    @id @default(uuid())
-  serverId      String    @unique
-  server        Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  id                  String       @id @default(uuid())
+  serverId            String       @unique
+  server              Server       @relation(fields: [serverId], references: [id], onDelete: Cascade)
   // ex: "tcp://10.0.0.1:2376" (Docker daemon TLS port, NOT 2375 which
   // is the unencrypted port and must never be used in production).
-  endpoint      String
+  endpoint            String
   // TLS material, each blob encrypted with CONFIG_SECRET. Stored as @db.Text
   // because PEM-encoded certs can exceed the default varchar length.
-  tlsCaCert     String    @db.Text
-  tlsClientCert String    @db.Text
-  tlsClientKey  String    @db.Text
+  tlsCaCert           String       @db.Text
+  tlsClientCert       String       @db.Text
+  tlsClientKey        String       @db.Text
   // Docker API version detected at the last successful reachability check.
   // Useful to surface "this server is too old" warnings in the admin UI.
-  apiVersion    String?
+  apiVersion          String?
   // Last time we successfully completed a reachability probe. NULL means
   // "never verified".
-  lastCheckedAt DateTime?
+  lastCheckedAt       DateTime?
   // True if the last probe succeeded. False (with lastCheckedAt set) means
   // the connection is configured but unreachable right now — fire alarm.
-  isReachable   Boolean   @default(false)
+  isReachable         Boolean      @default(false)
   // ── Circuit breaker (anti-notification-storm on flapping connections) ──
   // CLOSED: normal. OPEN: failing, alerts suppressed until cooldown elapses.
   // HALF_OPEN: probing once to decide whether to close again.
   consecutiveFailures Int          @default(0)
   circuitState        CircuitState @default(CLOSED)
   circuitOpenedAt     DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   @@index([isReachable])
 }
@@ -1098,11 +1192,11 @@ model DockerConnection {
 //   CANCELED  → pipeline canceled
 //   IGNORED   → webhook received but no matching deployment found
 model PipelineRun {
-  id           String            @id @default(uuid())
+  id           String              @id @default(uuid())
   // The external pipeline ID (GitLab pipeline ID, GitHub run ID, etc.)
   externalId   BigInt
   provider     GitProviderType
-  status       PipelineRunStatus @default(PENDING)
+  status       PipelineRunStatus   @default(PENDING)
   branch       String?
   commitSha    String?
   // URL to the pipeline on the provider (for UI links)
@@ -1111,13 +1205,13 @@ model PipelineRun {
   imageSha     String?
   // The deployment that was triggered by this pipeline (null until matched)
   deploymentId String?
-  deployment   Deployment?       @relation(fields: [deploymentId], references: [id], onDelete: SetNull)
+  deployment   Deployment?         @relation(fields: [deploymentId], references: [id], onDelete: SetNull)
   projectId    String
-  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
   serviceEnvId String?
   serviceEnv   ServiceEnvironment? @relation(fields: [serviceEnvId], references: [id], onDelete: SetNull)
   createdAt    DateTime            @default(now())
-  updatedAt    DateTime          @updatedAt
+  updatedAt    DateTime            @updatedAt
 
   @@unique([externalId, provider])
   @@index([deploymentId])
@@ -1181,23 +1275,23 @@ model Service {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   // Source (APPLICATION)
-  sourceType SourceType? @default(GIT)
+  sourceType SourceType?        @default(GIT)
   repoPath   String?
   // CONFIG niveau 1 (défaut du service) : branche par défaut, SURCHARGEABLE
   // par ServiceEnvironment.branch (null = hérite de cette valeur). À ne pas
   // confondre avec Build.branch / Deployment.branch qui sont des SNAPSHOTS
   // immuables (la branche réellement construite/déployée à un instant T).
-  branch     String?     @default("main")
+  branch     String?            @default("main")
   provider   GitProviderConfig? @relation(fields: [providerId], references: [id], onDelete: SetNull)
   providerId String?
-  rootDir    String?     @default("/")
+  rootDir    String?            @default("/")
 
   // Build (APPLICATION)
-  buildPack            BuildPack? @default(DOCKERFILE)
+  buildPack            BuildPack?     @default(DOCKERFILE)
   // Mode de build choisi : LOCAL (build sur le VPS) ou REGISTRY (image construite
   // par la CI puis pull). Combiné à buildPack → buildSource (DOCKERFILE_LOCAL,
   // DOCKERFILE_REGISTRY, NIXPACKS_LOCAL…). Image externe = sourceType DOCKER_IMAGE.
-  buildMode            BuildMode? @default(LOCAL)
+  buildMode            BuildMode?     @default(LOCAL)
   // Déclencheur du déploiement. Défaut DB = PIPELINE_SUCCESS (rétro-compat) ;
   // les nouveaux services sont créés en PUSH (cf services.service.create).
   deployTrigger        DeployTrigger? @default(PIPELINE_SUCCESS)
@@ -1209,13 +1303,13 @@ model Service {
   // and buildMode (LOCAL vs REGISTRY): build-detector WRITES it, build-setup
   // READS it (`service.buildType ?? 'dockerized'`). Not user-facing input.
   buildType            String?
-  dockerfile           String?    @db.Text
-  port                 Int?       @default(3000)
+  dockerfile           String?        @db.Text
+  port                 Int?           @default(3000)
   startCommand         String?
   buildArgs            Json?
   nixpacksConfig       Json?
   staticConfig         Json?
-  dockerComposeContent String?    @db.Text
+  dockerComposeContent String?        @db.Text
   composeServiceName   String?
 
   // Database (DATABASE)
@@ -1228,24 +1322,24 @@ model Service {
   // network alias (see buildServiceAlias). Set by the user from the
   // DATABASE service's "External Credentials" UI; enforced at deploy time in
   // DockerDeployExecutorService (no host port bound when null).
-  externalPort Int?
+  externalPort        Int?
 
   // Runtime
-  env             String? @db.Text // JSON — variables NON-secrètes du service (affichables)
-  secretsEnv      String? @db.Text // JSON — secrets du service (chiffré au repos, jamais affiché en clair)
-  healthcheckPath String?
-  replicas        Int     @default(1)
+  env              String? @db.Text // JSON — variables NON-secrètes du service (affichables)
+  secretsEnv       String? @db.Text // JSON — secrets du service (chiffré au repos, jamais affiché en clair)
+  healthcheckPath  String?
+  replicas         Int     @default(1)
   // Resource quotas (multi-tenant safety). cpuLimit = fractional cores
   // (e.g. 0.5), memLimitMb = hard memory cap in MB. Null = unlimited. Applied
   // to the container HostConfig (NanoCpus / Memory) at deploy.
-  cpuLimit        Float?
-  memLimitMb      Int?
+  cpuLimit         Float?
+  memLimitMb       Int?
   // Pre-deploy command executed inside the new image before traffic cutover
   // (e.g. "npx prisma migrate deploy"). Exit code ≠ 0 → deployment FAILED.
-  preDeployCommand    String?
-  preDeployTimeout    Int     @default(120)
+  preDeployCommand String?
+  preDeployTimeout Int     @default(120)
   // Seconds Docker waits after SIGTERM before sending SIGKILL.
-  shutdownTimeout     Int     @default(30)
+  shutdownTimeout  Int     @default(30)
 
   envLinks         ServiceEnvironment[]
   deployments      Deployment[]

@@ -15,6 +15,8 @@ import {
 import { ProjectAccessService } from '../authorization/project-access.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { UsageGuardService } from '../../billing/usage-guard.service';
+import { BillingService } from '../../billing/billing.service';
 
 const projectWithMembersInclude = {
   members: {
@@ -56,6 +58,8 @@ export class ProjectsService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly projectAccess: ProjectAccessService,
+    private readonly usageGuard: UsageGuardService,
+    private readonly billing: BillingService,
   ) {}
 
   /**
@@ -67,6 +71,12 @@ export class ProjectsService {
     dto: CreateProjectDto,
   ): Promise<ProjectWithMembers> {
     const ownerId = dto.ownerId ?? userId;
+
+    // Limite de plan : la team du créateur doit avoir de la place.
+    await this.usageGuard.guard(userId, 'CREATE_PROJECT');
+
+    // Rattache le projet à la team de son créateur (tenant billing v2).
+    const teamId = await this.billing.resolveTeamId(userId);
 
     if (dto.ownerId) {
       if (userRole !== Role.ADMIN && dto.ownerId !== userId) {
@@ -94,6 +104,7 @@ export class ProjectsService {
       data: {
         name: dto.name,
         description: dto.description,
+        teamId,
         members: {
           create: {
             userId: ownerId,
@@ -161,6 +172,7 @@ export class ProjectsService {
       id: project.id,
       name: project.name,
       description: project.description,
+      teamId: project.teamId,
       maxConcurrentDeploys: project.maxConcurrentDeploys,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,

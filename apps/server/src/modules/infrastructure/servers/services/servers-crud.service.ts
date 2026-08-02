@@ -23,6 +23,8 @@ import { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.se
 import { ServersConnectionService } from './servers-connection.service';
 import { ServersAuditService } from './servers-audit.service';
 import { AuditService } from '../../../audit/audit.service';
+import { BillingService } from '../../../billing/billing.service';
+import { UsageGuardService } from '../../../billing/usage-guard.service';
 import {
   CreateServerResult,
   ServerListResult,
@@ -53,12 +55,18 @@ export class ServersCrudService {
     private readonly jobsFacade: ServersJobsFacade,
     private readonly audit: ServersAuditService,
     private readonly auditService: AuditService,
+    private readonly billing: BillingService,
+    private readonly usageGuard: UsageGuardService,
   ) {}
 
   async create(
     dto: CreateServerDto,
     actorUserId: string,
   ): Promise<CreateServerResult> {
+    // Limite de plan : la team de l'acteur doit avoir de la place.
+    await this.usageGuard.guard(actorUserId, 'ADD_SERVER');
+    const teamId = await this.billing.resolveTeamId(actorUserId);
+
     const connectionMode = this.ssh.mapConnectionMode(dto.connectionMode);
 
     let resolvedSshKey: string | undefined = dto.sshKey;
@@ -93,6 +101,7 @@ export class ServersCrudService {
         connectionMode,
         onboardingStep,
         status: ServerStatus.NEW,
+        teamId,
       },
     });
 

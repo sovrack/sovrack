@@ -4,6 +4,7 @@ import { AuditModule } from '../../audit';
 import { GitlabModule, SourceProvidersModule } from '../../source-providers';
 import { PlatformModule } from '../../platform';
 import { EnvironmentsModule } from '../environments/environments.module';
+import { BillingModule } from '../../billing';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
 import { ProjectImportService } from './services/project-import.service';
@@ -24,6 +25,7 @@ import { ProjectMembersService } from './services/project-members.service';
     EnvironmentsModule,
     AuditModule,
     ProjectAccessModule,
+    BillingModule,
   ],
   controllers: [ProjectsController],
   providers: [ProjectsService, ProjectMembersService, ProjectImportService],
