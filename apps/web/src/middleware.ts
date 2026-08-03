@@ -11,6 +11,7 @@ const PUBLIC_PATHS = [
   "/docs",
   "/status",
   "/legal",
+  "/super_admin/login",
 ];
 
 const AUTHENTICATED_REDIRECT = "/dashboard";
@@ -27,6 +28,20 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
+}
+
+function parseJwtPayload(token: string): { role?: string } | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  try {
+    const decoded = Buffer.from(parts[1], "base64url").toString("utf-8");
+    return JSON.parse(decoded) as { role?: string };
+  } catch {
+    return null;
+  }
 }
 
 function parseJwtExpiration(token: string): number | null {
@@ -87,6 +102,17 @@ export function middleware(request: NextRequest) {
     const response = NextResponse.redirect(loginUrl);
     response.cookies.delete(AUTH_COOKIE_NAME);
     return response;
+  }
+
+  // Back-office : réservé au rôle SUPER_ADMIN.
+  if (pathname.startsWith("/super_admin") && pathname !== "/super_admin/login") {
+    const payload = token ? parseJwtPayload(token) : null;
+    const isSuperAdmin = payload?.role === "SUPER_ADMIN";
+
+    if (!token || !isSuperAdmin) {
+      return NextResponse.redirect(new URL("/super_admin/login", request.url));
+    }
+    return NextResponse.next();
   }
 
   if (!token && !isPublicPath(pathname)) {

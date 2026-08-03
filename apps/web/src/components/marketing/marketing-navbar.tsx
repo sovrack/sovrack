@@ -9,12 +9,13 @@ const marketingLinks = [
   { href: "/pricing", label: "Tarifs" },
   { href: "/docs", label: "Documentation" },
   { href: "/status", label: "Statut" },
+  { href: "/legal", label: "Légal" },
 ];
 
 export function MarketingNavbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isSuperAdmin, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -47,13 +48,16 @@ export function MarketingNavbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link
-          href={isAuthenticated ? "/dashboard" : "/"}
-          className="flex items-center gap-2"
-        >
-          <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-lg font-bold text-transparent">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/90 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+          <Link
+            href={isSuperAdmin ? "/super_admin" : isAuthenticated ? "/dashboard" : "/"}
+            className="flex items-center gap-2"
+          >
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30">
+            <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </span>
+          <span className="text-lg font-bold tracking-tight text-white">
             Sovrack
           </span>
         </Link>
@@ -66,8 +70,8 @@ export function MarketingNavbar() {
                 href={l.href}
                 className={`text-sm font-medium transition ${
                   pathname === l.href
-                    ? "text-slate-900"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "text-white"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
                 {l.label}
@@ -75,23 +79,23 @@ export function MarketingNavbar() {
             ))}
           </div>
 
-          <div className="flex items-center gap-4 ml-8 border-l border-slate-100 pl-8">
+          <div className="ml-8 flex items-center gap-3 border-l border-white/10 pl-8">
             {isAuthenticated && user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-2 pr-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 py-1.5 pl-2 pr-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   aria-expanded={dropdownOpen}
                   aria-haspopup="true"
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-xs font-bold text-white">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-xs font-bold text-white">
                     {user.fullName?.charAt(0).toUpperCase() || "?"}
                   </span>
                   <span className="hidden sm:block truncate max-w-[120px]">
                     {user.fullName?.split(" ")[0]}
                   </span>
                   <svg
-                    className="h-4 w-4 text-slate-400"
+                    className="h-4 w-4 text-zinc-500"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -106,25 +110,34 @@ export function MarketingNavbar() {
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg animate-in fade-in-0 zoom-in-95 duration-150">
-                    <div className="border-b border-slate-100 px-3 py-2">
-                      <div className="truncate text-sm font-semibold text-slate-900">
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-150">
+                    <div className="border-b border-zinc-800 px-3 py-2">
+                      <div className="truncate text-sm font-semibold text-white">
                         {user.fullName}
                       </div>
-                      <div className="truncate text-xs text-slate-500">
+                      <div className="truncate text-xs text-zinc-400">
                         {user.email}
                       </div>
                     </div>
+                    {isSuperAdmin && (
+                      <Link
+                        href="/super_admin"
+                        className="block rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Back-office (plateforme)
+                      </Link>
+                    )}
                     <Link
                       href="/dashboard"
-                      className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      className="block rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white"
                       onClick={() => setDropdownOpen(false)}
                     >
                       Mon espace
                     </Link>
                     <Link
                       href="/settings"
-                      className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      className="block rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white"
                       onClick={() => setDropdownOpen(false)}
                     >
                       Paramètres
@@ -133,14 +146,14 @@ export function MarketingNavbar() {
                       <>
                         <Link
                           href="/admin/users"
-                          className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          className="block rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white"
                           onClick={() => setDropdownOpen(false)}
                         >
                           Administration
                         </Link>
                         <Link
                           href="/admin/teams"
-                          className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          className="block rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white"
                           onClick={() => setDropdownOpen(false)}
                         >
                           Équipes
@@ -149,7 +162,7 @@ export function MarketingNavbar() {
                     )}
                     <button
                       onClick={handleLogout}
-                      className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                      className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
                     >
                       Déconnexion
                     </button>
@@ -160,13 +173,13 @@ export function MarketingNavbar() {
               <div className="flex items-center gap-3">
                 <Link
                   href="/login"
-                  className="text-sm font-medium text-slate-700 hover:text-slate-900"
+                  className="text-sm font-medium text-zinc-300 transition hover:text-white"
                 >
                   Connexion
                 </Link>
                 <Link
                   href="/register"
-                  className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                  className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-zinc-200"
                 >
                   Créer mon compte
                 </Link>
@@ -177,7 +190,7 @@ export function MarketingNavbar() {
 
         <button
           onClick={() => setMobileMenuOpen((v) => !v)}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-50 md:hidden"
+          className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-900 md:hidden"
           aria-label="Menu"
           aria-expanded={mobileMenuOpen}
         >
@@ -207,9 +220,9 @@ export function MarketingNavbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-slate-100 bg-white px-6 py-4 md:hidden animate-in slide-in-from-top-2 duration-200">
+        <div className="border-t border-zinc-800 bg-zinc-950 px-6 py-4 md:hidden animate-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2 pt-2 pb-4 border-b border-slate-100">
+            <div className="flex flex-col gap-2 pt-2 pb-4 border-b border-zinc-800">
               {marketingLinks.map((l) => (
                 <Link
                   key={l.href}
@@ -217,8 +230,8 @@ export function MarketingNavbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`text-base font-medium ${
                     pathname === l.href
-                      ? "text-slate-900"
-                      : "text-slate-600 hover:text-slate-900"
+                      ? "text-white"
+                      : "text-zinc-400 hover:text-white"
                   }`}
                 >
                   {l.label}
@@ -231,14 +244,14 @@ export function MarketingNavbar() {
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-medium text-slate-700 hover:text-slate-900"
+                    className="text-base font-medium text-zinc-300 hover:text-white"
                   >
                     Connexion
                   </Link>
                   <Link
                     href="/register"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="rounded-lg bg-blue-600 px-4 py-2.5 text-center font-semibold text-white"
+                    className="rounded-lg bg-white px-4 py-2.5 text-center font-semibold text-zinc-950"
                   >
                     Créer mon compte
                   </Link>
@@ -246,17 +259,26 @@ export function MarketingNavbar() {
               )}
               {isAuthenticated && (
                 <>
+                  {isSuperAdmin && (
+                    <Link
+                      href="/super_admin"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-base font-medium text-zinc-300 hover:text-white"
+                    >
+                      Back-office (plateforme)
+                    </Link>
+                  )}
                   <Link
                     href="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-medium text-slate-700 hover:text-slate-900"
+                    className="text-base font-medium text-zinc-300 hover:text-white"
                   >
                     Mon espace
                   </Link>
                   <Link
                     href="/settings"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-medium text-slate-700 hover:text-slate-900"
+                    className="text-base font-medium text-zinc-300 hover:text-white"
                   >
                     Paramètres
                   </Link>
@@ -265,14 +287,14 @@ export function MarketingNavbar() {
                       <Link
                         href="/admin/users"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="text-base font-medium text-slate-700 hover:text-slate-900"
+                        className="text-base font-medium text-zinc-300 hover:text-white"
                       >
                         Administration
                       </Link>
                       <Link
                         href="/admin/teams"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="text-base font-medium text-slate-700 hover:text-slate-900"
+                        className="text-base font-medium text-zinc-300 hover:text-white"
                       >
                         Équipes
                       </Link>
@@ -280,7 +302,7 @@ export function MarketingNavbar() {
                   )}
                   <button
                     onClick={handleLogout}
-                    className="text-left text-base font-medium text-red-600"
+                    className="text-left text-base font-medium text-red-400"
                   >
                     Déconnexion
                   </button>

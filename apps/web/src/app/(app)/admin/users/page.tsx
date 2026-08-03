@@ -290,7 +290,7 @@ export default function AdminUsersPage() {
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
             <p className="text-xs font-medium text-[var(--text-muted)]">
-              Membres d'équipes
+              Membres d&apos;équipes
             </p>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {teams.reduce((total, team) => total + team.members.length, 0)}
@@ -425,7 +425,7 @@ export default function AdminUsersPage() {
               <Users size={24} className="text-[var(--text-secondary)]" />
             </div>
             <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)]">
-              Aucune équipe pour l'instant
+              Aucune équipe pour l&apos;instant
             </h3>
             <p className="mt-2 text-sm text-[var(--text-secondary)]">
               Créez votre première équipe pour organiser vos développeurs.

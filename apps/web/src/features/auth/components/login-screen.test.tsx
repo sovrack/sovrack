@@ -10,6 +10,7 @@ vi.mock("@/features/auth/api/use-auth", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock }),
   usePathname: () => "/login",
+  useSearchParams: () => new URLSearchParams(""),
 }));
 vi.mock("@/shared/lib/api", () => ({
   getApiErrorMessage: (e: unknown) => (e as Error)?.message ?? "",
