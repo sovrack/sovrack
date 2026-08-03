@@ -170,8 +170,15 @@ sonarqube:
   rules:
     - if: '$SONAR_TOKEN'
 
-# Auto-deploy to production (main branch only).
-# Requires SSH_PRIVATE_KEY and PRODUCTION_HOST to be set in CI/CD variables.
+# Auto-deploy to production (main branch only, triggered on merge/push).
+# Requirements in CI/CD variables:
+#   - PRODUCTION_HOST: hostname/IP of the VPS (ex. 137.74.168.240)
+#   - PRODUCTION_SSH_USER: ssh user (ex. ubuntu)
+#   - SSH_PRIVATE_KEY: private key authorized on the VPS for PRODUCTION_SSH_USER
+#   - REGISTRY_USER / REGISTRY_PASSWORD: GitLab deploy token with read_registry
+#     (or reuse CI_REGISTRY_USER/CI_REGISTRY_PASSWORD when scoped accordingly)
+# The stack lives in /data/instances/app (compose project "da-app") and pulls
+# the images pushed by build:image from the GitLab Container Registry.
 deploy:production:
   stage: build
   image: alpine:3
@@ -188,16 +195,16 @@ deploy:production:
     - chmod 700 ~/.ssh
     - ssh-keyscan -H "$PRODUCTION_HOST" >> ~/.ssh/known_hosts 2>/dev/null
   script:
-    - ssh "deploy@$PRODUCTION_HOST" "
-        cd /opt/deploy-automation &&
-        export IMAGE_TAG=$CI_COMMIT_SHORT_SHA &&
-        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
-        git pull &&
-        ./update.sh
+    - ssh "${PRODUCTION_SSH_USER:-ubuntu}@$PRODUCTION_HOST" "
+        cd /data/instances/app &&
+        printf '%s' '$REGISTRY_PASSWORD' | sudo docker login ${CI_REGISTRY:-registry.gitlab.com} -u $REGISTRY_USER --password-stdin &&
+        sudo docker compose pull &&
+        sudo docker compose up -d &&
+        sudo docker exec da-nginx nginx -s reload 2>/dev/null || true
       "
   rules:
     - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
-      when: manual
+      when: on_success
     - when: never
 
 # Trivy filesystem scan (dependencies + IaC).
