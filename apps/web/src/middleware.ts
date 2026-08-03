@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 const AUTH_COOKIE_NAME = "deploy_automation_token";
 
 const PUBLIC_PATHS = [
+  "/",
   "/login",
   "/register",
   "/pricing",
