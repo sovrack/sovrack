@@ -219,7 +219,7 @@ describe('AuthService', () => {
         email: dto.email,
         password: dto.password,
         fullName: dto.fullName,
-        role: 'DEVELOPER',
+        role: 'ADMIN',
       });
       expect(teamsService.create).toHaveBeenCalledWith(
         { name: 'New Team' },
