@@ -236,6 +236,106 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Philosophie ── */}
+      <section className="py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <h2 className="text-center text-3xl font-bold">Notre philosophie</h2>
+          <p className="mx-auto mt-4 max-w-xl text-center text-slate-500">
+            Un service simple, transparent, sans pièges.
+          </p>
+          <div className="mt-16 grid gap-8 md:grid-cols-2">
+            {[
+              {
+                title: "La complexité ailleurs, la simplicité ici",
+                desc: "Vous voulez déployer, pas administrer un serveur. Sovrack automatise tout le reste : provisionnement, SSL, sauvegardes, surveillance.",
+                icon: (
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                ),
+              },
+              {
+                title: "Des prix clairs, sans surprise",
+                desc: "Un abonnement mensuel, tout inclus : infrastructure, SSL, sauvegardes, monitoring. Vous savez ce que vous payez, chaque mois.",
+                icon: (
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                ),
+              },
+              {
+                title: "Vos données vous appartiennent",
+                desc: "Serveurs et instances isolés, sauvegardes exportables, aucune revente de données. Vous pouvez partir quand vous voulez.",
+                icon: (
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                ),
+              },
+              {
+                title: "Amélioré en continu",
+                desc: "Chaque retour utilisateur alimente nos prochaines versions. L'état du service est public sur notre page de statut.",
+                icon: (
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                ),
+              },
+            ].map((p) => (
+              <div key={p.title} className="rounded-2xl border border-slate-100 bg-white p-8">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  {p.icon}
+                </div>
+                <h3 className="mt-6 text-lg font-semibold">{p.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                  {p.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Documentation ── */}
+      <section className="border-y border-slate-100 bg-slate-50/50 py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <h2 className="text-3xl font-bold">Documentation</h2>
+              <p className="mt-4 max-w-lg text-slate-500">
+                Tout est documenté, pas à pas : guide de démarrage, guides par
+                technologie et référence API.
+              </p>
+              <ul className="mt-8 space-y-4">
+                {[
+                  "Guide de démarrage : créez votre compte et déployez en 2 minutes",
+                  "Guides par technologie : Node.js, Next.js, Python, PHP, bases de données",
+                  "Référence API et webhooks pour vos pipelines CI/CD",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm text-slate-600">
+                    <svg className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-8 flex flex-wrap gap-4">
+                <Link href="/docs" className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700">
+                  Voir la documentation
+                </Link>
+                <Link href="/register" className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                  Commencer maintenant
+                </Link>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-900 p-6 font-mono text-sm shadow-xl">
+              <div className="flex gap-1.5 pb-4">
+                <span className="h-3 w-3 rounded-full bg-red-400" />
+                <span className="h-3 w-3 rounded-full bg-yellow-400" />
+                <span className="h-3 w-3 rounded-full bg-green-400" />
+              </div>
+              <p className="text-slate-400">$ sovrack deploy --app mon-app</p>
+              <p className="mt-2 text-slate-400">→ Provisionnement du serveur…</p>
+              <p className="text-green-400">✓ Serveur prêt (Docker, SSL, réseau)</p>
+              <p className="text-slate-400">→ Déploiement de votre application…</p>
+              <p className="text-green-400">✓ Monitoring et sauvegardes actifs</p>
+              <p className="mt-2 text-blue-400">✓ En ligne : https://mon-app.sovrack.tn</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ── */}
       <section className="py-24">
         <div className="mx-auto max-w-3xl px-6">
@@ -246,12 +346,12 @@ export default function LandingPage() {
             {faq.map((item) => (
               <details
                 key={item.q}
-                className="group rounded-xl border border-slate-100 bg-white p-5"
+                className="group rounded-2xl border border-slate-200 bg-white px-6 py-5"
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between font-semibold">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-slate-900">
                   {item.q}
                   <svg
-                    className="h-5 w-5 text-slate-400 transition group-open:rotate-180"
+                    className="h-5 w-5 shrink-0 text-slate-400 transition group-open:rotate-45"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -260,7 +360,7 @@ export default function LandingPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
+                      d="M12 4v16m8-8H4"
                     />
                   </svg>
                 </summary>
@@ -273,22 +373,28 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA final ── */}
-      <section className="border-t border-slate-100 bg-gradient-to-b from-slate-50 to-white py-24">
+      {/* ── CTA ── */}
+      <section className="bg-gradient-to-br from-blue-600 to-indigo-700 py-24">
         <div className="mx-auto max-w-3xl px-6 text-center">
-          <h2 className="text-3xl font-bold sm:text-4xl">
-            Prêt à déployer en un clic ?
+          <h2 className="text-3xl font-bold text-white">
+            Prêt à déployer votre première application ?
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-slate-500">
-            Créez votre compte gratuitement et déployez votre première
-            application en moins de 2 minutes.
+          <p className="mt-4 text-lg text-blue-100">
+            Créez votre compte gratuitement et déployez en 2 minutes. Sans carte
+            bancaire. Sans engagement.
           </p>
-          <div className="mt-8">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/register"
-              className="rounded-xl bg-blue-600 px-10 py-4 text-base font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700"
+              className="rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50"
             >
-              Commencer gratuitement
+              Créer mon compte gratuit
+            </Link>
+            <Link
+              href="/pricing"
+              className="rounded-xl border border-blue-400 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-blue-500"
+            >
+              Comparer les offres
             </Link>
           </div>
         </div>
