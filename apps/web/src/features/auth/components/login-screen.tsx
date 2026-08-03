@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { useAuth } from "@/features/auth/api/use-auth";
@@ -10,6 +10,7 @@ import { getApiErrorMessage } from "@/shared/lib/api";
 
 export function LoginScreen() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -23,7 +24,8 @@ export function LoginScreen() {
     setLoading(true);
     try {
       await login(email, password);
-      router.replace("/dashboard");
+      const next = searchParams.get("next") || "/dashboard";
+      router.replace(next);
     } catch (err: unknown) {
       setError(
         getApiErrorMessage(err) ||

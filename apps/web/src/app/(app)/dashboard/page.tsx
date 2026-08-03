@@ -82,7 +82,6 @@ export default function DashboardPage() {
     refetchInterval: 60_000,
   });
 
-  // Déploiements récents (tous statuts) — vue actionnable sur l'accueil.
   const { data: recentDeployments } = useQuery({
     queryKey: ["dashboard-recent-deployments"],
     queryFn: () => deploymentsService.getAll(),
@@ -105,42 +104,42 @@ export default function DashboardPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Home"
-        title={`Welcome, ${user?.fullName ?? "Admin"}`}
-        description="Overview of your projects and deployment activity."
+        eyebrow="Accueil"
+        title={`Bienvenue, ${user?.fullName ?? "Administrateur"}`}
+        description="Vue d'ensemble de vos projets et de l'activité de déploiement."
         actions={
           <div className="flex items-center gap-2">
             <Link
               href="/projects"
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
             >
-              Projects <ArrowRight size={14} />
+              Projets <ArrowRight size={14} />
             </Link>
           </div>
         }
       />
 
       {queryError && (
-        <Alert tone="error" title="Unable to load dashboard data">
+        <Alert tone="error" title="Impossible de charger les données du tableau de bord">
           {queryError}
         </Alert>
       )}
 
-      {/* Alerts banners */}
+      {/* Bannières d'alerte */}
       {kpis && kpis.runningCount > 0 && (
         <div className="flex items-center gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
           <Zap size={15} className="shrink-0 text-blue-400 animate-pulse" />
           <p className="text-sm text-[var(--text-secondary)]">
             <span className="font-semibold text-blue-400">
-              {kpis.runningCount} deployment{kpis.runningCount > 1 ? "s" : ""}{" "}
-              running
+              {kpis.runningCount} déploiement{kpis.runningCount > 1 ? "s" : ""}{" "}
+              en cours
             </span>{" "}
             —{" "}
             <Link
               href="/deployments"
               className="underline hover:text-[var(--text-primary)]"
             >
-              Monitor
+              Surveiller
             </Link>
           </p>
         </div>
@@ -150,8 +149,8 @@ export default function DashboardPage() {
           <AlertTriangle size={15} className="mt-0.5 shrink-0 text-red-400" />
           <div className="text-sm text-[var(--text-secondary)]">
             <span className="font-semibold text-red-400">
-              {data.recentFailures.length} recent failure
-              {data.recentFailures.length > 1 ? "s" : ""}
+              {data.recentFailures.length} échec{data.recentFailures.length > 1 ? "s" : ""}{" "}
+              récent{data.recentFailures.length > 1 ? "s" : ""}
             </span>{" "}
             — {data.recentFailures[0].projectName} ·{" "}
             {data.recentFailures[0].environmentName} ·{" "}
@@ -160,36 +159,36 @@ export default function DashboardPage() {
               href={`/deployments?logs=${data.recentFailures[0].id}`}
               className="underline hover:text-[var(--text-primary)]"
             >
-              view
+              voir
             </Link>
           </div>
         </div>
       )}
 
-      {/* Quick actions (admin) */}
+      {/* Actions rapides (admin) */}
       {isAdmin && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             {
-              label: "New project",
+              label: "Nouveau projet",
               icon: <Plus size={15} />,
               href: "/projects?dialog=create-project",
               primary: true,
             },
             {
-              label: "Deployments",
+              label: "Déploiements",
               icon: <Rocket size={15} />,
               href: "/deployments",
               primary: false,
             },
             {
-              label: "Projects",
+              label: "Projets",
               icon: <GitBranch size={15} />,
               href: "/projects",
               primary: false,
             },
             {
-              label: "Servers",
+              label: "Serveurs",
               icon: <Server size={15} />,
               href: "/admin/servers",
               primary: false,
@@ -211,7 +210,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* KPI row */}
+      {/* Ligne KPI */}
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -224,53 +223,53 @@ export default function DashboardPage() {
       ) : kpis ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard
-            title="Projects"
+            title="Projets"
             value={kpis.totalProjects}
-            subtitle={`${kpis.totalEnvironments} environments`}
+            subtitle={`${kpis.totalEnvironments} environnements`}
           />
           <KpiCard
-            title="Deploys / 7d"
+            title="Déploiements / 7j"
             value={kpis.deploymentsLast7d}
-            subtitle={`${kpis.deploymentsLast30d} this month`}
+            subtitle={`${kpis.deploymentsLast30d} ce mois`}
           />
           <KpiCard
-            title="Success rate"
+            title="Taux de réussite"
             value={kpis.deploymentsLast7d > 0 ? `${kpis.successRate7d}%` : "—"}
-            subtitle="last 7 days"
+            subtitle="sur 7 jours"
             icon={<CheckCircle2 size={11} />}
             tone={successRateTone}
           />
           <KpiCard
-            title="Avg duration"
+            title="Durée moyenne"
             value={formatDuration(kpis.avgDurationSeconds)}
-            subtitle="per deployment (30d)"
+            subtitle="par déploiement (30j)"
             icon={<Clock size={11} />}
           />
         </div>
       ) : null}
 
-      {/* Status summary + Activity chart */}
+      {/* Résumé statut + Graphique activité */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        {/* Status card */}
+        {/* Carte statut */}
         {kpis && (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
             <p className="mb-3 text-sm font-semibold text-[var(--text-primary)]">
-              Current status
+              Statut actuel
             </p>
             <ul className="space-y-2.5">
               {[
                 {
-                  label: "Running",
+                  label: "En cours",
                   value: kpis.runningCount,
                   color: "bg-blue-400",
                 },
                 {
-                  label: "Failures (7d)",
+                  label: "Échecs (7j)",
                   value: kpis.failedCount,
                   color: "bg-red-400",
                 },
                 {
-                  label: "Idle projects",
+                  label: "Projets inactifs",
                   value: kpis.idleProjectsCount,
                   color: "bg-zinc-500",
                 },
@@ -292,7 +291,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Activity chart */}
+        {/* Graphique activité */}
         <div className="lg:col-span-2">
           {data?.activity ? (
             <ActivityChart data={data.activity} />
@@ -302,7 +301,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Top projects + Server health */}
+      {/* Top projets + Santé serveurs */}
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {data?.topProjects && data.topProjects.length > 0 && (
           <TopProjectsCard projects={data.topProjects} />
@@ -312,18 +311,18 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Recent deployments (all statuses) */}
+      {/* Déploiements récents (tous statuts) */}
       {recentDeployments && recentDeployments.length > 0 && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
           <div className="mb-3 flex items-center justify-between">
             <p className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-              <Rocket size={14} /> Recent deployments
+              <Rocket size={14} /> Déploiements récents
             </p>
             <Link
               href="/deployments"
               className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
-              view all →
+              tout voir →
             </Link>
           </div>
           <ul className="space-y-2">
@@ -354,14 +353,14 @@ export default function DashboardPage() {
                         rel="noreferrer"
                         className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                       >
-                        open ↗
+                        ouvrir ↗
                       </a>
                     )}
                     <Link
                       href={`/deployments?logs=${d.id}`}
                       className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     >
-                      view →
+                      voir →
                     </Link>
                   </span>
                 </li>
@@ -371,12 +370,12 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Recent failures detail */}
+      {/* Détail échecs récents */}
       {data && data.recentFailures.length > 1 && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
           <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
             <AlertTriangle size={14} className="text-red-400" />
-            Failed deployments — last 7 days
+            Échecs de déploiement — 7 derniers jours
           </p>
           <ul className="space-y-2">
             {data.recentFailures.map((f) => (
@@ -405,7 +404,7 @@ export default function DashboardPage() {
                     href={`/deployments?logs=${f.id}`}
                     className="text-xs font-semibold text-red-400 hover:underline"
                   >
-                    view →
+                    voir →
                   </Link>
                 </div>
               </li>
