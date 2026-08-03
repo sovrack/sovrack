@@ -11,7 +11,7 @@ export default function AccessDeniedPage() {
           Accès refusé
         </h1>
         <p className="mt-3 text-sm text-[var(--text-secondary)]">
-          Vous n'avez pas la permission d'accéder à cette section. Contactez un
+          Vous n&apos;avez pas la permission d&apos;accéder à cette section. Contactez un
           administrateur si nécessaire.
         </p>
         <div className="mt-6 flex justify-center gap-3">

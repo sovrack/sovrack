@@ -4,8 +4,8 @@ import { Providers } from "@/shared/providers";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "Deploy Automation",
-  description: "Deployment automation platform",
+  title: "Sovrack",
+  description: "Plateforme de déploiement automatisé",
 };
 
 export const viewport = {
@@ -36,7 +36,7 @@ export default function RootLayout({
   `;
 
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="fr" className="dark" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
