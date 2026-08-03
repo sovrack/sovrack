@@ -10,8 +10,25 @@ import { useAuthStore } from "@/stores/auth.store";
 
 const LOGIN_ROUTE = "/login";
 
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/register",
+  "/pricing",
+  "/docs",
+  "/status",
+  "/legal",
+  "/super_admin/login",
+];
+
 function isLoginPath(pathname: string): boolean {
   return pathname.startsWith("/login") || pathname.startsWith("/auth/login");
+}
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
 }
 
 export function AuthSessionManager({
@@ -33,7 +50,7 @@ export function AuthSessionManager({
     const handleUnauthorized = () => {
       clearAuth();
 
-      if (pathname && !isLoginPath(pathname)) {
+      if (pathname && !isLoginPath(pathname) && !isPublicPath(pathname)) {
         const nextPath = `${window.location.pathname}${window.location.search}`;
         router.replace(`${LOGIN_ROUTE}?next=${encodeURIComponent(nextPath)}`);
       }

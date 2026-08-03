@@ -31,6 +31,10 @@ export default function SuperAdminLayout({
   const router = useRouter();
   const { user, isSuperAdmin, logout } = useAuth();
 
+  if (pathname === "/super_admin/login") {
+    return <>{children}</>;
+  }
+
   if (!user) {
     router.replace("/super_admin/login");
     return null;
