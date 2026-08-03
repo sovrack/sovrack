@@ -3,7 +3,19 @@ import type { NextRequest } from "next/server";
 
 const AUTH_COOKIE_NAME = "deploy_automation_token";
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/register",
+  "/pricing",
+  "/docs",
+  "/status",
+  "/legal",
+  "/super_admin/login",
+];
+
+const AUTHENTICATED_REDIRECT = "/dashboard";
+
 const LEGACY_LOGIN_ALIASES = [
   "/auth/login",
   "/auth/login/admin",
@@ -16,6 +28,20 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
+}
+
+function parseJwtPayload(token: string): { role?: string } | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  try {
+    const decoded = Buffer.from(parts[1], "base64url").toString("utf-8");
+    return JSON.parse(decoded) as { role?: string };
+  } catch {
+    return null;
+  }
 }
 
 function parseJwtExpiration(token: string): number | null {
@@ -78,6 +104,17 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
+  // Back-office : réservé au rôle SUPER_ADMIN.
+  if (pathname.startsWith("/super_admin") && pathname !== "/super_admin/login") {
+    const payload = token ? parseJwtPayload(token) : null;
+    const isSuperAdmin = payload?.role === "SUPER_ADMIN";
+
+    if (!token || !isSuperAdmin) {
+      return NextResponse.redirect(new URL("/super_admin/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
   if (!token && !isPublicPath(pathname)) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
@@ -85,7 +122,20 @@ export function middleware(request: NextRequest) {
   }
 
   if (token && isPublicPath(pathname)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    // Les utilisateurs connectés sont renvoyés vers le dashboard depuis les
+    // pages marketing (sauf depuis le status/legal qui restent consultables).
+    if (
+      pathname === "/" ||
+      pathname === "/pricing" ||
+      pathname === "/login" ||
+      pathname === "/register" ||
+      LEGACY_LOGIN_ALIASES.includes(pathname)
+    ) {
+      return NextResponse.redirect(
+        new URL(AUTHENTICATED_REDIRECT, request.url),
+      );
+    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();

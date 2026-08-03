@@ -109,15 +109,14 @@ export default function AdminUsersPage() {
 
   const handleUserCreated = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-    showToast("User created successfully", "success");
+    showToast("Utilisateur créé avec succès", "success");
   }, [queryClient, showToast]);
 
   const handleTeamCreated = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["admin-teams"] });
-    showToast("Team created successfully", "success");
+    showToast("Équipe créée avec succès", "success");
   }, [queryClient, showToast]);
 
-  // Redirection si non-admin
   if (!authLoading && !isAdmin) {
     router.replace("/access-denied");
   }
@@ -155,8 +154,8 @@ export default function AdminUsersPage() {
       await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       showToast(
         updated.isActive
-          ? "User activated successfully"
-          : "User deactivated successfully",
+          ? "Utilisateur activé avec succès"
+          : "Utilisateur désactivé avec succès",
         "success",
       );
     } catch (toggleError) {
@@ -168,7 +167,7 @@ export default function AdminUsersPage() {
 
   const handleDelete = (target: UserListItem) => {
     if (target.id === currentUser?.id) {
-      showToast("You cannot delete your own account", "error");
+      showToast("Vous ne pouvez pas supprimer votre propre compte", "error");
       return;
     }
     setConfirmUser(target);
@@ -181,7 +180,7 @@ export default function AdminUsersPage() {
     try {
       await usersService.delete(confirmUser.id);
       await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      showToast("User deleted successfully", "success");
+      showToast("Utilisateur supprimé avec succès", "success");
     } catch (deleteError) {
       showToast(getApiErrorMessage(deleteError), "error");
     } finally {
@@ -200,7 +199,7 @@ export default function AdminUsersPage() {
     try {
       await teamsService.remove(confirmTeam.id);
       await queryClient.invalidateQueries({ queryKey: ["admin-teams"] });
-      showToast("Team deleted successfully", "success");
+      showToast("Équipe supprimée avec succès", "success");
     } catch (deleteError) {
       showToast(getApiErrorMessage(deleteError), "error");
     } finally {
@@ -225,8 +224,8 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Administration"
-        title="Users & Teams"
-        description="Manage users and teams from a single page."
+        title="Utilisateurs & Équipes"
+        description="Gérez les utilisateurs et les équipes depuis une seule page."
         actions={
           <>
             <button
@@ -235,7 +234,7 @@ export default function AdminUsersPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:bg-[var(--text-primary)]"
             >
               <Plus size={16} />
-              Create user
+              Créer un utilisateur
             </button>
             <button
               type="button"
@@ -243,7 +242,7 @@ export default function AdminUsersPage() {
               className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] shadow transition hover:bg-[var(--hover)]"
             >
               <Plus size={16} />
-              Create team
+              Créer une équipe
             </button>
           </>
         }
@@ -271,7 +270,7 @@ export default function AdminUsersPage() {
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
             <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]">
               <Users size={14} />
-              Active developers
+              Développeurs actifs
             </div>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {
@@ -283,7 +282,7 @@ export default function AdminUsersPage() {
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
             <p className="text-xs font-medium text-[var(--text-muted)]">
-              Total teams
+              Total équipes
             </p>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {teams.length}
@@ -291,7 +290,7 @@ export default function AdminUsersPage() {
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
             <p className="text-xs font-medium text-[var(--text-muted)]">
-              Team members
+              Membres d&apos;équipes
             </p>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {teams.reduce((total, team) => total + team.members.length, 0)}
@@ -323,8 +322,8 @@ export default function AdminUsersPage() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by name or email..."
-              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] pl-10 pr-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100 bg-[var(--bg-card)]"
+              placeholder="Rechercher par nom ou email..."
+              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] pl-10 pr-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-[var(--primary)] bg-[var(--bg-card)]"
             />
           </label>
 
@@ -333,9 +332,9 @@ export default function AdminUsersPage() {
             onChange={(event) =>
               setRoleFilter(event.target.value as RoleFilter)
             }
-            className="h-11 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100 bg-[var(--bg-card)]"
+            className="h-11 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-[var(--primary)] bg-[var(--bg-card)]"
           >
-            <option value="ALL">All roles</option>
+            <option value="ALL">Tous les rôles</option>
             <option value="ADMIN">ADMIN</option>
             <option value="DEVELOPER">DEVELOPER</option>
           </select>
@@ -356,10 +355,10 @@ export default function AdminUsersPage() {
               <Users size={24} className="text-[var(--text-secondary)]" />
             </div>
             <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)]">
-              No users found
+              Aucun utilisateur trouvé
             </h3>
             <p className="mt-2 text-sm text-[var(--text-secondary)]">
-              Adjust your search or create a new account.
+              Ajustez votre recherche ou créez un nouveau compte.
             </p>
           </div>
         ) : (
@@ -374,13 +373,13 @@ export default function AdminUsersPage() {
                     Email
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                    Role
+                    Rôle
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                    Status
+                    Statut
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                    Created at
+                    Créé le
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                     Actions
@@ -410,7 +409,7 @@ export default function AdminUsersPage() {
         />
       </SectionCard>
 
-      <SectionCard title="Teams" contentClassName="!p-5 sm:!p-6">
+      <SectionCard title="Équipes" contentClassName="!p-5 sm:!p-6">
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((index) => (
@@ -426,10 +425,10 @@ export default function AdminUsersPage() {
               <Users size={24} className="text-[var(--text-secondary)]" />
             </div>
             <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)]">
-              No teams yet
+              Aucune équipe pour l&apos;instant
             </h3>
             <p className="mt-2 text-sm text-[var(--text-secondary)]">
-              Create your first team to organize your developers.
+              Créez votre première équipe pour organiser vos développeurs.
             </p>
             <button
               type="button"
@@ -437,7 +436,7 @@ export default function AdminUsersPage() {
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)]"
             >
               <Plus size={16} />
-              Create team
+              Créer une équipe
             </button>
           </div>
         ) : (
@@ -485,7 +484,7 @@ export default function AdminUsersPage() {
                           className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] text-[var(--text-primary)]"
                         >
                           <Pencil size={13} />
-                          Manage
+                          Gérer
                         </Link>
                         <button
                           type="button"
@@ -498,7 +497,7 @@ export default function AdminUsersPage() {
                           ) : (
                             <Trash2 size={13} />
                           )}
-                          Delete
+                          Supprimer
                         </button>
                       </div>
                     </td>
@@ -512,10 +511,10 @@ export default function AdminUsersPage() {
 
       <ConfirmDialog
         open={Boolean(confirmUser)}
-        title={`Delete l'utilisateur "${confirmUser?.fullName ?? ""}"`}
-        description="This action cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={`Supprimer l'utilisateur "${confirmUser?.fullName ?? ""}"`}
+        description="Cette action est irréversible."
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
         loading={Boolean(deletingUserId)}
         onConfirm={() => void confirmDelete()}
         onCancel={() => setConfirmUser(null)}
@@ -523,10 +522,10 @@ export default function AdminUsersPage() {
 
       <ConfirmDialog
         open={Boolean(confirmTeam)}
-        title={`Delete team "${confirmTeam?.name ?? ""}"`}
-        description="This action cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={`Supprimer l'équipe "${confirmTeam?.name ?? ""}"`}
+        description="Cette action est irréversible."
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
         loading={Boolean(deletingTeamId)}
         onConfirm={() => void confirmDeleteTeam()}
         onCancel={() => setConfirmTeam(null)}
@@ -550,8 +549,8 @@ export default function AdminUsersPage() {
             key={toast.id}
             className={`pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${
               toast.tone === "success"
-                ? "bg-green-500/10 text-[var(--bg-app)]"
-                : "bg-red-500/10 text-[var(--bg-app)]"
+                ? "bg-emerald-500 text-white"
+                : "bg-red-500 text-white"
             }`}
           >
             {toast.message}

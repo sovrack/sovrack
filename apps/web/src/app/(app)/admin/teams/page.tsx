@@ -37,12 +37,12 @@ export default function AdminTeamsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Admin"
-        title="Teams"
-        description="Organize users into teams to manage project access."
+        eyebrow="Administration"
+        title="Équipes"
+        description="Organisez les utilisateurs en équipes pour gérer les accès aux projets."
         actions={
           <Button onClick={() => setDialogOpen(true)} icon={<Plus size={14} />}>
-            Create team
+            Créer une équipe
           </Button>
         }
       />
@@ -58,20 +58,20 @@ export default function AdminTeamsPage() {
       ) : teams.length === 0 ? (
         <EmptyState
           icon={Users2}
-          title="No teams"
-          description="Create your first team to group users and manage access in bulk."
+          title="Aucune équipe"
+          description="Créez votre première équipe pour grouper les utilisateurs et gérer les accès en lot."
           action={
             <Button
               onClick={() => setDialogOpen(true)}
               icon={<Plus size={14} />}
             >
-              Create team
+              Créer une équipe
             </Button>
           }
         />
       ) : (
         <SectionCard
-          title={`${teams.length} team${teams.length > 1 ? "s" : ""}`}
+          title={`${teams.length} équipe${teams.length > 1 ? "s" : ""}`}
           contentClassName="space-y-2"
         >
           {teams.map((team) => (
@@ -91,8 +91,7 @@ export default function AdminTeamsPage() {
                   )}
                 </div>
                 <span className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
-                  {team.members.length} membre
-                  {team.members.length > 1 ? "s" : ""}
+                  {team.members.length} membre{team.members.length > 1 ? "s" : ""}
                 </span>
               </div>
             </div>

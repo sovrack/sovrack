@@ -83,7 +83,7 @@ export default function EditUserPage({ params }: Props) {
           lastName,
           email: user.email,
           password: "",
-          role: user.role,
+          role: user.role === "DEVELOPER" ? "DEVELOPER" : "ADMIN",
           isActive: user.isActive,
         });
       } catch (fetchError) {

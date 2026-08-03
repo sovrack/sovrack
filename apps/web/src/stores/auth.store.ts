@@ -11,6 +11,7 @@ type AuthState = {
   error: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   initialized: boolean;
 };
 
@@ -19,6 +20,12 @@ type AuthActions = {
   clearAuth: () => void;
   clearError: () => void;
   login: (email: string, password: string) => Promise<void>;
+  register: (input: {
+    email: string;
+    password: string;
+    fullName: string;
+    teamName: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   initialize: () => Promise<void>;
@@ -32,6 +39,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       error: null,
       isAuthenticated: false,
       isAdmin: false,
+      isSuperAdmin: false,
       initialized: false,
 
       setUser: (user) =>
@@ -41,6 +49,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           error: null,
           isAuthenticated: !!user,
           isAdmin: user?.role === "ADMIN",
+          isSuperAdmin: user?.role === "SUPER_ADMIN",
           initialized: true,
         }),
 
@@ -51,6 +60,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           error: null,
           isAuthenticated: false,
           isAdmin: false,
+          isSuperAdmin: false,
           initialized: true,
         }),
 
@@ -66,6 +76,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: null,
             isAuthenticated: true,
             isAdmin: response.data.role === "ADMIN",
+            isSuperAdmin: response.data.role === "SUPER_ADMIN",
             initialized: true,
           });
         } catch (error) {
@@ -76,6 +87,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: getApiErrorMessage(error),
             isAuthenticated: false,
             isAdmin: false,
+            isSuperAdmin: false,
             initialized: true,
           });
         }
@@ -96,6 +108,41 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: null,
             isAuthenticated: true,
             isAdmin: response.data.user.role === "ADMIN",
+            isSuperAdmin: response.data.user.role === "SUPER_ADMIN",
+            initialized: true,
+          });
+        } catch (error) {
+          set({
+            loading: false,
+            error: getApiErrorMessage(error),
+          });
+          throw error;
+        }
+      },
+
+      register: async (input: {
+        email: string;
+        password: string;
+        fullName: string;
+        teamName: string;
+      }) => {
+        set({ loading: true, error: null });
+
+        try {
+          const response = await api.post<LoginResponse>("/auth/register", {
+            email: input.email,
+            password: input.password,
+            fullName: input.fullName,
+            teamName: input.teamName,
+          });
+
+          set({
+            user: response.data.user,
+            loading: false,
+            error: null,
+            isAuthenticated: true,
+            isAdmin: response.data.user.role === "ADMIN",
+            isSuperAdmin: response.data.user.role === "SUPER_ADMIN",
             initialized: true,
           });
         } catch (error) {
@@ -120,6 +167,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: null,
             isAuthenticated: false,
             isAdmin: false,
+            isSuperAdmin: false,
             initialized: true,
           });
         }

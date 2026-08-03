@@ -9,6 +9,8 @@ vi.mock("@/features/auth/api/use-auth", () => ({
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock }),
+  usePathname: () => "/login",
+  useSearchParams: () => new URLSearchParams(""),
 }));
 vi.mock("@/shared/lib/api", () => ({
   getApiErrorMessage: (e: unknown) => (e as Error)?.message ?? "",
@@ -23,13 +25,13 @@ describe("LoginScreen (auth critical path)", () => {
   });
 
   const fillAndSubmit = (email: string, password: string) => {
-    fireEvent.change(screen.getByPlaceholderText("you@company.com"), {
+    fireEvent.change(screen.getByPlaceholderText("vous@entreprise.com"), {
       target: { value: email },
     });
-    fireEvent.change(screen.getByPlaceholderText("Enter your password"), {
+    fireEvent.change(screen.getByPlaceholderText("Votre mot de passe"), {
       target: { value: password },
     });
-    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    fireEvent.click(screen.getByRole("button", { name: /se connecter/i }));
   };
 
   it("submits credentials and redirects to /dashboard on success", async () => {
