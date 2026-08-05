@@ -12,5 +12,6 @@ UPDATE "User" SET "role" = 'MEMBER' WHERE "role" = 'DEVELOPER';
 
 ALTER TABLE "User" ALTER COLUMN "role" SET DEFAULT 'MEMBER';
 
-ALTER TYPE "Role" DROP VALUE IF EXISTS 'ADMIN';
-ALTER TYPE "Role" DROP VALUE IF EXISTS 'DEVELOPER';
+-- Les anciennes valeurs (ADMIN / DEVELOPER) restent présentes dans l'enum :
+-- PostgreSQL 16 (build VPS) rejette `ALTER TYPE ... DROP VALUE` (syntaxe).
+-- Inoffensif : plus aucune donnée ne les référence.
