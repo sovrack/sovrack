@@ -88,6 +88,44 @@ build:image:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
+# Auto-deploy to production (main branch only, triggered on merge/push).
+# CI/CD variables: PRODUCTION_HOST, PRODUCTION_SSH_USER, SSH_PRIVATE_KEY,
+# REGISTRY_USER, REGISTRY_PASSWORD.
+# Requirements in CI/CD variables:
+#   - PRODUCTION_HOST: hostname/IP of the VPS (ex. 137.74.168.240)
+#   - PRODUCTION_SSH_USER: ssh user (ex. ubuntu)
+#   - SSH_PRIVATE_KEY: private key authorized on the VPS for PRODUCTION_SSH_USER
+#   - REGISTRY_USER / REGISTRY_PASSWORD: GitLab deploy token with read_registry
+# The stack lives in /data/instances/app (compose project "da-app") and pulls
+# the frontend image pushed by build:image from the GitLab Container Registry.
+deploy:production:
+  stage: build
+  image: alpine:3
+  needs:
+    - job: build:image
+      artifacts: false
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+    - apk add --no-cache openssh-client docker-cli
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H "$PRODUCTION_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+  script:
+    - ssh "${PRODUCTION_SSH_USER:-ubuntu}@$PRODUCTION_HOST" "
+        cd /data/instances/app &&
+        printf '%s' '$REGISTRY_PASSWORD' | sudo docker login ${CI_REGISTRY:-registry.gitlab.com} -u $REGISTRY_USER --password-stdin &&
+        sudo docker compose pull &&
+        sudo docker compose up -d &&
+        sudo docker exec da-nginx nginx -s reload 2>/dev/null || true
+      "
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
+      when: on_success
+    - when: never
+
 # ── Security & quality gates ────────────────────────────────────────────────
 
 # Dependency vulnerability gate: fail on any HIGH/CRITICAL advisory.

@@ -26,6 +26,8 @@ type AuthActions = {
     fullName: string;
     teamName: string;
   }) => Promise<void>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  resendCode: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   initialize: () => Promise<void>;
@@ -129,11 +131,30 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         set({ loading: true, error: null });
 
         try {
-          const response = await api.post<LoginResponse>("/auth/register", {
+          await api.post<{ email: string }>("/auth/register", {
             email: input.email,
             password: input.password,
             fullName: input.fullName,
             teamName: input.teamName,
+          });
+
+          set({ loading: false, error: null });
+        } catch (error) {
+          set({
+            loading: false,
+            error: getApiErrorMessage(error),
+          });
+          throw error;
+        }
+      },
+
+      verifyEmail: async (email: string, code: string) => {
+        set({ loading: true, error: null });
+
+        try {
+          const response = await api.post<LoginResponse>("/auth/verify-email", {
+            email,
+            code,
           });
 
           set({
@@ -141,10 +162,27 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.user.role === "OWNER" || response.data.user.role === "SUPER_ADMIN",
+            isAdmin:
+              response.data.user.role === "OWNER" ||
+              response.data.user.role === "SUPER_ADMIN",
             isSuperAdmin: response.data.user.role === "SUPER_ADMIN",
             initialized: true,
           });
+        } catch (error) {
+          set({
+            loading: false,
+            error: getApiErrorMessage(error),
+          });
+          throw error;
+        }
+      },
+
+      resendCode: async (email: string) => {
+        set({ loading: true, error: null });
+
+        try {
+          await api.post<{ email: string }>("/auth/resend-code", { email });
+          set({ loading: false, error: null });
         } catch (error) {
           set({
             loading: false,

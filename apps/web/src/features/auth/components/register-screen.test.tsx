@@ -2,10 +2,16 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const registerMock = vi.fn();
+const verifyEmailMock = vi.fn();
+const resendCodeMock = vi.fn();
 const replaceMock = vi.fn();
 
 vi.mock("@/features/auth/api/use-auth", () => ({
-  useAuth: () => ({ register: registerMock }),
+  useAuth: () => ({
+    register: registerMock,
+    verifyEmail: verifyEmailMock,
+    resendCode: resendCodeMock,
+  }),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock }),
@@ -20,6 +26,8 @@ import { RegisterScreen } from "./register-screen";
 describe("RegisterScreen (public signup)", () => {
   beforeEach(() => {
     registerMock.mockReset();
+    verifyEmailMock.mockReset();
+    resendCodeMock.mockReset();
     replaceMock.mockReset();
   });
 
@@ -39,7 +47,17 @@ describe("RegisterScreen (public signup)", () => {
     fireEvent.click(screen.getByRole("button", { name: /créer mon compte/i }));
   };
 
-  it("submits account + team and redirects to /dashboard on success", async () => {
+  const enterCode = (code: string) => {
+    const inputs = screen
+      .getAllByLabelText(/Chiffre \d/)
+      .slice(0, code.length);
+    code.split("").forEach((digit, index) => {
+      fireEvent.change(inputs[index], { target: { value: digit } });
+    });
+    fireEvent.click(screen.getByRole("button", { name: /vérifier et accéder/i }));
+  };
+
+  it("creates the account, then shows the code step instead of redirecting", async () => {
     registerMock.mockResolvedValue(undefined);
     render(<RegisterScreen />);
     fillAndSubmit();
@@ -52,7 +70,69 @@ describe("RegisterScreen (public signup)", () => {
         teamName: "Équipe John",
       }),
     );
+    await waitFor(() =>
+      expect(
+        screen.getByText("Vérifiez votre email"),
+      ).toBeInTheDocument(),
+    );
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it("verifies the code and redirects to /dashboard", async () => {
+    registerMock.mockResolvedValue(undefined);
+    verifyEmailMock.mockResolvedValue(undefined);
+    render(<RegisterScreen />);
+    fillAndSubmit();
+
+    await waitFor(() =>
+      expect(screen.getByText("Vérifiez votre email")).toBeInTheDocument(),
+    );
+    enterCode("123456");
+
+    await waitFor(() =>
+      expect(verifyEmailMock).toHaveBeenCalledWith("john@sovrack.tn", "123456"),
+    );
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/dashboard"));
+  });
+
+  it("shows an error when the code is wrong", async () => {
+    registerMock.mockResolvedValue(undefined);
+    verifyEmailMock.mockRejectedValue(new Error("Code de vérification invalide"));
+    render(<RegisterScreen />);
+    fillAndSubmit();
+
+    await waitFor(() =>
+      expect(screen.getByText("Vérifiez votre email")).toBeInTheDocument(),
+    );
+    enterCode("000000");
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Code de vérification invalide"),
+      ).toBeInTheDocument(),
+    );
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it("resends a code and confirms", async () => {
+    registerMock.mockResolvedValue(undefined);
+    resendCodeMock.mockResolvedValue(undefined);
+    render(<RegisterScreen />);
+    fillAndSubmit();
+
+    await waitFor(() =>
+      expect(screen.getByText("Vérifiez votre email")).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /renvoyer le code/i }));
+
+    await waitFor(() =>
+      expect(resendCodeMock).toHaveBeenCalledWith("john@sovrack.tn"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByText("Un nouveau code a été envoyé par email."),
+      ).toBeInTheDocument(),
+    );
   });
 
   it("shows an error and stays on the page when signup fails", async () => {
