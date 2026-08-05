@@ -127,7 +127,7 @@ function makeDeps(
   } as never;
 
   const authorizationService = {
-    getActor: jest.fn().mockResolvedValue({ id: 'user1', role: Role.ADMIN }),
+    getActor: jest.fn().mockResolvedValue({ id: 'user1', role: Role.OWNER }),
     assertCanDeployProject: jest.fn().mockResolvedValue(undefined),
     assertCanDeployToEnvironment: jest.fn().mockResolvedValue(undefined),
   } as never;
@@ -267,7 +267,7 @@ describe('DeploymentsCreateService', () => {
       expect(authorizationService.assertCanDeployProject).toHaveBeenCalledWith(
         'proj1',
         'user1',
-        Role.ADMIN,
+        Role.OWNER,
       );
     });
 
@@ -302,7 +302,7 @@ describe('DeploymentsCreateService', () => {
         'proj1',
         'main',
         'user1',
-        Role.ADMIN,
+        Role.OWNER,
       );
       expect(prisma.pipelineRun.upsert).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -27,7 +27,7 @@ class UpdatePlatformConfigDto {
 @ApiTags('Platform Config')
 @ApiBearerAuth()
 @Controller('admin/platform-config')
-@Roles(Role.ADMIN)
+@Roles(Role.SUPER_ADMIN)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PlatformController {
   constructor(private readonly platform: PlatformService) {}

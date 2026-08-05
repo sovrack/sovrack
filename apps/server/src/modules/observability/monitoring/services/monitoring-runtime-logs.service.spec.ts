@@ -61,7 +61,7 @@ describe('MonitoringRuntimeLogsService', () => {
   it('denies a non-member developer', async () => {
     const { service } = make(null);
     await expect(
-      service.searchServiceLogs('env-1', 'u2', Role.DEVELOPER, {}),
+      service.searchServiceLogs('env-1', 'u2', Role.MEMBER, {}),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -70,7 +70,7 @@ describe('MonitoringRuntimeLogsService', () => {
     const res = await service.searchServiceLogs(
       'env-1',
       'admin',
-      Role.ADMIN,
+      Role.SUPER_ADMIN,
       {},
     );
     expect(res.total).toBe(4);
@@ -80,7 +80,7 @@ describe('MonitoringRuntimeLogsService', () => {
 
   it('filters by text search (case-insensitive)', async () => {
     const { service } = make({ role: 'OWNER' });
-    const res = await service.searchServiceLogs('env-1', 'u1', Role.DEVELOPER, {
+    const res = await service.searchServiceLogs('env-1', 'u1', Role.MEMBER, {
       search: 'error',
     });
     expect(res.matched).toBe(1);
@@ -89,7 +89,7 @@ describe('MonitoringRuntimeLogsService', () => {
 
   it('filters by stream (stderr only)', async () => {
     const { service } = make({ role: 'OWNER' });
-    const res = await service.searchServiceLogs('env-1', 'u1', Role.DEVELOPER, {
+    const res = await service.searchServiceLogs('env-1', 'u1', Role.MEMBER, {
       stream: 'stderr',
     });
     expect(res.matched).toBe(2);
@@ -100,7 +100,7 @@ describe('MonitoringRuntimeLogsService', () => {
     const { service, prisma } = make({ role: 'OWNER' });
     prisma.container.findFirst.mockResolvedValue(null);
     await expect(
-      service.searchServiceLogs('env-1', 'u1', Role.DEVELOPER, {}),
+      service.searchServiceLogs('env-1', 'u1', Role.MEMBER, {}),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

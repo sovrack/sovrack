@@ -22,31 +22,31 @@ import { AutomationService } from '../services/automation.service';
 @ApiTags('Automation')
 @ApiBearerAuth()
 @Controller()
-@Roles(Role.ADMIN)
+@Roles(Role.SUPER_ADMIN)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AutomationController {
   constructor(private readonly automationService: AutomationService) {}
 
   @Get('automation/actions')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   getActions() {
     return this.automationService.getActions();
   }
 
   @Get('automation/runs')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   getRuns(@Query() pagination: AutomationPaginationDto) {
     return this.automationService.getRuns(pagination);
   }
 
   @Get('automation/runs/:id')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   getRun(@Param('id') id: string) {
     return this.automationService.getRun(id);
   }
 
   @Get('automation/runs/:id/logs')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   getRunLogs(@Param('id') id: string, @Query('afterLine') afterLine?: string) {
     const parsedAfterLine =
       afterLine && Number.isFinite(Number(afterLine))

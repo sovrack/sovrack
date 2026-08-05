@@ -44,7 +44,7 @@ export class DomainsController {
   }
 
   @Post('providers')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Create a DNS provider' })
   @ApiResponse({ status: 201, description: 'DNS provider created' })
@@ -53,7 +53,7 @@ export class DomainsController {
   }
 
   @Post('providers/:id/test')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Test a DNS provider' })
   @ApiResponse({ status: 201, description: 'DNS test result' })
@@ -72,7 +72,7 @@ export class DomainsController {
   }
 
   @Post('domains')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Add a DNS domain' })
   @ApiResponse({ status: 201, description: 'DNS domain created' })
@@ -81,7 +81,7 @@ export class DomainsController {
   }
 
   @Delete('domains/:id')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Delete a DNS domain' })
   async removeDomain(@Param('id') id: string) {
@@ -90,7 +90,7 @@ export class DomainsController {
   }
 
   @Post('domains/:id/verify')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Verify a DNS domain' })
   @ApiResponse({ status: 201, description: 'Domain verified' })
@@ -106,7 +106,7 @@ export class DomainsController {
   }
 
   @Post('domains/:domainId/records')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Create a DNS record' })
   @ApiResponse({ status: 201, description: 'DNS record created' })
@@ -118,7 +118,7 @@ export class DomainsController {
   }
 
   @Put('records/:recordId')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Update a DNS record' })
   @ApiResponse({ status: 200, description: 'DNS record updated' })
@@ -130,7 +130,7 @@ export class DomainsController {
   }
 
   @Delete('records/:recordId')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Delete a DNS record' })
   @ApiResponse({ status: 200, description: 'DNS record deleted' })

@@ -31,7 +31,7 @@ import { ContainerStatsService } from '../../../infrastructure/containers/servic
 @ApiBearerAuth()
 @Controller('monitoring')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.SUPER_ADMIN)
 export class MonitoringController {
   constructor(
     private readonly monitoringService: MonitoringService,
@@ -40,21 +40,21 @@ export class MonitoringController {
   ) {}
 
   @Get('overview')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Monitoring overview for platform operations' })
   async overview() {
     return await this.monitoringService.getOverview();
   }
 
   @Get('servers')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Server monitoring status and metric snapshots' })
   async servers() {
     return await this.monitoringService.getServerMonitoring();
   }
 
   @Get('projects')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({
     summary: 'Project monitoring linked to deployments/pipelines',
   })
@@ -63,21 +63,21 @@ export class MonitoringController {
   }
 
   @Get('deployments')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Deployment health and history monitoring' })
   async deployments() {
     return await this.monitoringService.getDeploymentMonitoring();
   }
 
   @Get('prometheus/status')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Prometheus connectivity and target status' })
   async prometheusStatus() {
     return await this.monitoringService.getPrometheusStatus();
   }
 
   @Get('servers/:host/metrics/range')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({
     summary:
       'Historical CPU/mem/disk time-series for a host (Prometheus range)',
@@ -95,7 +95,7 @@ export class MonitoringController {
   }
 
   @Get('services/:serviceEnvId/metrics/range')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({
     summary:
       'Historical CPU/memory time-series for a service-environment (Prometheus range)',
@@ -115,14 +115,14 @@ export class MonitoringController {
   }
 
   @Get('grafana/status')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Grafana connectivity and access status' })
   async grafanaStatus() {
     return await this.monitoringService.getGrafanaStatus();
   }
 
   @Get('services/:serviceEnvId/links')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({
     summary:
       'Monitoring links (Grafana/Prometheus/Loki) for the server hosting a service-environment',
@@ -138,7 +138,7 @@ export class MonitoringController {
   }
 
   @Get('alerts')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({
     summary: 'Monitoring alerts (Alertmanager or derived alerts)',
   })
@@ -169,7 +169,7 @@ export class MonitoringController {
   /* ── Container monitoring ────────────────────────────────────────────── */
 
   @Get('containers/deployment/:deploymentId')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get container stats and logs for a deployment' })
   async containerInfo(
     @Param('deploymentId') deploymentId: string,
@@ -181,7 +181,7 @@ export class MonitoringController {
   }
 
   @Get('containers/project/:projectId')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({
     summary: 'List running containers for a project on a server',
   })

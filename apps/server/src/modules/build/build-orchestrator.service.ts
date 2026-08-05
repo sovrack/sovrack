@@ -71,7 +71,7 @@ export class BuildOrchestratorService {
     userId: string,
     userRole: Role,
   ): Promise<void> {
-    if (userRole === Role.ADMIN) {
+    if (userRole === Role.SUPER_ADMIN) {
       return;
     }
 

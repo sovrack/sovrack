@@ -40,7 +40,7 @@ function makeDeps(
         })
       : jest
           .fn()
-          .mockReturnValue(opts.jwtPayload ?? { sub: 'user1', role: 'ADMIN' }),
+          .mockReturnValue(opts.jwtPayload ?? { sub: 'user1', role: 'OWNER' }),
   };
 
   const prisma = {
@@ -88,7 +88,7 @@ describe('AutomationGateway', () => {
 
     it('accepts DEVELOPER token — same read access as the REST controller', () => {
       const { jwtService, prisma, configService } = makeDeps({
-        jwtPayload: { sub: 'user1', role: 'DEVELOPER' },
+        jwtPayload: { sub: 'user1', role: 'MEMBER' },
       });
       const gw = new AutomationGateway(
         jwtService as never,

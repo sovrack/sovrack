@@ -73,7 +73,7 @@ export class AutomationGateway implements OnGatewayConnection {
       // un développeur peut consulter un run, il doit donc aussi pouvoir en
       // recevoir les mises à jour en direct, pas seulement l'état figé au
       // premier chargement.
-      if (payload.role !== Role.ADMIN && payload.role !== Role.DEVELOPER) {
+      if (payload.role !== Role.OWNER && payload.role !== Role.MEMBER) {
         client.disconnect();
         return;
       }

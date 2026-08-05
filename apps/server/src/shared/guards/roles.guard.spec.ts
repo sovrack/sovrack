@@ -27,25 +27,25 @@ describe('RolesGuard (authorization)', () => {
 
   it('allows access when the required role list is empty', () => {
     const guard = guardWithRequiredRoles([]);
-    expect(guard.canActivate(contextWithUser({ role: Role.DEVELOPER }))).toBe(
+    expect(guard.canActivate(contextWithUser({ role: Role.MEMBER }))).toBe(
       true,
     );
   });
 
   it('allows access when the user role is in the required set', () => {
-    const guard = guardWithRequiredRoles([Role.ADMIN]);
-    expect(guard.canActivate(contextWithUser({ role: Role.ADMIN }))).toBe(true);
+    const guard = guardWithRequiredRoles([Role.OWNER]);
+    expect(guard.canActivate(contextWithUser({ role: Role.OWNER }))).toBe(true);
   });
 
   it('denies (403) when the user role is insufficient', () => {
-    const guard = guardWithRequiredRoles([Role.ADMIN]);
+    const guard = guardWithRequiredRoles([Role.OWNER]);
     expect(() =>
-      guard.canActivate(contextWithUser({ role: Role.DEVELOPER })),
+      guard.canActivate(contextWithUser({ role: Role.MEMBER })),
     ).toThrow(ForbiddenException);
   });
 
   it('denies (403) when there is no authenticated user', () => {
-    const guard = guardWithRequiredRoles([Role.ADMIN]);
+    const guard = guardWithRequiredRoles([Role.OWNER]);
     expect(() => guard.canActivate(contextWithUser(undefined))).toThrow(
       ForbiddenException,
     );

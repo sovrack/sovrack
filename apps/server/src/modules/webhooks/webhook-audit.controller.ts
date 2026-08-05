@@ -38,13 +38,13 @@ export class WebhookAuditController {
   ) {}
 
   @Get('endpoints')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async listEndpoints(@Param('id') projectId: string) {
     return this.webhooksService.listEndpointsForProject(projectId);
   }
 
   @Get('events')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async listEvents(
     @Param('id') projectId: string,
     @Query('status') status?: WebhookEventStatus,
@@ -60,20 +60,20 @@ export class WebhookAuditController {
   }
 
   @Get('events/:eventId')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async getEvent(@Param('eventId') eventId: string) {
     return this.webhooksService.findEvent(eventId);
   }
 
   @Post('events/:eventId/replay')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async replayEvent(@Param('eventId') eventId: string) {
     // Resets attempts and re-dispatches immediately (works for FAILED and DEAD_LETTER).
     return this.retryService.replayEvent(eventId);
   }
 
   @Patch('endpoints/:endpointId/enabled')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   async setEnabled(
     @Param('id') projectId: string,
     @Param('endpointId') endpointId: string,

@@ -47,7 +47,11 @@ describe('DeploymentsQueryService', () => {
         service: { env: null, secretsEnv: null, projectId: 'proj-1' },
         environment: { env: null, secretsEnv: null, projectId: 'proj-1' },
       });
-      const preview = await service.previewEnv('se1', 'user-1', Role.ADMIN);
+      const preview = await service.previewEnv(
+        'se1',
+        'user-1',
+        Role.SUPER_ADMIN,
+      );
       const token = preview.variables.find((v) => v.key === 'TOKEN');
       const pub = preview.variables.find((v) => v.key === 'PUBLIC');
       expect(token?.isSecret).toBe(true);
@@ -58,7 +62,7 @@ describe('DeploymentsQueryService', () => {
     it('404s for an unknown service-environment', async () => {
       prisma.serviceEnvironment.findUnique.mockResolvedValue(null);
       await expect(
-        service.previewEnv('nope', 'user-1', Role.ADMIN),
+        service.previewEnv('nope', 'user-1', Role.SUPER_ADMIN),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
@@ -94,14 +98,14 @@ describe('DeploymentsQueryService', () => {
 
   describe('findAll', () => {
     it('does not filter for an ADMIN', async () => {
-      await service.findAll('admin', Role.ADMIN);
+      await service.findAll('admin', Role.SUPER_ADMIN);
       expect(prisma.deployment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: undefined }),
       );
     });
 
     it('filters by membership for a non-admin', async () => {
-      await service.findAll('u1', Role.DEVELOPER);
+      await service.findAll('u1', Role.MEMBER);
       expect(prisma.deployment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { project: { members: { some: { userId: 'u1' } } } },
@@ -110,7 +114,7 @@ describe('DeploymentsQueryService', () => {
     });
 
     it('paginates when page+limit are provided', async () => {
-      const res = await service.findAll('admin', Role.ADMIN, {
+      const res = await service.findAll('admin', Role.SUPER_ADMIN, {
         page: 1,
         limit: 10,
       } as never);
@@ -123,7 +127,7 @@ describe('DeploymentsQueryService', () => {
     it('404s and enforces project access', async () => {
       prisma.deployment.findUnique.mockResolvedValue(null);
       await expect(
-        service.findOne('nope', 'u1', Role.ADMIN),
+        service.findOne('nope', 'u1', Role.SUPER_ADMIN),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
@@ -134,11 +138,11 @@ describe('DeploymentsQueryService', () => {
         service: { port: 3000 },
         serviceEnv: { domains: [{ name: 'x.com' }] },
       });
-      const res = await service.findOne('d1', 'u1', Role.ADMIN);
+      const res = await service.findOne('d1', 'u1', Role.SUPER_ADMIN);
       expect(auth.assertCanAccessProject).toHaveBeenCalledWith(
         'p1',
         'u1',
-        Role.ADMIN,
+        Role.SUPER_ADMIN,
       );
       expect(res.publicUrl).toBe('https://x.com');
     });

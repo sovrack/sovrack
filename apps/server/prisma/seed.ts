@@ -36,14 +36,14 @@ async function main(): Promise<void> {
     update: {
       password: adminPassword,
       fullName: 'Administrator',
-      role: Role.ADMIN,
+      role: Role.OWNER,
       isActive: true,
     },
     create: {
       email: adminEmail,
       password: adminPassword,
       fullName: 'Administrator',
-      role: Role.ADMIN,
+      role: Role.OWNER,
       isActive: true,
     },
   });
@@ -53,14 +53,14 @@ async function main(): Promise<void> {
     update: {
       password: developerPassword,
       fullName: 'John Developer',
-      role: Role.DEVELOPER,
+      role: Role.MEMBER,
       isActive: true,
     },
     create: {
       email: developerEmail,
       password: developerPassword,
       fullName: 'John Developer',
-      role: Role.DEVELOPER,
+      role: Role.MEMBER,
       isActive: true,
     },
   });

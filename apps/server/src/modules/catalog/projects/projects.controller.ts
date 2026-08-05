@@ -45,7 +45,7 @@ export class ProjectsController {
   ) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Create a project' })
   @ApiResponse({ status: 201, description: 'Project created successfully' })
@@ -59,7 +59,7 @@ export class ProjectsController {
   }
 
   @Post('import/gitlab-group')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({
     summary:
@@ -112,7 +112,7 @@ export class ProjectsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Delete a project' })
   @ApiResponse({ status: 200, description: 'Project deleted' })

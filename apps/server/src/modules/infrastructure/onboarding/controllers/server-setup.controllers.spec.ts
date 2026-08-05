@@ -6,7 +6,7 @@ import { ServerSetupController } from './server-setup.controller';
 import { ServerSetupsController } from './server-setups.controller';
 
 describe('Server setup controllers', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function prepService() {
     return {

@@ -9,9 +9,9 @@ describe('DashboardController', () => {
       getStats: jest.fn().mockResolvedValue({ projects: 1 }),
     } as unknown as DashboardService;
     const ctrl = new DashboardController(dashboard);
-    const user = { id: 'u1', role: Role.DEVELOPER } as JwtPayload;
+    const user = { id: 'u1', role: Role.MEMBER } as JwtPayload;
     const res = await ctrl.getStats(user);
-    expect(dashboard.getStats).toHaveBeenCalledWith('u1', Role.DEVELOPER);
+    expect(dashboard.getStats).toHaveBeenCalledWith('u1', Role.MEMBER);
     expect(res).toEqual({ projects: 1 });
   });
 });

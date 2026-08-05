@@ -4,7 +4,7 @@ import { SshKeysService } from './ssh-keys.service';
 import { SshKeysController } from './ssh-keys.controller';
 
 describe('SshKeysController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const sshKeysService = {

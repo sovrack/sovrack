@@ -4,7 +4,7 @@ import { AutomationService } from '../services/automation.service';
 import { AutomationController } from './automation.controller';
 
 describe('AutomationController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const automationService = {

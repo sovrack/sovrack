@@ -9,7 +9,7 @@ import { DeploymentsLogSearchService } from './query/deployments-log-search.serv
 import { DeploymentsController } from './deployments.controller';
 
 describe('DeploymentsController', () => {
-  const user = { id: 'user-1', role: 'ADMIN' } as JwtPayload;
+  const user = { id: 'user-1', role: 'OWNER' } as JwtPayload;
 
   function build() {
     const createService = {
@@ -88,20 +88,20 @@ describe('DeploymentsController', () => {
     await ctrl.findByProject('p1', user);
     await ctrl.previewEnv('se1', user);
     await ctrl.findOne('d1', user);
-    expect(queryService.findAll).toHaveBeenCalledWith('user-1', 'ADMIN', {
+    expect(queryService.findAll).toHaveBeenCalledWith('user-1', 'OWNER', {
       page: 1,
     });
     expect(queryService.findByProject).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      'ADMIN',
+      'OWNER',
     );
     expect(queryService.previewEnv).toHaveBeenCalledWith(
       'se1',
       'user-1',
-      'ADMIN',
+      'OWNER',
     );
-    expect(queryService.findOne).toHaveBeenCalledWith('d1', 'user-1', 'ADMIN');
+    expect(queryService.findOne).toHaveBeenCalledWith('d1', 'user-1', 'OWNER');
   });
 
   it('cancel / rollback / remove delegate to the lifecycle & rollback services', async () => {
@@ -112,18 +112,18 @@ describe('DeploymentsController', () => {
     expect(lifecycleService.cancel).toHaveBeenCalledWith(
       'd1',
       'user-1',
-      'ADMIN',
+      'OWNER',
     );
     expect(rollbackService.rollback).toHaveBeenCalledWith(
       'd1',
       'user-1',
-      'ADMIN',
+      'OWNER',
       undefined,
     );
     expect(lifecycleService.remove).toHaveBeenCalledWith(
       'd1',
       'user-1',
-      'ADMIN',
+      'OWNER',
     );
   });
 
@@ -141,7 +141,7 @@ describe('DeploymentsController', () => {
     expect(logSearchService.searchLogs).toHaveBeenCalledWith(
       'd1',
       'user-1',
-      'ADMIN',
+      'OWNER',
       '',
       'ALL',
     );

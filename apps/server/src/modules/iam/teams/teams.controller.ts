@@ -31,23 +31,23 @@ import { TeamsService } from './teams.service';
 @ApiBearerAuth()
 @Controller('teams')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.OWNER)
 export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
   @Get()
   @ApiOperation({ summary: 'List all teams' })
   @ApiResponse({ status: 200, description: 'Team list' })
-  async findAll() {
-    return this.teamsService.findAll();
+  async findAll(@GetUser() user: JwtPayload) {
+    return this.teamsService.findAll(user);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a team by ID' })
   @ApiResponse({ status: 200, description: 'Team found' })
   @ApiResponse({ status: 404, description: 'Team not found' })
-  async findOne(@Param('id') id: string) {
-    return this.teamsService.findOne(id);
+  async findOne(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    return this.teamsService.findOne(id, user);
   }
 
   @Post()
@@ -62,16 +62,20 @@ export class TeamsController {
   @ApiOperation({ summary: 'Edit a team' })
   @ApiResponse({ status: 200, description: 'Team updated' })
   @ApiResponse({ status: 404, description: 'Team not found' })
-  async update(@Param('id') id: string, @Body() dto: UpdateTeamDto) {
-    return this.teamsService.update(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTeamDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return this.teamsService.update(id, dto, user);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a team' })
   @ApiResponse({ status: 200, description: 'Team deleted' })
   @ApiResponse({ status: 404, description: 'Team not found' })
-  async remove(@Param('id') id: string) {
-    return this.teamsService.remove(id);
+  async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    return this.teamsService.remove(id, user);
   }
 
   @Post(':id/members')
@@ -82,8 +86,12 @@ export class TeamsController {
     description: 'Team or user not found',
   })
   @ApiResponse({ status: 409, description: 'Already a member of this team' })
-  async addMember(@Param('id') id: string, @Body() dto: AddTeamMemberDto) {
-    return this.teamsService.addMember(id, dto);
+  async addMember(
+    @Param('id') id: string,
+    @Body() dto: AddTeamMemberDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return this.teamsService.addMember(id, dto, user);
   }
 
   @Delete(':id/members/:userId')
@@ -91,7 +99,11 @@ export class TeamsController {
   @ApiOperation({ summary: 'Remove a member from a team' })
   @ApiResponse({ status: 200, description: 'Member removed' })
   @ApiResponse({ status: 404, description: 'Team or member not found' })
-  async removeMember(@Param('id') id: string, @Param('userId') userId: string) {
-    return this.teamsService.removeMember(id, userId);
+  async removeMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    return this.teamsService.removeMember(id, userId, user);
   }
 }

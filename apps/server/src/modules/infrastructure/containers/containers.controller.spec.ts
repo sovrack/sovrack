@@ -2,7 +2,7 @@ import { Role } from '@prisma/client';
 import { ContainersService } from './containers.service';
 import { ContainersController } from './containers.controller';
 
-const mockUser = { id: 'u1', email: 'test@test.com', role: Role.DEVELOPER };
+const mockUser = { id: 'u1', email: 'test@test.com', role: Role.MEMBER };
 
 describe('ContainersController', () => {
   function build() {
@@ -32,12 +32,12 @@ describe('ContainersController', () => {
     expect(containersService.findAll).toHaveBeenCalledWith(
       { serverId: 's1' },
       'u1',
-      Role.DEVELOPER,
+      Role.MEMBER,
     );
     expect(containersService.assertCanAccessContainer).toHaveBeenCalledWith(
       'c1',
       'u1',
-      Role.DEVELOPER,
+      Role.MEMBER,
     );
     expect(containersService.findOne).toHaveBeenCalledWith('c1');
     expect(containersService.inspect).toHaveBeenCalledWith('c1');
@@ -54,12 +54,12 @@ describe('ContainersController', () => {
     expect(containersService.assertCanAccessContainer).toHaveBeenCalledWith(
       'c1',
       'u1',
-      Role.DEVELOPER,
+      Role.MEMBER,
     );
     expect(containersService.assertCanAccessServerById).toHaveBeenCalledWith(
       's1',
       'u1',
-      Role.DEVELOPER,
+      Role.MEMBER,
     );
     expect(containersService.start).toHaveBeenCalledWith('c1');
     expect(containersService.stop).toHaveBeenCalledWith('c1');

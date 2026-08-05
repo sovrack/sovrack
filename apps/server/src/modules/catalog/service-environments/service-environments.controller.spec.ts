@@ -4,7 +4,7 @@ import { ServiceEnvironmentsService } from './service-environments.service';
 import { ServiceEnvironmentsController } from './service-environments.controller';
 
 describe('ServiceEnvironmentsController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const service = {
@@ -26,20 +26,20 @@ describe('ServiceEnvironmentsController', () => {
       'p1',
       { serviceId: 's1' },
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(service.findOne).toHaveBeenCalledWith(
       'p1',
       'se1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(service.update).toHaveBeenCalledWith(
       'p1',
       'se1',
       { autoDeploy: true },
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 
@@ -56,7 +56,7 @@ describe('ServiceEnvironmentsController', () => {
       'p1',
       'se1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(res).toEqual({ message: 'Lien supprimé avec succès' });
   });

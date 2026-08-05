@@ -77,7 +77,7 @@ describe('DashboardService.getStats', () => {
   });
 
   it('computes the 7d success rate over finished deployments', async () => {
-    const stats = await service.getStats('admin-1', Role.ADMIN);
+    const stats = await service.getStats('admin-1', Role.OWNER);
     // 7d window: d1 SUCCESS + d2 FAILED → 1/2 = 50%
     expect(stats.kpis.successRate7d).toBe(50);
     expect(stats.kpis.deploymentsLast7d).toBe(2);
@@ -85,19 +85,19 @@ describe('DashboardService.getStats', () => {
   });
 
   it('averages duration over deployments that have start+finish', async () => {
-    const stats = await service.getStats('admin-1', Role.ADMIN);
+    const stats = await service.getStats('admin-1', Role.OWNER);
     // d1=60s, d2=120s, d3 has no times → avg = 90s
     expect(stats.kpis.avgDurationSeconds).toBe(90);
   });
 
   it('counts idle projects (no deploy in 7d)', async () => {
-    const stats = await service.getStats('admin-1', Role.ADMIN);
+    const stats = await service.getStats('admin-1', Role.OWNER);
     // 3 projects total, only p1 active in 7d → 2 idle (p2 + 1 with no deploys)
     expect(stats.kpis.idleProjectsCount).toBe(2);
   });
 
   it('builds a 7-point activity series and a server status breakdown', async () => {
-    const stats = await service.getStats('admin-1', Role.ADMIN);
+    const stats = await service.getStats('admin-1', Role.OWNER);
     expect(stats.activity).toHaveLength(7);
     expect(stats.servers.ready).toBe(1);
     expect(stats.servers.error).toBe(1);
@@ -105,7 +105,7 @@ describe('DashboardService.getStats', () => {
   });
 
   it('ranks top projects by deploy count with their success rate', async () => {
-    const stats = await service.getStats('admin-1', Role.ADMIN);
+    const stats = await service.getStats('admin-1', Role.OWNER);
     expect(stats.topProjects[0].id).toBe('p1'); // 2 deploys
     expect(stats.topProjects[0].deployCount).toBe(2);
     expect(stats.recentFailures[0].projectName).toBe('Alpha');
@@ -114,7 +114,7 @@ describe('DashboardService.getStats', () => {
   it('scopes every query to the caller projects for a non-admin (no cross-project leak)', async () => {
     prisma.projectMember.findMany.mockResolvedValue([{ projectId: 'p1' }]);
 
-    await service.getStats('dev-1', Role.DEVELOPER);
+    await service.getStats('dev-1', Role.MEMBER);
 
     // Membership resolved for the caller.
     expect(prisma.projectMember.findMany).toHaveBeenCalledWith({

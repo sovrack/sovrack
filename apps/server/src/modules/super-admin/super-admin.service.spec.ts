@@ -21,8 +21,8 @@ describe('SuperAdminService', () => {
   describe('getOverview', () => {
     it('returns aggregated stats with defaults for missing roles/status', async () => {
       prisma.user.groupBy.mockResolvedValue([
-        { role: 'ADMIN', _count: { id: 3 } },
-        { role: 'DEVELOPER', _count: { id: 2 } },
+        { role: 'OWNER', _count: { id: 3 } },
+        { role: 'MEMBER', _count: { id: 2 } },
       ]);
       prisma.user.count.mockResolvedValue(4);
       prisma.team.count.mockResolvedValue(2);
@@ -41,8 +41,8 @@ describe('SuperAdminService', () => {
         users: {
           total: 5,
           active: 4,
-          admins: 3,
-          developers: 2,
+          owners: 3,
+          members: 2,
         },
         teams: { total: 2 },
         subscriptions: {

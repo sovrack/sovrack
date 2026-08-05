@@ -79,7 +79,7 @@ export class ProjectsService {
     const teamId = await this.billing.resolveTeamId(userId);
 
     if (dto.ownerId) {
-      if (userRole !== Role.ADMIN && dto.ownerId !== userId) {
+      if (userRole !== Role.OWNER && dto.ownerId !== userId) {
         throw new ForbiddenException(
           'Seul un administrateur peut assigner un owner différent',
         );
@@ -93,7 +93,7 @@ export class ProjectsService {
         throw new NotFoundException('Utilisateur owner introuvable');
       }
 
-      if (ownerUser.role !== Role.DEVELOPER) {
+      if (ownerUser.role !== Role.MEMBER) {
         throw new ConflictException(
           'Le owner assigné doit avoir le rôle DEVELOPER',
         );
@@ -137,8 +137,12 @@ export class ProjectsService {
     userRole: Role,
     pagination?: PaginationDto,
   ): Promise<ProjectListItem[] | PaginatedResult<ProjectListItem>> {
+    // Multi-tenant : un utilisateur ne voit que les projets dont il est membre
+    // (son organisation). Seul le SUPER_ADMIN (plateforme) voit tous les projets.
     const where: Prisma.ProjectWhereInput | undefined =
-      userRole === Role.ADMIN ? undefined : { members: { some: { userId } } };
+      userRole === Role.SUPER_ADMIN
+        ? undefined
+        : { members: { some: { userId } } };
 
     const queryInclude = {
       members: { where: { userId }, select: { role: true }, take: 1 },
@@ -300,7 +304,7 @@ export class ProjectsService {
   }
 
   private assertAdminRole(userRole: Role): void {
-    if (userRole !== Role.ADMIN) {
+    if (userRole !== Role.OWNER) {
       throw new ForbiddenException('Action réservée aux administrateurs');
     }
   }

@@ -6,7 +6,7 @@ import { ContainerStatsService } from '../../../infrastructure/containers/servic
 import { MonitoringController } from './monitoring.controller';
 
 describe('MonitoringController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const monitoringService = {
@@ -80,12 +80,12 @@ describe('MonitoringController', () => {
     expect(access.assertDeployment).toHaveBeenCalledWith(
       'd1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(access.assertProject).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(containerMonitoring.getContainerInfo).toHaveBeenCalledWith(
       'd1',

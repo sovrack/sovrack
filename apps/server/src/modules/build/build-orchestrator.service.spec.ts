@@ -79,14 +79,14 @@ describe('BuildOrchestratorService', () => {
   describe('assertCanConfigureBuild', () => {
     it('allows ADMIN unconditionally', async () => {
       await expect(
-        service.assertCanConfigureBuild('p1', 'admin', Role.ADMIN),
+        service.assertCanConfigureBuild('p1', 'admin', Role.SUPER_ADMIN),
       ).resolves.toBeUndefined();
     });
 
     it('forbids a non-member', async () => {
       prisma.projectMember.findUnique.mockResolvedValue(null);
       await expect(
-        service.assertCanConfigureBuild('p1', 'u2', Role.DEVELOPER),
+        service.assertCanConfigureBuild('p1', 'u2', Role.MEMBER),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
@@ -95,7 +95,7 @@ describe('BuildOrchestratorService', () => {
         role: ProjectRole.VIEWER,
       });
       await expect(
-        service.assertCanConfigureBuild('p1', 'u2', Role.DEVELOPER),
+        service.assertCanConfigureBuild('p1', 'u2', Role.MEMBER),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
@@ -104,7 +104,7 @@ describe('BuildOrchestratorService', () => {
         role: ProjectRole.DEVELOPER,
       });
       await expect(
-        service.assertCanConfigureBuild('p1', 'u2', Role.DEVELOPER),
+        service.assertCanConfigureBuild('p1', 'u2', Role.MEMBER),
       ).resolves.toBeUndefined();
     });
   });
@@ -113,7 +113,7 @@ describe('BuildOrchestratorService', () => {
     const res = await service.generateBuildFiles(
       'p1',
       'admin',
-      Role.ADMIN,
+      Role.SUPER_ADMIN,
       'svc1',
     );
     expect(detector.detectProjectType).toHaveBeenCalledWith('p1', 'svc1');
@@ -130,14 +130,14 @@ describe('BuildOrchestratorService', () => {
   it('404s prepareServiceInternal when the service is missing', async () => {
     prisma.service.findFirst.mockResolvedValue(null);
     await expect(
-      service.generateBuildFiles('p1', 'admin', Role.ADMIN, 'ghost'),
+      service.generateBuildFiles('p1', 'admin', Role.SUPER_ADMIN, 'ghost'),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('pushFiles 404s when the project is missing', async () => {
     prisma.project.findUnique.mockResolvedValue(null);
     await expect(
-      service.pushFiles('nope', 'admin', Role.ADMIN),
+      service.pushFiles('nope', 'admin', Role.SUPER_ADMIN),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

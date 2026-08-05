@@ -9,8 +9,8 @@ datasource db {
 
 enum Role {
   SUPER_ADMIN
-  ADMIN
-  DEVELOPER
+  OWNER
+  MEMBER
 }
 
 enum ProjectRole {
@@ -231,7 +231,7 @@ model User {
   email               String          @unique
   password            String
   fullName            String
-  role                Role            @default(DEVELOPER)
+  role                Role            @default(MEMBER)
   isActive            Boolean         @default(true)
   projects            ProjectMember[]
   teams               TeamMember[]

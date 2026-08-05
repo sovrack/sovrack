@@ -66,7 +66,7 @@ export class DashboardService {
     // must not leak other projects' names, deploy counts or failures. Admins
     // (projectIds === null) see the whole platform.
     const projectIds =
-      userRole === Role.ADMIN
+      userRole === Role.SUPER_ADMIN
         ? null
         : (
             await this.prisma.projectMember.findMany({

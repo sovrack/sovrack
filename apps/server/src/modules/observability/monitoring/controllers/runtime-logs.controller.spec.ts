@@ -4,7 +4,7 @@ import { MonitoringRuntimeLogsService } from '../services/monitoring-runtime-log
 import { RuntimeLogsController } from './runtime-logs.controller';
 
 describe('RuntimeLogsController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const runtimeLogs = {
@@ -20,7 +20,7 @@ describe('RuntimeLogsController', () => {
     expect(runtimeLogs.searchServiceLogs).toHaveBeenCalledWith(
       'se1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
       {
         tail: 100,
         search: 'error',
@@ -35,7 +35,7 @@ describe('RuntimeLogsController', () => {
     expect(runtimeLogs.searchServiceLogs).toHaveBeenCalledWith(
       'se1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
       {
         tail: undefined,
         search: undefined,

@@ -31,7 +31,7 @@ describe('TerminalGateway.handleConnect (authorization)', () => {
   }
 
   it('rejects when no token is provided', async () => {
-    const { gw, terminalService } = make(() => ({ role: 'ADMIN', sub: 'a1' }));
+    const { gw, terminalService } = make(() => ({ role: 'OWNER', sub: 'a1' }));
     const c = client(undefined);
     await gw.handleConnect(c as never, { serverId: 'srv1' });
     expect(terminalService.openSession).not.toHaveBeenCalled();
@@ -52,13 +52,13 @@ describe('TerminalGateway.handleConnect (authorization)', () => {
   });
 
   it('forwards ADMIN token to the service with the decoded role', async () => {
-    const { gw, terminalService } = make(() => ({ role: 'ADMIN', sub: 'a1' }));
+    const { gw, terminalService } = make(() => ({ role: 'OWNER', sub: 'a1' }));
     const c = client('tok');
     await gw.handleConnect(c as never, { serverId: 'srv1', token: 'tok' });
     expect(terminalService.openSession).toHaveBeenCalledWith(
       'srv1',
       'a1',
-      'ADMIN',
+      'OWNER',
       expect.any(Object),
       expect.any(Object),
     );
@@ -67,7 +67,7 @@ describe('TerminalGateway.handleConnect (authorization)', () => {
 
   it('forwards a non-ADMIN token to the service (authorization is service-level)', async () => {
     const { gw, terminalService } = make(() => ({
-      role: 'DEVELOPER',
+      role: 'MEMBER',
       sub: 'u1',
     }));
     const c = client('tok');
@@ -75,7 +75,7 @@ describe('TerminalGateway.handleConnect (authorization)', () => {
     expect(terminalService.openSession).toHaveBeenCalledWith(
       'srv1',
       'u1',
-      'DEVELOPER',
+      'MEMBER',
       expect.any(Object),
       expect.any(Object),
     );

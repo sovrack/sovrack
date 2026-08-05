@@ -25,7 +25,7 @@ describe('ContainersService', () => {
   let svc: ContainersService;
 
   const container = { id: 'c1', serverId: 'srv1', dockerId: 'dock1' };
-  const mockUser = { id: 'u1', role: Role.DEVELOPER };
+  const mockUser = { id: 'u1', role: Role.MEMBER };
 
   beforeEach(() => {
     prisma = {
@@ -134,7 +134,7 @@ describe('ContainersService', () => {
       expect(projectAccess.assertCanAccessProject).toHaveBeenCalledWith(
         'p1',
         'u1',
-        Role.DEVELOPER,
+        Role.MEMBER,
       );
     });
   });

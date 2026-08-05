@@ -17,7 +17,7 @@ export class GitlabAuthorizationService {
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
 
-    if (userRole === Role.ADMIN) {
+    if (userRole === Role.SUPER_ADMIN) {
       return;
     }
 
@@ -42,7 +42,7 @@ export class GitlabAuthorizationService {
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
 
-    if (userRole === Role.ADMIN) {
+    if (userRole === Role.SUPER_ADMIN) {
       return;
     }
 

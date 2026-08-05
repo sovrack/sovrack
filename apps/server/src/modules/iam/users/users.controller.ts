@@ -33,32 +33,38 @@ import { UsersService } from './users.service';
 @ApiTags('Users')
 @ApiBearerAuth()
 @Controller('users')
-@Roles(Role.ADMIN)
+@Roles(Role.OWNER)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new developer account' })
+  @ApiOperation({ summary: 'Create a new member account' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 409, description: 'Email already in use' })
-  async create(@Body() dto: CreateUserDto): Promise<Omit<User, 'password'>> {
-    return await this.usersService.create(dto);
+  async create(
+    @Body() dto: CreateUserDto,
+    @GetUser() user: JwtPayload,
+  ): Promise<Omit<User, 'password'>> {
+    return await this.usersService.create(dto, user);
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all users without passwords' })
+  @ApiOperation({ summary: 'List users without passwords' })
   @ApiResponse({ status: 200, description: 'Liste des utilisateurs' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
-  async findAll(@Query() pagination: PaginationDto) {
-    return await this.usersService.findAll(pagination);
+  async findAll(
+    @Query() pagination: PaginationDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.usersService.findAll(pagination, user);
   }
 
   @Put('me/password')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({
     summary: 'Changer le mot de passe de la session courante',
   })
@@ -81,12 +87,15 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async findById(@Param('id') id: string): Promise<Omit<User, 'password'>> {
-    return await this.usersService.findByIdOrFail(id);
+  async findById(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+  ): Promise<Omit<User, 'password'>> {
+    return await this.usersService.findByIdOrFail(id, user);
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({ summary: 'Edit a user' })
   @ApiResponse({ status: 200, description: 'User updated' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
@@ -109,8 +118,11 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async delete(@Param('id') id: string): Promise<Omit<User, 'password'>> {
-    return await this.usersService.delete(id);
+  async delete(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+  ): Promise<Omit<User, 'password'>> {
+    return await this.usersService.delete(id, user);
   }
 
   @Put(':id/toggle-active')
@@ -119,7 +131,10 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async toggleActive(@Param('id') id: string): Promise<Omit<User, 'password'>> {
-    return await this.usersService.toggleActive(id);
+  async toggleActive(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+  ): Promise<Omit<User, 'password'>> {
+    return await this.usersService.toggleActive(id, user);
   }
 }

@@ -53,8 +53,13 @@ export class UsersService {
 
   /**
    * Crée un nouvel utilisateur avec mot de passe hashé.
+   * Multi-tenant : le nouvel utilisateur est rattaché à l'organisation
+   * (les équipes) de l'acteur qui le crée.
    */
-  async create(dto: CreateUserDto): Promise<Omit<User, 'password'>> {
+  async create(
+    dto: CreateUserDto,
+    actor?: { id: string; role: Role },
+  ): Promise<Omit<User, 'password'>> {
     const existingUser = await this.findByEmail(dto.email);
     if (existingUser) {
       throw new ConflictException('Cet email est déjà utilisé');
@@ -67,9 +72,26 @@ export class UsersService {
         email: dto.email,
         password: hashedPassword,
         fullName: dto.fullName,
-        role: dto.role ?? Role.DEVELOPER,
+        role: dto.role ?? Role.MEMBER,
       },
     });
+
+    if (actor && actor.role !== Role.SUPER_ADMIN) {
+      const memberships = await this.prisma.teamMember.findMany({
+        where: { userId: actor.id },
+        select: { teamId: true },
+      });
+      if (memberships.length > 0) {
+        await this.prisma.teamMember.createMany({
+          data: memberships.map((m) => ({
+            teamId: m.teamId,
+            userId: user.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
     this.logger.log(
       `User ${user.email} (${user.id}) created with role ${user.role}`,
     );
@@ -79,23 +101,28 @@ export class UsersService {
 
   /**
    * Retourne tous les utilisateurs sans mot de passe.
+   * Scoping multi-tenant : un OWNER/MEMBER ne voit que les membres de ses
+   * propres équipes (son organisation). Seul un SUPER_ADMIN voit tout.
    */
   async findAll(
     pagination?: PaginationDto,
+    actor?: { id: string; role: Role },
   ): Promise<
     Array<Omit<User, 'password'>> | PaginatedResult<Omit<User, 'password'>>
   > {
     const page = pagination?.page;
     const limit = pagination?.limit;
+    const where = await this.orgScopeWhere(actor);
 
     if (page && limit) {
       const [users, total] = await Promise.all([
         this.prisma.user.findMany({
+          where,
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
         }),
-        this.prisma.user.count(),
+        this.prisma.user.count({ where }),
       ]);
       return paginate(
         users.map((u) => this.removePassword(u)),
@@ -106,18 +133,54 @@ export class UsersService {
     }
 
     const users = await this.prisma.user.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
     });
     return users.map((user) => this.removePassword(user));
   }
 
   /**
-   * Retourne un utilisateur par id, ou lève une exception si absent.
+   * Filtre Prisma limitant un utilisateur aux membres de son organisation
+   * (ses équipes). Retourne {} pour SUPER_ADMIN (visibilité globale).
    */
-  async findByIdOrFail(id: string): Promise<Omit<User, 'password'>> {
+  private async orgScopeWhere(actor?: {
+    id: string;
+    role: Role;
+  }): Promise<Prisma.UserWhereInput> {
+    if (!actor) {
+      return {};
+    }
+    if (actor.role === Role.SUPER_ADMIN) {
+      return {};
+    }
+    const memberships = await this.prisma.teamMember.findMany({
+      where: { userId: actor.id },
+      select: { teamId: true },
+    });
+    const teamIds = memberships.map((m) => m.teamId);
+    if (teamIds.length === 0) {
+      return { id: actor.id };
+    }
+    return {
+      teams: { some: { teamId: { in: teamIds } } },
+    };
+  }
+
+  /**
+   * Retourne un utilisateur par id, ou lève une exception si absent.
+   * Multi-tenant : hors SUPER_ADMIN, on ne peut consulter que les membres
+   * de sa propre organisation.
+   */
+  async findByIdOrFail(
+    id: string,
+    actor?: { id: string; role: Role },
+  ): Promise<Omit<User, 'password'>> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
+    }
+    if (actor) {
+      await this.assertInSameOrg(id, actor);
     }
     return this.removePassword(user);
   }
@@ -135,7 +198,11 @@ export class UsersService {
       throw new NotFoundException('Utilisateur non trouvé');
     }
 
-    const isAdminActor = actor?.role === Role.ADMIN;
+    if (actor) {
+      await this.assertInSameOrg(id, actor);
+    }
+
+    const isAdminActor = actor?.role === Role.OWNER;
     const isSelfUpdate = actor?.id === id;
     const hasActorContext = Boolean(actor);
 
@@ -257,9 +324,16 @@ export class UsersService {
 
   /**
    * Supprime un utilisateur.
+   * Multi-tenant : hors SUPER_ADMIN, uniquement les membres de sa propre org.
    */
-  async delete(id: string): Promise<Omit<User, 'password'>> {
+  async delete(
+    id: string,
+    actor?: { id: string; role: Role },
+  ): Promise<Omit<User, 'password'>> {
     await this.ensureUserExists(id);
+    if (actor) {
+      await this.assertInSameOrg(id, actor);
+    }
 
     const deletedUser = await this.prisma.user.delete({ where: { id } });
     this.logger.warn(`User ${deletedUser.email} (${id}) deleted`);
@@ -268,11 +342,18 @@ export class UsersService {
 
   /**
    * Active ou désactive un utilisateur.
+   * Multi-tenant : hors SUPER_ADMIN, uniquement les membres de sa propre org.
    */
-  async toggleActive(id: string): Promise<Omit<User, 'password'>> {
+  async toggleActive(
+    id: string,
+    actor?: { id: string; role: Role },
+  ): Promise<Omit<User, 'password'>> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
+    }
+    if (actor) {
+      await this.assertInSameOrg(id, actor);
     }
 
     const updatedUser = await this.prisma.user.update({
@@ -284,6 +365,38 @@ export class UsersService {
     );
 
     return this.removePassword(updatedUser);
+  }
+
+  /**
+   * Vérifie qu'un utilisateur cible appartient à la même organisation que
+   * l'acteur (mêmes équipes). SUPER_ADMIN = accès global.
+   */
+  private async assertInSameOrg(
+    targetUserId: string,
+    actor: { id: string; role: Role },
+  ): Promise<void> {
+    if (actor.role === Role.SUPER_ADMIN) {
+      return;
+    }
+    if (actor.id === targetUserId) {
+      return;
+    }
+    const actorTeams = await this.prisma.teamMember.findMany({
+      where: { userId: actor.id },
+      select: { teamId: true },
+    });
+    const teamIds = actorTeams.map((m) => m.teamId);
+    const sameTeam = teamIds.length
+      ? await this.prisma.teamMember.findFirst({
+          where: { userId: targetUserId, teamId: { in: teamIds } },
+          select: { id: true },
+        })
+      : null;
+    if (!sameTeam) {
+      throw new ForbiddenException(
+        "Vous ne pouvez pas interagir avec un membre d'une autre organisation",
+      );
+    }
   }
 
   /**

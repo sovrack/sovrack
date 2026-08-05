@@ -22,7 +22,7 @@ import { TeamsService } from './teams.service';
 @ApiBearerAuth()
 @Controller('projects')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.OWNER)
 export class ProjectTeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 

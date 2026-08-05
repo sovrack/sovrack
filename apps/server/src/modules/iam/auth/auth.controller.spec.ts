@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 
 describe('AuthController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const authService = {
@@ -44,7 +44,7 @@ describe('AuthController', () => {
     expect(ctrl.getWsToken(user)).toEqual({ wsToken: 'ws-tok' });
     expect(authService.generateWsToken).toHaveBeenCalledWith(
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 

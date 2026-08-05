@@ -23,7 +23,7 @@ describe('JwtStrategy', () => {
       const payload = {
         id: 'u1',
         email: 'a@b.com',
-        role: 'ADMIN',
+        role: 'OWNER',
       } as unknown as JwtPayloadDto;
       expect(strategy.validate(payload)).toBe(payload);
     });

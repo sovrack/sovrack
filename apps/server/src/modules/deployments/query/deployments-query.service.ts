@@ -189,7 +189,7 @@ export class DeploymentsQueryService {
     DeploymentWithRelations[] | PaginatedResult<DeploymentWithRelations>
   > {
     const where: Prisma.DeploymentWhereInput | undefined =
-      userRole === Role.ADMIN
+      userRole === Role.SUPER_ADMIN
         ? undefined
         : { project: { members: { some: { userId } } } };
 

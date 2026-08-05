@@ -39,7 +39,7 @@ function makeDeps(
         })
       : jest
           .fn()
-          .mockReturnValue(opts.jwtPayload ?? { sub: 'user1', role: 'ADMIN' }),
+          .mockReturnValue(opts.jwtPayload ?? { sub: 'user1', role: 'OWNER' }),
   };
 
   const prisma = {
@@ -86,7 +86,7 @@ describe('ServerSetupGateway', () => {
 
     it('disconnects non-ADMIN role', () => {
       const { jwtService, prisma, configService } = makeDeps({
-        jwtPayload: { sub: 'u1', role: 'DEVELOPER' },
+        jwtPayload: { sub: 'u1', role: 'MEMBER' },
       });
       const gw = new ServerSetupGateway(
         jwtService as never,

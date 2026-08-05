@@ -35,7 +35,7 @@ export class BuildController {
   ) {}
 
   @Post('generate')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async generateBuildFiles(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
@@ -53,7 +53,7 @@ export class BuildController {
   }
 
   @Get('detect')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async detect(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
@@ -64,7 +64,7 @@ export class BuildController {
   }
 
   @Put('config')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async updateConfig(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
@@ -82,13 +82,13 @@ export class BuildController {
   }
 
   @Get('templates')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async getTemplates(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.setupService.getTemplates(id, user.id, user.role);
   }
 
   @Post('push-files')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async pushFiles(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
@@ -103,7 +103,7 @@ export class BuildController {
    * Returns per-service results so frontend can show progress.
    */
   @Post('generate-all')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async generateAll(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.setupService.generateAll(id, user.id, user.role);
   }
@@ -112,7 +112,7 @@ export class BuildController {
    * Get build readiness status per service.
    */
   @Get('status')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async getBuildStatus(@Param('id') id: string, @GetUser() user: JwtPayload) {
     await this.buildService.assertCanConfigureBuild(id, user.id, user.role);
     return await this.setupService.getBuildStatus(id);
@@ -127,7 +127,7 @@ export class BuildController {
    * is found in the repo.
    */
   @Get('extract-compose')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async extractComposeFile(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
@@ -142,7 +142,7 @@ export class BuildController {
    * Used by the deployment dialog to show the strategy selector.
    */
   @Get('engines')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   getAvailableEngines() {
     return this.setupService.getAvailableEngines();
   }
@@ -153,7 +153,7 @@ export class BuildController {
    * from Deployment rows.
    */
   @Get('history')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async listBuilds(
     @Param('id') projectId: string,
     @Query('status') status?: BuildStatus,
@@ -171,7 +171,7 @@ export class BuildController {
   }
 
   @Get('history/:buildId')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   async getBuild(@Param('buildId') buildId: string) {
     return this.buildsService.findOne(buildId);
   }

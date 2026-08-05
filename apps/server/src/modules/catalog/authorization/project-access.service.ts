@@ -10,8 +10,9 @@ import { PrismaService } from '../../../shared/database/prisma.service';
  * Single source of truth for project-scoped authorization across the catalog
  * (projects / environments / services / service-environments). Previously each
  * service carried its own verbatim copy of these checks — a drift risk for
- * security code. Platform ADMINs bypass membership; otherwise access requires
- * membership and management requires the project OWNER role.
+ * security code. L'OWNER d'une organisation n'accède qu'aux projets dont il
+ * est membre ; seul le SUPER_ADMIN (plateforme) contourne l'appartenance.
+ * La gestion d'un projet requiert le rôle OWNER dans le projet.
  */
 @Injectable()
 export class ProjectAccessService {
@@ -26,14 +27,14 @@ export class ProjectAccessService {
     }
   }
 
-  /** Any project member (or platform ADMIN) may read the project. */
+  /** Any project member (or platform SUPER_ADMIN) may read the project. */
   async assertCanAccessProject(
     projectId: string,
     userId: string,
     userRole: Role,
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
-    if (userRole === Role.ADMIN) return;
+    if (userRole === Role.SUPER_ADMIN) return;
 
     const membership = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
@@ -43,14 +44,14 @@ export class ProjectAccessService {
     }
   }
 
-  /** Only the project OWNER (or platform ADMIN) may mutate the project. */
+  /** Only the project OWNER (or platform SUPER_ADMIN) may mutate the project. */
   async assertCanManageProject(
     projectId: string,
     userId: string,
     userRole: Role,
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
-    if (userRole === Role.ADMIN) return;
+    if (userRole === Role.SUPER_ADMIN) return;
 
     const membership = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
@@ -58,7 +59,7 @@ export class ProjectAccessService {
     });
     if (membership?.role !== ProjectRole.OWNER) {
       throw new ForbiddenException(
-        'Action réservée au OWNER du projet ou ADMIN',
+        'Action réservée au OWNER du projet ou SUPER_ADMIN',
       );
     }
   }

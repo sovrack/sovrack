@@ -47,7 +47,7 @@ describe('ProjectMembersService', () => {
   });
 
   it('adds a member (default DEVELOPER) after a manage check', async () => {
-    await service.addMember('p1', 'owner', Role.ADMIN, {
+    await service.addMember('p1', 'owner', Role.OWNER, {
       userId: 'u2',
     } as never);
     expect(projects.assertCanManageProject).toHaveBeenCalled();
@@ -62,7 +62,7 @@ describe('ProjectMembersService', () => {
   });
 
   it('looks a user up by lowercased email', async () => {
-    await service.addMember('p1', 'owner', Role.ADMIN, {
+    await service.addMember('p1', 'owner', Role.OWNER, {
       email: 'A@B.COM',
     } as never);
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
@@ -73,7 +73,7 @@ describe('ProjectMembersService', () => {
   it('404s when the target user does not exist', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
     await expect(
-      service.addMember('p1', 'owner', Role.ADMIN, {
+      service.addMember('p1', 'owner', Role.OWNER, {
         userId: 'ghost',
       } as never),
     ).rejects.toBeInstanceOf(NotFoundException);
@@ -84,7 +84,7 @@ describe('ProjectMembersService', () => {
       role: ProjectRole.DEVELOPER,
     });
     await expect(
-      service.addMember('p1', 'owner', Role.ADMIN, { userId: 'u2' } as never),
+      service.addMember('p1', 'owner', Role.OWNER, { userId: 'u2' } as never),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
@@ -93,7 +93,7 @@ describe('ProjectMembersService', () => {
       role: ProjectRole.OWNER,
     });
     await expect(
-      service.removeMember('p1', 'owner', Role.ADMIN, 'u2'),
+      service.removeMember('p1', 'owner', Role.OWNER, 'u2'),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -101,16 +101,16 @@ describe('ProjectMembersService', () => {
     prisma.projectMember.findUnique.mockResolvedValue({
       role: ProjectRole.DEVELOPER,
     });
-    await service.removeMember('p1', 'owner', Role.ADMIN, 'u2');
+    await service.removeMember('p1', 'owner', Role.OWNER, 'u2');
     expect(prisma.projectMember.delete).toHaveBeenCalled();
   });
 
   it('getMembers enforces project access', async () => {
-    await service.getMembers('p1', 'u1', Role.ADMIN);
+    await service.getMembers('p1', 'u1', Role.OWNER);
     expect(projects.assertCanAccessProject).toHaveBeenCalledWith(
       'p1',
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 });

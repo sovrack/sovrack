@@ -7,7 +7,7 @@ import { BuildLifecycleService } from './lifecycle/build-lifecycle.service';
 import { BuildController } from './build.controller';
 
 describe('BuildController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const buildService = {
@@ -54,7 +54,7 @@ describe('BuildController', () => {
     expect(buildService.generateBuildFiles).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
       's1',
       true,
       false,
@@ -67,7 +67,7 @@ describe('BuildController', () => {
     expect(buildService.assertCanConfigureBuild).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(detector.detectProjectType).toHaveBeenCalledWith('p1', 's1');
   });
@@ -84,7 +84,7 @@ describe('BuildController', () => {
       'p1',
       { buildPack: 'NIXPACKS' },
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
       's1',
     );
     expect(res).toEqual({ message: 'Configuration mise à jour' });
@@ -96,7 +96,7 @@ describe('BuildController', () => {
     expect(buildService.pushFiles).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
       's1',
     );
     expect(res).toEqual({ message: 'Fichiers poussés avec succès' });
@@ -110,12 +110,12 @@ describe('BuildController', () => {
     expect(setupService.getTemplates).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(setupService.generateAll).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(setupService.getAvailableEngines).toHaveBeenCalled();
   });

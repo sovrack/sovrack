@@ -79,25 +79,25 @@ describe('DeploymentsAuthorizationService', () => {
     it('throws NotFound when the project is missing', async () => {
       prisma.project.findUnique.mockResolvedValue(null);
       await expect(
-        svc.resolveProjectMemberRole('px', 'u1', Role.DEVELOPER),
+        svc.resolveProjectMemberRole('px', 'u1', Role.MEMBER),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
     it('ADMIN bypasses membership (returns null, no member lookup)', async () => {
       expect(
-        await svc.resolveProjectMemberRole('p1', 'admin', Role.ADMIN),
+        await svc.resolveProjectMemberRole('p1', 'admin', Role.SUPER_ADMIN),
       ).toBeNull();
       expect(prisma.projectMember.findUnique).not.toHaveBeenCalled();
     });
     it('returns the member role for a project member', async () => {
       asMember(ProjectRole.OWNER);
-      expect(
-        await svc.resolveProjectMemberRole('p1', 'u1', Role.DEVELOPER),
-      ).toBe(ProjectRole.OWNER);
+      expect(await svc.resolveProjectMemberRole('p1', 'u1', Role.MEMBER)).toBe(
+        ProjectRole.OWNER,
+      );
     });
     it('throws Forbidden for a non-member', async () => {
       prisma.projectMember.findUnique.mockResolvedValue(null);
       await expect(
-        svc.resolveProjectMemberRole('p1', 'stranger', Role.DEVELOPER),
+        svc.resolveProjectMemberRole('p1', 'stranger', Role.MEMBER),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
@@ -105,23 +105,23 @@ describe('DeploymentsAuthorizationService', () => {
   describe('assertCanDeployProject', () => {
     it('allows ADMIN', async () => {
       await expect(
-        svc.assertCanDeployProject('p1', 'a', Role.ADMIN),
+        svc.assertCanDeployProject('p1', 'a', Role.SUPER_ADMIN),
       ).resolves.toBeUndefined();
     });
     it('allows project OWNER and DEVELOPER', async () => {
       asMember(ProjectRole.OWNER);
       await expect(
-        svc.assertCanDeployProject('p1', 'u', Role.DEVELOPER),
+        svc.assertCanDeployProject('p1', 'u', Role.MEMBER),
       ).resolves.toBeUndefined();
       asMember(ProjectRole.DEVELOPER);
       await expect(
-        svc.assertCanDeployProject('p1', 'u', Role.DEVELOPER),
+        svc.assertCanDeployProject('p1', 'u', Role.MEMBER),
       ).resolves.toBeUndefined();
     });
     it('denies a project VIEWER', async () => {
       asMember(ProjectRole.VIEWER);
       await expect(
-        svc.assertCanDeployProject('p1', 'u', Role.DEVELOPER),
+        svc.assertCanDeployProject('p1', 'u', Role.MEMBER),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
@@ -130,16 +130,16 @@ describe('DeploymentsAuthorizationService', () => {
     it('allows only OWNER (and ADMIN)', async () => {
       asMember(ProjectRole.OWNER);
       await expect(
-        svc.assertCanRollbackProject('p1', 'u', Role.DEVELOPER),
+        svc.assertCanRollbackProject('p1', 'u', Role.MEMBER),
       ).resolves.toBeUndefined();
       await expect(
-        svc.assertCanRollbackProject('p1', 'a', Role.ADMIN),
+        svc.assertCanRollbackProject('p1', 'a', Role.SUPER_ADMIN),
       ).resolves.toBeUndefined();
     });
     it('denies a project DEVELOPER', async () => {
       asMember(ProjectRole.DEVELOPER);
       await expect(
-        svc.assertCanRollbackProject('p1', 'u', Role.DEVELOPER),
+        svc.assertCanRollbackProject('p1', 'u', Role.MEMBER),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
@@ -148,27 +148,27 @@ describe('DeploymentsAuthorizationService', () => {
     it('passes when the environment is not protected', async () => {
       prisma.environment.findUnique.mockResolvedValue({ isProtected: false });
       await expect(
-        svc.assertCanDeployToEnvironment('p1', 'e1', 'u', Role.DEVELOPER),
+        svc.assertCanDeployToEnvironment('p1', 'e1', 'u', Role.MEMBER),
       ).resolves.toBeUndefined();
     });
     it('protected env: ADMIN always passes', async () => {
       prisma.environment.findUnique.mockResolvedValue({ isProtected: true });
       await expect(
-        svc.assertCanDeployToEnvironment('p1', 'e1', 'a', Role.ADMIN),
+        svc.assertCanDeployToEnvironment('p1', 'e1', 'a', Role.SUPER_ADMIN),
       ).resolves.toBeUndefined();
     });
     it('protected env: project OWNER passes', async () => {
       prisma.environment.findUnique.mockResolvedValue({ isProtected: true });
       asDirectMember(ProjectRole.OWNER);
       await expect(
-        svc.assertCanDeployToEnvironment('p1', 'e1', 'u', Role.DEVELOPER),
+        svc.assertCanDeployToEnvironment('p1', 'e1', 'u', Role.MEMBER),
       ).resolves.toBeUndefined();
     });
     it('protected env: project DEVELOPER is denied', async () => {
       prisma.environment.findUnique.mockResolvedValue({ isProtected: true });
       asDirectMember(ProjectRole.DEVELOPER);
       await expect(
-        svc.assertCanDeployToEnvironment('p1', 'e1', 'u', Role.DEVELOPER),
+        svc.assertCanDeployToEnvironment('p1', 'e1', 'u', Role.MEMBER),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });

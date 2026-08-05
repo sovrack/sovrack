@@ -68,7 +68,7 @@ describe('GitlabCiService.getPipelines (agrégation projet)', () => {
       services: [{ repoPath: 'grp/a' }, { repoPath: 'grp/b' }],
       perRepo: { 'grp/a': [pipe(1), pipe(2)], 'grp/b': [pipe(2), pipe(3)] },
     });
-    const out = await svc.getPipelines('p1', 'u1', Role.ADMIN);
+    const out = await svc.getPipelines('p1', 'u1', Role.OWNER);
     expect(out.map((p) => p.id)).toEqual([3, 2, 1]); // dédupliqué + trié desc
   });
 
@@ -77,7 +77,7 @@ describe('GitlabCiService.getPipelines (agrégation projet)', () => {
       services: [{ repoPath: 'grp/a' }, { repoPath: 'grp/bad' }],
       perRepo: { 'grp/a': [pipe(5)], 'grp/bad': new Error('404') },
     });
-    const out = await svc.getPipelines('p1', 'u1', Role.ADMIN);
+    const out = await svc.getPipelines('p1', 'u1', Role.OWNER);
     expect(out.map((p) => p.id)).toEqual([5]);
   });
 
@@ -94,7 +94,7 @@ describe('GitlabCiService.getPipelines (agrégation projet)', () => {
         },
       ],
     });
-    const out = await svc.getPipelines('p1', 'u1', Role.ADMIN);
+    const out = await svc.getPipelines('p1', 'u1', Role.OWNER);
     expect(apiService.getPipelines).not.toHaveBeenCalled();
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ id: 9, status: 'success' });
@@ -114,7 +114,7 @@ describe('GitlabCiService.getPipelines (agrégation projet)', () => {
         },
       ],
     });
-    const out = await svc.getPipelines('p1', 'u1', Role.ADMIN);
+    const out = await svc.getPipelines('p1', 'u1', Role.OWNER);
     expect(out.map((p) => p.id)).toEqual([7]);
   });
 });

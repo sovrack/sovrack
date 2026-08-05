@@ -312,7 +312,7 @@ export class DeploymentsGateway
     user: JwtPayload,
     deploymentId: string,
   ): Promise<boolean> {
-    if (user.role === Role.ADMIN) {
+    if (user.role === Role.SUPER_ADMIN) {
       return true;
     }
 

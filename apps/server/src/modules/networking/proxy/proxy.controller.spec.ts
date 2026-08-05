@@ -2,7 +2,7 @@ import { Role } from '@prisma/client';
 import { ProxyService } from './proxy.service';
 import { ProxyController } from './proxy.controller';
 
-const mockUser = { id: 'u1', email: 'test@test.com', role: Role.DEVELOPER };
+const mockUser = { id: 'u1', email: 'test@test.com', role: Role.MEMBER };
 
 describe('ProxyController', () => {
   function build() {
@@ -24,7 +24,7 @@ describe('ProxyController', () => {
     expect(proxyService.findAll).toHaveBeenCalledWith(
       { serverId: 's1', serviceEnvId: 'se1' },
       'u1',
-      Role.DEVELOPER,
+      Role.MEMBER,
     );
   });
 
@@ -35,31 +35,23 @@ describe('ProxyController', () => {
     ctrl.update('r1', { domain: 'd2' } as never, mockUser as never);
     ctrl.toggle('r1', mockUser as never);
     ctrl.remove('r1', mockUser as never);
-    expect(proxyService.findOne).toHaveBeenCalledWith(
-      'r1',
-      'u1',
-      Role.DEVELOPER,
-    );
+    expect(proxyService.findOne).toHaveBeenCalledWith('r1', 'u1', Role.MEMBER);
     expect(proxyService.create).toHaveBeenCalledWith(
       { domain: 'd' },
       'u1',
-      Role.DEVELOPER,
+      Role.MEMBER,
     );
     expect(proxyService.update).toHaveBeenCalledWith(
       'r1',
       { domain: 'd2' },
       'u1',
-      Role.DEVELOPER,
+      Role.MEMBER,
     );
     expect(proxyService.toggleActive).toHaveBeenCalledWith(
       'r1',
       'u1',
-      Role.DEVELOPER,
+      Role.MEMBER,
     );
-    expect(proxyService.remove).toHaveBeenCalledWith(
-      'r1',
-      'u1',
-      Role.DEVELOPER,
-    );
+    expect(proxyService.remove).toHaveBeenCalledWith('r1', 'u1', Role.MEMBER);
   });
 });

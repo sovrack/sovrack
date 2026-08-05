@@ -67,7 +67,7 @@ export class TerminalService {
 
     // ADMIN : accès global à tous les serveurs.
     // Tout autre rôle : doit être OWNER du projet lié au serveur.
-    if (actorRole !== Role.ADMIN) {
+    if (actorRole !== Role.OWNER) {
       await this.assertOwnerAccess(server.environmentId ?? null, actorId);
     }
 

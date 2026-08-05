@@ -6,7 +6,7 @@ import { ServiceTemplatesFactoryService } from './service-templates-factory.serv
 import { ServicesController } from './services.controller';
 
 describe('ServicesController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const servicesService = {
@@ -40,19 +40,19 @@ describe('ServicesController', () => {
     expect(servicesService.findAll).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(servicesService.create).toHaveBeenCalledWith(
       'p1',
       { name: 'x' },
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(servicesService.discoverGroup).toHaveBeenCalledWith(
       'p1',
       { groupId: 'g' },
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 
@@ -66,7 +66,7 @@ describe('ServicesController', () => {
       't1',
       'stack',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 
@@ -78,14 +78,14 @@ describe('ServicesController', () => {
       'p1',
       's1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(servicesService.update).toHaveBeenCalledWith(
       'p1',
       's1',
       { name: 'y' },
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 
@@ -96,7 +96,7 @@ describe('ServicesController', () => {
       'p1',
       's1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 
@@ -107,7 +107,7 @@ describe('ServicesController', () => {
       'p1',
       's1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(res).toEqual({ message: 'Service supprimé avec succès' });
   });

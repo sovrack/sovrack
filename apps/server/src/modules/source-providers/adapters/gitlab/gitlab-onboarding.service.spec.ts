@@ -97,12 +97,12 @@ describe('GitlabOnboardingService.connectProject', () => {
       'p1',
       { repoPath: 'org/app' } as never,
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(auth.assertCanManageProject).toHaveBeenCalledWith(
       'p1',
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 
@@ -112,7 +112,7 @@ describe('GitlabOnboardingService.connectProject', () => {
       'p1',
       { repoPath: 'org/app' } as never,
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(prisma.service.create).toHaveBeenCalled();
     expect(prisma.serviceEnvironment.create).toHaveBeenCalled();
@@ -126,7 +126,7 @@ describe('GitlabOnboardingService.connectProject', () => {
       'p1',
       { repoPath: 'org/app' } as never,
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(prisma.service.update).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'svc-existing' } }),
@@ -144,7 +144,7 @@ describe('GitlabOnboardingService.connectProject', () => {
       'p1',
       { groupPath: 'my-group' } as never,
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(prisma.gitProviderRepo.upsert).toHaveBeenCalledWith(
       expect.objectContaining({

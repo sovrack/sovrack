@@ -39,13 +39,13 @@ describe('GithubAdapter (delegation)', () => {
   });
 
   it('listRepos delegates to the client with the resolved apiBase/token', async () => {
-    const res = await adapter.listRepos('p1', 'u1', Role.ADMIN);
+    const res = await adapter.listRepos('p1', 'u1', Role.OWNER);
     expect(res).toEqual([{ id: 1 }]);
     expect(api.listRepos).toHaveBeenCalledWith(creds.apiBase, creds.token);
   });
 
   it('listBranches forwards the repo name + default branch', async () => {
-    await adapter.listBranches('p1', 'u1', Role.ADMIN, 'r1');
+    await adapter.listBranches('p1', 'u1', Role.OWNER, 'r1');
     expect(api.listBranches).toHaveBeenCalledWith(
       creds.apiBase,
       creds.token,

@@ -4,7 +4,7 @@ import { ServersCoreService } from '../services';
 import { ServerValidationController } from './server-validation.controller';
 
 describe('ServerValidationController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
   const log = {
     id: 'l1',
     serverId: 'srv-1',

@@ -96,7 +96,7 @@ describe('DeploymentsLifecycleService', () => {
   });
 
   it('cancels a RUNNING deployment: stops containers, sets CANCELED, audits', async () => {
-    const res = await service.cancel('d1', 'u1', Role.ADMIN);
+    const res = await service.cancel('d1', 'u1', Role.OWNER);
     expect(docker.stopContainer).toHaveBeenCalledWith('s1', 'dock1');
     expect(res.status).toBe(DeploymentStatus.CANCELED);
     expect(prisma.container.updateMany).toHaveBeenCalledWith(
@@ -117,7 +117,7 @@ describe('DeploymentsLifecycleService', () => {
       projectId: 'p1',
       status: DeploymentStatus.SUCCESS,
     });
-    await expect(service.cancel('d1', 'u1', Role.ADMIN)).rejects.toBeInstanceOf(
+    await expect(service.cancel('d1', 'u1', Role.OWNER)).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(prisma.deployment.update).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe('DeploymentsLifecycleService', () => {
 
   it('does not fail cancel when stopping a container errors', async () => {
     docker.stopContainer.mockRejectedValue(new Error('docker down'));
-    await expect(service.cancel('d1', 'u1', Role.ADMIN)).resolves.toMatchObject(
+    await expect(service.cancel('d1', 'u1', Role.OWNER)).resolves.toMatchObject(
       {
         status: DeploymentStatus.CANCELED,
       },
@@ -133,7 +133,7 @@ describe('DeploymentsLifecycleService', () => {
   });
 
   it('removes a deployment: stops containers, deletes, audits', async () => {
-    await service.remove('d1', 'u1', Role.ADMIN);
+    await service.remove('d1', 'u1', Role.OWNER);
     expect(docker.stopContainer).toHaveBeenCalled();
     expect(prisma.deployment.delete).toHaveBeenCalledWith({
       where: { id: 'd1' },
@@ -174,7 +174,7 @@ describe('DeploymentsLifecycleService', () => {
       // Last SUCCESS before 'd1' is 'd0'.
       prisma.deployment.findFirst.mockResolvedValue({ id: 'd0' });
 
-      await service.cancel('d1', 'u1', Role.ADMIN);
+      await service.cancel('d1', 'u1', Role.OWNER);
 
       expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -207,7 +207,7 @@ describe('DeploymentsLifecycleService', () => {
       });
       prisma.deployment.findFirst.mockResolvedValue(null); // no previous SUCCESS
 
-      await service.cancel('d1', 'u1', Role.ADMIN);
+      await service.cancel('d1', 'u1', Role.OWNER);
 
       expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -239,7 +239,7 @@ describe('DeploymentsLifecycleService', () => {
         currentDeploymentId: 'd-other',
       });
 
-      await service.cancel('d1', 'u1', Role.ADMIN);
+      await service.cancel('d1', 'u1', Role.OWNER);
 
       // serviceEnvironment.update should NOT be called to reset the pointer
       expect(prisma.serviceEnvironment.update).not.toHaveBeenCalled();
@@ -251,7 +251,7 @@ describe('DeploymentsLifecycleService', () => {
   // individuellement pour TOUS les déploiements.
   describe('cancel — container teardown', () => {
     it('stops running containers individually', async () => {
-      await service.cancel('d1', 'u1', Role.ADMIN);
+      await service.cancel('d1', 'u1', Role.OWNER);
 
       expect(docker.stopContainer).toHaveBeenCalled();
     });

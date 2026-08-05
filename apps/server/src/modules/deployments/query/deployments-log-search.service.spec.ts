@@ -27,7 +27,7 @@ describe('DeploymentsLogSearchService', () => {
     const res = await makeService().searchLogs(
       'd1',
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
       'health',
     );
     expect(res.total).toBe(2);
@@ -40,7 +40,7 @@ describe('DeploymentsLogSearchService', () => {
     const errors = await makeService().searchLogs(
       'd1',
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
       '',
       'ERROR',
     );
@@ -50,7 +50,7 @@ describe('DeploymentsLogSearchService', () => {
     const warns = await makeService().searchLogs(
       'd1',
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
       '',
       'WARN',
     );
@@ -62,7 +62,7 @@ describe('DeploymentsLogSearchService', () => {
     const res = await makeService().searchLogs(
       'd1',
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
       'connection refused',
     );
     expect(res.hits[0].lineNumber).toBe(3);
@@ -72,7 +72,7 @@ describe('DeploymentsLogSearchService', () => {
     const res = await makeService(null).searchLogs(
       'd1',
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
       'error',
     );
     expect(res).toEqual({ hits: [], total: 0 });
@@ -87,9 +87,9 @@ describe('DeploymentsLogSearchService', () => {
     await new DeploymentsLogSearchService(prisma, query).searchLogs(
       'd1',
       'u1',
-      Role.DEVELOPER,
+      Role.MEMBER,
       'x',
     );
-    expect(findOne).toHaveBeenCalledWith('d1', 'u1', Role.DEVELOPER);
+    expect(findOne).toHaveBeenCalledWith('d1', 'u1', Role.MEMBER);
   });
 });

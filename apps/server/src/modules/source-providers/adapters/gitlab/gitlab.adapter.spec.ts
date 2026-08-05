@@ -39,7 +39,7 @@ describe('GitlabAdapter (response mapping)', () => {
         description: 'x',
       },
     ] as never);
-    const [repo] = await adapter.listRepos('p1', 'u1', Role.ADMIN);
+    const [repo] = await adapter.listRepos('p1', 'u1', Role.OWNER);
     expect(repo).toEqual({
       id: 5,
       name: 'app',
@@ -55,7 +55,7 @@ describe('GitlabAdapter (response mapping)', () => {
       { name: 'main', default: true, commit: { id: 'sha1' } },
       { name: 'dev', default: false, commit: { id: 'sha2' } },
     ] as never);
-    const branches = await adapter.listBranches('p1', 'u1', Role.ADMIN);
+    const branches = await adapter.listBranches('p1', 'u1', Role.OWNER);
     expect(branches).toEqual([
       { name: 'main', isDefault: true, commitSha: 'sha1' },
       { name: 'dev', isDefault: false, commitSha: 'sha2' },
@@ -64,7 +64,7 @@ describe('GitlabAdapter (response mapping)', () => {
 
   it('listPipelines delegates to the CI service and maps id/status', async () => {
     ci.getPipelines.mockResolvedValue([{ id: 9, status: 'success' }]);
-    const [p] = await adapter.listPipelines('p1', 'u1', Role.ADMIN);
+    const [p] = await adapter.listPipelines('p1', 'u1', Role.OWNER);
     expect(p).toMatchObject({ id: 9, status: 'success' });
   });
 });
@@ -224,12 +224,12 @@ describe('GitlabAdapter — connectProject / verifyConnectionInput (delegation)'
   it('connectProject delegates to GitlabOnboardingService with the same arguments', async () => {
     const { adapter, onboarding } = makeFullAdapter();
     const dto = { repoPath: 'org/app' } as never;
-    await adapter.connectProject('p1', dto, 'u1', Role.ADMIN);
+    await adapter.connectProject('p1', dto, 'u1', Role.OWNER);
     expect(onboarding.connectProject).toHaveBeenCalledWith(
       'p1',
       dto,
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 
@@ -248,7 +248,7 @@ describe('GitlabAdapter — triggerPipeline', () => {
       'p1',
       'main',
       'u1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(result.webUrl).toBe('https://ci.gl.io/42');
     expect(result.id).toBe(42);
@@ -299,7 +299,7 @@ describe('GitlabAdapter — delegation methods', () => {
 
   it('getGitlabConfig delegates to projectConfig + connection.toPublicConfig', async () => {
     const { adapter, connection } = makeFullAdapter();
-    const result = await adapter.getGitlabConfig('p1', 'u1', Role.ADMIN);
+    const result = await adapter.getGitlabConfig('p1', 'u1', Role.OWNER);
     expect(connection.toPublicConfig).toHaveBeenCalled();
     expect(result).toBeDefined();
   });

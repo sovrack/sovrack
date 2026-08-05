@@ -82,7 +82,7 @@ export class DeploymentsAuthorizationService {
     }
 
     // Environment is protected — ADMIN role always passes.
-    if (userRole === Role.ADMIN) {
+    if (userRole === Role.SUPER_ADMIN) {
       return;
     }
 
@@ -142,7 +142,7 @@ export class DeploymentsAuthorizationService {
       throw new NotFoundException('Projet non trouvé');
     }
 
-    if (userRole === Role.ADMIN) {
+    if (userRole === Role.SUPER_ADMIN) {
       return null;
     }
 

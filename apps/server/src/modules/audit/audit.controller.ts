@@ -16,7 +16,7 @@ import { AuditService } from './audit.service';
 @ApiBearerAuth()
 @Controller('admin/audit-logs')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.SUPER_ADMIN)
 export class AuditController {
   constructor(private readonly auditLogsService: AuditService) {}
 

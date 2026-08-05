@@ -207,7 +207,7 @@ describe('DeploymentsGateway', () => {
       const { gateway, prisma } = makeGateway();
       const client = makeSocket({
         userData: {
-          user: { id: 'admin1', role: Role.ADMIN, email: 'a@t.com' },
+          user: { id: 'admin1', role: Role.SUPER_ADMIN, email: 'a@t.com' },
         },
       });
       const result = await gateway.handleJoinDeployment(client as never, {
@@ -317,7 +317,9 @@ describe('DeploymentsGateway', () => {
       });
 
       const client = makeSocket({
-        userData: { user: { id: 'u1', role: Role.ADMIN, email: 'a@t.com' } },
+        userData: {
+          user: { id: 'u1', role: Role.SUPER_ADMIN, email: 'a@t.com' },
+        },
       });
       const result = await gateway.handleReplayRequest(client as never, {
         deploymentId: 'd-replay',
@@ -351,7 +353,9 @@ describe('DeploymentsGateway', () => {
     it('returns subscriptionKey on success', async () => {
       const { gateway } = makeGateway();
       const client = makeSocket({
-        userData: { user: { id: 'u1', role: Role.ADMIN, email: 'a@t.com' } },
+        userData: {
+          user: { id: 'u1', role: Role.SUPER_ADMIN, email: 'a@t.com' },
+        },
       });
       const result = await gateway.handleLogsSubscribe(client as never, {
         deploymentId: 'd1',
@@ -367,7 +371,9 @@ describe('DeploymentsGateway', () => {
       const { gateway, logStreamService } = makeGateway();
       (logStreamService.subscribe as jest.Mock).mockReturnValue(null);
       const client = makeSocket({
-        userData: { user: { id: 'u1', role: Role.ADMIN, email: 'a@t.com' } },
+        userData: {
+          user: { id: 'u1', role: Role.SUPER_ADMIN, email: 'a@t.com' },
+        },
       });
       const result = await gateway.handleLogsSubscribe(client as never, {
         deploymentId: 'd1',

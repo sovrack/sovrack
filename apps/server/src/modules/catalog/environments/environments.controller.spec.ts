@@ -5,7 +5,7 @@ import { EnvironmentsService } from './environments.service';
 import { EnvironmentsController } from './environments.controller';
 
 describe('EnvironmentsController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const environmentsService = {
@@ -38,25 +38,25 @@ describe('EnvironmentsController', () => {
       'p1',
       { name: 'prod' },
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(environmentsService.findAll).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(environmentsService.findOne).toHaveBeenCalledWith(
       'p1',
       'e1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(environmentsService.update).toHaveBeenCalledWith(
       'p1',
       'e1',
       { name: 'staging' },
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 
@@ -67,7 +67,7 @@ describe('EnvironmentsController', () => {
       'p1',
       'e1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(res).toEqual({ message: 'Environnement supprimé avec succès' });
   });
@@ -83,27 +83,27 @@ describe('EnvironmentsController', () => {
       'e1',
       'srv-1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(environmentsService.removeServer).toHaveBeenCalledWith(
       'p1',
       'e1',
       'srv-1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(environmentsService.linkService).toHaveBeenCalledWith(
       'p1',
       'e1',
       's1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(serviceEnvsService.findByEnvironment).toHaveBeenCalledWith(
       'p1',
       'e1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
   });
 });

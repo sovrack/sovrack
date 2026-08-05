@@ -80,7 +80,7 @@ class InstallKeyDto {
 )
 @Controller('servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.SUPER_ADMIN)
 export class ServerManagementController {
   constructor(private readonly core: ServersCoreService) {}
 
@@ -95,7 +95,7 @@ export class ServerManagementController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: 'List all servers (sshKey masked)' })
   @ApiOkResponse({
     description: 'Liste des serveurs',
@@ -114,7 +114,7 @@ export class ServerManagementController {
   }
 
   @Get('reachability')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({
     summary:
       'A3: lightweight TCP reachability ping for every server (not the full SSH validation) — meant to be polled frequently by the list page.',
@@ -127,7 +127,7 @@ export class ServerManagementController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.SUPER_ADMIN)
   @ApiOperation({ summary: "View a server's details" })
   @ApiOkResponse({ description: 'Server found', type: ServerResponseDto })
   async findOne(@Param('id') id: string) {

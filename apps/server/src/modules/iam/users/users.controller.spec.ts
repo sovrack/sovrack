@@ -4,7 +4,7 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 
 describe('UsersController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const usersService = {
@@ -22,10 +22,10 @@ describe('UsersController', () => {
 
   it('create / findAll delegate', async () => {
     const { ctrl, usersService } = build();
-    await ctrl.create({ email: 'a@b.c' } as never);
-    await ctrl.findAll({ page: 1 } as never);
-    expect(usersService.create).toHaveBeenCalledWith({ email: 'a@b.c' });
-    expect(usersService.findAll).toHaveBeenCalledWith({ page: 1 });
+    await ctrl.create({ email: 'a@b.c' } as never, user);
+    await ctrl.findAll({ page: 1 } as never, user);
+    expect(usersService.create).toHaveBeenCalledWith({ email: 'a@b.c' }, user);
+    expect(usersService.findAll).toHaveBeenCalledWith({ page: 1 }, user);
   });
 
   it('changeMyPassword delegates with the current user id', async () => {
@@ -42,12 +42,12 @@ describe('UsersController', () => {
 
   it('findById / delete / toggleActive delegate', async () => {
     const { ctrl, usersService } = build();
-    await ctrl.findById('u1');
-    await ctrl.delete('u1');
-    await ctrl.toggleActive('u1');
-    expect(usersService.findByIdOrFail).toHaveBeenCalledWith('u1');
-    expect(usersService.delete).toHaveBeenCalledWith('u1');
-    expect(usersService.toggleActive).toHaveBeenCalledWith('u1');
+    await ctrl.findById('u1', user);
+    await ctrl.delete('u1', user);
+    await ctrl.toggleActive('u1', user);
+    expect(usersService.findByIdOrFail).toHaveBeenCalledWith('u1', user);
+    expect(usersService.delete).toHaveBeenCalledWith('u1', user);
+    expect(usersService.toggleActive).toHaveBeenCalledWith('u1', user);
   });
 
   it('update passes the acting user identity', async () => {
@@ -56,7 +56,7 @@ describe('UsersController', () => {
     expect(usersService.update).toHaveBeenCalledWith(
       'u1',
       { fullName: 'X' },
-      { id: 'user-1', role: Role.ADMIN },
+      { id: 'user-1', role: Role.OWNER },
     );
   });
 });

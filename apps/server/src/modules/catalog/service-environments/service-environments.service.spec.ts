@@ -70,7 +70,7 @@ describe('ServiceEnvironmentsService', () => {
       'p1',
       { ...dto, secretsEnv: 'K=v' } as never,
       'admin',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(crypto.encryptOptional).toHaveBeenCalledWith('K=v');
     expect(prisma.serviceEnvironment.create).toHaveBeenCalled();
@@ -84,7 +84,7 @@ describe('ServiceEnvironmentsService', () => {
       'p1',
       { ...dto, secretsEnv: '' } as never,
       'admin',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(crypto.encryptOptional).toHaveBeenCalledWith('');
     expect(prisma.serviceEnvironment.create).toHaveBeenCalledWith(
@@ -97,7 +97,7 @@ describe('ServiceEnvironmentsService', () => {
   it('rejects linking when the service is not in the project', async () => {
     prisma.service.findFirst.mockResolvedValue(null);
     await expect(
-      service.link('p1', dto as never, 'admin', Role.ADMIN),
+      service.link('p1', dto as never, 'admin', Role.OWNER),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -107,7 +107,7 @@ describe('ServiceEnvironmentsService', () => {
       archivedAt: null,
     });
     await expect(
-      service.link('p1', dto as never, 'admin', Role.ADMIN),
+      service.link('p1', dto as never, 'admin', Role.OWNER),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
@@ -116,7 +116,7 @@ describe('ServiceEnvironmentsService', () => {
       id: 'se1',
       archivedAt: new Date(),
     });
-    await service.link('p1', dto as never, 'admin', Role.ADMIN);
+    await service.link('p1', dto as never, 'admin', Role.OWNER);
     expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ archivedAt: null }),
@@ -131,7 +131,7 @@ describe('ServiceEnvironmentsService', () => {
       'se1',
       { port: 8080 } as never,
       'admin',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -157,7 +157,7 @@ describe('ServiceEnvironmentsService', () => {
         'se1',
         { [field]: value } as never,
         'admin',
-        Role.ADMIN,
+        Role.OWNER,
       );
       expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -174,7 +174,7 @@ describe('ServiceEnvironmentsService', () => {
           'se1',
           { [field]: null } as never,
           'admin',
-          Role.ADMIN,
+          Role.OWNER,
         );
         expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -190,7 +190,7 @@ describe('ServiceEnvironmentsService', () => {
         'se1',
         { env: '{}' } as never,
         'admin',
-        Role.ADMIN,
+        Role.OWNER,
       );
       const data = (
         prisma.serviceEnvironment.update.mock.calls[0][0] as {
@@ -212,13 +212,13 @@ describe('ServiceEnvironmentsService', () => {
   it('blocks unlink while domains still point to the link', async () => {
     prisma.domain.count.mockResolvedValue(2);
     await expect(
-      service.unlink('p1', 'se1', 'admin', Role.ADMIN),
+      service.unlink('p1', 'se1', 'admin', Role.OWNER),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('soft-deletes on unlink when no domains are attached', async () => {
     prisma.domain.count.mockResolvedValue(0);
-    await service.unlink('p1', 'se1', 'admin', Role.ADMIN);
+    await service.unlink('p1', 'se1', 'admin', Role.OWNER);
     expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ archivedAt: expect.any(Date) }),
@@ -231,7 +231,7 @@ describe('ServiceEnvironmentsService', () => {
       role: ProjectRole.DEVELOPER,
     });
     await expect(
-      service.link('p1', dto as never, 'u2', Role.DEVELOPER),
+      service.link('p1', dto as never, 'u2', Role.MEMBER),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

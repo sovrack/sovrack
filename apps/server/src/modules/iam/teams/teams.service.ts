@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
@@ -43,14 +43,25 @@ export class TeamsService {
     private readonly usageGuard: UsageGuardService,
   ) {}
 
-  async findAll(): Promise<TeamWithMembers[]> {
+  async findAll(actor?: {
+    id: string;
+    role: Role;
+  }): Promise<TeamWithMembers[]> {
+    const where =
+      actor && actor.role !== Role.SUPER_ADMIN
+        ? { members: { some: { userId: actor.id } } }
+        : {};
     return this.prisma.team.findMany({
+      where,
       include: teamWithMembersInclude,
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(id: string): Promise<TeamWithMembers> {
+  async findOne(
+    id: string,
+    actor?: { id: string; role: Role },
+  ): Promise<TeamWithMembers> {
     const team = await this.prisma.team.findUnique({
       where: { id },
       include: teamWithMembersInclude,
@@ -58,7 +69,30 @@ export class TeamsService {
     if (!team) {
       throw new NotFoundException('Équipe introuvable');
     }
+    if (actor) {
+      await this.assertMemberOrSuperAdmin(id, actor);
+    }
     return team;
+  }
+
+  /**
+   * Multi-tenant : seuls les membres de l'équipe (ou SUPER_ADMIN) peuvent y
+   * accéder.
+   */
+  private async assertMemberOrSuperAdmin(
+    teamId: string,
+    actor: { id: string; role: Role },
+  ): Promise<void> {
+    if (actor.role === Role.SUPER_ADMIN) {
+      return;
+    }
+    const membership = await this.prisma.teamMember.findUnique({
+      where: { teamId_userId: { teamId, userId: actor.id } },
+      select: { id: true },
+    });
+    if (!membership) {
+      throw new NotFoundException('Équipe introuvable');
+    }
   }
 
   async create(
@@ -86,9 +120,12 @@ export class TeamsService {
     return team;
   }
 
-  async update(id: string, dto: UpdateTeamDto): Promise<TeamWithMembers> {
-    // Single query: verify the team exists AND check name uniqueness atomically.
-    // Avoids the previous pattern of findOne() + findUnique() (2 round-trips).
+  async update(
+    id: string,
+    dto: UpdateTeamDto,
+    actor?: { id: string; role: Role },
+  ): Promise<TeamWithMembers> {
+    await this.findOne(id, actor);
     const team = await this.prisma.team.findUnique({
       where: { id },
       select: { id: true },
@@ -114,8 +151,11 @@ export class TeamsService {
     });
   }
 
-  async remove(id: string): Promise<TeamWithMembers> {
-    await this.findOne(id);
+  async remove(
+    id: string,
+    actor?: { id: string; role: Role },
+  ): Promise<TeamWithMembers> {
+    await this.findOne(id, actor);
     const team = await this.prisma.team.delete({
       where: { id },
       include: teamWithMembersInclude,
@@ -124,8 +164,12 @@ export class TeamsService {
     return team;
   }
 
-  async addMember(id: string, dto: AddTeamMemberDto): Promise<TeamWithMembers> {
-    await this.findOne(id);
+  async addMember(
+    id: string,
+    dto: AddTeamMemberDto,
+    actor?: { id: string; role: Role },
+  ): Promise<TeamWithMembers> {
+    await this.findOne(id, actor);
     await this.usageGuard.guardForTeam(id, 'ADD_TEAM_MEMBER');
 
     const user = await this.prisma.user.findUnique({
@@ -152,8 +196,12 @@ export class TeamsService {
     return this.findOne(id);
   }
 
-  async removeMember(id: string, userId: string): Promise<TeamWithMembers> {
-    await this.findOne(id);
+  async removeMember(
+    id: string,
+    userId: string,
+    actor?: { id: string; role: Role },
+  ): Promise<TeamWithMembers> {
+    await this.findOne(id, actor);
 
     const member = await this.prisma.teamMember.findUnique({
       where: { teamId_userId: { teamId: id, userId } },

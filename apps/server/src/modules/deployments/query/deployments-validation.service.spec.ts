@@ -19,7 +19,7 @@ jest.mock('fs/promises', () => ({
 // even though the preflight itself is stubbed below, never constructed here.
 jest.mock('@prisma/client', () => ({
   PrismaClient: class {},
-  Role: { ADMIN: 'ADMIN', DEVELOPER: 'DEVELOPER' },
+  Role: { ADMIN: 'OWNER', DEVELOPER: 'MEMBER' },
   BuildPack: {
     NIXPACKS: 'NIXPACKS',
     BUILDPACK: 'BUILDPACK',
@@ -96,7 +96,7 @@ describe('DeploymentsValidationService.validate', () => {
       },
     };
     auth = {
-      getActor: jest.fn().mockResolvedValue({ id: 'u1', role: 'ADMIN' }),
+      getActor: jest.fn().mockResolvedValue({ id: 'u1', role: 'OWNER' }),
       assertCanDeployProject: jest.fn().mockResolvedValue(undefined),
     };
     providers = {

@@ -76,7 +76,7 @@ describe('EnvironmentsService', () => {
       'p1',
       { name: 'prod', env: 'A=1', secretsEnv: 'S=2' } as never,
       'admin',
-      Role.ADMIN,
+      Role.SUPER_ADMIN,
     );
     expect(crypto.encryptOptional).toHaveBeenCalledWith('S=2');
   });
@@ -89,7 +89,7 @@ describe('EnvironmentsService', () => {
       'p1',
       { name: 'prod', secretsEnv: '' } as never,
       'admin',
-      Role.ADMIN,
+      Role.SUPER_ADMIN,
     );
     expect(crypto.encryptOptional).toHaveBeenCalledWith('');
     expect(prisma.environment.create).toHaveBeenCalledWith(
@@ -103,7 +103,7 @@ describe('EnvironmentsService', () => {
   // omit: { secretsEnv: true } — every other read/write in this service already
   // had it. Assert the fix directly rather than trusting the return value.
   it('never returns raw secretsEnv from linkService (omit applied)', async () => {
-    await service.linkService('p1', 'e1', 'svc1', 'admin', Role.ADMIN);
+    await service.linkService('p1', 'e1', 'svc1', 'admin', Role.SUPER_ADMIN);
     expect(prisma.serviceEnvironment.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ omit: { secretsEnv: true } }),
     );
@@ -119,7 +119,7 @@ describe('EnvironmentsService', () => {
       role: ProjectRole.DEVELOPER,
     });
 
-    await service.findAll('p1', 'u2', Role.DEVELOPER);
+    await service.findAll('p1', 'u2', Role.MEMBER);
 
     const arg = prisma.environment.findMany.mock.calls[0][0];
     const serviceLinks = arg.include.serviceLinks;
@@ -141,7 +141,7 @@ describe('EnvironmentsService', () => {
       role: ProjectRole.DEVELOPER,
     });
 
-    await service.findAll('p1', 'u2', Role.DEVELOPER);
+    await service.findAll('p1', 'u2', Role.MEMBER);
 
     const arg = prisma.environment.findMany.mock.calls[0][0];
     const serviceLinks = arg.include.serviceLinks;
@@ -154,7 +154,7 @@ describe('EnvironmentsService', () => {
   it('forbids a non-member from reading project envs', async () => {
     prisma.projectMember.findUnique.mockResolvedValue(null);
     await expect(
-      service.findAll('p1', 'u2', Role.DEVELOPER),
+      service.findAll('p1', 'u2', Role.MEMBER),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -162,9 +162,7 @@ describe('EnvironmentsService', () => {
     prisma.projectMember.findUnique.mockResolvedValue({
       role: ProjectRole.DEVELOPER,
     });
-    await expect(service.findAll('p1', 'u2', Role.DEVELOPER)).resolves.toEqual(
-      [],
-    );
+    await expect(service.findAll('p1', 'u2', Role.MEMBER)).resolves.toEqual([]);
   });
 
   it('restricts management (create) to OWNER or ADMIN', async () => {
@@ -172,7 +170,7 @@ describe('EnvironmentsService', () => {
       role: ProjectRole.DEVELOPER,
     });
     await expect(
-      service.create('p1', { name: 'x' } as never, 'u2', Role.DEVELOPER),
+      service.create('p1', { name: 'x' } as never, 'u2', Role.MEMBER),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -181,28 +179,28 @@ describe('EnvironmentsService', () => {
       role: ProjectRole.OWNER,
     });
     await expect(
-      service.create('p1', { name: 'x' } as never, 'owner', Role.DEVELOPER),
+      service.create('p1', { name: 'x' } as never, 'owner', Role.MEMBER),
     ).resolves.toMatchObject({ name: 'x' });
   });
 
   it('404s findOne when the env does not exist', async () => {
     prisma.environment.findFirst.mockResolvedValue(null);
     await expect(
-      service.findOne('p1', 'nope', 'admin', Role.ADMIN),
+      service.findOne('p1', 'nope', 'admin', Role.SUPER_ADMIN),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('404s assignServer when the server is missing', async () => {
     prisma.server.findUnique.mockResolvedValue(null);
     await expect(
-      service.assignServer('p1', 'e1', 'nope', 'admin', Role.ADMIN),
+      service.assignServer('p1', 'e1', 'nope', 'admin', Role.SUPER_ADMIN),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('404s when the project does not exist', async () => {
     prisma.project.findUnique.mockResolvedValue(null);
     await expect(
-      service.findAll('nope', 'admin', Role.ADMIN),
+      service.findAll('nope', 'admin', Role.SUPER_ADMIN),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

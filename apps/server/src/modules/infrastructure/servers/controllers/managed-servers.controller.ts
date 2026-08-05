@@ -51,7 +51,7 @@ class SetManagedHostDto {
 @ApiBearerAuth()
 @Controller('managed-servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN, Role.DEVELOPER)
+@Roles(Role.OWNER, Role.MEMBER)
 export class ManagedServersController {
   constructor(private readonly managed: ManagedServersService) {}
 

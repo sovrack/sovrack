@@ -6,7 +6,7 @@ import { ProjectMembersService } from './services/project-members.service';
 import { ProjectsController } from './projects.controller';
 
 describe('ProjectsController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const projectsService = {
@@ -38,21 +38,21 @@ describe('ProjectsController', () => {
     await ctrl.findAll(user, { page: 1 } as never);
     await ctrl.findOne('p1', user);
     await ctrl.update('p1', user, { name: 'y' } as never);
-    expect(projectsService.create).toHaveBeenCalledWith('user-1', Role.ADMIN, {
+    expect(projectsService.create).toHaveBeenCalledWith('user-1', Role.OWNER, {
       name: 'x',
     });
-    expect(projectsService.findAll).toHaveBeenCalledWith('user-1', Role.ADMIN, {
+    expect(projectsService.findAll).toHaveBeenCalledWith('user-1', Role.OWNER, {
       page: 1,
     });
     expect(projectsService.findOne).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(projectsService.update).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
       { name: 'y' },
     );
   });
@@ -63,7 +63,7 @@ describe('ProjectsController', () => {
     expect(projectsService.remove).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(res).toEqual({ message: 'Projet supprimé avec succès' });
   });
@@ -73,7 +73,7 @@ describe('ProjectsController', () => {
     await ctrl.importGitlabGroup(user, { groupId: 'g1' } as never);
     expect(importService.importGitlabGroup).toHaveBeenCalledWith(
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
       { groupId: 'g1' },
     );
   });
@@ -86,18 +86,18 @@ describe('ProjectsController', () => {
     expect(membersService.addMember).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
       { userId: 'u2' },
     );
     expect(membersService.getMembers).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(membersService.removeMember).toHaveBeenCalledWith(
       'p1',
       'user-1',
-      Role.ADMIN,
+      Role.OWNER,
       'u2',
     );
   });

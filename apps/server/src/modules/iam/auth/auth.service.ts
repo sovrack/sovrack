@@ -48,7 +48,7 @@ export class AuthService {
       email: dto.email,
       password: dto.password,
       fullName: dto.fullName,
-      role: Role.ADMIN,
+      role: Role.OWNER,
     });
 
     try {

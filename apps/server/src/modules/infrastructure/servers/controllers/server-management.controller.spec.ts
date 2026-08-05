@@ -4,7 +4,7 @@ import { ServersCoreService } from '../services';
 import { ServerManagementController } from './server-management.controller';
 
 describe('ServerManagementController', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   function build() {
     const core = {

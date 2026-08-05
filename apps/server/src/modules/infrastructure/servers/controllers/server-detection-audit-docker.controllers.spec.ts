@@ -7,7 +7,7 @@ import { ServerAuditController } from './server-audit.controller';
 import { DockerConnectionController } from './docker-connection.controller';
 
 describe('Server detection / audit / docker-connection controllers', () => {
-  const user = { id: 'user-1', role: Role.ADMIN } as JwtPayload;
+  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
 
   describe('ServerDetectionController', () => {
     function build() {

@@ -123,7 +123,7 @@ export class MonitoringRuntimeLogsService {
       select: { service: { select: { projectId: true } } },
     });
     if (!env) throw new NotFoundException('Service-environnement introuvable');
-    if (userRole === Role.ADMIN) return;
+    if (userRole === Role.SUPER_ADMIN) return;
 
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId: env.service.projectId, userId } },

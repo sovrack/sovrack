@@ -46,7 +46,7 @@ describe('ProjectsService', () => {
       user: {
         findUnique: jest
           .fn()
-          .mockResolvedValue({ id: 'o1', role: Role.DEVELOPER }),
+          .mockResolvedValue({ id: 'o1', role: Role.MEMBER }),
       },
       projectMember: { findUnique: jest.fn().mockResolvedValue(null) },
       teamMember: {
@@ -91,7 +91,7 @@ describe('ProjectsService', () => {
   });
 
   it('creates a project, auto-adds the creator as OWNER, and audits it', async () => {
-    await service.create('u1', Role.DEVELOPER, { name: 'P' } as never);
+    await service.create('u1', Role.MEMBER, { name: 'P' } as never);
     expect(prisma.project.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -110,7 +110,7 @@ describe('ProjectsService', () => {
 
   it('forbids a non-admin from assigning a different owner', async () => {
     await expect(
-      service.create('u1', Role.DEVELOPER, {
+      service.create('u1', Role.MEMBER, {
         name: 'P',
         ownerId: 'other',
       } as never),
@@ -118,9 +118,9 @@ describe('ProjectsService', () => {
   });
 
   it('rejects an assigned owner that is not a DEVELOPER', async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'o1', role: Role.ADMIN });
+    prisma.user.findUnique.mockResolvedValue({ id: 'o1', role: Role.OWNER });
     await expect(
-      service.create('admin', Role.ADMIN, {
+      service.create('admin', Role.OWNER, {
         name: 'P',
         ownerId: 'o1',
       } as never),
@@ -130,22 +130,31 @@ describe('ProjectsService', () => {
   it('404s when the assigned owner does not exist', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
     await expect(
-      service.create('admin', Role.ADMIN, {
+      service.create('admin', Role.OWNER, {
         name: 'P',
         ownerId: 'ghost',
       } as never),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('lists all projects for an ADMIN (no membership filter)', async () => {
-    await service.findAll('admin', Role.ADMIN);
+  it('lists all projects for a SUPER_ADMIN (no membership filter)', async () => {
+    await service.findAll('admin', Role.SUPER_ADMIN);
     expect(prisma.project.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: undefined }),
     );
   });
 
+  it('filters projects by membership for an OWNER (tenant isolation)', async () => {
+    await service.findAll('u1', Role.OWNER);
+    expect(prisma.project.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { members: { some: { userId: 'u1' } } },
+      }),
+    );
+  });
+
   it('filters projects by membership for a non-admin', async () => {
-    await service.findAll('u1', Role.DEVELOPER);
+    await service.findAll('u1', Role.MEMBER);
     expect(prisma.project.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { members: { some: { userId: 'u1' } } },
@@ -158,7 +167,7 @@ describe('ProjectsService', () => {
       role: ProjectRole.DEVELOPER,
     });
     await expect(
-      service.update('p1', 'u2', Role.DEVELOPER, { name: 'X' } as never),
+      service.update('p1', 'u2', Role.MEMBER, { name: 'X' } as never),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -177,11 +186,11 @@ describe('ProjectsService', () => {
       async (cb: (t: typeof tx) => unknown) => cb(tx),
     );
 
-    await service.remove('p1', 'admin', Role.ADMIN);
+    await service.remove('p1', 'admin', Role.OWNER);
     expect(tx.project.deleteMany).toHaveBeenCalledWith({ where: { id: 'p1' } });
 
     await expect(
-      service.remove('p1', 'u1', Role.DEVELOPER),
+      service.remove('p1', 'u1', Role.MEMBER),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

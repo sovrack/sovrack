@@ -37,7 +37,7 @@ import {
 @ApiBearerAuth()
 @Controller('servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.SUPER_ADMIN)
 export class ServerValidationController {
   constructor(private readonly core: ServersCoreService) {}
 

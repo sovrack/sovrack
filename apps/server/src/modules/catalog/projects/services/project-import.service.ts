@@ -224,7 +224,7 @@ export class ProjectImportService {
       return resolvedOwnerId;
     }
 
-    if (userRole !== Role.ADMIN && ownerId !== userId) {
+    if (userRole !== Role.OWNER && ownerId !== userId) {
       throw new ForbiddenException(
         'Seul un administrateur peut assigner un owner différent',
       );
@@ -238,7 +238,7 @@ export class ProjectImportService {
       throw new NotFoundException('Utilisateur owner introuvable');
     }
 
-    if (ownerUser.role !== Role.DEVELOPER) {
+    if (ownerUser.role !== Role.MEMBER) {
       throw new ConflictException(
         'Le owner assigné doit avoir le rôle DEVELOPER',
       );

@@ -5,8 +5,8 @@ export type SuperAdminOverview = {
   users: {
     total: number;
     active: number;
-    admins: number;
-    developers: number;
+    owners: number;
+    members: number;
   };
   teams: {
     total: number;
@@ -69,8 +69,8 @@ export class SuperAdminService {
       users: {
         total: userAgg.reduce((acc, r) => acc + r._count.id, 0),
         active: activeUsers,
-        admins: byRole['ADMIN'] ?? 0,
-        developers: byRole['DEVELOPER'] ?? 0,
+        owners: byRole['OWNER'] ?? 0,
+        members: byRole['MEMBER'] ?? 0,
       },
       teams: { total: teamsTotal },
       subscriptions: {

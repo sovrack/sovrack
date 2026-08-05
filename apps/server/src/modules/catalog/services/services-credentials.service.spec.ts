@@ -22,7 +22,7 @@ describe('ServicesCredentialsService', () => {
       new Error('forbidden'),
     );
     await expect(
-      service.getCredentials('p1', 's1', 'u1', Role.DEVELOPER),
+      service.getCredentials('p1', 's1', 'u1', Role.MEMBER),
     ).rejects.toThrow('forbidden');
     // Never touched the DB once access was denied.
     expect(prisma.service.findFirst).not.toHaveBeenCalled();
@@ -43,7 +43,7 @@ describe('ServicesCredentialsService', () => {
       externalPort: null,
     });
 
-    const res = await service.getCredentials('p1', 's1', 'u1', Role.ADMIN);
+    const res = await service.getCredentials('p1', 's1', 'u1', Role.OWNER);
 
     expect(res.internal).toEqual({
       user: 'appuser',
@@ -70,7 +70,7 @@ describe('ServicesCredentialsService', () => {
       externalPort: 3307,
     });
 
-    const res = await service.getCredentials('p1', 's2', 'u1', Role.ADMIN);
+    const res = await service.getCredentials('p1', 's2', 'u1', Role.OWNER);
 
     expect(res.internal.rootPassword).toBe('pw');
     expect(res.internal.port).toBe(3306);
@@ -81,7 +81,7 @@ describe('ServicesCredentialsService', () => {
     const { service, prisma } = build();
     (prisma.service.findFirst as jest.Mock).mockResolvedValue(null);
     await expect(
-      service.getCredentials('p1', 'missing', 'u1', Role.ADMIN),
+      service.getCredentials('p1', 'missing', 'u1', Role.OWNER),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -96,7 +96,7 @@ describe('ServicesCredentialsService', () => {
       externalPort: null,
     });
     await expect(
-      service.getCredentials('p1', 's3', 'u1', Role.ADMIN),
+      service.getCredentials('p1', 's3', 'u1', Role.OWNER),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

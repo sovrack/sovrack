@@ -51,7 +51,7 @@ describe('ProjectImportService.importGitlabGroup', () => {
       user: {
         findUnique: jest
           .fn()
-          .mockResolvedValue({ id: 'o1', role: Role.DEVELOPER }),
+          .mockResolvedValue({ id: 'o1', role: Role.MEMBER }),
       },
       project: {
         create: jest.fn().mockResolvedValue({ id: 'p1', members: [] }),
@@ -84,7 +84,7 @@ describe('ProjectImportService.importGitlabGroup', () => {
 
   it('rejects a duplicate repository selection', async () => {
     await expect(
-      service.importGitlabGroup('u1', Role.ADMIN, {
+      service.importGitlabGroup('u1', Role.OWNER, {
         ...baseDto,
         repositories: [repo({ id: 1 }), repo({ id: 1 })],
       } as never),
@@ -93,7 +93,7 @@ describe('ProjectImportService.importGitlabGroup', () => {
 
   it('forbids a non-admin from assigning a different owner', async () => {
     await expect(
-      service.importGitlabGroup('u1', Role.DEVELOPER, {
+      service.importGitlabGroup('u1', Role.MEMBER, {
         ...baseDto,
         ownerId: 'someone-else',
       } as never),
@@ -103,7 +103,7 @@ describe('ProjectImportService.importGitlabGroup', () => {
   it('404s when the assigned owner does not exist', async () => {
     prisma.user.findUnique.mockResolvedValue(null);
     await expect(
-      service.importGitlabGroup('admin', Role.ADMIN, {
+      service.importGitlabGroup('admin', Role.OWNER, {
         ...baseDto,
         ownerId: 'ghost',
       } as never),
@@ -115,14 +115,14 @@ describe('ProjectImportService.importGitlabGroup', () => {
       { name: 'master' },
     ]);
     await expect(
-      service.importGitlabGroup('admin', Role.ADMIN, baseDto as never),
+      service.importGitlabGroup('admin', Role.OWNER, baseDto as never),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('imports SEPARATE_PROJECTS: creates project/env/service, connects, audits', async () => {
     const res = await service.importGitlabGroup(
       'admin',
-      Role.ADMIN,
+      Role.OWNER,
       baseDto as never,
     );
     expect(prisma.project.create).toHaveBeenCalled();
@@ -135,7 +135,7 @@ describe('ProjectImportService.importGitlabGroup', () => {
   it('rolls back created projects when an import step throws', async () => {
     gitlab.connectProject.mockRejectedValue(new Error('connect failed'));
     await expect(
-      service.importGitlabGroup('admin', Role.ADMIN, baseDto as never),
+      service.importGitlabGroup('admin', Role.OWNER, baseDto as never),
     ).rejects.toThrow('connect failed');
     expect(prisma.project.delete).toHaveBeenCalledWith({ where: { id: 'p1' } });
   });

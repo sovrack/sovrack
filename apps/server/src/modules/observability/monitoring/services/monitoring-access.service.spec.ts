@@ -34,20 +34,20 @@ function makeService(overrides: {
 describe('MonitoringAccessService', () => {
   it('ADMIN bypasses membership entirely', async () => {
     const { svc, prisma } = makeService({});
-    await svc.assertProject('p1', 'u1', Role.ADMIN);
+    await svc.assertProject('p1', 'u1', Role.SUPER_ADMIN);
     expect(prisma.projectMember.findUnique).not.toHaveBeenCalled();
   });
 
   it('allows a DEVELOPER who is a project member', async () => {
     const { svc } = makeService({ member: { role: 'DEVELOPER' } });
     await expect(
-      svc.assertProject('p1', 'u1', Role.DEVELOPER),
+      svc.assertProject('p1', 'u1', Role.MEMBER),
     ).resolves.toBeUndefined();
   });
 
   it('rejects a DEVELOPER who is NOT a member (403)', async () => {
     const { svc } = makeService({ member: null });
-    await expect(svc.assertProject('p1', 'u1', Role.DEVELOPER)).rejects.toThrow(
+    await expect(svc.assertProject('p1', 'u1', Role.MEMBER)).rejects.toThrow(
       ForbiddenException,
     );
   });
@@ -57,7 +57,7 @@ describe('MonitoringAccessService', () => {
       serviceEnv: { service: { projectId: 'p9' } },
       member: { role: 'DEVELOPER' },
     });
-    await svc.assertServiceEnv('se1', 'u1', Role.DEVELOPER);
+    await svc.assertServiceEnv('se1', 'u1', Role.MEMBER);
     expect(prisma.projectMember.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { projectId_userId: { projectId: 'p9', userId: 'u1' } },
@@ -68,10 +68,10 @@ describe('MonitoringAccessService', () => {
   it('404s on unknown service-environment / deployment', async () => {
     const { svc } = makeService({});
     await expect(
-      svc.assertServiceEnv('ghost', 'u1', Role.DEVELOPER),
+      svc.assertServiceEnv('ghost', 'u1', Role.MEMBER),
     ).rejects.toThrow(NotFoundException);
     await expect(
-      svc.assertDeployment('ghost', 'u1', Role.DEVELOPER),
+      svc.assertDeployment('ghost', 'u1', Role.MEMBER),
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -80,8 +80,8 @@ describe('MonitoringAccessService', () => {
       deployment: { projectId: 'p2' },
       member: null,
     });
-    await expect(
-      svc.assertDeployment('d1', 'u1', Role.DEVELOPER),
-    ).rejects.toThrow(ForbiddenException);
+    await expect(svc.assertDeployment('d1', 'u1', Role.MEMBER)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 });

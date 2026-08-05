@@ -20,7 +20,7 @@ export async function createTestFixtures(prisma: PrismaClient) {
       email: `admin-${userId.slice(0, 8)}@deployautomation.test`,
       password: '$2b$10$dummyhashneverusedfore2e',
       fullName: 'E2E Admin',
-      role: Role.ADMIN,
+      role: Role.OWNER,
     },
   });
 

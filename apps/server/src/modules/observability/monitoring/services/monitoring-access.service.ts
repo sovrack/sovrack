@@ -23,7 +23,7 @@ export class MonitoringAccessService {
     userId: string,
     userRole: Role,
   ): Promise<void> {
-    if (userRole === Role.ADMIN) return;
+    if (userRole === Role.SUPER_ADMIN) return;
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
       select: { role: true },

@@ -185,10 +185,10 @@ describe('AuthService', () => {
   describe('generateWsToken', () => {
     it('calls jwtService.sign with sub and role, expires in 5m', () => {
       const { svc, jwtService } = makeSvc();
-      const token = svc.generateWsToken('user-1', 'ADMIN');
+      const token = svc.generateWsToken('user-1', 'OWNER');
       expect(token).toBe('jwt-token');
       expect(jwtService.sign).toHaveBeenCalledWith(
-        { sub: 'user-1', role: 'ADMIN' },
+        { sub: 'user-1', role: 'OWNER' },
         { expiresIn: '5m' },
       );
     });
@@ -219,7 +219,7 @@ describe('AuthService', () => {
         email: dto.email,
         password: dto.password,
         fullName: dto.fullName,
-        role: 'ADMIN',
+        role: 'OWNER',
       });
       expect(teamsService.create).toHaveBeenCalledWith(
         { name: 'New Team' },

@@ -117,7 +117,7 @@ export class AuthController {
    * @returns Informations de l'utilisateur
    */
   @Get('ws-token')
-  @Roles(Role.ADMIN)
+  @Roles(Role.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
@@ -132,7 +132,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @Roles(Role.ADMIN, Role.DEVELOPER)
+  @Roles(Role.OWNER, Role.MEMBER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get the logged-in user's profile" })

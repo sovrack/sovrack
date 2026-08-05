@@ -60,7 +60,7 @@ function makeSvc(
   } as never;
 
   const authorizationService = {
-    getActor: jest.fn().mockResolvedValue({ id: 'user1', role: Role.ADMIN }),
+    getActor: jest.fn().mockResolvedValue({ id: 'user1', role: Role.OWNER }),
     assertCanRollbackProject: jest.fn().mockResolvedValue(undefined),
   } as never;
 
@@ -108,21 +108,21 @@ describe('DeploymentsRollbackService', () => {
   describe('rollback', () => {
     it('throws BadRequestException when no previous SUCCESS deployment exists', async () => {
       const { svc } = makeSvc({ previousSuccess: null });
-      await expect(svc.rollback('dep1', 'user1', Role.ADMIN)).rejects.toThrow(
+      await expect(svc.rollback('dep1', 'user1', Role.OWNER)).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('throws BadRequestException when target deployment has no dockerImage', async () => {
       const { svc } = makeSvc({ previousHasDockerImage: false });
-      await expect(svc.rollback('dep1', 'user1', Role.ADMIN)).rejects.toThrow(
+      await expect(svc.rollback('dep1', 'user1', Role.OWNER)).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('creates a rollback deployment with isRollback=true', async () => {
       const { svc, prisma } = makeSvc();
-      await svc.rollback('dep1', 'user1', Role.ADMIN);
+      await svc.rollback('dep1', 'user1', Role.OWNER);
       expect(prisma.deployment.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ isRollback: true }),
@@ -132,7 +132,7 @@ describe('DeploymentsRollbackService', () => {
 
     it('creates rollback with previousDeploymentId pointing to the source', async () => {
       const { svc, prisma } = makeSvc();
-      await svc.rollback('dep1', 'user1', Role.ADMIN);
+      await svc.rollback('dep1', 'user1', Role.OWNER);
       expect(prisma.deployment.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ previousDeploymentId: 'dep0' }),
@@ -142,7 +142,7 @@ describe('DeploymentsRollbackService', () => {
 
     it('calls executeDeploy with the docker image', async () => {
       const { svc, deployExecutor } = makeSvc();
-      await svc.rollback('dep1', 'user1', Role.ADMIN);
+      await svc.rollback('dep1', 'user1', Role.OWNER);
       expect(deployExecutor.executeDeploy).toHaveBeenCalledWith(
         'dep-rollback',
         'registry/app:v0',
@@ -158,7 +158,7 @@ describe('DeploymentsRollbackService', () => {
           imageSha: 'sha256:abc',
         },
       });
-      await svc.rollback('dep1', 'user1', Role.ADMIN);
+      await svc.rollback('dep1', 'user1', Role.OWNER);
       expect(deployExecutor.executeDeploy).toHaveBeenCalledWith(
         'dep-rollback',
         'sha256:abc',
@@ -167,7 +167,7 @@ describe('DeploymentsRollbackService', () => {
 
     it('emits started gateway event', async () => {
       const { svc, gateway } = makeSvc();
-      await svc.rollback('dep1', 'user1', Role.ADMIN);
+      await svc.rollback('dep1', 'user1', Role.OWNER);
       expect(gateway.emitStarted).toHaveBeenCalledWith(
         expect.objectContaining({ deploymentId: 'dep-rollback' }),
       );
@@ -175,7 +175,7 @@ describe('DeploymentsRollbackService', () => {
 
     it('records DEPLOYMENT_ROLLBACK audit', async () => {
       const { svc, auditService } = makeSvc();
-      await svc.rollback('dep1', 'user1', Role.ADMIN);
+      await svc.rollback('dep1', 'user1', Role.OWNER);
       expect(auditService.record).toHaveBeenCalledWith(
         'user1',
         'DEPLOYMENT_ROLLBACK',
@@ -187,7 +187,7 @@ describe('DeploymentsRollbackService', () => {
 
     it('queries by targetDeploymentId when explicitly provided', async () => {
       const { svc, prisma } = makeSvc();
-      await svc.rollback('dep1', 'user1', Role.ADMIN, 'dep-target');
+      await svc.rollback('dep1', 'user1', Role.OWNER, 'dep-target');
       const query = (prisma.deployment.findFirst as jest.Mock).mock.calls[0][0];
       expect(query.where.id).toBe('dep-target');
     });
@@ -195,7 +195,7 @@ describe('DeploymentsRollbackService', () => {
     it('throws when targetDeploymentId not found', async () => {
       const { svc } = makeSvc({ previousSuccess: null });
       await expect(
-        svc.rollback('dep1', 'user1', Role.ADMIN, 'dep-target'),
+        svc.rollback('dep1', 'user1', Role.OWNER, 'dep-target'),
       ).rejects.toThrow('introuvable');
     });
 
@@ -203,7 +203,7 @@ describe('DeploymentsRollbackService', () => {
     // known-working image.
     it('asserts server readiness for the resolved target server before redeploying', async () => {
       const { svc, preflight, deployExecutor } = makeSvc();
-      await svc.rollback('dep1', 'user1', Role.ADMIN);
+      await svc.rollback('dep1', 'user1', Role.OWNER);
       expect(preflight.assertServerReady).toHaveBeenCalledWith('srv-1');
       expect(deployExecutor.executeDeploy).toHaveBeenCalled();
     });
@@ -213,7 +213,7 @@ describe('DeploymentsRollbackService', () => {
       (preflight.assertServerReady as jest.Mock).mockRejectedValue(
         new BadRequestException('Le serveur « srv-1 » est désactivé.'),
       );
-      await expect(svc.rollback('dep1', 'user1', Role.ADMIN)).rejects.toThrow(
+      await expect(svc.rollback('dep1', 'user1', Role.OWNER)).rejects.toThrow(
         /désactivé/,
       );
       expect(prisma.deployment.create).not.toHaveBeenCalled();

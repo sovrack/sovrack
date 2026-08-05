@@ -144,7 +144,7 @@ export async function bootstrapE2E(): Promise<E2EContext> {
 
   const authCookie = (
     userId: string,
-    role: Role = Role.ADMIN,
+    role: Role = Role.OWNER,
     email = 'e2e@deployautomation.test',
   ): string => {
     const token = jwt.generateAccessToken({ id: userId, email, role });

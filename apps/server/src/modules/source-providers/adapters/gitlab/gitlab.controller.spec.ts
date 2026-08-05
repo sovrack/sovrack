@@ -18,7 +18,7 @@ function makeAdapter() {
   };
 }
 
-const user = { id: 'user1', role: Role.ADMIN } as never;
+const user = { id: 'user1', role: Role.OWNER } as never;
 
 describe('GitlabController', () => {
   describe('listProviders', () => {
@@ -81,7 +81,7 @@ describe('GitlabController', () => {
         'proj1',
         expect.anything(),
         'user1',
-        Role.ADMIN,
+        Role.OWNER,
       );
     });
   });
@@ -94,7 +94,7 @@ describe('GitlabController', () => {
       expect(adapter.getBranches).toHaveBeenCalledWith(
         'proj1',
         'user1',
-        Role.ADMIN,
+        Role.OWNER,
         42,
         undefined,
       );
@@ -107,7 +107,7 @@ describe('GitlabController', () => {
       expect(adapter.getBranches).toHaveBeenCalledWith(
         'proj1',
         'user1',
-        Role.ADMIN,
+        Role.OWNER,
         undefined,
         undefined,
       );
@@ -120,7 +120,7 @@ describe('GitlabController', () => {
       expect(adapter.getBranches).toHaveBeenCalledWith(
         'proj1',
         'user1',
-        Role.ADMIN,
+        Role.OWNER,
         undefined,
         undefined,
       );
@@ -136,7 +136,7 @@ describe('GitlabController', () => {
       expect(adapter.getBranches).toHaveBeenCalledWith(
         'proj1',
         'user1',
-        Role.ADMIN,
+        Role.OWNER,
         undefined,
         'svc-frontend',
       );
@@ -156,7 +156,7 @@ describe('GitlabController', () => {
         'proj1',
         'main',
         'user1',
-        Role.ADMIN,
+        Role.OWNER,
         5,
       );
     });
@@ -171,7 +171,7 @@ describe('GitlabController', () => {
         'proj1',
         'svc1',
         'user1',
-        Role.ADMIN,
+        Role.OWNER,
       );
     });
   });

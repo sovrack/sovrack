@@ -47,7 +47,7 @@ describe('ServiceTemplatesFactoryService', () => {
   it('createFromTemplate throws NotFoundException for an unknown template', async () => {
     const { service } = harness();
     await expect(
-      service.createFromTemplate(projectId, 'nope', 'base', userId, Role.ADMIN),
+      service.createFromTemplate(projectId, 'nope', 'base', userId, Role.OWNER),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -71,7 +71,7 @@ describe('ServiceTemplatesFactoryService', () => {
         'postgres-pgadmin',
         'stack',
         userId,
-        Role.ADMIN,
+        Role.OWNER,
       ),
     ).rejects.toBeInstanceOf(ConflictException);
 
@@ -94,7 +94,7 @@ describe('ServiceTemplatesFactoryService', () => {
         'postgres-pgadmin',
         'stack',
         userId,
-        Role.ADMIN,
+        Role.OWNER,
       ),
     ).rejects.toThrow('forbidden');
     expect(servicesService.create).not.toHaveBeenCalled();

@@ -44,7 +44,7 @@ describe('BuildSetupService', () => {
   });
 
   it('returns the supported template types after an auth check', async () => {
-    const res = await service.getTemplates('p1', 'admin', Role.ADMIN);
+    const res = await service.getTemplates('p1', 'admin', Role.OWNER);
     expect(buildService.assertCanConfigureBuild).toHaveBeenCalled();
     expect(res.types).toContain('nestjs');
     expect(res.types).toContain('static');
@@ -57,7 +57,7 @@ describe('BuildSetupService', () => {
         'nope',
         { projectType: 'nodejs' } as never,
         'admin',
-        Role.ADMIN,
+        Role.OWNER,
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
@@ -67,7 +67,7 @@ describe('BuildSetupService', () => {
       'p1',
       { projectType: 'nodejs', buildPort: 4000 } as never,
       'admin',
-      Role.ADMIN,
+      Role.OWNER,
     );
     expect(prisma.service.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -80,12 +80,12 @@ describe('BuildSetupService', () => {
     prisma.service.findMany.mockResolvedValue([]);
     prisma.gitProviderRepo.findFirst.mockResolvedValue(null);
     await expect(
-      service.generateAll('p1', 'admin', Role.ADMIN),
+      service.generateAll('p1', 'admin', Role.OWNER),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('generateAll prepares each service and returns its result', async () => {
-    const res = await service.generateAll('p1', 'admin', Role.ADMIN);
+    const res = await service.generateAll('p1', 'admin', Role.OWNER);
     expect(buildService.prepareServiceInternal).toHaveBeenCalledWith(
       'p1',
       'svc1',
@@ -95,7 +95,7 @@ describe('BuildSetupService', () => {
 
   it('generateAll captures a per-service FAILED result on error', async () => {
     buildService.prepareServiceInternal.mockRejectedValue(new Error('boom'));
-    const res = await service.generateAll('p1', 'admin', Role.ADMIN);
+    const res = await service.generateAll('p1', 'admin', Role.OWNER);
     expect(res.results[0].status).toBe('FAILED');
     expect(res.results[0].message).toBe('boom');
   });

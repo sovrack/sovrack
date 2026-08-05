@@ -25,7 +25,7 @@ const userRow = (over: Record<string, unknown> = {}) => ({
   email: 'a@b.com',
   password: 'hashed:current',
   fullName: 'A B',
-  role: Role.DEVELOPER,
+  role: Role.MEMBER,
   isActive: true,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -41,6 +41,10 @@ describe('UsersService', () => {
       create: jest.Mock;
       update: jest.Mock;
       delete: jest.Mock;
+    };
+    teamMember: {
+      findMany: jest.Mock;
+      findFirst: jest.Mock;
     };
   };
   let service: UsersService;
@@ -59,6 +63,10 @@ describe('UsersService', () => {
           .mockImplementation(({ data }) => Promise.resolve(userRow(data))),
         delete: jest.fn().mockResolvedValue(userRow()),
       },
+      teamMember: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     };
     service = new UsersService(
       prisma as unknown as PrismaService,
@@ -76,7 +84,7 @@ describe('UsersService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           password: 'hashed:pw',
-          role: Role.DEVELOPER,
+          role: Role.MEMBER,
         }),
       }),
     );
@@ -103,11 +111,7 @@ describe('UsersService', () => {
   it('forbids a non-admin from updating another user', async () => {
     prisma.user.findUnique.mockResolvedValue(userRow());
     await expect(
-      service.update(
-        'u1',
-        { fullName: 'X' },
-        { id: 'u2', role: Role.DEVELOPER },
-      ),
+      service.update('u1', { fullName: 'X' }, { id: 'u2', role: Role.MEMBER }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -116,8 +120,8 @@ describe('UsersService', () => {
     await expect(
       service.update(
         'u1',
-        { role: Role.ADMIN },
-        { id: 'u1', role: Role.DEVELOPER },
+        { role: Role.OWNER },
+        { id: 'u1', role: Role.MEMBER },
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -134,7 +138,7 @@ describe('UsersService', () => {
           newPassword: 'newpw',
           confirmNewPassword: 'newpw',
         },
-        { id: 'u1', role: Role.DEVELOPER },
+        { id: 'u1', role: Role.MEMBER },
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });

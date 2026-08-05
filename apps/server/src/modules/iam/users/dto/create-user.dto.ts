@@ -30,7 +30,7 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'Nom complet requis' })
   fullName: string;
 
-  @ApiPropertyOptional({ enum: Role, default: Role.DEVELOPER })
+  @ApiPropertyOptional({ enum: Role, default: Role.MEMBER })
   @IsEnum(Role, { message: 'Rôle invalide' })
   role?: Role;
 }
