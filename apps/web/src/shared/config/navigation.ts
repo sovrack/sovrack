@@ -21,6 +21,7 @@ export type AppNavItem = {
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  superAdminOnly?: boolean;
 };
 
 export type AppNavSection = {
@@ -58,20 +59,20 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
         href: "/admin/servers",
         label: "Servers",
         icon: Server,
-        adminOnly: true,
+        superAdminOnly: true,
       },
       {
         href: "/automation",
         label: "Automation",
         icon: Wrench,
-        adminOnly: true,
+        superAdminOnly: true,
       },
       { href: "/settings/ssh-keys", label: "SSH Keys", icon: KeyRound },
       {
         href: "/terminal",
         label: "Terminal",
         icon: TerminalSquare,
-        adminOnly: true,
+        superAdminOnly: true,
       },
     ],
   },
@@ -83,13 +84,13 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
         href: "/settings/git",
         label: "Git Providers",
         icon: GitBranch,
-        adminOnly: true,
+        superAdminOnly: true,
       },
       {
         href: "/settings/registry",
         label: "Registry",
         icon: Database,
-        adminOnly: true,
+        superAdminOnly: true,
       },
     ],
   },
@@ -103,7 +104,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
         href: "/settings",
         label: "Platform Settings",
         icon: Settings,
-        adminOnly: true,
+        superAdminOnly: true,
       },
       {
         href: "/admin/users",
@@ -115,13 +116,13 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
         href: "/settings/status",
         label: "System Status",
         icon: Activity,
-        adminOnly: true,
+        superAdminOnly: true,
       },
       {
         href: "/settings/audit-logs",
         label: "Audit Logs",
         icon: ClipboardList,
-        adminOnly: true,
+        superAdminOnly: true,
       },
     ],
   },

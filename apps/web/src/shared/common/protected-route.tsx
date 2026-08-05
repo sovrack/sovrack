@@ -24,7 +24,7 @@ export function ProtectedRoute({
       } else if (
         requiredRole &&
         user?.role !== requiredRole &&
-        user?.role !== "ADMIN"
+        user?.role !== "SUPER_ADMIN"
       ) {
         router.replace("/access-denied");
       }
@@ -46,7 +46,7 @@ export function ProtectedRoute({
     return null;
   }
 
-  if (requiredRole && user?.role !== requiredRole && user?.role !== "ADMIN") {
+  if (requiredRole && user?.role !== requiredRole && user?.role !== "SUPER_ADMIN") {
     return null;
   }
 

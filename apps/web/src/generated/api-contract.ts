@@ -2934,7 +2934,7 @@ export interface components {
              * @default DEVELOPER
              * @enum {string}
              */
-            role?: "ADMIN" | "DEVELOPER";
+            role?: "OWNER" | "MEMBER";
         };
         ChangeMyPasswordDto: {
             /** @example AncienMotDePasse123! */
@@ -2948,7 +2948,7 @@ export interface components {
             /** @example John Updated */
             fullName?: string;
             /** @enum {string} */
-            role?: "ADMIN" | "DEVELOPER";
+            role?: "OWNER" | "MEMBER";
             /** @example true */
             isActive?: boolean;
             /** @example AncienMotDePasse123! */

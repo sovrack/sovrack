@@ -9,7 +9,7 @@ const user: UserListItem = {
   id: "u1",
   fullName: "Alice Martin",
   email: "alice@example.com",
-  role: "DEVELOPER",
+  role: "MEMBER",
   isActive: true,
   createdAt: "2026-01-15T10:00:00.000Z",
 } as UserListItem;
@@ -36,7 +36,7 @@ describe("UserRow", () => {
     renderRow();
     expect(screen.getByText("Alice Martin")).toBeInTheDocument();
     expect(screen.getByText("alice@example.com")).toBeInTheDocument();
-    expect(screen.getByText("DEVELOPER")).toBeInTheDocument();
+    expect(screen.getByText("MEMBER")).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
   });
 

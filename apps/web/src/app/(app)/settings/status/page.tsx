@@ -99,7 +99,7 @@ export default function SystemStatusPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+        <PageHeader
         eyebrow="Settings"
         title="System Status"
         description="Live health of the platform's core components (auto-refreshes)."

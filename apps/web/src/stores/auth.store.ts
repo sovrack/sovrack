@@ -48,7 +48,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           loading: false,
           error: null,
           isAuthenticated: !!user,
-          isAdmin: user?.role === "ADMIN",
+          isAdmin: user?.role === "OWNER" || user?.role === "SUPER_ADMIN",
           isSuperAdmin: user?.role === "SUPER_ADMIN",
           initialized: true,
         }),
@@ -75,7 +75,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.role === "ADMIN",
+            isAdmin: response.data.role === "OWNER" || response.data.role === "SUPER_ADMIN",
             isSuperAdmin: response.data.role === "SUPER_ADMIN",
             initialized: true,
           });
@@ -107,7 +107,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.user.role === "ADMIN",
+            isAdmin: response.data.user.role === "OWNER" || response.data.user.role === "SUPER_ADMIN",
             isSuperAdmin: response.data.user.role === "SUPER_ADMIN",
             initialized: true,
           });
@@ -141,7 +141,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.user.role === "ADMIN",
+            isAdmin: response.data.user.role === "OWNER" || response.data.user.role === "SUPER_ADMIN",
             isSuperAdmin: response.data.user.role === "SUPER_ADMIN",
             initialized: true,
           });

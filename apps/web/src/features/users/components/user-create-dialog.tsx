@@ -15,7 +15,7 @@ const createUserSchema = z.object({
   lastName: z.string().trim().min(1, "Last name is required"),
   email: z.string().trim().min(1, "Email is required").email("Invalid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["ADMIN", "DEVELOPER"]),
+  role: z.enum(["OWNER", "MEMBER"]),
   isActive: z.boolean(),
 });
 
@@ -33,7 +33,7 @@ const DEFAULT_FORM: FormData = {
   lastName: "",
   email: "",
   password: "",
-  role: "DEVELOPER",
+  role: "MEMBER",
   isActive: true,
 };
 
@@ -215,7 +215,7 @@ export function UserCreateDialog({
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <label
                 className={`cursor-pointer rounded-xl border px-4 py-3 transition ${
-                  form.role === "DEVELOPER"
+                  form.role === "MEMBER"
                     ? "border-[var(--border)] bg-[var(--active)]"
                     : "border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--hover)]"
                 }`}
@@ -224,13 +224,13 @@ export function UserCreateDialog({
                   <input
                     type="radio"
                     name="role"
-                    checked={form.role === "DEVELOPER"}
-                    onChange={() => setField("role", "DEVELOPER")}
+                    checked={form.role === "MEMBER"}
+                    onChange={() => setField("role", "MEMBER")}
                     className="mt-1 accent-zinc-500"
                   />
                   <div>
                     <p className="text-sm font-semibold text-[var(--text-primary)]">
-                      Developer
+                      Member
                     </p>
                     <p className="text-xs text-[var(--text-secondary)]">
                       Deploy and operate assigned projects.
@@ -241,7 +241,7 @@ export function UserCreateDialog({
 
               <label
                 className={`cursor-pointer rounded-xl border px-4 py-3 transition ${
-                  form.role === "ADMIN"
+                  form.role === "OWNER"
                     ? "border-[var(--border)] bg-[var(--active)]"
                     : "border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--hover)]"
                 }`}
@@ -250,17 +250,17 @@ export function UserCreateDialog({
                   <input
                     type="radio"
                     name="role"
-                    checked={form.role === "ADMIN"}
-                    onChange={() => setField("role", "ADMIN")}
+                    checked={form.role === "OWNER"}
+                    onChange={() => setField("role", "OWNER")}
                     className="mt-1 accent-zinc-500"
                   />
                   <div>
                     <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
                       <Shield size={14} />
-                      Admin
+                      Propriétaire
                     </p>
                     <p className="text-xs text-[var(--text-secondary)]">
-                      Full access to platform administration.
+                      Manage your team, members and projects.
                     </p>
                   </div>
                 </div>

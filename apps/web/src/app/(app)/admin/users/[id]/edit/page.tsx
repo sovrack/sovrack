@@ -24,7 +24,7 @@ const editUserSchema = z.object({
       (value) => value.length === 0 || value.length >= 8,
       "Password must be at least 8 characters",
     ),
-  role: z.enum(["ADMIN", "DEVELOPER"]),
+  role: z.enum(["OWNER", "MEMBER"]),
   isActive: z.boolean(),
 });
 
@@ -67,7 +67,7 @@ export default function EditUserPage({ params }: Props) {
     lastName: "",
     email: "",
     password: "",
-    role: "DEVELOPER",
+    role: "MEMBER",
     isActive: true,
   });
 
@@ -83,7 +83,7 @@ export default function EditUserPage({ params }: Props) {
           lastName,
           email: user.email,
           password: "",
-          role: user.role === "DEVELOPER" ? "DEVELOPER" : "ADMIN",
+          role: user.role === "MEMBER" ? "MEMBER" : "OWNER",
           isActive: user.isActive,
         });
       } catch (fetchError) {
@@ -278,8 +278,8 @@ export default function EditUserPage({ params }: Props) {
                 }
                 className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100"
               >
-                <option value="DEVELOPER">DEVELOPER</option>
-                <option value="ADMIN">ADMIN</option>
+                <option value="MEMBER">MEMBER</option>
+                <option value="OWNER">OWNER</option>
               </select>
             </div>
 

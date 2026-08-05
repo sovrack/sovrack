@@ -7623,11 +7623,11 @@
           },
           "role": {
             "enum": [
-              "ADMIN",
-              "DEVELOPER"
+              "OWNER",
+              "MEMBER"
             ],
             "type": "string",
-            "default": "DEVELOPER"
+            "default": "MEMBER"
           }
         },
         "required": [
@@ -7668,8 +7668,8 @@
           },
           "role": {
             "enum": [
-              "ADMIN",
-              "DEVELOPER"
+              "OWNER",
+              "MEMBER"
             ],
             "type": "string"
           },

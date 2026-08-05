@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/features/auth", () => ({
-  useAuth: () => ({ isAdmin: true, user: { role: "ADMIN" }, loading: false }),
+  useAuth: () => ({ isAdmin: true, user: { role: "OWNER" }, loading: false }),
 }));
 
 // LOT4f : première couverture de la feature terminal (était à ZÉRO test).

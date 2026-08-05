@@ -9,6 +9,22 @@ vi.mock("@/features/monitoring/api/health.service", () => ({
   healthService: { get: vi.fn() },
 }));
 
+vi.mock("@/features/auth/api/use-auth", () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    loading: false,
+    user: {
+      id: "super-1",
+      email: "super@platform.io",
+      fullName: "Super Admin",
+      role: "SUPER_ADMIN",
+    },
+    isAdmin: true,
+    isSuperAdmin: true,
+    logout: vi.fn(),
+  }),
+}));
+
 const mocked = vi.mocked(healthService);
 
 function setup() {

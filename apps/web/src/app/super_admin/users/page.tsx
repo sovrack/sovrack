@@ -52,9 +52,9 @@ export default function SuperAdminUsersPage() {
                     {u.role === "SUPER_ADMIN" && <ShieldCheck size={12} />}
                     {u.role === "SUPER_ADMIN"
                       ? "Super admin"
-                      : u.role === "ADMIN"
-                        ? "Admin"
-                        : "Développeur"}
+                      : u.role === "OWNER"
+                        ? "Propriétaire"
+                        : "Membre"}
                   </span>
                 </td>
                 <td className="px-4 py-3">

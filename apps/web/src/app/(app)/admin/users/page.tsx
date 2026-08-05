@@ -30,7 +30,7 @@ import { UserRow } from "@/features/users/components/user-row";
 import type { UserListItem } from "@/features/users/types/user";
 import type { Team } from "@/features/teams/types/team";
 
-type RoleFilter = "ALL" | "ADMIN" | "DEVELOPER";
+type RoleFilter = "ALL" | "OWNER" | "MEMBER";
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -261,21 +261,21 @@ export default function AdminUsersPage() {
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
             <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]">
               <Shield size={14} />
-              Admins
+              Propriétaires
             </div>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
-              {users.filter((item) => item.role === "ADMIN").length}
+              {users.filter((item) => item.role === "OWNER").length}
             </p>
           </div>
           <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
             <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-muted)]">
               <Users size={14} />
-              Développeurs actifs
+              Membres actifs
             </div>
             <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
               {
                 users.filter(
-                  (item) => item.role === "DEVELOPER" && item.isActive,
+                  (item) => item.role === "MEMBER" && item.isActive,
                 ).length
               }
             </p>
@@ -335,8 +335,8 @@ export default function AdminUsersPage() {
             className="h-11 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-[var(--primary)] bg-[var(--bg-card)]"
           >
             <option value="ALL">Tous les rôles</option>
-            <option value="ADMIN">ADMIN</option>
-            <option value="DEVELOPER">DEVELOPER</option>
+            <option value="OWNER">Propriétaire</option>
+            <option value="MEMBER">Membre</option>
           </select>
         </div>
 

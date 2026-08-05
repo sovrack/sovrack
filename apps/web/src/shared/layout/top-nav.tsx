@@ -271,7 +271,7 @@ export function TopNav() {
                   {user?.fullName ?? "User"}
                 </p>
                 <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  {user?.role ?? "DEVELOPER"}
+                  {user?.role ?? "MEMBER"}
                 </p>
               </div>
               <ChevronDown

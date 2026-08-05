@@ -142,7 +142,7 @@ export function MarketingNavbar() {
                     >
                       Paramètres
                     </Link>
-                    {user.role === "ADMIN" && (
+                    {user.role === "OWNER" && (
                       <>
                         <Link
                           href="/admin/users"
@@ -282,7 +282,7 @@ export function MarketingNavbar() {
                   >
                     Paramètres
                   </Link>
-                  {user?.role === "ADMIN" && (
+                  {user?.role === "OWNER" && (
                     <>
                       <Link
                         href="/admin/users"
