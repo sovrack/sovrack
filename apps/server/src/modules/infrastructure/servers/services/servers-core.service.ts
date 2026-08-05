@@ -36,16 +36,19 @@ export class ServersCoreService {
     return this.crud.create(dto, actorUserId);
   }
 
-  async findAll(pagination?: PaginationDto): Promise<ServerListResult> {
-    return this.crud.findAll(pagination);
+  async findAll(
+    pagination: PaginationDto | undefined,
+    actorUserId: string,
+  ): Promise<ServerListResult> {
+    return this.crud.findAll(pagination, actorUserId);
   }
 
-  async pingAll(): Promise<Record<string, boolean>> {
-    return this.crud.pingAll();
+  async pingAll(actorUserId: string): Promise<Record<string, boolean>> {
+    return this.crud.pingAll(actorUserId);
   }
 
-  async findOne(id: string): Promise<ServerPublic> {
-    return this.crud.findOne(id);
+  async findOne(id: string, actorUserId: string): Promise<ServerPublic> {
+    return this.crud.findOne(id, actorUserId);
   }
 
   async update(

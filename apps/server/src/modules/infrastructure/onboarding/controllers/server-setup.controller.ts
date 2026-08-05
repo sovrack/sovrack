@@ -32,7 +32,7 @@ import { ServerSetupService } from '../services/infra-setup.service';
 @ApiBearerAuth()
 @Controller('servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
+@Roles(Role.OWNER, Role.MEMBER)
 export class ServerSetupController {
   private readonly logger = new Logger(ServerSetupController.name);
 

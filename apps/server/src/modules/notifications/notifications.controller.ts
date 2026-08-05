@@ -22,7 +22,7 @@ class UpdateNotificationSettingsDto {
 @ApiTags('Notifications')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
+@Roles(Role.OWNER, Role.MEMBER)
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notif: NotificationsService) {}

@@ -44,7 +44,7 @@ class UpdateRegistryConfigDto {
 @ApiTags('ContainerRegistries (Admin)')
 @ApiBearerAuth()
 @Controller('admin/platform-config/registries')
-@Roles(Role.SUPER_ADMIN)
+@Roles(Role.OWNER, Role.MEMBER)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ContainerRegistriesController {
   constructor(private readonly registries: ContainerRegistriesService) {}

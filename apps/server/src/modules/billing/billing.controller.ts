@@ -1,8 +1,18 @@
-import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
 import { BillingService } from './billing.service';
 import { SubscribeDto } from './dto/billing.dto';
 import { GetUser } from '../../shared/decorators/get-user.decorator';
+import { Roles } from '../../shared/decorators/roles.decorator';
+import { RolesGuard } from '../../shared/guards/roles.guard';
 import type { JwtPayload } from '../../shared/jwt/dto/jwt-payload.dto';
 
 @ApiTags('billing')
@@ -17,6 +27,8 @@ export class BillingController {
 
   @Post('subscribe')
   @HttpCode(200)
+  @UseGuards(RolesGuard)
+  @Roles(Role.OWNER)
   subscribe(@GetUser() user: JwtPayload, @Body() dto: SubscribeDto) {
     return this.billingService.subscribeForUser(user.id, dto.plan);
   }

@@ -41,7 +41,7 @@ describe('ServerValidationController', () => {
 
   it('getVerificationStatus builds a status payload with mapped logs', async () => {
     const { ctrl } = build();
-    const res = await ctrl.getVerificationStatus('srv-1');
+    const res = await ctrl.getVerificationStatus('srv-1', user);
     expect(res).toMatchObject({ id: 'srv-1', name: 'web', isVerified: true });
     expect(res.recentLogs[0]).toMatchObject({ id: 'l1', message: 'ok' });
   });

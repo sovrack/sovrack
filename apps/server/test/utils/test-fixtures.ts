@@ -24,6 +24,17 @@ export async function createTestFixtures(prisma: PrismaClient) {
     },
   });
 
+  // The multi-tenant model scopes servers by team. Give the fixture user a
+  // team + membership so scoped read paths (resolveTeamId) resolve to the
+  // same team the fixtures' server belongs to.
+  const teamId = randomUUID();
+  await prisma.team.create({
+    data: { id: teamId, name: `e2e-team-${teamId.slice(0, 8)}` },
+  });
+  await prisma.teamMember.create({
+    data: { teamId, userId },
+  });
+
   const projectId = randomUUID();
   await prisma.project.create({
     data: {
@@ -50,6 +61,7 @@ export async function createTestFixtures(prisma: PrismaClient) {
       username: 'root',
       sshKey: 'e2e-ssh-private-key',
       isVerified: true,
+      teamId,
       // Docker readiness is derived from the installedTools JSON (the legacy
       // hasDocker/hasRunner boolean columns were removed from the schema).
       installedTools: [
@@ -144,6 +156,7 @@ export async function createTestFixtures(prisma: PrismaClient) {
 
   return {
     userId,
+    teamId,
     projectId,
     environmentId,
     serverId,

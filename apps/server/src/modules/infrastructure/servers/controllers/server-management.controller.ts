@@ -80,7 +80,7 @@ class InstallKeyDto {
 )
 @Controller('servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
+@Roles(Role.OWNER, Role.MEMBER)
 export class ServerManagementController {
   constructor(private readonly core: ServersCoreService) {}
 
@@ -95,7 +95,7 @@ export class ServerManagementController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({ summary: 'List all servers (sshKey masked)' })
   @ApiOkResponse({
     description: 'Liste des serveurs',
@@ -109,12 +109,15 @@ export class ServerManagementController {
       ],
     },
   })
-  async findAll(@Query() pagination: PaginationDto) {
-    return await this.core.findAll(pagination);
+  async findAll(
+    @Query() pagination: PaginationDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.core.findAll(pagination, user.id);
   }
 
   @Get('reachability')
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({
     summary:
       'A3: lightweight TCP reachability ping for every server (not the full SSH validation) — meant to be polled frequently by the list page.',
@@ -122,16 +125,16 @@ export class ServerManagementController {
   @ApiOkResponse({
     description: 'Map of serverId → isReachable',
   })
-  async pingAll() {
-    return await this.core.pingAll();
+  async pingAll(@GetUser() user: JwtPayload) {
+    return await this.core.pingAll(user.id);
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({ summary: "View a server's details" })
   @ApiOkResponse({ description: 'Server found', type: ServerResponseDto })
-  async findOne(@Param('id') id: string) {
-    return await this.core.findOne(id);
+  async findOne(@Param('id') id: string, @GetUser() user: JwtPayload) {
+    return await this.core.findOne(id, user.id);
   }
 
   @Put(':id')

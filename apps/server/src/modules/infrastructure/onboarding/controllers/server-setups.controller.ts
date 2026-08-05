@@ -31,7 +31,7 @@ import { ServerSetupService } from '../services/infra-setup.service';
 @ApiBearerAuth()
 @Controller('setups')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
+@Roles(Role.OWNER, Role.MEMBER)
 export class ServerSetupsController {
   constructor(private readonly prep: ServerSetupService) {}
 

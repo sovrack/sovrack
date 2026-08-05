@@ -24,7 +24,7 @@ import { ServersCoreService } from '../services';
 @ApiBearerAuth()
 @Controller('servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
+@Roles(Role.OWNER, Role.MEMBER)
 export class ServerDetectionController {
   constructor(private readonly core: ServersCoreService) {}
 

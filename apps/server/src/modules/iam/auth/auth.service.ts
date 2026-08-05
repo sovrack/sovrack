@@ -9,6 +9,8 @@ import { UsersService } from '../users/users.service';
 import { PasswordHasher } from '../security/password-hasher.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { EmailVerificationService } from './email-verification.service';
 import { Role, User } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
@@ -35,61 +37,89 @@ export class AuthService {
     private readonly passwordHasher: PasswordHasher,
     private readonly teamsService: TeamsService,
     private readonly billingService: BillingService,
+    private readonly emailVerification: EmailVerificationService,
   ) {}
 
   /**
-   * Inscription publique : crée le compte, l'équipe (créateur = membre) et
-   * l'abonnement d'essai, puis connecte l'utilisateur.
+   * Inscription publique : crée le compte en attente de validation email.
+   * Le compte est créé DÉSACTIVÉ (isActive=false) avec un code à 6 chiffres
+   * envoyé par email. Ni team, ni abonnement, ni login tant que l'email n'est
+   * pas vérifié (voir verifyEmail).
    * @param dto - Données d'inscription
-   * @returns Token JWT et utilisateur sans mot de passe
+   * @returns Rien d'exploitable côté client (le code part par email)
    */
-  async register(dto: RegisterDto): Promise<AuthResponse> {
-    const user = await this.usersService.create({
+  async register(dto: RegisterDto): Promise<{ email: string }> {
+    await this.emailVerification.startPendingRegistration({
       email: dto.email,
       password: dto.password,
       fullName: dto.fullName,
       role: Role.OWNER,
     });
 
-    try {
-      const team = await this.teamsService.create(
-        { name: dto.teamName },
-        user.id,
-      );
-      await this.billingService.ensureSubscription(team.id);
+    this.logger.log(`Pending registration for ${dto.email}`);
+    return { email: dto.email };
+  }
 
-      await this.auditService.record(
-        user.id,
-        'AUTH_REGISTER',
-        'User',
-        user.id,
-        { email: user.email, teamId: team.id },
-      );
-
-      this.logger.log(
-        `User ${user.email} (${user.id}) registered with team ${team.name} (${team.id})`,
-      );
-    } catch (err) {
-      // Échec de l'étape onboarding : on nettoie le compte pour ne pas laisser
-      // un utilisateur orphelin impossible à connecter.
-      this.logger.error(
-        `Onboarding échoué pour ${user.email}: ${
-          err instanceof Error ? err.message : 'erreur inconnue'
-        } — suppression du compte`,
-      );
-      await this.prisma.user
-        .delete({ where: { id: user.id } })
-        .catch(() => undefined);
-      throw err;
-    }
+  /**
+   * Vérifie le code email, active le compte, puis réalise l'onboarding
+   * (création de la team + abonnement d'essai) et connecte l'utilisateur.
+   */
+  async verifyEmail(dto: VerifyEmailDto): Promise<AuthResponse> {
+    const verified = await this.emailVerification.verifyCodeAndActivate({
+      email: dto.email,
+      code: dto.code,
+      onActivate: async (userId) => {
+        const user = await this.usersService.findById(userId);
+        if (!user) return;
+        const team = await this.teamsService.create(
+          { name: `${user.fullName.split(' ')[0]} Team` },
+          userId,
+        );
+        await this.billingService.ensureSubscription(team.id);
+        await this.auditService.record(
+          userId,
+          'AUTH_REGISTER',
+          'User',
+          userId,
+          { email: user.email, teamId: team.id },
+        );
+      },
+    });
 
     const access_token = this.generateTokenForId(
-      user.id,
-      user.email,
-      user.role,
+      verified.id,
+      verified.email,
+      verified.role,
     );
 
-    return { access_token, user };
+    await this.auditService.record(
+      verified.id,
+      'AUTH_EMAIL_VERIFIED',
+      'User',
+      verified.id,
+      { email: verified.email },
+    );
+
+    const user = await this.usersService.findById(verified.id);
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = user;
+
+    this.logger.log(
+      `User ${verified.email} (${verified.id}) verified and onboarded`,
+    );
+
+    return { access_token, user: userWithoutPassword };
+  }
+
+  /**
+   * Renvoie un nouveau code de vérification email pour un compte non vérifié.
+   */
+  async resendVerificationCode(email: string): Promise<{ email: string }> {
+    await this.emailVerification.resendCode(email);
+    return { email };
   }
 
   /**

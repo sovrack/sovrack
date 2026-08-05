@@ -11,6 +11,7 @@ describe('ServerManagementController', () => {
       create: jest.fn().mockResolvedValue({ id: 'srv-1' }),
       findAll: jest.fn().mockResolvedValue([]),
       findOne: jest.fn().mockResolvedValue({ id: 'srv-1' }),
+      pingAll: jest.fn().mockResolvedValue({}),
       update: jest.fn().mockResolvedValue({ id: 'srv-1' }),
       remove: jest.fn().mockResolvedValue(undefined),
       installPublicKey: jest.fn().mockResolvedValue({ success: true }),
@@ -29,11 +30,13 @@ describe('ServerManagementController', () => {
   it('create / findAll / findOne delegate', async () => {
     const { ctrl, core } = build();
     await ctrl.create({ name: 'x' } as never, user);
-    await ctrl.findAll({ page: 1 } as never);
-    await ctrl.findOne('srv-1');
+    await ctrl.findAll({ page: 1 } as never, user);
+    await ctrl.pingAll(user);
+    await ctrl.findOne('srv-1', user);
     expect(core.create).toHaveBeenCalledWith({ name: 'x' }, 'user-1');
-    expect(core.findAll).toHaveBeenCalledWith({ page: 1 });
-    expect(core.findOne).toHaveBeenCalledWith('srv-1');
+    expect(core.findAll).toHaveBeenCalledWith({ page: 1 }, 'user-1');
+    expect(core.pingAll).toHaveBeenCalledWith('user-1');
+    expect(core.findOne).toHaveBeenCalledWith('srv-1', 'user-1');
   });
 
   it('update / patch both delegate to core.update', async () => {

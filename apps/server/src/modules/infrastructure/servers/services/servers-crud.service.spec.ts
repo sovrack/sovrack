@@ -23,6 +23,7 @@ const serverRow = (over: Record<string, unknown> = {}) => ({
   isVerified: false,
   archivedAt: null,
   environmentId: null,
+  teamId: 't1',
   installedTools: [],
   capabilities: {},
   createdAt: new Date(),

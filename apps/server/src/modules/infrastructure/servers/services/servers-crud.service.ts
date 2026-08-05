@@ -16,7 +16,7 @@ import {
   paginate,
 } from '../../../../shared/http/pagination.dto';
 import { PrismaService } from '../../../../shared/database/prisma.service';
-import { ACTIVE_FILTER } from '../../../../shared/database/prisma-active.helper';
+import { activeWhere } from '../../../../shared/database/prisma-active.helper';
 import { CreateServerDto } from '../dto/create-server.dto';
 import { UpdateServerDto } from '../dto/update-server.dto';
 import { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.service';
@@ -128,10 +128,16 @@ export class ServersCrudService {
     return toPublicServer(server);
   }
 
-  async findAll(pagination?: PaginationDto): Promise<ServerListResult> {
+  async findAll(
+    pagination: PaginationDto | undefined,
+    actorUserId: string,
+  ): Promise<ServerListResult> {
+    const teamId = await this.billing.resolveTeamId(actorUserId);
+    const where = activeWhere({ teamId });
+
     if (!pagination?.page || !pagination?.limit) {
       const servers = await this.prisma.server.findMany({
-        where: ACTIVE_FILTER,
+        where,
         orderBy: { createdAt: 'desc' },
       });
       const activeJobs = await this.jobsFacade.loadActiveJobs(
@@ -148,12 +154,12 @@ export class ServersCrudService {
 
     const [servers, total] = await Promise.all([
       this.prisma.server.findMany({
-        where: ACTIVE_FILTER,
+        where,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.server.count({ where: ACTIVE_FILTER }),
+      this.prisma.server.count({ where }),
     ]);
 
     const activeJobs = await this.jobsFacade.loadActiveJobs(
@@ -176,9 +182,10 @@ export class ServersCrudService {
    * (last-validation/preparation results, only updated on explicit user
    * action) so the two can coexist without either overwriting the other.
    */
-  async pingAll(): Promise<Record<string, boolean>> {
+  async pingAll(actorUserId: string): Promise<Record<string, boolean>> {
+    const teamId = await this.billing.resolveTeamId(actorUserId);
     const servers = await this.prisma.server.findMany({
-      where: ACTIVE_FILTER,
+      where: activeWhere({ teamId }),
       select: { id: true, host: true, port: true },
     });
     const results = await Promise.all(
@@ -193,8 +200,8 @@ export class ServersCrudService {
     return Object.fromEntries(results);
   }
 
-  async findOne(id: string): Promise<ServerPublic> {
-    const server = await this.getServerById(id);
+  async findOne(id: string, actorUserId: string): Promise<ServerPublic> {
+    const server = await this.getServerById(id, actorUserId);
     const activeJobs = await this.jobsFacade.loadActiveJobs([id]);
     return toPublicServer(server, activeJobs.get(id) ?? null);
   }
@@ -204,7 +211,7 @@ export class ServersCrudService {
     dto: UpdateServerDto,
     actorUserId: string,
   ): Promise<ServerPublic> {
-    const existing = await this.getServerById(id);
+    const existing = await this.getServerById(id, actorUserId);
 
     const nextConnectionMode =
       dto.connectionMode !== undefined
@@ -299,7 +306,7 @@ export class ServersCrudService {
   }
 
   async remove(id: string, actorUserId: string): Promise<void> {
-    const server = await this.getServerById(id);
+    const server = await this.getServerById(id, actorUserId);
 
     // Guard against orphaning an environment: deployments target
     // `environment.servers[0]`, so if this is the LAST active server of its
@@ -351,9 +358,18 @@ export class ServersCrudService {
     this.logger.warn(`Server "${server.name}" (${id}) archived/removed`);
   }
 
-  private async getServerById(id: string): Promise<Server> {
-    const server = await this.prisma.server.findUnique({ where: { id } });
+  private async getServerById(
+    id: string,
+    actorUserId: string,
+  ): Promise<Server> {
+    const teamId = await this.billing.resolveTeamId(actorUserId);
+    const server = await this.prisma.server.findUnique({
+      where: { id },
+    });
     if (!server) throw new NotFoundException('Serveur non trouvé');
+    if (server.teamId !== teamId) {
+      throw new NotFoundException('Serveur non trouvé');
+    }
     return server;
   }
 

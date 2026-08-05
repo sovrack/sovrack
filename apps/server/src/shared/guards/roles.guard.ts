@@ -30,11 +30,6 @@ export class RolesGuard implements CanActivate {
     const user = request.user;
 
     if (!user?.role || !requiredRoles.includes(user.role)) {
-      // Le SUPER_ADMIN (propriétaire de la plateforme) contourne toute
-      // restriction de rôle : il voit et gère toutes les organisations.
-      if (user?.role === Role.SUPER_ADMIN) {
-        return true;
-      }
       throw new ForbiddenException('Accès refusé: rôle insuffisant');
     }
 

@@ -37,7 +37,7 @@ import {
 @ApiBearerAuth()
 @Controller('servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN)
+@Roles(Role.OWNER, Role.MEMBER)
 export class ServerValidationController {
   constructor(private readonly core: ServersCoreService) {}
 
@@ -67,8 +67,11 @@ export class ServerValidationController {
     description: 'Server verification status',
     type: ServerVerificationStatusDto,
   })
-  async getVerificationStatus(@Param('id') id: string) {
-    const server = await this.core.findOne(id);
+  async getVerificationStatus(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    const server = await this.core.findOne(id, user.id);
     const recentLogs = await this.core.getRecentVerificationLogs(id, 10);
 
     return {

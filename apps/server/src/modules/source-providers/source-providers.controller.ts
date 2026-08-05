@@ -53,7 +53,7 @@ type UpdateGithubProviderDto = UpdateGitlabProviderDto;
 @ApiTags('Git Providers (Admin)')
 @ApiBearerAuth()
 @Controller('admin/platform-config')
-@Roles(Role.SUPER_ADMIN)
+@Roles(Role.OWNER, Role.MEMBER)
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class SourceProvidersController {
   constructor(

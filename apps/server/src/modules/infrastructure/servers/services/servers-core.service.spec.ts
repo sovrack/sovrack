@@ -59,11 +59,11 @@ describe('ServersCoreService (facade)', () => {
     await service.create({ name: 'srv' } as never, 'admin');
     expect(crud.create).toHaveBeenCalledWith({ name: 'srv' }, 'admin');
 
-    await service.findAll();
-    expect(crud.findAll).toHaveBeenCalledWith(undefined);
+    await service.findAll(undefined, 'admin');
+    expect(crud.findAll).toHaveBeenCalledWith(undefined, 'admin');
 
-    await service.findOne('s1');
-    expect(crud.findOne).toHaveBeenCalledWith('s1');
+    await service.findOne('s1', 'admin');
+    expect(crud.findOne).toHaveBeenCalledWith('s1', 'admin');
 
     await service.update('s1', { name: 'x' } as never, 'admin');
     expect(crud.update).toHaveBeenCalledWith('s1', { name: 'x' }, 'admin');
@@ -71,8 +71,8 @@ describe('ServersCoreService (facade)', () => {
     await service.remove('s1', 'admin');
     expect(crud.remove).toHaveBeenCalledWith('s1', 'admin');
 
-    await service.pingAll();
-    expect(crud.pingAll).toHaveBeenCalled();
+    await service.pingAll('admin');
+    expect(crud.pingAll).toHaveBeenCalledWith('admin');
   });
 
   it('delegates jobs/verification/preparation/detection methods to ServersJobsFacade', async () => {

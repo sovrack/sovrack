@@ -46,7 +46,7 @@ export class DockerConnectionController {
   constructor(private readonly dockerConnections: DockerConnectionsService) {}
 
   @Get()
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({ summary: 'Read the (encrypted) Docker config for a server' })
   async get(@Param('serverId') serverId: string) {
     // We DO NOT return the encrypted certs in the response — they are
@@ -66,7 +66,7 @@ export class DockerConnectionController {
   }
 
   @Post()
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({
     summary: 'Create or replace the Docker connection of a server',
   })
@@ -78,7 +78,7 @@ export class DockerConnectionController {
   }
 
   @Post('probe')
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({
     summary: 'Test the Docker connection (TLS handshake + ping)',
   })
@@ -87,7 +87,7 @@ export class DockerConnectionController {
   }
 
   @Delete()
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({
     summary: 'Delete the Docker connection configured for this server',
   })

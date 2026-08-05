@@ -10,6 +10,8 @@ import {
 import { AuthService, AuthResponse } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationCodeDto } from './dto/resend-verification-code.dto';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../shared/guards/roles.guard';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
@@ -38,40 +40,93 @@ export class AuthController {
   ) {}
 
   /**
-   * Inscription publique : compte + équipe + essai billing, puis connexion.
+   * Inscription publique : crée le compte en attente de validation email.
    * POST /auth/register
    * @param dto - Données d'inscription
-   * @returns Token JWT et utilisateur
+   * @returns { email } — le code de validation part par email
    */
   @Post('register')
   @Public() // unauthenticated by definition — self-service signup
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiOperation({
-    summary: 'Public self-service signup (account + team + trial)',
+    summary:
+      'Public self-service signup — creates an account awaiting email verification (code sent by email)',
   })
   @ApiResponse({
     status: 201,
-    description: 'Account created with JWT token',
+    description: 'Account created awaiting email verification',
   })
   @ApiResponse({
     status: 409,
-    description: 'Email déjà utilisé',
+    description: 'Email déjà utilisé (compte déjà vérifié)',
   })
   @ApiResponse({
     status: 429,
     description: 'Too many registration attempts',
   })
-  async register(
-    @Body() dto: RegisterDto,
+  async register(@Body() dto: RegisterDto): Promise<{ email: string }> {
+    return await this.authService.register(dto);
+  }
+
+  /**
+   * Vérifie l'email par le code reçu, active le compte et connecte l'utilisateur.
+   * POST /auth/verify-email
+   */
+  @Post('verify-email')
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @ApiOperation({
+    summary: 'Verify email with the 6-digit code, then log in',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email verified, account activated and connected (JWT cookie)',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Code invalide ou expiré',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many verification attempts',
+  })
+  async verifyEmail(
+    @Body() dto: VerifyEmailDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResponse> {
-    const result = await this.authService.register(dto);
+    const result = await this.authService.verifyEmail(dto);
     response.cookie(
       resolveAuthCookieName(this.configService),
       result.access_token,
       buildAuthCookieOptions(this.configService),
     );
     return result;
+  }
+
+  /**
+   * Renvoie un nouveau code de vérification email.
+   * POST /auth/resend-code
+   */
+  @Post('resend-code')
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 3 } })
+  @ApiOperation({ summary: 'Resend the email verification code' })
+  @ApiResponse({
+    status: 201,
+    description: 'New code sent',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Email already verified',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'No pending account with this email',
+  })
+  async resendCode(
+    @Body() dto: ResendVerificationCodeDto,
+  ): Promise<{ email: string }> {
+    return await this.authService.resendVerificationCode(dto.email);
   }
 
   /**
@@ -132,7 +187,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @Roles(Role.OWNER, Role.MEMBER)
+  @Roles(Role.OWNER, Role.MEMBER, Role.SUPER_ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get the logged-in user's profile" })

@@ -231,9 +231,16 @@ model User {
   email               String          @unique
   password            String
   fullName            String
-  role                Role            @default(MEMBER)
-  isActive            Boolean         @default(true)
-  projects            ProjectMember[]
+  role                 Role             @default(MEMBER)
+  isActive             Boolean          @default(true)
+  // Validation email : code à 6 chiffres + expiration + date de vérification.
+  // Un compte non vérifié (emailVerifiedAt = NULL) est inactif et ne peut pas
+  // se connecter ni être rattaché à une organisation tant que l'email n'est pas
+  // confirmé par le code envoyé par e-mail.
+  emailVerificationCode String?
+  emailVerificationExpiresAt DateTime?
+  emailVerifiedAt          DateTime?
+  projects             ProjectMember[]
   teams               TeamMember[]
   deployments         Deployment[]
   builds              Build[]
