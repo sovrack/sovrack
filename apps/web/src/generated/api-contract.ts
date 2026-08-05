@@ -2931,7 +2931,7 @@ export interface components {
             /** @example John Developer */
             fullName: string;
             /**
-             * @default DEVELOPER
+             * @default MEMBER
              * @enum {string}
              */
             role?: "OWNER" | "MEMBER";
