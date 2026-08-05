@@ -190,13 +190,18 @@ deploy:production:
     GIT_STRATEGY: none
   before_script:
     - apk add --no-cache openssh-client docker-cli
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    # Écrit la clé dans un fichier (POSTE fix sur le `ssh-add` qui échoue avec
+    # "error in libcrypto: unsupported" quand SSH_PRIVATE_KEY est vide/invalide
+    # sur OpenSSL 3.5.7). Échec explicite et précoce si la variable est absente.
+    - '[ -n "$SSH_PRIVATE_KEY" ] || { echo "ERROR: SSH_PRIVATE_KEY is empty/unset"; exit 1; }'
+    - printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy
+    - chmod 600 ~/.ssh/id_deploy
+    - ssh-keygen -y -f ~/.ssh/id_deploy >/dev/null  # valide le format de la clé
     - ssh-keyscan -H "$PRODUCTION_HOST" >> ~/.ssh/known_hosts 2>/dev/null
   script:
-    - ssh "${PRODUCTION_SSH_USER:-ubuntu}@$PRODUCTION_HOST" "
+    - ssh -i ~/.ssh/id_deploy "${PRODUCTION_SSH_USER:-ubuntu}@$PRODUCTION_HOST" "
         cd /data/instances/app &&
         printf '%s' '$REGISTRY_PASSWORD' | sudo docker login ${CI_REGISTRY:-registry.gitlab.com} -u $REGISTRY_USER --password-stdin &&
         sudo docker compose pull &&
