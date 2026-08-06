@@ -69,7 +69,7 @@ export class ServerSetupGateway implements OnGatewayConnection {
 
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);
-      if (payload.role !== Role.OWNER && payload.role !== Role.SUPER_ADMIN) {
+      if (payload.role !== Role.OWNER) {
         client.disconnect();
         return;
       }

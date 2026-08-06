@@ -118,6 +118,67 @@ export class BillingService {
     return this.subscribe(teamId, plan, userId);
   }
 
+  /**
+   * Annulation de l'abonnement pour un utilisateur (résout la team).
+   * Mode manuel : pas d'intégration Stripe réelle, on passe simplement le
+   * statut à CANCELED. Les services restent accessibles jusqu'à la fin de la
+   * période courante.
+   */
+  async cancelForUser(userId: string) {
+    const teamId = await this.resolveTeamId(userId);
+    return this.cancel(teamId, userId);
+  }
+
+  /**
+   * Annule l'abonnement d'une équipe : statut CANCELED + canceledAt.
+   * Sans intégration de paiement réelle, l'annulation est immédiate en base.
+   */
+  async cancel(teamId: string, adminId?: string) {
+    const subscription = await this.ensureSubscription(teamId);
+
+    if (subscription.status === 'CANCELED') {
+      return {
+        success: true,
+        message: 'Votre abonnement est déjà annulé.',
+        subscription: {
+          id: subscription.id,
+          plan: subscription.plan,
+          status: 'CANCELED',
+          canceledAt: subscription.canceledAt,
+        },
+      };
+    }
+
+    const now = new Date();
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { status: 'CANCELED', canceledAt: now },
+    });
+
+    if (adminId) {
+      await this.auditService.record(
+        adminId,
+        'BILLING_CANCEL',
+        'Subscription',
+        subscription.id,
+        { plan: subscription.plan, canceledAt: now },
+      );
+    }
+
+    this.logger.log(`Team ${teamId}: subscription canceled`);
+    await this.sendCancelEmail(teamId);
+    return {
+      success: true,
+      message: 'Votre abonnement a été annulé.',
+      subscription: {
+        id: subscription.id,
+        plan: subscription.plan,
+        status: 'CANCELED',
+        canceledAt: now,
+      },
+    };
+  }
+
   /** Récupère (ou crée) l'abonnement d'une équipe. */
   async ensureSubscription(teamId: string) {
     let subscription = await this.prisma.subscription.findUnique({
@@ -359,6 +420,39 @@ export class BillingService {
     await this.smtp.sendBillingEmail(
       owner.user.email,
       `Votre plan ${plan} est actif`,
+      html,
+    );
+  }
+
+  /** Email de confirmation d'annulation d'abonnement. */
+  private async sendCancelEmail(teamId: string): Promise<void> {
+    if (!this.smtp) return;
+    const [team, owner] = await Promise.all([
+      this.prisma.team.findUnique({ where: { id: teamId } }),
+      this.prisma.teamMember.findFirst({
+        where: { teamId },
+        include: { user: true },
+        orderBy: { joinedAt: 'asc' },
+      }),
+    ]);
+    if (!team || !owner) return;
+
+    const html = `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px">
+  <div style="background:linear-gradient(135deg,#6366f1,#a855f7);border-radius:12px;padding:24px;color:#fff;text-align:center">
+    <h2 style="margin:0">Sovrack — Abonnement annulé</h2>
+  </div>
+  <div style="padding:24px;border:1px solid #e5e7eb;border-radius:0 0 12px 12px">
+    <p>Bonjour ${owner.user.fullName},</p>
+    <p>L'abonnement de l'équipe <strong>${team.name}</strong> a bien été annulé.</p>
+    <p>Vous conservez l'accès à vos services jusqu'à la fin de la période en cours.</p>
+    <p>Si vous changez d'avis, vous pouvez vous réabonner à tout moment depuis le dashboard → Facturation.</p>
+    <p style="color:#6b7280;font-size:12px;margin-top:24px">Sovrack — déployez sans limites</p>
+  </div>
+</div>`;
+    await this.smtp.sendBillingEmail(
+      owner.user.email,
+      'Votre abonnement a été annulé',
       html,
     );
   }

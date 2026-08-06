@@ -3,8 +3,10 @@ import {
   Logger,
   UnauthorizedException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { NotificationsSmtpService } from '../../notifications/notifications-smtp.service';
 import { UsersService } from '../users/users.service';
 import { PasswordHasher } from '../security/password-hasher.service';
 import { LoginDto } from './dto/login.dto';
@@ -38,6 +40,7 @@ export class AuthService {
     private readonly teamsService: TeamsService,
     private readonly billingService: BillingService,
     private readonly emailVerification: EmailVerificationService,
+    private readonly smtp: NotificationsSmtpService,
   ) {}
 
   /**
@@ -208,6 +211,223 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  /**
+   * Mot de passe oublié : génère un code à 6 chiffres (10 min) et l'envoie par
+   * email si le compte existe. Ne révèle jamais si l'email est enregistré.
+   */
+  async forgotPassword(email: string): Promise<{ sent: boolean }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || !user.emailVerifiedAt) {
+      return { sent: false };
+    }
+    const code = this.generateSixDigitCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordResetCode: code, passwordResetExpiresAt: expiresAt },
+    });
+
+    let sent = false;
+    try {
+      await this.smtp.sendBillingEmail(
+        user.email,
+        'Réinitialisez votre mot de passe',
+        `
+        <div style="font-family:sans-serif;max-width:520px;margin:auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+          <div style="background:#1e3a8a;padding:16px 24px">
+            <span style="color:#fff;font-weight:bold;font-size:16px">Sovrack</span>
+          </div>
+          <div style="padding:24px">
+            <h2 style="color:#111827;font-size:18px;margin:0 0 12px">Réinitialisation du mot de passe</h2>
+            <p style="color:#374151;font-size:14px;line-height:1.6">
+              Bonjour ${user.fullName},<br/>
+              Vous avez demandé à réinitialiser votre mot de passe. Utilisez ce code :
+            </p>
+            <div style="background:#f3f4f6;border-radius:8px;padding:20px;text-align:center;margin:20px 0">
+              <span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#1e3a8a">${code}</span>
+            </div>
+            <p style="color:#6b7280;font-size:13px;line-height:1.6">
+              Ce code expire dans 10 minutes. Si vous n'êtes pas à l'origine de cette
+              demande, ignorez cet email.
+            </p>
+          </div>
+        </div>`,
+      );
+      sent = true;
+      this.logger.log(`Password reset code sent to ${user.email}`);
+    } catch (err) {
+      this.logger.warn(
+        `Password reset email failed for ${user.email}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    return { sent };
+  }
+
+  /**
+   * Réinitialise le mot de passe après validation du code reçu par email.
+   */
+  async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || !user.emailVerifiedAt) {
+      throw new BadRequestException('Compte introuvable ou non vérifié');
+    }
+    if (!user.passwordResetCode || !user.passwordResetExpiresAt) {
+      throw new BadRequestException(
+        'Aucune demande de réinitialisation en attente',
+      );
+    }
+    if (user.passwordResetExpiresAt.getTime() < Date.now()) {
+      throw new BadRequestException(
+        'Le code a expiré. Redemandez un nouveau code.',
+      );
+    }
+    if (user.passwordResetCode !== code) {
+      throw new BadRequestException('Code de réinitialisation invalide');
+    }
+
+    const hashed = await this.passwordHasher.hash(newPassword);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashed,
+        passwordResetCode: null,
+        passwordResetExpiresAt: null,
+      },
+    });
+
+    await this.auditService.record(
+      user.id,
+      'AUTH_PASSWORD_RESET',
+      'User',
+      user.id,
+    );
+    this.logger.log(`Password reset for ${user.email}`);
+    return { message: 'Mot de passe réinitialisé avec succès' };
+  }
+
+  /**
+   * Envoie un code de confirmation (6 chiffres, 10 min) par email avant
+   * suppression du compte.
+   */
+  async requestAccountDeletion(userId: string): Promise<{ sent: boolean }> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    const code = this.generateSixDigitCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { deleteAccountCode: code, deleteAccountExpiresAt: expiresAt },
+    });
+
+    let sent = false;
+    try {
+      await this.smtp.sendBillingEmail(
+        user.email,
+        'Confirmez la suppression de votre compte',
+        `
+        <div style="font-family:sans-serif;max-width:520px;margin:auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+          <div style="background:#1e3a8a;padding:16px 24px">
+            <span style="color:#fff;font-weight:bold;font-size:16px">Sovrack</span>
+          </div>
+          <div style="padding:24px">
+            <h2 style="color:#111827;font-size:18px;margin:0 0 12px">Suppression définitive du compte</h2>
+            <p style="color:#374151;font-size:14px;line-height:1.6">
+              Bonjour ${user.fullName},<br/>
+              Vous avez demandé la suppression de votre compte et de toutes vos données.
+              Utilisez ce code pour confirmer :
+            </p>
+            <div style="background:#fef2f2;border-radius:8px;padding:20px;text-align:center;margin:20px 0">
+              <span style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#b91c1c">${code}</span>
+            </div>
+            <p style="color:#6b7280;font-size:13px;line-height:1.6">
+              Ce code expire dans 10 minutes. Si vous n'êtes pas à l'origine de cette
+              demande, ignorez cet email et votre compte restera intact.
+            </p>
+          </div>
+        </div>`,
+      );
+      sent = true;
+      this.logger.log(`Deletion code sent to ${user.email}`);
+    } catch (err) {
+      this.logger.warn(
+        `Deletion email failed for ${user.email}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    return { sent };
+  }
+
+  /**
+   * Confirme et exécute la suppression définitive du compte (cascade) après
+   * validation du code reçu par email.
+   */
+  async confirmAccountDeletion(
+    userId: string,
+    code: string,
+  ): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur non trouvé');
+    }
+    if (!user.deleteAccountCode || !user.deleteAccountExpiresAt) {
+      throw new BadRequestException(
+        'Aucune demande de suppression en attente. Demandez d’abord un code.',
+      );
+    }
+    if (user.deleteAccountExpiresAt.getTime() < Date.now()) {
+      throw new BadRequestException(
+        'Le code a expiré. Redemandez un nouveau code.',
+      );
+    }
+    if (user.deleteAccountCode !== code) {
+      throw new BadRequestException('Code de confirmation invalide');
+    }
+
+    // Purge en cascade : projets & serveurs des équipes, puis équipes, puis user.
+    await this.prisma.$transaction(async (tx) => {
+      const memberships = await tx.teamMember.findMany({
+        where: { userId },
+        select: { teamId: true },
+      });
+      const teamIds = memberships.map((m) => m.teamId);
+
+      if (teamIds.length > 0) {
+        await tx.project.deleteMany({
+          where: { teamId: { in: teamIds } },
+        });
+        await tx.server.deleteMany({
+          where: { teamId: { in: teamIds } },
+        });
+        await tx.team.deleteMany({
+          where: { id: { in: teamIds } },
+        });
+      }
+      await tx.auditLog.deleteMany({ where: { userId } });
+      await tx.sshKey.deleteMany({ where: { userId } });
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    this.auditService
+      .record(userId, 'ACCOUNT_DELETED', 'User', userId, { email: user.email })
+      .catch(() => undefined);
+
+    this.logger.log(`Account ${user.email} (${userId}) deleted`);
+    return { message: 'Votre compte a été supprimé définitivement' };
+  }
+
+  private generateSixDigitCode(): string {
+    return String(Math.floor(100000 + Math.random() * 900000));
   }
 
   /**

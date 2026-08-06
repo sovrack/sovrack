@@ -47,10 +47,7 @@ export class TeamsService {
     id: string;
     role: Role;
   }): Promise<TeamWithMembers[]> {
-    const where =
-      actor && actor.role !== Role.SUPER_ADMIN
-        ? { members: { some: { userId: actor.id } } }
-        : {};
+    const where = actor ? { members: { some: { userId: actor.id } } } : {};
     return this.prisma.team.findMany({
       where,
       include: teamWithMembersInclude,
@@ -76,16 +73,12 @@ export class TeamsService {
   }
 
   /**
-   * Multi-tenant : seuls les membres de l'équipe (ou SUPER_ADMIN) peuvent y
-   * accéder.
+   * Multi-tenant : seuls les membres de l'équipe peuvent y accéder.
    */
   private async assertMemberOrSuperAdmin(
     teamId: string,
     actor: { id: string; role: Role },
   ): Promise<void> {
-    if (actor.role === Role.SUPER_ADMIN) {
-      return;
-    }
     const membership = await this.prisma.teamMember.findUnique({
       where: { teamId_userId: { teamId, userId: actor.id } },
       select: { id: true },

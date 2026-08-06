@@ -71,12 +71,15 @@ describe('EnvironmentsService', () => {
     );
   });
 
-  it('lets an ADMIN create an env and encrypts secretsEnv', async () => {
+  it('lets an OWNER create an env and encrypts secretsEnv', async () => {
+    prisma.projectMember.findUnique.mockResolvedValue({
+      role: ProjectRole.OWNER,
+    });
     await service.create(
       'p1',
       { name: 'prod', env: 'A=1', secretsEnv: 'S=2' } as never,
-      'admin',
-      Role.SUPER_ADMIN,
+      'owner',
+      Role.MEMBER,
     );
     expect(crypto.encryptOptional).toHaveBeenCalledWith('S=2');
   });
@@ -85,11 +88,14 @@ describe('EnvironmentsService', () => {
   // now use encryptOptional like ServicesService, so an explicit '' clears
   // the secret (→ null) instead of persisting an encrypted empty string.
   it('clears secretsEnv (→ null) when an empty string is submitted', async () => {
+    prisma.projectMember.findUnique.mockResolvedValue({
+      role: ProjectRole.OWNER,
+    });
     await service.create(
       'p1',
       { name: 'prod', secretsEnv: '' } as never,
-      'admin',
-      Role.SUPER_ADMIN,
+      'owner',
+      Role.MEMBER,
     );
     expect(crypto.encryptOptional).toHaveBeenCalledWith('');
     expect(prisma.environment.create).toHaveBeenCalledWith(
@@ -103,7 +109,10 @@ describe('EnvironmentsService', () => {
   // omit: { secretsEnv: true } — every other read/write in this service already
   // had it. Assert the fix directly rather than trusting the return value.
   it('never returns raw secretsEnv from linkService (omit applied)', async () => {
-    await service.linkService('p1', 'e1', 'svc1', 'admin', Role.SUPER_ADMIN);
+    prisma.projectMember.findUnique.mockResolvedValue({
+      role: ProjectRole.OWNER,
+    });
+    await service.linkService('p1', 'e1', 'svc1', 'owner', Role.MEMBER);
     expect(prisma.serviceEnvironment.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ omit: { secretsEnv: true } }),
     );
@@ -184,23 +193,29 @@ describe('EnvironmentsService', () => {
   });
 
   it('404s findOne when the env does not exist', async () => {
+    prisma.projectMember.findUnique.mockResolvedValue({
+      role: ProjectRole.OWNER,
+    });
     prisma.environment.findFirst.mockResolvedValue(null);
     await expect(
-      service.findOne('p1', 'nope', 'admin', Role.SUPER_ADMIN),
+      service.findOne('p1', 'nope', 'owner', Role.MEMBER),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('404s assignServer when the server is missing', async () => {
+    prisma.projectMember.findUnique.mockResolvedValue({
+      role: ProjectRole.OWNER,
+    });
     prisma.server.findUnique.mockResolvedValue(null);
     await expect(
-      service.assignServer('p1', 'e1', 'nope', 'admin', Role.SUPER_ADMIN),
+      service.assignServer('p1', 'e1', 'nope', 'owner', Role.MEMBER),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('404s when the project does not exist', async () => {
     prisma.project.findUnique.mockResolvedValue(null);
     await expect(
-      service.findAll('nope', 'admin', Role.SUPER_ADMIN),
+      service.findAll('nope', 'owner', Role.MEMBER),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

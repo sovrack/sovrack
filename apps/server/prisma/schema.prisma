@@ -240,6 +240,12 @@ model User {
   emailVerificationCode String?
   emailVerificationExpiresAt DateTime?
   emailVerifiedAt          DateTime?
+  // Confirmation de suppression de compte (code à 6 chiffres par email).
+  deleteAccountCode        String?
+  deleteAccountExpiresAt   DateTime?
+  // Réinitialisation de mot de passe oublié (code à 6 chiffres par email).
+  passwordResetCode        String?
+  passwordResetExpiresAt   DateTime?
   projects             ProjectMember[]
   teams               TeamMember[]
   deployments         Deployment[]

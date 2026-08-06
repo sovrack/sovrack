@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from '@prisma/client';
+
 import {
   ConnectedSocket,
   MessageBody,
@@ -312,10 +312,6 @@ export class DeploymentsGateway
     user: JwtPayload,
     deploymentId: string,
   ): Promise<boolean> {
-    if (user.role === Role.SUPER_ADMIN) {
-      return true;
-    }
-
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },
       select: { projectId: true },

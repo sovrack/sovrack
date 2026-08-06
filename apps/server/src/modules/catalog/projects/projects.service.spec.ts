@@ -137,10 +137,12 @@ describe('ProjectsService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('lists all projects for a SUPER_ADMIN (no membership filter)', async () => {
+  it('filters projects by membership for a SUPER_ADMIN too (tenant isolation)', async () => {
     await service.findAll('admin', Role.SUPER_ADMIN);
     expect(prisma.project.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: undefined }),
+      expect.objectContaining({
+        where: { members: { some: { userId: 'admin' } } },
+      }),
     );
   });
 

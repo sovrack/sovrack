@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 
 export type SuperAdminOverview = {
@@ -167,5 +172,89 @@ export class SuperAdminService {
         },
       },
     });
+  }
+
+  /** Désactive/réactive un compte plateforme. */
+  async setUserActive(userId: string, isActive: boolean) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        isActive: true,
+      },
+    });
+    return {
+      ...updated,
+      message: isActive
+        ? 'Compte réactivé'
+        : 'Compte désactivé — l’utilisateur ne peut plus se connecter',
+    };
+  }
+
+  /** Change le rôle plateforme d'un utilisateur. */
+  async setUserRole(userId: string, role: Role) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+    if (!Object.values(Role).includes(role)) {
+      throw new BadRequestException('Rôle invalide');
+    }
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { role },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        isActive: true,
+      },
+    });
+    return { ...updated, message: `Rôle défini sur ${role}` };
+  }
+
+  /**
+   * Supprime définitivement un compte et ses données (équipes, projets,
+   * serveurs). Refuse l'auto-suppression via le back-office.
+   */
+  async deleteUser(userId: string, actorId: string) {
+    if (userId === actorId) {
+      throw new BadRequestException(
+        'Impossible de supprimer votre propre compte depuis le back-office',
+      );
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const memberships = await tx.teamMember.findMany({
+        where: { userId },
+        select: { teamId: true },
+      });
+      const teamIds = memberships.map((m) => m.teamId);
+      if (teamIds.length > 0) {
+        await tx.project.deleteMany({ where: { teamId: { in: teamIds } } });
+        await tx.server.deleteMany({ where: { teamId: { in: teamIds } } });
+        await tx.team.deleteMany({ where: { id: { in: teamIds } } });
+      }
+      await tx.auditLog.deleteMany({ where: { userId } });
+      await tx.sshKey.deleteMany({ where: { userId } });
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    return {
+      message: `Le compte ${user.email} a été supprimé définitivement`,
+    };
   }
 }

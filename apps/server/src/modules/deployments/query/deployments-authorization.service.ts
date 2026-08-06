@@ -70,7 +70,7 @@ export class DeploymentsAuthorizationService {
     projectId: string,
     environmentId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
   ): Promise<void> {
     const environment = await this.prisma.environment.findUnique({
       where: { id: environmentId },
@@ -81,11 +81,7 @@ export class DeploymentsAuthorizationService {
       return;
     }
 
-    // Environment is protected — ADMIN role always passes.
-    if (userRole === Role.SUPER_ADMIN) {
-      return;
-    }
-
+    // Environment is protected — only OWNER project members can deploy.
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
       select: { role: true },
@@ -119,13 +115,13 @@ export class DeploymentsAuthorizationService {
       return;
     }
 
-    throw new ForbiddenException('Action réservée au OWNER du projet ou ADMIN');
+    throw new ForbiddenException('Action réservée au OWNER du projet');
   }
 
   async resolveProjectMemberRole(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
   ): Promise<ProjectRole | null> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -140,10 +136,6 @@ export class DeploymentsAuthorizationService {
 
     if (!project) {
       throw new NotFoundException('Projet non trouvé');
-    }
-
-    if (userRole === Role.SUPER_ADMIN) {
-      return null;
     }
 
     const member = project.members[0];

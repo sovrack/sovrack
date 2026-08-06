@@ -11,8 +11,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
  * (projects / environments / services / service-environments). Previously each
  * service carried its own verbatim copy of these checks — a drift risk for
  * security code. L'OWNER d'une organisation n'accède qu'aux projets dont il
- * est membre ; seul le SUPER_ADMIN (plateforme) contourne l'appartenance.
- * La gestion d'un projet requiert le rôle OWNER dans le projet.
+ * est membre. La gestion d'un projet requiert le rôle OWNER dans le projet.
  */
 @Injectable()
 export class ProjectAccessService {
@@ -27,14 +26,13 @@ export class ProjectAccessService {
     }
   }
 
-  /** Any project member (or platform SUPER_ADMIN) may read the project. */
+  /** Any project member may read the project. */
   async assertCanAccessProject(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
-    if (userRole === Role.SUPER_ADMIN) return;
 
     const membership = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
@@ -44,23 +42,20 @@ export class ProjectAccessService {
     }
   }
 
-  /** Only the project OWNER (or platform SUPER_ADMIN) may mutate the project. */
+  /** Only the project OWNER may mutate the project. */
   async assertCanManageProject(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
-    if (userRole === Role.SUPER_ADMIN) return;
 
     const membership = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
       select: { role: true },
     });
     if (membership?.role !== ProjectRole.OWNER) {
-      throw new ForbiddenException(
-        'Action réservée au OWNER du projet ou SUPER_ADMIN',
-      );
+      throw new ForbiddenException('Action réservée au OWNER du projet');
     }
   }
 }

@@ -57,23 +57,19 @@ const RUNNING: DeploymentStatus[] = ['PENDING', 'RUNNING'];
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getStats(userId: string, userRole: Role): Promise<DashboardStats> {
+  async getStats(userId: string, _userRole: Role): Promise<DashboardStats> {
     const now = new Date();
     const since7d = new Date(now.getTime() - 7 * 86400_000);
     const since30d = new Date(now.getTime() - 30 * 86400_000);
 
-    // Non-admins only see the projects they are a member of — the dashboard
-    // must not leak other projects' names, deploy counts or failures. Admins
-    // (projectIds === null) see the whole platform.
-    const projectIds =
-      userRole === Role.SUPER_ADMIN
-        ? null
-        : (
-            await this.prisma.projectMember.findMany({
-              where: { userId },
-              select: { projectId: true },
-            })
-          ).map((m) => m.projectId);
+    // Users only see the projects they are a member of — the dashboard
+    // must not leak other projects' names, deploy counts or failures.
+    const projectIds = (
+      await this.prisma.projectMember.findMany({
+        where: { userId },
+        select: { projectId: true },
+      })
+    ).map((m) => m.projectId);
     const projectIn = projectIds ? { in: projectIds } : undefined;
     const deployScope: Prisma.DeploymentWhereInput = projectIn
       ? { projectId: projectIn }

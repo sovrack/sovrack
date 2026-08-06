@@ -188,10 +188,9 @@ export class DeploymentsQueryService {
   ): Promise<
     DeploymentWithRelations[] | PaginatedResult<DeploymentWithRelations>
   > {
-    const where: Prisma.DeploymentWhereInput | undefined =
-      userRole === Role.SUPER_ADMIN
-        ? undefined
-        : { project: { members: { some: { userId } } } };
+    const where: Prisma.DeploymentWhereInput | undefined = {
+      project: { members: { some: { userId } } },
+    };
 
     const MAX_UNPAGINATED = 200;
     if (!pagination?.page && !pagination?.limit) {

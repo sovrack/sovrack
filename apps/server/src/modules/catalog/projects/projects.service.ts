@@ -138,11 +138,10 @@ export class ProjectsService {
     pagination?: PaginationDto,
   ): Promise<ProjectListItem[] | PaginatedResult<ProjectListItem>> {
     // Multi-tenant : un utilisateur ne voit que les projets dont il est membre
-    // (son organisation). Seul le SUPER_ADMIN (plateforme) voit tous les projets.
-    const where: Prisma.ProjectWhereInput | undefined =
-      userRole === Role.SUPER_ADMIN
-        ? undefined
-        : { members: { some: { userId } } };
+    // (son organisation).
+    const where: Prisma.ProjectWhereInput | undefined = {
+      members: { some: { userId } },
+    };
 
     const queryInclude = {
       members: { where: { userId }, select: { role: true }, take: 1 },

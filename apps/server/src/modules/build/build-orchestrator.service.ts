@@ -69,12 +69,8 @@ export class BuildOrchestratorService {
   async assertCanConfigureBuild(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
   ): Promise<void> {
-    if (userRole === Role.SUPER_ADMIN) {
-      return;
-    }
-
     const membership = await this.prisma.projectMember.findUnique({
       where: {
         projectId_userId: {

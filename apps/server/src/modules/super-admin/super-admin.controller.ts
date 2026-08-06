@@ -1,10 +1,22 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
+import { GetUser } from '../../shared/decorators/get-user.decorator';
+import type { JwtPayload } from '../../shared/jwt/dto/jwt-payload.dto';
 import { SuperAdminService } from './super-admin.service';
+import { UpdateSuperAdminUserDto } from './dto/super-admin.dto';
 
 @ApiTags('Super Admin')
 @ApiBearerAuth()
@@ -48,5 +60,31 @@ export class SuperAdminController {
   @ApiOperation({ summary: 'List members of a given team' })
   listUsersForTeam(@Param('teamId') teamId: string) {
     return this.superAdmin.listUsersForTeam(teamId);
+  }
+
+  @Patch('users/:id')
+  @ApiOperation({
+    summary: 'Update a platform user (activate/deactivate, change role)',
+  })
+  updateUser(@Param('id') id: string, @Body() dto: UpdateSuperAdminUserDto) {
+    const results: Promise<unknown>[] = [];
+    if (dto.isActive !== undefined) {
+      results.push(this.superAdmin.setUserActive(id, dto.isActive));
+    }
+    if (dto.role !== undefined) {
+      results.push(this.superAdmin.setUserRole(id, dto.role));
+    }
+    if (results.length === 0) {
+      return Promise.resolve({
+        message: 'Aucune modification fournie (role ou isActive attendu)',
+      });
+    }
+    return Promise.all(results);
+  }
+
+  @Delete('users/:id')
+  @ApiOperation({ summary: 'Delete a platform user and all related data' })
+  deleteUser(@Param('id') id: string, @GetUser() actor: JwtPayload) {
+    return this.superAdmin.deleteUser(id, actor.id);
   }
 }

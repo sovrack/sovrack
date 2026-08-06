@@ -21,6 +21,10 @@ describe('ServicesService — soft-delete name collision', () => {
       project: {
         findUnique: jest.fn().mockResolvedValue({ id: projectId }),
       },
+      projectMember: {
+        findUnique: jest.fn().mockResolvedValue({ role: 'OWNER' }),
+        findFirst: jest.fn().mockResolvedValue({ role: 'OWNER' }),
+      },
       service: {
         findFirst: jest.fn().mockResolvedValue({ id: serviceId }),
         findUnique: jest.fn().mockResolvedValue({ name: 'api' }),

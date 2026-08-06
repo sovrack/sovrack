@@ -32,4 +32,12 @@ export class BillingController {
   subscribe(@GetUser() user: JwtPayload, @Body() dto: SubscribeDto) {
     return this.billingService.subscribeForUser(user.id, dto.plan);
   }
+
+  @Post('cancel')
+  @HttpCode(200)
+  @UseGuards(RolesGuard)
+  @Roles(Role.OWNER)
+  cancel(@GetUser() user: JwtPayload) {
+    return this.billingService.cancelForUser(user.id);
+  }
 }

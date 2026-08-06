@@ -76,7 +76,7 @@ export class UsersService {
       },
     });
 
-    if (actor && actor.role !== Role.SUPER_ADMIN) {
+    if (actor) {
       const memberships = await this.prisma.teamMember.findMany({
         where: { userId: actor.id },
         select: { teamId: true },
@@ -141,16 +141,13 @@ export class UsersService {
 
   /**
    * Filtre Prisma limitant un utilisateur aux membres de son organisation
-   * (ses équipes). Retourne {} pour SUPER_ADMIN (visibilité globale).
+   * (ses équipes).
    */
   private async orgScopeWhere(actor?: {
     id: string;
     role: Role;
   }): Promise<Prisma.UserWhereInput> {
     if (!actor) {
-      return {};
-    }
-    if (actor.role === Role.SUPER_ADMIN) {
       return {};
     }
     const memberships = await this.prisma.teamMember.findMany({
@@ -369,15 +366,12 @@ export class UsersService {
 
   /**
    * Vérifie qu'un utilisateur cible appartient à la même organisation que
-   * l'acteur (mêmes équipes). SUPER_ADMIN = accès global.
+   * l'acteur (mêmes équipes).
    */
   private async assertInSameOrg(
     targetUserId: string,
     actor: { id: string; role: Role },
   ): Promise<void> {
-    if (actor.role === Role.SUPER_ADMIN) {
-      return;
-    }
     if (actor.id === targetUserId) {
       return;
     }

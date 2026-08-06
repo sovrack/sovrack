@@ -13,13 +13,9 @@ export class GitlabAuthorizationService {
   async assertCanAccessProject(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
-
-    if (userRole === Role.SUPER_ADMIN) {
-      return;
-    }
 
     const membership = await this.prisma.projectMember.findUnique({
       where: {
@@ -38,13 +34,9 @@ export class GitlabAuthorizationService {
   async assertCanManageProject(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
   ): Promise<void> {
     await this.ensureProjectExists(projectId);
-
-    if (userRole === Role.SUPER_ADMIN) {
-      return;
-    }
 
     const ownerMembership = await this.prisma.projectMember.findUnique({
       where: {
@@ -56,9 +48,7 @@ export class GitlabAuthorizationService {
     });
 
     if (!ownerMembership || ownerMembership.role !== ProjectRole.OWNER) {
-      throw new ForbiddenException(
-        'Action réservée au OWNER du projet ou ADMIN',
-      );
+      throw new ForbiddenException('Action réservée au OWNER du projet');
     }
   }
 

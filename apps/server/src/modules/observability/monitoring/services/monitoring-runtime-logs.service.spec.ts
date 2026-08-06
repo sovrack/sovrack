@@ -65,14 +65,9 @@ describe('MonitoringRuntimeLogsService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('returns all lines for an admin (no filter)', async () => {
-    const { service } = make(null);
-    const res = await service.searchServiceLogs(
-      'env-1',
-      'admin',
-      Role.SUPER_ADMIN,
-      {},
-    );
+  it('returns all lines for a project member (no filter)', async () => {
+    const { service } = make({ role: 'OWNER' });
+    const res = await service.searchServiceLogs('env-1', 'u1', Role.MEMBER, {});
     expect(res.total).toBe(4);
     expect(res.matched).toBe(4);
     expect(res.container).toBe('app-env-1');

@@ -97,10 +97,12 @@ describe('DeploymentsQueryService', () => {
   });
 
   describe('findAll', () => {
-    it('does not filter for an ADMIN', async () => {
+    it('filters by membership for a SUPER_ADMIN too (tenant isolation)', async () => {
       await service.findAll('admin', Role.SUPER_ADMIN);
       expect(prisma.deployment.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: undefined }),
+        expect.objectContaining({
+          where: { project: { members: { some: { userId: 'admin' } } } },
+        }),
       );
     });
 

@@ -32,10 +32,11 @@ function makeService(overrides: {
 }
 
 describe('MonitoringAccessService', () => {
-  it('ADMIN bypasses membership entirely', async () => {
-    const { svc, prisma } = makeService({});
-    await svc.assertProject('p1', 'u1', Role.SUPER_ADMIN);
-    expect(prisma.projectMember.findUnique).not.toHaveBeenCalled();
+  it('rejects a SUPER_ADMIN who is not a project member (403)', async () => {
+    const { svc } = makeService({});
+    await expect(
+      svc.assertProject('p1', 'u1', Role.SUPER_ADMIN),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('allows a DEVELOPER who is a project member', async () => {

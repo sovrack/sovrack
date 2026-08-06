@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -20,6 +28,9 @@ import { Public } from '../../../shared/decorators/public.decorator';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { Role, User } from '@prisma/client';
 import type { Response } from 'express';
+import { DeleteAccountDto } from './dto/delete-account.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import {
   buildAuthCookieClearOptions,
   buildAuthCookieOptions,
@@ -216,5 +227,82 @@ export class AuthController {
       buildAuthCookieClearOptions(this.configService),
     );
     return await this.authService.logout(user.id);
+  }
+
+  /**
+   * Demandes un code de réinitialisation de mot de passe (email).
+   * POST /auth/forgot-password
+   */
+  @Post('forgot-password')
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @ApiOperation({ summary: 'Request a password reset code by email' })
+  @ApiResponse({
+    status: 201,
+    description: 'Reset code sent (if account exists)',
+  })
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+  ): Promise<{ sent: boolean }> {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  /**
+   * Réinitialise le mot de passe avec le code reçu par email.
+   * POST /auth/reset-password
+   */
+  @Post('reset-password')
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @ApiOperation({ summary: 'Reset the password with the email code' })
+  @ApiResponse({ status: 201, description: 'Password reset' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired code' })
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+  ): Promise<{ message: string }> {
+    return this.authService.resetPassword(dto.email, dto.code, dto.password);
+  }
+
+  /**
+   * Envoie un code de confirmation par email avant suppression du compte.
+   * POST /auth/delete-account-request
+   */
+  @Post('delete-account-request')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Send an account deletion confirmation code by email',
+  })
+  @ApiResponse({ status: 201, description: 'Confirmation code sent' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  async requestAccountDeletion(
+    @GetUser() user: JwtPayload,
+  ): Promise<{ sent: boolean }> {
+    return this.authService.requestAccountDeletion(user.id);
+  }
+
+  /**
+   * Supprime définitivement le compte (cascade) après validation du code email.
+   * DELETE /auth/me
+   */
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete the current account after email confirmation',
+  })
+  @ApiResponse({ status: 200, description: 'Account deleted' })
+  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired code' })
+  async deleteAccount(
+    @GetUser() user: JwtPayload,
+    @Body() dto: DeleteAccountDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<{ message: string }> {
+    response.clearCookie(
+      resolveAuthCookieName(this.configService),
+      buildAuthCookieClearOptions(this.configService),
+    );
+    return this.authService.confirmAccountDeletion(user.id, dto.code);
   }
 }

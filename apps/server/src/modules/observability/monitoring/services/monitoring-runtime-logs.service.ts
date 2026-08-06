@@ -116,14 +116,13 @@ export class MonitoringRuntimeLogsService {
   private async assertCanAccess(
     serviceEnvId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
   ): Promise<void> {
     const env = await this.prisma.serviceEnvironment.findUnique({
       where: { id: serviceEnvId },
       select: { service: { select: { projectId: true } } },
     });
     if (!env) throw new NotFoundException('Service-environnement introuvable');
-    if (userRole === Role.SUPER_ADMIN) return;
 
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId: env.service.projectId, userId } },

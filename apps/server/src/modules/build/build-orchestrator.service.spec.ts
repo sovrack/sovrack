@@ -77,9 +77,12 @@ describe('BuildOrchestratorService', () => {
   });
 
   describe('assertCanConfigureBuild', () => {
-    it('allows ADMIN unconditionally', async () => {
+    it('allows a member to configure the build', async () => {
+      prisma.projectMember.findUnique.mockResolvedValue({
+        role: ProjectRole.DEVELOPER,
+      });
       await expect(
-        service.assertCanConfigureBuild('p1', 'admin', Role.SUPER_ADMIN),
+        service.assertCanConfigureBuild('p1', 'u1', Role.MEMBER),
       ).resolves.toBeUndefined();
     });
 
@@ -110,10 +113,13 @@ describe('BuildOrchestratorService', () => {
   });
 
   it('generates build files as PREVIEW (no repo write) and persists buildType on the service', async () => {
+    prisma.projectMember.findUnique.mockResolvedValue({
+      role: ProjectRole.DEVELOPER,
+    });
     const res = await service.generateBuildFiles(
       'p1',
-      'admin',
-      Role.SUPER_ADMIN,
+      'u1',
+      Role.MEMBER,
       'svc1',
     );
     expect(detector.detectProjectType).toHaveBeenCalledWith('p1', 'svc1');
@@ -128,16 +134,22 @@ describe('BuildOrchestratorService', () => {
   });
 
   it('404s prepareServiceInternal when the service is missing', async () => {
+    prisma.projectMember.findUnique.mockResolvedValue({
+      role: ProjectRole.DEVELOPER,
+    });
     prisma.service.findFirst.mockResolvedValue(null);
     await expect(
-      service.generateBuildFiles('p1', 'admin', Role.SUPER_ADMIN, 'ghost'),
+      service.generateBuildFiles('p1', 'u1', Role.MEMBER, 'ghost'),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('pushFiles 404s when the project is missing', async () => {
+    prisma.projectMember.findUnique.mockResolvedValue({
+      role: ProjectRole.DEVELOPER,
+    });
     prisma.project.findUnique.mockResolvedValue(null);
     await expect(
-      service.pushFiles('nope', 'admin', Role.SUPER_ADMIN),
+      service.pushFiles('nope', 'u1', Role.MEMBER),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

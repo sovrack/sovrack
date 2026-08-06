@@ -21,9 +21,8 @@ export class MonitoringAccessService {
   async assertProject(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
   ): Promise<void> {
-    if (userRole === Role.SUPER_ADMIN) return;
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
       select: { role: true },

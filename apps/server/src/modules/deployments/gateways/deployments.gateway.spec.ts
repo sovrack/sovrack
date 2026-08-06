@@ -203,8 +203,8 @@ describe('DeploymentsGateway', () => {
       expect(client.join).toHaveBeenCalledWith('deployment:d1');
     });
 
-    it('ADMIN always gets access without a membership check', async () => {
-      const { gateway, prisma } = makeGateway();
+    it('denies a SUPER_ADMIN who is not a project member', async () => {
+      const { gateway } = makeGateway({ member: null });
       const client = makeSocket({
         userData: {
           user: { id: 'admin1', role: Role.SUPER_ADMIN, email: 'a@t.com' },
@@ -213,8 +213,7 @@ describe('DeploymentsGateway', () => {
       const result = await gateway.handleJoinDeployment(client as never, {
         deploymentId: 'd1',
       });
-      expect(result.ok).toBe(true);
-      expect(prisma.projectMember.findUnique).not.toHaveBeenCalled();
+      expect(result.ok).toBe(false);
     });
   });
 

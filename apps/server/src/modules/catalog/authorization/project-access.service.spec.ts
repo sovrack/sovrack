@@ -29,10 +29,12 @@ describe('ProjectAccessService', () => {
   });
 
   describe('assertCanAccessProject', () => {
-    it('allows a platform SUPER_ADMIN without checking membership', async () => {
+    it('forbids a platform SUPER_ADMIN who is not a member', async () => {
       const { svc, prisma } = make();
-      await svc.assertCanAccessProject('p1', 'u1', Role.SUPER_ADMIN);
-      expect(prisma.projectMember.findUnique).not.toHaveBeenCalled();
+      await expect(
+        svc.assertCanAccessProject('p1', 'u1', Role.SUPER_ADMIN),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.projectMember.findUnique).toHaveBeenCalled();
     });
 
     it('allows any member', async () => {
