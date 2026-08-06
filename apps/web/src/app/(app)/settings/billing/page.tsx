@@ -83,6 +83,17 @@ export default function BillingPage() {
     },
   });
 
+  const cancel = useMutation({
+    mutationFn: billingService.cancel,
+    onSuccess: (res) => {
+      setNotice({ tone: "success", message: res.message });
+      void queryClient.invalidateQueries({ queryKey: ["billing"] });
+    },
+    onError: (err: unknown) => {
+      setNotice({ tone: "error", message: getApiErrorMessage(err) });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -218,6 +229,56 @@ export default function BillingPage() {
           <Lock size={12} /> Paiement sécurisé · Sans engagement · Résiliation à
           tout moment depuis cette page
         </p>
+        {subscription.status === "CANCELED" ? (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-red-400">
+                Abonnement annulé
+              </p>
+              <p className="text-xs text-[var(--text-secondary)]">
+                {subscription.canceledAt
+                  ? `Annulé le ${formatDate(subscription.canceledAt)}. Vos services restent accessibles jusqu'à la fin de la période en cours.`
+                  : "Votre abonnement est annulé. Vous pouvez vous réabonner à tout moment."}
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => subscribe.mutate(subscription.plan)}
+              disabled={subscribe.isPending}
+            >
+              {subscribe.isPending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Sparkles size={14} />
+              )}{" "}
+              Réabonner
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold">Annuler l&apos;abonnement</p>
+              <p className="text-xs text-[var(--text-secondary)]">
+                Votre abonnement passera au statut annulé. Vous pourrez vous
+                réabonner à tout moment.
+              </p>
+            </div>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => cancel.mutate()}
+              disabled={cancel.isPending}
+            >
+              {cancel.isPending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Lock size={14} />
+              )}{" "}
+              Annuler
+            </Button>
+          </div>
+        )}
       </SectionCard>
 
       {/* Factures */}

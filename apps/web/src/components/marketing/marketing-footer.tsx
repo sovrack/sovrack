@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function MarketingFooter() {
   return (
-    <footer className="border-t border-white/10 bg-zinc-950 pb-10 pt-14 text-zinc-400">
+    <footer className="border-t border-blue-500/20 bg-blue-950 pb-10 pt-14 text-blue-300">
       <div className="mx-auto max-w-7xl px-6">
         <div className="grid gap-12 lg:grid-cols-6">
           <div className="lg:col-span-2">
@@ -29,34 +29,27 @@ export default function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-4 text-sm font-semibold text-white">Ressources</h4>
+            <h3 className="mb-4 text-sm font-semibold text-white">Ressources</h3>
             <ul className="space-y-3 text-sm">
               <li><Link href="/docs" className="transition hover:text-white">Documentation</Link></li>
-              <li><Link href="/status" className="transition hover:text-white">Statut du service</Link></li>
               <li><Link href="/legal" className="transition hover:text-white">Mentions légales</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="mb-4 text-sm font-semibold text-white">Contact</h4>
+            <h3 className="mb-4 text-sm font-semibold text-white">Contact</h3>
             <ul className="space-y-3 text-sm">
-              <li><a href="mailto:support@sovrack.tn" className="transition hover:text-white">support@sovrack.tn</a></li>
+              <li><a href="mailto:contact@sovrack.tech" className="transition hover:text-white">contact@sovrack.tech</a></li>
               <li>Tunis, Tunisie</li>
             </ul>
-            <div className="mt-5 flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2.5 text-xs">
-              <span className="h-2 w-2 rounded-full bg-green-400" />
-              <span className="text-zinc-300">Tous les systèmes opérationnels</span>
-              <Link href="/status" className="ml-auto font-semibold text-blue-400 hover:text-blue-300">Voir</Link>
-            </div>
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-zinc-800 pt-6 text-xs text-zinc-500 sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-blue-500/20 pt-6 text-xs text-blue-400 sm:flex-row">
           <p>&copy; {new Date().getFullYear()} Sovrack. Tous droits réservés.</p>
           <div className="flex items-center gap-6">
-            <Link href="/legal" className="transition hover:text-zinc-300">Confidentialité</Link>
-            <Link href="/status" className="transition hover:text-zinc-300">Statut</Link>
-            <a href="mailto:support@sovrack.tn" className="transition hover:text-zinc-300">Support</a>
+            <Link href="/legal" className="transition hover:text-white">Confidentialité</Link>
+            <a href="mailto:contact@sovrack.tech" className="transition hover:text-white">Support</a>
           </div>
         </div>
       </div>

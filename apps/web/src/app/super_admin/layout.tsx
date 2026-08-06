@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { href: "/super_admin/users", label: "Utilisateurs", icon: Users },
   { href: "/super_admin/teams", label: "Équipes", icon: Rocket },
   { href: "/super_admin/subscriptions", label: "Abonnements", icon: CreditCard },
+  { href: "/super_admin/systems", label: "Systèmes", icon: Activity },
 ];
 
 export default function SuperAdminLayout({

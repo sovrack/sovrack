@@ -7,9 +7,10 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/register",
+  "/forgot-password",
+  "/reset-password",
   "/pricing",
   "/docs",
-  "/status",
   "/legal",
   "/super_admin/login",
 ];
@@ -113,6 +114,30 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/super_admin/login", request.url));
     }
     return NextResponse.next();
+  }
+
+  // Confinement SUPER_ADMIN : il ne voit QUE les pages de configuration
+  // plateforme (+ la page status et audit-logs). Toute autre route applicative
+  // est redirigée vers le back-office.
+  if (token) {
+    const payload = parseJwtPayload(token);
+    if (payload?.role === "SUPER_ADMIN") {
+      const allowedAppPaths = [
+        "/settings",
+        "/settings/status",
+        "/settings/audit-logs",
+      ];
+      const isAllowedAppPath = allowedAppPaths.some(
+        (path) => pathname === path || pathname.startsWith(`${path}/`),
+      );
+      const isBackOffice = pathname.startsWith("/super_admin");
+      const isPublic = isPublicPath(pathname);
+      if (!isBackOffice && !isAllowedAppPath && !isPublic) {
+        return NextResponse.redirect(
+          new URL("/super_admin", request.url),
+        );
+      }
+    }
   }
 
   if (!token && !isPublicPath(pathname)) {

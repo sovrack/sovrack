@@ -14,9 +14,10 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/register",
+  "/forgot-password",
+  "/reset-password",
   "/pricing",
   "/docs",
-  "/status",
   "/legal",
   "/super_admin/login",
 ];

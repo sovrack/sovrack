@@ -6,6 +6,6 @@ export default function AdminServersLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ProtectedRoute requiredRole="SUPER_ADMIN">{children}</ProtectedRoute>
+    <ProtectedRoute requiredRole="OWNER">{children}</ProtectedRoute>
   );
 }

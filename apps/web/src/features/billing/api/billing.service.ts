@@ -16,4 +16,12 @@ export const billingService = {
     );
     return res.data;
   },
+
+  /** Annule l'abonnement de l'équipe (mode manuel : statut CANCELED). */
+  async cancel(): Promise<{ success: boolean; message: string }> {
+    const res = await api.post<{ success: boolean; message: string }>(
+      "/billing/cancel",
+    );
+    return res.data;
+  },
 };

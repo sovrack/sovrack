@@ -8,7 +8,6 @@ import { useAuth } from "@/features/auth/api/use-auth";
 const marketingLinks = [
   { href: "/pricing", label: "Tarifs" },
   { href: "/docs", label: "Documentation" },
-  { href: "/status", label: "Statut" },
   { href: "/legal", label: "Légal" },
 ];
 
@@ -48,7 +47,7 @@ export function MarketingNavbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-blue-500/20 bg-blue-950/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <Link
             href={isSuperAdmin ? "/super_admin" : isAuthenticated ? "/dashboard" : "/"}
@@ -84,7 +83,7 @@ export function MarketingNavbar() {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 py-1.5 pl-2 pr-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-900 py-1.5 pl-2 pr-3 text-sm font-medium text-blue-100 transition hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   aria-expanded={dropdownOpen}
                   aria-haspopup="true"
                 >
@@ -110,19 +109,19 @@ export function MarketingNavbar() {
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-150">
-                    <div className="border-b border-zinc-800 px-3 py-2">
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-blue-500/20 bg-blue-950 p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-150">
+                    <div className="border-b border-blue-900 px-3 py-2">
                       <div className="truncate text-sm font-semibold text-white">
                         {user.fullName}
                       </div>
-                      <div className="truncate text-xs text-zinc-400">
+                      <div className="truncate text-xs text-blue-300">
                         {user.email}
                       </div>
                     </div>
                     {isSuperAdmin && (
                       <Link
                         href="/super_admin"
-                        className="block rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white"
+                        className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
                         onClick={() => setDropdownOpen(false)}
                       >
                         Back-office (plateforme)
@@ -130,14 +129,14 @@ export function MarketingNavbar() {
                     )}
                     <Link
                       href="/dashboard"
-                      className="block rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white"
+                      className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
                       onClick={() => setDropdownOpen(false)}
                     >
                       Mon espace
                     </Link>
                     <Link
                       href="/settings"
-                      className="block rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white"
+                      className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
                       onClick={() => setDropdownOpen(false)}
                     >
                       Paramètres
@@ -146,14 +145,14 @@ export function MarketingNavbar() {
                       <>
                         <Link
                           href="/admin/users"
-                          className="block rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white"
+                          className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
                           onClick={() => setDropdownOpen(false)}
                         >
                           Administration
                         </Link>
                         <Link
                           href="/admin/teams"
-                          className="block rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-900 hover:text-white"
+                          className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
                           onClick={() => setDropdownOpen(false)}
                         >
                           Équipes
@@ -220,9 +219,9 @@ export function MarketingNavbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-zinc-800 bg-zinc-950 px-6 py-4 md:hidden animate-in slide-in-from-top-2 duration-200">
+        <div className="border-t border-blue-500/20 bg-blue-950 px-6 py-4 md:hidden animate-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2 pt-2 pb-4 border-b border-zinc-800">
+            <div className="flex flex-col gap-2 pt-2 pb-4 border-b border-blue-500/20">
               {marketingLinks.map((l) => (
                 <Link
                   key={l.href}

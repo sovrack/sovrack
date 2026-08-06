@@ -3,9 +3,11 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { useAuth } from "@/features/auth/api/use-auth";
+import { useAuthStore } from "@/stores/auth.store";
 import { getApiErrorMessage } from "@/shared/lib/api";
 
 export function LoginScreen() {
@@ -15,6 +17,7 @@ export function LoginScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +27,11 @@ export function LoginScreen() {
     setLoading(true);
     try {
       await login(email, password);
-      const next = searchParams.get("next") || "/dashboard";
+      const { user } = useAuthStore.getState();
+      const next =
+        user?.role === "SUPER_ADMIN"
+          ? "/super_admin"
+          : searchParams.get("next") || "/dashboard";
       router.replace(next);
     } catch (err: unknown) {
       setError(
@@ -79,16 +86,36 @@ export function LoginScreen() {
               >
                 Mot de passe
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Votre mot de passe"
-                autoComplete="current-password"
-                required
-                className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              />
+              <div className="relative mt-1.5">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Votre mot de passe"
+                  autoComplete="current-password"
+                  required
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 pr-11 text-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={
+                    showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"
+                  }
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                Mot de passe oublié ?
+              </Link>
             </div>
             <button
               type="submit"

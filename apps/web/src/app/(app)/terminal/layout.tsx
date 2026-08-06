@@ -5,5 +5,5 @@ export default function TerminalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <ProtectedRoute requiredRole="SUPER_ADMIN">{children}</ProtectedRoute>;
+  return <ProtectedRoute requiredRole="OWNER">{children}</ProtectedRoute>;
 }

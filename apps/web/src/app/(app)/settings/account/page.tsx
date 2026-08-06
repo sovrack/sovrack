@@ -1,20 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRound, Languages, Loader2, Moon, Sun, User } from "lucide-react";
+import { KeyRound, Languages, Loader2, Moon, Sun, Trash2, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/api/use-auth";
+import { useAuthStore } from "@/stores/auth.store";
 import { usersService } from "@/features/users/api/users.service";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { PageHeader } from "@/shared/layout/page-header";
 import { SectionCard } from "@/shared/layout/section-card";
 import { Alert } from "@/shared/ui/alert";
+import { PasswordInput } from "@/shared/ui/password-input";
 import { useI18n } from "@/shared/i18n/language-context";
 import { useThemeContext } from "@/shared/contexts/theme-context";
-
-const inputClass =
-  "mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]";
-const labelClass =
-  "block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]";
 
 /**
  * LOT2b (décision utilisateur) : page de réglages PERSONNELS, accessible à
@@ -27,6 +25,7 @@ export default function MyAccountPage() {
   const { t, lang, setLang } = useI18n();
   const { theme, toggleTheme } = useThemeContext();
   const { user } = useAuth();
+  const router = useRouter();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,6 +35,10 @@ export default function MyAccountPage() {
     tone: "success" | "error";
     message: string;
   } | null>(null);
+
+  const [deleting, setDeleting] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [deleteCode, setDeleteCode] = useState("");
 
   const handleChangePassword = async (
     event: React.FormEvent<HTMLFormElement>,
@@ -71,6 +74,51 @@ export default function MyAccountPage() {
       setNotice({ tone: "error", message: getApiErrorMessage(error) });
     } finally {
       setSavingPassword(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    setDeleting(true);
+    setNotice(null);
+    try {
+      await useAuthStore.getState().requestAccountDeletion();
+      setCodeSent(true);
+      setNotice({
+        tone: "success",
+        message: t(
+          "A confirmation code has been sent to your email. Enter it below.",
+        ),
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: getApiErrorMessage(error) || t("Unable to request deletion."),
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleConfirmDeletion = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (deleteCode.length !== 6) {
+      setNotice({
+        tone: "error",
+        message: t("Enter the 6-digit confirmation code."),
+      });
+      return;
+    }
+    setDeleting(true);
+    setNotice(null);
+    try {
+      await useAuthStore.getState().confirmAccountDeletion(deleteCode);
+      router.replace("/");
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: getApiErrorMessage(error) || t("Invalid or expired code."),
+      });
+      setDeleting(false);
     }
   };
 
@@ -116,42 +164,33 @@ export default function MyAccountPage() {
           className="grid grid-cols-1 gap-4 sm:grid-cols-3"
         >
           <div>
-            <label className={labelClass} htmlFor="cur-pw">
-              {t("Current password")}
-            </label>
-            <input
+            <PasswordInput
               id="cur-pw"
-              type="password"
+              label={t("Current password")}
               required
+              autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className={inputClass}
             />
           </div>
           <div>
-            <label className={labelClass} htmlFor="new-pw">
-              {t("New password")}
-            </label>
-            <input
+            <PasswordInput
               id="new-pw"
-              type="password"
+              label={t("New password")}
               required
+              autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className={inputClass}
             />
           </div>
           <div>
-            <label className={labelClass} htmlFor="conf-pw">
-              {t("Confirm new password")}
-            </label>
-            <input
+            <PasswordInput
               id="conf-pw"
-              type="password"
+              label={t("Confirm new password")}
               required
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className={inputClass}
             />
           </div>
           <div className="sm:col-span-3">
@@ -193,6 +232,76 @@ export default function MyAccountPage() {
             {theme === "dark" ? t("Light theme") : t("Dark theme")}
           </button>
         </div>
+      </SectionCard>
+
+      <SectionCard
+        title={t("Danger zone")}
+        description={t(
+          "Delete your account and all associated data permanently. This cannot be undone.",
+        )}
+      >
+        {!codeSent ? (
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-[var(--text-secondary)]">
+              {t(
+                "A confirmation code will be sent to your email before the deletion.",
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={() => void handleRequestDeletion()}
+              disabled={deleting}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+            >
+              {deleting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Trash2 size={14} />
+              )}{" "}
+              {t("Delete my account")}
+            </button>
+          </div>
+        ) : (
+          <form
+            onSubmit={(e) => void handleConfirmDeletion(e)}
+            className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          >
+            <div className="w-full sm:max-w-xs">
+              <label
+                className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
+                htmlFor="delete-code"
+              >
+                {t("Confirmation code")}
+              </label>
+              <input
+                id="delete-code"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                required
+                value={deleteCode}
+                onChange={(e) =>
+                  setDeleteCode(e.target.value.replace(/\D/g, ""))
+                }
+                placeholder="123456"
+                className="mt-1 w-full rounded-xl border border-red-500/40 bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-red-500/60"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={deleting}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-50"
+            >
+              {deleting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Trash2 size={14} />
+              )}{" "}
+              {t("Confirm deletion")}
+            </button>
+          </form>
+        )}
       </SectionCard>
     </div>
   );

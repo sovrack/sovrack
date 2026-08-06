@@ -31,6 +31,8 @@ type AuthActions = {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   initialize: () => Promise<void>;
+  requestAccountDeletion: () => Promise<void>;
+  confirmAccountDeletion: (code: string) => Promise<void>;
 };
 
 export const useAuthStore = create<AuthState & AuthActions>()(
@@ -50,7 +52,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           loading: false,
           error: null,
           isAuthenticated: !!user,
-          isAdmin: user?.role === "OWNER" || user?.role === "SUPER_ADMIN",
+          isAdmin: user?.role === "OWNER",
           isSuperAdmin: user?.role === "SUPER_ADMIN",
           initialized: true,
         }),
@@ -77,7 +79,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.role === "OWNER" || response.data.role === "SUPER_ADMIN",
+            isAdmin: response.data.role === "OWNER",
             isSuperAdmin: response.data.role === "SUPER_ADMIN",
             initialized: true,
           });
@@ -109,7 +111,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.user.role === "OWNER" || response.data.user.role === "SUPER_ADMIN",
+            isAdmin: response.data.user.role === "OWNER",
             isSuperAdmin: response.data.user.role === "SUPER_ADMIN",
             initialized: true,
           });
@@ -162,9 +164,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin:
-              response.data.user.role === "OWNER" ||
-              response.data.user.role === "SUPER_ADMIN",
+            isAdmin: response.data.user.role === "OWNER",
             isSuperAdmin: response.data.user.role === "SUPER_ADMIN",
             initialized: true,
           });
@@ -217,6 +217,37 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
 
         await get().refreshUser();
+      },
+
+      requestAccountDeletion: async () => {
+        set({ loading: true, error: null });
+        try {
+          await api.post<{ sent: boolean }>("/auth/delete-account-request");
+          set({ loading: false, error: null });
+        } catch (error) {
+          set({ loading: false, error: getApiErrorMessage(error) });
+          throw error;
+        }
+      },
+
+      confirmAccountDeletion: async (code: string) => {
+        set({ loading: true, error: null });
+        try {
+          await api.delete("/auth/me", { data: { code } });
+          clearAuthStorage();
+          set({
+            user: null,
+            loading: false,
+            error: null,
+            isAuthenticated: false,
+            isAdmin: false,
+            isSuperAdmin: false,
+            initialized: true,
+          });
+        } catch (error) {
+          set({ loading: false, error: getApiErrorMessage(error) });
+          throw error;
+        }
       },
     }),
     {
