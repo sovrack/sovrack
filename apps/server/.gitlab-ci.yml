@@ -11,6 +11,10 @@ stages:
 
 default:
   image: node:22
+  # Utilise le runner privé du VPS (tags: vps) au lieu des runners SaaS partagés
+  # (qui consomment le quota payant et ont causé des échecs "ci_quota_exceeded").
+  tags:
+    - vps
 
 variables:
   DATABASE_URL: postgresql://postgres:postgres@postgres:5432/deploy_automation_test
