@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Activity,
   ClipboardList,
   CreditCard,
   Database,
@@ -111,12 +110,6 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
         label: "Users & Teams",
         icon: Users,
         adminOnly: true,
-      },
-      {
-        href: "/settings/status",
-        label: "System Status",
-        icon: Activity,
-        superAdminOnly: true,
       },
       {
         href: "/settings/audit-logs",

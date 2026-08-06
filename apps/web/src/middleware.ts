@@ -124,8 +124,8 @@ export function middleware(request: NextRequest) {
     if (payload?.role === "SUPER_ADMIN") {
       const allowedAppPaths = [
         "/settings",
-        "/settings/status",
         "/settings/audit-logs",
+        "/dashboard",
       ];
       const isAllowedAppPath = allowedAppPaths.some(
         (path) => pathname === path || pathname.startsWith(`${path}/`),

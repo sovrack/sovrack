@@ -22,6 +22,7 @@ import { DeploymentStatusBadge } from "@/features/deployments/components/deploym
 import { ActivityChart } from "@/features/dashboard/components/activity-chart";
 import { ServerHealthCard } from "@/features/dashboard/components/server-health-card";
 import { TopProjectsCard } from "@/features/dashboard/components/top-projects-card";
+import { PlatformHealthPill } from "@/features/monitoring/components/platform-health-pill";
 import { PageHeader } from "@/shared/layout/page-header";
 import { Alert } from "@/shared/ui/alert";
 import { timeAgo } from "@/shared/lib/format-date";
@@ -73,7 +74,7 @@ function KpiCard({
 }
 
 export default function DashboardPage() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isSuperAdmin } = useAuth();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard-stats-v2"],
@@ -109,6 +110,7 @@ export default function DashboardPage() {
         description="Vue d'ensemble de vos projets et de l'activité de déploiement."
         actions={
           <div className="flex items-center gap-2">
+            {isSuperAdmin && <PlatformHealthPill />}
             <Link
               href="/projects"
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
