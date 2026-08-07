@@ -19,8 +19,8 @@ les scripts de déploiement/sauvegarde et le pipeline CI de production.
           │
     ┌─────▼────────── nginx (reverse-proxy) ──────────┐
     │    sovrack-proxy                              │
-    │        ├── https://app.sovrack.tn  → frontend │
-    │        └── https://api.sovrack.tn  → backend   │
+    │        ├── https://app.sovrack.tech  → frontend │
+    │        └── https://api.sovrack.tech  → backend   │
     └──────────────┬────────────────┬──────────────────┘
                    │                │
           ┌────────▼─────┐  ┌───────▼────────┐

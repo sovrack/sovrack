@@ -10,7 +10,7 @@
 # réseau Docker via les noms de service.
 # =============================================================================
 
-# ── Frontend : https://sovrack.tn → Next.js ────────────────────────────────
+# ── Frontend : https://sovrack.tech → Next.js ────────────────────────────────
 server {
     listen 80;
     server_name ${DOMAIN};
