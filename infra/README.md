@@ -57,7 +57,12 @@ deploy-automation-infra/
 │   ├── bootstrap.sh            # init 1ère fois (dossier, dirs, .env)
 │   ├── deploy.sh               # pull images + up -d stack
 │   ├── backup.sh               # pg_dump + rotation (à câbler en cron)
-│   └── restore.sh              # restore d'un dump
+│   ├── restore.sh              # restore d'un dump
+│   ├── gen-secrets.sh          # génère des secrets forts pour .env
+│   └── certbot.sh              # obtient/réalise TLS via Let's Encrypt
+├── docs/
+│   ├── MIGRATION.md            # migration prod da-fares → sovrack (zéro-downtime)
+│   └── CLEANUP.md              # nettoyage VPS après migration
 ├── .gitlab-ci.yml              # CI: job deploy vers le VPS
 └── README.md
 ```
