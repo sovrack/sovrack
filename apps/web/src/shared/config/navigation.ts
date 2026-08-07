@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  ClipboardList,
   CreditCard,
   Database,
   FolderGit2,
@@ -9,7 +8,6 @@ import {
   LayoutDashboard,
   Rocket,
   Server,
-  Settings,
   TerminalSquare,
   Wrench,
   Users,
@@ -20,7 +18,6 @@ export type AppNavItem = {
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
-  superAdminOnly?: boolean;
 };
 
 export type AppNavSection = {
@@ -100,22 +97,10 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
       { href: "/settings/account", label: "My Account", icon: Users },
       { href: "/settings/billing", label: "Billing", icon: CreditCard },
       {
-        href: "/settings",
-        label: "Platform Settings",
-        icon: Settings,
-        superAdminOnly: true,
-      },
-      {
         href: "/admin/users",
         label: "Users & Teams",
         icon: Users,
         adminOnly: true,
-      },
-      {
-        href: "/settings/audit-logs",
-        label: "Audit Logs",
-        icon: ClipboardList,
-        superAdminOnly: true,
       },
     ],
   },

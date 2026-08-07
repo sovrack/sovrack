@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { CreditCard } from "lucide-react";
-import { superAdminService } from "@/features/super-admin/api/super-admin.service";
+import { staffService } from "@/features/staff/api/staff.service";
 
 const statusStyles: Record<string, string> = {
   ACTIVE: "bg-green-500/15 text-green-400",
@@ -20,10 +20,10 @@ const statusLabels: Record<string, string> = {
   FREE: "Gratuit",
 };
 
-export default function SuperAdminSubscriptionsPage() {
+export default function StaffSubscriptionsPage() {
   const { data, isLoading } = useQuery({
-    queryKey: ["super-admin-subscriptions"],
-    queryFn: () => superAdminService.getSubscriptions(),
+    queryKey: ["staff-subscriptions"],
+    queryFn: () => staffService.getSubscriptions(),
   });
 
   return (

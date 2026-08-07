@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const AUTH_COOKIE_NAME = "deploy_automation_token";
+const STAFF_COOKIE_NAME = "deploy_staff_token";
 
 const PUBLIC_PATHS = [
   "/",
@@ -12,7 +13,7 @@ const PUBLIC_PATHS = [
   "/pricing",
   "/docs",
   "/legal",
-  "/super_admin/login",
+  "/staff/login",
 ];
 
 const AUTHENTICATED_REDIRECT = "/dashboard";
@@ -29,20 +30,6 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
-}
-
-function parseJwtPayload(token: string): { role?: string } | null {
-  const parts = token.split(".");
-  if (parts.length !== 3) {
-    return null;
-  }
-
-  try {
-    const decoded = Buffer.from(parts[1], "base64url").toString("utf-8");
-    return JSON.parse(decoded) as { role?: string };
-  } catch {
-    return null;
-  }
 }
 
 function parseJwtExpiration(token: string): number | null {
@@ -105,39 +92,14 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // Back-office : réservé au rôle SUPER_ADMIN.
-  if (pathname.startsWith("/super_admin") && pathname !== "/super_admin/login") {
-    const payload = token ? parseJwtPayload(token) : null;
-    const isSuperAdmin = payload?.role === "SUPER_ADMIN";
+  // Back-office : protégé par la session staff (cookie séparé).
+  if (pathname.startsWith("/staff") && pathname !== "/staff/login") {
+    const staffToken = request.cookies.get(STAFF_COOKIE_NAME)?.value;
 
-    if (!token || !isSuperAdmin) {
-      return NextResponse.redirect(new URL("/super_admin/login", request.url));
+    if (!staffToken || isTokenExpiredOrInvalid(staffToken)) {
+      return NextResponse.redirect(new URL("/staff/login", request.url));
     }
     return NextResponse.next();
-  }
-
-  // Confinement SUPER_ADMIN : il ne voit QUE les pages de configuration
-  // plateforme (+ la page status et audit-logs). Toute autre route applicative
-  // est redirigée vers le back-office.
-  if (token) {
-    const payload = parseJwtPayload(token);
-    if (payload?.role === "SUPER_ADMIN") {
-      const allowedAppPaths = [
-        "/settings",
-        "/settings/audit-logs",
-        "/dashboard",
-      ];
-      const isAllowedAppPath = allowedAppPaths.some(
-        (path) => pathname === path || pathname.startsWith(`${path}/`),
-      );
-      const isBackOffice = pathname.startsWith("/super_admin");
-      const isPublic = isPublicPath(pathname);
-      if (!isBackOffice && !isAllowedAppPath && !isPublic) {
-        return NextResponse.redirect(
-          new URL("/super_admin", request.url),
-        );
-      }
-    }
   }
 
   if (!token && !isPublicPath(pathname)) {

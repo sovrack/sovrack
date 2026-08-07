@@ -60,7 +60,7 @@ function SectionLabel({ label }: { label: string }) {
 export function Sidebar() {
   const { t } = useI18n();
   const pathname = usePathname();
-  const { user, isAdmin, isSuperAdmin, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const { collapsed } = useSidebar();
 
   const initials = user?.fullName
@@ -103,11 +103,7 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto px-2 pb-4 no-scrollbar">
         {APP_NAV_SECTIONS.map((section) => {
           const visibleItems = section.items.filter((item) =>
-            item.superAdminOnly
-              ? isSuperAdmin
-              : item.adminOnly
-                ? isAdmin
-                : true,
+            item.adminOnly ? isAdmin : true,
           );
           if (visibleItems.length === 0) return null;
 

@@ -3,16 +3,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Rocket } from "lucide-react";
-import { superAdminService } from "@/features/super-admin/api/super-admin.service";
+import { staffService } from "@/features/staff/api/staff.service";
 
 const PAGE_SIZE = 50;
 
-export default function SuperAdminTeamsPage() {
+export default function StaffTeamsPage() {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["super-admin-teams", page],
-    queryFn: () => superAdminService.getTeams(page, PAGE_SIZE),
+    queryKey: ["staff-teams", page],
+    queryFn: () => staffService.getTeams(page, PAGE_SIZE),
   });
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;

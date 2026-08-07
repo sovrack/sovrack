@@ -3,12 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { CreditCard, Rocket, ShieldCheck, Users } from "lucide-react";
-import { superAdminService } from "@/features/super-admin/api/super-admin.service";
+import { staffService } from "@/features/staff/api/staff.service";
 
-export default function SuperAdminDashboardPage() {
+export default function StaffDashboardPage() {
   const { data, isLoading } = useQuery({
-    queryKey: ["super-admin-overview"],
-    queryFn: () => superAdminService.getOverview(),
+    queryKey: ["staff-overview"],
+    queryFn: () => staffService.getOverview(),
   });
 
   if (isLoading || !data) {
@@ -69,7 +69,7 @@ export default function SuperAdminDashboardPage() {
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">Derniers comptes créés</h2>
           <Link
-            href="/super_admin/users"
+            href="/staff/users"
             className="text-sm font-medium text-blue-400 hover:text-blue-300"
           >
             Voir tous les utilisateurs

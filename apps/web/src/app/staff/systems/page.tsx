@@ -41,9 +41,9 @@ function Bar({ value }: { value: number }) {
   );
 }
 
-export default function SuperAdminSystemsPage() {
+export default function StaffSystemsPage() {
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ["super-admin-health"],
+    queryKey: ["staff-health"],
     queryFn: healthService.get,
     refetchInterval: 10_000,
   });

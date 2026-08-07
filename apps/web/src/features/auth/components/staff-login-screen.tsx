@@ -3,13 +3,13 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/stores/auth.store";
+import { useStaffStore } from "@/stores/staff.store";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { ShieldCheck } from "lucide-react";
 
-export function SuperAdminLoginScreen() {
+export function StaffLoginScreen() {
   const router = useRouter();
-  const login = useAuthStore((s) => s.login);
+  const login = useStaffStore((s) => s.login);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,15 +22,7 @@ export function SuperAdminLoginScreen() {
     setLoading(true);
     try {
       await login(email, password);
-      const { user } = useAuthStore.getState();
-      if (user?.role !== "SUPER_ADMIN") {
-        setError(
-          "Accès réservé au super administrateur de la plateforme.",
-        );
-        setLoading(false);
-        return;
-      }
-      router.replace("/super_admin");
+      router.replace("/staff");
     } catch (err: unknown) {
       setError(
         getApiErrorMessage(err) ||
@@ -61,12 +53,12 @@ export function SuperAdminLoginScreen() {
             </span>
             <div>
               <h1 className="text-2xl font-bold text-white">Back-office</h1>
-              <p className="text-sm text-zinc-400">Super administrateur</p>
+              <p className="text-sm text-zinc-400">Équipe de la plateforme</p>
             </div>
           </div>
           <p className="mt-6 text-sm leading-relaxed text-zinc-400">
-            Accès réservé au propriétaire de la plateforme : gestion des comptes
-            clients et des abonnements.
+            Accès réservé à l&apos;équipe d&apos;administration : gestion des
+            comptes clients, des équipes et des abonnements.
           </p>
 
           {error && (

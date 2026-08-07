@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import {
   Activity,
+  ClipboardList,
   CreditCard,
   LayoutDashboard,
   LogOut,
@@ -12,37 +13,39 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { useAuth } from "@/features/auth/api/use-auth";
+import { useStaffAuth } from "@/features/staff/api/use-staff-auth";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/super_admin", label: "Vue d'ensemble", icon: LayoutDashboard },
-  { href: "/super_admin/users", label: "Utilisateurs", icon: Users },
-  { href: "/super_admin/teams", label: "Équipes", icon: Rocket },
-  { href: "/super_admin/subscriptions", label: "Abonnements", icon: CreditCard },
-  { href: "/super_admin/systems", label: "Systèmes", icon: Activity },
+  { href: "/staff", label: "Vue d'ensemble", icon: LayoutDashboard },
+  { href: "/staff/users", label: "Utilisateurs", icon: Users },
+  { href: "/staff/staff", label: "Équipe back-office", icon: ShieldCheck },
+  { href: "/staff/teams", label: "Équipes", icon: Rocket },
+  { href: "/staff/subscriptions", label: "Abonnements", icon: CreditCard },
+  { href: "/staff/audit-logs", label: "Journal d'audit", icon: ClipboardList },
+  { href: "/staff/systems", label: "Systèmes", icon: Activity },
 ];
 
-export default function SuperAdminLayout({
+export default function StaffLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isSuperAdmin, logout } = useAuth();
+  const { staff, logout, fetchMe } = useStaffAuth();
 
-  if (pathname === "/super_admin/login") {
+  useEffect(() => {
+    void fetchMe();
+  }, [fetchMe]);
+
+  if (pathname === "/staff/login") {
     return <>{children}</>;
   }
 
-  if (!user) {
-    router.replace("/super_admin/login");
-    return null;
-  }
-
-  if (!isSuperAdmin) {
-    router.replace("/access-denied");
+  if (!staff) {
+    router.replace("/staff/login");
     return null;
   }
 
@@ -66,7 +69,7 @@ export default function SuperAdminLayout({
             {NAV_ITEMS.map((item) => {
               const active =
                 pathname === item.href ||
-                (item.href !== "/super_admin" &&
+                (item.href !== "/staff" &&
                   pathname.startsWith(`${item.href}/`));
               return (
                 <Link
@@ -89,20 +92,20 @@ export default function SuperAdminLayout({
           <div className="border-t border-white/10 p-4">
             <div className="mb-3 flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
-                {user.fullName?.charAt(0).toUpperCase() || "S"}
+                {staff.fullName?.charAt(0).toUpperCase() || "S"}
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold text-white">
-                  {user.fullName}
+                  {staff.fullName}
                 </p>
-                <p className="truncate text-[11px] text-zinc-400">{user.email}</p>
+                <p className="truncate text-[11px] text-zinc-400">{staff.email}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={async () => {
                 await logout();
-                router.replace("/super_admin/login");
+                router.replace("/staff/login");
               }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
             >

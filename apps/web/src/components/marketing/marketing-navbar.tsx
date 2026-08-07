@@ -14,14 +14,17 @@ const marketingLinks = [
 export function MarketingNavbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, isSuperAdmin, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setDropdownOpen(false);
       }
     }
@@ -49,12 +52,18 @@ export function MarketingNavbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-blue-500/20 bg-blue-950/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <Link
-            href={isSuperAdmin ? "/super_admin" : isAuthenticated ? "/dashboard" : "/"}
-            className="flex items-center gap-2"
-          >
+        <Link
+          href={isAuthenticated ? "/dashboard" : "/"}
+          className="flex items-center gap-2"
+        >
           <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30">
-            <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <svg
+              className="h-3.5 w-3.5 text-white"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
           </span>
           <span className="text-lg font-bold tracking-tight text-white">
             Sovrack
@@ -118,15 +127,6 @@ export function MarketingNavbar() {
                         {user.email}
                       </div>
                     </div>
-                    {isSuperAdmin && (
-                      <Link
-                        href="/super_admin"
-                        className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        Back-office (plateforme)
-                      </Link>
-                    )}
                     <Link
                       href="/dashboard"
                       className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
@@ -258,15 +258,6 @@ export function MarketingNavbar() {
               )}
               {isAuthenticated && (
                 <>
-                  {isSuperAdmin && (
-                    <Link
-                      href="/super_admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-base font-medium text-zinc-300 hover:text-white"
-                    >
-                      Back-office (plateforme)
-                    </Link>
-                  )}
                   <Link
                     href="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}

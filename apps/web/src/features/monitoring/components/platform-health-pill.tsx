@@ -45,7 +45,7 @@ export function PlatformHealthPill() {
 
   return (
     <Link
-      href="/super_admin/systems"
+      href="/staff/systems"
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:opacity-85 ${pillStyles[tone]}`}
       title="État de la plateforme — voir le détail dans le back-office"
     >

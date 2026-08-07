@@ -30,7 +30,7 @@ export function LoginScreen() {
       const { user } = useAuthStore.getState();
       const next =
         user?.role === "SUPER_ADMIN"
-          ? "/super_admin"
+          ? "/staff"
           : searchParams.get("next") || "/dashboard";
       router.replace(next);
     } catch (err: unknown) {

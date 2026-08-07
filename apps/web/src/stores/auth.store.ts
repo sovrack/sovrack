@@ -11,7 +11,6 @@ type AuthState = {
   error: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  isSuperAdmin: boolean;
   initialized: boolean;
 };
 
@@ -43,7 +42,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       error: null,
       isAuthenticated: false,
       isAdmin: false,
-      isSuperAdmin: false,
       initialized: false,
 
       setUser: (user) =>
@@ -53,7 +51,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           error: null,
           isAuthenticated: !!user,
           isAdmin: user?.role === "OWNER",
-          isSuperAdmin: user?.role === "SUPER_ADMIN",
           initialized: true,
         }),
 
@@ -64,7 +61,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           error: null,
           isAuthenticated: false,
           isAdmin: false,
-          isSuperAdmin: false,
           initialized: true,
         }),
 
@@ -80,7 +76,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: null,
             isAuthenticated: true,
             isAdmin: response.data.role === "OWNER",
-            isSuperAdmin: response.data.role === "SUPER_ADMIN",
             initialized: true,
           });
         } catch (error) {
@@ -91,7 +86,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: getApiErrorMessage(error),
             isAuthenticated: false,
             isAdmin: false,
-            isSuperAdmin: false,
             initialized: true,
           });
         }
@@ -112,7 +106,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: null,
             isAuthenticated: true,
             isAdmin: response.data.user.role === "OWNER",
-            isSuperAdmin: response.data.user.role === "SUPER_ADMIN",
             initialized: true,
           });
         } catch (error) {
@@ -165,7 +158,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: null,
             isAuthenticated: true,
             isAdmin: response.data.user.role === "OWNER",
-            isSuperAdmin: response.data.user.role === "SUPER_ADMIN",
             initialized: true,
           });
         } catch (error) {
@@ -205,7 +197,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: null,
             isAuthenticated: false,
             isAdmin: false,
-            isSuperAdmin: false,
             initialized: true,
           });
         }
@@ -241,7 +232,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             error: null,
             isAuthenticated: false,
             isAdmin: false,
-            isSuperAdmin: false,
             initialized: true,
           });
         } catch (error) {

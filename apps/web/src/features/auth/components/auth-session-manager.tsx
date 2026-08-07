@@ -19,7 +19,7 @@ const PUBLIC_PATHS = [
   "/pricing",
   "/docs",
   "/legal",
-  "/super_admin/login",
+  "/staff/login",
 ];
 
 function isLoginPath(pathname: string): boolean {

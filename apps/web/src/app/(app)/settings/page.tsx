@@ -41,7 +41,7 @@ type Notice = {
 } | null;
 
 export default function SettingsPage() {
-  const { user, isSuperAdmin, refreshUser } = useAuth();
+  const { user, isAdmin, refreshUser } = useAuth();
 
   const [notice, setNotice] = useState<Notice>(null);
 
@@ -78,7 +78,7 @@ export default function SettingsPage() {
   }, [user?.fullName]);
 
   const loadPlatform = useCallback(async () => {
-    if (!isSuperAdmin) {
+    if (!isAdmin) {
       return;
     }
 
@@ -95,19 +95,19 @@ export default function SettingsPage() {
     } finally {
       setLoadingPlatform(false);
     }
-  }, [isSuperAdmin]);
+  }, [isAdmin]);
 
   useEffect(() => {
     void loadPlatform();
   }, [loadPlatform]);
 
   useEffect(() => {
-    if (!isSuperAdmin) return;
+    if (!isAdmin) return;
     api
       .get<NotifSettings>("/notifications/settings")
       .then((r) => setNotifSettings(r.data))
       .catch(() => {});
-  }, [isSuperAdmin]);
+  }, [isAdmin]);
 
   const handleSaveNotif = async () => {
     setSavingNotif(true);
@@ -122,8 +122,8 @@ export default function SettingsPage() {
   };
 
   const canSavePlatform = useMemo(
-    () => isSuperAdmin && platformName.trim().length > 0 && !savingPlatform,
-    [isSuperAdmin, platformName, savingPlatform],
+    () => isAdmin && platformName.trim().length > 0 && !savingPlatform,
+    [isAdmin, platformName, savingPlatform],
   );
 
   const canSaveUserInfo = useMemo(() => {
@@ -266,7 +266,7 @@ export default function SettingsPage() {
         </Alert>
       )}
 
-      {isSuperAdmin && (
+      {isAdmin && (
         <SectionCard
           title="Platform"
           description="Global platform identity and naming. This section is visible to administrators only."
@@ -441,7 +441,7 @@ export default function SettingsPage() {
         </form>
       </SectionCard>
 
-      {isSuperAdmin && (
+      {isAdmin && (
         <SectionCard
           title="Notifications"
           description="Deployment alerts via Slack and SMTP email."
