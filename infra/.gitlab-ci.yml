@@ -52,7 +52,7 @@ deploy:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     - 'if [ -z "$SSH_PRIVATE_KEY" ]; then echo "ERROR: SSH_PRIVATE_KEY manquante"; exit 1; fi'
-    - printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy
+    - printf '%s' "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_deploy
     - chmod 600 ~/.ssh/id_deploy
     - ssh-keyscan -H "$PRODUCTION_HOST" > ~/.ssh/known_hosts 2>/dev/null
   script:
