@@ -56,16 +56,9 @@ deploy:
     - ssh-keyscan -H "$PRODUCTION_HOST" >> ~/.ssh/known_hosts 2>/dev/null
   script:
     # 1. Synchronise les fichiers d'orchestration (jamais les .env)
-    - rsync -az --delete \
-        --exclude '.env' \
-        --exclude '.git' \
-        --exclude 'data/' \
-        --exclude 'backups/' \
-        ./ "${PRODUCTION_USER}@${PRODUCTION_HOST}:${DEPLOY_PATH}/"
+    - rsync -az --delete --exclude '.env' --exclude '.git' --exclude 'data/' --exclude 'backups/' ./ "${PRODUCTION_USER}@${PRODUCTION_HOST}:${DEPLOY_PATH}/"
     # 2. (Optionnel) si le .env n'existe pas encore sur le VPS, le créer depuis le template
-    - ssh "${PRODUCTION_USER}@${PRODUCTION_HOST}" "
-        test -f ${DEPLOY_PATH}/.env || cp ${DEPLOY_PATH}/.env.production.example ${DEPLOY_PATH}/.env;
-        cd ${DEPLOY_PATH} && ./scripts/deploy.sh"
+    - ssh "${PRODUCTION_USER}@${PRODUCTION_HOST}" "test -f ${DEPLOY_PATH}/.env || cp ${DEPLOY_PATH}/.env.production.example ${DEPLOY_PATH}/.env; cd ${DEPLOY_PATH} && ./scripts/deploy.sh"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
       when: on_success
