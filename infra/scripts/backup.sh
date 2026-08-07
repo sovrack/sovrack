@@ -11,6 +11,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+export COMPOSE_FILE="${COMPOSE_FILE:-${ROOT}/docker-compose.prod.yml}"
+
 [ -f .env ] || { echo "❌ .env introuvable. Lance ./scripts/bootstrap.sh."; exit 1; }
 
 # Récupère les identifiants depuis le compose (résolution des valeurs .env)

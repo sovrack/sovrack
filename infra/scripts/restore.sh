@@ -11,6 +11,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+export COMPOSE_FILE="${COMPOSE_FILE:-${ROOT}/docker-compose.prod.yml}"
+
 DUMP="${1:-}"
 [ -n "$DUMP" ] || { echo "Usage: $0 <backup.sql[.gz]>"; exit 1; }
 [ -f "$DUMP" ] || { echo "❌ Fichier introuvable : $DUMP"; exit 1; }

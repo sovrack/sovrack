@@ -10,6 +10,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+export COMPOSE_FILE="${COMPOSE_FILE:-${ROOT}/docker-compose.prod.yml}"
+
 echo "▶️  Sovrack deploy — $(date)"
 [ -f .env ] || { echo "❌ .env introuvable. Lance ./scripts/bootstrap.sh d'abord."; exit 1; }
 
