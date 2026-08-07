@@ -82,8 +82,8 @@ build:image:
     - /kaniko/executor
       --context "$CI_PROJECT_DIR"
       --dockerfile "$CI_PROJECT_DIR/Dockerfile"
-      --build-arg "NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-/api}"
-      --build-arg "NEXT_PUBLIC_WS_URL=${PUBLIC_API_URL:-/api}"
+      --build-arg "NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-/backend-api}"
+      --build-arg "NEXT_PUBLIC_WS_URL=${PUBLIC_WS_URL:-/backend-api}"
       --build-arg "NEXT_PUBLIC_APP_NAME=Sovrack"
       --build-arg "NEXT_PUBLIC_APP_VERSION=2.0.0"
       --build-arg "BACKEND_INTERNAL_URL=http://backend:3001"
