@@ -40,7 +40,7 @@ import { TerminalModule } from './modules/terminal';
 import { AutomationModule } from './modules/automation';
 import { ContainerRegistriesModule } from './modules/container-registries';
 import { BillingModule } from './modules/billing';
-import { SuperAdminModule } from './modules/super-admin/super-admin.module';
+import { StaffModule } from './modules/staff/staff.module';
 // shared/ (technique pur) + adapters/ (I/O : docker, ssh, ansible)
 import { PrismaModule } from './shared/database/prisma.module';
 import { LoggerModule } from './shared/logger/logger.module';
@@ -108,7 +108,7 @@ import { QueueModule } from './shared/queue/queue.module';
     ServicesModule,
     VolumesModule,
     BillingModule,
-    SuperAdminModule,
+    StaffModule,
   ],
   controllers: [AppController],
   // Guards globaux : rate-limit puis auth JWT (fail-secure — toute route exige

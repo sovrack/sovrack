@@ -67,7 +67,7 @@ export class TeamsService {
       throw new NotFoundException('Équipe introuvable');
     }
     if (actor) {
-      await this.assertMemberOrSuperAdmin(id, actor);
+      await this.assertMember(id, actor);
     }
     return team;
   }
@@ -75,7 +75,7 @@ export class TeamsService {
   /**
    * Multi-tenant : seuls les membres de l'équipe peuvent y accéder.
    */
-  private async assertMemberOrSuperAdmin(
+  private async assertMember(
     teamId: string,
     actor: { id: string; role: Role },
   ): Promise<void> {

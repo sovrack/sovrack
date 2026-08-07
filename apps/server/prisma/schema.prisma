@@ -1517,3 +1517,79 @@ model ServerRunLog {
   @@index([level])
   @@index([serverId])
 }
+
+// =============================================================================
+// Back-office / staff (plateforme) — SEPARATED from product users.
+// Le personnel interne (staff) est distinct des utilisateurs clients (User) :
+// deux systèmes d'identité différents (login, sessions, audit dédiés).
+// =============================================================================
+
+enum PlatformRole {
+  ROOT // super administrateur — accès total, non délégable
+  ADMIN // gestion plateforme (users, subscriptions, impersonation) — pas ROOT
+  OPERATOR // support : lecture + actions de support limitées
+}
+
+enum StaffStatus {
+  ACTIVE
+  DISABLED
+  BLOCKED
+}
+
+model Staff {
+  id          String         @id @default(uuid())
+  email       String         @unique
+  password    String
+  fullName    String
+  role        PlatformRole   @default(OPERATOR)
+  status      StaffStatus    @default(ACTIVE)
+  // MFA TOTP (niveau 2, optionnel).
+  mfaSecret   String?
+  mfaEnabled  Boolean        @default(false)
+  lastLoginAt DateTime?
+  // Soft delete : on ne supprime jamais physiquement un compte staff (audit).
+  deletedAt   DateTime?
+  createdBy   String?
+  sessions    StaffSession[]
+  auditLogs   StaffAuditLog[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([role])
+  @@index([status])
+}
+
+model StaffSession {
+  id         String   @id @default(uuid())
+  staffId    String
+  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  ip         String?
+  userAgent  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([staffId])
+  @@index([expiresAt])
+}
+
+// Audit du back-office : append-only (le service n'expose que des inserts).
+// Traçe chaque action du staff (login, impersonation, blocage, suppression…).
+model StaffAuditLog {
+  id          BigInt  @id @default(autoincrement())
+  staffId     String?
+  staff       Staff?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  action      String
+  resource    String
+  resourceId  String?
+  beforeJson  Json?
+  afterJson   Json?
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([staffId, createdAt])
+  @@index([action])
+  @@index([resource, resourceId])
+}
+

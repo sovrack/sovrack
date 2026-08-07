@@ -14,6 +14,8 @@ const envSchema = z.object({
   CONFIG_SECRET: z.string().min(32),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('24h'),
+  STAFF_JWT_SECRET: z.string().optional(),
+  STAFF_JWT_EXPIRES_IN: z.string().default('12h'),
 
   // ── Auth cookie ──────────────────────────────────────────────────────────
   AUTH_COOKIE_NAME: z.string().optional(),
