@@ -1,0 +1,19 @@
+# Secrets — jamais commit
+.env
+*.env
+!.env.production.example
+
+# Données / sauvegardes locales
+data/
+backups/
+*.sql
+*.sql.gz
+
+# Certificats TLS (jamais commit)
+letsencrypt/
+certbot/
+
+# Logs / divers
+*.log
+.DS_Store
+/tmp/
