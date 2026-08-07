@@ -52,8 +52,8 @@ deploy:
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     - 'if [ -z "$SSH_PRIVATE_KEY" ]; then echo "ERROR: SSH_PRIVATE_KEY manquante"; exit 1; fi'
-    - printf '%s' "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_deploy
-    - chmod 600 ~/.ssh/id_deploy
+    - printf '%s' "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
     - ssh-keyscan -H "$PRODUCTION_HOST" > ~/.ssh/known_hosts 2>/dev/null
   script:
     # 1. Synchronise les fichiers d'orchestration (jamais les .env)
