@@ -4,7 +4,6 @@ import type {
   CreateServerResult,
   InstallServerKeyPayload,
   InstallServerKeyResult,
-  InstallToolsPayload,
   RegisterRunnerPayload,
   Server,
   ServerCapability,
@@ -152,14 +151,6 @@ export const serversService = {
       }
       throw err;
     }
-  },
-
-  async installTools(
-    id: string,
-    payload: InstallToolsPayload,
-  ): Promise<Server> {
-    const res = await api.post<Server>(`/servers/${id}/install`, payload);
-    return res.data;
   },
 
   async startSetup(

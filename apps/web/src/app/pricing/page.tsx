@@ -53,6 +53,21 @@ const plans = [
     cta: "Choisir Pro",
     featured: false,
   },
+  {
+    name: "Enterprise",
+    price: "990 DT",
+    desc: "Pour les grandes organisations",
+    features: [
+      "Tout le plan Pro",
+      "100 projets",
+      "100 serveurs",
+      "500 membres d'équipe",
+      "SLA personnalisé",
+      "Support dédié 24/7",
+    ],
+    cta: "Nous contacter",
+    featured: false,
+  },
 ];
 
 export default function PricingPage() {
@@ -69,47 +84,47 @@ export default function PricingPage() {
   const targetHref = isAuthenticated ? "/settings/billing" : "/register";
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-brand">
       <MarketingNavbar />
 
       <section className="pb-20 pt-24">
         <div className="mx-auto max-w-7xl px-6">
-          <h1 className="text-center text-4xl font-bold">
+          <h1 className="text-center text-4xl font-bold text-white">
             Des tarifs simples et transparents
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-center text-slate-500">
+          <p className="mx-auto mt-4 max-w-xl text-center text-slate-400">
             Commencez gratuitement. Évoluez à votre rythme. Pas de frais cachés.
           </p>
 
-          <div className="mt-16 grid gap-8 md:grid-cols-3">
+          <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
             {plans.map((p) => (
               <div
                 key={p.name}
                 className={`relative rounded-2xl border p-8 ${
                   p.featured
-                    ? "border-blue-200 bg-white shadow-xl shadow-blue-100 ring-2 ring-blue-500"
-                    : "border-slate-200 bg-white"
+                    ? "border-sky-400/40 bg-brand-light shadow-xl shadow-sky-500/10 ring-2 ring-sky-400/60"
+                    : "border-white/10 bg-white/[0.03]"
                 }`}
               >
                 {p.featured && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-xs font-semibold text-white shadow-sm">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-1 text-xs font-semibold text-white shadow-sm">
                     Recommandé
                   </span>
                 )}
-                <h2 className="text-xl font-bold">{p.name}</h2>
+                <h2 className="text-xl font-bold text-white">{p.name}</h2>
                 <div className="mt-3">
-                  <span className="text-4xl font-bold">{p.price}</span>
+                  <span className="text-4xl font-bold text-white">{p.price}</span>
                   <span className="text-slate-400">/mois</span>
                 </div>
-                <p className="mt-1 text-sm text-slate-500">{p.desc}</p>
+                <p className="mt-1 text-sm text-slate-400">{p.desc}</p>
                 <ul className="mt-8 space-y-3">
                   {p.features.map((f) => (
                     <li
                       key={f}
-                      className="flex items-center gap-2 text-sm text-slate-600"
+                      className="flex items-center gap-2 text-sm text-slate-300"
                     >
                       <svg
-                        className="h-4 w-4 shrink-0 text-green-500"
+                        className="h-4 w-4 shrink-0 text-emerald-400"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -125,38 +140,35 @@ export default function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link
-                  href={targetHref}
-                  className={`mt-8 flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold transition ${
-                    p.featured
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700"
-                      : "border border-slate-200 text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  {p.cta}
-                </Link>
-                <p className="mt-3 text-center text-xs text-slate-400">
+                {p.name === "Enterprise" ? (
+                  <a
+                    href="mailto:support@sovrack.tech?subject=Demande%20Enterprise"
+                    className={`mt-8 flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold transition ${
+                      p.featured
+                        ? "bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/25 hover:brightness-110"
+                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {p.cta}
+                  </a>
+                ) : (
+                  <Link
+                    href={targetHref}
+                    className={`mt-8 flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold transition ${
+                      p.featured
+                        ? "bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/25 hover:brightness-110"
+                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {p.cta}
+                  </Link>
+                )}
+                <p className="mt-3 text-center text-xs text-slate-500">
                   Abonnement mensuel, sans engagement. Paiement en ligne
                   disponible depuis votre espace.
                 </p>
               </div>
             ))}
-          </div>
-
-          <div className="mt-20 rounded-2xl border border-slate-200 bg-slate-50/50 p-12 text-center">
-            <h2 className="text-2xl font-bold">
-              Vous avez des besoins spécifiques ?
-            </h2>
-            <p className="mt-2 text-slate-500">
-              Plan Enterprise avec déploiement dédié, SLA personnalisé, support
-              technique 24/7.
-            </p>
-            <a
-              href="mailto:support@sovrack.tn?subject=Demande%20Enterprise"
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-200 hover:bg-blue-700"
-            >
-              Nous contacter
-            </a>
           </div>
         </div>
       </section>

@@ -115,7 +115,7 @@ export default function GitSettingsPage() {
     null,
   );
   const [dialogProviderType, setDialogProviderType] = useState<
-    "GITLAB" | "GITHUB" | "GITEA"
+    "GITLAB" | "GITHUB"
   >("GITLAB");
 
   const [runningTestId, setRunningTestId] = useState<string | null>(null);
@@ -170,7 +170,7 @@ export default function GitSettingsPage() {
     void reloadProviders();
   }, [reloadProviders, showToast]);
 
-  const openCreate = (type: "GITLAB" | "GITHUB" | "GITEA" = "GITLAB") => {
+  const openCreate = (type: "GITLAB" | "GITHUB" = "GITLAB") => {
     setDialogProviderType(type);
     setDialogMode("create");
     setEditingProvider(null);
@@ -193,11 +193,10 @@ export default function GitSettingsPage() {
   };
 
   const isGithubProvider = (p: GitlabProvider) => p.providerType === "GITHUB";
-  const isGiteaProvider = (p: GitlabProvider) => p.providerType === "GITEA";
 
-  const handleSave = async (
+const handleSave = async (
     payload: CreateGitlabProviderPayload | UpdateGitlabProviderPayload,
-    providerType?: "GITLAB" | "GITHUB" | "GITEA",
+    providerType?: "GITLAB" | "GITHUB",
   ) => {
     setSaving(true);
     setDialogError(null);
@@ -206,10 +205,6 @@ export default function GitSettingsPage() {
       if (dialogMode === "create") {
         if (type === "GITHUB") {
           await platformConfigService.createGithubProvider(
-            payload as CreateGitlabProviderPayload,
-          );
-        } else if (type === "GITEA") {
-          await platformConfigService.createGiteaProvider(
             payload as CreateGitlabProviderPayload,
           );
         } else {
@@ -221,11 +216,6 @@ export default function GitSettingsPage() {
       } else if (editingProvider) {
         if (isGithubProvider(editingProvider)) {
           await platformConfigService.updateGithubProvider(
-            editingProvider.id,
-            payload as UpdateGitlabProviderPayload,
-          );
-        } else if (isGiteaProvider(editingProvider)) {
-          await platformConfigService.updateGiteaProvider(
             editingProvider.id,
             payload as UpdateGitlabProviderPayload,
           );
@@ -250,10 +240,6 @@ export default function GitSettingsPage() {
     setRunningTestId(id);
     try {
       const provider = providers.find((p) => p.id === id);
-      if (provider && isGiteaProvider(provider)) {
-        showToast("Connection is tested at deploy time for Gitea", "success");
-        return;
-      }
       const result =
         provider && isGithubProvider(provider)
           ? await platformConfigService.testGithubProvider(id)
@@ -292,8 +278,6 @@ export default function GitSettingsPage() {
       const provider = providers.find((p) => p.id === id);
       if (provider && isGithubProvider(provider)) {
         await platformConfigService.setDefaultGithubProvider(id);
-      } else if (provider && isGiteaProvider(provider)) {
-        await platformConfigService.setDefaultGiteaProvider(id);
       } else {
         await platformConfigService.setDefaultGitlabProvider(id);
       }
@@ -312,8 +296,6 @@ export default function GitSettingsPage() {
     try {
       if (isGithubProvider(deleteTarget)) {
         await platformConfigService.deleteGithubProvider(deleteTarget.id);
-      } else if (isGiteaProvider(deleteTarget)) {
-        await platformConfigService.deleteGiteaProvider(deleteTarget.id);
       } else {
         await platformConfigService.deleteGitlabProvider(deleteTarget.id);
       }

@@ -23,7 +23,6 @@
     "contract:generate:help": "echo 'contract:generate requires the backend repo at ../backend. In CI use contract:types only (reads committed openapi.json).'"
   },
   "dependencies": {
-    "@monaco-editor/react": "^4.7.0",
     "@tanstack/react-query": "^5.99.2",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-web-links": "^0.12.0",

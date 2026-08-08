@@ -38,23 +38,29 @@ describe("server-utils", () => {
   });
 
   describe("canRetryJob", () => {
-    it("retryable si FAILED/TIMEOUT/BLOCKED et pas REGISTER_RUNNER", () => {
-      expect(
-        canRetryJob(job({ status: "FAILED", type: "PREPARE_SERVER" })),
-      ).toBe(true);
+    it("retryable si FAILED/TIMEOUT/BLOCKED et type VERIFY", () => {
+      expect(canRetryJob(job({ status: "FAILED", type: "VERIFY" }))).toBe(
+        true,
+      );
       expect(canRetryJob(job({ status: "TIMEOUT", type: "VERIFY" }))).toBe(
         true,
       );
+      expect(canRetryJob(job({ status: "BLOCKED", type: "VERIFY" }))).toBe(
+        true,
+      );
     });
-    it("non retryable pour REGISTER_RUNNER", () => {
+    it("non retryable pour les autres types", () => {
+      expect(
+        canRetryJob(job({ status: "FAILED", type: "PREPARE_SERVER" })),
+      ).toBe(false);
       expect(
         canRetryJob(job({ status: "FAILED", type: "REGISTER_RUNNER" })),
       ).toBe(false);
     });
     it("non retryable si SUCCESS", () => {
-      expect(
-        canRetryJob(job({ status: "SUCCESS", type: "PREPARE_SERVER" })),
-      ).toBe(false);
+      expect(canRetryJob(job({ status: "SUCCESS", type: "VERIFY" }))).toBe(
+        false,
+      );
     });
   });
 

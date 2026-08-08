@@ -23,9 +23,7 @@ export function canRetryJob(job: ServerJob): boolean {
     "TIMEOUT",
     "BLOCKED",
   ];
-  return (
-    retryableStatuses.includes(job.status) && job.type !== "REGISTER_RUNNER"
-  );
+  return retryableStatuses.includes(job.status) && job.type === "VERIFY";
 }
 
 export function canCancelJob(job: ServerJob): boolean {

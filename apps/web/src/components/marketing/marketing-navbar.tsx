@@ -4,9 +4,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/features/auth/api/use-auth";
+import { SovrackLogo } from "./sovrack-logo";
 
-const marketingLinks = [
-  { href: "/pricing", label: "Tarifs" },
+const productLinks = [
+  { href: "/#platforme", label: "La plateforme" },
+  { href: "/#features", label: "Fonctionnalités" },
+  { href: "/#how-it-works", label: "Comment ça marche" },
+];
+
+const resourcesLinks = [
   { href: "/docs", label: "Documentation" },
   { href: "/legal", label: "Légal" },
 ];
@@ -15,22 +21,22 @@ export function MarketingNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuth();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
       ) {
-        setDropdownOpen(false);
+        setOpenMenu(null);
       }
     }
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setDropdownOpen(false);
+        setOpenMenu(null);
         setMobileMenuOpen(false);
       }
     }
@@ -44,152 +50,245 @@ export function MarketingNavbar() {
 
   async function handleLogout() {
     await logout();
-    setDropdownOpen(false);
+    setOpenMenu(null);
     setMobileMenuOpen(false);
     router.push("/login");
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-blue-500/20 bg-blue-950/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        <Link
-          href={isAuthenticated ? "/dashboard" : "/"}
-          className="flex items-center gap-2"
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30">
-            <svg
-              className="h-3.5 w-3.5 text-white"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </span>
-          <span className="text-lg font-bold tracking-tight text-white">
-            Sovrack
-          </span>
-        </Link>
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-brand/80 backdrop-blur-xl">
+      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        <div className="flex flex-1">
+          <Link
+            href={isAuthenticated ? "/dashboard" : "/"}
+            className="group flex items-center gap-2.5"
+          >
+            <SovrackLogo
+              size={64}
+              className="-rotate-12 drop-shadow-[0_0_18px_rgba(0,229,255,0.5)]"
+            />
+            <span className="text-lg font-extrabold tracking-tight text-white group-hover:text-sky-100 transition">
+              Deploy<span className="text-sky-300 group-hover:text-sky-200">Arc</span>
+            </span>
+          </Link>
+        </div>
 
-        <nav className="hidden items-center gap-8 md:flex">
-          <div className="flex items-center gap-6">
-            {marketingLinks.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`text-sm font-medium transition ${
-                  pathname === l.href
+        <nav className="absolute left-[42%] hidden -translate-x-1/2 items-center md:flex">
+          <div className="flex items-center gap-10" ref={menuRef}>
+            <div className="relative">
+              <button
+                onMouseEnter={() => setOpenMenu("product")}
+                onClick={() =>
+                  setOpenMenu((v) => (v === "product" ? null : "product"))
+                }
+                className={`flex items-center gap-1 text-base font-medium transition ${
+                  openMenu === "product"
                     ? "text-white"
-                    : "text-zinc-400 hover:text-white"
+                    : "text-slate-100 hover:text-white"
                 }`}
+                aria-expanded={openMenu === "product"}
+                aria-haspopup="true"
               >
-                {l.label}
-              </Link>
-            ))}
-          </div>
-
-          <div className="ml-8 flex items-center gap-3 border-l border-white/10 pl-8">
-            {isAuthenticated && user ? (
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setDropdownOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-900 py-1.5 pl-2 pr-3 text-sm font-medium text-blue-100 transition hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  aria-expanded={dropdownOpen}
-                  aria-haspopup="true"
+                Produit
+                <svg
+                  className={`h-4 w-4 transition ${openMenu === "product" ? "rotate-180" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-xs font-bold text-white">
-                    {user.fullName?.charAt(0).toUpperCase() || "?"}
-                  </span>
-                  <span className="hidden sm:block truncate max-w-[120px]">
-                    {user.fullName?.split(" ")[0]}
-                  </span>
-                  <svg
-                    className="h-4 w-4 text-zinc-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-blue-500/20 bg-blue-950 p-1.5 shadow-xl animate-in fade-in-0 zoom-in-95 duration-150">
-                    <div className="border-b border-blue-900 px-3 py-2">
-                      <div className="truncate text-sm font-semibold text-white">
-                        {user.fullName}
-                      </div>
-                      <div className="truncate text-xs text-blue-300">
-                        {user.email}
-                      </div>
-                    </div>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {openMenu === "product" && (
+                <div
+                  className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-white/15 bg-brand-light p-1.5 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150"
+                  onMouseEnter={() => setOpenMenu("product")}
+                  onMouseLeave={() => setOpenMenu(null)}
+                >
+                  {productLinks.map((l) => (
                     <Link
-                      href="/dashboard"
-                      className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
-                      onClick={() => setDropdownOpen(false)}
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setOpenMenu(null)}
+                      className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
                     >
-                      Mon espace
+                      {l.label}
                     </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                onMouseEnter={() => setOpenMenu("resources")}
+                onClick={() =>
+                  setOpenMenu((v) => (v === "resources" ? null : "resources"))
+                }
+                className={`flex items-center gap-1 text-base font-medium transition ${
+                  openMenu === "resources"
+                    ? "text-white"
+                    : "text-slate-100 hover:text-white"
+                }`}
+                aria-expanded={openMenu === "resources"}
+                aria-haspopup="true"
+              >
+                Ressources
+                <svg
+                  className={`h-4 w-4 transition ${openMenu === "resources" ? "rotate-180" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {openMenu === "resources" && (
+                <div
+                  className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-white/15 bg-brand-light p-1.5 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150"
+                  onMouseEnter={() => setOpenMenu("resources")}
+                  onMouseLeave={() => setOpenMenu(null)}
+                >
+                  {resourcesLinks.map((l) => (
                     <Link
-                      href="/settings"
-                      className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
-                      onClick={() => setDropdownOpen(false)}
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setOpenMenu(null)}
+                      className={`block rounded-lg px-3 py-2 text-sm transition ${
+                        pathname === l.href
+                          ? "text-white"
+                          : "text-slate-200 hover:bg-white/5 hover:text-white"
+                      }`}
                     >
-                      Paramètres
+                      {l.label}
                     </Link>
-                    {user.role === "OWNER" && (
-                      <>
-                        <Link
-                          href="/admin/users"
-                          className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          Administration
-                        </Link>
-                        <Link
-                          href="/admin/teams"
-                          className="block rounded-lg px-3 py-2 text-sm text-blue-200 hover:bg-blue-900 hover:text-white"
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          Équipes
-                        </Link>
-                      </>
-                    )}
-                    <button
-                      onClick={handleLogout}
-                      className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
-                    >
-                      Déconnexion
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/login"
-                  className="text-sm font-medium text-zinc-300 transition hover:text-white"
-                >
-                  Connexion
-                </Link>
-                <Link
-                  href="/register"
-                  className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-zinc-200"
-                >
-                  Créer mon compte
-                </Link>
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Link
+              href="/pricing"
+              className={`relative text-base font-medium transition ${
+                pathname === "/pricing"
+                  ? "text-white"
+                  : "text-slate-100 hover:text-white"
+              }`}
+            >
+              Tarifs
+              {pathname === "/pricing" && (
+                <span className="absolute -bottom-1.5 left-0 h-0.5 w-full rounded-full bg-gradient-to-r from-sky-400 to-violet-400" />
+              )}
+            </Link>
           </div>
         </nav>
 
+        <div className="hidden flex-1 items-center md:flex md:justify-end">
+          {isAuthenticated && user ? (
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() =>
+                  setOpenMenu((v) => (v === "profile" ? null : "profile"))
+                }
+                className={`flex items-center gap-2 rounded-full border border-white/15 bg-white/5 py-1.5 pl-2 pr-3 text-sm font-medium text-white transition hover:border-sky-300/50 focus:outline-none focus:ring-2 focus:ring-sky-400 ${
+                  openMenu === "profile" ? "border-sky-300/50" : ""
+                }`}
+                aria-expanded={openMenu === "profile"}
+                aria-haspopup="true"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-violet-500 text-xs font-bold text-white">
+                  {user.fullName?.charAt(0).toUpperCase() || "?"}
+                </span>
+                <span className="hidden max-w-[120px] truncate sm:block">
+                  {user.fullName?.split(" ")[0]}
+                </span>
+                <svg
+                  className="h-4 w-4 text-slate-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {openMenu === "profile" && (
+                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-white/15 bg-brand-light p-1.5 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150">
+                  <div className="border-b border-white/10 px-3 py-2">
+                    <div className="truncate text-sm font-semibold text-white">
+                      {user.fullName}
+                    </div>
+                    <div className="truncate text-xs text-sky-300">
+                      {user.email}
+                    </div>
+                  </div>
+                  <Link
+                    href="/dashboard"
+                    className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    Mon espace
+                  </Link>
+                  <Link
+                    href="/settings"
+                    className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    Paramètres
+                  </Link>
+                  {user.role === "OWNER" && (
+                    <>
+                      <Link
+                        href="/admin/users"
+                        className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
+                        onClick={() => setOpenMenu(null)}
+                      >
+                        Administration
+                      </Link>
+                      <Link
+                        href="/admin/teams"
+                        className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
+                        onClick={() => setOpenMenu(null)}
+                      >
+                        Équipes
+                      </Link>
+                    </>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-300 hover:bg-red-500/10"
+                  >
+                    Déconnexion
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link
+                href="/login"
+                className="rounded-lg px-4 py-2 text-base font-medium text-slate-100 transition hover:text-white"
+              >
+                Se connecter
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-lg bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110"
+              >
+                S&apos;inscrire
+              </Link>
+            </div>
+          )}
+        </div>
+
         <button
           onClick={() => setMobileMenuOpen((v) => !v)}
-          className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-900 md:hidden"
+          className="rounded-lg p-2 text-slate-100 hover:bg-white/5 md:hidden"
           aria-label="Menu"
           aria-expanded={mobileMenuOpen}
         >
@@ -219,18 +318,25 @@ export function MarketingNavbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-blue-500/20 bg-blue-950 px-6 py-4 md:hidden animate-in slide-in-from-top-2 duration-200">
+        <div className="border-t border-white/10 bg-brand px-6 py-4 md:hidden animate-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2 pt-2 pb-4 border-b border-blue-500/20">
-              {marketingLinks.map((l) => (
+            <div className="flex flex-col gap-2 border-b border-white/10 pb-4 pt-2">
+              <Link
+                href="/pricing"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`text-base font-medium ${
+                  pathname === "/pricing" ? "text-white" : "text-slate-100 hover:text-white"
+                }`}
+              >
+                Tarifs
+              </Link>
+              {[...productLinks, ...resourcesLinks].map((l) => (
                 <Link
                   key={l.href}
                   href={l.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`text-base font-medium ${
-                    pathname === l.href
-                      ? "text-white"
-                      : "text-zinc-400 hover:text-white"
+                    pathname === l.href ? "text-white" : "text-slate-100 hover:text-white"
                   }`}
                 >
                   {l.label}
@@ -243,16 +349,16 @@ export function MarketingNavbar() {
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-medium text-zinc-300 hover:text-white"
+                    className="text-base font-medium text-slate-100 hover:text-white"
                   >
-                    Connexion
+                    Se connecter
                   </Link>
                   <Link
                     href="/register"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="rounded-lg bg-white px-4 py-2.5 text-center font-semibold text-zinc-950"
+                    className="rounded-lg bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-2.5 text-center font-semibold text-white"
                   >
-                    Créer mon compte
+                    S&apos;inscrire
                   </Link>
                 </>
               )}
@@ -261,14 +367,14 @@ export function MarketingNavbar() {
                   <Link
                     href="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-medium text-zinc-300 hover:text-white"
+                    className="text-base font-medium text-slate-100 hover:text-white"
                   >
                     Mon espace
                   </Link>
                   <Link
                     href="/settings"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-medium text-zinc-300 hover:text-white"
+                    className="text-base font-medium text-slate-100 hover:text-white"
                   >
                     Paramètres
                   </Link>
@@ -277,14 +383,14 @@ export function MarketingNavbar() {
                       <Link
                         href="/admin/users"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="text-base font-medium text-zinc-300 hover:text-white"
+                        className="text-base font-medium text-slate-100 hover:text-white"
                       >
                         Administration
                       </Link>
                       <Link
                         href="/admin/teams"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="text-base font-medium text-zinc-300 hover:text-white"
+                        className="text-base font-medium text-slate-100 hover:text-white"
                       >
                         Équipes
                       </Link>
@@ -292,7 +398,7 @@ export function MarketingNavbar() {
                   )}
                   <button
                     onClick={handleLogout}
-                    className="text-left text-base font-medium text-red-400"
+                    className="text-left text-base font-medium text-red-300"
                   >
                     Déconnexion
                   </button>

@@ -24,6 +24,12 @@ const config: Config = {
         error: '#ef4444',
         warning: '#eab308',
         idle: '#71717a',
+        brand: {
+          DEFAULT: '#13111c',
+          light: '#1c1a2a',
+          lighter: '#262339',
+          line: 'rgba(148,163,255,0.18)',
+        },
       },
       boxShadow: {
         'theme-xs': '0 1px 2px 0 rgba(0,0,0,0.3)',

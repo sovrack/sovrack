@@ -9,16 +9,18 @@ import MarketingFooter from "@/components/marketing/marketing-footer";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { getApiErrorMessage } from "@/shared/lib/api";
+import { GoogleLoginButton } from "./google-login-button";
 
 export function LoginScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
+  const oauthError = searchParams.get("error");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(oauthError ? decodeURIComponent(oauthError) : "");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -44,27 +46,35 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-brand">
       <MarketingNavbar />
 
       <section className="mx-auto flex max-w-md items-center px-6 pb-24 pt-20">
         <div className="w-full">
-          <h1 className="text-3xl font-bold">Connexion</h1>
-          <p className="mt-2 text-slate-500">
+          <h1 className="text-3xl font-bold text-white">Connexion</h1>
+          <p className="mt-2 text-slate-400">
             Connectez-vous à votre espace Sovrack.
           </p>
 
           {error && (
-            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="mt-10 space-y-5">
+            <GoogleLoginButton />
+            <div className="relative flex items-center gap-3 py-1">
+              <span className="h-px flex-1 bg-white/10" />
+              <span className="text-xs uppercase tracking-wide text-slate-500">
+                ou avec votre email
+              </span>
+              <span className="h-px flex-1 bg-white/10" />
+            </div>
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-slate-700"
+                className="block text-sm font-medium text-slate-300"
               >
                 Email
               </label>
@@ -76,13 +86,13 @@ export function LoginScreen() {
                 placeholder="vous@entreprise.com"
                 autoComplete="email"
                 required
-                className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
               />
             </div>
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-slate-700"
+                className="block text-sm font-medium text-slate-300"
               >
                 Mot de passe
               </label>
@@ -95,7 +105,7 @@ export function LoginScreen() {
                   placeholder="Votre mot de passe"
                   autoComplete="current-password"
                   required
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 pr-11 text-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 pr-11 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
                 />
                 <button
                   type="button"
@@ -103,7 +113,7 @@ export function LoginScreen() {
                   aria-label={
                     showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"
                   }
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -112,7 +122,7 @@ export function LoginScreen() {
             <div className="text-right">
               <Link
                 href="/forgot-password"
-                className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                className="text-sm font-medium text-sky-400 hover:text-sky-300"
               >
                 Mot de passe oublié ?
               </Link>
@@ -120,19 +130,19 @@ export function LoginScreen() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:opacity-50"
+              className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
             >
               {loading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
 
-          <p className="mt-10 text-center text-sm text-slate-500">
+          <p className="mt-10 text-center text-sm text-slate-400">
             Pas encore de compte ?{" "}
             <Link
               href="/register"
-              className="font-semibold text-blue-600 hover:text-blue-700"
+              className="font-semibold text-sky-400 hover:text-sky-300"
             >
-              Créer mon compte
+              S&rsquo;inscrire
             </Link>
           </p>
         </div>

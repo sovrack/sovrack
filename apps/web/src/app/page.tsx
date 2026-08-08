@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
+import { SovrackLogo } from "@/components/marketing/sovrack-logo";
 
 const features = [
   {
@@ -58,6 +59,89 @@ const steps = [
   { step: "03", title: "Déployez en un clic", desc: "Chaque push Git déclenche un déploiement automatique, SSL et monitoring inclus." },
 ];
 
+const extendedFeatures = [
+  {
+    title: "Tous les langages",
+    icon: "M13 12h8M6 12h1M9 12h1M13 12l4 4M13 12l4-4M4 17a4 4 0 10.01 0M12 5a4 4 0 10-6-1M16 3a4 4 0 10-1 6",
+    desc: "Compatible avec un large éventail de langages et de frameworks : sites statiques, APIs, backends, bases de données, services et plus encore.",
+  },
+  {
+    title: "N'importe quel serveur",
+    icon: "M2 12h20M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2zM12 6v12M7 9h.01M16 15h.01M10 15h2",
+    desc: "Déployez sur vos propres serveurs : VPS, Raspberry Pi, EC2, DigitalOcean, Linode, Hetzner… Il suffit d'une connexion SSH.",
+  },
+  {
+    title: "Tous les cas d'usage",
+    icon: "M8 2v4a2 2 0 01-2 2H2M16 2v4a2 2 0 002 2h4M8 22v-4a2 2 0 01-2-2H2M16 22v-4a2 2 0 012-2h4M12 8a4 4 0 100 8 4 4 0 000-8z",
+    desc: "Déployez vos ressources sur un seul serveur ou sur plusieurs, selon vos besoins et votre organisation.",
+  },
+  {
+    title: "N'importe quel service",
+    icon: "M12 2v8m0 0l-3-3m3 3l3-3M4 22v-6a2 2 0 012-2h12a2 2 0 012 2v6M12 14v8M8 22h8",
+    desc: "Déployez n'importe quel service compatible Docker, avec de nombreux services en un clic prêts à l'emploi.",
+  },
+  {
+    title: "Push to deploy",
+    icon: "M5 12h14M13 6l6 6-6 6M12 2a10 10 0 10.01 0",
+    desc: "Intégration Git native : chaque push déclenche un déploiement automatique, en quelques secondes.",
+  },
+  {
+    title: "Certificats SSL gratuits",
+    icon: "M12 15a3 3 0 100-6 3 3 0 000 6zM12 15v4M3.6 8.5a9 9 0 1116.8 0M5 20h14",
+    desc: "Let's Encrypt s'occupe de générer et renouveler automatiquement vos certificats HTTPS. Vous n'avez rien à faire.",
+  },
+  {
+    title: "Zéro vendor lock-in",
+    icon: "M12 9V2m0 7a6 6 0 110 12l0 0a6 6 0 010-12zM9 3H3v6h6M15 21h6v-6M21 3l-9 9",
+    desc: "Vos données vous appartiennent : tous les réglages sont stockés sur vos propres serveurs, vous gardez la main.",
+  },
+  {
+    title: "Sauvegardes automatiques",
+    icon: "M6 7h12M6 7c0-2-1-3-3-3h15v14M18 7l4 4-4 4M18 11h6v4h-6M4 21l4-4",
+    desc: "Sauvegardes chiffrées et exportables de vos bases de données, automatisées depuis la plateforme.",
+  },
+  {
+    title: "Webhooks",
+    icon: "M3 3v18M18 3v18M3 12h12M3 5c3 2 5 2 7 0M3 17c3-2 5-2 7 0M14 9l-3-3M11 12l3-3",
+    desc: "Intégrez vos pipelines CI/CD ou créez des automatisations avec GitHub Actions, GitLab CI et plus.",
+  },
+  {
+    title: "API puissante",
+    icon: "M6 9V2h6m-6 0l9 9 6-6M6 22v-4M6 18H2m4 0v-6h6v6H9M19 17a3 3 0 100 6 3 3 0 000-6zM19 8H9m10 0l-3 3m3-3l-3-3",
+    desc: "Une API robuste pour automatiser les déploiements, gérer vos ressources et vous intégrer à vos outils.",
+  },
+  {
+    title: "Terminal temps réel",
+    icon: "M4 17l6-4-6-4M12 18h8M9 15l4 4M9 11l4-4",
+    desc: "Gérez vos serveurs sans quitter le navigateur : terminal temps réel pour exécuter vos commandes.",
+  },
+  {
+    title: "Collaboratif",
+    icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+    desc: "Partagez vos projets avec votre équipe et contrôlez finement les rôles et permissions de chacun.",
+  },
+  {
+    title: "Déploiements PR",
+    icon: "M7 9a3 3 0 100-6 3 3 0 000 6zM7 21a3 3 0 100-6 3 3 0 000 6zM7 6v12M15 16a3 3 0 104 0 3 3 0 00-4 0zM11 18h4",
+    desc: "Déployez automatiquement chaque commit et pull request séparément pour valider plus vite.",
+  },
+  {
+    title: "Automatisations serveur",
+    icon: "M12 2l2.5 5 5.5.8-4 3.9.9 5.4L12 14.5 7.1 17 8 11.7 4 7.8 9.5 7zM18 18l1 2.5M18 20h2.5",
+    desc: "Une fois le serveur connecté, une multitude de tâches sont gérées automatiquement. Vous codez, on s'occupe du reste.",
+  },
+  {
+    title: "Monitoring",
+    icon: "M3 13h4l3 3 4-8 3 4h4M3 20h18",
+    desc: "Surveillance de vos déploiements, serveurs, usage disque et autres, avec alertes à chaque problème.",
+  },
+  {
+    title: "Notifications",
+    icon: "M18 8a6 6 0 100-12 6 6 0 000 12zm-6 0a6 6 0 106 6M22 12L16 9",
+    desc: "Soyez notifié via vos canaux préférés — Slack et email — à chaque événement important.",
+  },
+];
+
 const faq = [
   {
     q: "Quel niveau technique faut-il ?",
@@ -90,24 +174,24 @@ export default function LandingPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-brand">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-brand text-white">
       <MarketingNavbar />
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden pb-24 pt-24">
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-50 via-white to-indigo-50" />
+      <section className="relative flex min-h-screen items-center overflow-hidden pb-24 pt-20">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(125,211,252,0.18),transparent)]" />
         <div
-          className="absolute inset-0 opacity-60"
+          className="absolute inset-0 opacity-40"
           style={{
             backgroundImage:
-              "linear-gradient(to right, rgba(37,99,235,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(37,99,235,0.05) 1px, transparent 1px)",
+              "linear-gradient(to right, rgba(125,211,252,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(125,211,252,0.06) 1px, transparent 1px)",
             backgroundSize: "56px 56px",
             maskImage:
               "radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)",
@@ -115,58 +199,95 @@ export default function LandingPage() {
               "radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)",
           }}
         />
-        <div className="absolute top-0 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/40 blur-3xl" />
-        <div className="absolute top-24 right-0 -mr-24 h-96 w-96 rounded-full bg-indigo-100/60 blur-3xl" />
-        <div className="absolute bottom-0 left-0 -ml-24 h-96 w-96 rounded-full bg-blue-100/60 blur-3xl" />
-        <div className="relative mx-auto max-w-7xl px-6 text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-4 py-1.5 text-xs font-semibold text-blue-700 shadow-sm backdrop-blur">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-600" />
-            Nouveau — Déploiement automatisé en 2 minutes
-          </span>
-          <h1 className="mx-auto mt-6 max-w-4xl text-5xl font-bold leading-tight tracking-tight sm:text-6xl lg:text-7xl">
-            Déployez vos applications{" "}
-            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              en un clic
-            </span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
-            Sites web, APIs, bases de données et services Docker — déployez sur
-            vos serveurs ou sur l&apos;infrastructure managée Sovrack, sans
-            aucune configuration.
-          </p>
-          <div className="mt-10 flex items-center justify-center gap-4">
-            <Link
-              href="/register"
-              className="rounded-xl bg-blue-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700"
-            >
-              Commencer gratuitement
-            </Link>
-            <Link
-              href="/docs"
-              className="rounded-xl border border-slate-200 bg-white px-8 py-3.5 text-base font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              Voir la documentation
-            </Link>
-          </div>
-          <div className="mt-16 flex flex-wrap items-center justify-center gap-10 text-sm text-slate-500">
-            <span className="flex items-center gap-2">
-              <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-              Sans carte bancaire
-            </span>
-            <span className="flex items-center gap-2">
-              <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-              Prêt en 2 minutes
-            </span>
-            <span className="flex items-center gap-2">
-              <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-              Support en français
-            </span>
+        <div className="relative mx-auto max-w-7xl px-6">
+          <div className="grid items-center gap-14 lg:grid-cols-2">
+            {/* Colonne texte */}
+            <div className="text-left">
+              <h1 className="mt-2 text-5xl font-bold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl">
+                <span className="block">Déployez</span>
+                <span className="block">vos applications</span>
+                <span className="block bg-gradient-to-r from-sky-400 to-violet-400 bg-clip-text text-transparent">
+                  en un clic
+                </span>
+              </h1>
+              <p className="mt-8 max-w-xl text-lg leading-relaxed text-slate-300">
+                Déployez vos sites, APIs, bases de données et services Docker
+                sur vos serveurs, sans complexité. Sovrack orchestre chaque
+                étape — du push Git au monitoring — pour que vous vous
+                concentriez sur votre code.
+              </p>
+              <div className="mt-12 flex flex-wrap items-center gap-4">
+                <Link
+                  href="/register"
+                  className="rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110"
+                >
+                  Commencer gratuitement
+                </Link>
+                <Link
+                  href="/docs"
+                  className="rounded-xl border border-white/15 bg-white/5 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-white/10"
+                >
+                  Voir la documentation
+                </Link>
+              </div>
+              <div className="mt-12 flex flex-wrap items-center gap-8 text-sm text-slate-400">
+                <span className="flex items-center gap-2">
+                  <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  Déploiement Git automatique
+                </span>
+                <span className="flex items-center gap-2">
+                  <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  SSL inclus
+                </span>
+                <span className="flex items-center gap-2">
+                  <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  Monitoring 24/7
+                </span>
+              </div>
+            </div>
+
+            {/* Colonne logo en grand, posé au fond sans carte */}
+            <div className="relative flex items-center justify-center">
+              <div className="absolute h-[30rem] w-[30rem] rounded-full bg-gradient-to-br from-sky-400/25 to-violet-500/25 blur-3xl" />
+              <div className="relative animate-[float-in_0.6s_ease-out]">
+                <div className="animate-[float_6s_ease-in-out_infinite]">
+                  <SovrackLogo
+                    size={410}
+                    className="-rotate-6 drop-shadow-[0_0_45px_rgba(0,82,155,0.45)]"
+                  />
+                </div>
+                {/* Trajectoire de la flèche — arc étendu vers le haut-droite */}
+                <svg
+                  className="pointer-events-none absolute -right-32 -top-16 w-80 text-sky-400/60"
+                  fill="none"
+                  viewBox="0 0 260 220"
+                >
+                  <path
+                    d="M250 8 C 180 90, 120 95, 10 160"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeDasharray="2 10"
+                    strokeLinecap="round"
+                    className="animate-[dashmove_1.2s_linear_infinite]"
+                  />
+                  <path
+                    d="M250 8 C 180 90, 120 95, 10 160"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                    strokeOpacity="0.12"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="absolute -left-6 top-1/2 h-12 w-1.5 rounded-full bg-gradient-to-b from-sky-400 to-violet-500 animate-pulse" />
+                <span className="absolute -right-4 bottom-8 h-1.5 w-12 rounded-full bg-violet-400/70 animate-pulse [animation-delay:0.4s]" />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── Stats ── */}
-      <section className="border-y border-slate-100 bg-slate-50/50 py-16">
+      <section className="bg-brand py-16">
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid grid-cols-2 gap-12 text-center md:grid-cols-4">
             {[
@@ -176,8 +297,8 @@ export default function LandingPage() {
               { value: "100%", label: "des étapes automatisées" },
             ].map((s) => (
               <div key={s.label}>
-                <div className="text-4xl font-bold text-blue-600">{s.value}</div>
-                <div className="mt-1 text-sm text-slate-500">{s.label}</div>
+                <div className="text-4xl font-bold text-sky-400">{s.value}</div>
+                <div className="mt-1 text-sm text-slate-400">{s.label}</div>
               </div>
             ))}
           </div>
@@ -185,26 +306,26 @@ export default function LandingPage() {
       </section>
 
       {/* ── La plateforme ── */}
-      <section className="py-24">
+      <section id="platforme" className="py-24">
         <div className="mx-auto max-w-7xl px-6">
-          <h2 className="text-center text-3xl font-bold">
+          <h2 className="text-center text-3xl font-bold text-white">
             Une plateforme de déploiement complète
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-slate-500">
+          <p className="mx-auto mt-4 max-w-xl text-center text-slate-400">
             Tout pour déployer, sécuriser et surveiller vos applications, sans
             administrer de serveur.
           </p>
-          <div className="mt-16 grid gap-8 md:grid-cols-3">
+          <div className="mt-16 grid gap-6 md:grid-cols-3">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="group rounded-2xl border border-slate-100 bg-white p-8 transition hover:border-blue-100 hover:shadow-lg hover:shadow-blue-50"
+                className="group rounded-2xl border border-white/10 bg-white/[0.03] p-8 transition hover:border-sky-400/30 hover:bg-white/[0.06]"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition group-hover:bg-blue-600 group-hover:text-white">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-400/10 text-sky-300 transition group-hover:bg-gradient-to-br group-hover:from-sky-500 group-hover:to-violet-500 group-hover:text-white">
                   {f.icon}
                 </div>
-                <h3 className="mt-6 text-lg font-semibold">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                <h3 className="mt-6 text-lg font-semibold text-white">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">
                   {f.desc}
                 </p>
               </div>
@@ -213,21 +334,47 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Comment ça marche ── */}
-      <section className="border-y border-slate-100 bg-slate-50/50 py-24">
+      {/* ── Features ── */}
+      <section id="features" className="py-24">
         <div className="mx-auto max-w-7xl px-6">
-          <h2 className="text-center text-3xl font-bold">Comment ça marche</h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-slate-500">
+          <h2 className="text-center text-3xl font-bold text-white">Fonctionnalités</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-center text-slate-400">
+            Tout ce dont vous avez besoin pour déployer, sécuriser et surveiller
+            vos applications. Sans vous soucier de l&rsquo;infrastructure.
+          </p>
+          <div className="mt-16 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {extendedFeatures.map((f) => (
+              <div key={f.title} className="flex gap-4">
+                <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500/15 to-violet-500/15 text-sky-300 ring-1 ring-white/10">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d={f.icon} />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-white">{f.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Comment ça marche ── */}
+      <section id="how-it-works" className="py-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <h2 className="text-center text-3xl font-bold text-white">Comment ça marche</h2>
+          <p className="mx-auto mt-4 max-w-xl text-center text-slate-400">
             3 étapes pour déployer votre première application.
           </p>
           <div className="mt-16 grid gap-12 md:grid-cols-3">
             {steps.map((h) => (
               <div key={h.step} className="text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white shadow-lg shadow-blue-200">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-violet-500 text-2xl font-bold text-white shadow-lg shadow-sky-500/25">
                   {h.step}
                 </div>
-                <h3 className="mt-6 text-lg font-semibold">{h.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                <h3 className="mt-6 text-lg font-semibold text-white">{h.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">
                   {h.desc}
                 </p>
               </div>
@@ -239,11 +386,11 @@ export default function LandingPage() {
       {/* ── Philosophie ── */}
       <section className="py-24">
         <div className="mx-auto max-w-7xl px-6">
-          <h2 className="text-center text-3xl font-bold">Notre philosophie</h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-slate-500">
+          <h2 className="text-center text-3xl font-bold text-white">Notre philosophie</h2>
+          <p className="mx-auto mt-4 max-w-xl text-center text-slate-400">
             Un service simple, transparent, sans pièges.
           </p>
-          <div className="mt-16 grid gap-8 md:grid-cols-2">
+          <div className="mt-16 grid gap-6 md:grid-cols-2">
             {[
               {
                 title: "La complexité ailleurs, la simplicité ici",
@@ -274,12 +421,12 @@ export default function LandingPage() {
                 ),
               },
             ].map((p) => (
-              <div key={p.title} className="rounded-2xl border border-slate-100 bg-white p-8">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <div key={p.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-8">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-400/10 text-violet-300">
                   {p.icon}
                 </div>
-                <h3 className="mt-6 text-lg font-semibold">{p.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                <h3 className="mt-6 text-lg font-semibold text-white">{p.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">
                   {p.desc}
                 </p>
               </div>
@@ -289,12 +436,12 @@ export default function LandingPage() {
       </section>
 
       {/* ── Documentation ── */}
-      <section className="border-y border-slate-100 bg-slate-50/50 py-24">
+      <section className="py-24">
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
-              <h2 className="text-3xl font-bold">Documentation</h2>
-              <p className="mt-4 max-w-lg text-slate-500">
+              <h2 className="text-3xl font-bold text-white">Documentation</h2>
+              <p className="mt-4 max-w-lg text-slate-400">
                 Tout est documenté, pas à pas : guide de démarrage, guides par
                 technologie et référence API.
               </p>
@@ -304,33 +451,33 @@ export default function LandingPage() {
                   "Guides par technologie : Node.js, Next.js, Python, PHP, bases de données",
                   "Référence API et webhooks pour vos pipelines CI/CD",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-sm text-slate-600">
-                    <svg className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <li key={item} className="flex items-start gap-3 text-sm text-slate-300">
+                    <svg className="mt-0.5 h-5 w-5 shrink-0 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     {item}
                   </li>
                 ))}
               </ul>
               <div className="mt-8 flex flex-wrap gap-4">
-                <Link href="/docs" className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700">
+                <Link href="/docs" className="rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110">
                   Voir la documentation
                 </Link>
-                <Link href="/register" className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                <Link href="/register" className="rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
                   Commencer maintenant
                 </Link>
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-900 p-6 font-mono text-sm shadow-xl">
+            <div className="rounded-2xl border border-white/10 bg-[#0a0a1a] p-6 font-mono text-sm shadow-xl">
               <div className="flex gap-1.5 pb-4">
                 <span className="h-3 w-3 rounded-full bg-red-400" />
                 <span className="h-3 w-3 rounded-full bg-yellow-400" />
                 <span className="h-3 w-3 rounded-full bg-green-400" />
               </div>
-              <p className="text-slate-400">$ sovrack deploy --app mon-app</p>
-              <p className="mt-2 text-slate-400">→ Provisionnement du serveur…</p>
-              <p className="text-green-400">✓ Serveur prêt (Docker, SSL, réseau)</p>
-              <p className="text-slate-400">→ Déploiement de votre application…</p>
-              <p className="text-green-400">✓ Monitoring et sauvegardes actifs</p>
-              <p className="mt-2 text-blue-400">✓ En ligne : https://mon-app.sovrack.tn</p>
+              <p className="text-slate-400">1. Connecter un serveur (SSH)</p>
+              <p className="mt-2 text-slate-400">→ Provisionnement Docker, SSL, réseau…</p>
+              <p className="text-emerald-400">✓ Serveur prêt</p>
+              <p className="text-slate-400">2. Choisir un dépôt et déployer</p>
+              <p className="text-emerald-400">✓ Monitoring et logs temps réel</p>
+              <p className="mt-2 text-sky-400">✓ En ligne : https://mon-app.sovrack.tech</p>
             </div>
           </div>
         </div>
@@ -339,16 +486,16 @@ export default function LandingPage() {
       {/* ── FAQ ── */}
       <section className="py-24">
         <div className="mx-auto max-w-3xl px-6">
-          <h2 className="text-center text-3xl font-bold">
+          <h2 className="text-center text-3xl font-bold text-white">
             Questions fréquentes
           </h2>
           <div className="mt-12 space-y-4">
             {faq.map((item) => (
               <details
                 key={item.q}
-                className="group rounded-2xl border border-slate-200 bg-white px-6 py-5"
+                className="group rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-5"
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-slate-900">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-white">
                   {item.q}
                   <svg
                     className="h-5 w-5 shrink-0 text-slate-400 transition group-open:rotate-45"
@@ -364,7 +511,7 @@ export default function LandingPage() {
                     />
                   </svg>
                 </summary>
-                <p className="mt-3 text-sm leading-relaxed text-slate-500">
+                <p className="mt-3 text-sm leading-relaxed text-slate-400">
                   {item.a}
                 </p>
               </details>
@@ -374,28 +521,33 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="bg-gradient-to-br from-blue-600 to-indigo-700 py-24">
+      <section className="py-24">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h2 className="text-3xl font-bold text-white">
             Prêt à déployer votre première application ?
           </h2>
-          <p className="mt-4 text-lg text-blue-100">
+          <p className="mt-4 text-lg text-slate-300">
             Créez votre compte gratuitement et déployez en 2 minutes. Sans carte
             bancaire. Sans engagement.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/register"
-              className="rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50"
+              className="rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110"
             >
               Créer mon compte gratuit
             </Link>
             <Link
               href="/pricing"
-              className="rounded-xl border border-blue-400 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-blue-500"
+              className="rounded-xl border border-white/15 bg-white/5 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-white/10"
             >
               Comparer les offres
             </Link>
+          </div>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-slate-400">
+            <span>SSL inclus</span>
+            <span>Sans carte bancaire</span>
+            <span>Prêt en 2 minutes</span>
           </div>
         </div>
       </section>

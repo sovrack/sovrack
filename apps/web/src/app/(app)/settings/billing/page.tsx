@@ -26,7 +26,7 @@ const PLAN_META: Record<
 > = {
   FREE: {
     name: "Free",
-    description: "Essai 14 jours · 1 projet · 1 serveur",
+    description: "Gratuit · 1 projet · 1 serveur",
     highlight: false,
   },
   STARTER: {

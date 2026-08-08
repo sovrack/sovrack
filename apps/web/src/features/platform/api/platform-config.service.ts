@@ -137,48 +137,6 @@ export const platformConfigService = {
     return res.data;
   },
 
-  // ─── Gitea providers (PAT-based, same payload shape) ─────────────────────
-  async listGiteaProviders(): Promise<GitlabProvider[]> {
-    const res = await api.get<GitlabProvider[]>(
-      "/admin/platform-config/gitea/providers",
-    );
-    return res.data;
-  },
-
-  async createGiteaProvider(
-    payload: CreateGitlabProviderPayload,
-  ): Promise<GitlabProvider> {
-    const res = await api.post<GitlabProvider>(
-      "/admin/platform-config/gitea/providers",
-      payload,
-    );
-    return res.data;
-  },
-
-  async updateGiteaProvider(
-    id: string,
-    payload: UpdateGitlabProviderPayload,
-  ): Promise<GitlabProvider> {
-    const res = await api.put<GitlabProvider>(
-      `/admin/platform-config/gitea/providers/${encodeURIComponent(id)}`,
-      payload,
-    );
-    return res.data;
-  },
-
-  async deleteGiteaProvider(id: string): Promise<void> {
-    await api.delete(
-      `/admin/platform-config/gitea/providers/${encodeURIComponent(id)}`,
-    );
-  },
-
-  async setDefaultGiteaProvider(id: string): Promise<GitlabProvider> {
-    const res = await api.post<GitlabProvider>(
-      `/admin/platform-config/gitea/providers/${encodeURIComponent(id)}/default`,
-    );
-    return res.data;
-  },
-
   async listGithubRepos(
     id: string,
   ): Promise<

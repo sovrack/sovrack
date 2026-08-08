@@ -24,7 +24,7 @@ export const KINDS: {
   {
     kind: "APPLICATION",
     label: "Application",
-    hint: "Deploy from a Git repo or import a whole group (GitLab / GitHub / Gitea)",
+    hint: "Deploy from a Git repo or import a whole group (GitLab / GitHub)",
     icon: <FolderGit2 size={20} />,
   },
   {

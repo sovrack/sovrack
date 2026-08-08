@@ -157,7 +157,7 @@ export function InstanceConfigStep({
       <Collapsible title="Advanced instance options">
         <FormField
           label="Internal URL"
-          hint="Optional internal URL for Vaytek-to-GitLab communication (behind a firewall)."
+          hint="Optional internal URL for Sovrack-to-GitLab communication (behind a firewall)."
         >
           <TextInput
             value={internalUrl}
@@ -207,7 +207,7 @@ export function AuthMethodStep({
           Authentication Method
         </p>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Choose how Vaytek authenticates with this provider.
+          Choose how Sovrack authenticates with this provider.
         </p>
       </div>
 

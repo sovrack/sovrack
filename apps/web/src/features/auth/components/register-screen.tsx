@@ -130,17 +130,17 @@ export function RegisterScreen() {
   };
 
   const inputClass =
-    "mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100";
+    "mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20";
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-brand">
       <MarketingNavbar />
 
       <section className="mx-auto flex max-w-lg px-6 pb-24 pt-16">
         <div className="w-full">
           <Link
             href="/"
-            className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+            className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-300"
           >
             <svg
               className="h-4 w-4"
@@ -160,13 +160,13 @@ export function RegisterScreen() {
 
           {step === "form" ? (
             <>
-              <h1 className="mt-6 text-3xl font-bold">Créer votre compte</h1>
+              <h1 className="mt-6 text-3xl font-bold text-white">Créer votre compte</h1>
               <p className="mt-2 text-slate-500">
                 Créez votre compte et accédez à votre espace Sovrack.
               </p>
 
               {error && (
-                <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                   {error}
                 </div>
               )}
@@ -174,7 +174,7 @@ export function RegisterScreen() {
               <form onSubmit={handleSubmit} className="mt-10 space-y-5">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">
+                    <label className="block text-sm font-medium text-slate-300">
                       Nom complet
                     </label>
                     <input
@@ -188,7 +188,7 @@ export function RegisterScreen() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">
+                    <label className="block text-sm font-medium text-slate-300">
                       Email
                     </label>
                     <input
@@ -203,7 +203,7 @@ export function RegisterScreen() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">
+                  <label className="block text-sm font-medium text-slate-300">
                     Nom de l&apos;équipe
                   </label>
                   <input
@@ -215,13 +215,13 @@ export function RegisterScreen() {
                     required
                     className={inputClass}
                   />
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-500">
                     Votre compte inclut une équipe, des projets et des serveurs
                     managés.
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">
+                  <label className="block text-sm font-medium text-slate-300">
                     Mot de passe
                   </label>
                   <input
@@ -234,7 +234,7 @@ export function RegisterScreen() {
                     minLength={8}
                     className={inputClass}
                   />
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-500">
                     8 caractères minimum : majuscule, minuscule et chiffre
                   </p>
                 </div>
@@ -242,14 +242,14 @@ export function RegisterScreen() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
                 >
                   {loading ? "Création en cours..." : "Créer mon compte"}
                 </button>
 
-                <p className="text-center text-xs text-slate-400">
+                <p className="text-center text-xs text-slate-500">
                   En créant votre compte, vous acceptez nos{" "}
-                  <Link href="/legal" className="text-blue-600 hover:underline">
+                  <Link href="/legal" className="text-sky-400 hover:underline">
                     conditions d&apos;utilisation
                   </Link>
                   .
@@ -258,26 +258,26 @@ export function RegisterScreen() {
             </>
           ) : (
             <>
-              <h1 className="mt-6 text-3xl font-bold">Vérifiez votre email</h1>
+              <h1 className="mt-6 text-3xl font-bold text-white">Vérifiez votre email</h1>
               <p className="mt-2 text-slate-500">
                 Nous avons envoyé un code de validation à{" "}
-                <span className="font-medium text-slate-700">{email}</span>.
+                <span className="font-medium text-slate-300">{email}</span>.
               </p>
 
               {error && (
-                <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                   {error}
                 </div>
               )}
               {info && (
-                <div className="mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                <div className="mt-6 rounded-xl border border-green-200 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-300">
                   {info}
                 </div>
               )}
 
               <form onSubmit={handleVerify} className="mt-10 space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">
+                  <label className="block text-sm font-medium text-slate-300">
                     Code de vérification
                   </label>
                   <div className="mt-3 flex justify-between gap-2">
@@ -295,11 +295,11 @@ export function RegisterScreen() {
                         onKeyDown={(e) => handleDigitKeyDown(index, e)}
                         onPaste={handleDigitPaste}
                         aria-label={`Chiffre ${index + 1}`}
-                        className="h-14 w-full rounded-xl border border-slate-200 text-center text-2xl font-bold text-slate-800 transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        className="h-14 w-full rounded-xl border border-white/15 bg-white/5 text-center text-2xl font-bold text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
                       />
                     ))}
                   </div>
-                  <p className="mt-2 text-xs text-slate-400">
+                  <p className="mt-2 text-xs text-slate-500">
                     Le code expire dans 10 minutes.
                   </p>
                 </div>
@@ -307,7 +307,7 @@ export function RegisterScreen() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
                 >
                   {loading ? "Vérification..." : "Vérifier et accéder"}
                 </button>
@@ -316,7 +316,7 @@ export function RegisterScreen() {
                   type="button"
                   onClick={handleResend}
                   disabled={loading}
-                  className="w-full text-center text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                  className="w-full text-center text-sm font-medium text-sky-400 hover:text-sky-300 disabled:opacity-50"
                 >
                   Renvoyer le code
                 </button>
@@ -328,7 +328,7 @@ export function RegisterScreen() {
             Déjà un compte ?{" "}
             <Link
               href="/login"
-              className="font-semibold text-blue-600 hover:text-blue-700"
+              className="font-semibold text-sky-400 hover:text-sky-300"
             >
               Se connecter
             </Link>

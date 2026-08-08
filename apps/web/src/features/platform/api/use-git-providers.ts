@@ -7,17 +7,16 @@ import type { GitlabProvider } from "@/features/platform/types/platform-config";
 export const gitProvidersKey = ["git-providers"] as const;
 
 /**
- * Liste unifiée des providers Git (GitLab + GitHub + Gitea). `allSettled` →
+ * Liste unifiée des providers Git (GitLab + GitHub). `allSettled` →
  * un provider en panne n'empêche pas d'afficher les autres.
  */
 export function useGitProviders() {
   return useQuery({
     queryKey: gitProvidersKey,
     queryFn: async (): Promise<GitlabProvider[]> => {
-      const [gitlabList, githubList, giteaList] = await Promise.allSettled([
+      const [gitlabList, githubList] = await Promise.allSettled([
         platformConfigService.listGitlabProviders(),
         platformConfigService.listGithubProviders(),
-        platformConfigService.listGiteaProviders(),
       ]);
       const gitlab =
         gitlabList.status === "fulfilled"
@@ -33,14 +32,7 @@ export function useGitProviders() {
               providerType: "GITHUB" as const,
             }))
           : [];
-      const gitea =
-        giteaList.status === "fulfilled"
-          ? giteaList.value.map((p) => ({
-              ...p,
-              providerType: "GITEA" as const,
-            }))
-          : [];
-      return [...gitlab, ...github, ...gitea];
+      return [...gitlab, ...github];
     },
   });
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useStaffStore } from "@/stores/staff.store";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { ShieldCheck } from "lucide-react";
+import { SovrackBrand } from "@/components/marketing/sovrack-logo";
 
 export function StaffLoginScreen() {
   const router = useRouter();
@@ -33,22 +34,17 @@ export function StaffLoginScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-200">
-      <header className="border-b border-white/10">
+    <div className="min-h-screen bg-brand text-zinc-200">
+      <header className="border-b border-white/10 bg-brand/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30">
-              <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            </span>
-            <span className="text-lg font-bold tracking-tight text-white">Sovrack</span>
-          </Link>
+          <Link href="/" className="flex items-center"><SovrackBrand logoSize={30} textClassName="text-white" /></Link>
         </div>
       </header>
 
       <section className="mx-auto flex max-w-md items-center px-6 pb-24 pt-20">
         <div className="w-full">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/15 text-sky-300">
               <ShieldCheck size={20} />
             </span>
             <div>
@@ -83,7 +79,7 @@ export function StaffLoginScreen() {
                 placeholder="vous@entreprise.com"
                 autoComplete="email"
                 required
-                className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
               />
             </div>
             <div>
@@ -101,13 +97,13 @@ export function StaffLoginScreen() {
                 placeholder="Votre mot de passe"
                 autoComplete="current-password"
                 required
-                className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-white py-3 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-50"
+              className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
             >
               {loading ? "Connexion..." : "Accéder au back-office"}
             </button>

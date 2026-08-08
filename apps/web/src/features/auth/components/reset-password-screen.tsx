@@ -46,28 +46,28 @@ export function ResetPasswordScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-brand">
       <MarketingNavbar />
 
       <section className="mx-auto flex max-w-md items-center px-6 pb-24 pt-20">
         <div className="w-full">
-          <h1 className="text-3xl font-bold">Nouveau mot de passe</h1>
+          <h1 className="text-3xl font-bold text-white">Nouveau mot de passe</h1>
           <p className="mt-2 text-slate-500">
             Saisissez l&apos;email, le code reçu et votre nouveau mot de passe.
           </p>
 
           {error && (
-            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {error}
             </div>
           )}
 
           {done ? (
-            <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
+            <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-400/10 p-6 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-400/10">
                 <CheckCircle2 className="h-6 w-6 text-emerald-600" />
               </div>
-              <h2 className="mt-4 text-lg font-semibold text-emerald-900">
+              <h2 className="mt-4 text-lg font-semibold text-emerald-300">
                 Mot de passe réinitialisé !
               </h2>
               <p className="mt-2 text-sm text-emerald-700">
@@ -87,7 +87,7 @@ export function ResetPasswordScreen() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-sm font-medium text-slate-300"
                 >
                   Email
                 </label>
@@ -99,13 +99,13 @@ export function ResetPasswordScreen() {
                   placeholder="vous@entreprise.com"
                   autoComplete="email"
                   required
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="mt-1.5 w-full rounded-xl border border-white/15 px-4 py-2.5 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
                 />
               </div>
               <div>
                 <label
                   htmlFor="code"
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-sm font-medium text-slate-300"
                 >
                   Code de vérification (6 chiffres)
                 </label>
@@ -119,13 +119,13 @@ export function ResetPasswordScreen() {
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                   placeholder="123456"
                   required
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm transition focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="mt-1.5 w-full rounded-xl border border-white/15 px-4 py-2.5 text-sm transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
                 />
               </div>
               <div>
                 <label
                   htmlFor="new-password"
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-sm font-medium text-slate-300"
                 >
                   Nouveau mot de passe
                 </label>
@@ -143,7 +143,7 @@ export function ResetPasswordScreen() {
               <div>
                 <label
                   htmlFor="confirm-password"
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-sm font-medium text-slate-300"
                 >
                   Confirmer le mot de passe
                 </label>
@@ -161,7 +161,7 @@ export function ResetPasswordScreen() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:opacity-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -176,7 +176,7 @@ export function ResetPasswordScreen() {
           <p className="mt-8 text-center text-sm">
             <Link
               href="/login"
-              className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-700"
+              className="inline-flex items-center gap-1 font-semibold text-sky-400 hover:text-sky-300"
             >
               <ArrowLeft size={14} /> Retour à la connexion
             </Link>

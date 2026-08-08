@@ -49,6 +49,20 @@
         ]
       }
     },
+    "/metrics": {
+      "get": {
+        "operationId": "PrometheusController_index",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Prometheus"
+        ]
+      }
+    },
     "/users": {
       "post": {
         "operationId": "UsersController_create",
@@ -82,7 +96,7 @@
             "bearer": []
           }
         ],
-        "summary": "Create a new developer account",
+        "summary": "Create a new member account",
         "tags": [
           "Users"
         ]
@@ -128,7 +142,7 @@
             "bearer": []
           }
         ],
-        "summary": "List all users without passwords",
+        "summary": "List users without passwords",
         "tags": [
           "Users"
         ]
@@ -328,6 +342,99 @@
         ]
       }
     },
+    "/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created awaiting email verification"
+          },
+          "409": {
+            "description": "Email déjà utilisé (compte déjà vérifié)"
+          },
+          "429": {
+            "description": "Too many registration attempts"
+          }
+        },
+        "summary": "Public self-service signup — creates an account awaiting email verification (code sent by email)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/verify-email": {
+      "post": {
+        "operationId": "AuthController_verifyEmail",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email verified, account activated and connected (JWT cookie)"
+          },
+          "400": {
+            "description": "Code invalide ou expiré"
+          },
+          "429": {
+            "description": "Too many verification attempts"
+          }
+        },
+        "summary": "Verify email with the 6-digit code, then log in",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/resend-code": {
+      "post": {
+        "operationId": "AuthController_resendCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendVerificationCodeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "New code sent"
+          },
+          "400": {
+            "description": "Email already verified"
+          },
+          "404": {
+            "description": "No pending account with this email"
+          }
+        },
+        "summary": "Resend the email verification code",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "AuthController_login",
@@ -409,6 +516,40 @@
         "tags": [
           "Auth"
         ]
+      },
+      "delete": {
+        "operationId": "AuthController_deleteAccount",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account deleted"
+          },
+          "400": {
+            "description": "Invalid or expired code"
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete the current account after email confirmation",
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/logout": {
@@ -429,6 +570,115 @@
           }
         ],
         "summary": "User logout (audit)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/google": {
+      "get": {
+        "operationId": "AuthController_googleLogin",
+        "parameters": [],
+        "responses": {
+          "302": {
+            "description": "Redirect to Google consent screen"
+          }
+        },
+        "summary": "Start Google OAuth login (redirects to Google)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/google/callback": {
+      "get": {
+        "operationId": "AuthController_googleCallback",
+        "parameters": [],
+        "responses": {
+          "302": {
+            "description": "Redirect to frontend with session"
+          },
+          "401": {
+            "description": "Google authentication failed"
+          }
+        },
+        "summary": "Google OAuth callback (sets JWT cookie)",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reset code sent (if account exists)"
+          }
+        },
+        "summary": "Request a password reset code by email",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Password reset"
+          },
+          "400": {
+            "description": "Invalid or expired code"
+          }
+        },
+        "summary": "Reset the password with the email code",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/delete-account-request": {
+      "post": {
+        "operationId": "AuthController_requestAccountDeletion",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Confirmation code sent"
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send an account deletion confirmation code by email",
         "tags": [
           "Auth"
         ]
@@ -479,6 +729,407 @@
         "summary": "List audit logs (admin)",
         "tags": [
           "Audit Logs"
+        ]
+      }
+    },
+    "/teams": {
+      "get": {
+        "operationId": "TeamsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Team list"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List all teams",
+        "tags": [
+          "Teams"
+        ]
+      },
+      "post": {
+        "operationId": "TeamsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Team created successfully"
+          },
+          "409": {
+            "description": "Name already in use"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a team",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/teams/{id}": {
+      "get": {
+        "operationId": "TeamsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team found"
+          },
+          "404": {
+            "description": "Team not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a team by ID",
+        "tags": [
+          "Teams"
+        ]
+      },
+      "put": {
+        "operationId": "TeamsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Team updated"
+          },
+          "404": {
+            "description": "Team not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a team",
+        "tags": [
+          "Teams"
+        ]
+      },
+      "delete": {
+        "operationId": "TeamsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team deleted"
+          },
+          "404": {
+            "description": "Team not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a team",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/teams/{id}/members": {
+      "post": {
+        "operationId": "TeamsController_addMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTeamMemberDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Member added"
+          },
+          "404": {
+            "description": "Team or user not found"
+          },
+          "409": {
+            "description": "Already a member of this team"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a member to a team",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/teams/{id}/members/{userId}": {
+      "delete": {
+        "operationId": "TeamsController_removeMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member removed"
+          },
+          "404": {
+            "description": "Team or member not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a member from a team",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/projects/{projectId}/teams/{teamId}": {
+      "post": {
+        "operationId": "ProjectTeamsController_addTeamToProject",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "teamId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Team members added to the project"
+          },
+          "404": {
+            "description": "Project or team not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add all members of a team to a project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/billing": {
+      "get": {
+        "operationId": "BillingController_getMyBilling",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/billing/subscribe": {
+      "post": {
+        "operationId": "BillingController_subscribe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/billing/cancel": {
+      "post": {
+        "operationId": "BillingController_cancel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/billing/webhook": {
+      "post": {
+        "operationId": "StripeWebhookController_handleWebhook",
+        "parameters": [
+          {
+            "name": "stripe-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/notifications/settings": {
+      "get": {
+        "operationId": "NotificationsController_getSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the notification settings",
+        "tags": [
+          "Notifications"
+        ]
+      },
+      "put": {
+        "operationId": "NotificationsController_saveSettings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the notification settings",
+        "tags": [
+          "Notifications"
         ]
       }
     },
@@ -2343,54 +2994,6 @@
         ]
       }
     },
-    "/notifications/settings": {
-      "get": {
-        "operationId": "NotificationsController_getSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get the notification settings",
-        "tags": [
-          "Notifications"
-        ]
-      },
-      "put": {
-        "operationId": "NotificationsController_saveSettings",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateNotificationSettingsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Save the notification settings",
-        "tags": [
-          "Notifications"
-        ]
-      }
-    },
     "/projects": {
       "post": {
         "operationId": "ProjectsController_create",
@@ -3887,6 +4490,50 @@
         ]
       }
     },
+    "/servers/{id}/jobs/{jobId}/retry": {
+      "post": {
+        "operationId": "ServerManagementController_retryJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSH validation re-triggered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Re-run a failed SSH validation job",
+        "tags": [
+          "Servers Management"
+        ]
+      }
+    },
     "/servers/{serverId}/docker-connection": {
       "get": {
         "operationId": "DockerConnectionController_get",
@@ -4062,16 +4709,6 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ValidateServerSshDto"
-              }
-            }
-          }
-        },
         "responses": {
           "201": {
             "description": "SSH validation started",
@@ -4230,16 +4867,6 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DetectServerDto"
-              }
-            }
-          }
-        },
         "responses": {
           "201": {
             "description": "Detection complete",
@@ -4338,6 +4965,142 @@
         "summary": "List detected installed tools",
         "tags": [
           "Servers Detection"
+        ]
+      }
+    },
+    "/managed-servers": {
+      "post": {
+        "operationId": "ManagedServersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateManagedServerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Serveur managé créé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Provisionner un serveur managé pour la team",
+        "tags": [
+          "Managed Servers"
+        ]
+      },
+      "get": {
+        "operationId": "ManagedServersController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Liste des serveurs managés"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lister les serveurs managés de la team",
+        "tags": [
+          "Managed Servers"
+        ]
+      }
+    },
+    "/managed-servers/estimate": {
+      "get": {
+        "operationId": "ManagedServersController_estimate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Coût mensuel estimé de l’infra managée",
+        "tags": [
+          "Managed Servers"
+        ]
+      }
+    },
+    "/managed-servers/{id}/public-key": {
+      "get": {
+        "operationId": "ManagedServersController_publicKey",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clé publique SSH du serveur managé",
+        "tags": [
+          "Managed Servers"
+        ]
+      }
+    },
+    "/managed-servers/{id}/host": {
+      "patch": {
+        "operationId": "ManagedServersController_setHost",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetManagedHostDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Renseigner l'hôte réel (IP/hostname) du serveur managé après provisionnement — déclenche la vérification SSH puis la préparation",
+        "tags": [
+          "Managed Servers"
         ]
       }
     },
@@ -5089,284 +5852,6 @@
         "summary": "Search the deployment logs (text + level)",
         "tags": [
           "Deployments"
-        ]
-      }
-    },
-    "/teams": {
-      "get": {
-        "operationId": "TeamsController_findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Team list"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List all teams",
-        "tags": [
-          "Teams"
-        ]
-      },
-      "post": {
-        "operationId": "TeamsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTeamDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Team created successfully"
-          },
-          "409": {
-            "description": "Name already in use"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create a team",
-        "tags": [
-          "Teams"
-        ]
-      }
-    },
-    "/teams/{id}": {
-      "get": {
-        "operationId": "TeamsController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Team found"
-          },
-          "404": {
-            "description": "Team not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get a team by ID",
-        "tags": [
-          "Teams"
-        ]
-      },
-      "put": {
-        "operationId": "TeamsController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTeamDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Team updated"
-          },
-          "404": {
-            "description": "Team not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Edit a team",
-        "tags": [
-          "Teams"
-        ]
-      },
-      "delete": {
-        "operationId": "TeamsController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Team deleted"
-          },
-          "404": {
-            "description": "Team not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete a team",
-        "tags": [
-          "Teams"
-        ]
-      }
-    },
-    "/teams/{id}/members": {
-      "post": {
-        "operationId": "TeamsController_addMember",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddTeamMemberDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Member added"
-          },
-          "404": {
-            "description": "Team or user not found"
-          },
-          "409": {
-            "description": "Already a member of this team"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Add a member to a team",
-        "tags": [
-          "Teams"
-        ]
-      }
-    },
-    "/teams/{id}/members/{userId}": {
-      "delete": {
-        "operationId": "TeamsController_removeMember",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "userId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Member removed"
-          },
-          "404": {
-            "description": "Team or member not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Remove a member from a team",
-        "tags": [
-          "Teams"
-        ]
-      }
-    },
-    "/projects/{projectId}/teams/{teamId}": {
-      "post": {
-        "operationId": "ProjectTeamsController_addTeamToProject",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "teamId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Team members added to the project"
-          },
-          "404": {
-            "description": "Project or team not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Add all members of a team to a project",
-        "tags": [
-          "Projects"
         ]
       }
     },
@@ -7479,6 +7964,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "List volumes",
         "tags": [
           "volumes"
@@ -7502,6 +7992,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Create a persistent volume",
         "tags": [
           "volumes"
@@ -7526,6 +8021,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get a volume by ID",
         "tags": [
           "volumes"
@@ -7558,6 +8058,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Update a volume",
         "tags": [
           "volumes"
@@ -7580,9 +8085,429 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Delete a volume",
         "tags": [
           "volumes"
+        ]
+      }
+    },
+    "/staff/login": {
+      "post": {
+        "operationId": "StaffController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Login back-office (staff)",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/logout": {
+      "post": {
+        "operationId": "StaffController_logout",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Logout back-office (audit)",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/me": {
+      "get": {
+        "operationId": "StaffController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Profil du staff connecté",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/staff": {
+      "get": {
+        "operationId": "StaffController_listStaff",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Liste des comptes back-office",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      },
+      "post": {
+        "operationId": "StaffController_createStaff",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStaffDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer un compte back-office (ROOT uniquement)",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/staff/{id}": {
+      "patch": {
+        "operationId": "StaffController_updateStaff",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Modifier un compte back-office (ROOT uniquement)",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/overview": {
+      "get": {
+        "operationId": "StaffController_getOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vue globale de la plateforme",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/audit-logs": {
+      "get": {
+        "operationId": "StaffController_getAuditLogs",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Journal d’audit du back-office (append-only)",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/users": {
+      "get": {
+        "operationId": "StaffController_listUsers",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Liste des utilisateurs clients",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/teams": {
+      "get": {
+        "operationId": "StaffController_listTeams",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Liste des équipes plateforme",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/subscriptions": {
+      "get": {
+        "operationId": "StaffController_listSubscriptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Liste des abonnements plateforme",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/users/{id}": {
+      "patch": {
+        "operationId": "StaffController_updateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffUpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bloquer/débloquer ou changer le rôle d’un client",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      },
+      "delete": {
+        "operationId": "StaffController_deleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supprimer définitivement un compte client (ROOT)",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/users/{id}/impersonate": {
+      "post": {
+        "operationId": "StaffController_impersonate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Se connecter « en tant que » un client — émet un JWT client, journalisé",
+        "tags": [
+          "Back-office (staff)"
         ]
       }
     }
@@ -7623,6 +8548,7 @@
           },
           "role": {
             "enum": [
+              "SUPER_ADMIN",
               "OWNER",
               "MEMBER"
             ],
@@ -7668,6 +8594,7 @@
           },
           "role": {
             "enum": [
+              "SUPER_ADMIN",
               "OWNER",
               "MEMBER"
             ],
@@ -7692,6 +8619,67 @@
           }
         }
       },
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "dev@sovrack.tech"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "StrongPassword123!"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "John Developer"
+          },
+          "teamName": {
+            "type": "string",
+            "example": "Ma première équipe"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "fullName",
+          "teamName"
+        ]
+      },
+      "VerifyEmailDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "dev@sovrack.tech"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ]
+      },
+      "ResendVerificationCodeDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "dev@sovrack.tech"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
       "LoginDto": {
         "type": "object",
         "properties": {
@@ -7707,6 +8695,145 @@
           "email",
           "password"
         ]
+      },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "example": "123456"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "NewPassword2026!"
+          }
+        },
+        "required": [
+          "email",
+          "code",
+          "password"
+        ]
+      },
+      "DeleteAccountDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "example": "123456",
+            "description": "Code de confirmation reçu par email"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "CreateTeamDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateTeamDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "AddTeamMemberDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
+      "SubscribeDto": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "enum": [
+              "FREE",
+              "STARTER",
+              "PRO",
+              "ENTERPRISE"
+            ],
+            "type": "string",
+            "example": "PRO"
+          }
+        },
+        "required": [
+          "plan"
+        ]
+      },
+      "UpdateNotificationSettingsDto": {
+        "type": "object",
+        "properties": {
+          "slackWebhookUrl": {
+            "type": "string"
+          },
+          "notifyOnSuccess": {
+            "type": "boolean"
+          },
+          "notifyOnFailure": {
+            "type": "boolean"
+          },
+          "smtpHost": {
+            "type": "string"
+          },
+          "smtpPort": {
+            "type": "number"
+          },
+          "smtpUser": {
+            "type": "string"
+          },
+          "smtpPass": {
+            "type": "string"
+          },
+          "smtpFrom": {
+            "type": "string"
+          },
+          "smtpTo": {
+            "type": "string"
+          }
+        }
       },
       "CreateBuildConfigDto": {
         "type": "object",
@@ -7922,38 +9049,6 @@
         "required": [
           "value"
         ]
-      },
-      "UpdateNotificationSettingsDto": {
-        "type": "object",
-        "properties": {
-          "slackWebhookUrl": {
-            "type": "string"
-          },
-          "notifyOnSuccess": {
-            "type": "boolean"
-          },
-          "notifyOnFailure": {
-            "type": "boolean"
-          },
-          "smtpHost": {
-            "type": "string"
-          },
-          "smtpPort": {
-            "type": "number"
-          },
-          "smtpUser": {
-            "type": "string"
-          },
-          "smtpPass": {
-            "type": "string"
-          },
-          "smtpFrom": {
-            "type": "string"
-          },
-          "smtpTo": {
-            "type": "string"
-          }
-        }
       },
       "CreateProjectDto": {
         "type": "object",
@@ -9058,6 +10153,7 @@
           },
           "payloadJson": {
             "type": "object",
+            "additionalProperties": true,
             "nullable": true,
             "description": "JSON payload describing the audited action context."
           },
@@ -9072,16 +10168,6 @@
           "eventType",
           "createdAt"
         ]
-      },
-      "ValidateServerSshDto": {
-        "type": "object",
-        "properties": {
-          "refreshFingerprint": {
-            "type": "boolean",
-            "example": true,
-            "description": "When true, refresh host fingerprint metadata if the control node can read it."
-          }
-        }
       },
       "ServerLogDto": {
         "type": "object",
@@ -9234,15 +10320,6 @@
           "pythonAvailable"
         ]
       },
-      "DetectServerDto": {
-        "type": "object",
-        "properties": {
-          "refreshTools": {
-            "type": "boolean",
-            "example": true
-          }
-        }
-      },
       "ServerCapabilityDto": {
         "type": "object",
         "properties": {
@@ -9273,6 +10350,40 @@
           "value",
           "source",
           "detectedAt"
+        ]
+      },
+      "CreateManagedServerDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "VPS",
+              "DOCKER_HOST",
+              "K8S"
+            ]
+          },
+          "serverSize": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "provider"
+        ]
+      },
+      "SetManagedHostDto": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "host"
         ]
       },
       "StartServerSetupDto": {
@@ -9561,11 +10672,13 @@
           },
           "specSnapshot": {
             "type": "object",
+            "additionalProperties": true,
             "nullable": true,
             "description": "Immutable Release: frozen desired state captured at deploy time (source, build)."
           },
           "resolvedRefs": {
             "type": "object",
+            "additionalProperties": true,
             "nullable": true,
             "description": "Concrete refs this deployment resolved to (server, environment)."
           },
@@ -9825,11 +10938,13 @@
           },
           "specSnapshot": {
             "type": "object",
+            "additionalProperties": true,
             "nullable": true,
             "description": "Immutable Release: frozen desired state captured at deploy time (source, build)."
           },
           "resolvedRefs": {
             "type": "object",
+            "additionalProperties": true,
             "nullable": true,
             "description": "Concrete refs this deployment resolved to (server, environment)."
           },
@@ -10118,10 +11233,16 @@
             "type": "object",
             "properties": {
               "buildEnv": {
-                "type": "object"
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
               },
               "runtimeEnv": {
-                "type": "object"
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
               },
               "buildCommand": {
                 "type": "string"
@@ -10162,43 +11283,6 @@
         },
         "required": [
           "serviceEnvId"
-        ]
-      },
-      "CreateTeamDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "UpdateTeamDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          }
-        }
-      },
-      "AddTeamMemberDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        "required": [
-          "userId"
         ]
       },
       "CreateSshKeyDto": {
@@ -10661,7 +11745,10 @@
             "description": "Memory limit in MB"
           },
           "buildArgs": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "nixpacksConfig": {
             "type": "object"
@@ -10693,7 +11780,10 @@
             "example": "16"
           },
           "databaseCredentials": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "externalPort": {
             "type": "number",
@@ -10889,7 +11979,10 @@
             "description": "Memory limit in MB"
           },
           "buildArgs": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "nixpacksConfig": {
             "type": "object"
@@ -10921,7 +12014,10 @@
             "example": "16"
           },
           "databaseCredentials": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "externalPort": {
             "type": "number",
@@ -11001,6 +12097,105 @@
             "type": "number",
             "minimum": 1,
             "example": 20
+          }
+        }
+      },
+      "StaffLoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@sovrack.tech"
+          },
+          "password": {
+            "type": "string",
+            "example": "S3cure-Password!"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "CreateStaffDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "nouveau.staff@sovrack.tech"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "pattern": "^(?=.*[A-Za-z])(?=.*\\d).+$",
+            "example": "8-Chars-Min!"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "Sami Ben Salah"
+          },
+          "role": {
+            "enum": [
+              "ROOT",
+              "ADMIN",
+              "OPERATOR"
+            ],
+            "type": "string",
+            "default": "OPERATOR"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "fullName"
+        ]
+      },
+      "UpdateStaffDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "enum": [
+              "ROOT",
+              "ADMIN",
+              "OPERATOR"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ACTIVE",
+              "DISABLED",
+              "BLOCKED"
+            ],
+            "type": "string",
+            "description": "Statut du compte staff (ACTIVE / DISABLED / BLOCKED)"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Nouveau mot de passe (optionnel)"
+          }
+        }
+      },
+      "StaffUpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "enum": [
+              "SUPER_ADMIN",
+              "OWNER",
+              "MEMBER"
+            ],
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Désactiver (false) ou réactiver (true)"
           }
         }
       }

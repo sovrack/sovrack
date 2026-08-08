@@ -10,7 +10,6 @@ vi.mock("@/features/platform/api/platform-config.service", () => ({
   platformConfigService: {
     listGitlabProviders: vi.fn(),
     listGithubProviders: vi.fn(),
-    listGiteaProviders: vi.fn(),
   },
 }));
 
@@ -49,26 +48,23 @@ function setup() {
 describe("useGitProviders", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("merges the three provider sources and tags each with its providerType", async () => {
+  it("merges the two provider sources and tags each with its providerType", async () => {
     mocked.listGitlabProviders.mockResolvedValue([aProvider({ id: "gl" })]);
     mocked.listGithubProviders.mockResolvedValue([aProvider({ id: "gh" })]);
-    mocked.listGiteaProviders.mockResolvedValue([aProvider({ id: "gt" })]);
 
     const { wrapper } = setup();
     const { result } = renderHook(() => useGitProviders(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     const data = result.current.data ?? [];
-    expect(data).toHaveLength(3);
+    expect(data).toHaveLength(2);
     expect(data.find((p) => p.id === "gl")?.providerType).toBe("GITLAB");
     expect(data.find((p) => p.id === "gh")?.providerType).toBe("GITHUB");
-    expect(data.find((p) => p.id === "gt")?.providerType).toBe("GITEA");
   });
 
   it("tolerates one source failing (allSettled) and returns the others", async () => {
     mocked.listGitlabProviders.mockResolvedValue([aProvider({ id: "gl" })]);
     mocked.listGithubProviders.mockRejectedValue(new Error("github down"));
-    mocked.listGiteaProviders.mockResolvedValue([]);
 
     const { wrapper } = setup();
     const { result } = renderHook(() => useGitProviders(), { wrapper });

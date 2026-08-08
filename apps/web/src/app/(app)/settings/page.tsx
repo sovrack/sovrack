@@ -565,7 +565,7 @@ export default function SettingsPage() {
                         smtpFrom: e.target.value,
                       }))
                     }
-                    placeholder="Vaytek Deploy <noreply@vaytek.com>"
+                    placeholder="Sovrack Deploy <noreply@sovrack.tech>"
                     className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
                   />
                 </div>
@@ -582,7 +582,7 @@ export default function SettingsPage() {
                         smtpTo: e.target.value,
                       }))
                     }
-                    placeholder="team@vaytek.com"
+                    placeholder="team@sovrack.tech"
                     className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
                   />
                 </div>
