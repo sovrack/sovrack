@@ -11,7 +11,7 @@ import {
 import { PlatformRole, Role } from '@prisma/client';
 
 export class StaffLoginDto {
-  @ApiProperty({ example: 'admin@sovrack.tn' })
+  @ApiProperty({ example: 'admin@sovrack.tech' })
   @IsEmail()
   email: string;
 
@@ -22,7 +22,7 @@ export class StaffLoginDto {
 }
 
 export class CreateStaffDto {
-  @ApiProperty({ example: 'nouveau.staff@sovrack.tn' })
+  @ApiProperty({ example: 'nouveau.staff@sovrack.tech' })
   @IsEmail()
   email: string;
 

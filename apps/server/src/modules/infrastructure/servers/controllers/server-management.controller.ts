@@ -266,4 +266,18 @@ export class ServerManagementController {
   async cancelJob(@Param('id') id: string, @Param('jobId') jobId: string) {
     return await this.core.cancelJob(id, jobId);
   }
+
+  @Post(':id/jobs/:jobId/retry')
+  @ApiOperation({ summary: 'Re-run a failed SSH validation job' })
+  @ApiOkResponse({
+    description: 'SSH validation re-triggered',
+    type: ServerResponseDto,
+  })
+  async retryJob(
+    @Param('id') id: string,
+    @Param('jobId') jobId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    return await this.core.retryJob(id, jobId, user.id);
+  }
 }

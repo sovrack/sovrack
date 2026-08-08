@@ -93,14 +93,24 @@ export class GithubWebhookHandler implements IWebhookHandler {
       return { status: 'ignored' };
     }
 
+    if (ref.startsWith('refs/tags/')) {
+      return { status: 'ignored' };
+    }
+
     const branch = ref.replace(/^refs\/heads\//, '');
-    const serviceId = await this.resolveServiceId(endpoint);
+    const target = await this.resolveTarget(endpoint);
+    if (target.deployTrigger !== 'PUSH') {
+      return { status: 'ignored' };
+    }
+    if (target.branch && target.branch !== branch) {
+      return { status: 'ignored' };
+    }
 
     const autoDeployEvent: AutoDeployTriggerEvent = {
       projectId: endpoint.projectId,
       branch,
       pipelineId: 0,
-      serviceId: serviceId ?? undefined,
+      serviceId: target.serviceId ?? undefined,
     };
     await this.eventEmitter.emitAsync(
       DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
@@ -139,12 +149,18 @@ export class GithubWebhookHandler implements IWebhookHandler {
     );
 
     if (status === 'success' && branch) {
-      const serviceId = await this.resolveServiceId(endpoint);
+      const target = await this.resolveTarget(endpoint);
+      if (target.deployTrigger !== 'PIPELINE_SUCCESS') {
+        return { status: 'ok' };
+      }
+      if (target.branch && target.branch !== branch) {
+        return { status: 'ok' };
+      }
       const autoDeployEvent: AutoDeployTriggerEvent = {
         projectId: endpoint.projectId,
         branch,
         pipelineId: runId,
-        serviceId: serviceId ?? undefined,
+        serviceId: target.serviceId ?? undefined,
       };
       await this.eventEmitter.emitAsync(
         DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
@@ -155,23 +171,51 @@ export class GithubWebhookHandler implements IWebhookHandler {
     return { status: 'ok' };
   }
 
-  private async resolveServiceId(
-    endpoint: WebhookEndpointContext,
-  ): Promise<string | null> {
-    if (endpoint.serviceId) return endpoint.serviceId;
+  private async resolveTarget(endpoint: WebhookEndpointContext): Promise<{
+    serviceId: string | null;
+    branch: string | null;
+    deployTrigger: string;
+  }> {
+    if (endpoint.serviceId) {
+      const svc = await this.prisma.service.findUnique({
+        where: { id: endpoint.serviceId },
+        select: { id: true, branch: true, deployTrigger: true },
+      });
+      if (svc) {
+        return {
+          serviceId: svc.id,
+          branch: svc.branch,
+          deployTrigger: svc.deployTrigger ?? 'PIPELINE_SUCCESS',
+        };
+      }
+    }
     if (endpoint.serviceEnvId) {
       const se = await this.prisma.serviceEnvironment.findUnique({
         where: { id: endpoint.serviceEnvId },
-        select: { serviceId: true },
+        select: {
+          serviceId: true,
+          branch: true,
+          service: { select: { branch: true, deployTrigger: true } },
+        },
       });
-      if (se) return se.serviceId;
+      if (se) {
+        return {
+          serviceId: se.serviceId,
+          branch: se.branch ?? se.service.branch,
+          deployTrigger: se.service.deployTrigger ?? 'PIPELINE_SUCCESS',
+        };
+      }
     }
     const svc = await this.prisma.service.findFirst({
       where: { projectId: endpoint.projectId },
       orderBy: { createdAt: 'asc' },
-      select: { id: true },
+      select: { id: true, branch: true, deployTrigger: true },
     });
-    return svc?.id ?? null;
+    return {
+      serviceId: svc?.id ?? null,
+      branch: svc?.branch ?? null,
+      deployTrigger: svc?.deployTrigger ?? 'PIPELINE_SUCCESS',
+    };
   }
 
   private detectEventType(

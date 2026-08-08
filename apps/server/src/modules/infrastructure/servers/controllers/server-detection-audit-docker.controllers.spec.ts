@@ -21,7 +21,7 @@ describe('Server detection / audit / docker-connection controllers', () => {
 
     it('detect / capabilities / installed-tools delegate', async () => {
       const { ctrl, core } = build();
-      await ctrl.detect('srv-1', {} as never, user);
+      await ctrl.detect('srv-1', user);
       await ctrl.getCapabilities('srv-1');
       await ctrl.getInstalledTools('srv-1');
       expect(core.detectServer).toHaveBeenCalledWith('srv-1', 'user-1');

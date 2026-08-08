@@ -330,6 +330,38 @@ export class ServersConnectionService {
     return { target: conn.client, dispose: conn.dispose };
   }
 
+  /**
+   * Lightweight synchronous SSH reachability test — used by `POST /servers/:id/ping`.
+   * Connects with the pinned host key (strict, TOFU already established during
+   * validation), runs a trivial command, and reports the real result back — no job,
+   * no state mutation, no stale `isVerified` value.
+   */
+  async pingDirect(server: Server): Promise<{ ok: boolean; message: string }> {
+    let connection: SshConnection | null = null;
+    try {
+      const pinnedHost = await this.hostKeys.resolveForConnection(server, {
+        allowTrustOnFirstUse: false,
+      });
+      connection = await this.openConnection(server, pinnedHost.keyBase64);
+      const echo = await connection.target.execCommand('printf platform-ok');
+      if (echo.code !== 0 || echo.stdout.trim() !== 'platform-ok') {
+        return {
+          ok: false,
+          message:
+            echo.stderr?.trim() || 'La session SSH ne répond pas correctement',
+        };
+      }
+      return { ok: true, message: 'Connexion SSH OK' };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : String(error),
+      };
+    } finally {
+      if (connection) this.closeConnection(connection);
+    }
+  }
+
   async assertPasswordlessSudo(server: Server): Promise<void> {
     if (this.isRootUser(server.username)) {
       return;

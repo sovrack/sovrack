@@ -252,6 +252,12 @@ export class UsersService {
         );
       }
 
+      if (!user.password) {
+        throw new UnauthorizedException(
+          'Ce compte est connecté via Google, il n’a pas de mot de passe à changer.',
+        );
+      }
+
       const isCurrentPasswordValid = await this.passwordHasher.verify(
         user.password,
         dto.currentPassword,
@@ -297,6 +303,12 @@ export class UsersService {
     if (dto.newPassword !== dto.confirmNewPassword) {
       throw new BadRequestException(
         'La confirmation du nouveau mot de passe ne correspond pas',
+      );
+    }
+
+    if (!user.password) {
+      throw new UnauthorizedException(
+        'Ce compte est connecté via Google, il n’a pas de mot de passe à changer.',
       );
     }
 

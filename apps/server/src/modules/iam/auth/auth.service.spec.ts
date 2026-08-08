@@ -129,6 +129,13 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
+    it('throws UnauthorizedException for Google-linked account (no password)', async () => {
+      const { svc } = makeSvc({ user: makeUser({ password: null as never }) });
+      await expect(
+        svc.login({ email: 'user@example.com', password: 'pass' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
     it('throws UnauthorizedException when user account is inactive', async () => {
       const { svc } = makeSvc({ user: makeUser({ isActive: false }) });
       await expect(

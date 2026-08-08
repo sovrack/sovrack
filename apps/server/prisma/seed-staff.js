@@ -7,8 +7,8 @@
  * résolu via node_modules.
  *
  * Variables d'environnement :
- *   STAFF_ROOT_EMAIL     (défaut: admin@sovrack.tn)
- *   STAFF_ROOT_PASSWORD  (défaut: CHANGE_MOI_ROOT_PASSWORD — à définir en prod !)
+ *   STAFF_ROOT_EMAIL     (défaut: admin@sovrack.tech)
+ *   STAFF_ROOT_PASSWORD  (OBLIGATOIRE en prod — échoue si pauvre/placeholder)
  *
  * Usage : node prisma/seed-staff.js
  */
@@ -36,8 +36,24 @@ const argon2 = resolveFromApp('argon2');
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = (process.env.STAFF_ROOT_EMAIL ?? 'admin@sovrack.tn').toLowerCase();
-  const password = process.env.STAFF_ROOT_PASSWORD ?? 'CHANGE_MOI_ROOT_PASSWORD';
+  const email = (process.env.STAFF_ROOT_EMAIL ?? 'admin@sovrack.tech').toLowerCase();
+  const password = process.env.STAFF_ROOT_PASSWORD ?? '';
+
+  // Refus de créer un compte ROOT avec un mot de passe par défaut/de filtres
+  // (le seed est idempotent : corriger plus tard ne mettrait PAS à jour le hash).
+  // change_me_* = template .env.production.example ; Dev_Test_Only_1192 = dev.
+  if (
+    !password ||
+    password.length < 12 ||
+    /change_me_|CHANGE_ME_|Dev_Test_Only|TODO|CHANGE_MOI_ROOT_PASSWORD/i.test(password)
+  ) {
+    console.error(
+      '[seed-staff] STAFF_ROOT_PASSWORD manquant ou invalide (placeholders/dev interdits, min 12 caractères). ' +
+        'Abandon sans créer de compte. Corrige le .env puis relance.',
+    );
+    process.exitCode = 1;
+    return;
+  }
 
   const existing = await prisma.staff.findUnique({ where: { email } });
   if (existing) {

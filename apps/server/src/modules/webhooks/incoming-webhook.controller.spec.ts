@@ -35,6 +35,18 @@ describe('IncomingWebhookController.verifySignature', () => {
     expect(verify({ secret: null }, undefined, {}).verified).toBe(true);
   });
 
+  it('rejects a legacy endpoint in production (no stored secret)', () => {
+    const original = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const r = verify({ secret: null }, undefined, {});
+      expect(r.verified).toBe(false);
+      expect(r.error).toContain('secret');
+    } finally {
+      process.env.NODE_ENV = original;
+    }
+  });
+
   describe('GitLab (X-Gitlab-Token)', () => {
     const ep = { secret: 'shh', provider: GitProviderType.GITLAB };
     it('accepts the matching token', () => {

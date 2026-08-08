@@ -35,7 +35,7 @@ describe('ServerValidationController', () => {
 
   it('validateSsh delegates to verifyServer', async () => {
     const { ctrl, core } = build();
-    await ctrl.validateSsh('srv-1', {} as never, user);
+    await ctrl.validateSsh('srv-1', user);
     expect(core.verifyServer).toHaveBeenCalledWith('srv-1', 'user-1');
   });
 

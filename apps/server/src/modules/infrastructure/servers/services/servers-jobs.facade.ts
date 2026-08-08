@@ -16,7 +16,6 @@ import { ServersJobsService } from './servers-jobs.service';
 import { ServersConnectionService } from './servers-connection.service';
 import { ServersDetectionService } from './servers-detection.service';
 import { ServersAuditService } from './servers-audit.service';
-import { ServersVerificationService } from './servers-verification.service';
 import {
   RegisterRunnerPayload,
   ServerActiveJob,
@@ -40,7 +39,6 @@ export class ServersJobsFacade {
     private readonly ssh: ServersConnectionService,
     private readonly detection: ServersDetectionService,
     private readonly audit: ServersAuditService,
-    private readonly verification: ServersVerificationService,
   ) {}
 
   /**
@@ -94,6 +92,38 @@ export class ServersJobsFacade {
 
   async cancelJob(serverId: string, jobId: string) {
     return this.jobs.forceFailJob(serverId, jobId);
+  }
+
+  async retryJob(
+    serverId: string,
+    jobId: string,
+    actorUserId?: string,
+  ): Promise<ServerPublic> {
+    const job = await this.prisma.serverJob.findFirst({
+      where: { id: jobId, serverId },
+    });
+    if (!job) {
+      throw new NotFoundException('Job serveur non trouvé');
+    }
+
+    const retryableStatuses: ServerJobStatus[] = [
+      ServerJobStatus.FAILED,
+      ServerJobStatus.TIMEOUT,
+      ServerJobStatus.BLOCKED,
+    ];
+    if (!retryableStatuses.includes(job.status)) {
+      throw new BadRequestException(
+        'Seuls les jobs en échec (FAILED/TIMEOUT/BLOCKED) peuvent être relancés.',
+      );
+    }
+    if (job.type !== ServerJobType.VERIFY) {
+      throw new BadRequestException(
+        `Le type de job "${job.type}" ne peut pas être relancé directement. ` +
+          'Utilisez le bouton "Retry" de la préparation de serveur pour les setups.',
+      );
+    }
+
+    return this.verifyServer(serverId, actorUserId);
   }
 
   async verifyServer(id: string, actorUserId?: string): Promise<ServerPublic> {
@@ -200,26 +230,17 @@ export class ServersJobsFacade {
 
   async pingServer(
     id: string,
-    actorUserId: string,
+    _actorUserId: string,
   ): Promise<{ ok: boolean; message: string }> {
     const server = await this.prisma.server.findUnique({ where: { id } });
     if (!server) {
       throw new NotFoundException(`Serveur "${id}" non trouvé`);
     }
 
-    try {
-      await this.verification.startVerification(id);
-      const result = await this.verifyServer(id, actorUserId);
-      return {
-        ok: Boolean(result.isVerified),
-        message: result.verificationError ?? 'Connexion SSH validée',
-      };
-    } catch (err) {
-      return {
-        ok: false,
-        message: this.toErrorMessage(err),
-      };
-    }
+    // Synchronous lightweight reachability test (no job, no state mutation) —
+    // previously this re-ran a full SSH validation job fire-and-forget and
+    // returned the STALE isVerified read from before the job started.
+    return this.ssh.pingDirect(server);
   }
 
   toErrorMessage(error: unknown): string {

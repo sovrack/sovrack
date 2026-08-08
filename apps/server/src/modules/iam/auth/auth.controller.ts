@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Post,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -25,7 +26,9 @@ import { RolesGuard } from '../../../shared/guards/roles.guard';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import { Roles } from '../../../shared/decorators/roles.decorator';
 import { Public } from '../../../shared/decorators/public.decorator';
+import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
+import { AuthGuard } from '@nestjs/passport';
 import { Role, User } from '@prisma/client';
 import type { Response } from 'express';
 import { DeleteAccountDto } from './dto/delete-account.dto';
@@ -148,6 +151,7 @@ export class AuthController {
    */
   @Post('login')
   @Public() // unauthenticated by definition — this is where you obtain the JWT
+  @UseGuards(LoginRateLimitGuard) // per-IP in-memory guard — independent of the shared throttler
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({
@@ -227,6 +231,67 @@ export class AuthController {
       buildAuthCookieClearOptions(this.configService),
     );
     return await this.authService.logout(user.id);
+  }
+
+  /**
+   * Démarre la connexion via Google OAuth.
+   * GET /auth/google → redirige le navigateur vers accounts.google.com.
+   */
+  @Get('google')
+  @Public()
+  @ApiOperation({ summary: 'Start Google OAuth login (redirects to Google)' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirect to Google consent screen',
+  })
+  @UseGuards(AuthGuard('google'))
+  googleLogin(): void {
+    // La redirection est gérée par la stratégie Passport Google.
+  }
+
+  /**
+   * Callback Google OAuth : Google redirige ici après le consentement.
+   * Le guard 'google' exécute la stratégie (find-or-create user), puis on pose
+   * le cookie de session JWT et on redirige vers le frontend (FRONTEND_URL).
+   * GET /auth/google/callback?code=...
+   */
+  @Get('google/callback')
+  @Public()
+  @ApiOperation({ summary: 'Google OAuth callback (sets JWT cookie)' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirect to frontend with session',
+  })
+  @ApiResponse({ status: 401, description: 'Google authentication failed' })
+  @UseGuards(AuthGuard('google'))
+  async googleCallback(
+    @Req() req: { user: { id: string } },
+    @Res() res: Response,
+  ): Promise<void> {
+    try {
+      const { access_token } = await this.authService.generateTokenForUserId(
+        req.user.id,
+      );
+      res.cookie(
+        resolveAuthCookieName(this.configService),
+        access_token,
+        buildAuthCookieOptions(this.configService),
+      );
+      const frontendUrl = this.configService.get<string>(
+        'FRONTEND_URL',
+        'http://localhost:3000',
+      );
+      res.redirect(frontendUrl);
+    } catch (err) {
+      const frontendUrl = this.configService.get<string>(
+        'FRONTEND_URL',
+        'http://localhost:3000',
+      );
+      const message = encodeURIComponent(
+        err instanceof Error ? err.message : 'Authentication failed',
+      );
+      res.redirect(`${frontendUrl}/login?error=${message}`);
+    }
   }
 
   /**

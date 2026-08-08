@@ -10,10 +10,18 @@ import type { WebhookEndpointContext } from '../../../../shared/webhook/webhook-
 describe('GithubWebhookHandler', () => {
   let emit: jest.Mock;
   let handler: GithubWebhookHandler;
+  let findUnique: jest.Mock;
 
   beforeEach(() => {
     emit = jest.fn().mockResolvedValue([]);
-    const prisma = {} as unknown as PrismaService;
+    findUnique = jest.fn().mockResolvedValue({
+      id: 'svc1',
+      branch: 'main',
+      deployTrigger: 'PUSH',
+    });
+    const prisma = {
+      service: { findUnique },
+    } as unknown as PrismaService;
     handler = new GithubWebhookHandler(prisma, {
       emitAsync: emit,
     } as unknown as EventEmitter2);
@@ -36,9 +44,9 @@ describe('GithubWebhookHandler', () => {
     expect(emit).not.toHaveBeenCalled();
   });
 
-  it('push on a branch → emits auto-deploy with the branch name', async () => {
+  it('push on the auto-deploy branch → emits auto-deploy with the branch name', async () => {
     const res = await handler.handleIncoming(endpoint(), {
-      ref: 'refs/heads/release/v2',
+      ref: 'refs/heads/main',
       repository: { full_name: 'org/app' },
     });
     expect(res.status).toBe('ok');
@@ -46,10 +54,33 @@ describe('GithubWebhookHandler', () => {
       DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
       expect.objectContaining({
         projectId: 'p1',
-        branch: 'release/v2',
+        branch: 'main',
         serviceId: 'svc1',
       }),
     );
+  });
+
+  it('push on a different branch than the target (autoBranch) → ignored', async () => {
+    const res = await handler.handleIncoming(endpoint(), {
+      ref: 'refs/heads/release/v2',
+      repository: { full_name: 'org/app' },
+    });
+    expect(res.status).toBe('ignored');
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('push with deployTrigger !== PUSH → ignored', async () => {
+    findUnique.mockResolvedValue({
+      id: 'svc1',
+      branch: 'main',
+      deployTrigger: 'PIPELINE_SUCCESS',
+    });
+    const res = await handler.handleIncoming(endpoint(), {
+      ref: 'refs/heads/main',
+      repository: { full_name: 'org/app' },
+    });
+    expect(res.status).toBe('ignored');
+    expect(emit).not.toHaveBeenCalled();
   });
 
   it('push without a ref → ignored', async () => {
@@ -59,6 +90,11 @@ describe('GithubWebhookHandler', () => {
   });
 
   it('workflow_run success → pipeline update + auto-deploy', async () => {
+    findUnique.mockResolvedValue({
+      id: 'svc1',
+      branch: 'main',
+      deployTrigger: 'PIPELINE_SUCCESS',
+    });
     const res = await handler.handleIncoming(endpoint(), {
       workflow_run: { id: 42, conclusion: 'success', head_branch: 'main' },
     });
@@ -68,9 +104,14 @@ describe('GithubWebhookHandler', () => {
     expect(events).toContain(DEPLOYMENT_AUTO_DEPLOY_TRIGGER);
   });
 
-  it('workflow_run failure → pipeline update only (no auto-deploy)', async () => {
+  it('workflow_run success on a different branch → no auto-deploy', async () => {
+    findUnique.mockResolvedValue({
+      id: 'svc1',
+      branch: 'main',
+      deployTrigger: 'PIPELINE_SUCCESS',
+    });
     const res = await handler.handleIncoming(endpoint(), {
-      workflow_run: { id: 43, conclusion: 'failure', head_branch: 'main' },
+      workflow_run: { id: 44, conclusion: 'success', head_branch: 'v2' },
     });
     expect(res.status).toBe('ok');
     const events = emit.mock.calls.map((c) => c[0]);

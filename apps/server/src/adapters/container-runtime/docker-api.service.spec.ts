@@ -362,4 +362,69 @@ describe('DockerApiService', () => {
       );
     });
   });
+
+  describe('container operations (delegation to DockerContainerOpsService)', () => {
+    const srvId = 'srv_1';
+
+    it('listContainers delegates and returns the listing', async () => {
+      const rows = [{ name: 'a' }, { name: 'b' }];
+      mockContainerOpsService.listContainers.mockResolvedValue(rows);
+      await expect(service.listContainers(srvId)).resolves.toEqual(rows);
+      expect(mockContainerOpsService.listContainers).toHaveBeenCalledWith(
+        mockClient,
+        false,
+      );
+    });
+
+    it('createContainer + startContainer chain the ops service', async () => {
+      mockContainerOpsService.createContainer.mockResolvedValue({ id: 'cid' });
+      mockContainerOpsService.startContainer.mockResolvedValue(undefined);
+      await service.createContainer(srvId, { name: 'app' } as never);
+      await service.startContainer(srvId, 'app');
+      expect(mockContainerOpsService.createContainer).toHaveBeenCalledWith(
+        mockClient,
+        expect.anything(),
+      );
+      expect(mockContainerOpsService.startContainer).toHaveBeenCalledWith(
+        mockClient,
+        'app',
+      );
+    });
+
+    it('connectNetwork delegates with the server + network', async () => {
+      mockContainerOpsService.connectNetwork.mockResolvedValue(undefined);
+      await service.connectNetwork(srvId, 'my-net', 'app');
+      expect(mockContainerOpsService.connectNetwork).toHaveBeenCalledWith(
+        mockClient,
+        'my-net',
+        'app',
+      );
+    });
+  });
+
+  describe('buildImage / pruneDanglingImages', () => {
+    it('buildImage delegates to DockerImageService', async () => {
+      mockImageService.buildImage.mockResolvedValue('sha:abc');
+      await service.buildImage(
+        'srv_1',
+        { src: ['/ctx'], dockerfile: 'Dockerfile' },
+        { tag: 'app:1' },
+      );
+      expect(mockImageService.buildImage).toHaveBeenCalledWith(
+        mockClient,
+        'srv_1',
+        expect.anything(),
+        { tag: 'app:1' },
+      );
+    });
+
+    it('pruneDanglingImages delegates to DockerImageService', async () => {
+      mockImageService.pruneDanglingImages.mockResolvedValue(undefined);
+      await service.pruneDanglingImages('srv_1');
+      expect(mockImageService.pruneDanglingImages).toHaveBeenCalledWith(
+        mockClient,
+        'srv_1',
+      );
+    });
+  });
 });

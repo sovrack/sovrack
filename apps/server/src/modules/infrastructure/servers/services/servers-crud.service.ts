@@ -71,11 +71,15 @@ export class ServersCrudService {
 
     let resolvedSshKey: string | undefined = dto.sshKey;
     if (dto.sshKeyId && !resolvedSshKey) {
-      const stored = await this.prisma.sshKey.findUnique({
-        where: { id: dto.sshKeyId },
+      // Ownership: la clé SSH appartient à un utilisateur — un serveur de sa
+      // propre team ne doit pas pouvoir référencer la clé d'un autre compte.
+      const stored = await this.prisma.sshKey.findFirst({
+        where: { id: dto.sshKeyId, userId: actorUserId },
       });
       if (!stored) {
-        throw new BadRequestException(`SSH key "${dto.sshKeyId}" introuvable`);
+        throw new BadRequestException(
+          `SSH key "${dto.sshKeyId}" introuvable pour cet utilisateur`,
+        );
       }
       resolvedSshKey = this.crypto.decrypt(stored.encryptedPrivateKey);
     }
@@ -222,11 +226,14 @@ export class ServersCrudService {
     // `sshKeyId` (a reference to an existing Settings → SSH Keys entry).
     let resolvedSshKey: string | undefined = dto.sshKey;
     if (dto.sshKeyId && !resolvedSshKey) {
-      const stored = await this.prisma.sshKey.findUnique({
-        where: { id: dto.sshKeyId },
+      // Ownership: même règle qu'en create() — la clé doit appartenir à l'auteur.
+      const stored = await this.prisma.sshKey.findFirst({
+        where: { id: dto.sshKeyId, userId: actorUserId },
       });
       if (!stored) {
-        throw new BadRequestException(`SSH key "${dto.sshKeyId}" introuvable`);
+        throw new BadRequestException(
+          `SSH key "${dto.sshKeyId}" introuvable pour cet utilisateur`,
+        );
       }
       resolvedSshKey = this.crypto.decrypt(stored.encryptedPrivateKey);
     }

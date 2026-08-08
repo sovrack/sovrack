@@ -229,7 +229,13 @@ enum CircuitState {
 model User {
   id                  String          @id @default(uuid())
   email               String          @unique
-  password            String
+  // Hash du mot de passe (argon2id/bcrypt). NULL pour les comptes OAuth (Google)
+  // qui n'ont pas de mot de passe (authentification par le fournisseur externe).
+  password            String?
+  // Source d'authentification du compte : "email" (mot de passe + code) ou "google".
+  provider            String          @default("email")
+  // ID du compte Google (appairage OAuth). NULL pour les comptes email/mot de passe.
+  googleId            String?         @unique
   fullName            String
   role                 Role             @default(MEMBER)
   isActive             Boolean          @default(true)

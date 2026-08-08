@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -20,7 +12,6 @@ import { GetUser } from '../../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../shared/guards/roles.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
-import { ValidateServerSshDto } from '../dto';
 import {
   ServerLogDto,
   ServerResponseDto,
@@ -52,12 +43,7 @@ export class ServerValidationController {
     description: 'SSH validation started',
     type: ServerResponseDto,
   })
-  async validateSsh(
-    @Param('id') id: string,
-    @Body() dto: ValidateServerSshDto,
-    @GetUser() user: JwtPayload,
-  ) {
-    void dto;
+  async validateSsh(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.core.verifyServer(id, user.id);
   }
 

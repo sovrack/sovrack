@@ -27,9 +27,7 @@ const ms = require('ms') as (value: string) => number;
           '12h',
         );
         return {
-          secret:
-            configService.get<string>('STAFF_JWT_SECRET') ||
-            configService.get<string>('JWT_SECRET'),
+          secret: configService.get<string>('STAFF_JWT_SECRET'),
           signOptions: {
             expiresIn: Math.floor(ms(expiresInStr) / 1000),
           },

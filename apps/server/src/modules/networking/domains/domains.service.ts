@@ -74,7 +74,7 @@ export class DomainsService {
         ok: true,
         status: 'MANUAL',
         message:
-          'Provider MANUAL prêt: Vaytek affichera les records à créer manuellement.',
+          'Provider MANUAL prêt: Sovrack affichera les records à créer manuellement.',
       };
     }
 

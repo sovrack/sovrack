@@ -22,11 +22,9 @@ export interface StaffJwtPayload {
 @Injectable()
 export class StaffJwtStrategy extends PassportStrategy(Strategy, 'staff-jwt') {
   constructor(configService: ConfigService) {
-    const staffSecret =
-      configService.get<string>('STAFF_JWT_SECRET') ||
-      configService.get<string>('JWT_SECRET');
+    const staffSecret = configService.get<string>('STAFF_JWT_SECRET');
     if (!staffSecret) {
-      throw new Error('JWT_SECRET environment variable is not defined');
+      throw new Error('STAFF_JWT_SECRET environment variable is not defined');
     }
     const cookieName = resolveStaffAuthCookieName(configService);
 

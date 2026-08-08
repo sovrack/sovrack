@@ -65,7 +65,7 @@ export class ServerSetupController {
         error instanceof Error ? error.stack : undefined,
       );
       throw new InternalServerErrorException(
-        'Setup could not be started. Check server readiness or backend logs.',
+        "Impossible de démarrer la préparation du serveur. Vérifiez l'état du serveur ou les logs backend.",
       );
     }
   }

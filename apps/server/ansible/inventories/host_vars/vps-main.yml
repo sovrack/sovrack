@@ -1,6 +1,6 @@
 # Main VPS — Full Stack
 # Tune these values per your VPS hardware (RAM, CPU, disk).
-# Deployment policy and target selection logic lives in the Vaytek backend.
+# Deployment policy and target selection logic lives in the Sovrack backend.
 
 # ── Services to enable ──────────────────────────────────────────────────────
 enable_docker: true

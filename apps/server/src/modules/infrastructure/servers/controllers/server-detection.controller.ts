@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -12,7 +12,6 @@ import { GetUser } from '../../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../shared/guards/roles.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
-import { DetectServerDto } from '../dto';
 import {
   ServerCapabilityDto,
   ServerInstalledToolDto,
@@ -36,12 +35,7 @@ export class ServerDetectionController {
     description: 'Detection complete',
     type: ServerResponseDto,
   })
-  async detect(
-    @Param('id') id: string,
-    @Body() dto: DetectServerDto,
-    @GetUser() user: JwtPayload,
-  ) {
-    void dto;
+  async detect(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return await this.core.detectServer(id, user.id);
   }
 

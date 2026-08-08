@@ -5,7 +5,7 @@ import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
  * DTO d'inscription publique — crée un compte (User + Team + essai billing).
  */
 export class RegisterDto {
-  @ApiProperty({ example: 'dev@sovrack.tn' })
+  @ApiProperty({ example: 'dev@sovrack.tech' })
   @IsEmail({}, { message: 'Email invalide' })
   @IsNotEmpty({ message: 'Email requis' })
   email: string;

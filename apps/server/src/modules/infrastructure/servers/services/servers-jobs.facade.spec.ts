@@ -5,7 +5,6 @@ import { ServersJobsService } from './servers-jobs.service';
 import { ServersConnectionService } from './servers-connection.service';
 import { ServersDetectionService } from './servers-detection.service';
 import { ServersAuditService } from './servers-audit.service';
-import { ServersVerificationService } from './servers-verification.service';
 import { ServersJobsFacade } from './servers-jobs.facade';
 
 describe('ServersJobsFacade', () => {
@@ -28,6 +27,7 @@ describe('ServersJobsFacade', () => {
       installPublicKey: jest
         .fn()
         .mockResolvedValue({ success: true, message: 'installed' }),
+      pingDirect: jest.fn().mockResolvedValue({ ok: true, message: 'OK' }),
     } as unknown as ServersConnectionService;
     const detection = {
       detect: jest.fn().mockResolvedValue({ id: 'srv-1' }),
@@ -35,17 +35,7 @@ describe('ServersJobsFacade', () => {
     const audit = {
       record: jest.fn().mockResolvedValue(undefined),
     } as unknown as ServersAuditService;
-    const verification = {
-      startVerification: jest.fn().mockResolvedValue(undefined),
-    } as unknown as ServersVerificationService;
-    const facade = new ServersJobsFacade(
-      prisma,
-      jobs,
-      ssh,
-      detection,
-      audit,
-      verification,
-    );
+    const facade = new ServersJobsFacade(prisma, jobs, ssh, detection, audit);
     return {
       facade,
       prisma,
@@ -53,7 +43,6 @@ describe('ServersJobsFacade', () => {
       ssh,
       detection,
       audit,
-      verification,
     };
   }
 
@@ -220,17 +209,23 @@ describe('ServersJobsFacade', () => {
       );
     });
 
-    it('returns ok=false with a message when verification throws', async () => {
-      const { facade, verification } = build({
+    it('returns the real synchronous ping result (no stale isVerified)', async () => {
+      const { facade, ssh } = build({
         id: 'srv-1',
         onboardingStep: ServerOnboardingStep.READY,
         isVerified: true,
       });
-      (verification.startVerification as jest.Mock).mockRejectedValueOnce(
-        new Error('ssh refused'),
-      );
+      (ssh.pingDirect as jest.Mock).mockResolvedValue({
+        ok: false,
+        message: 'ssh refused',
+      });
       const result = await facade.pingServer('srv-1', 'user-1');
       expect(result).toEqual({ ok: false, message: 'ssh refused' });
+      expect(ssh.pingDirect).toHaveBeenCalledWith({
+        id: 'srv-1',
+        onboardingStep: ServerOnboardingStep.READY,
+        isVerified: true,
+      });
     });
   });
 

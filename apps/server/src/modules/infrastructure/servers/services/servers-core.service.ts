@@ -74,6 +74,14 @@ export class ServersCoreService {
     return this.jobsFacade.cancelJob(serverId, jobId);
   }
 
+  async retryJob(
+    serverId: string,
+    jobId: string,
+    actorUserId?: string,
+  ): Promise<ServerPublic> {
+    return this.jobsFacade.retryJob(serverId, jobId, actorUserId);
+  }
+
   async verifyServer(id: string, actorUserId?: string): Promise<ServerPublic> {
     return this.jobsFacade.verifyServer(id, actorUserId);
   }

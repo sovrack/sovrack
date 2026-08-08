@@ -165,6 +165,20 @@ export class IncomingWebhookController {
     headers: Record<string, string | string[] | undefined>,
   ): { verified: boolean; error?: string } {
     if (!endpoint.secret) {
+      // Endpoints legacy sans secret stocké. Accepté hors prod (rétro-compat) ;
+      // en PRODUCTION c'est un trou de vérification → refusé (le provider doit
+      // être reconnecté pour stocker le secret). Le reverse-proxy doit
+      // restreindre l'accès à cette route in verified avant la prod.
+      if (process.env.NODE_ENV === 'production') {
+        return {
+          verified: false,
+          error:
+            'pas de secret stocké — reconnecte le webhook en stockage de secret (obligé en prod)',
+        };
+      }
+      this.logger.warn(
+        `Webhook ${endpoint.id} traité sans secret (legacy) — reconnecte-le pour activer la vérification`,
+      );
       return { verified: true }; // legacy endpoint, pas de secret stocké
     }
     if (endpoint.provider === GitProviderType.GITLAB) {

@@ -139,6 +139,11 @@ export class AuthService {
     }
 
     // Vérifie le mot de passe (argon2id, ou bcrypt legacy en transparence).
+    // Un compte Google (password=null) n'a pas de mot de passe : login email
+    // impossible pour lui (il passe par Google OAuth).
+    if (!user.password) {
+      throw new UnauthorizedException('Email ou mot de passe incorrect');
+    }
     const isPasswordValid = await this.passwordHasher.verify(
       user.password,
       dto.password,
@@ -442,6 +447,34 @@ export class AuthService {
 
   private generateToken(user: User): string {
     return this.generateTokenForId(user.id, user.email, user.role);
+  }
+
+  /**
+   * Génère un token JWT pour un utilisateur authentifié via Google OAuth
+   * (id provenant de req.user.id après la stratégie passport).
+   */
+  async generateTokenForUserId(userId: string): Promise<AuthResponse> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Utilisateur non trouvé');
+    }
+    const access_token = this.generateTokenForId(
+      user.id,
+      user.email,
+      user.role,
+    );
+    await this.auditService.record(
+      user.id,
+      'AUTH_GOOGLE_LOGIN',
+      'User',
+      user.id,
+      {
+        email: user.email,
+      },
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = user;
+    return { access_token, user: userWithoutPassword };
   }
 
   private generateTokenForId(id: string, email: string, role: Role): string {

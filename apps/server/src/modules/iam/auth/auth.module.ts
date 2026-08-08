@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { EmailVerificationService } from './email-verification.service';
+import { GoogleOAuthService } from './google-oauth.service';
+import { GoogleStrategy } from './google.strategy';
 import { UsersModule } from '../users/users.module';
 import { RolesGuard } from '../../../shared/guards/roles.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
@@ -31,6 +34,26 @@ import { NotificationsModule } from '../../notifications';
     RolesGuard,
     LoginRateLimitGuard,
     EmailVerificationService,
+    GoogleOAuthService,
+    // La stratégie Google n'est instanciée QUE si les variables Google OAuth
+    // sont renseignées. Sinon (dev, ou pas encore configuré), la valeur fournie
+    // est `undefined` : l'app tourne normalement et AuthGuard('google') reste
+    // inutilisable tant que la feature n'est pas configurée.
+    {
+      provide: GoogleStrategy,
+      inject: [ConfigService, GoogleOAuthService],
+      useFactory: (
+        config: ConfigService,
+        googleOAuthService: GoogleOAuthService,
+      ) => {
+        const clientId = config.get<string>('GOOGLE_CLIENT_ID');
+        const clientSecret = config.get<string>('GOOGLE_CLIENT_SECRET');
+        if (!clientId || !clientSecret) {
+          return undefined as unknown as GoogleStrategy;
+        }
+        return new GoogleStrategy(config, googleOAuthService);
+      },
+    },
   ],
   controllers: [AuthController],
 })

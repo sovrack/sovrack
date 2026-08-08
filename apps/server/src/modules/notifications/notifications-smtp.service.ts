@@ -97,7 +97,7 @@ export class NotificationsSmtpService {
       ]);
       if (!transporter) return;
       await transporter.sendMail({
-        from: from ?? 'billing@sovrack.tn',
+        from: from ?? 'billing@sovrack.tech',
         to,
         subject: `[Sovrack] ${subject}`,
         html,

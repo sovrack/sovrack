@@ -1,6 +1,6 @@
 # Deploy Automation Backend
 
-NestJS backend for the Vaytek internal platform.
+NestJS backend for the Sovrack platform.
 
 ## Responsibilities
 
@@ -42,7 +42,7 @@ workload). CI only builds and publishes:
   and `:latest`. Runs only `if: $CI_COMMIT_BRANCH == "main"`.
 
 Actual production deployment (pulling the image, running migrations,
-starting the containers) lives in the separate **`deploy-automation-ops`**
+starting the containers) lives in the separate **`deploy-automation-infra`**
 repository — see its README for install/update/rollback.
 
 ## Main Commands

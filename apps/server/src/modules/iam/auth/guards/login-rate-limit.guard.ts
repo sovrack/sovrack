@@ -27,11 +27,10 @@ export class LoginRateLimitGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-    const forwardedFor = request.headers['x-forwarded-for'];
-    const ip =
-      (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) ??
-      request.ip ??
-      'unknown-ip';
+    // req.ip est résolu par Express selon TRUST_PROXY (uniquement le dernier
+    // hop de confiance) — ne pas lire X-Forwarded-For directement, il est
+    // spoofable par le client.
+    const ip = request.ip ?? 'unknown-ip';
 
     this.cleanupExpiredEntries();
 

@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 
 @Injectable()
 export class ServersAuditService {
+  private readonly logger = new Logger(ServersAuditService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async record(
@@ -23,8 +25,13 @@ export class ServersAuditService {
           ...(payload ? { metadata: payload as Prisma.InputJsonValue } : {}),
         },
       });
-    } catch {
-      // Audit should never break the user-facing workflow.
+    } catch (error) {
+      // Audit should never break the user-facing workflow — but silent drops
+      // are an integrity gap: log the failure so a missing audit trail is
+      // diagnosable.
+      this.logger.error(
+        `Écriture d'audit serveur échouée (server=${serverId}, event=${eventType}): ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
