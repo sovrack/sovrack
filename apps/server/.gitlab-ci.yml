@@ -21,6 +21,8 @@ variables:
   REDIS_URL: redis://redis:6379
   CONFIG_SECRET: ci-config-secret-minimum-32-characters-ok
   JWT_SECRET: ci-jwt-secret-minimum-32-characters-ok
+  # Secret indépendant (jamais dérivé de JWT_SECRET) — exigé par env.validation.
+  STAFF_JWT_SECRET: ci-staff-jwt-secret-minimum-32-characters-ok
   ANSIBLE_PLAYBOOKS_PATH: /tmp/playbooks
   ANSIBLE_VENV_PATH: /tmp/venv
   NODE_ENV: test
