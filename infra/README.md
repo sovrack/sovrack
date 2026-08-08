@@ -7,7 +7,7 @@ les scripts de déploiement/sauvegarde et le pipeline CI de production.
 
 > ⚠️ Ce dépôt **ne contient pas le code applicatif**. Le code vit dans
 > `deploy-automation-backend` et `deploy-automation-frontend`.
-> Ce repoooo- **peut** être séparé car chaque repo a son rôle :
+> Ce repo **peut** être séparé car chaque repo a son rôle :
 > `backend` / `frontend` = production d'images, `infra` = quand + comment elles tournent.
 
 ---
@@ -18,9 +18,9 @@ les scripts de déploiement/sauvegarde et le pipeline CI de production.
 [ Internet / HTTPS :443 ]
           │
     ┌─────▼────────── nginx (reverse-proxy) ──────────┐
-    │    sovrack-proxy                              │
-    │        ├── https://app.sovrack.tech  → frontend │
-    │        └── https://api.sovrack.tech  → backend   │
+│    sovrack-proxy                              │
+│        ├── https://sovrack.tech         → frontend │
+│        └── https://sovrack.tech/backend-api → backend │
     └──────────────┬────────────────┬──────────────────┘
                    │                │
           ┌────────▼─────┐  ┌───────▼────────┐
@@ -40,7 +40,7 @@ les scripts de déploiement/sauvegarde et le pipeline CI de production.
 - **Un seul projet compose** : `sovrack`
 - **postgres / redis** bindés sur `127.0.0.1` (jamais exposés publiquement)
 - **nginx** = seule porte d'entrée publique (port 80/443)
-- **données** : bind mount `/srv/sovrack/data/{pg,redis}` (persistant, hors `/tmp`)
+- **données** : volumes Docker nommés (`pgdata`, `redisdata`) — persistant, hors `/tmp`
 
 ---
 
@@ -51,8 +51,8 @@ deploy-automation-infra/
 ├── docker-compose.prod.yml     # la seule stack de production
 ├── .env.production.example     # template des secrets (à copier en .env)
 ├── nginx/
-│   ├── sovrack.conf.template # conf reverse proxy / HTTPS
-│   └── security-headers.conf   # en-têtes de sécurité (CSP, HSTS…)
+│   ├── proxy.conf.template      # conf reverse proxy / HTTPS (${DOMAIN} injecté)
+│   └── security-headers.conf    # en-têtes de sécurité (HSTS, CSP…) — non-menu
 ├── scripts/
 │   ├── bootstrap.sh            # init 1ère fois (dossier, dirs, .env)
 │   ├── deploy.sh               # pull images + up -d stack
@@ -119,7 +119,24 @@ Il attend les variables CI/CD GitLab :
 #   30 2 * * * /srv/sovrack/scripts/backup.sh
 ```
 
-Les données sont **hors /tmp** (`/srv/sovrack/data`) : aucune perte au reboot.
+Les données sont **hors /tmp** (volumes Docker nommés `pgdata`, `redisdata`) : aucune perte au reboot.
+
+---
+
+## 🔒 Certificat TLS (Let's Encrypt)
+
+```bash
+# Obtention initiale
+DOMAIN=sovrack.tech make certbot
+
+# Renouvellement (à câbler en cron sur le VPS, ex. le 1er de chaque mois)
+#   0 3 1 * * cd /srv/sovrack && make certbot-renew >> /var/log/certbot-renew.log 2>&1
+# (ou : DOMAIN=sovrack.tech ./scripts/certbot.sh --renew)
+```
+
+Sans renouvellement automatique, le certificat expire après ~90 jours → le site
+passe en erreur TLS. La cible `make certbot-renew` est idempotente (certbot ne
+renouvelle que si proche de l'expiration).
 
 ---
 

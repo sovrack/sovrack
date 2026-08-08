@@ -33,6 +33,12 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
     volumes:
       - ./nginx/proxy.conf.template:/etc/nginx/proxy.conf.template:ro
       - ./nginx/security-headers.conf:/etc/nginx/conf.d/security-headers.conf:ro
@@ -55,6 +61,12 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     environment:
       NODE_ENV: production
       # URL de non(false) réseau interne pour le rewrite /backend-api
@@ -101,6 +113,10 @@ services:
       ANSIBLE_STRICT_HOST_KEY_CHECKING: ${ANSIBLE_STRICT_HOST_KEY_CHECKING:-accept-new}
       STAFF_ROOT_EMAIL: ${STAFF_ROOT_EMAIL}
       STAFF_ROOT_PASSWORD: ${STAFF_ROOT_PASSWORD}
+      # Google OAuth ("Se connecter avec Google")
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://${DOMAIN}/backend-api/auth/google/callback}
     expose:
       - "3001"
     depends_on:

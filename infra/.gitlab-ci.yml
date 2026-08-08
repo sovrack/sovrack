@@ -56,8 +56,11 @@ deploy:
   script:
     # 1. Synchronise les fichiers d'orchestration (jamais les .env)
     - rsync -az --omit-dir-times --no-perms --delete --exclude '.env' --exclude '.git' --exclude 'data/' --exclude 'backups/' ./ "${PRODUCTION_USER}@${PRODUCTION_HOST}:${DEPLOY_PATH}/"
-    # 2. (Optionnel) si le .env n'existe pas encore sur le VPS, le créer depuis le template
-    - ssh "${PRODUCTION_USER}@${PRODUCTION_HOST}" "test -f ${DEPLOY_PATH}/.env || cp ${DEPLOY_PATH}/.env.production.example ${DEPLOY_PATH}/.env; cd ${DEPLOY_PATH} && ./scripts/deploy.sh"
+    # 2. Le .env est créé une seule fois à la main (scripts/bootstrap.sh) —
+    #    on ne doit JAMAIS le copier depuis .env.production.example (risque de
+    #    secrets par défaut publiés). deploy.sh échoue si des placeholders
+    #    subsistent (change_me_*, Dev_Test_Only_1192).
+    - ssh "${PRODUCTION_USER}@${PRODUCTION_HOST}" "test -f ${DEPLOY_PATH}/.env || { echo 'Il manque ${DEPLOY_PATH}/.env — lance ./scripts/bootstrap.sh sur le VPS une fois (secrets réels).'; exit 1; }; cd ${DEPLOY_PATH} && ./scripts/deploy.sh"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
       when: on_success

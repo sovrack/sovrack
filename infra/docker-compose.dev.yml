@@ -46,7 +46,7 @@ services:
       ANSIBLE_COLLECTIONS_PATH: /usr/share/ansible/collections
       ANSIBLE_STRICT_HOST_KEY_CHECKING: accept-new
       STAFF_ROOT_EMAIL: admin@sovrack.tech
-      STAFF_ROOT_PASSWORD: Dev_Test_Only_1192
+      STAFF_ROOT_PASSWORD: ${STAFF_ROOT_PASSWORD:-Dev_Test_Only_1192}
     expose: ["3001"]
     ports: ["127.0.0.1:13013:3001"]
     depends_on: [postgres, redis]
