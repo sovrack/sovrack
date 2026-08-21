@@ -2,9 +2,8 @@
 # =============================================================================
 # Sovrack — Installation du renouvellement TLS automatique
 # -----------------------------------------------------------------------------
-# Installe un cron (1er du mois à 03:00) qui lance make certbot-renew sur le
-# VPS. Le renouvellement certbot est idempotent (ne renouvelle que si cert
-# proche de l'expiration, ~30 jours avant la fin des 90).
+# Installe un cron deux fois par jour qui lance make certbot-renew sur le VPS.
+# Certbot décide lui-même si le certificat est assez proche de l'expiration.
 #
 # Usage (run en root/sudo sur le VPS) :
 #   sudo ./scripts/install-certbot-renew.sh /srv/sovrack
@@ -12,6 +11,11 @@
 # L'utilisateur cron doit avoir accès à docker + aux volumes du stack.
 # =============================================================================
 set -euo pipefail
+
+[ "${EUID:-$(id -u)}" -eq 0 ] || {
+  echo "❌ Ce script doit être exécuté avec sudo/root."
+  exit 1
+}
 
 DEPLOY_DIR="${1:-/srv/sovrack}"
 CRON_FILE="/etc/cron.d/certbot-renew"
@@ -25,15 +29,28 @@ if ! command -v docker >/dev/null 2>&1; then
   echo "❌ docker introuvable sur le PATH (requis pour certbot via conteneur)."
   exit 1
 fi
+if ! command -v make >/dev/null 2>&1 || ! command -v flock >/dev/null 2>&1; then
+  echo "❌ make et flock sont requis pour installer le renouvellement."
+  exit 1
+fi
 
-# Docker nécessite souvent root pour le socket : exécute le cron en root.
+DEPLOY_DIR="$(realpath "$DEPLOY_DIR")"
+[[ "$DEPLOY_DIR" =~ ^/[A-Za-z0-9._/-]+$ ]] || {
+  echo "❌ Chemin de déploiement non pris en charge dans cron : $DEPLOY_DIR"
+  exit 1
+}
+MAKE_BIN="$(command -v make)"
+FLOCK_BIN="$(command -v flock)"
+
+# Docker nécessite souvent root pour le socket. flock empêche deux exécutions
+# de se chevaucher si une autorité ACME répond lentement.
 cat > "$CRON_FILE" <<EOF
 # Renouvellement TLS Sovrack — installé par scripts/install-certbot-renew.sh
-# Exécuté le 1er de chaque mois à 03:00 (certbot renouvelle si < 30 jours).
-0 3 1 * * root cd "${DEPLOY_DIR}" && make certbot-renew >> "${LOG_FILE}" 2>&1
+# Vérification deux fois par jour ; certbot ne renouvelle que si nécessaire.
+17 3,15 * * * root cd "${DEPLOY_DIR}" && ${FLOCK_BIN} -n /run/sovrack-certbot-renew.lock ${MAKE_BIN} certbot-renew >> "${LOG_FILE}" 2>&1
 EOF
 
 chmod 644 "$CRON_FILE"
 echo "✅ Cron installé : $CRON_FILE"
-echo "   → 'cd $DEPLOY_DIR && make certbot-renew' tous les 1er du mois à 03:00."
-echo "   Logs : $LOG_FILE — teste avec : run-parts --test /etc/cron.d ; sudo crontab -l | grep certbot"
+echo "   → 'cd $DEPLOY_DIR && make certbot-renew' à 03:17 et 15:17."
+echo "   Logs : $LOG_FILE"

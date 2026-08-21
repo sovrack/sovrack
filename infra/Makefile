@@ -38,9 +38,9 @@ validate-ci: ## Valide le compose dans les conditions CI (image docker cli)
 	docker compose --env-file .env.production.example -f docker-compose.prod.yml config -q
 
 certbot: ## Obtient/renouvelle le certificat TLS (DOMAIN = domaine)
-	DOMAIN=$${DOMAIN:-sovrack.tech} ./scripts/certbot.sh
+	./scripts/certbot.sh
 
 certbot-renew: ## Renouvellement TLS automatique (à appeler côté VPS, ex. cron)
-	DOMAIN=$${DOMAIN:-sovrack.tech} ./scripts/certbot.sh --renew
+	./scripts/certbot.sh --renew
 
 .PHONY: help bootstrap config up ps logs backup restore validate-ci certbot certbot-renew
