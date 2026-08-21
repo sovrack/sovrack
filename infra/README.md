@@ -59,10 +59,12 @@ deploy-automation-infra/
 │   ├── backup.sh               # pg_dump + rotation (à câbler en cron)
 │   ├── restore.sh              # restore d'un dump
 │   ├── gen-secrets.sh          # génère des secrets forts pour .env
-│   └── certbot.sh              # obtient/réalise TLS via Let's Encrypt
+│   ├── certbot.sh              # obtient/renouvelle TLS via Let's Encrypt
+│   └── install-certbot-renew.sh # installe le cron de renouvellement
 ├── docs/
 │   ├── MIGRATION.md            # migration prod da-fares → sovrack (zéro-downtime)
-│   └── CLEANUP.md              # nettoyage VPS après migration
+│   ├── CLEANUP.md              # nettoyage VPS après migration
+│   └── RELEASE_RUNBOOK.md      # promotion, rollback, restore et TLS
 ├── .gitlab-ci.yml              # CI: job deploy vers le VPS
 └── README.md
 ```
@@ -73,40 +75,46 @@ deploy-automation-infra/
 
 ```bash
 # 1) Sur le VPS (avec les droits sudo)
-sudo mkdir -p /srv/sovrack && sudo chown $(whoami): /srv/sovrack
+sudo mkdir -p /srv/sovrack && sudo chown "$(whoami)": /srv/sovrack
+git clone git@gitlab.com:deploy-automation/deploy-automation-infra.git /srv/sovrack
 cd /srv/sovrack
-cp /chemin/.env.production.example .env        # puis renseigne les secrets
-vi .env                                       # ⚠️ secrets réels
 
-# 2) Cloner ce repo dans /srv/sovrack (ou copier les fichiers)
-git clone git@gitlab.com:deploy-automation/deploy-automation-infra.git .
+# 2) Initialiser puis renseigner les secrets et les deux images immuables
+./scripts/bootstrap.sh
+vi .env
 
-# 3) Premier démarrage
-./scripts/bootstrap.sh   # crée les dossiers + valide docker + génère .env si absent
-./scripts/deploy.sh      # docker compose pull && up -d
+# 3) Premier démarrage applicatif
+./scripts/deploy.sh
 
-# 4) Vérifier
-docker compose ps   # doit montrer sovrack-* healthy/up
+# 4) Obtenir le certificat après résolution du DNS
+./scripts/certbot.sh
+
+# 5) Vérifier
+make ps   # doit montrer sovrack-* healthy/up
 ```
 
 ---
 
 ## 🔄 CI/CD (recommandé)
 
-Le `.gitlab-ci.yml` déploye automatiquement le contenu d'une branche `main` vers
-le VPS **via rsync + docker compose up -d**, après que les images `backend` et
-`frontend` ont été poussées par leur propre CI (build:image).
+Le `.gitlab-ci.yml` propose une promotion **manuelle** depuis `main`, via rsync
+et Docker Compose, après que les images backend et frontend ont été produites.
+La CI transmet leurs références immuables ; `deploy.sh` ne les persiste sur le
+VPS qu'après les contrôles de santé.
 
 Il attend les variables CI/CD GitLab :
 | Variable | Usage |
 |---|---|
 | `PRODUCTION_HOST` | IP/hostname du VPS |
 | `PRODUCTION_USER` | utilisateur SSH (ex `deploy`), avec clé autorisée |
-| `SSH_PRIVATE_KEY` | clé SSH d'deployment (déployer du pipeline) |
+| `SSH_PRIVATE_KEY_B64` | clé SSH de déploiement encodée en base64 |
+| `SSH_KNOWN_HOSTS` | empreinte SSH vérifiée hors bande |
 | `DEPLOY_PATH` | chemin cible sur le VPS (ex `/srv/sovrack`) |
+| `BACKEND_IMAGE` | image backend avec SHA Git complet ou digest |
+| `FRONTEND_IMAGE` | image frontend avec SHA Git complet ou digest |
 
-> Tant que ces variables ne sont pas définies, **le job est désactivé**
-> (`rules: when: never`) pour ne pas échouer le pipeline.
+Le job reste manuel et doit aussi être protégé dans les paramètres GitLab de
+l'environnement `production`.
 
 ---
 
@@ -114,7 +122,7 @@ Il attend les variables CI/CD GitLab :
 
 ```bash
 # Manuel (production)
-./scripts/backup.sh                       # → /srv/sovrack/backups/backup-<date>.sql
+./scripts/backup.sh              # → backups/sovrack-<date>.sql.gz + .sha256
 # Automatique (recommandé) — ajouter au crontab du VPS :
 #   30 2 * * * /srv/sovrack/scripts/backup.sh
 ```
@@ -127,16 +135,19 @@ Les données sont **hors /tmp** (volumes Docker nommés `pgdata`, `redisdata`) :
 
 ```bash
 # Obtention initiale
-DOMAIN=sovrack.tech make certbot
+make certbot
 
-# Renouvellement (à câbler en cron sur le VPS, ex. le 1er de chaque mois)
-#   0 3 1 * * cd /srv/sovrack && make certbot-renew >> /var/log/certbot-renew.log 2>&1
-# (ou : DOMAIN=sovrack.tech ./scripts/certbot.sh --renew)
+# Installe une vérification deux fois par jour, sans renouvellement forcé
+sudo ./scripts/install-certbot-renew.sh /srv/sovrack
+# Test manuel : ./scripts/certbot.sh --renew
 ```
 
-Sans renouvellement automatique, le certificat expire après ~90 jours → le site
-passe en erreur TLS. La cible `make certbot-renew` est idempotente (certbot ne
-renouvelle que si proche de l'expiration).
+La cible `make certbot-renew` est idempotente : Certbot ne renouvelle que si
+nécessaire. Au tout premier démarrage, Nginx n'invente pas de certificat ; il
+sert uniquement le challenge ACME jusqu'à l'obtention du vrai certificat.
+
+Le déroulé opérationnel complet se trouve dans
+[`docs/RELEASE_RUNBOOK.md`](docs/RELEASE_RUNBOOK.md).
 
 ---
 
@@ -145,4 +156,4 @@ renouvelle que si proche de l'expiration).
 - Serveur DB/Redis **non publié** publiquement (`127.0.0.1`).
 - Un seul jeu d'images : `registry.gitlab.com/deploy-automation/deploy-automation-{backend,frontend}`.
 - Une seule instance worker BullMQ (pas de doublons).
-- Reverse-proxy nginx = TLS + haeder de sécurité + routage propre.
+- Reverse-proxy nginx = TLS + en-têtes de sécurité + routage propre.
