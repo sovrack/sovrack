@@ -18,7 +18,8 @@ FROM node:22-alpine AS runner
 # ansible-core (~8 MB) instead of the full `ansible` meta-package (~100+ MB which
 # bundles hundreds of collections). We install ONLY the 3 collections we actually
 # use (ansible/requirements.yml) below → much smaller image, same capabilities.
-RUN apk add --no-cache python3 ansible-core openssh-client curl ca-certificates
+RUN apk upgrade --no-cache && \
+    apk add --no-cache python3 ansible-core openssh-client curl ca-certificates
 
 # Créer un utilisateur non-root pour la sécurité
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
@@ -27,26 +28,14 @@ WORKDIR /app
 
 # Only production deps
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-
-# Prisma client
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-# Built app
-COPY --from=builder /app/dist ./dist
-
-# Prisma schema for migrations
-COPY prisma ./prisma
-
-# Ansible playbooks — embarqués dans le repo backend (self-contained).
-# Résolus via ANSIBLE_PLAYBOOKS_PATH (cf. ENV plus bas).
-COPY ansible ./ansible
-ENV ANSIBLE_PLAYBOOKS_PATH=/app/ansible/playbooks
+RUN npm ci --omit=dev && \
+    npm cache clean --force && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # Install ONLY the collections we use into a world-readable system path so the
 # non-root runtime user (appuser) finds them. /usr/share/ansible/collections is
 # already on ansible-core's default COLLECTIONS_PATH; we also export it to be safe.
+COPY ansible/requirements.yml ./ansible/requirements.yml
 RUN ansible-galaxy collection install -r ansible/requirements.yml \
       -p /usr/share/ansible/collections
 ENV ANSIBLE_COLLECTIONS_PATH=/usr/share/ansible/collections
@@ -71,8 +60,19 @@ RUN arch=$(uname -m) && \
     chmod +x /usr/local/bin/nixpacks && \
     nixpacks --version
 
-# Donner la possession à appuser
-RUN chown -R appuser:appgroup /app
+# Application artifacts come after external tool installation so an ordinary
+# source change reuses the expensive Ansible/Nixpacks layers.
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --chown=appuser:appgroup --from=builder /app/dist ./dist
+COPY --chown=appuser:appgroup prisma ./prisma
+COPY --chown=appuser:appgroup ansible ./ansible
+ENV ANSIBLE_PLAYBOOKS_PATH=/app/ansible/playbooks
+
+# Le service épingle les clés d'hôte SSH dans /app/.local. Seul ce répertoire
+# doit être inscriptible ; les dépendances et artefacts applicatifs restent en
+# lecture seule, ce qui évite une couche `chown -R` volumineuse.
+RUN mkdir -p /app/.local/ssh && chown -R appuser:appgroup /app/.local
 
 USER appuser
 
@@ -80,4 +80,6 @@ EXPOSE 3001
 
 ENV NODE_ENV=production
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node prisma/seed-staff.js && node dist/main"]
+# Schema changes are owned by the one-shot migrator service. API/worker
+# containers never race migrations or seed work during ordinary restarts.
+CMD ["node", "dist/main"]

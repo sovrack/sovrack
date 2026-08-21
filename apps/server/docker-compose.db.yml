@@ -48,7 +48,7 @@ services:
 
     # Volume persistant pour conserver les donnees meme apres arret du conteneur.
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - deployautomation_pgdata:/var/lib/postgresql/data
 
   # ---------------------------------------------------------------------------
   # SERVICE REDIS
@@ -71,7 +71,7 @@ services:
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - redis_data:/data
+      - deployautomation_redisdata:/data
 
   # ---------------------------------------------------------------------------
   # SERVICE BACKEND (NestJS)
