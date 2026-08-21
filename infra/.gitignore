@@ -1,6 +1,9 @@
 # Secrets — jamais commit
 .env
 *.env
+.env.release.*
+.env.rollback.*
+.release-request
 !.env.production.example
 
 # Données / sauvegardes locales

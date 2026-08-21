@@ -42,6 +42,7 @@ chmod 700 "$PG_DIR" 2>/dev/null || true
 if [ ! -f "$ROOT/.env" ]; then
   if [ -f "$ROOT/.env.production.example" ]; then
     cp "$ROOT/.env.production.example" "$ROOT/.env"
+    chmod 600 "$ROOT/.env"
     echo "ℹ️  .env créé depuis le template. ➜ Renseigne les secrets : $ROOT/.env"
     echo "   Puis relance ./scripts/deploy.sh"
   else
@@ -49,6 +50,7 @@ if [ ! -f "$ROOT/.env" ]; then
     exit 1
   fi
 else
+  chmod 600 "$ROOT/.env"
   echo "✅ .env existant."
 fi
 
