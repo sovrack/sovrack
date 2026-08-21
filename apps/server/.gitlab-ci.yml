@@ -48,11 +48,11 @@ typecheck:
 
 lint:
   stage: validate
-  # Bloquant : la dette de lint a été résorbée (0 erreur). On empêche désormais
-  # toute régression de qualité d'entrer dans la base.
+  # Bloquant sur toute erreur et sur toute hausse de la dette existante. Le
+  # plafond doit être abaissé à mesure que les 24 avertissements sont corrigés.
   script:
     - npm ci
-    - npm run lint
+    - npm run lint -- --max-warnings=24
     - npm run format:check
 
 arch:check:
@@ -79,7 +79,7 @@ test:unit:
     - npm ci
     - npx prisma migrate deploy
     # --coverage enforces the coverageThreshold gate (regression ratchet) in jest config.
-    - npm test -- --passWithNoTests --forceExit --coverage
+    - npm test -- --passWithNoTests --runInBand --coverage
   coverage: '/All files[^|]*\|[^|]*\s+([\d.]+)/'
   artifacts:
     when: always
@@ -139,10 +139,22 @@ build:image:
     - /kaniko/executor
       --context "$CI_PROJECT_DIR"
       --dockerfile "$CI_PROJECT_DIR/Dockerfile"
-      --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
-      --destination "$CI_REGISTRY_IMAGE:latest"
+      --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+
+# Publie le contrat produit par le backend. Le frontend peut le récupérer via
+# un pipeline multi-projet sans dépendre d'un checkout frère implicite.
+contract:openapi:
+  stage: build
+  script:
+    - npm ci
+    - npm run prisma:generate
+    - OPENAPI_OUTPUT_PATH=artifacts/api-contract.openapi.json npm run openapi:export
+  artifacts:
+    paths:
+      - artifacts/api-contract.openapi.json
+    expire_in: 1 week
 
 # ── Security & quality gates ────────────────────────────────────────────────
 
@@ -152,7 +164,9 @@ security:audit:
   stage: security
   script:
     - npm ci
-    - npm audit --audit-level=high --omit=dev
+    # Inclut les outils de build/test : ils manipulent eux aussi du code et des
+    # artefacts dans le runner CI.
+    - npm audit --audit-level=high
 
 # SonarQube static analysis + Quality Gate. Reuses the coverage produced by
 # test:unit (coverage/lcov.info). Runs only when SONAR_TOKEN is configured.
@@ -180,7 +194,8 @@ sonarqube:
 # DÉPLOIEMENT PRODUCTION — *géré par le dépôt `deploy-automation-infra`*
 # -----------------------------------------------------------------------------
 # Ce dépôt "app" ne fait QUE construire et pousser son image au Container
-# Registry GitLab (job `build:image` ci-dessus → `:latest` + `:$CI_COMMIT_SHORT_SHA`).
+# Registry GitLab (job `build:image` ci-dessus → tag immuable
+# `:$CI_COMMIT_SHA`).
 #
 # La mise à jour du service en production (docker compose pull && up -d) est
 # orchestrée par le dépôt dédié `deploy-automation-infra` (stack `sovrack`),
@@ -201,3 +216,20 @@ security:trivy:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       allow_failure: false
+
+# Scan the exact immutable runtime image as well as the source tree. This catches
+# OS/global-tool vulnerabilities that npm audit and `trivy fs` cannot see.
+security:image:
+  stage: security
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: ['']
+  needs:
+    - build:image
+  variables:
+    TRIVY_USERNAME: '$CI_REGISTRY_USER'
+    TRIVY_PASSWORD: '$CI_REGISTRY_PASSWORD'
+  script:
+    - trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
