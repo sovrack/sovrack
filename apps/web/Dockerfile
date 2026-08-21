@@ -34,19 +34,19 @@ ENV NODE_ENV=production
 
 # Only production deps
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev && \
+    npm cache clean --force && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # next.config.mjs needed at runtime for rewrites, env, etc. (.mjs, PAS .ts :
 # la config TS exigerait typescript dans l'image de prod → crash-loop au boot)
 COPY next.config.mjs ./
 
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-
-RUN chown -R appuser:appgroup /app
+COPY --chown=appuser:appgroup --from=builder /app/.next ./.next
+COPY --chown=appuser:appgroup --from=builder /app/public ./public
 
 USER appuser
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start"]
