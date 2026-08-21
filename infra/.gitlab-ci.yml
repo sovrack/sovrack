@@ -9,9 +9,12 @@
 # Variables CI/CD requises (Settings → CI/CD → Variables) :
 #   PRODUCTION_HOST   : IP/hostname du VPS
 #   PRODUCTION_USER   : user SSH (recommandé : utilisateur dédié "deploy")
-#   SSH_PRIVATE_KEY   : clé privée de déploiement (autorisée sur le VPS)
+#   SSH_PRIVATE_KEY_B64: clé privée encodée en base64
+#   SSH_KNOWN_HOSTS   : ligne known_hosts vérifiée hors bande (pas ssh-keyscan)
 #   DEPLOY_PATH       : chemin cible sur le VPS (défaut : /srv/sovrack)
-# Tant qu'elles ne sont pas définies, le job deploy est désactivé.
+#   BACKEND_IMAGE     : image backend avec SHA Git complet ou digest sha256
+#   FRONTEND_IMAGE    : image frontend avec SHA Git complet ou digest sha256
+# Le job de production reste manuel même lorsque toutes les variables existent.
 # =============================================================================
 
 stages:
@@ -19,7 +22,8 @@ stages:
   - deploy
 
 variables:
-  DEPLOY_PATH: ${DEPLOY_PATH:-/srv/sovrack}
+  # Une variable GitLab de projet/groupe peut remplacer cette valeur.
+  DEPLOY_PATH: /srv/sovrack
 
 # ── Validation ────────────────────────────────────────────────────────────────
 validate:
@@ -44,27 +48,41 @@ shellcheck:
 deploy:
   stage: deploy
   image: alpine:3
-  needs: []
+  resource_group: sovrack-production
+  interruptible: false
+  needs:
+    - validate
+    - shellcheck
   before_script:
     - apk add --no-cache openssh-client rsync
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - 'if [ -z "$SSH_PRIVATE_KEY" ]; then echo "ERROR: SSH_PRIVATE_KEY manquante"; exit 1; fi'
-    - printf '%s' "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
+    - 'test -n "$PRODUCTION_HOST" && test -n "$PRODUCTION_USER" && test -n "$SSH_PRIVATE_KEY_B64" && test -n "$SSH_KNOWN_HOSTS" || { echo "ERROR: variables SSH de production incomplètes"; exit 1; }'
+    - 'test -n "$BACKEND_IMAGE" && test -n "$FRONTEND_IMAGE" || { echo "ERROR: BACKEND_IMAGE et FRONTEND_IMAGE sont obligatoires"; exit 1; }'
+    - 'printf "%s\n" "$BACKEND_IMAGE" | grep -Eq "(@sha256:[0-9a-fA-F]{64}|:[0-9a-f]{40})$" || { echo "ERROR: BACKEND_IMAGE non immuable"; exit 1; }'
+    - 'printf "%s\n" "$FRONTEND_IMAGE" | grep -Eq "(@sha256:[0-9a-fA-F]{64}|:[0-9a-f]{40})$" || { echo "ERROR: FRONTEND_IMAGE non immuable"; exit 1; }'
+    - 'case "$DEPLOY_PATH" in /*) ;; *) echo "ERROR: DEPLOY_PATH doit être absolu"; exit 1 ;; esac; case "$DEPLOY_PATH" in *[!A-Za-z0-9._/-]*) echo "ERROR: DEPLOY_PATH contient un caractère interdit"; exit 1 ;; esac'
+    - printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
-    - ssh-keyscan -H "$PRODUCTION_HOST" > ~/.ssh/known_hosts 2>/dev/null
+    - printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 600 ~/.ssh/known_hosts
   script:
-    # 1. Synchronise les fichiers d'orchestration (jamais les .env)
-    - rsync -az --omit-dir-times --no-perms --delete --exclude '.env' --exclude '.git' --exclude 'data/' --exclude 'backups/' ./ "${PRODUCTION_USER}@${PRODUCTION_HOST}:${DEPLOY_PATH}/"
-    # 2. Le .env est créé une seule fois à la main (scripts/bootstrap.sh) —
-    #    on ne doit JAMAIS le copier depuis .env.production.example (risque de
-    #    secrets par défaut publiés). deploy.sh échoue si des placeholders
-    #    subsistent (change_me_*, Dev_Test_Only_1192).
-    - ssh "${PRODUCTION_USER}@${PRODUCTION_HOST}" "test -f ${DEPLOY_PATH}/.env || { echo 'Il manque ${DEPLOY_PATH}/.env — lance ./scripts/bootstrap.sh sur le VPS une fois (secrets réels).'; exit 1; }; cd ${DEPLOY_PATH} && ./scripts/deploy.sh"
+    # Synchronise l'orchestration sans toucher aux secrets, données, backups ni
+    # fichiers temporaires d'une autre promotion.
+    - rsync -az --omit-dir-times --no-perms --delete --exclude '.env' --exclude '.env.release.*' --exclude '.env.rollback.*' --exclude '.release-request' --exclude '.git' --exclude 'data/' --exclude 'backups/' ./ "${PRODUCTION_USER}@${PRODUCTION_HOST}:${DEPLOY_PATH}/"
+    # Le manifeste éphémère ne contient aucun secret. deploy.sh le parse sans
+    # `source`, valide les références, puis persiste atomiquement la promotion
+    # dans le .env du VPS seulement après les healthchecks.
+    - printf 'BACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' "$BACKEND_IMAGE" "$FRONTEND_IMAGE" > .release-request
+    - chmod 600 .release-request
+    - scp .release-request "${PRODUCTION_USER}@${PRODUCTION_HOST}:${DEPLOY_PATH}/.release-request"
+    - ssh "${PRODUCTION_USER}@${PRODUCTION_HOST}" "test -f '${DEPLOY_PATH}/.env' || { echo 'Il manque ${DEPLOY_PATH}/.env — lance scripts/bootstrap.sh sur le VPS.'; exit 1; }; cd '${DEPLOY_PATH}'; ./scripts/deploy.sh --release-file .release-request; status=\$?; rm -f .release-request; exit \$status"
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"'
-      when: on_success
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
     - when: never
+  allow_failure: false
   environment:
     name: production
     url: https://$PRODUCTION_HOST
+    deployment_tier: production
