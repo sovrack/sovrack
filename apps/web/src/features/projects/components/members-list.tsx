@@ -10,6 +10,7 @@ type MembersListProps = {
   canManage: boolean;
   currentUserId?: string;
   onRemove?: (userId: string) => Promise<void>;
+  onRoleChange?: (userId: string, role: ProjectMember["role"]) => Promise<void>;
 };
 
 export function MembersList({
@@ -17,6 +18,7 @@ export function MembersList({
   canManage,
   currentUserId,
   onRemove,
+  onRoleChange,
 }: MembersListProps) {
   const [removingId, setRemovingId] = useState<string | null>(null);
 
@@ -34,7 +36,7 @@ export function MembersList({
     <div className="space-y-2">
       {members.map((member) => {
         const isCurrentUser = member.user.id === currentUserId;
-        const isOwner = member.role === "OWNER";
+        const isOwner = member.role === "MAINTAINER";
 
         return (
           <div
@@ -57,17 +59,35 @@ export function MembersList({
                     </span>
                   )}
                 </p>
-                <span
-                  className={clsx(
-                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                    isOwner
-                      ? "bg-yellow-500/15 text-yellow-300"
-                      : "bg-[var(--bg-card)]/10 text-[var(--text-primary)]",
-                  )}
-                >
-                  {isOwner ? <Crown size={9} /> : <User size={9} />}
-                  {member.role}
-                </span>
+                {canManage && onRoleChange ? (
+                  <select
+                    aria-label={`Role de ${member.user.email}`}
+                    value={member.role}
+                    onChange={(event) =>
+                      void onRoleChange(
+                        member.user.id,
+                        event.target.value as ProjectMember["role"],
+                      )
+                    }
+                    className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-[10px] font-semibold"
+                  >
+                    <option value="MAINTAINER">Maintainer</option>
+                    <option value="DEVELOPER">Developer</option>
+                    <option value="VIEWER">Viewer</option>
+                  </select>
+                ) : (
+                  <span
+                    className={clsx(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                      isOwner
+                        ? "bg-yellow-500/15 text-yellow-300"
+                        : "bg-[var(--bg-card)]/10 text-[var(--text-primary)]",
+                    )}
+                  >
+                    {isOwner ? <Crown size={9} /> : <User size={9} />}
+                    {member.role}
+                  </span>
+                )}
               </div>
               <p className="truncate text-xs text-[var(--text-secondary)]">
                 {member.user.email}

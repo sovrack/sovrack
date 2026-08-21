@@ -1,5 +1,5 @@
 import api from "@/shared/lib/api";
-import type { UserRole } from "@/features/auth/types/auth";
+import type { UserRole } from "@/features/auth";
 import type {
   PlatformRole,
   StaffStatus,
@@ -86,9 +86,7 @@ export const staffService = {
     return res.data;
   },
   getSubscriptions: async (): Promise<StaffSubscription[]> => {
-    const res = await api.get<StaffSubscription[]>(
-      "/staff/subscriptions",
-    );
+    const res = await api.get<StaffSubscription[]>("/staff/subscriptions");
     return res.data;
   },
 
@@ -142,7 +140,10 @@ export const staffService = {
     return res.data;
   },
 
-  getAuditLogs: async (page = 1, limit = 50): Promise<Paginated<AuditLogEntry>> => {
+  getAuditLogs: async (
+    page = 1,
+    limit = 50,
+  ): Promise<Paginated<AuditLogEntry>> => {
     const res = await api.get<Paginated<AuditLogEntry>>(
       `/staff/audit-logs?page=${page}&limit=${limit}`,
     );

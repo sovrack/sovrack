@@ -51,7 +51,9 @@ export function ResetPasswordScreen() {
 
       <section className="mx-auto flex max-w-md items-center px-6 pb-24 pt-20">
         <div className="w-full">
-          <h1 className="text-3xl font-bold text-white">Nouveau mot de passe</h1>
+          <h1 className="text-3xl font-bold text-white">
+            Nouveau mot de passe
+          </h1>
           <p className="mt-2 text-slate-500">
             Saisissez l&apos;email, le code reçu et votre nouveau mot de passe.
           </p>
@@ -161,7 +163,7 @@ export function ResetPasswordScreen() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 size={16} className="animate-spin" />

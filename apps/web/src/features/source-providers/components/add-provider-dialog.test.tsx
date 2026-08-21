@@ -50,9 +50,7 @@ describe("AddProviderDialog — main flow", () => {
   it("blocks proceeding past step 2 until name + URL are filled", () => {
     render(<AddProviderDialog {...baseProps} onSave={vi.fn()} />);
     goToStep2(); // step 1 -> 2 (GitLab preselected, always valid)
-    expect(
-      screen.getByRole("button", { name: /continue/i }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
 
     fireEvent.change(
       screen.getByPlaceholderText("e.g. GitLab Cloud, Company GitLab"),
@@ -86,10 +84,9 @@ describe("AddProviderDialog — main flow", () => {
 
     // Step 4: credentials — fill the PAT field then submit
     expect(screen.getByText("Personal Access Token")).toBeInTheDocument();
-    fireEvent.change(
-      screen.getByPlaceholderText("glpat-xxxxxxxxxxxxxxxxxxxx"),
-      { target: { value: "glpat-secret" } },
-    );
+    fireEvent.change(screen.getByPlaceholderText("<gitlab-access-token>"), {
+      target: { value: "glpat-secret" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /add provider/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
@@ -107,7 +104,11 @@ describe("AddProviderDialog — main flow", () => {
 
   it("renders the error banner when the error prop is set", () => {
     render(
-      <AddProviderDialog {...baseProps} error="Connection failed" onSave={vi.fn()} />,
+      <AddProviderDialog
+        {...baseProps}
+        error="Connection failed"
+        onSave={vi.fn()}
+      />,
     );
     expect(screen.getByText("Connection failed")).toBeInTheDocument();
   });
@@ -145,7 +146,9 @@ describe("AddProviderDialog — main flow", () => {
 
   it("closes via the close (X) button", () => {
     const onClose = vi.fn();
-    render(<AddProviderDialog {...baseProps} onClose={onClose} onSave={vi.fn()} />);
+    render(
+      <AddProviderDialog {...baseProps} onClose={onClose} onSave={vi.fn()} />,
+    );
     fireEvent.click(screen.getByRole("button", { name: /close/i }));
     expect(onClose).toHaveBeenCalled();
   });
@@ -175,9 +178,7 @@ describe("AddProviderDialog — GitHub OAuth disabled (Task 5)", () => {
     // avoids ambiguous accessible-name matches across the 3 cards' descriptions.
     const oauthCard = screen.getByText("OAuth").closest("button");
     const bothCard = screen.getByText("Both").closest("button");
-    const patCard = screen
-      .getByText("Personal Access Token")
-      .closest("button");
+    const patCard = screen.getByText("Personal Access Token").closest("button");
     expect(oauthCard).toBeDisabled();
     expect(bothCard).toBeDisabled();
     expect(patCard).not.toBeDisabled();
@@ -189,7 +190,7 @@ describe("AddProviderDialog — GitHub OAuth disabled (Task 5)", () => {
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
     expect(screen.queryByText("Redirect URI")).not.toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText("ghp_xxxxxxxxxxxxxxxxxxxx"),
+      screen.getByPlaceholderText("<github-access-token>"),
     ).toBeInTheDocument();
   });
 

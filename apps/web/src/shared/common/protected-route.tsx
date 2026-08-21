@@ -3,33 +3,29 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/api/use-auth";
-import type { UserRole } from "@/features/auth/types/auth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: UserRole;
+  requireWorkspaceAdmin?: boolean;
 }
 
 export function ProtectedRoute({
   children,
-  requiredRole,
+  requireWorkspaceAdmin = false,
 }: ProtectedRouteProps) {
   const router = useRouter();
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const hasRequiredRole = !requireWorkspaceAdmin || isAdmin;
 
   useEffect(() => {
     if (!loading) {
       if (!isAuthenticated) {
         router.replace("/login");
-      } else if (
-        requiredRole &&
-        user?.role !== requiredRole &&
-        user?.role !== "SUPER_ADMIN"
-      ) {
+      } else if (!hasRequiredRole) {
         router.replace("/access-denied");
       }
     }
-  }, [isAuthenticated, user, loading, requiredRole, router]);
+  }, [hasRequiredRole, isAuthenticated, loading, router]);
 
   if (loading) {
     return (
@@ -46,7 +42,7 @@ export function ProtectedRoute({
     return null;
   }
 
-  if (requiredRole && user?.role !== requiredRole && user?.role !== "SUPER_ADMIN") {
+  if (!hasRequiredRole) {
     return null;
   }
 

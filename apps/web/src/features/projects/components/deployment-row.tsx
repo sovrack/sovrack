@@ -43,6 +43,7 @@ type DeploymentRowProps = {
   cancellingId: string | null;
   deletingId: string | null;
   confirmDeleteId: string | null;
+  canMutate: boolean;
   onOpenDetails: (dep: Deployment) => void;
   onRollback: (id: string) => void;
   onRestore: (id: string) => void;
@@ -65,6 +66,7 @@ export function DeploymentRow({
   cancellingId,
   deletingId,
   confirmDeleteId,
+  canMutate,
   onOpenDetails,
   onRollback,
   onRestore,
@@ -193,7 +195,7 @@ export function DeploymentRow({
           Details <ChevronRight size={11} />
         </button>
 
-        {isLive && (
+        {canMutate && isLive && (
           <button
             type="button"
             onClick={() => onCancel(dep.id)}
@@ -210,7 +212,7 @@ export function DeploymentRow({
           </button>
         )}
 
-        {isSuperseded && (
+        {canMutate && isSuperseded && (
           <button
             type="button"
             onClick={() => onRestore(dep.id)}
@@ -227,7 +229,7 @@ export function DeploymentRow({
           </button>
         )}
 
-        {dep.status === "FAILED" && (
+        {canMutate && dep.status === "FAILED" && (
           <button
             type="button"
             onClick={() => onRollback(dep.id)}
@@ -244,7 +246,7 @@ export function DeploymentRow({
           </button>
         )}
 
-        {canRollback && (
+        {canMutate && canRollback && (
           <button
             type="button"
             onClick={() => onRedeploy(dep)}
@@ -256,7 +258,7 @@ export function DeploymentRow({
           </button>
         )}
 
-        {confirmDeleteId === dep.id ? (
+        {canMutate && (confirmDeleteId === dep.id ? (
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -289,7 +291,7 @@ export function DeploymentRow({
             <Trash2 size={11} />
             <span className="hidden sm:inline">Delete</span>
           </button>
-        )}
+        ))}
       </div>
     </div>
   );

@@ -49,6 +49,9 @@ import { DeploymentLogsDialog } from "@/features/projects/components/tabs/runs/d
 import { resolveDeploymentUrl } from "@/features/deployments/utils";
 import type { Service } from "@/features/projects/types/service";
 import type { Deployment } from "@/features/deployments/types";
+import { useProject } from "@/features/projects/api/use-projects";
+import { useAuth } from "@/features/auth/api/use-auth";
+import { canProject } from "@/shared/auth/permissions";
 
 type Tab =
   | "general"
@@ -90,6 +93,8 @@ export default function ServiceDetailPage({
     id: string;
     status: Deployment["status"];
   } | null>(null);
+  const { user, workspaceRole, isAdmin } = useAuth();
+  const projectQuery = useProject(projectId);
 
   const servicesQuery = useProjectServices(projectId);
   const deploymentsQuery = useProjectDeployments(projectId);
@@ -102,15 +107,24 @@ export default function ServiceDetailPage({
   );
   const environments = environmentsQuery.data ?? [];
   const loading =
+    projectQuery.loading ||
     servicesQuery.isLoading ||
     deploymentsQuery.loading ||
     environmentsQuery.isLoading;
   const error =
+    projectQuery.error ??
     (servicesQuery.error ? getApiErrorMessage(servicesQuery.error) : null) ??
     (environmentsQuery.error
       ? getApiErrorMessage(environmentsQuery.error)
       : null) ??
     deploymentsQuery.error;
+  const directRole =
+    projectQuery.project?.members.find((member) => member.user.id === user?.id)
+      ?.role ?? null;
+  const canManage = canProject(workspaceRole, directRole, "update");
+  const canDeploy = canProject(workspaceRole, directRole, "deploy");
+  const canRollback = canProject(workspaceRole, directRole, "rollback");
+  const canReadSecrets = canProject(workspaceRole, directRole, "readSecrets");
 
   const reload = () => {
     void servicesQuery.refetch();
@@ -151,18 +165,32 @@ export default function ServiceDetailPage({
   //    Pipeline/Standardisation/Webhooks ; le reste (dont Deployments) reste.
   //  - APPLICATION (Git) : liste complète.
   const visibleTabs = useMemo(() => {
+    let tabs: typeof TABS;
     if (isDatabase) {
-      return TABS.filter((t) =>
+      tabs = TABS.filter((t) =>
         ["general", "containers", "logs"].includes(t.id),
       );
-    }
-    if (isExternalImage) {
-      return TABS.filter(
+    } else if (isExternalImage) {
+      tabs = TABS.filter(
         (t) => !["pipeline", "standardisation", "webhooks"].includes(t.id),
       );
+    } else {
+      tabs = TABS;
     }
-    return TABS;
-  }, [isDatabase, isExternalImage]);
+    if (!canManage) {
+      return tabs.filter(
+        (item) =>
+          !["standardisation", "variables", "domains", "webhooks"].includes(
+            item.id,
+          ),
+      );
+    }
+
+    // DNS providers are workspace-level integrations. The backend protects
+    // this surface with integration.manage, so a direct project MAINTAINER
+    // must not be shown a tab whose API calls will necessarily be rejected.
+    return isAdmin ? tabs : tabs.filter((item) => item.id !== "domains");
+  }, [canManage, isAdmin, isDatabase, isExternalImage]);
 
   // Si l'onglet courant n'est plus visible pour ce type (ex. bascule de type,
   // ou état résiduel), on retombe sur General.
@@ -235,20 +263,22 @@ export default function ServiceDetailPage({
               selectedEnvId={effectiveEnvId}
               onSelect={setEffectiveEnvId}
             />
-            <button
-              type="button"
-              onClick={() => void handleDelete()}
-              disabled={deleting}
-              title="Delete this service"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
-            >
-              {deleting ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Trash2 size={14} />
-              )}{" "}
-              {t("Delete")}
-            </button>
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => void handleDelete()}
+                disabled={deleting}
+                title="Delete this service"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+              >
+                {deleting ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Trash2 size={14} />
+                )}{" "}
+                {t("Delete")}
+              </button>
+            )}
           </div>
         }
       />
@@ -258,19 +288,21 @@ export default function ServiceDetailPage({
           volume de données, health-gate) ; sans elle, un conteneur retiré
           par erreur était irrécupérable depuis l'UI. Seul "Open app" est
           masqué (une base n'a pas d'URL navigable). */}
-      <ServiceDeployBar
-        redeploying={redeploying}
-        stopping={stopping}
-        effectiveEnvId={effectiveEnvId}
-        envName={environments.find((e) => e.id === effectiveEnvId)?.name}
+      {canDeploy && (
+        <ServiceDeployBar
+          redeploying={redeploying}
+          stopping={stopping}
+          effectiveEnvId={effectiveEnvId}
+          envName={environments.find((e) => e.id === effectiveEnvId)?.name}
           lastDeployment={lastDeployment}
-        appUrl={isDatabase ? null : appUrl}
-        onDeploy={() => setDeployOpen(true)}
-        onRedeploy={() => void handleRedeploy()}
-        onStop={() => void handleStop()}
-        onTerminal={() => setTerminalOpen(true)}
-      />
-
+          appUrl={isDatabase ? null : appUrl}
+          onDeploy={() => setDeployOpen(true)}
+          onRedeploy={() => void handleRedeploy()}
+          onStop={() => void handleStop()}
+          onTerminal={() => setTerminalOpen(true)}
+          allowTerminal={isAdmin}
+        />
+      )}
 
       {/* Tabs */}
       <div className="border-b border-[var(--border)]">
@@ -315,13 +347,21 @@ export default function ServiceDetailPage({
                   ici, dans General — une base managée n'a que 3 onglets
                   (General / Containers / Logs), plus d'onglet Credentials
                   séparé. Chargés à la demande via l'endpoint dédié gaté. */}
-              <ServiceCredentials
-                projectId={projectId}
-                serviceId={serviceId}
-                active={activeTab === "general"}
-              />
+              {canReadSecrets ? (
+                <ServiceCredentials
+                  projectId={projectId}
+                  serviceId={serviceId}
+                  active={activeTab === "general"}
+                />
+              ) : (
+                <SectionCard title="Credentials">
+                  <p className="text-sm text-[var(--text-muted)]">
+                    Seuls les Maintainers peuvent révéler les identifiants.
+                  </p>
+                </SectionCard>
+              )}
             </>
-          ) : (
+          ) : canManage ? (
             <ServiceConfigForm
               projectId={projectId}
               service={service}
@@ -333,6 +373,12 @@ export default function ServiceDetailPage({
               }
               onSaved={() => reload()}
             />
+          ) : (
+            <SectionCard title="Configuration">
+              <p className="text-sm text-[var(--text-muted)]">
+                Accès en lecture seule. Un Maintainer peut modifier ce service.
+              </p>
+            </SectionCard>
           )}
         </div>
       )}
@@ -397,6 +443,7 @@ export default function ServiceDetailPage({
           onOpenDetails={(dep) =>
             setLogsDialog({ id: dep.id, status: dep.status })
           }
+          canMutate={canRollback}
         />
       )}
 
@@ -454,26 +501,30 @@ export default function ServiceDetailPage({
         />
       )}
 
-      <DeployDialog
-        projectId={projectId}
-        open={deployOpen}
-        onClose={() => setDeployOpen(false)}
-        onCreated={() => {
-          setDeployOpen(false);
-          reload();
-        }}
-        services={services}
-        initialServiceId={serviceId}
-        initialEnvironmentId={effectiveEnvId || undefined}
-      />
+      {canDeploy && (
+        <DeployDialog
+          projectId={projectId}
+          open={deployOpen}
+          onClose={() => setDeployOpen(false)}
+          onCreated={() => {
+            setDeployOpen(false);
+            reload();
+          }}
+          services={services}
+          initialServiceId={serviceId}
+          initialEnvironmentId={effectiveEnvId || undefined}
+        />
+      )}
 
-      <ServiceTerminalDialog
-        projectId={projectId}
-        envId={effectiveEnvId || null}
-        envName={environments.find((e) => e.id === effectiveEnvId)?.name}
-        open={terminalOpen}
-        onClose={() => setTerminalOpen(false)}
-      />
+      {isAdmin && (
+        <ServiceTerminalDialog
+          projectId={projectId}
+          envId={effectiveEnvId || null}
+          envName={environments.find((e) => e.id === effectiveEnvId)?.name}
+          open={terminalOpen}
+          onClose={() => setTerminalOpen(false)}
+        />
+      )}
 
       {/* Détails/logs d'un déploiement en popup — on reste dans le service. */}
       <DeploymentLogsDialog

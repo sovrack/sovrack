@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import {
   AlertTriangle,
@@ -20,9 +20,10 @@ import { SectionCard } from "@/shared/layout/section-card";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { teamsService } from "@/features/teams/api/teams.service";
 import { useTeam, teamKey } from "@/features/teams/api/use-teams";
-import { useUsers } from "@/features/users/api/use-users";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { useAuth } from "@/features/auth/api/use-auth";
+import type { WorkspaceRole } from "@/features/teams/types/team";
+import { useWorkspaceStore } from "@/stores/workspace.store";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -38,18 +39,35 @@ type ToastState = { message: string; tone: "success" | "error" } | null;
 export default function TeamDetailPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const workspaces = useWorkspaceStore((state) => state.workspaces);
+  const selectWorkspace = useWorkspaceStore((state) => state.selectWorkspace);
+  const targetMembership = workspaces
+    .find((workspace) => workspace.id === id)
+    ?.members.find((member) => member.userId === user?.id);
+  const workspaceRole = targetMembership?.role ?? null;
+  const isAdmin = workspaceRole === "OWNER" || workspaceRole === "ADMIN";
 
   const queryClient = useQueryClient();
   const canQuery = !authLoading && isAdmin;
   const teamQuery = useTeam(id, canQuery);
-  const usersQuery = useUsers(canQuery);
   const team = teamQuery.data ?? null;
-  const users = usersQuery.data ?? [];
-  const loading = teamQuery.isLoading || usersQuery.isLoading;
+  const invitationsQuery = useQuery({
+    queryKey: ["workspace-invitations", id],
+    queryFn: () => teamsService.listInvitations(id),
+    enabled: canQuery,
+  });
+  const invitations = invitationsQuery.data ?? [];
+  const loading = teamQuery.isLoading || invitationsQuery.isLoading;
+
+  useEffect(() => {
+    if (isAdmin) selectWorkspace(id);
+  }, [id, isAdmin, selectWorkspace]);
 
   const [saving, setSaving] = useState(false);
-  const [addingUserId, setAddingUserId] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<WorkspaceRole>("MEMBER");
+  const [inviting, setInviting] = useState(false);
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -116,16 +134,32 @@ export default function TeamDetailPage({ params }: Props) {
     }
   };
 
-  const handleAddMember = async (userId: string) => {
-    setAddingUserId(userId);
+  const handleInvite = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setInviting(true);
     try {
-      const updated = await teamsService.addMember(id, { userId });
-      queryClient.setQueryData(teamKey(id), updated);
-      showToast("Member added", "success");
+      await teamsService.invite(id, {
+        email: inviteEmail.trim(),
+        role: inviteRole,
+      });
+      setInviteEmail("");
+      setInviteRole("MEMBER");
+      await invitationsQuery.refetch();
+      showToast("Invitation sent", "success");
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
     } finally {
-      setAddingUserId(null);
+      setInviting(false);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, role: WorkspaceRole) => {
+    try {
+      const updated = await teamsService.updateMemberRole(id, userId, role);
+      queryClient.setQueryData(teamKey(id), updated);
+      showToast("Member role updated", "success");
+    } catch (err) {
+      showToast(getApiErrorMessage(err), "error");
     }
   };
 
@@ -139,6 +173,22 @@ export default function TeamDetailPage({ params }: Props) {
       showToast(getApiErrorMessage(err), "error");
     } finally {
       setRemovingUserId(null);
+    }
+  };
+
+  const handleStatusChange = async (
+    userId: string,
+    status: "ACTIVE" | "SUSPENDED",
+  ) => {
+    try {
+      const updated = await teamsService.updateMemberStatus(id, userId, status);
+      queryClient.setQueryData(teamKey(id), updated);
+      showToast(
+        status === "ACTIVE" ? "Member reactivated" : "Member suspended",
+        "success",
+      );
+    } catch (err) {
+      showToast(getApiErrorMessage(err), "error");
     }
   };
 
@@ -163,9 +213,6 @@ export default function TeamDetailPage({ params }: Props) {
       </div>
     );
   }
-
-  const memberIds = new Set(team.members.map((m) => m.userId));
-  const availableUsers = users.filter((u) => !memberIds.has(u.id));
 
   return (
     <div className="space-y-6">
@@ -269,59 +316,104 @@ export default function TeamDetailPage({ params }: Props) {
                       {member.user.email}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleRemoveMember(member.userId)}
-                    disabled={removingUserId === member.userId}
-                    className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                  >
-                    {removingUserId === member.userId ? (
-                      <Loader2 size={13} className="animate-spin" />
-                    ) : (
-                      <UserMinus size={13} />
-                    )}
-                    Retirer
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void handleStatusChange(
+                          member.userId,
+                          member.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE",
+                        )
+                      }
+                      className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium"
+                    >
+                      {member.status === "ACTIVE" ? "Suspendre" : "Réactiver"}
+                    </button>
+                    <select
+                      aria-label={`Role de ${member.user.email}`}
+                      value={member.role}
+                      onChange={(event) =>
+                        void handleRoleChange(
+                          member.userId,
+                          event.target.value as WorkspaceRole,
+                        )
+                      }
+                      className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs"
+                    >
+                      <option value="MEMBER">Member</option>
+                      {workspaceRole === "OWNER" && (
+                        <option value="ADMIN">Admin</option>
+                      )}
+                      {workspaceRole === "OWNER" && (
+                        <option value="OWNER">Owner</option>
+                      )}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => void handleRemoveMember(member.userId)}
+                      disabled={removingUserId === member.userId}
+                      className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {removingUserId === member.userId ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <UserMinus size={13} />
+                      )}
+                      Retirer
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
-          {availableUsers.length > 0 && (
-            <div className="pt-2">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                Add member
+          <form onSubmit={handleInvite} className="flex flex-wrap gap-2 pt-2">
+            <input
+              type="email"
+              required
+              value={inviteEmail}
+              onChange={(event) => setInviteEmail(event.target.value)}
+              placeholder="member@example.com"
+              className="h-10 min-w-64 flex-1 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm"
+            />
+            <select
+              value={inviteRole}
+              onChange={(event) =>
+                setInviteRole(event.target.value as WorkspaceRole)
+              }
+              className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm"
+            >
+              <option value="MEMBER">Member</option>
+              {workspaceRole === "OWNER" && <option value="ADMIN">Admin</option>}
+              {workspaceRole === "OWNER" && <option value="OWNER">Owner</option>}
+            </select>
+            <button
+              type="submit"
+              disabled={inviting}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 text-sm font-semibold text-[var(--bg-app)] disabled:opacity-50"
+            >
+              {inviting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+              Invite
+            </button>
+          </form>
+
+          {invitations.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                Pending invitations
               </p>
-              <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
-                {availableUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between px-4 py-3"
+              {invitations.map((invitation) => (
+                <div key={invitation.id} className="flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3 text-sm">
+                  <span>{invitation.email} · {invitation.role}</span>
+                  <button
+                    type="button"
+                    onClick={() => void teamsService.revokeInvitation(id, invitation.id).then(() => invitationsQuery.refetch())}
+                    className="text-xs font-semibold text-red-500"
                   >
-                    <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
-                        {user.fullName}
-                      </p>
-                      <p className="text-xs text-[var(--text-secondary)]">
-                        {user.email}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => void handleAddMember(user.id)}
-                      disabled={addingUserId === user.id}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
-                    >
-                      {addingUserId === user.id ? (
-                        <Loader2 size={13} className="animate-spin" />
-                      ) : (
-                        <UserPlus size={13} />
-                      )}
-                      Add
-                    </button>
-                  </div>
-                ))}
-              </div>
+                    Revoke
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

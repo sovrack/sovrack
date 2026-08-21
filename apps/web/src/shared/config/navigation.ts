@@ -12,12 +12,14 @@ import {
   Wrench,
   Users,
 } from "lucide-react";
+import type { ProductCapability } from "@/shared/config/product-capabilities";
 
 export type AppNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  capability?: ProductCapability;
 };
 
 export type AppNavSection = {
@@ -95,10 +97,15 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
     label: "Settings",
     items: [
       { href: "/settings/account", label: "My Account", icon: Users },
-      { href: "/settings/billing", label: "Billing", icon: CreditCard },
       {
-        href: "/admin/users",
-        label: "Users & Teams",
+        href: "/settings/billing",
+        label: "Billing",
+        icon: CreditCard,
+        capability: "selfServiceBilling",
+      },
+      {
+        href: "/admin/teams",
+        label: "Workspace Members",
         icon: Users,
         adminOnly: true,
       },

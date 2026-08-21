@@ -1,13 +1,9 @@
-import type { components } from "@/generated/api-contract";
-import type { UserRole } from "@/features/auth";
-
-type ApiSchema = components["schemas"];
+export type WorkspaceRole = "OWNER" | "ADMIN" | "MEMBER";
 
 export type TeamMemberUser = {
   id: string;
   email: string;
   fullName: string;
-  role: UserRole;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -17,6 +13,8 @@ export type TeamMember = {
   id: string;
   teamId: string;
   userId: string;
+  role: WorkspaceRole;
+  status: "ACTIVE" | "SUSPENDED";
   joinedAt: string;
   user: TeamMemberUser;
 };
@@ -24,13 +22,26 @@ export type TeamMember = {
 export type Team = {
   id: string;
   name: string;
+  slug: string;
   description: string | null;
   members: TeamMember[];
   createdAt: string;
   updatedAt: string;
 };
 
-// Request payloads derived from the backend contract (single source of truth).
-export type CreateTeamPayload = ApiSchema["CreateTeamDto"];
-export type UpdateTeamPayload = ApiSchema["UpdateTeamDto"];
-export type AddTeamMemberPayload = ApiSchema["AddTeamMemberDto"];
+export type CreateTeamPayload = { name: string; description?: string };
+export type UpdateTeamPayload = { name?: string; description?: string };
+export type AddTeamMemberPayload = {
+  userId: string;
+  role?: WorkspaceRole;
+};
+
+export type WorkspaceInvitation = {
+  id: string;
+  teamId: string;
+  email: string;
+  role: WorkspaceRole;
+  status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
+  expiresAt: string;
+  createdAt: string;
+};

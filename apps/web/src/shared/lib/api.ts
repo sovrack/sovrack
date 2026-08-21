@@ -1,5 +1,6 @@
 import axios, { AxiosError } from "axios";
 import { clearAuthStorage } from "@/shared/lib/auth";
+import { readWorkspaceSelection } from "@/shared/lib/workspace-storage";
 
 const API_BASE_URL = "/backend-api";
 const API_TIMEOUT_MS = 10_000;
@@ -9,8 +10,10 @@ export const AUTH_UNAUTHORIZED_EVENT = "auth:unauthorized";
 type UnauthorizedHandler = (() => void) | null;
 
 type ApiErrorPayload = {
+  code?: string;
   message?: string | string[];
   error?: string;
+  requestId?: string;
   statusCode?: number;
 };
 
@@ -108,6 +111,14 @@ const api = axios.create({
     "Content-Type": "application/json",
     Accept: "application/json",
   },
+});
+
+api.interceptors.request.use((config) => {
+  const workspaceId = readWorkspaceSelection();
+  if (workspaceId) {
+    config.headers.set("X-Workspace-Id", workspaceId);
+  }
+  return config;
 });
 
 api.interceptors.response.use(

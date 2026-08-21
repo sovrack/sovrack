@@ -2,18 +2,6 @@ import type { components } from "@/generated/api-contract";
 
 type ApiSchema = components["schemas"];
 
-export type PlatformConfigItem = {
-  id: string;
-  key: string;
-  value: string;
-  isSecret: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
-// Request payload derived from the backend contract.
-export type UpdatePlatformConfigPayload = ApiSchema["UpdatePlatformConfigDto"];
-
 export type GitlabTestResult = {
   ok: boolean;
   message: string;

@@ -34,6 +34,7 @@ export default function StaffUsersPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["staff-users", page],
     queryFn: () => staffService.getUsers(page, PAGE_SIZE),
+    enabled: typeof window !== "undefined",
   });
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
@@ -50,8 +51,7 @@ export default function StaffUsersPage() {
   });
 
   const activateMutation = useMutation({
-    mutationFn: (id: string) =>
-      staffService.updateUser(id, { isActive: true }),
+    mutationFn: (id: string) => staffService.updateUser(id, { isActive: true }),
     onSuccess: invalidate,
   });
 
@@ -106,7 +106,9 @@ export default function StaffUsersPage() {
           <tbody className="divide-y divide-white/5">
             {(data?.items ?? []).map((u) => (
               <tr key={u.id} className="hover:bg-white/5">
-                <td className="px-4 py-3 font-medium text-white">{u.fullName}</td>
+                <td className="px-4 py-3 font-medium text-white">
+                  {u.fullName}
+                </td>
                 <td className="px-4 py-3 text-zinc-400">{u.email}</td>
                 <td className="px-4 py-3">
                   <select

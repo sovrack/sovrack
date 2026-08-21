@@ -22,6 +22,7 @@ export function RegisterScreen() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registrationId, setRegistrationId] = useState("");
 
   const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
   const digitRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -51,7 +52,13 @@ export function RegisterScreen() {
 
     setLoading(true);
     try {
-      await register({ email, password, fullName, teamName });
+      const pendingRegistrationId = await register({
+        email,
+        password,
+        fullName,
+        teamName,
+      });
+      setRegistrationId(pendingRegistrationId);
       setLoading(false);
       setStep("verify");
       digitRefs.current[0]?.focus();
@@ -76,12 +83,14 @@ export function RegisterScreen() {
 
     setLoading(true);
     try {
-      await verifyEmail(email, code);
+      if (!registrationId) {
+        throw new Error("La tentative d'inscription a expiré. Recommencez.");
+      }
+      await verifyEmail(email, code, registrationId);
       router.replace("/dashboard");
     } catch (err: unknown) {
       setError(
-        getApiErrorMessage(err) ||
-          "Le code est invalide ou expiré. Réessayez.",
+        getApiErrorMessage(err) || "Le code est invalide ou expiré. Réessayez.",
       );
       setLoading(false);
     }
@@ -92,7 +101,10 @@ export function RegisterScreen() {
     setInfo("");
     setLoading(true);
     try {
-      await resendCode(email);
+      if (!registrationId) {
+        throw new Error("La tentative d'inscription a expiré. Recommencez.");
+      }
+      await resendCode(email, registrationId);
       setInfo("Un nouveau code a été envoyé par email.");
     } catch (err: unknown) {
       setError(getApiErrorMessage(err) || "Impossible de renvoyer le code.");
@@ -160,7 +172,9 @@ export function RegisterScreen() {
 
           {step === "form" ? (
             <>
-              <h1 className="mt-6 text-3xl font-bold text-white">Créer votre compte</h1>
+              <h1 className="mt-6 text-3xl font-bold text-white">
+                Créer votre compte
+              </h1>
               <p className="mt-2 text-slate-500">
                 Créez votre compte et accédez à votre espace Sovrack.
               </p>
@@ -216,8 +230,7 @@ export function RegisterScreen() {
                     className={inputClass}
                   />
                   <p className="mt-1 text-xs text-slate-500">
-                    Votre compte inclut une équipe, des projets et des serveurs
-                    managés.
+                    Ce nom sert à créer votre espace de travail de test.
                   </p>
                 </div>
                 <div>
@@ -242,7 +255,7 @@ export function RegisterScreen() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
+                  className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
                 >
                   {loading ? "Création en cours..." : "Créer mon compte"}
                 </button>
@@ -258,7 +271,9 @@ export function RegisterScreen() {
             </>
           ) : (
             <>
-              <h1 className="mt-6 text-3xl font-bold text-white">Vérifiez votre email</h1>
+              <h1 className="mt-6 text-3xl font-bold text-white">
+                Vérifiez votre email
+              </h1>
               <p className="mt-2 text-slate-500">
                 Nous avons envoyé un code de validation à{" "}
                 <span className="font-medium text-slate-300">{email}</span>.
@@ -291,7 +306,9 @@ export function RegisterScreen() {
                         inputMode="numeric"
                         maxLength={6}
                         value={digit}
-                        onChange={(e) => handleDigitChange(index, e.target.value)}
+                        onChange={(e) =>
+                          handleDigitChange(index, e.target.value)
+                        }
                         onKeyDown={(e) => handleDigitKeyDown(index, e)}
                         onPaste={handleDigitPaste}
                         aria-label={`Chiffre ${index + 1}`}
@@ -307,7 +324,7 @@ export function RegisterScreen() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
+                  className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
                 >
                   {loading ? "Vérification..." : "Vérifier et accéder"}
                 </button>

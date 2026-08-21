@@ -5,7 +5,7 @@ import "@/styles/globals.css";
 
 export const metadata: Metadata = {
   title: "Sovrack",
-  description: "Plateforme de déploiement automatisé",
+  description: "Plateforme en cours de développement privé",
 };
 
 export const viewport = {

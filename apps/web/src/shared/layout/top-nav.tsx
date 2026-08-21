@@ -24,6 +24,7 @@ import {
 import clsx from "clsx";
 import type { Deployment } from "@/features/deployments/types";
 import { timeAgoCompact } from "@/shared/lib/format-date";
+import { WorkspaceSwitcher } from "@/features/teams/components/workspace-switcher";
 
 /* ─── Notification bell ─────────────────────────────────────────────────── */
 
@@ -114,7 +115,7 @@ function NotificationBell() {
               {t("Recent activity")}
             </span>
             <Link
-              href="/settings"
+              href="/settings/account"
               onClick={() => setOpen(false)}
               className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] transition hover:text-[var(--text-secondary)]"
             >
@@ -206,7 +207,7 @@ function LanguageToggle() {
 export function TopNav() {
   const { t } = useI18n();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, workspaceRole } = useAuth();
   const { toggleSidebar } = useSidebar();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -253,6 +254,7 @@ export function TopNav() {
         </button>
 
         <div className="ml-auto flex items-center gap-1.5">
+          <WorkspaceSwitcher />
           <LanguageToggle />
           <ThemeToggle />
           <NotificationBell />
@@ -271,7 +273,7 @@ export function TopNav() {
                   {user?.fullName ?? "User"}
                 </p>
                 <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  {user?.role ?? "MEMBER"}
+                  {workspaceRole ?? "MEMBER"}
                 </p>
               </div>
               <ChevronDown

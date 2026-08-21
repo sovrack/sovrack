@@ -198,7 +198,9 @@ export function ProviderCredentialsStep({
               value={adminToken}
               onChange={onAdminTokenChange}
               placeholder={
-                isGithub ? "ghp_xxxxxxxxxxxxxxxxxxxx" : "glpat-xxxxxxxxxxxxxxxxxxxx"
+                isGithub
+                  ? "<github-access-token>"
+                  : "<gitlab-access-token>"
               }
               alreadySet={isEdit && adminTokenConfigured}
               label={tokenLabel}

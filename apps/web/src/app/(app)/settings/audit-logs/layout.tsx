@@ -5,5 +5,5 @@ export default function AuditLogsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <ProtectedRoute requiredRole="SUPER_ADMIN">{children}</ProtectedRoute>;
+  return <ProtectedRoute requireWorkspaceAdmin>{children}</ProtectedRoute>;
 }

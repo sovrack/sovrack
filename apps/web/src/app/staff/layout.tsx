@@ -34,18 +34,25 @@ export default function StaffLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { staff, logout, fetchMe } = useStaffAuth();
+  const { staff, loading, initialized, logout, fetchMe } = useStaffAuth();
 
   useEffect(() => {
-    void fetchMe();
-  }, [fetchMe]);
+    if (pathname !== "/staff/login") {
+      void fetchMe();
+    }
+  }, [fetchMe, pathname]);
+
+  useEffect(() => {
+    if (pathname !== "/staff/login" && initialized && !loading && !staff) {
+      router.replace("/staff/login");
+    }
+  }, [initialized, loading, pathname, router, staff]);
 
   if (pathname === "/staff/login") {
     return <>{children}</>;
   }
 
-  if (!staff) {
-    router.replace("/staff/login");
+  if (!initialized || loading || !staff) {
     return null;
   }
 
@@ -98,7 +105,9 @@ export default function StaffLayout({
                 <p className="truncate text-xs font-semibold text-white">
                   {staff.fullName}
                 </p>
-                <p className="truncate text-[11px] text-zinc-400">{staff.email}</p>
+                <p className="truncate text-[11px] text-zinc-400">
+                  {staff.email}
+                </p>
               </div>
             </div>
             <button
@@ -122,7 +131,9 @@ export default function StaffLayout({
           </div>
         </aside>
 
-        <main className="min-h-screen flex-1 bg-zinc-950 px-8 py-8">{children}</main>
+        <main className="min-h-screen flex-1 bg-zinc-950 px-8 py-8">
+          {children}
+        </main>
       </div>
     </div>
   );

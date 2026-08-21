@@ -22,7 +22,7 @@ export default function AccessDeniedPage() {
             Retour au tableau de bord
           </Link>
           <Link
-            href="/settings"
+            href="/settings/account"
             className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--hover)]"
           >
             Ouvrir les paramètres

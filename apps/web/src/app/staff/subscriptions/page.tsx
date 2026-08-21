@@ -24,6 +24,7 @@ export default function StaffSubscriptionsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["staff-subscriptions"],
     queryFn: () => staffService.getSubscriptions(),
+    enabled: typeof window !== "undefined",
   });
 
   return (
@@ -54,7 +55,9 @@ export default function StaffSubscriptionsPage() {
           <tbody className="divide-y divide-white/5">
             {(data ?? []).map((s) => (
               <tr key={s.id} className="hover:bg-white/5">
-                <td className="px-4 py-3 font-medium text-white">{s.team.name}</td>
+                <td className="px-4 py-3 font-medium text-white">
+                  {s.team.name}
+                </td>
                 <td className="px-4 py-3 text-zinc-300">{s.plan}</td>
                 <td className="px-4 py-3">
                   <span

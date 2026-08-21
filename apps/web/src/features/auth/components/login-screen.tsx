@@ -7,8 +7,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { useAuth } from "@/features/auth/api/use-auth";
-import { useAuthStore } from "@/stores/auth.store";
 import { getApiErrorMessage } from "@/shared/lib/api";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { GoogleLoginButton } from "./google-login-button";
 
 export function LoginScreen() {
@@ -20,7 +20,9 @@ export function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(oauthError ? decodeURIComponent(oauthError) : "");
+  const [error, setError] = useState(
+    oauthError ? decodeURIComponent(oauthError) : "",
+  );
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -29,11 +31,7 @@ export function LoginScreen() {
     setLoading(true);
     try {
       await login(email, password);
-      const { user } = useAuthStore.getState();
-      const next =
-        user?.role === "SUPER_ADMIN"
-          ? "/staff"
-          : searchParams.get("next") || "/dashboard";
+      const next = searchParams.get("next") || "/dashboard";
       router.replace(next);
     } catch (err: unknown) {
       setError(
@@ -63,14 +61,18 @@ export function LoginScreen() {
           )}
 
           <form onSubmit={handleSubmit} className="mt-10 space-y-5">
-            <GoogleLoginButton />
-            <div className="relative flex items-center gap-3 py-1">
-              <span className="h-px flex-1 bg-white/10" />
-              <span className="text-xs uppercase tracking-wide text-slate-500">
-                ou avec votre email
-              </span>
-              <span className="h-px flex-1 bg-white/10" />
-            </div>
+            {isCapabilityEnabled("googleAuthentication") && (
+              <>
+                <GoogleLoginButton />
+                <div className="relative flex items-center gap-3 py-1">
+                  <span className="h-px flex-1 bg-white/10" />
+                  <span className="text-xs uppercase tracking-wide text-slate-500">
+                    ou avec votre email
+                  </span>
+                  <span className="h-px flex-1 bg-white/10" />
+                </div>
+              </>
+            )}
             <div>
               <label
                 htmlFor="email"
@@ -111,7 +113,9 @@ export function LoginScreen() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={
-                    showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"
+                    showPassword
+                      ? "Masquer le mot de passe"
+                      : "Afficher le mot de passe"
                   }
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200"
                 >
@@ -130,7 +134,7 @@ export function LoginScreen() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
+              className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
             >
               {loading ? "Connexion..." : "Se connecter"}
             </button>

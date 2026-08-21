@@ -24,6 +24,7 @@ import { AddServiceWizard } from "@/features/projects/components/add-service-wiz
 import { ProjectMembersTab } from "@/features/projects/components/project-members-tab";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { projectsService } from "@/features/projects/api/projects.service";
+import { canProject } from "@/shared/auth/permissions";
 
 type ProjectPageProps = {
   params: Promise<{ id: string }>;
@@ -33,7 +34,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, workspaceRole } = useAuth();
   const { project, loading, error, refresh } = useProject(id);
 
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -55,7 +56,6 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
 
   const members = useProjectMembers({
     projectId: id,
-    isAdmin,
   });
   const servicesQuery = useProjectServices(id);
   const environmentsQuery = useProjectEnvironments(id);
@@ -108,7 +108,11 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     );
 
   const currentMember = project.members.find((m) => m.user.id === user?.id);
-  const isOwner = isAdmin || currentMember?.role === "OWNER";
+  const canManageProject = canProject(
+    workspaceRole,
+    currentMember?.role ?? null,
+    "update",
+  );
 
   return (
     <div className="space-y-6">
@@ -126,22 +130,22 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
             </Link>
 
             {/* Gestion des environnements (dialog) */}
-            <button
+            {canManageProject && <button
               type="button"
               onClick={() => setEnvOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
             >
               <Layers size={15} /> Project Environment
-            </button>
+            </button>}
 
             {/* Create Service — ouvre le wizard « Choose a service type » */}
-            <button
+            {canManageProject && <button
               type="button"
               onClick={() => openCreate()}
               className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
             >
               <Plus size={15} /> Create Service
-            </button>
+            </button>}
 
             {/* Settings (membres + suppression) */}
             <button
@@ -186,7 +190,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       <ServicesList
         projectId={id}
         services={servicesQuery.data ?? []}
-        onAddService={() => openCreate()}
+        onAddService={canManageProject ? () => openCreate() : undefined}
       />
 
       {/* Create Service wizard — démarre sur « Choose a service type » */}
@@ -222,24 +226,14 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       >
         <ProjectMembersTab
           project={project}
-          isOwner={isOwner}
-          isAdmin={isAdmin}
+          isOwner={canManageProject}
           currentUserId={user?.id}
           addMemberOpen={members.addMemberOpen}
           setAddMemberOpen={members.setAddMemberOpen}
-          teams={members.teams}
-          selectedTeamId={members.selectedTeamId}
-          setSelectedTeamId={members.setSelectedTeamId}
-          addTeamLoading={members.addTeamLoading}
-          addTeamSuccess={members.addTeamSuccess}
-          addTeamError={members.addTeamError}
           onAddMember={members.handleAddMember}
           onRemoveMember={members.handleRemoveMember}
-          onAddTeam={members.handleAddTeam}
-          /* Suppression de projet réservée ADMIN côté backend
-             (projects.controller.ts: @Roles(Role.ADMIN)) — un OWNER de
-             projet non-ADMIN ne doit pas voir ce bouton (il recevrait
-             systématiquement une 403 au clic). */
+          onRoleChange={members.handleRoleChange}
+          /* Project deletion is a workspace OWNER/ADMIN permission. */
           onDeleteProject={isAdmin ? handleDelete : undefined}
           deleteLoading={deleteLoading}
         />

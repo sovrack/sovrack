@@ -5,6 +5,7 @@ import type {
   CreateProjectPayload,
   UpdateProjectPayload,
   AddMemberPayload,
+  ProjectRole,
   ConnectSourcePayload,
   GitlabBranch,
   GitlabPipeline,
@@ -64,6 +65,18 @@ export const projectsService = {
 
   async removeMember(projectId: string, memberId: string): Promise<void> {
     await api.delete(`/projects/${projectId}/members/${memberId}`);
+  },
+
+  async updateMemberRole(
+    projectId: string,
+    memberId: string,
+    role: ProjectRole,
+  ): Promise<ProjectDetail> {
+    const res = await api.patch<ProjectDetail>(
+      `/projects/${projectId}/members/${memberId}/role`,
+      { role },
+    );
+    return res.data;
   },
 
   async connectSource(

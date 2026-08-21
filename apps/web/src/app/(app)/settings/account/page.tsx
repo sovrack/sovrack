@@ -15,16 +15,14 @@ import { useI18n } from "@/shared/i18n/language-context";
 import { useThemeContext } from "@/shared/contexts/theme-context";
 
 /**
- * LOT2b (décision utilisateur) : page de réglages PERSONNELS, accessible à
- * TOUS les rôles — mot de passe, langue, thème. Les réglages PLATEFORME
- * (identité, webhook, config) restent sur /settings, réservés aux admins.
- * Avant : tout était mélangé sur /settings avec un gating isAdmin interne, et
- * un développeur n'avait aucune entrée de menu pour changer son mot de passe.
+ * Réglages personnels, accessibles à tous les membres d'un workspace.
+ * Les intégrations sont configurées dans leur workspace et l'administration
+ * globale de la plateforme reste strictement séparée dans le back-office staff.
  */
 export default function MyAccountPage() {
   const { t, lang, setLang } = useI18n();
   const { theme, toggleTheme } = useThemeContext();
-  const { user } = useAuth();
+  const { user, workspaceRole } = useAuth();
   const router = useRouter();
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -149,7 +147,7 @@ export default function MyAccountPage() {
               {user?.fullName}
             </p>
             <p className="text-xs text-[var(--text-secondary)]">
-              {user?.email} · {user?.role}
+              {user?.email} · {workspaceRole ?? "MEMBER"}
             </p>
           </div>
         </div>
@@ -237,7 +235,7 @@ export default function MyAccountPage() {
       <SectionCard
         title={t("Danger zone")}
         description={t(
-          "Delete your account and all associated data permanently. This cannot be undone.",
+          "Delete your identity and leave your workspaces. Workspace resources are preserved. This cannot be undone.",
         )}
       >
         {!codeSent ? (

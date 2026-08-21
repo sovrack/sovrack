@@ -29,6 +29,7 @@ export default function StaffAuditLogsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["staff-audit-logs", page],
     queryFn: () => staffService.getAuditLogs(page, PAGE_SIZE),
+    enabled: typeof window !== "undefined",
   });
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
@@ -40,7 +41,9 @@ export default function StaffAuditLogsPage() {
           <ClipboardList size={18} />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-white">Journal d&apos;audit</h1>
+          <h1 className="text-2xl font-bold text-white">
+            Journal d&apos;audit
+          </h1>
           <p className="text-sm text-zinc-400">
             Toutes les actions du back-office, enregistrées de manière
             append-only ({data?.total ?? "…"}).

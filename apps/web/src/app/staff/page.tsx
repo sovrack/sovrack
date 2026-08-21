@@ -9,6 +9,7 @@ export default function StaffDashboardPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["staff-overview"],
     queryFn: () => staffService.getOverview(),
+    enabled: typeof window !== "undefined",
   });
 
   if (isLoading || !data) {
@@ -67,7 +68,9 @@ export default function StaffDashboardPage() {
 
       <div className="mt-10">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Derniers comptes créés</h2>
+          <h2 className="text-lg font-semibold text-white">
+            Derniers comptes créés
+          </h2>
           <Link
             href="/staff/users"
             className="text-sm font-medium text-blue-400 hover:text-blue-300"
@@ -107,7 +110,10 @@ export default function StaffDashboardPage() {
               ))}
               {data.recentUsers.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
+                  <td
+                    colSpan={4}
+                    className="px-4 py-8 text-center text-zinc-500"
+                  >
                     Aucun compte pour l&apos;instant.
                   </td>
                 </tr>

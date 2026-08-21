@@ -37,7 +37,9 @@ export function StaffLoginScreen() {
     <div className="min-h-screen bg-brand text-zinc-200">
       <header className="border-b border-white/10 bg-brand/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-6">
-          <Link href="/" className="flex items-center"><SovrackBrand logoSize={30} textClassName="text-white" /></Link>
+          <Link href="/" className="flex items-center">
+            <SovrackBrand logoSize={30} textClassName="text-white" />
+          </Link>
         </div>
       </header>
 
@@ -103,7 +105,7 @@ export function StaffLoginScreen() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-violet-500 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+              className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
             >
               {loading ? "Connexion..." : "Accéder au back-office"}
             </button>

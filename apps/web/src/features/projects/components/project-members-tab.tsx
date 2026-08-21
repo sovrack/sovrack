@@ -2,27 +2,22 @@ import { AlertTriangle, Loader2, Plus, Trash2 } from "lucide-react";
 import { AddMemberModal } from "@/features/projects/components/add-member-modal";
 import { MembersList } from "@/features/projects/components/members-list";
 import type { ProjectDetail } from "@/features/projects/types/project";
-import type { Team } from "@/features/teams";
 
 type ProjectMembersTabProps = {
   project: ProjectDetail;
   isOwner: boolean;
-  isAdmin: boolean;
   currentUserId?: string;
   addMemberOpen: boolean;
   setAddMemberOpen: (open: boolean) => void;
-  teams: Team[];
-  selectedTeamId: string;
-  setSelectedTeamId: (value: string) => void;
-  addTeamLoading: boolean;
-  addTeamSuccess: string | null;
-  addTeamError: string | null;
   onAddMember: (
     email: string,
-    role: "OWNER" | "DEVELOPER" | "VIEWER",
+    role: "MAINTAINER" | "DEVELOPER" | "VIEWER",
   ) => Promise<void>;
   onRemoveMember: (userId: string) => Promise<void>;
-  onAddTeam: () => Promise<void>;
+  onRoleChange: (
+    userId: string,
+    role: "MAINTAINER" | "DEVELOPER" | "VIEWER",
+  ) => Promise<void>;
   onDeleteProject?: () => void;
   deleteLoading?: boolean;
 };
@@ -30,19 +25,12 @@ type ProjectMembersTabProps = {
 export function ProjectMembersTab({
   project,
   isOwner,
-  isAdmin,
   currentUserId,
   addMemberOpen,
   setAddMemberOpen,
-  teams,
-  selectedTeamId,
-  setSelectedTeamId,
-  addTeamLoading,
-  addTeamSuccess,
-  addTeamError,
   onAddMember,
   onRemoveMember,
-  onAddTeam,
+  onRoleChange,
   onDeleteProject,
   deleteLoading = false,
 }: ProjectMembersTabProps) {
@@ -66,6 +54,7 @@ export function ProjectMembersTab({
         canManage={isOwner}
         currentUserId={currentUserId}
         onRemove={onRemoveMember}
+        onRoleChange={onRoleChange}
       />
 
       <AddMemberModal
@@ -116,57 +105,6 @@ export function ProjectMembersTab({
         </div>
       )}
 
-      {isAdmin && teams.length > 0 && (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-            Add a team
-          </h3>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            Ajoute tous les membres d&apos;une team au projet.
-          </p>
-
-          {addTeamSuccess && (
-            <div className="mt-3 rounded-xl border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-300">
-              {addTeamSuccess}
-            </div>
-          )}
-          {addTeamError && (
-            <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-              {addTeamError}
-            </div>
-          )}
-
-          <div className="mt-4 flex gap-3">
-            <select
-              value={selectedTeamId}
-              onChange={(event) => setSelectedTeamId(event.target.value)}
-              className="h-11 flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)]/10 focus:ring-2 focus:ring-zinc-500/20"
-            >
-              <option value="">Select a team...</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name} ({team.members.length} membre
-                  {team.members.length !== 1 ? "s" : ""})
-                </option>
-              ))}
-            </select>
-
-            <button
-              type="button"
-              onClick={() => void onAddTeam()}
-              disabled={!selectedTeamId || addTeamLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50"
-            >
-              {addTeamLoading ? (
-                <Loader2 size={15} className="animate-spin" />
-              ) : (
-                <Plus size={15} />
-              )}
-              Add
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

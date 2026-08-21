@@ -8,6 +8,7 @@ import { useSidebar } from "@/shared/contexts/sidebar-context";
 import { useI18n } from "@/shared/i18n/language-context";
 import { LogOut, Rocket, Settings } from "lucide-react";
 import { APP_NAV_SECTIONS, isRouteActive } from "@/shared/config/navigation";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 
 type NavItemProps = {
   href: string;
@@ -60,7 +61,7 @@ function SectionLabel({ label }: { label: string }) {
 export function Sidebar() {
   const { t } = useI18n();
   const pathname = usePathname();
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, workspaceRole, logout } = useAuth();
   const { collapsed } = useSidebar();
 
   const initials = user?.fullName
@@ -102,9 +103,13 @@ export function Sidebar() {
       {/* Nav */}
       <div className="flex-1 overflow-y-auto px-2 pb-4 no-scrollbar">
         {APP_NAV_SECTIONS.map((section) => {
-          const visibleItems = section.items.filter((item) =>
-            item.adminOnly ? isAdmin : true,
-          );
+          const visibleItems = section.items.filter((item) => {
+            const allowedForRole = item.adminOnly ? isAdmin : true;
+            const capabilityEnabled = item.capability
+              ? isCapabilityEnabled(item.capability)
+              : true;
+            return allowedForRole && capabilityEnabled;
+          });
           if (visibleItems.length === 0) return null;
 
           return (
@@ -154,7 +159,7 @@ export function Sidebar() {
                   {user?.fullName ?? "User"}
                 </p>
                 <p className="truncate text-[12px] text-zinc-500 dark:text-zinc-500">
-                  {user?.role ?? "MEMBER"}
+                  {workspaceRole ?? "MEMBER"}
                 </p>
               </div>
             )}

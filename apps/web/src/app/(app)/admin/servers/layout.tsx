@@ -6,6 +6,6 @@ export default function AdminServersLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ProtectedRoute requiredRole="OWNER">{children}</ProtectedRoute>
+    <ProtectedRoute requireWorkspaceAdmin>{children}</ProtectedRoute>
   );
 }

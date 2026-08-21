@@ -48,17 +48,17 @@ describe("RegisterScreen (public signup)", () => {
   };
 
   const enterCode = (code: string) => {
-    const inputs = screen
-      .getAllByLabelText(/Chiffre \d/)
-      .slice(0, code.length);
+    const inputs = screen.getAllByLabelText(/Chiffre \d/).slice(0, code.length);
     code.split("").forEach((digit, index) => {
       fireEvent.change(inputs[index], { target: { value: digit } });
     });
-    fireEvent.click(screen.getByRole("button", { name: /vérifier et accéder/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /vérifier et accéder/i }),
+    );
   };
 
   it("creates the account, then shows the code step instead of redirecting", async () => {
-    registerMock.mockResolvedValue(undefined);
+    registerMock.mockResolvedValue("registration-1");
     render(<RegisterScreen />);
     fillAndSubmit();
 
@@ -71,15 +71,13 @@ describe("RegisterScreen (public signup)", () => {
       }),
     );
     await waitFor(() =>
-      expect(
-        screen.getByText("Vérifiez votre email"),
-      ).toBeInTheDocument(),
+      expect(screen.getByText("Vérifiez votre email")).toBeInTheDocument(),
     );
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
   it("verifies the code and redirects to /dashboard", async () => {
-    registerMock.mockResolvedValue(undefined);
+    registerMock.mockResolvedValue("registration-1");
     verifyEmailMock.mockResolvedValue(undefined);
     render(<RegisterScreen />);
     fillAndSubmit();
@@ -90,14 +88,20 @@ describe("RegisterScreen (public signup)", () => {
     enterCode("123456");
 
     await waitFor(() =>
-      expect(verifyEmailMock).toHaveBeenCalledWith("john@sovrack.tn", "123456"),
+      expect(verifyEmailMock).toHaveBeenCalledWith(
+        "john@sovrack.tn",
+        "123456",
+        "registration-1",
+      ),
     );
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/dashboard"));
   });
 
   it("shows an error when the code is wrong", async () => {
-    registerMock.mockResolvedValue(undefined);
-    verifyEmailMock.mockRejectedValue(new Error("Code de vérification invalide"));
+    registerMock.mockResolvedValue("registration-1");
+    verifyEmailMock.mockRejectedValue(
+      new Error("Code de vérification invalide"),
+    );
     render(<RegisterScreen />);
     fillAndSubmit();
 
@@ -115,7 +119,7 @@ describe("RegisterScreen (public signup)", () => {
   });
 
   it("resends a code and confirms", async () => {
-    registerMock.mockResolvedValue(undefined);
+    registerMock.mockResolvedValue("registration-1");
     resendCodeMock.mockResolvedValue(undefined);
     render(<RegisterScreen />);
     fillAndSubmit();
@@ -126,7 +130,10 @@ describe("RegisterScreen (public signup)", () => {
     fireEvent.click(screen.getByRole("button", { name: /renvoyer le code/i }));
 
     await waitFor(() =>
-      expect(resendCodeMock).toHaveBeenCalledWith("john@sovrack.tn"),
+      expect(resendCodeMock).toHaveBeenCalledWith(
+        "john@sovrack.tn",
+        "registration-1",
+      ),
     );
     await waitFor(() =>
       expect(

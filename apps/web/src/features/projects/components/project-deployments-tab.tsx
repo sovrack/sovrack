@@ -43,6 +43,7 @@ type Props = {
   // (popup) au lieu de naviguer vers /deployments/[id]. Permet de rester 100 %
   // dans le contexte du service.
   onOpenDetails?: (dep: Deployment) => void;
+  canMutate?: boolean;
 };
 
 const STATUS_FILTERS: { label: string; value: DeploymentStatus | "ALL" }[] = [
@@ -63,6 +64,7 @@ export function ProjectDeploymentsTab({
   headerCount,
   hideViewAllLink = false,
   onOpenDetails,
+  canMutate = true,
 }: Props) {
   const router = useRouter();
   const toast = useToast();
@@ -235,6 +237,7 @@ export function ProjectDeploymentsTab({
               cancellingId={cancellingId}
               deletingId={deletingId}
               confirmDeleteId={confirmDeleteId}
+              canMutate={canMutate}
               onOpenDetails={openDetails}
               onRollback={(id) => void handleRollback(id)}
               onRestore={(id) => void handleRestore(id)}
@@ -264,7 +267,7 @@ export function ProjectDeploymentsTab({
       )}
 
       {/* Redeploy dialog — branch + env pre-filled from original run */}
-      {(redeployTarget?.projectId ?? projectId) && (
+      {canMutate && (redeployTarget?.projectId ?? projectId) && (
         <DeployDialog
           open={redeployTarget !== null}
           projectId={redeployTarget?.projectId ?? projectId ?? ""}

@@ -23,6 +23,7 @@ type Props = {
   onRedeploy: () => void;
   onStop: () => void;
   onTerminal: () => void;
+  allowTerminal?: boolean;
 };
 
 /**
@@ -40,17 +41,18 @@ export function ServiceDeployBar({
   onRedeploy,
   onStop,
   onTerminal,
+  allowTerminal = true,
 }: Props) {
   const { t } = useI18n();
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-      <button
+      {allowTerminal && <button
         type="button"
         onClick={onDeploy}
         className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
       >
         <Rocket size={15} /> {t("Deploy")}
-      </button>
+      </button>}
 
       <button
         type="button"

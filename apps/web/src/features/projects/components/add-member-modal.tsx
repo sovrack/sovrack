@@ -108,7 +108,7 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
           >
             <option value="DEVELOPER">Developer — Can deploy</option>
             <option value="VIEWER">Viewer — Read only</option>
-            <option value="OWNER">Owner — Full project access</option>
+            <option value="MAINTAINER">Maintainer — Full project access</option>
           </select>
         </div>
       </form>

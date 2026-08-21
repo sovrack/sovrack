@@ -14,18 +14,15 @@ vi.mock("@/shared/lib/api", () => ({
 
 const mocked = vi.mocked(api);
 
-// LOT4f : premiere couverture de la feature (etait a ZERO test) — verrouille
-// les endpoints reellement appeles par le service.
 describe("teamsService", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("getAll hits /teams", async () => {
+  it("getAll hits /workspaces", async () => {
     await teamsService.getAll();
-    expect(mocked.get).toHaveBeenCalledWith("/teams");
+    expect(mocked.get).toHaveBeenCalledWith("/workspaces");
   });
-  it("getById hits /teams/:id", async () => {
+  it("getById hits /workspaces/:id", async () => {
     await teamsService.getById("t1");
-    expect(mocked.get).toHaveBeenCalledWith("/teams/t1");
+    expect(mocked.get).toHaveBeenCalledWith("/workspaces/t1");
   });
-
 });

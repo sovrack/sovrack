@@ -55,4 +55,12 @@ describe("LoginScreen (auth critical path)", () => {
     );
     expect(replaceMock).not.toHaveBeenCalled();
   });
+
+  it("does not expose Google authentication while the capability is planned", () => {
+    render(<LoginScreen />);
+
+    expect(
+      screen.queryByRole("link", { name: /google/i }),
+    ).not.toBeInTheDocument();
+  });
 });

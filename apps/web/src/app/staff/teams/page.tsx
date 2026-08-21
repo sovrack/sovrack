@@ -13,6 +13,7 @@ export default function StaffTeamsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["staff-teams", page],
     queryFn: () => staffService.getTeams(page, PAGE_SIZE),
+    enabled: typeof window !== "undefined",
   });
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;

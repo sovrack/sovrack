@@ -45,6 +45,7 @@ export default function StaffSystemsPage() {
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["staff-health"],
     queryFn: healthService.get,
+    enabled: typeof window !== "undefined",
     refetchInterval: 10_000,
   });
 
@@ -95,10 +96,7 @@ export default function StaffSystemsPage() {
           disabled={isFetching}
           className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
         >
-          <RefreshCw
-            size={14}
-            className={isFetching ? "animate-spin" : ""}
-          />
+          <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} />
           Actualiser
         </button>
       </div>
@@ -121,7 +119,9 @@ export default function StaffSystemsPage() {
             </div>
             <StatusBadge ok={data.redis === "connected"} />
           </div>
-          <p className="mt-2 text-xs text-zinc-400">Cache & files d&apos;attente</p>
+          <p className="mt-2 text-xs text-zinc-400">
+            Cache & files d&apos;attente
+          </p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -140,7 +140,8 @@ export default function StaffSystemsPage() {
       {data.host && (
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
-            <Cpu size={16} className="text-blue-400" /> Ressources de l&apos;hôte
+            <Cpu size={16} className="text-blue-400" /> Ressources de
+            l&apos;hôte
           </h2>
           <div className="grid gap-5 sm:grid-cols-3">
             <div>
@@ -158,9 +159,10 @@ export default function StaffSystemsPage() {
                   <MemoryStick size={13} /> Mémoire
                 </span>
                 <span>
-                  {((data.host.memoryTotalMb - data.host.memoryFreeMb) / 1024).toFixed(
-                    1,
-                  )}{" "}
+                  {(
+                    (data.host.memoryTotalMb - data.host.memoryFreeMb) /
+                    1024
+                  ).toFixed(1)}{" "}
                   / {(data.host.memoryTotalMb / 1024).toFixed(0)} Go
                 </span>
               </div>
@@ -171,9 +173,7 @@ export default function StaffSystemsPage() {
                 <span className="flex items-center gap-1">
                   <HardDrive size={13} /> Disque
                 </span>
-                <span>
-                  {diskPct > 0 ? `${diskPct.toFixed(0)}%` : "N/A"}
-                </span>
+                <span>{diskPct > 0 ? `${diskPct.toFixed(0)}%` : "N/A"}</span>
               </div>
               <Bar value={diskPct} />
             </div>
@@ -185,7 +185,9 @@ export default function StaffSystemsPage() {
 }
 
 function memoryUsedPercent(
-  host: NonNullable<import("@/features/monitoring/api/health.service").PlatformHealth["host"]>,
+  host: NonNullable<
+    import("@/features/monitoring/api/health.service").PlatformHealth["host"]
+  >,
 ): number {
   if (!host.memoryTotalMb) return 0;
   return ((host.memoryTotalMb - host.memoryFreeMb) / host.memoryTotalMb) * 100;

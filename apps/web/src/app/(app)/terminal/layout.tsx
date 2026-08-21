@@ -5,5 +5,5 @@ export default function TerminalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <ProtectedRoute requiredRole="OWNER">{children}</ProtectedRoute>;
+  return <ProtectedRoute requireWorkspaceAdmin>{children}</ProtectedRoute>;
 }

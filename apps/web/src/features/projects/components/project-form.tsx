@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import type { CreateProjectPayload } from "@/features/projects/types/project";
-import type { UserListItem } from "@/features/users";
 import { Alert } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 
@@ -25,9 +24,6 @@ type ProjectFormProps = {
   submitLabel?: string;
   loading?: boolean;
   error?: string | null;
-  includeOwnerSelect?: boolean;
-  ownerOptions?: UserListItem[];
-  initialOwnerId?: string;
   cancelHref?: string;
   onCancel?: () => void;
   /** Show the multi-tenant "max concurrent deploys" cap (edit mode only). */
@@ -40,9 +36,6 @@ export function ProjectForm({
   submitLabel = "Create Project",
   loading = false,
   error,
-  includeOwnerSelect = false,
-  ownerOptions = [],
-  initialOwnerId = "",
   cancelHref = "/projects",
   onCancel,
   showDeployCap = false,
@@ -51,18 +44,11 @@ export function ProjectForm({
   const [description, setDescription] = useState(
     initialValues?.description ?? "",
   );
-  const [ownerId, setOwnerId] = useState(initialOwnerId);
   const [maxConcurrentDeploys, setMaxConcurrentDeploys] = useState(
     initialValues?.maxConcurrentDeploys
       ? String(initialValues.maxConcurrentDeploys)
       : "", // null / 0 / undefined → empty = unlimited
   );
-
-  useEffect(() => {
-    if (includeOwnerSelect) {
-      setOwnerId(initialOwnerId);
-    }
-  }, [includeOwnerSelect, initialOwnerId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,10 +56,6 @@ export function ProjectForm({
       name: name.trim(),
       description: description.trim() || undefined,
     };
-
-    if (includeOwnerSelect && ownerId) {
-      payload.ownerId = ownerId;
-    }
 
     if (showDeployCap) {
       const trimmed = maxConcurrentDeploys.trim();
@@ -125,29 +107,6 @@ export function ProjectForm({
               className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20"
             />
           </div>
-
-          {includeOwnerSelect && (
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                Project Owner
-              </label>
-              <select
-                value={ownerId}
-                onChange={(event) => setOwnerId(event.target.value)}
-                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:ring-2 focus:ring-zinc-500/20"
-              >
-                <option value="">Select owner</option>
-                {ownerOptions.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.fullName} ({user.email})
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                Only developers can be assigned as project OWNER.
-              </p>
-            </div>
-          )}
         </div>
 
         {showDeployCap && (
@@ -200,11 +159,7 @@ export function ProjectForm({
             Cancel
           </Link>
         )}
-        <Button
-          type="submit"
-          loading={loading}
-          disabled={!name.trim() || (includeOwnerSelect && !ownerId)}
-        >
+        <Button type="submit" loading={loading} disabled={!name.trim()}>
           {submitLabel}
         </Button>
       </div>

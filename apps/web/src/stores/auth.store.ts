@@ -10,7 +10,6 @@ type AuthState = {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
-  isAdmin: boolean;
   initialized: boolean;
 };
 
@@ -24,9 +23,13 @@ type AuthActions = {
     password: string;
     fullName: string;
     teamName: string;
-  }) => Promise<void>;
-  verifyEmail: (email: string, code: string) => Promise<void>;
-  resendCode: (email: string) => Promise<void>;
+  }) => Promise<string>;
+  verifyEmail: (
+    email: string,
+    code: string,
+    registrationId: string,
+  ) => Promise<void>;
+  resendCode: (email: string, registrationId: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   initialize: () => Promise<void>;
@@ -41,7 +44,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       loading: true,
       error: null,
       isAuthenticated: false,
-      isAdmin: false,
       initialized: false,
 
       setUser: (user) =>
@@ -50,7 +52,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           loading: false,
           error: null,
           isAuthenticated: !!user,
-          isAdmin: user?.role === "OWNER",
           initialized: true,
         }),
 
@@ -60,7 +61,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           loading: false,
           error: null,
           isAuthenticated: false,
-          isAdmin: false,
           initialized: true,
         }),
 
@@ -75,7 +75,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.role === "OWNER",
             initialized: true,
           });
         } catch (error) {
@@ -85,7 +84,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: getApiErrorMessage(error),
             isAuthenticated: false,
-            isAdmin: false,
             initialized: true,
           });
         }
@@ -105,7 +103,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.user.role === "OWNER",
             initialized: true,
           });
         } catch (error) {
@@ -126,7 +123,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         set({ loading: true, error: null });
 
         try {
-          await api.post<{ email: string }>("/auth/register", {
+          const response = await api.post<{
+            email: string;
+            registrationId: string;
+          }>("/auth/register", {
             email: input.email,
             password: input.password,
             fullName: input.fullName,
@@ -134,6 +134,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           });
 
           set({ loading: false, error: null });
+          return response.data.registrationId;
         } catch (error) {
           set({
             loading: false,
@@ -143,13 +144,18 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
-      verifyEmail: async (email: string, code: string) => {
+      verifyEmail: async (
+        email: string,
+        code: string,
+        registrationId: string,
+      ) => {
         set({ loading: true, error: null });
 
         try {
           const response = await api.post<LoginResponse>("/auth/verify-email", {
             email,
             code,
+            registrationId,
           });
 
           set({
@@ -157,7 +163,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: true,
-            isAdmin: response.data.user.role === "OWNER",
             initialized: true,
           });
         } catch (error) {
@@ -169,11 +174,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
-      resendCode: async (email: string) => {
+      resendCode: async (email: string, registrationId: string) => {
         set({ loading: true, error: null });
 
         try {
-          await api.post<{ email: string }>("/auth/resend-code", { email });
+          await api.post<{ email: string }>("/auth/resend-code", {
+            email,
+            registrationId,
+          });
           set({ loading: false, error: null });
         } catch (error) {
           set({
@@ -196,7 +204,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: false,
-            isAdmin: false,
             initialized: true,
           });
         }
@@ -231,7 +238,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             loading: false,
             error: null,
             isAuthenticated: false,
-            isAdmin: false,
             initialized: true,
           });
         } catch (error) {

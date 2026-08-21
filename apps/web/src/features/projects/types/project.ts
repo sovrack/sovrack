@@ -4,7 +4,7 @@ import type { ServiceType } from "./service";
 
 type ApiSchema = components["schemas"];
 
-export type ProjectRole = "OWNER" | "DEVELOPER" | "VIEWER";
+export type ProjectRole = "MAINTAINER" | "DEVELOPER" | "VIEWER";
 
 export type { UserRole };
 export type GitlabGroupImportMode = "ONE_APPLICATION" | "SEPARATE_PROJECTS";

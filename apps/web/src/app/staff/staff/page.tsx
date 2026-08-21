@@ -35,6 +35,7 @@ export default function StaffAccountsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["staff-accounts", page],
     queryFn: () => staffService.listStaff(page, PAGE_SIZE),
+    enabled: typeof window !== "undefined",
   });
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
@@ -89,9 +90,12 @@ export default function StaffAccountsPage() {
             <ShieldCheck size={18} />
           </span>
           <div>
-            <h1 className="text-2xl font-bold text-white">Comptes back-office</h1>
+            <h1 className="text-2xl font-bold text-white">
+              Comptes back-office
+            </h1>
             <p className="text-sm text-zinc-400">
-              Membres de l&apos;équipe d&apos;administration ({data?.total ?? "…"}).
+              Membres de l&apos;équipe d&apos;administration (
+              {data?.total ?? "…"}).
             </p>
           </div>
         </div>
@@ -194,7 +198,9 @@ export default function StaffAccountsPage() {
           <tbody className="divide-y divide-white/5">
             {(data?.items ?? []).map((s) => (
               <tr key={s.id} className="hover:bg-white/5">
-                <td className="px-4 py-3 font-medium text-white">{s.fullName}</td>
+                <td className="px-4 py-3 font-medium text-white">
+                  {s.fullName}
+                </td>
                 <td className="px-4 py-3 text-zinc-400">{s.email}</td>
                 <td className="px-4 py-3">
                   <select

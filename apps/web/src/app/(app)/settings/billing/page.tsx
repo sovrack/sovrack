@@ -19,6 +19,7 @@ import { Button } from "@/shared/ui/button";
 import { billingService } from "@/features/billing/api/billing.service";
 import type { BillingInfo, Plan } from "@/features/billing/types/billing";
 import { getApiErrorMessage } from "@/shared/lib/api";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 
 const PLAN_META: Record<
   Plan,
@@ -62,6 +63,28 @@ function formatDate(value: string | null): string {
 }
 
 export default function BillingPage() {
+  if (!isCapabilityEnabled("selfServiceBilling")) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Settings"
+          title="Facturation"
+          description="Parcours non ouvert pendant le développement privé"
+        />
+        <Alert tone="warning" title="Souscription désactivée">
+          Les plans, paiements et factures affichés auparavant étaient un
+          parcours de développement. Aucune offre n&apos;est actuellement ouverte
+          à la souscription et aucune mutation de facturation n&apos;est envoyée
+          depuis cette page.
+        </Alert>
+      </div>
+    );
+  }
+
+  return <BillingWorkspace />;
+}
+
+function BillingWorkspace() {
   const queryClient = useQueryClient();
   const [notice, setNotice] = useState<
     { tone: "success" | "error"; message: string } | null
