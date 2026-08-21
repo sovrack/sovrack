@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import fs from "node:fs/promises";
+import path from "node:path";
 
-const mode = process.argv[2] ?? 'all';
+const mode = process.argv[2] ?? "all";
 const root = process.cwd();
-const srcDir = path.join(root, 'src');
-const navigationFile = path.join(srcDir, 'shared', 'config', 'navigation.ts');
-const appRoot = path.join(srcDir, 'app', '(app)');
+const srcDir = path.join(root, "src");
+const navigationFile = path.join(srcDir, "shared", "config", "navigation.ts");
+const appRoot = path.join(srcDir, "app", "(app)");
 
 const bannedColorPatterns = [
   /#7c3aed/gi,
@@ -21,15 +21,17 @@ const bannedColorPatterns = [
 ];
 
 function normalizeRouteToPagePath(route) {
-  const clean = route.replace(/^\/+|\/+$/g, '');
+  const clean = route.replace(/^\/+|\/+$/g, "");
   if (!clean) {
-    return path.join(appRoot, 'page.tsx');
+    return path.join(appRoot, "page.tsx");
   }
-  return path.join(appRoot, ...clean.split('/'), 'page.tsx');
+  return path.join(appRoot, ...clean.split("/"), "page.tsx");
 }
 
 function extractHrefs(source) {
-  return [...source.matchAll(/href:\s*'([^']+)'/g)].map((match) => match[1]);
+  return [...source.matchAll(/href:\s*["']([^"']+)["']/g)].map(
+    (match) => match[1],
+  );
 }
 
 async function fileExists(targetPath) {
@@ -43,18 +45,20 @@ async function fileExists(targetPath) {
 
 async function listFilesRecursive(directory) {
   const entries = await fs.readdir(directory, { withFileTypes: true });
-  const files = await Promise.all(entries.map(async (entry) => {
-    const fullPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      return listFilesRecursive(fullPath);
-    }
-    return [fullPath];
-  }));
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        return listFilesRecursive(fullPath);
+      }
+      return [fullPath];
+    }),
+  );
   return files.flat();
 }
 
 async function checkNavigation() {
-  const source = await fs.readFile(navigationFile, 'utf8');
+  const source = await fs.readFile(navigationFile, "utf8");
   const hrefs = extractHrefs(source);
 
   const unique = new Set();
@@ -101,7 +105,7 @@ async function checkColors() {
   const violations = [];
 
   for (const filePath of codeFiles) {
-    const content = await fs.readFile(filePath, 'utf8');
+    const content = await fs.readFile(filePath, "utf8");
     const hits = bannedColorPatterns
       .flatMap((pattern) => collectMatches(content, pattern))
       .filter(Boolean);
@@ -122,44 +126,81 @@ async function checkColors() {
   };
 }
 
+async function checkRedirectCycles() {
+  const nextConfigPath = path.join(root, "next.config.mjs");
+  const source = await fs.readFile(nextConfigPath, "utf8");
+  const redirects = [
+    ...source.matchAll(
+      /source:\s*["']([^"']+)["'][\s\S]*?destination:\s*["']([^"']+)["']/g,
+    ),
+  ].map(([, from, to]) => ({ from, to }));
+  const destinations = new Map(redirects.map(({ from, to }) => [from, to]));
+  const cycles = [];
+
+  for (const start of destinations.keys()) {
+    const visited = new Set();
+    let current = start;
+    while (destinations.has(current)) {
+      if (visited.has(current)) {
+        cycles.push([...visited, current]);
+        break;
+      }
+      visited.add(current);
+      current = destinations.get(current);
+    }
+  }
+
+  return { passed: cycles.length === 0, cycles, scanned: redirects.length };
+}
+
 function printNavigationReport(result) {
-  console.log('Navigation Gate');
+  console.log("Navigation Gate");
   console.log(`- Routes in navigation: ${result.routeCount}`);
   if (result.duplicates.length > 0) {
-    console.log('- Duplicate href values detected:');
+    console.log("- Duplicate href values detected:");
     result.duplicates.forEach((href) => console.log(`  • ${href}`));
   }
   if (result.missingPages.length > 0) {
-    console.log('- Missing page files for configured href:');
+    console.log("- Missing page files for configured href:");
     result.missingPages.forEach(({ href, expected }) =>
       console.log(`  • ${href} -> ${path.relative(root, expected)}`),
     );
   }
   if (result.passed) {
-    console.log('- OK');
+    console.log("- OK");
   }
-  console.log('');
+  console.log("");
 }
 
 function printColorReport(result) {
-  console.log('Color Gate');
+  console.log("Color Gate");
   console.log(`- Files scanned: ${result.scanned}`);
   if (result.violations.length > 0) {
-    console.log('- Banned colors/classes found:');
+    console.log("- Banned colors/classes found:");
     result.violations.forEach((violation) => {
-      console.log(`  • ${violation.filePath}: ${violation.hits.join(', ')}`);
+      console.log(`  • ${violation.filePath}: ${violation.hits.join(", ")}`);
     });
   }
   if (result.passed) {
-    console.log('- OK');
+    console.log("- OK");
   }
-  console.log('');
+  console.log("");
+}
+
+function printRedirectReport(result) {
+  console.log("Redirect Cycle Gate");
+  console.log(`- Redirects scanned: ${result.scanned}`);
+  result.cycles.forEach((cycle) =>
+    console.log(`  • cycle: ${cycle.join(" -> ")}`),
+  );
+  if (result.passed) console.log("- OK");
+  console.log("");
 }
 
 // Une feature n'importe une AUTRE feature que par son barrel (@/features/<x>),
 // jamais ses internes (@/features/<x>/components|api|types/...).
 async function checkFeatureIsolation() {
-  const featuresDir = path.join(srcDir, 'features');
+  const featuresDir = path.join(srcDir, "features");
   let features = [];
   try {
     features = (await fs.readdir(featuresDir, { withFileTypes: true }))
@@ -175,12 +216,15 @@ async function checkFeatureIsolation() {
     for (const file of files) {
       if (!/\.(ts|tsx)$/.test(file)) continue;
       scanned += 1;
-      const source = await fs.readFile(file, 'utf8');
+      const source = await fs.readFile(file, "utf8");
       const re = /@\/features\/([\w-]+)\/(?:components|api|types)\//g;
       let match;
       while ((match = re.exec(source)) !== null) {
         if (match[1] !== feat) {
-          violations.push({ file: path.relative(root, file), target: match[1] });
+          violations.push({
+            file: path.relative(root, file),
+            target: match[1],
+          });
         }
       }
     }
@@ -189,28 +233,31 @@ async function checkFeatureIsolation() {
 }
 
 function printFeatureIsolationReport(result) {
-  console.log('Feature Isolation Gate');
+  console.log("Feature Isolation Gate");
   console.log(`- Files scanned: ${result.scanned}`);
   if (result.violations.length > 0) {
-    console.log('- Import profond cross-feature (passe par le barrel @/features/<x>):');
+    console.log(
+      "- Import profond cross-feature (passe par le barrel @/features/<x>):",
+    );
     result.violations.forEach((v) =>
       console.log(`  • ${v.file} -> @/features/${v.target}/internals`),
     );
   }
   if (result.passed) {
-    console.log('- OK');
+    console.log("- OK");
   }
-  console.log('');
+  console.log("");
 }
 
 async function main() {
-  const runNavigation = mode === 'all' || mode === 'navigation';
-  const runColors = mode === 'all' || mode === 'colors';
-  const runIsolation = mode === 'all' || mode === 'isolation';
+  const runNavigation = mode === "all" || mode === "navigation";
+  const runColors = mode === "all" || mode === "colors";
+  const runIsolation = mode === "all" || mode === "isolation";
+  const runRedirects = mode === "all" || mode === "redirects";
 
-  if (!runNavigation && !runColors && !runIsolation) {
+  if (!runNavigation && !runColors && !runIsolation && !runRedirects) {
     console.error(
-      'Usage: node scripts/quality-gates.mjs [all|navigation|colors|isolation]',
+      "Usage: node scripts/quality-gates.mjs [all|navigation|colors|isolation|redirects]",
     );
     process.exit(1);
   }
@@ -235,12 +282,18 @@ async function main() {
     results.push(isolation.passed);
   }
 
+  if (runRedirects) {
+    const redirects = await checkRedirectCycles();
+    printRedirectReport(redirects);
+    results.push(redirects.passed);
+  }
+
   if (results.every(Boolean)) {
-    console.log('All requested quality gates passed.');
+    console.log("All requested quality gates passed.");
     process.exit(0);
   }
 
-  console.error('Quality gate failure detected. Fix the issues above.');
+  console.error("Quality gate failure detected. Fix the issues above.");
   process.exit(1);
 }
 

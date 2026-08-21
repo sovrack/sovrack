@@ -79,7 +79,6 @@ const nextConfig = {
     return [
       { source: '/profile', destination: '/settings', permanent: true },
       { source: '/settings/profile', destination: '/settings', permanent: true },
-      { source: '/settings/account', destination: '/settings', permanent: true },
       { source: '/admin/settings', destination: '/settings', permanent: true },
       { source: '/settings/terminal', destination: '/terminal', permanent: true },
       { source: '/deployments/new', destination: '/deployments', permanent: true },
