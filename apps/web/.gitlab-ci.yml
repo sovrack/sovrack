@@ -27,12 +27,13 @@ typecheck:
   stage: validate
   script:
     - npm ci
-    - npx tsc --noEmit
+    - npm run type-check
 
 lint:
   stage: validate
   script:
     - npm ci
+    - npm run check:architecture
     - npm run lint
 
 test:
@@ -87,8 +88,7 @@ build:image:
       --build-arg "NEXT_PUBLIC_APP_NAME=Sovrack"
       --build-arg "NEXT_PUBLIC_APP_VERSION=2.0.0"
       --build-arg "BACKEND_INTERNAL_URL=http://backend:3001"
-      --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
-      --destination "$CI_REGISTRY_IMAGE:latest"
+      --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
@@ -96,7 +96,7 @@ build:image:
 # DÉPLOIEMENT PRODUCTION — *géré par le dépôt `deploy-automation-infra`*
 # -----------------------------------------------------------------------------
 # Ce dépôt "app" ne fait QUE construire et pousser son image au Container
-# Registry GitLab (job `build:image` → `:latest` + `:$CI_COMMIT_SHORT_SHA`).
+# Registry GitLab (job `build:image` → tag immuable `:$CI_COMMIT_SHA`).
 #
 # La mise à jour du service en production est orchestrée par le dépôt dédié
 # `deploy-automation-infra` (stack `sovrack`). → NE PAS réintroduire de
@@ -110,7 +110,9 @@ security:audit:
   stage: security
   script:
     - npm ci
-    - npm audit --audit-level=high --omit=dev
+    # Inclut les outils de build/test : ils manipulent eux aussi du code et des
+    # artefacts dans le runner CI.
+    - npm audit --audit-level=high
 
 # SonarQube static analysis + Quality Gate. Reuses the coverage produced by the
 # test job (coverage/lcov.info). Runs only when SONAR_TOKEN is configured.
@@ -143,3 +145,20 @@ security:trivy:
   script:
     - trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --no-progress .
   allow_failure: true
+
+# Scan the exact immutable runtime image as well as the source tree. This catches
+# vulnerabilities in the base image and globally installed tools.
+security:image:
+  stage: security
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: ['']
+  needs:
+    - build:image
+  variables:
+    TRIVY_USERNAME: '$CI_REGISTRY_USER'
+    TRIVY_PASSWORD: '$CI_REGISTRY_PASSWORD'
+  script:
+    - trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
