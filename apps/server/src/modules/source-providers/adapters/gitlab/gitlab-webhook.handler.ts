@@ -150,6 +150,7 @@ export class GitlabWebhookHandler implements IWebhookHandler {
       pipelineSnapshot.previousStatus !== PipelineRunStatus.SUCCESS;
 
     const pipelineEvent: PipelineUpdatedEvent = {
+      projectId: endpoint.projectId,
       pipelineId,
       webhookStatus,
       provider: GitProviderType.GITLAB,

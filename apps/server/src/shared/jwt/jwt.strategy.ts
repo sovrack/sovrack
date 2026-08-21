@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import type { JwtPayloadDto } from './dto/jwt-payload.dto';
 import type { Request } from 'express';
+import { PrismaService } from '../database/prisma.service';
 import {
   extractTokenFromCookieHeader,
   resolveAuthCookieName,
@@ -15,7 +16,10 @@ import {
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     const jwtSecret = configService.get<string>('JWT_SECRET');
     const cookieName = resolveAuthCookieName(configService);
     if (!jwtSecret) {
@@ -36,9 +40,30 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtPayloadDto): JwtPayloadDto {
+  async validate(payload: JwtPayloadDto): Promise<JwtPayloadDto> {
     if (!payload.id || !payload.email) {
       throw new UnauthorizedException('Invalid token payload');
+    }
+
+    // A signed token is not sufficient proof that the identity is still
+    // allowed to act: staff suspension/deletion and email-verification state
+    // must take effect immediately, without waiting for JWT expiration.
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.id },
+      select: {
+        email: true,
+        isActive: true,
+        emailVerifiedAt: true,
+        provider: true,
+      },
+    });
+    if (
+      !user ||
+      !user.isActive ||
+      user.email !== payload.email ||
+      (user.provider === 'email' && !user.emailVerifiedAt)
+    ) {
+      throw new UnauthorizedException('Session utilisateur révoquée');
     }
     return payload;
   }

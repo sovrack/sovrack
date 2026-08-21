@@ -1,9 +1,10 @@
 import { NotFoundException } from '@nestjs/common';
 import { ContainerStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
 import { DockerApiService } from '../../../adapters/container-runtime/docker-api.service';
 import { ContainersService } from './containers.service';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../iam/authorization/workspace-policy.types';
 
 describe('ContainersService', () => {
   let prisma: {
@@ -15,12 +16,12 @@ describe('ContainersService', () => {
       create: jest.Mock;
       delete: jest.Mock;
     };
-    server: { findUnique: jest.Mock };
   };
   let docker: Record<string, jest.Mock>;
-  let projectAccess: {
-    assertCanAccessProject: jest.Mock;
-    assertCanManageProject: jest.Mock;
+  let workspaceAccess: {
+    resolveWorkspaceId: jest.Mock;
+    assertWorkspaceAction: jest.Mock;
+    assertServerAction: jest.Mock;
   };
   let svc: ContainersService;
 
@@ -37,11 +38,6 @@ describe('ContainersService', () => {
         create: jest.fn().mockResolvedValue({}),
         delete: jest.fn().mockResolvedValue({}),
       },
-      server: {
-        findUnique: jest.fn().mockResolvedValue({
-          environment: { projectId: 'p1' },
-        }),
-      },
     };
     docker = {
       startContainer: jest.fn().mockResolvedValue(undefined),
@@ -52,22 +48,23 @@ describe('ContainersService', () => {
       getContainerStats: jest.fn().mockResolvedValue({}),
       listContainers: jest.fn().mockResolvedValue([]),
     };
-    projectAccess = {
-      assertCanAccessProject: jest.fn().mockResolvedValue(undefined),
-      assertCanManageProject: jest.fn().mockResolvedValue(undefined),
+    workspaceAccess = {
+      resolveWorkspaceId: jest.fn().mockResolvedValue('workspace-1'),
+      assertWorkspaceAction: jest.fn().mockResolvedValue(undefined),
+      assertServerAction: jest.fn().mockResolvedValue(undefined),
     };
     svc = new ContainersService(
       prisma as unknown as PrismaService,
-      projectAccess as unknown as ProjectAccessService,
+      workspaceAccess as unknown as WorkspaceAccessService,
       docker as unknown as DockerApiService,
     );
   });
 
   describe('findAll', () => {
-    it('builds no where filter when no filters are given', async () => {
+    it('always filters through the active workspace server relation', async () => {
       await svc.findAll({}, mockUser.id, mockUser.role);
       expect(prisma.container.findMany).toHaveBeenCalledWith({
-        where: {},
+        where: { server: { teamId: 'workspace-1' } },
         orderBy: { createdAt: 'desc' },
       });
     });
@@ -75,7 +72,10 @@ describe('ContainersService', () => {
     it('filters by serviceEnvId (C1: senv-scoped container list)', async () => {
       await svc.findAll({ serviceEnvId: 'senv1' }, mockUser.id, mockUser.role);
       expect(prisma.container.findMany).toHaveBeenCalledWith({
-        where: { serviceEnvId: 'senv1' },
+        where: {
+          server: { teamId: 'workspace-1' },
+          serviceEnvId: 'senv1',
+        },
         orderBy: { createdAt: 'desc' },
       });
     });
@@ -93,6 +93,7 @@ describe('ContainersService', () => {
       );
       expect(prisma.container.findMany).toHaveBeenCalledWith({
         where: {
+          server: { teamId: 'workspace-1' },
           serverId: 'srv1',
           serviceId: 'svc1',
           deploymentId: 'dep1',
@@ -104,10 +105,11 @@ describe('ContainersService', () => {
 
     it('checks server access when serverId is provided', async () => {
       await svc.findAll({ serverId: 'srv1' }, mockUser.id, mockUser.role);
-      expect(projectAccess.assertCanAccessProject).toHaveBeenCalledWith(
-        'p1',
+      expect(workspaceAccess.assertServerAction).toHaveBeenCalledWith(
+        'srv1',
         mockUser.id,
-        mockUser.role,
+        WorkspaceActions.READ_SERVER,
+        'workspace-1',
       );
     });
   });
@@ -125,16 +127,13 @@ describe('ContainersService', () => {
   });
 
   describe('assertCanAccessContainer', () => {
-    it('resolves project from server and checks read access', async () => {
+    it('resolves the container server and checks workspace access', async () => {
       await svc.assertCanAccessContainer('c1', mockUser.id, mockUser.role);
-      expect(prisma.server.findUnique).toHaveBeenCalledWith({
-        where: { id: 'srv1' },
-        select: { environment: { select: { projectId: true } } },
-      });
-      expect(projectAccess.assertCanAccessProject).toHaveBeenCalledWith(
-        'p1',
+      expect(workspaceAccess.assertServerAction).toHaveBeenCalledWith(
+        'srv1',
         'u1',
-        Role.MEMBER,
+        WorkspaceActions.READ_SERVER,
+        undefined,
       );
     });
   });

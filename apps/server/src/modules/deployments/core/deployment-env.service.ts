@@ -112,7 +112,7 @@ export class DeploymentEnvService {
           d.databaseType !== null,
       )
       .map((d) => {
-        const creds = parseDbCredentials(d.databaseCredentials);
+        const creds = parseDbCredentials(d.databaseCredentials, this.crypto);
         return {
           name: d.name,
           databaseType: d.databaseType,
@@ -230,6 +230,7 @@ export class DeploymentEnvService {
     const dbEnv = buildDatabaseEnvVars(
       deployment.service.databaseType as ManagedServiceType,
       deployment.service.databaseCredentials as Prisma.JsonValue | undefined,
+      this.crypto,
     );
     for (const [key, value] of Object.entries(dbEnv)) {
       const entry = `${key}=${value}`;

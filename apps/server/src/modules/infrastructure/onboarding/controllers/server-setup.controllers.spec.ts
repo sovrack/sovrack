@@ -7,6 +7,7 @@ import { ServerSetupsController } from './server-setups.controller';
 
 describe('Server setup controllers', () => {
   const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
+  const workspaceId = 'workspace-1';
 
   function prepService() {
     return {
@@ -71,20 +72,29 @@ describe('Server setup controllers', () => {
     it('findOne / logs / retry / cancel delegate', async () => {
       const prep = prepService();
       const ctrl = new ServerSetupsController(prep);
-      await ctrl.findOne('prep-1');
-      await ctrl.logs('prep-1', '5');
-      await ctrl.logs('prep-1', undefined);
-      await ctrl.retry('prep-1', { reason: 'x' } as never, user);
-      await ctrl.cancel('prep-1', user);
-      expect(prep.getSetup).toHaveBeenCalledWith('prep-1');
-      expect(prep.getSetupLogs).toHaveBeenCalledWith('prep-1', 5);
-      expect(prep.getSetupLogs).toHaveBeenCalledWith('prep-1', undefined);
+      await ctrl.findOne('prep-1', workspaceId);
+      await ctrl.logs('prep-1', workspaceId, '5');
+      await ctrl.logs('prep-1', workspaceId, undefined);
+      await ctrl.retry('prep-1', { reason: 'x' } as never, user, workspaceId);
+      await ctrl.cancel('prep-1', user, workspaceId);
+      expect(prep.getSetup).toHaveBeenCalledWith('prep-1', workspaceId);
+      expect(prep.getSetupLogs).toHaveBeenCalledWith('prep-1', 5, workspaceId);
+      expect(prep.getSetupLogs).toHaveBeenCalledWith(
+        'prep-1',
+        undefined,
+        workspaceId,
+      );
       expect(prep.retrySetup).toHaveBeenCalledWith(
         'prep-1',
         { reason: 'x' },
         'user-1',
+        workspaceId,
       );
-      expect(prep.cancelSetup).toHaveBeenCalledWith('prep-1', 'user-1');
+      expect(prep.cancelSetup).toHaveBeenCalledWith(
+        'prep-1',
+        'user-1',
+        workspaceId,
+      );
     });
   });
 });

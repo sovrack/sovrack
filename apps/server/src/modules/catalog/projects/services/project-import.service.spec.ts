@@ -8,6 +8,8 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import { GitlabAdapter } from '../../../source-providers/adapters/gitlab/gitlab.adapter';
 import { ProjectsService } from '../projects.service';
 import { AuditService } from '../../../audit/audit.service';
+import { UsageGuardService } from '../../../billing/usage-guard.service';
+import { WorkspaceAccessService } from '../../../iam/authorization/workspace-access.service';
 import { ProjectImportService } from './project-import.service';
 
 const repo = (over: Record<string, unknown> = {}) => ({
@@ -20,6 +22,7 @@ const repo = (over: Record<string, unknown> = {}) => ({
 
 describe('ProjectImportService.importGitlabGroup', () => {
   let prisma: {
+    $transaction: jest.Mock;
     user: { findUnique: jest.Mock };
     project: {
       create: jest.Mock;
@@ -29,6 +32,7 @@ describe('ProjectImportService.importGitlabGroup', () => {
     environment: { create: jest.Mock };
     service: { create: jest.Mock };
     serviceEnvironment: { create: jest.Mock };
+    projectMember: { create: jest.Mock };
   };
   let gitlab: {
     listGroupRepositoriesByProvider: jest.Mock;
@@ -36,6 +40,12 @@ describe('ProjectImportService.importGitlabGroup', () => {
     connectProject: jest.Mock;
   };
   let audit: { record: jest.Mock };
+  let workspaceAccess: {
+    resolveWorkspaceId: jest.Mock;
+    assertWorkspaceAction: jest.Mock;
+    assertUserIsActiveMember: jest.Mock;
+  };
+  let usageGuard: { guardForTeam: jest.Mock };
   let service: ProjectImportService;
 
   const baseDto = {
@@ -48,6 +58,7 @@ describe('ProjectImportService.importGitlabGroup', () => {
 
   beforeEach(() => {
     prisma = {
+      $transaction: jest.fn(),
       user: {
         findUnique: jest
           .fn()
@@ -65,7 +76,11 @@ describe('ProjectImportService.importGitlabGroup', () => {
       serviceEnvironment: {
         create: jest.fn().mockResolvedValue({ id: 'se1' }),
       },
+      projectMember: { create: jest.fn().mockResolvedValue({}) },
     };
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof prisma) => unknown) => callback(prisma),
+    );
     gitlab = {
       listGroupRepositoriesByProvider: jest.fn().mockResolvedValue([]),
       listProjectBranchesByProvider: jest
@@ -74,11 +89,19 @@ describe('ProjectImportService.importGitlabGroup', () => {
       connectProject: jest.fn().mockResolvedValue(undefined),
     };
     audit = { record: jest.fn().mockResolvedValue(undefined) };
+    workspaceAccess = {
+      resolveWorkspaceId: jest.fn().mockResolvedValue('workspace-1'),
+      assertWorkspaceAction: jest.fn().mockResolvedValue(undefined),
+      assertUserIsActiveMember: jest.fn().mockResolvedValue(undefined),
+    };
+    usageGuard = { guardForTeam: jest.fn().mockResolvedValue(undefined) };
     service = new ProjectImportService(
       prisma as unknown as PrismaService,
       gitlab as unknown as GitlabAdapter,
       {} as unknown as ProjectsService,
       audit as unknown as AuditService,
+      workspaceAccess as unknown as WorkspaceAccessService,
+      usageGuard as unknown as UsageGuardService,
     );
   });
 
@@ -91,7 +114,10 @@ describe('ProjectImportService.importGitlabGroup', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('forbids a non-admin from assigning a different owner', async () => {
+  it('forbids a caller without workspace create-project permission', async () => {
+    workspaceAccess.assertWorkspaceAction.mockRejectedValue(
+      new ForbiddenException(),
+    );
     await expect(
       service.importGitlabGroup('u1', Role.MEMBER, {
         ...baseDto,
@@ -100,8 +126,10 @@ describe('ProjectImportService.importGitlabGroup', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('404s when the assigned owner does not exist', async () => {
-    prisma.user.findUnique.mockResolvedValue(null);
+  it('404s when the assigned owner is not an active workspace member', async () => {
+    workspaceAccess.assertUserIsActiveMember.mockRejectedValue(
+      new NotFoundException(),
+    );
     await expect(
       service.importGitlabGroup('admin', Role.OWNER, {
         ...baseDto,

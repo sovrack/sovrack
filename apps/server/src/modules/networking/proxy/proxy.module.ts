@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ProjectAccessModule } from '../../catalog/authorization/project-access.module';
+import { WorkspaceAuthorizationModule } from '../../iam/authorization/workspace-authorization.module';
 import { ProxyController } from './proxy.controller';
 import { ProxyService } from './proxy.service';
 
 @Module({
-  imports: [ProjectAccessModule],
+  imports: [WorkspaceAuthorizationModule],
   controllers: [ProxyController],
   providers: [ProxyService],
   // exports: [ProxyService],

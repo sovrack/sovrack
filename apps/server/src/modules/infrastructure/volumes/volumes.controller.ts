@@ -13,44 +13,70 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { CreateVolumeDto, UpdateVolumeDto } from './dto/volume.dto';
 import { VolumesService } from './volumes.service';
+import { GetUser } from '../../../shared/decorators/get-user.decorator';
+import { GetWorkspaceId } from '../../../shared/decorators/get-workspace-id.decorator';
+import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 
 @ApiTags('volumes')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('volumes')
+@Controller(['workspaces/:workspaceId/volumes', 'volumes'])
 export class VolumesController {
   constructor(private readonly volumesService: VolumesService) {}
 
   @Get()
   @ApiOperation({ summary: 'List volumes' })
   findAll(
+    @GetUser() user: JwtPayload,
     @Query('serverId') serverId?: string,
     @Query('serviceId') serviceId?: string,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
-    return this.volumesService.findAll({ serverId, serviceId });
+    return this.volumesService.findAll(
+      { serverId, serviceId },
+      user.id,
+      workspaceId,
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a volume by ID' })
-  findOne(@Param('id') id: string) {
-    return this.volumesService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return this.volumesService.findOne(id, user.id, workspaceId);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a persistent volume' })
-  create(@Body() dto: CreateVolumeDto) {
-    return this.volumesService.create(dto);
+  create(
+    @Body() dto: CreateVolumeDto,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return this.volumesService.create(dto, user.id, workspaceId);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a volume' })
-  update(@Param('id') id: string, @Body() dto: UpdateVolumeDto) {
-    return this.volumesService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateVolumeDto,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return this.volumesService.update(id, dto, user.id, workspaceId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a volume' })
-  remove(@Param('id') id: string) {
-    return this.volumesService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return this.volumesService.remove(id, user.id, workspaceId);
   }
 }

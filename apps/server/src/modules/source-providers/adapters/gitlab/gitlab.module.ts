@@ -19,6 +19,7 @@ import { GitlabOnboardingService } from './gitlab-onboarding.service';
 import { GitlabImageRefService } from './gitlab-image-ref.service';
 import { GitlabPipelinePersistenceService } from './gitlab-pipeline-persistence.service';
 import { GitlabWebhookHandler } from './gitlab-webhook.handler';
+import { WorkspaceAuthorizationModule } from '../../../iam/authorization/workspace-authorization.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { GitlabWebhookHandler } from './gitlab-webhook.handler';
     HttpModule,
     CryptoModule,
     GitProviderConfigModule,
+    WorkspaceAuthorizationModule,
     ConfigModule,
   ],
   controllers: [GitlabController, GitlabOAuthController],

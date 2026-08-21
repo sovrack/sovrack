@@ -6,8 +6,9 @@ import {
 } from '@nestjs/common';
 import { ManagedServerProvider, ServerStatus } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
-import { BillingService } from '../../../billing/billing.service';
 import { UsageGuardService } from '../../../billing/usage-guard.service';
+import { WorkspaceAccessService } from '../../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
 import { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.service';
 import { ServersAuditService } from './servers-audit.service';
 
@@ -47,7 +48,7 @@ export class ManagedServersService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly billing: BillingService,
+    private readonly workspaceAccess: WorkspaceAccessService,
     private readonly usageGuard: UsageGuardService,
     private readonly crypto: ServersCryptoService,
     private readonly audit: ServersAuditService,
@@ -56,8 +57,8 @@ export class ManagedServersService {
   /**
    * Résout la team de l'utilisateur (pour les routes scopées team).
    */
-  async getTeamId(userId: string): Promise<string> {
-    return this.billing.resolveTeamId(userId);
+  async getTeamId(userId: string, workspaceId?: string): Promise<string> {
+    return this.workspaceAccess.resolveWorkspaceId(userId, workspaceId);
   }
 
   /**
@@ -67,9 +68,18 @@ export class ManagedServersService {
   async create(
     dto: CreateManagedServerDto,
     actorUserId: string,
+    requestedWorkspaceId?: string,
   ): Promise<ManagedServerResult> {
-    await this.usageGuard.guard(actorUserId, 'ADD_SERVER');
-    const teamId = await this.billing.resolveTeamId(actorUserId);
+    const teamId = await this.workspaceAccess.resolveWorkspaceId(
+      actorUserId,
+      requestedWorkspaceId,
+    );
+    await this.workspaceAccess.assertWorkspaceAction(
+      teamId,
+      actorUserId,
+      WorkspaceActions.MANAGE_SERVER,
+    );
+    await this.usageGuard.guardForTeam(teamId, 'ADD_SERVER');
 
     const size = dto.serverSize ?? 'm1';
     const cost =

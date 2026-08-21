@@ -14,7 +14,7 @@ function makeClient(
     disconnect: jest.fn(),
     join: jest.fn().mockResolvedValue(undefined),
     emit: jest.fn(),
-    data: {},
+    data: { user: { id: 'user1', role: 'MEMBER' } },
     handshake: {
       auth: opts.authToken ? { token: opts.authToken } : {},
       headers: {
@@ -39,32 +39,40 @@ function makeDeps(
         })
       : jest
           .fn()
-          .mockReturnValue(opts.jwtPayload ?? { sub: 'user1', role: 'OWNER' }),
+          .mockReturnValue(opts.jwtPayload ?? { id: 'user1', role: 'MEMBER' }),
   };
 
   const prisma = {
     serverRun: {
       findFirst: jest
         .fn()
-        .mockResolvedValue(opts.runFound !== false ? { id: 'prep1' } : null),
+        .mockResolvedValue(
+          opts.runFound !== false
+            ? { id: 'prep1', teamId: 'workspace-1' }
+            : null,
+        ),
     },
   };
 
   const configService = {
     get: jest.fn().mockReturnValue('deployautomation_auth'),
   };
+  const workspaceAccess = {
+    assertWorkspaceAction: jest.fn().mockResolvedValue({}),
+  };
 
-  return { jwtService, prisma, configService };
+  return { jwtService, prisma, configService, workspaceAccess };
 }
 
 describe('ServerSetupGateway', () => {
   describe('handleConnection', () => {
     it('disconnects when no token', () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient();
       gw.handleConnection(client);
@@ -72,38 +80,41 @@ describe('ServerSetupGateway', () => {
     });
 
     it('disconnects when token is invalid', () => {
-      const { jwtService, prisma, configService } = makeDeps({
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps({
         jwtError: true,
       });
       const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       gw.handleConnection(makeClient({ authToken: 'bad' }));
       // handleConnection swallows the error and disconnects
     });
 
-    it('disconnects non-ADMIN role', () => {
-      const { jwtService, prisma, configService } = makeDeps({
-        jwtPayload: { sub: 'u1', role: 'MEMBER' },
+    it('defers workspace authorization until a setup is joined', () => {
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps({
+        jwtPayload: { id: 'u1', role: 'MEMBER' },
       });
       const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient({ authToken: 'dev-tok' });
       gw.handleConnection(client);
-      expect(client.disconnect).toHaveBeenCalled();
+      expect(client.disconnect).not.toHaveBeenCalled();
     });
 
     it('allows ADMIN token', () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient({ authToken: 'admin-tok' });
       gw.handleConnection(client);
@@ -113,24 +124,26 @@ describe('ServerSetupGateway', () => {
 
   describe('handleJoinSetup', () => {
     it('returns error when setupId is missing', async () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const result = await gw.handleJoinSetup(makeClient(), {});
       expect(result).toEqual({ ok: false, error: 'setupId manquant' });
     });
 
     it('returns error when preparation run is not found', async () => {
-      const { jwtService, prisma, configService } = makeDeps({
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps({
         runFound: false,
       });
       const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const result = await gw.handleJoinSetup(makeClient(), {
         setupId: 'prep1',
@@ -140,11 +153,12 @@ describe('ServerSetupGateway', () => {
     });
 
     it('joins room and emits setup:joined on success', async () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient();
       const result = await gw.handleJoinSetup(client, {
@@ -158,11 +172,12 @@ describe('ServerSetupGateway', () => {
     });
 
     it('queries with PREPARATION kind', async () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       await gw.handleJoinSetup(makeClient(), { setupId: 'prep1' });
       expect(prisma.serverRun.findFirst).toHaveBeenCalledWith(
@@ -175,11 +190,12 @@ describe('ServerSetupGateway', () => {
 
   describe('emit helpers', () => {
     function makeGw() {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new ServerSetupGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const emitMock = jest.fn();
       gw.server = {

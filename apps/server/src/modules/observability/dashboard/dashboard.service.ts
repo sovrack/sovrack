@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { DeploymentStatus, Prisma, Role, ServerStatus } from '@prisma/client';
+import {
+  DeploymentStatus,
+  Prisma,
+  ServerStatus,
+  WorkspaceRole,
+} from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { activeWhere } from '../../../shared/database/prisma-active.helper';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../iam/authorization/workspace-policy.types';
 
 export type DayActivity = {
   date: string;
@@ -55,31 +62,50 @@ const RUNNING: DeploymentStatus[] = ['PENDING', 'RUNNING'];
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly workspaceAccess: WorkspaceAccessService,
+  ) {}
 
-  async getStats(userId: string, _userRole: Role): Promise<DashboardStats> {
+  async getStats(
+    userId: string,
+    requestedWorkspaceId?: string,
+  ): Promise<DashboardStats> {
+    const workspaceId = await this.workspaceAccess.resolveWorkspaceId(
+      userId,
+      requestedWorkspaceId,
+    );
+    const actor = await this.workspaceAccess.assertWorkspaceAction(
+      workspaceId,
+      userId,
+      WorkspaceActions.READ,
+    );
     const now = new Date();
     const since7d = new Date(now.getTime() - 7 * 86400_000);
     const since30d = new Date(now.getTime() - 30 * 86400_000);
 
-    // Users only see the projects they are a member of — the dashboard
-    // must not leak other projects' names, deploy counts or failures.
+    const inheritsAllProjects =
+      actor.workspaceRole === WorkspaceRole.OWNER ||
+      actor.workspaceRole === WorkspaceRole.ADMIN;
     const projectIds = (
-      await this.prisma.projectMember.findMany({
-        where: { userId },
-        select: { projectId: true },
+      await this.prisma.project.findMany({
+        where: {
+          teamId: workspaceId,
+          ...(inheritsAllProjects
+            ? {}
+            : { members: { some: { userId, teamId: workspaceId } } }),
+        },
+        select: { id: true },
       })
-    ).map((m) => m.projectId);
-    const projectIn = projectIds ? { in: projectIds } : undefined;
-    const deployScope: Prisma.DeploymentWhereInput = projectIn
-      ? { projectId: projectIn }
-      : {};
-    // Servers are platform infra: scope to those attached to the caller's
-    // projects' environments (admins see all). Archived servers are excluded
-    // from every dashboard count/list (activeWhere) — an archived VPS should
-    // not inflate "total servers" nor show up in health breakdowns.
+    ).map((project) => project.id);
+    const projectIn = { in: projectIds };
+    const deployScope: Prisma.DeploymentWhereInput = { projectId: projectIn };
+
+    // Server inventory is a workspace-admin capability. Members receive an
+    // empty server summary even when they can read one or more projects.
+    const canReadServers = inheritsAllProjects;
     const serverScope: Prisma.ServerWhereInput = activeWhere(
-      projectIn ? { environment: { projectId: projectIn } } : {},
+      canReadServers ? { teamId: workspaceId } : { id: { in: [] } },
     );
 
     const [
@@ -91,12 +117,10 @@ export class DashboardService {
       allServers,
       recentFailures,
     ] = await Promise.all([
-      this.prisma.project.count(
-        projectIn ? { where: { id: projectIn } } : undefined,
-      ),
-      this.prisma.environment.count(
-        projectIn ? { where: { projectId: projectIn } } : undefined,
-      ),
+      this.prisma.project.count({
+        where: { id: projectIn, teamId: workspaceId },
+      }),
+      this.prisma.environment.count({ where: { projectId: projectIn } }),
       this.prisma.server.count({ where: serverScope }),
       this.prisma.deployment.findMany({
         where: { createdAt: { gte: since30d }, ...deployScope },

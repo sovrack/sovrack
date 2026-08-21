@@ -35,14 +35,17 @@ function makeSvc(opts: { existing?: unknown } = {}) {
         ),
       create: jest.fn().mockResolvedValue(makeUser({ id: 'user-new' })),
     },
-  } as never;
+    auditLog: {
+      create: jest.fn().mockResolvedValue({ id: 'audit-1' }),
+    },
+    $transaction: jest.fn(),
+  };
+  prisma.$transaction.mockImplementation(
+    async (callback: (tx: typeof prisma) => unknown) => callback(prisma),
+  );
 
   const teamsService = {
     create: jest.fn().mockResolvedValue({ id: 'team-1', name: 'User Team' }),
-  } as never;
-
-  const billingService = {
-    ensureSubscription: jest.fn().mockResolvedValue({ id: 'sub-1' }),
   } as never;
 
   const auditService = {
@@ -51,16 +54,14 @@ function makeSvc(opts: { existing?: unknown } = {}) {
 
   return {
     svc: new GoogleOAuthService(
-      prisma,
+      prisma as never,
       usersService,
       teamsService,
-      billingService,
       auditService,
     ),
     prisma,
     usersService,
     teamsService,
-    billingService,
     auditService,
   };
 }
@@ -103,14 +104,9 @@ describe('GoogleOAuthService', () => {
     });
 
     it('creates a new user and runs onboarding', async () => {
-      const {
-        svc,
-        prisma,
-        usersService,
-        teamsService,
-        billingService,
-        auditService,
-      } = makeSvc({ existing: undefined });
+      const { svc, prisma, usersService, teamsService, auditService } = makeSvc(
+        { existing: undefined },
+      );
       prisma.user.findUnique = jest.fn().mockResolvedValue(null);
       usersService.findByEmail = jest.fn().mockResolvedValue(null);
 
@@ -120,13 +116,12 @@ describe('GoogleOAuthService', () => {
           data: expect.objectContaining({
             googleId: profile.googleId,
             provider: 'google',
-            role: 'OWNER',
+            role: 'MEMBER',
             isActive: true,
           }),
         }),
       );
       expect(teamsService.create).toHaveBeenCalled();
-      expect(billingService.ensureSubscription).toHaveBeenCalledWith('team-1');
       expect(auditService.record).toHaveBeenCalled();
       expect(result.id).toBe('user-new');
     });

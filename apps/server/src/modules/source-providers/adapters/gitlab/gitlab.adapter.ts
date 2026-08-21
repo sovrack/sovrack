@@ -67,8 +67,11 @@ export class GitlabAdapter implements IGitProvider {
     return this.onboarding.connectProject(projectId, dto, userId, userRole);
   }
 
-  async verifyConnectionInput(dto: ConnectGitlabDto): Promise<void> {
-    return this.onboarding.verifyConnectionInput(dto);
+  async verifyConnectionInput(
+    dto: ConnectGitlabDto,
+    teamId: string,
+  ): Promise<void> {
+    return this.onboarding.verifyConnectionInput(dto, teamId);
   }
 
   async getBranches(
@@ -117,22 +120,30 @@ export class GitlabAdapter implements IGitProvider {
     );
   }
 
-  async listAvailableProviders(): Promise<GitlabProviderProjectOption[]> {
-    return await this.gitProviderRegistry.listGitlabProvidersForProjects();
+  async listAvailableProviders(
+    teamId: string,
+  ): Promise<GitlabProviderProjectOption[]> {
+    return await this.gitProviderRegistry.listGitlabProvidersForProjects(
+      teamId,
+    );
   }
 
   async listGroupRepositoriesByProvider(params: {
+    teamId: string;
     providerId?: string;
     gitlabUrl?: string;
     gitlabToken?: string;
     groupId: string;
     query?: GitlabGroupRepositoriesQuery;
   }): Promise<GitlabGroupRepositoriesPage> {
-    const connection = await this.connection.resolveGitlabConnectionInput({
-      providerId: params.providerId,
-      gitlabUrl: params.gitlabUrl,
-      gitlabToken: params.gitlabToken,
-    } as ConnectGitlabDto);
+    const connection = await this.connection.resolveGitlabConnectionInput(
+      {
+        providerId: params.providerId,
+        gitlabUrl: params.gitlabUrl,
+        gitlabToken: params.gitlabToken,
+      } as ConnectGitlabDto,
+      params.teamId,
+    );
 
     const page = await this.apiService.listGroupRepositoriesPageByConnection(
       this.connection.normalizeUrl(connection.gitlabUrl),
@@ -154,16 +165,20 @@ export class GitlabAdapter implements IGitProvider {
   }
 
   async listProjectBranchesByProvider(params: {
+    teamId: string;
     providerId?: string;
     gitlabUrl?: string;
     gitlabToken?: string;
     projectId: string;
   }): Promise<GitlabBranchItem[]> {
-    const connection = await this.connection.resolveGitlabConnectionInput({
-      providerId: params.providerId,
-      gitlabUrl: params.gitlabUrl,
-      gitlabToken: params.gitlabToken,
-    } as ConnectGitlabDto);
+    const connection = await this.connection.resolveGitlabConnectionInput(
+      {
+        providerId: params.providerId,
+        gitlabUrl: params.gitlabUrl,
+        gitlabToken: params.gitlabToken,
+      } as ConnectGitlabDto,
+      params.teamId,
+    );
 
     return await this.apiService.listProjectBranchesByConnection(
       this.connection.normalizeUrl(connection.gitlabUrl),

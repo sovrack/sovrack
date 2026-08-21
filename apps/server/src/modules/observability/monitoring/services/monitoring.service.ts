@@ -49,9 +49,9 @@ export class MonitoringService {
     private readonly serverResolver: MonitoringServerResolverService,
   ) {}
 
-  async getOverview() {
+  async getOverview(workspaceId: string) {
     const [servers, prometheusStatus, grafanaStatus] = await Promise.all([
-      this.getServerMonitoring(),
+      this.getServerMonitoring(workspaceId),
       this.getPrometheusStatus(),
       this.getGrafanaStatus(),
     ]);
@@ -80,11 +80,14 @@ export class MonitoringService {
     };
   }
 
-  async getServerMonitoring() {
+  async getServerMonitoring(workspaceId: string) {
     const metricByHost =
       await this.prometheusService.fetchPrometheusMetricsByHost();
-    const rows = await this.statsService.getServerMonitoring(metricByHost);
-    return await this.backfillLegacyMonitoringInstall(rows);
+    const rows = await this.statsService.getServerMonitoring(
+      metricByHost,
+      workspaceId,
+    );
+    return await this.backfillLegacyMonitoringInstall(rows, workspaceId);
   }
 
   /**
@@ -105,7 +108,7 @@ export class MonitoringService {
         lokiUrl: string;
       } | null;
     },
-  >(rows: T[]): Promise<T[]> {
+  >(rows: T[], workspaceId: string): Promise<T[]> {
     const missing = rows.filter((r) => !r.monitoringInstalledAt);
     if (missing.length === 0) return rows;
     const grafanaUrl = await this.getConfigValue('MONITORING_GRAFANA_URL');
@@ -121,7 +124,11 @@ export class MonitoringService {
 
     const now = new Date();
     await this.prisma.server.updateMany({
-      where: { host: legacyHost, monitoringInstalledAt: null },
+      where: {
+        teamId: workspaceId,
+        host: legacyHost,
+        monitoringInstalledAt: null,
+      },
       data: { monitoringInstalledAt: now },
     });
     this.logger.log(
@@ -138,12 +145,12 @@ export class MonitoringService {
     return rows;
   }
 
-  async getProjectMonitoring() {
-    return await this.statsService.getProjectMonitoring();
+  async getProjectMonitoring(workspaceId: string) {
+    return await this.statsService.getProjectMonitoring(workspaceId);
   }
 
-  async getDeploymentMonitoring() {
-    return await this.statsService.getDeploymentMonitoring();
+  async getDeploymentMonitoring(workspaceId: string) {
+    return await this.statsService.getDeploymentMonitoring(workspaceId);
   }
 
   async getPrometheusStatus() {
@@ -158,7 +165,15 @@ export class MonitoringService {
     host: string,
     rangeMinutes = 60,
     stepSeconds = 60,
+    workspaceId?: string,
   ) {
+    if (workspaceId) {
+      const server = await this.prisma.server.findFirst({
+        where: { host, teamId: workspaceId },
+        select: { id: true },
+      });
+      if (!server) throw new BadRequestException('Serveur introuvable');
+    }
     const safeRange = Math.min(Math.max(rangeMinutes, 5), 7 * 24 * 60);
     const safeStep = Math.min(Math.max(stepSeconds, 15), 3600);
     const to = new Date();
@@ -315,7 +330,7 @@ export class MonitoringService {
     }
   }
 
-  async getAlerts() {
+  async getAlerts(workspaceId: string) {
     const alertmanagerUrl = await this.getConfigValue(
       'MONITORING_ALERTMANAGER_URL',
     );
@@ -354,16 +369,41 @@ export class MonitoringService {
               'Monitoring alert',
             source: 'alertmanager',
             startsAt: alert.startsAt ?? new Date().toISOString(),
+            ...(alert.labels?.serverId
+              ? { serverId: alert.labels.serverId }
+              : {}),
+            ...(alert.labels?.projectId
+              ? { projectId: alert.labels.projectId }
+              : {}),
           };
         });
+        const [servers, projects] = await Promise.all([
+          this.prisma.server.findMany({
+            where: { teamId: workspaceId },
+            select: { id: true },
+          }),
+          this.prisma.project.findMany({
+            where: { teamId: workspaceId },
+            select: { id: true },
+          }),
+        ]);
+        const serverIds = new Set(servers.map((server) => server.id));
+        const projectIds = new Set(projects.map((project) => project.id));
+        const scopedItems = items.filter(
+          (item) =>
+            (item.serverId && serverIds.has(item.serverId)) ||
+            (item.projectId && projectIds.has(item.projectId)),
+        );
 
         return {
           source: 'alertmanager',
-          total: items.length,
-          warning: items.filter((item) => item.severity === 'warning').length,
-          critical: items.filter((item) => item.severity === 'critical').length,
-          info: items.filter((item) => item.severity === 'info').length,
-          items,
+          total: scopedItems.length,
+          warning: scopedItems.filter((item) => item.severity === 'warning')
+            .length,
+          critical: scopedItems.filter((item) => item.severity === 'critical')
+            .length,
+          info: scopedItems.filter((item) => item.severity === 'info').length,
+          items: scopedItems,
         };
       } catch (error) {
         this.logger.warn(
@@ -372,15 +412,16 @@ export class MonitoringService {
       }
     }
 
-    return await this.alertsService.getDerivedAlerts();
+    return await this.alertsService.getDerivedAlerts(workspaceId);
   }
 
-  async getInstallOptions() {
-    return await this.alertsService.getInstallOptions();
+  async getInstallOptions(workspaceId: string) {
+    return await this.alertsService.getInstallOptions(workspaceId);
   }
 
   async installMonitoring(
     dto: InstallMonitoringDto,
+    workspaceId: string,
     actorId: string,
   ): Promise<unknown> {
     const action = AUTOMATION_ACTIONS.find(
@@ -397,7 +438,7 @@ export class MonitoringService {
       serverIds: dto.serverIds,
     };
 
-    return await this.automation.startRun(payload, actorId);
+    return await this.automation.startRun(payload, workspaceId, actorId);
   }
 
   /**

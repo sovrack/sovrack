@@ -1,7 +1,8 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { MonitoringAccessService } from './monitoring-access.service';
+import { ProjectActions } from '../../../iam/authorization/workspace-policy.types';
 
 /**
  * LOT1a : les routes monitoring scopées projet sont ouvertes aux DEVELOPER —
@@ -15,9 +16,6 @@ function makeService(overrides: {
   deployment?: unknown;
 }) {
   const prisma = {
-    projectMember: {
-      findUnique: jest.fn().mockResolvedValue(overrides.member ?? null),
-    },
     serviceEnvironment: {
       findUnique: jest.fn().mockResolvedValue(overrides.serviceEnv ?? null),
     },
@@ -25,18 +23,30 @@ function makeService(overrides: {
       findUnique: jest.fn().mockResolvedValue(overrides.deployment ?? null),
     },
   };
+  const workspaceAccess = {
+    assertProjectAction:
+      overrides.member === null || overrides.member === undefined
+        ? jest
+            .fn()
+            .mockRejectedValue(new NotFoundException('Projet introuvable'))
+        : jest.fn().mockResolvedValue({ effectiveProjectRole: 'DEVELOPER' }),
+  };
   return {
-    svc: new MonitoringAccessService(prisma as unknown as PrismaService),
+    svc: new MonitoringAccessService(
+      prisma as unknown as PrismaService,
+      workspaceAccess as never,
+    ),
     prisma,
+    workspaceAccess,
   };
 }
 
 describe('MonitoringAccessService', () => {
-  it('rejects a SUPER_ADMIN who is not a project member (403)', async () => {
+  it('hides a project from an identity without workspace/project access', async () => {
     const { svc } = makeService({});
     await expect(
       svc.assertProject('p1', 'u1', Role.SUPER_ADMIN),
-    ).rejects.toThrow(ForbiddenException);
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('allows a DEVELOPER who is a project member', async () => {
@@ -46,23 +56,24 @@ describe('MonitoringAccessService', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('rejects a DEVELOPER who is NOT a member (403)', async () => {
+  it('hides a project from a workspace member without project membership', async () => {
     const { svc } = makeService({ member: null });
     await expect(svc.assertProject('p1', 'u1', Role.MEMBER)).rejects.toThrow(
-      ForbiddenException,
+      NotFoundException,
     );
   });
 
   it('resolves the project through the service-environment', async () => {
-    const { svc, prisma } = makeService({
+    const { svc, workspaceAccess } = makeService({
       serviceEnv: { service: { projectId: 'p9' } },
       member: { role: 'DEVELOPER' },
     });
     await svc.assertServiceEnv('se1', 'u1', Role.MEMBER);
-    expect(prisma.projectMember.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { projectId_userId: { projectId: 'p9', userId: 'u1' } },
-      }),
+    expect(workspaceAccess.assertProjectAction).toHaveBeenCalledWith(
+      'p9',
+      'u1',
+      ProjectActions.READ,
+      undefined,
     );
   });
 
@@ -82,7 +93,7 @@ describe('MonitoringAccessService', () => {
       member: null,
     });
     await expect(svc.assertDeployment('d1', 'u1', Role.MEMBER)).rejects.toThrow(
-      ForbiddenException,
+      NotFoundException,
     );
   });
 });

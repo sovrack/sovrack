@@ -3,11 +3,12 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
+  Patch,
   Post,
   Put,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -15,17 +16,14 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
-import { Roles } from '../../../shared/decorators/roles.decorator';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../shared/guards/roles.guard';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { PaginationDto } from '../../../shared/http/pagination.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ImportGitlabGroupDto } from './dto/import-gitlab-group.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { UpdateProjectMemberRoleDto } from './dto/update-project-member-role.dto';
 import { ProjectsService } from './projects.service';
 import { ProjectImportService } from './services/project-import.service';
 import { ProjectMembersService } from './services/project-members.service';
@@ -35,8 +33,7 @@ import { ProjectMembersService } from './services/project-members.service';
  */
 @ApiTags('Projects')
 @ApiBearerAuth()
-@Controller('projects')
-@UseGuards(JwtAuthGuard)
+@Controller(['workspaces/:workspaceId/projects', 'projects'])
 export class ProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,
@@ -45,8 +42,6 @@ export class ProjectsController {
   ) {}
 
   @Post()
-  @Roles(Role.OWNER, Role.MEMBER)
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Create a project' })
   @ApiResponse({ status: 201, description: 'Project created successfully' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
@@ -54,13 +49,21 @@ export class ProjectsController {
     status: 403,
     description: 'Administrators only',
   })
-  async create(@GetUser() user: JwtPayload, @Body() dto: CreateProjectDto) {
-    return await this.projectsService.create(user.id, user.role, dto);
+  async create(
+    @GetUser() user: JwtPayload,
+    @Body() dto: CreateProjectDto,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
+  ) {
+    return await this.projectsService.create(
+      user.id,
+      user.role,
+      dto,
+      workspaceId ?? workspaceHeader,
+    );
   }
 
   @Post('import/gitlab-group')
-  @Roles(Role.OWNER, Role.MEMBER)
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({
     summary:
       'Import GitLab Group repositories as a multi-service application or separate projects',
@@ -69,8 +72,15 @@ export class ProjectsController {
   async importGitlabGroup(
     @GetUser() user: JwtPayload,
     @Body() dto: ImportGitlabGroupDto,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
   ) {
-    return await this.importService.importGitlabGroup(user.id, user.role, dto);
+    return await this.importService.importGitlabGroup(
+      user.id,
+      user.role,
+      dto,
+      workspaceId ?? workspaceHeader,
+    );
   }
 
   @Get()
@@ -80,8 +90,15 @@ export class ProjectsController {
   async findAll(
     @GetUser() user: JwtPayload,
     @Query() pagination: PaginationDto,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
   ) {
-    return await this.projectsService.findAll(user.id, user.role, pagination);
+    return await this.projectsService.findAll(
+      user.id,
+      user.role,
+      pagination,
+      workspaceId ?? workspaceHeader,
+    );
   }
 
   @Get(':id')
@@ -93,8 +110,18 @@ export class ProjectsController {
     description: 'Unauthorized access to the project',
   })
   @ApiResponse({ status: 404, description: 'Project not found' })
-  async findOne(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.projectsService.findOne(id, user.id, user.role);
+  async findOne(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
+  ) {
+    return await this.projectsService.findOne(
+      id,
+      user.id,
+      user.role,
+      workspaceId ?? workspaceHeader,
+    );
   }
 
   @Put(':id')
@@ -107,20 +134,36 @@ export class ProjectsController {
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Body() dto: UpdateProjectDto,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
   ) {
-    return await this.projectsService.update(id, user.id, user.role, dto);
+    return await this.projectsService.update(
+      id,
+      user.id,
+      user.role,
+      dto,
+      workspaceId ?? workspaceHeader,
+    );
   }
 
   @Delete(':id')
-  @Roles(Role.OWNER)
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'Delete a project' })
   @ApiResponse({ status: 200, description: 'Project deleted' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Unauthorized action' })
   @ApiResponse({ status: 404, description: 'Project not found' })
-  async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    await this.projectsService.remove(id, user.id, user.role);
+  async remove(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
+  ) {
+    await this.projectsService.remove(
+      id,
+      user.id,
+      user.role,
+      workspaceId ?? workspaceHeader,
+    );
     return { message: 'Projet supprimé avec succès' };
   }
 
@@ -135,8 +178,16 @@ export class ProjectsController {
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Body() dto: AddMemberDto,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
   ) {
-    return await this.membersService.addMember(id, user.id, user.role, dto);
+    return await this.membersService.addMember(
+      id,
+      user.id,
+      user.role,
+      dto,
+      workspaceId ?? workspaceHeader,
+    );
   }
 
   @Get(':id/members')
@@ -148,8 +199,18 @@ export class ProjectsController {
     description: 'Unauthorized access to the project',
   })
   @ApiResponse({ status: 404, description: 'Project not found' })
-  async getMembers(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.membersService.getMembers(id, user.id, user.role);
+  async getMembers(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
+  ) {
+    return await this.membersService.getMembers(
+      id,
+      user.id,
+      user.role,
+      workspaceId ?? workspaceHeader,
+    );
   }
 
   @Delete(':id/members/:userId')
@@ -162,12 +223,35 @@ export class ProjectsController {
     @Param('id') id: string,
     @Param('userId') targetUserId: string,
     @GetUser() user: JwtPayload,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
   ) {
     return await this.membersService.removeMember(
       id,
       user.id,
       user.role,
       targetUserId,
+      workspaceId ?? workspaceHeader,
+    );
+  }
+
+  @Patch(':id/members/:userId/role')
+  @ApiOperation({ summary: 'Update a project member role' })
+  async updateMemberRole(
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+    @Body() dto: UpdateProjectMemberRoleDto,
+    @GetUser() user: JwtPayload,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
+  ) {
+    return this.membersService.updateMemberRole(
+      id,
+      user.id,
+      user.role,
+      targetUserId,
+      dto.role,
+      workspaceId ?? workspaceHeader,
     );
   }
 }

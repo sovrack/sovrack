@@ -18,7 +18,10 @@ function processRole(): ProcessRole {
   const raw = (process.env.PROCESS_ROLE ?? 'all').trim().toLowerCase();
   if (raw === 'api') return 'api';
   if (raw === 'worker') return 'worker';
-  return 'all';
+  if (raw === 'all') return 'all';
+  throw new Error(
+    `PROCESS_ROLE invalide: "${raw}" (valeurs autorisées: api, worker, all)`,
+  );
 }
 
 /**

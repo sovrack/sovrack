@@ -13,6 +13,7 @@ import { DeploymentEventsPublisher } from '../events/deployment-events.publisher
 import { DeploymentPreflightService } from '../core/deployment-preflight.service';
 
 const PROJECT_ID = 'project-1';
+const WORKSPACE_ID = 'workspace-1';
 const SVC_ENV_ID = 'svcenv-1';
 const ENV_ID = 'env-1';
 const SVC_ID = 'svc-1';
@@ -52,7 +53,11 @@ const makeSvcEnv = (overrides: Record<string, unknown> = {}) => ({
     id: ENV_ID,
     isProtected: false,
     name: 'production',
-    project: { id: PROJECT_ID, maxConcurrentDeploys: null },
+    project: {
+      id: PROJECT_ID,
+      teamId: WORKSPACE_ID,
+      maxConcurrentDeploys: null,
+    },
   },
   ...overrides,
 });
@@ -166,6 +171,7 @@ describe('DeploymentsAutoTriggerService', () => {
       );
       expect(queue.enqueueDeploy).toHaveBeenCalledWith(
         DEPLOYMENT_ID,
+        WORKSPACE_ID,
         undefined,
       );
     });
@@ -203,7 +209,11 @@ describe('DeploymentsAutoTriggerService', () => {
             id: ENV_ID,
             isProtected: true,
             name: 'production',
-            project: { id: PROJECT_ID, maxConcurrentDeploys: null },
+            project: {
+              id: PROJECT_ID,
+              teamId: WORKSPACE_ID,
+              maxConcurrentDeploys: null,
+            },
           },
         }),
       ]);
@@ -414,7 +424,11 @@ describe('DeploymentsAutoTriggerService', () => {
       await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
 
       expect(queue.enqueueDeploy).toHaveBeenCalledTimes(1);
-      expect(queue.enqueueDeploy).toHaveBeenCalledWith('deploy-2', undefined);
+      expect(queue.enqueueDeploy).toHaveBeenCalledWith(
+        'deploy-2',
+        WORKSPACE_ID,
+        undefined,
+      );
     });
 
     it('calls the preflight guard with serviceEnvId/branch/overrideImage before any write', async () => {
@@ -492,7 +506,11 @@ describe('DeploymentsAutoTriggerService', () => {
       await service.triggerAutoDeployIfConfigured(PROJECT_ID, BRANCH);
 
       expect(queue.enqueueDeploy).toHaveBeenCalledTimes(1);
-      expect(queue.enqueueDeploy).toHaveBeenCalledWith('deploy-2', undefined);
+      expect(queue.enqueueDeploy).toHaveBeenCalledWith(
+        'deploy-2',
+        WORKSPACE_ID,
+        undefined,
+      );
     });
   });
 });

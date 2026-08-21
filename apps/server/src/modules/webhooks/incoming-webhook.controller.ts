@@ -64,7 +64,7 @@ export class IncomingWebhookController {
     @Body() payload: Record<string, unknown>,
     @Headers() rawHeaders: Record<string, string | string[] | undefined>,
     @Req() req: RawBodyRequest<Request>,
-  ): Promise<{ status: 'ignored' | 'ok' }> {
+  ): Promise<{ status: 'ignored' | 'ok' | 'duplicate'; eventId?: string }> {
     const endpoint = await this.webhooksService.findByToken(webhookToken);
     if (!endpoint) {
       // 404 = "this URL is unknown". Deliberately the same status as a
@@ -109,6 +109,9 @@ export class IncomingWebhookController {
         headers: this.serializeHeaders(rawHeaders),
       });
       eventId = recorded.id;
+      if (recorded.deduplicated) {
+        return { status: 'duplicate', eventId: recorded.id };
+      }
     } catch (error) {
       this.logger.error(
         `Failed to record webhook event for endpoint ${endpoint.id}: ${

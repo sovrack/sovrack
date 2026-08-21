@@ -24,7 +24,8 @@ export class GitlabPipelinePersistenceService {
   ): Promise<void> {
     await this.prisma.pipelineRun.upsert({
       where: {
-        externalId_provider: {
+        projectId_externalId_provider: {
+          projectId,
           externalId: BigInt(pipeline.id),
           provider: GitProviderType.GITLAB,
         },
@@ -57,7 +58,8 @@ export class GitlabPipelinePersistenceService {
     const currentStatus = this.mapPipelineStatus(pipeline.status);
     const existing = await this.prisma.pipelineRun.findUnique({
       where: {
-        externalId_provider: {
+        projectId_externalId_provider: {
+          projectId,
           externalId: BigInt(pipeline.id),
           provider: GitProviderType.GITLAB,
         },

@@ -8,12 +8,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
+import { GetWorkspaceId } from '../../../shared/decorators/get-workspace-id.decorator';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
-import { Roles } from '../../../shared/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../shared/guards/roles.guard';
+import { WorkspaceGuard } from '../../iam/authorization/workspace.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateAutomationRunDto } from '../dto/create-automation-run.dto';
 import { AutomationPaginationDto } from '../dto/automation-pagination.dto';
@@ -21,52 +20,62 @@ import { AutomationService } from '../services/automation.service';
 
 @ApiTags('Automation')
 @ApiBearerAuth()
-@Controller()
-@Roles(Role.OWNER, Role.MEMBER)
-@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller(['workspaces/:workspaceId', ''])
+@UseGuards(JwtAuthGuard, WorkspaceGuard)
 export class AutomationController {
   constructor(private readonly automationService: AutomationService) {}
 
   @Get('automation/actions')
-  @Roles(Role.OWNER, Role.MEMBER)
   getActions() {
     return this.automationService.getActions();
   }
 
   @Get('automation/runs')
-  @Roles(Role.OWNER, Role.MEMBER)
-  getRuns(@Query() pagination: AutomationPaginationDto) {
-    return this.automationService.getRuns(pagination);
+  getRuns(
+    @GetWorkspaceId() workspaceId: string,
+    @Query() pagination: AutomationPaginationDto,
+  ) {
+    return this.automationService.getRuns(workspaceId, pagination);
   }
 
   @Get('automation/runs/:id')
-  @Roles(Role.OWNER, Role.MEMBER)
-  getRun(@Param('id') id: string) {
-    return this.automationService.getRun(id);
+  getRun(@Param('id') id: string, @GetWorkspaceId() workspaceId: string) {
+    return this.automationService.getRun(id, workspaceId);
   }
 
   @Get('automation/runs/:id/logs')
-  @Roles(Role.OWNER, Role.MEMBER)
-  getRunLogs(@Param('id') id: string, @Query('afterLine') afterLine?: string) {
+  getRunLogs(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+    @Query('afterLine') afterLine?: string,
+  ) {
     const parsedAfterLine =
       afterLine && Number.isFinite(Number(afterLine))
         ? Number(afterLine)
         : undefined;
-    return this.automationService.getRunLogs(id, parsedAfterLine);
+    return this.automationService.getRunLogs(id, workspaceId, parsedAfterLine);
   }
 
   @Post('automation/runs')
-  startRun(@Body() dto: CreateAutomationRunDto, @GetUser() user: JwtPayload) {
-    return this.automationService.startRun(dto, user.id);
+  startRun(
+    @Body() dto: CreateAutomationRunDto,
+    @GetWorkspaceId() workspaceId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    return this.automationService.startRun(dto, workspaceId, user.id);
   }
 
   @Post('automation/runs/:id/cancel')
-  cancelRun(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return this.automationService.cancelRun(id, user.id);
+  cancelRun(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    return this.automationService.cancelRun(id, workspaceId, user.id);
   }
 
   @Delete('automation/runs/:id')
-  deleteRun(@Param('id') id: string) {
-    return this.automationService.deleteRun(id);
+  deleteRun(@Param('id') id: string, @GetWorkspaceId() workspaceId: string) {
+    return this.automationService.deleteRun(id, workspaceId);
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ContainerStatus, Prisma, Role } from '@prisma/client';
+import { ContainerStatus, Prisma, Role, WorkspaceRole } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
 import {
@@ -8,6 +8,8 @@ import {
   paginate,
 } from '../../../shared/http/pagination.dto';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../iam/authorization/workspace-policy.types';
 import {
   EnvLevel,
   EnvOrigin,
@@ -84,6 +86,7 @@ export class DeploymentsQueryService {
     private readonly prisma: PrismaService,
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly crypto: CryptoService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   /**
@@ -95,6 +98,7 @@ export class DeploymentsQueryService {
     serviceEnvId: string,
     userId: string,
     userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<EnvPreview> {
     const serviceEnv = await this.prisma.serviceEnvironment.findUnique({
       where: { id: serviceEnvId },
@@ -118,10 +122,11 @@ export class DeploymentsQueryService {
         'Projet introuvable pour ce lien service-env',
       );
     }
-    await this.authorizationService.assertCanAccessProject(
+    await this.assertCanAccessProject(
       projectId,
       userId,
       userRole,
+      expectedWorkspaceId,
     );
 
     // secretsEnv is encrypted at rest — decrypt before resolving (decryptSafe
@@ -185,11 +190,27 @@ export class DeploymentsQueryService {
     userId: string,
     userRole: Role,
     pagination?: PaginationDto,
+    requestedWorkspaceId?: string,
   ): Promise<
     DeploymentWithRelations[] | PaginatedResult<DeploymentWithRelations>
   > {
-    const where: Prisma.DeploymentWhereInput | undefined = {
-      project: { members: { some: { userId } } },
+    const workspaceId = await this.workspaceAccess.resolveWorkspaceId(
+      userId,
+      requestedWorkspaceId,
+    );
+    const workspace = await this.workspaceAccess.assertWorkspaceAction(
+      workspaceId,
+      userId,
+      WorkspaceActions.READ,
+    );
+    const isWorkspaceAdmin =
+      workspace.workspaceRole === WorkspaceRole.OWNER ||
+      workspace.workspaceRole === WorkspaceRole.ADMIN;
+    const where: Prisma.DeploymentWhereInput = {
+      project: {
+        teamId: workspaceId,
+        ...(isWorkspaceAdmin ? {} : { members: { some: { userId } } }),
+      },
     };
 
     const MAX_UNPAGINATED = 200;
@@ -220,11 +241,17 @@ export class DeploymentsQueryService {
     return paginate(items, total, page, limit);
   }
 
-  async findByProject(projectId: string, userId: string, userRole: Role) {
-    await this.authorizationService.assertCanAccessProject(
+  async findByProject(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+    expectedWorkspaceId?: string,
+  ) {
+    await this.assertCanAccessProject(
       projectId,
       userId,
       userRole,
+      expectedWorkspaceId,
     );
     const rows = await this.prisma.deployment.findMany({
       where: { projectId },
@@ -234,16 +261,22 @@ export class DeploymentsQueryService {
     return rows.map((d) => this.enrichDeployment(d));
   }
 
-  async findOne(id: string, userId: string, userRole: Role) {
+  async findOne(
+    id: string,
+    userId: string,
+    userRole: Role,
+    expectedWorkspaceId?: string,
+  ) {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id },
       include: deploymentRelationsInclude,
     });
     if (!deployment) throw new NotFoundException('Déploiement non trouvé');
-    await this.authorizationService.assertCanAccessProject(
+    await this.assertCanAccessProject(
       deployment.projectId,
       userId,
       userRole,
+      expectedWorkspaceId,
     );
     return this.enrichDeployment(deployment);
   }
@@ -255,5 +288,25 @@ export class DeploymentsQueryService {
     });
     if (!deployment) throw new NotFoundException('Déploiement non trouvé');
     return deployment;
+  }
+
+  private assertCanAccessProject(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+    expectedWorkspaceId?: string,
+  ) {
+    return expectedWorkspaceId
+      ? this.authorizationService.assertCanAccessProject(
+          projectId,
+          userId,
+          userRole,
+          expectedWorkspaceId,
+        )
+      : this.authorizationService.assertCanAccessProject(
+          projectId,
+          userId,
+          userRole,
+        );
   }
 }

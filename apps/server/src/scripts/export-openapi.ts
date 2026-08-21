@@ -11,7 +11,8 @@ async function exportOpenApi() {
 
   const outputPath = resolve(
     process.cwd(),
-    '../frontend/src/generated/api-contract.openapi.json',
+    process.env.OPENAPI_OUTPUT_PATH ??
+      '../frontend/src/generated/api-contract.openapi.json',
   );
 
   await mkdir(dirname(outputPath), { recursive: true });

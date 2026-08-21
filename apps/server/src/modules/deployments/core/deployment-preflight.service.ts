@@ -25,6 +25,7 @@ import { EnvLevel, resolveEnvDetailed } from '../utils/env-resolver.util';
 import { checkRepoCloneable } from '../utils/repo-cloneable.util';
 import { BLUE_GREEN_PORT_OFFSET } from '../utils/blue-green.constants';
 import { buildContainerPrefix } from '../../../shared/utils/container-spec.util';
+import { parseDbCredentials } from '../../../shared/utils/database-spec.util';
 
 export type PreflightInput = {
   serviceEnvId: string;
@@ -115,7 +116,10 @@ export class DeploymentPreflightService {
         );
       }
       if (service.databaseCredentials) {
-        const creds = service.databaseCredentials as Record<string, unknown>;
+        const creds = parseDbCredentials(
+          service.databaseCredentials,
+          this.crypto,
+        );
         if (!creds.user || !creds.password || !creds.dbName) {
           throw new BadRequestException(
             'databaseCredentials doit contenir user, password et dbName',

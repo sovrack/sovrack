@@ -47,8 +47,9 @@ export class ContainerRegistriesService {
     private readonly connectionTester: RegistryConnectionTestService,
   ) {}
 
-  async listRegistryConfigs(): Promise<RegistryConfigPublic[]> {
+  async listRegistryConfigs(teamId: string): Promise<RegistryConfigPublic[]> {
     const registries = await this.prisma.registryConfig.findMany({
+      where: { teamId },
       orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
     });
     return registries.map((r) => this.toPublic(r));
@@ -56,16 +57,19 @@ export class ContainerRegistriesService {
 
   async createRegistryConfig(
     input: UpsertRegistryConfigInput,
+    teamId: string,
   ): Promise<RegistryConfigPublic> {
     const name = this.requireNonEmpty(input.name, 'Name est requis');
     const type = input.type;
 
-    const count = await this.prisma.registryConfig.count({ where: { type } });
+    const count = await this.prisma.registryConfig.count({
+      where: { teamId, type },
+    });
     const shouldBeDefault = count === 0 ? true : input.isDefault === true;
 
     if (shouldBeDefault) {
       await this.prisma.registryConfig.updateMany({
-        where: { type, isDefault: true },
+        where: { teamId, type, isDefault: true },
         data: { isDefault: false },
       });
     }
@@ -79,6 +83,7 @@ export class ContainerRegistriesService {
         registryUrl: this.normalizeOptional(input.registryUrl),
         isDefault: shouldBeDefault,
         isConnected: false,
+        teamId,
       },
     });
 
@@ -88,8 +93,9 @@ export class ContainerRegistriesService {
   async updateRegistryConfig(
     id: string,
     input: PatchRegistryConfigInput,
+    teamId: string,
   ): Promise<RegistryConfigPublic> {
-    const current = await this.getOrFail(id);
+    const current = await this.getOrFail(id, teamId);
     const data: Partial<RegistryConfig> = {};
 
     if (typeof input.name === 'string')
@@ -104,7 +110,7 @@ export class ContainerRegistriesService {
 
     if (input.isDefault === true && !current.isDefault) {
       await this.prisma.registryConfig.updateMany({
-        where: { type: current.type, isDefault: true },
+        where: { teamId, type: current.type, isDefault: true },
         data: { isDefault: false },
       });
       data.isDefault = true;
@@ -117,13 +123,13 @@ export class ContainerRegistriesService {
     return this.toPublic(updated);
   }
 
-  async deleteRegistryConfig(id: string): Promise<void> {
-    const registry = await this.getOrFail(id);
+  async deleteRegistryConfig(id: string, teamId: string): Promise<void> {
+    const registry = await this.getOrFail(id, teamId);
     await this.prisma.registryConfig.delete({ where: { id } });
 
     if (registry.isDefault) {
       const replacement = await this.prisma.registryConfig.findFirst({
-        where: { type: registry.type },
+        where: { teamId, type: registry.type },
         orderBy: { createdAt: 'asc' },
       });
       if (replacement) {
@@ -135,11 +141,14 @@ export class ContainerRegistriesService {
     }
   }
 
-  async setDefaultRegistryConfig(id: string): Promise<RegistryConfigPublic> {
-    const current = await this.getOrFail(id);
+  async setDefaultRegistryConfig(
+    id: string,
+    teamId: string,
+  ): Promise<RegistryConfigPublic> {
+    const current = await this.getOrFail(id, teamId);
     await this.prisma.$transaction([
       this.prisma.registryConfig.updateMany({
-        where: { type: current.type, isDefault: true },
+        where: { teamId, type: current.type, isDefault: true },
         data: { isDefault: false },
       }),
       this.prisma.registryConfig.update({
@@ -147,20 +156,21 @@ export class ContainerRegistriesService {
         data: { isDefault: true },
       }),
     ]);
-    const updated = await this.getOrFail(id);
+    const updated = await this.getOrFail(id, teamId);
     return this.toPublic(updated);
   }
 
   async testRegistryConnection(
     id: string,
+    teamId: string,
   ): Promise<{ ok: boolean; message: string }> {
-    const registry = await this.getOrFail(id);
+    const registry = await this.getOrFail(id, teamId);
     return this.connectionTester.test(registry);
   }
 
-  private async getOrFail(id: string): Promise<RegistryConfig> {
-    const registry = await this.prisma.registryConfig.findUnique({
-      where: { id },
+  private async getOrFail(id: string, teamId: string): Promise<RegistryConfig> {
+    const registry = await this.prisma.registryConfig.findFirst({
+      where: { id, teamId },
     });
     if (!registry) throw new NotFoundException(`Registry "${id}" non trouvée`);
     return registry;

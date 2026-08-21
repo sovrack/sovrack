@@ -9,6 +9,9 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
+import { ProjectWorkspaceGuard } from '../iam/authorization/project-workspace.guard';
+import { RequireProjectAction } from '../iam/authorization/require-project-action.decorator';
+import { ProjectActions } from '../iam/authorization/workspace-policy.types';
 import { WebhookManagementService } from './webhook-management.service';
 
 /**
@@ -25,8 +28,11 @@ import { WebhookManagementService } from './webhook-management.service';
  */
 @ApiTags('Webhooks')
 @ApiBearerAuth()
-@Controller('projects/:projectId/webhook')
-@UseGuards(JwtAuthGuard)
+@Controller([
+  'workspaces/:workspaceId/projects/:projectId/webhook',
+  'projects/:projectId/webhook',
+])
+@UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
 export class WebhookManagementController {
   constructor(private readonly webhookService: WebhookManagementService) {}
 
@@ -38,6 +44,7 @@ export class WebhookManagementController {
   }
 
   @Post('configure')
+  @RequireProjectAction(ProjectActions.UPDATE)
   async configure(
     @Param('projectId') projectId: string,
     @Query('serviceId') serviceId?: string,
@@ -49,15 +56,24 @@ export class WebhookManagementController {
   }
 
   @Get('status')
-  async status(@Query('serviceId') serviceId?: string) {
+  async status(
+    @Param('projectId') projectId: string,
+    @Query('serviceId') serviceId?: string,
+  ) {
     return this.webhookService.getStatusForService(
+      projectId,
       this.requireServiceId(serviceId),
     );
   }
 
   @Post('pause')
-  async pause(@Query('serviceId') serviceId?: string) {
+  @RequireProjectAction(ProjectActions.UPDATE)
+  async pause(
+    @Param('projectId') projectId: string,
+    @Query('serviceId') serviceId?: string,
+  ) {
     await this.webhookService.setActiveForService(
+      projectId,
       this.requireServiceId(serviceId),
       false,
     );
@@ -65,8 +81,13 @@ export class WebhookManagementController {
   }
 
   @Post('resume')
-  async resume(@Query('serviceId') serviceId?: string) {
+  @RequireProjectAction(ProjectActions.UPDATE)
+  async resume(
+    @Param('projectId') projectId: string,
+    @Query('serviceId') serviceId?: string,
+  ) {
     await this.webhookService.setActiveForService(
+      projectId,
       this.requireServiceId(serviceId),
       true,
     );

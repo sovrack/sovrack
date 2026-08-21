@@ -58,12 +58,19 @@ export class DeploymentsLifecycleService {
     id: string,
     userId: string,
     userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<Deployment> {
-    const deployment = await this.queryService.findOne(id, userId, userRole);
-    await this.authorizationService.assertCanDeployProject(
+    const deployment = await this.findOne(
+      id,
+      userId,
+      userRole,
+      expectedWorkspaceId,
+    );
+    await this.assertCanDeployProject(
       deployment.projectId,
       userId,
       userRole,
+      expectedWorkspaceId,
     );
 
     if (
@@ -163,12 +170,23 @@ export class DeploymentsLifecycleService {
     return canceled;
   }
 
-  async remove(id: string, userId: string, userRole: Role): Promise<void> {
-    const deployment = await this.queryService.findOne(id, userId, userRole);
-    await this.authorizationService.assertCanDeployProject(
+  async remove(
+    id: string,
+    userId: string,
+    userRole: Role,
+    expectedWorkspaceId?: string,
+  ): Promise<void> {
+    const deployment = await this.findOne(
+      id,
+      userId,
+      userRole,
+      expectedWorkspaceId,
+    );
+    await this.assertCanDeployProject(
       deployment.projectId,
       userId,
       userRole,
+      expectedWorkspaceId,
     );
 
     // Stop real Docker containers before deleting the DB record.
@@ -213,5 +231,36 @@ export class DeploymentsLifecycleService {
     );
 
     this.logger.log(`Deployment ${id} deleted by user ${userId}`);
+  }
+
+  private findOne(
+    id: string,
+    userId: string,
+    userRole: Role,
+    expectedWorkspaceId?: string,
+  ) {
+    return expectedWorkspaceId
+      ? this.queryService.findOne(id, userId, userRole, expectedWorkspaceId)
+      : this.queryService.findOne(id, userId, userRole);
+  }
+
+  private assertCanDeployProject(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+    expectedWorkspaceId?: string,
+  ) {
+    return expectedWorkspaceId
+      ? this.authorizationService.assertCanDeployProject(
+          projectId,
+          userId,
+          userRole,
+          expectedWorkspaceId,
+        )
+      : this.authorizationService.assertCanDeployProject(
+          projectId,
+          userId,
+          userRole,
+        );
   }
 }

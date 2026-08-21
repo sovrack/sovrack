@@ -69,6 +69,7 @@ describe('Soft-delete (e2e)', () => {
     const prep = await ctx.prisma.serverRun.create({
       data: {
         serverId: f.serverId,
+        teamId: f.teamId,
         kind: ServerRunKind.PREPARATION,
       },
       select: { id: true },
@@ -95,6 +96,7 @@ describe('Soft-delete (e2e)', () => {
         username: 'root',
         sshKey: 'e2e-ssh-private-key',
         isVerified: true,
+        teamId: f.teamId,
         environmentId: f.environmentId,
       },
     });

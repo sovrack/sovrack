@@ -16,7 +16,14 @@ describe('RuntimeLogsController', () => {
 
   it('parses tail and forwards search options', async () => {
     const { ctrl, runtimeLogs } = build();
-    await ctrl.searchServiceLogs('se1', user, '100', 'error', 'stderr');
+    await ctrl.searchServiceLogs(
+      'se1',
+      user,
+      '100',
+      'error',
+      'stderr',
+      'workspace-1',
+    );
     expect(runtimeLogs.searchServiceLogs).toHaveBeenCalledWith(
       'se1',
       'user-1',
@@ -26,12 +33,20 @@ describe('RuntimeLogsController', () => {
         search: 'error',
         stream: 'stderr',
       },
+      'workspace-1',
     );
   });
 
   it('omits tail when not provided', async () => {
     const { ctrl, runtimeLogs } = build();
-    await ctrl.searchServiceLogs('se1', user, undefined, undefined, undefined);
+    await ctrl.searchServiceLogs(
+      'se1',
+      user,
+      undefined,
+      undefined,
+      undefined,
+      'workspace-1',
+    );
     expect(runtimeLogs.searchServiceLogs).toHaveBeenCalledWith(
       'se1',
       'user-1',
@@ -41,6 +56,7 @@ describe('RuntimeLogsController', () => {
         search: undefined,
         stream: undefined,
       },
+      'workspace-1',
     );
   });
 });

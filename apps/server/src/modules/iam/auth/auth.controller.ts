@@ -22,14 +22,12 @@ import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationCodeDto } from './dto/resend-verification-code.dto';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../shared/guards/roles.guard';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
-import { Roles } from '../../../shared/decorators/roles.decorator';
 import { Public } from '../../../shared/decorators/public.decorator';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { Role, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import type { Response } from 'express';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -57,7 +55,7 @@ export class AuthController {
    * Inscription publique : crée le compte en attente de validation email.
    * POST /auth/register
    * @param dto - Données d'inscription
-   * @returns { email } — le code de validation part par email
+   * @returns { email, registrationId } — le code de validation part par email
    */
   @Post('register')
   @Public() // unauthenticated by definition — self-service signup
@@ -78,7 +76,9 @@ export class AuthController {
     status: 429,
     description: 'Too many registration attempts',
   })
-  async register(@Body() dto: RegisterDto): Promise<{ email: string }> {
+  async register(
+    @Body() dto: RegisterDto,
+  ): Promise<{ email: string; registrationId: string }> {
     return await this.authService.register(dto);
   }
 
@@ -140,7 +140,10 @@ export class AuthController {
   async resendCode(
     @Body() dto: ResendVerificationCodeDto,
   ): Promise<{ email: string }> {
-    return await this.authService.resendVerificationCode(dto.email);
+    return await this.authService.resendVerificationCode(
+      dto.email,
+      dto.registrationId,
+    );
   }
 
   /**
@@ -187,8 +190,7 @@ export class AuthController {
    * @returns Informations de l'utilisateur
    */
   @Get('ws-token')
-  @Roles(Role.OWNER)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Returns a short-lived token for WebSocket connections',
@@ -202,8 +204,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @Roles(Role.OWNER, Role.MEMBER, Role.SUPER_ADMIN)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get the logged-in user's profile" })
   @ApiResponse({

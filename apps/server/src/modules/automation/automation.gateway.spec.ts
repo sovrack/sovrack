@@ -15,7 +15,7 @@ function makeClient(
     disconnect: jest.fn(),
     join: jest.fn().mockResolvedValue(undefined),
     emit: jest.fn(),
-    data: {},
+    data: { user: { id: 'user1', role: 'MEMBER' } },
     handshake: {
       auth: opts.authToken ? { token: opts.authToken } : {},
       headers: {
@@ -40,32 +40,40 @@ function makeDeps(
         })
       : jest
           .fn()
-          .mockReturnValue(opts.jwtPayload ?? { sub: 'user1', role: 'OWNER' }),
+          .mockReturnValue(opts.jwtPayload ?? { id: 'user1', role: 'MEMBER' }),
   };
 
   const prisma = {
     serverRun: {
       findFirst: jest
         .fn()
-        .mockResolvedValue(opts.runFound !== false ? { id: 'run1' } : null),
+        .mockResolvedValue(
+          opts.runFound !== false
+            ? { id: 'run1', teamId: 'workspace-1' }
+            : null,
+        ),
     },
   };
 
   const configService = {
     get: jest.fn().mockReturnValue('deployautomation_auth'),
   };
+  const workspaceAccess = {
+    assertWorkspaceAction: jest.fn().mockResolvedValue({}),
+  };
 
-  return { jwtService, prisma, configService };
+  return { jwtService, prisma, configService, workspaceAccess };
 }
 
 describe('AutomationGateway', () => {
   describe('handleConnection', () => {
     it('disconnects client when no token is present', () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient();
       gw.handleConnection(client);
@@ -73,13 +81,14 @@ describe('AutomationGateway', () => {
     });
 
     it('disconnects client when token is invalid', () => {
-      const { jwtService, prisma, configService } = makeDeps({
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps({
         jwtError: true,
       });
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient({ authToken: 'bad-token' });
       gw.handleConnection(client);
@@ -87,39 +96,42 @@ describe('AutomationGateway', () => {
     });
 
     it('accepts DEVELOPER token — same read access as the REST controller', () => {
-      const { jwtService, prisma, configService } = makeDeps({
-        jwtPayload: { sub: 'user1', role: 'MEMBER' },
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps({
+        jwtPayload: { id: 'user1', role: 'MEMBER' },
       });
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient({ authToken: 'developer-token' });
       gw.handleConnection(client);
       expect(client.disconnect).not.toHaveBeenCalled();
     });
 
-    it('disconnects client when role is neither ADMIN nor DEVELOPER (defensive: the global Role enum only has these two)', () => {
-      const { jwtService, prisma, configService } = makeDeps({
-        jwtPayload: { sub: 'user1', role: 'SOMETHING_ELSE' },
+    it('defers workspace authorization until a run is joined', () => {
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps({
+        jwtPayload: { id: 'user1', role: 'SOMETHING_ELSE' },
       });
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient({ authToken: 'bogus-role-token' });
       gw.handleConnection(client);
-      expect(client.disconnect).toHaveBeenCalled();
+      expect(client.disconnect).not.toHaveBeenCalled();
     });
 
     it('accepts ADMIN token passed via auth.token', () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient({ authToken: 'admin-token' });
       gw.handleConnection(client);
@@ -127,11 +139,12 @@ describe('AutomationGateway', () => {
     });
 
     it('strips Bearer prefix from authorization header', () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient({ authorization: 'Bearer admin-token' });
       gw.handleConnection(client);
@@ -141,11 +154,12 @@ describe('AutomationGateway', () => {
 
   describe('handleJoinRun', () => {
     it('returns error when runId is missing', async () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient();
       const result = await gw.handleJoinRun(client, {});
@@ -153,13 +167,14 @@ describe('AutomationGateway', () => {
     });
 
     it('returns error when run is not found', async () => {
-      const { jwtService, prisma, configService } = makeDeps({
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps({
         runFound: false,
       });
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient();
       const result = await gw.handleJoinRun(client, { runId: 'run1' });
@@ -171,11 +186,12 @@ describe('AutomationGateway', () => {
     });
 
     it('joins room and returns ok when run exists', async () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient();
       const result = await gw.handleJoinRun(client, { runId: 'run1' });
@@ -184,11 +200,12 @@ describe('AutomationGateway', () => {
     });
 
     it('queries serverRun with AUTOMATION kind', async () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const client = makeClient();
       await gw.handleJoinRun(client, { runId: 'run1' });
@@ -202,11 +219,12 @@ describe('AutomationGateway', () => {
 
   describe('emit helpers', () => {
     it('emitRunStatus emits to room', () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const mockServer = { to: jest.fn().mockReturnValue({ emit: jest.fn() }) };
       gw.server = mockServer as never;
@@ -215,11 +233,12 @@ describe('AutomationGateway', () => {
     });
 
     it('emitRunLog serializes createdAt to ISO string', () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const emitMock = jest.fn();
       gw.server = {
@@ -243,11 +262,12 @@ describe('AutomationGateway', () => {
     });
 
     it('emitRunFinished emits to room', () => {
-      const { jwtService, prisma, configService } = makeDeps();
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new AutomationGateway(
         jwtService as never,
         prisma as never,
         configService as never,
+        workspaceAccess as never,
       );
       const emitMock = jest.fn();
       gw.server = {

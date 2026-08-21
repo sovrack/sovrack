@@ -47,6 +47,9 @@ describe('TerminalService.openSession', () => {
       recordError: jest.fn().mockResolvedValue(undefined),
     };
     const configService = { get: jest.fn().mockReturnValue('300000') };
+    const workspaceAccess = {
+      assertServerAction: jest.fn().mockResolvedValue({}),
+    };
     const svc = new TerminalService(
       prisma as never,
       crypto as never,
@@ -54,8 +57,9 @@ describe('TerminalService.openSession', () => {
       sshSessions as never,
       audit as never,
       configService as never,
+      workspaceAccess as never,
     );
-    return { svc, prisma, sshSessions, audit, handle };
+    return { svc, prisma, sshSessions, audit, handle, workspaceAccess };
   }
 
   // ── Server validation ──────────────────────────────────────────────────────
@@ -86,7 +90,7 @@ describe('TerminalService.openSession', () => {
 
   // ── ADMIN access ───────────────────────────────────────────────────────────
 
-  it('opens the shell for a platform ADMIN and records the audit trail', async () => {
+  it('opens the shell for an authorized workspace administrator and records the audit trail', async () => {
     const { svc, sshSessions, audit, handle } = make(validServer);
     const res = await svc.openSession(
       'srv1',
@@ -104,7 +108,7 @@ describe('TerminalService.openSession', () => {
     expect(res).toBe(handle);
   });
 
-  it('ADMIN bypasses ownership check even for a server without environmentId', async () => {
+  it('uses direct workspace ownership even for a server without environmentId', async () => {
     const { svc, sshSessions } = make({ ...validServer, environmentId: null });
     await expect(
       svc.openSession('srv1', 'admin', Role.OWNER, opts, handlers),
@@ -125,9 +129,9 @@ describe('TerminalService.openSession', () => {
     );
   });
 
-  // ── Project OWNER access ───────────────────────────────────────────────────
+  // ── Central workspace authorization ────────────────────────────────────────
 
-  it('allows a project OWNER to access a server linked to their environment', async () => {
+  it('allows a user authorized for terminal access', async () => {
     const { svc, sshSessions } = make(validServer);
     const res = await svc.openSession(
       'srv1',
@@ -140,32 +144,44 @@ describe('TerminalService.openSession', () => {
     expect(res).toBeDefined();
   });
 
-  it('blocks a non-ADMIN user on a server with no environmentId', async () => {
-    const { svc } = make({ ...validServer, environmentId: null });
+  it('blocks a workspace member without terminal permission', async () => {
+    const { svc, workspaceAccess } = make({
+      ...validServer,
+      environmentId: null,
+    });
+    workspaceAccess.assertServerAction.mockRejectedValueOnce(
+      new ForbiddenException('Action workspace interdite'),
+    );
     await expect(
       svc.openSession('srv1', 'u1', Role.MEMBER, opts, handlers),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('blocks a project DEVELOPER (OWNER-only for terminal)', async () => {
-    const { svc, prisma } = make(validServer);
-    prisma.projectMember.findUnique.mockResolvedValue({ role: 'DEVELOPER' });
+  it('does not grant terminal access from a project role alone', async () => {
+    const { svc, workspaceAccess } = make(validServer);
+    workspaceAccess.assertServerAction.mockRejectedValueOnce(
+      new ForbiddenException('Action workspace interdite'),
+    );
     await expect(
       svc.openSession('srv1', 'u1', Role.MEMBER, opts, handlers),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('blocks a user who is not a member of the project at all', async () => {
-    const { svc, prisma } = make(validServer);
-    prisma.projectMember.findUnique.mockResolvedValue(null);
+    const { svc, workspaceAccess } = make(validServer);
+    workspaceAccess.assertServerAction.mockRejectedValueOnce(
+      new NotFoundException('Serveur introuvable'),
+    );
     await expect(
       svc.openSession('srv1', 'u1', Role.MEMBER, opts, handlers),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('throws NotFound when the server environment cannot be resolved', async () => {
-    const { svc, prisma } = make(validServer);
-    prisma.environment.findUnique.mockResolvedValue(null);
+  it('throws NotFound when central authorization cannot resolve the server workspace', async () => {
+    const { svc, workspaceAccess } = make(validServer);
+    workspaceAccess.assertServerAction.mockRejectedValueOnce(
+      new NotFoundException('Serveur introuvable'),
+    );
     await expect(
       svc.openSession('srv1', 'u1', Role.MEMBER, opts, handlers),
     ).rejects.toBeInstanceOf(NotFoundException);

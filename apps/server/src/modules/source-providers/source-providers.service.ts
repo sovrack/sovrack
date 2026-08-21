@@ -72,15 +72,15 @@ export class SourceProvidersService {
   async forService(serviceId: string): Promise<IGitProvider> {
     const svc = await this.prisma.service.findUnique({
       where: { id: serviceId },
-      select: { providerId: true },
+      select: { providerId: true, project: { select: { teamId: true } } },
     });
     if (!svc?.providerId) {
       throw new NotFoundException(
         `Aucune config Git trouvée pour le service ${serviceId}`,
       );
     }
-    const config = await this.prisma.gitProviderConfig.findUnique({
-      where: { id: svc.providerId },
+    const config = await this.prisma.gitProviderConfig.findFirst({
+      where: { id: svc.providerId, teamId: svc.project.teamId },
       select: { type: true },
     });
     if (!config) {
@@ -102,15 +102,18 @@ export class SourceProvidersService {
   async forProject(projectId: string): Promise<IGitProvider> {
     const svc = await this.prisma.service.findFirst({
       where: activeWhere({ projectId, providerId: { not: null } }),
-      select: { providerId: true },
+      select: {
+        providerId: true,
+        project: { select: { teamId: true } },
+      },
     });
     if (!svc?.providerId) {
       throw new NotFoundException(
         `Aucune config Git trouvée pour le projet ${projectId}`,
       );
     }
-    const config = await this.prisma.gitProviderConfig.findUnique({
-      where: { id: svc.providerId },
+    const config = await this.prisma.gitProviderConfig.findFirst({
+      where: { id: svc.providerId, teamId: svc.project.teamId },
       select: { type: true },
     });
     if (!config) {
@@ -132,6 +135,33 @@ export class SourceProvidersService {
       throw new BadRequestException(`Fournisseur Git non supporté : ${type}`);
     }
     return provider;
+  }
+
+  async assertProviderForProject(
+    providerId: string,
+    projectId: string,
+    expectedType?: GitProviderType,
+  ): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    });
+    if (!project) {
+      throw new NotFoundException(`Projet ${projectId} introuvable`);
+    }
+    const config = await this.prisma.gitProviderConfig.findFirst({
+      where: {
+        id: providerId,
+        teamId: project.teamId,
+        ...(expectedType ? { type: expectedType } : {}),
+      },
+      select: { id: true },
+    });
+    if (!config) {
+      throw new NotFoundException(
+        'Configuration Git introuvable dans ce workspace',
+      );
+    }
   }
 
   // ─── Méthodes directes (raccourci sans forProject) ────────────────────────
@@ -202,8 +232,9 @@ export class SourceProvidersService {
    * for the unified provider picker. Status is provider-agnostic: a provider
    * is usable when it has an OAuth or admin token.
    */
-  async listSourceProviders(): Promise<SourceProviderOption[]> {
+  async listSourceProviders(teamId: string): Promise<SourceProviderOption[]> {
     const providers = await this.prisma.gitProviderConfig.findMany({
+      where: { teamId },
       orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
     });
     return providers.map((p) => ({
@@ -260,13 +291,23 @@ export class SourceProvidersService {
     token: string | undefined,
     providerId?: string,
   ): Promise<{ repoPath: string; name: string; defaultBranch: string }[]> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    });
+    if (!project) {
+      throw new NotFoundException(`Projet ${projectId} introuvable`);
+    }
     switch (provider) {
       case GitProviderType.GITLAB: {
         const connection =
-          await this.gitlabConnection.resolveGitlabConnectionInput({
-            gitlabToken: token,
-            providerId,
-          });
+          await this.gitlabConnection.resolveGitlabConnectionInput(
+            {
+              gitlabToken: token,
+              providerId,
+            },
+            project.teamId,
+          );
         const baseUrl = this.gitlabConnection.normalizeUrl(
           connection.gitlabUrl,
         );
@@ -293,7 +334,12 @@ export class SourceProvidersService {
         });
       }
       case GitProviderType.GITHUB:
-        return this.github.discoverOrgRepos(groupPath, token, providerId);
+        return this.github.discoverOrgRepos(
+          groupPath,
+          token,
+          providerId,
+          project.teamId,
+        );
       default:
         throw new BadRequestException(`Provider non supporté: ${provider}`);
     }

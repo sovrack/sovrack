@@ -3,22 +3,33 @@ import { Role } from '@prisma/client';
 import { ServicesCredentialsService } from './services-credentials.service';
 import type { PrismaService } from '../../../shared/database/prisma.service';
 import type { ProjectAccessService } from '../authorization/project-access.service';
+import type { CryptoService } from '../../../shared/crypto/crypto.service';
 
 describe('ServicesCredentialsService', () => {
   function build() {
     const prisma = {
       service: { findFirst: jest.fn() },
+      auditLog: { create: jest.fn().mockResolvedValue({}) },
     } as unknown as PrismaService;
     const projectAccess = {
-      assertCanAccessProject: jest.fn().mockResolvedValue(undefined),
+      assertCanReadProjectSecrets: jest
+        .fn()
+        .mockResolvedValue({ workspaceId: 'team-1' }),
     } as unknown as ProjectAccessService;
-    const service = new ServicesCredentialsService(prisma, projectAccess);
+    const crypto = {
+      decrypt: jest.fn((value: string) => value.replace(/^v2:/, '')),
+    } as unknown as CryptoService;
+    const service = new ServicesCredentialsService(
+      prisma,
+      projectAccess,
+      crypto,
+    );
     return { service, prisma, projectAccess };
   }
 
   it('enforces project access before returning anything', async () => {
     const { service, prisma, projectAccess } = build();
-    (projectAccess.assertCanAccessProject as jest.Mock).mockRejectedValue(
+    (projectAccess.assertCanReadProjectSecrets as jest.Mock).mockRejectedValue(
       new Error('forbidden'),
     );
     await expect(
@@ -35,11 +46,8 @@ describe('ServicesCredentialsService', () => {
       name: 'My Postgres',
       type: 'DATABASE',
       databaseType: 'POSTGRES',
-      databaseCredentials: {
-        user: 'appuser',
-        password: 's3cr3t',
-        dbName: 'core',
-      },
+      databaseCredentials:
+        'v2:{"user":"appuser","password":"s3cr3t","dbName":"core"}',
       externalPort: null,
     });
 

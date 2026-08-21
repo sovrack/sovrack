@@ -35,15 +35,15 @@ describe('WebhookManagementController', () => {
     it('calls getStatusForService when serviceId is given', async () => {
       const svc = makeSvc();
       const ctrl = new WebhookManagementController(svc as never);
-      const result = await ctrl.status('svc1');
-      expect(svc.getStatusForService).toHaveBeenCalledWith('svc1');
+      const result = await ctrl.status('proj1', 'svc1');
+      expect(svc.getStatusForService).toHaveBeenCalledWith('proj1', 'svc1');
       expect(result).toEqual({ active: true });
     });
 
     it('rejects with 400 when serviceId is missing', async () => {
       const svc = makeSvc();
       const ctrl = new WebhookManagementController(svc as never);
-      await expect(ctrl.status(undefined)).rejects.toBeInstanceOf(
+      await expect(ctrl.status('proj1', undefined)).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });
@@ -53,15 +53,19 @@ describe('WebhookManagementController', () => {
     it('calls setActiveForService(false) when serviceId is given', async () => {
       const svc = makeSvc();
       const ctrl = new WebhookManagementController(svc as never);
-      const result = await ctrl.pause('svc1');
-      expect(svc.setActiveForService).toHaveBeenCalledWith('svc1', false);
+      const result = await ctrl.pause('proj1', 'svc1');
+      expect(svc.setActiveForService).toHaveBeenCalledWith(
+        'proj1',
+        'svc1',
+        false,
+      );
       expect(result).toEqual({ status: 'paused' });
     });
 
     it('rejects with 400 when serviceId is missing', async () => {
       const svc = makeSvc();
       const ctrl = new WebhookManagementController(svc as never);
-      await expect(ctrl.pause(undefined)).rejects.toBeInstanceOf(
+      await expect(ctrl.pause('proj1', undefined)).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });
@@ -71,15 +75,19 @@ describe('WebhookManagementController', () => {
     it('calls setActiveForService(true) when serviceId is given', async () => {
       const svc = makeSvc();
       const ctrl = new WebhookManagementController(svc as never);
-      const result = await ctrl.resume('svc1');
-      expect(svc.setActiveForService).toHaveBeenCalledWith('svc1', true);
+      const result = await ctrl.resume('proj1', 'svc1');
+      expect(svc.setActiveForService).toHaveBeenCalledWith(
+        'proj1',
+        'svc1',
+        true,
+      );
       expect(result).toEqual({ status: 'resumed' });
     });
 
     it('rejects with 400 when serviceId is missing', async () => {
       const svc = makeSvc();
       const ctrl = new WebhookManagementController(svc as never);
-      await expect(ctrl.resume(undefined)).rejects.toBeInstanceOf(
+      await expect(ctrl.resume('proj1', undefined)).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });

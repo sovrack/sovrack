@@ -5,8 +5,8 @@ import { AuditService } from '../../audit/audit.service';
 import { DeploymentsAuthorizationService } from '../query/deployments-authorization.service';
 import { DeploymentsQueryService } from '../query/deployments-query.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
-import { DockerDeployExecutorService } from './docker-deploy-executor.service';
 import { DeploymentPreflightService } from './deployment-preflight.service';
+import { QueueService } from '../../../shared/queue/queue.service';
 
 @Injectable()
 export class DeploymentsRollbackService {
@@ -17,7 +17,7 @@ export class DeploymentsRollbackService {
     private readonly authorizationService: DeploymentsAuthorizationService,
     private readonly queryService: DeploymentsQueryService,
     private readonly gateway: DeploymentEventsPublisher,
-    private readonly deployExecutor: DockerDeployExecutorService,
+    private readonly queueService: QueueService,
     private readonly auditService: AuditService,
     private readonly preflight: DeploymentPreflightService,
   ) {}
@@ -27,13 +27,30 @@ export class DeploymentsRollbackService {
     userId: string,
     userRole: Role,
     targetDeploymentId?: string,
+    expectedWorkspaceId?: string,
   ): Promise<Deployment> {
-    const deployment = await this.queryService.findOne(id, userId, userRole);
-    await this.authorizationService.assertCanRollbackProject(
-      deployment.projectId,
-      userId,
-      userRole,
-    );
+    const deployment = expectedWorkspaceId
+      ? await this.queryService.findOne(
+          id,
+          userId,
+          userRole,
+          expectedWorkspaceId,
+        )
+      : await this.queryService.findOne(id, userId, userRole);
+    if (expectedWorkspaceId) {
+      await this.authorizationService.assertCanRollbackProject(
+        deployment.projectId,
+        userId,
+        userRole,
+        expectedWorkspaceId,
+      );
+    } else {
+      await this.authorizationService.assertCanRollbackProject(
+        deployment.projectId,
+        userId,
+        userRole,
+      );
+    }
 
     // Source to restore: a SPECIFIC past deployment if targetDeploymentId is
     // given (rollback to ANY version), otherwise the most recent OTHER success
@@ -95,8 +112,6 @@ export class DeploymentsRollbackService {
       await this.resolveTargetServerId(previousSuccess),
     );
 
-    const actor = await this.authorizationService.getActor(userId);
-
     // Prefer imageSha (immutable digest) over dockerImage (mutable tag).
     // If the original deploy used a `:latest` tag, the tag may now point to
     // a different image, so pinning to the recorded digest is the only way
@@ -111,7 +126,7 @@ export class DeploymentsRollbackService {
         environmentId: deployment.environmentId,
         userId,
         branch: previousSuccess.branch,
-        status: DeploymentStatus.RUNNING,
+        status: DeploymentStatus.PENDING,
         strategy: previousSuccess.strategy,
         serviceId: previousSuccess.serviceId,
         serviceEnvId: previousSuccess.serviceEnvId,
@@ -121,7 +136,7 @@ export class DeploymentsRollbackService {
         isRollback: true,
         rolledBackAt: new Date(),
         previousDeploymentId: previousSuccess.id,
-        startedAt: new Date(),
+        startedAt: null,
         specSnapshot: (previousSuccess.specSnapshot ??
           Prisma.JsonNull) as Prisma.InputJsonValue,
         observedGeneration: previousSuccess.observedGeneration,
@@ -146,19 +161,36 @@ export class DeploymentsRollbackService {
       },
     );
 
-    this.gateway.emitStarted({
-      deploymentId: rollbackDeployment.id,
-      projectId: rollbackDeployment.projectId,
-      environmentId: rollbackDeployment.environmentId,
-      status: rollbackDeployment.status,
-      startedAt: rollbackDeployment.startedAt,
-      initiatorRole: actor.role,
+    const project = await this.prisma.project.findUnique({
+      where: { id: rollbackDeployment.projectId },
+      select: { teamId: true },
     });
+    if (!project) {
+      throw new BadRequestException('Workspace du projet introuvable');
+    }
+    try {
+      await this.queueService.enqueueDeploy(
+        rollbackDeployment.id,
+        project.teamId,
+        rollbackImageRef,
+      );
+    } catch (error) {
+      await this.prisma.deployment.update({
+        where: { id: rollbackDeployment.id },
+        data: {
+          status: DeploymentStatus.FAILED,
+          finishedAt: new Date(),
+          logs: `${rollbackDeployment.logs ?? ''}\nMise en file impossible`.trim(),
+        },
+      });
+      throw error;
+    }
 
-    return await this.deployExecutor.executeDeploy(
-      rollbackDeployment.id,
-      rollbackImageRef,
-    );
+    this.gateway.emitStatus({
+      deploymentId: rollbackDeployment.id,
+      status: rollbackDeployment.status,
+    });
+    return rollbackDeployment;
   }
 
   /**

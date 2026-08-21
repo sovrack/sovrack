@@ -45,20 +45,6 @@ type GitlabTokenResponse = {
 const GITLAB_OAUTH_SCOPES = 'api read_user read_repository';
 const GITLAB_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
-const LEGACY_GITLAB_KEYS = [
-  'GITLAB_PROVIDER_NAME',
-  'GITLAB_URL',
-  'GITLAB_INTERNAL_URL',
-  'GITLAB_REDIRECT_URI',
-  'GITLAB_APP_ID',
-  'GITLAB_APP_SECRET',
-  'GITLAB_GROUP_NAMES',
-  'GITLAB_TOKEN',
-  'GITLAB_OAUTH_ACCESS_TOKEN',
-  'GITLAB_OAUTH_REFRESH_TOKEN',
-  'GITLAB_OAUTH_EXPIRES_AT',
-];
-
 // ─── Service ────────────────────────────────────────────────────────────────
 
 @Injectable()
@@ -75,22 +61,28 @@ export class GitProviderOauthService {
   // ─── Public OAuth Methods ─────────────────────────────────────────────────
 
   async startGitlabOAuth(
+    teamId: string,
     callbackBaseUrl: string,
   ): Promise<GitlabOAuthStartResult> {
-    const provider = await this.getDefaultGitlabProvider();
+    const provider = await this.getDefaultGitlabProvider(teamId);
     if (!provider) {
       throw new BadRequestException(
         'Aucun provider GitLab par défaut configuré',
       );
     }
-    return this.startGitlabOAuthForProvider(provider.id, callbackBaseUrl);
+    return this.startGitlabOAuthForProvider(
+      provider.id,
+      teamId,
+      callbackBaseUrl,
+    );
   }
 
   async startGitlabOAuthForProvider(
     providerId: string,
+    teamId: string,
     callbackBaseUrl: string,
   ): Promise<GitlabOAuthStartResult> {
-    const provider = await this.getGitlabProviderOrFail(providerId);
+    const provider = await this.getGitlabProviderOrFail(providerId, teamId);
     const gitlabUrl = provider.providerUrl.trim();
     const appId = (provider.applicationId ?? '').trim();
     const appSecret = provider.applicationSecret
@@ -221,16 +213,6 @@ export class GitProviderOauthService {
         },
       });
 
-      if (provider.isDefault) {
-        try {
-          await this.syncLegacyDefaultGitlabConfig();
-        } catch (syncErr) {
-          this.logger.warn(
-            `syncLegacyDefaultGitlabConfig failed after token save (provider ${provider.id}): ${String(syncErr)}`,
-          );
-        }
-      }
-
       return {
         ok: true,
         message: 'Connexion OAuth GitLab réussie',
@@ -331,10 +313,6 @@ export class GitProviderOauthService {
         },
       });
 
-      if (updated.isDefault) {
-        await this.syncLegacyDefaultGitlabConfig();
-      }
-
       return updated;
     } catch {
       return provider;
@@ -398,9 +376,10 @@ export class GitProviderOauthService {
 
   private async getGitlabProviderOrFail(
     id: string,
+    teamId: string,
   ): Promise<GitProviderConfig> {
-    const provider = await this.prisma.gitProviderConfig.findUnique({
-      where: { id },
+    const provider = await this.prisma.gitProviderConfig.findFirst({
+      where: { id, teamId },
     });
     if (!provider || provider.type !== GitProviderType.GITLAB) {
       throw new NotFoundException('Provider GitLab introuvable');
@@ -408,85 +387,18 @@ export class GitProviderOauthService {
     return provider;
   }
 
-  private async getDefaultGitlabProvider(): Promise<GitProviderConfig | null> {
+  private async getDefaultGitlabProvider(
+    teamId: string,
+  ): Promise<GitProviderConfig | null> {
     const defaultProvider = await this.prisma.gitProviderConfig.findFirst({
-      where: { type: GitProviderType.GITLAB, isDefault: true },
+      where: { teamId, type: GitProviderType.GITLAB, isDefault: true },
       orderBy: { updatedAt: 'desc' },
     });
     if (defaultProvider) return defaultProvider;
     return this.prisma.gitProviderConfig.findFirst({
-      where: { type: GitProviderType.GITLAB },
+      where: { teamId, type: GitProviderType.GITLAB },
       orderBy: { createdAt: 'asc' },
     });
-  }
-
-  private async syncLegacyDefaultGitlabConfig(): Promise<void> {
-    const provider = await this.getDefaultGitlabProvider();
-
-    if (!provider) {
-      await this.prisma.platformConfig.deleteMany({
-        where: { key: { in: LEGACY_GITLAB_KEYS } },
-      });
-      return;
-    }
-
-    const upsertOrClear = async (
-      key: string,
-      value: string | null | undefined,
-      isSecret: boolean,
-    ) => {
-      const normalized = this.normalizeOptional(value);
-      if (!normalized) {
-        await this.prisma.platformConfig.deleteMany({ where: { key } });
-        return;
-      }
-      const stored = isSecret ? this.crypto.encrypt(normalized) : normalized;
-      await this.prisma.platformConfig.upsert({
-        where: { key },
-        update: { value: stored, isSecret },
-        create: { key, value: stored, isSecret },
-      });
-    };
-
-    await Promise.all([
-      upsertOrClear('GITLAB_PROVIDER_NAME', provider.name, false),
-      upsertOrClear('GITLAB_URL', provider.providerUrl, false),
-      upsertOrClear('GITLAB_INTERNAL_URL', provider.internalUrl, false),
-      upsertOrClear('GITLAB_REDIRECT_URI', provider.redirectUri, false),
-      upsertOrClear('GITLAB_APP_ID', provider.applicationId, false),
-      upsertOrClear(
-        'GITLAB_APP_SECRET',
-        provider.applicationSecret
-          ? this.crypto.decrypt(provider.applicationSecret)
-          : null,
-        true,
-      ),
-      upsertOrClear('GITLAB_GROUP_NAMES', provider.groupNames, false),
-      upsertOrClear(
-        'GITLAB_TOKEN',
-        provider.adminToken ? this.crypto.decrypt(provider.adminToken) : null,
-        true,
-      ),
-      upsertOrClear(
-        'GITLAB_OAUTH_ACCESS_TOKEN',
-        provider.oauthAccessToken
-          ? this.crypto.decrypt(provider.oauthAccessToken)
-          : null,
-        true,
-      ),
-      upsertOrClear(
-        'GITLAB_OAUTH_REFRESH_TOKEN',
-        provider.oauthRefreshToken
-          ? this.crypto.decrypt(provider.oauthRefreshToken)
-          : null,
-        true,
-      ),
-      upsertOrClear(
-        'GITLAB_OAUTH_EXPIRES_AT',
-        provider.oauthExpiresAt?.toISOString() ?? null,
-        false,
-      ),
-    ]);
   }
 
   private normalizeGitlabBaseUrl(url: string): string {

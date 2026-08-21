@@ -8,6 +8,7 @@ import { GitProviderConfigService } from './git-provider-config.service';
 
 const gitlabRow = (over: Record<string, unknown> = {}) => ({
   id: 'g1',
+  teamId: 'workspace-1',
   name: 'GL',
   type: GitProviderType.GITLAB,
   providerUrl: 'https://gitlab.example.com',
@@ -64,7 +65,7 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
         update: jest.fn().mockResolvedValue(gitlabRow()),
         updateMany: jest.fn().mockResolvedValue({ count: 0 }),
         delete: jest.fn().mockResolvedValue(gitlabRow()),
-        findFirst: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(gitlabRow()),
         findUnique: jest.fn().mockResolvedValue(gitlabRow()),
         findMany: jest
           .fn()
@@ -97,11 +98,14 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
 
   it('makes the FIRST GitLab provider default and encrypts its secrets', async () => {
     prisma.gitProviderConfig.count.mockResolvedValue(0);
-    const res = await service.createGitlabProvider({
-      name: 'GL',
-      providerUrl: 'https://gitlab.example.com',
-      adminToken: 'tok',
-    } as never);
+    const res = await service.createGitlabProvider(
+      {
+        name: 'GL',
+        providerUrl: 'https://gitlab.example.com',
+        adminToken: 'tok',
+      } as never,
+      'workspace-1',
+    );
     expect(res.isDefault).toBe(true);
     expect(crypto.encryptOptional).toHaveBeenCalledWith('tok');
     expect(legacySync.syncRegistry).toHaveBeenCalled();
@@ -110,36 +114,43 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
 
   it('clears other defaults when a new default provider is created', async () => {
     prisma.gitProviderConfig.count.mockResolvedValue(2);
-    await service.createGitlabProvider({
-      name: 'GL2',
-      providerUrl: 'https://gl2.example.com',
-      isDefault: true,
-    } as never);
+    await service.createGitlabProvider(
+      {
+        name: 'GL2',
+        providerUrl: 'https://gl2.example.com',
+        isDefault: true,
+      } as never,
+      'workspace-1',
+    );
     const tx = (
       prisma as unknown as {
         _tx: { gitProviderConfig: { updateMany: jest.Mock } };
       }
     )._tx;
     expect(tx.gitProviderConfig.updateMany).toHaveBeenCalledWith({
-      where: { type: GitProviderType.GITLAB, isDefault: true },
+      where: {
+        teamId: 'workspace-1',
+        type: GitProviderType.GITLAB,
+        isDefault: true,
+      },
       data: { isDefault: false },
     });
   });
 
   it('rejects creation with an empty name', async () => {
     await expect(
-      service.createGitlabProvider({ name: '  ', providerUrl: 'x' } as never),
+      service.createGitlabProvider(
+        { name: '  ', providerUrl: 'x' } as never,
+        'workspace-1',
+      ),
     ).rejects.toThrow();
   });
 
   it('promotes a replacement when deleting the default provider', async () => {
-    prisma.gitProviderConfig.findUnique.mockResolvedValue(
-      gitlabRow({ isDefault: true }),
-    );
-    prisma.gitProviderConfig.findFirst.mockResolvedValue(
-      gitlabRow({ id: 'g2' }),
-    );
-    await service.deleteGitlabProvider('g1');
+    prisma.gitProviderConfig.findFirst
+      .mockResolvedValueOnce(gitlabRow({ isDefault: true }))
+      .mockResolvedValueOnce(gitlabRow({ id: 'g2' }));
+    await service.deleteGitlabProvider('g1', 'workspace-1');
     expect(prisma.gitProviderConfig.update).toHaveBeenCalledWith({
       where: { id: 'g2' },
       data: { isDefault: true },
@@ -147,7 +158,7 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
   });
 
   it('setDefault clears others and resyncs', async () => {
-    await service.setDefaultGitlabProvider('g1');
+    await service.setDefaultGitlabProvider('g1', 'workspace-1');
     const tx = (
       prisma as unknown as {
         _tx: { gitProviderConfig: { updateMany: jest.Mock } };
@@ -158,16 +169,16 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
   });
 
   it('404s when the GitLab provider is missing or wrong type', async () => {
-    prisma.gitProviderConfig.findUnique.mockResolvedValue(
+    prisma.gitProviderConfig.findFirst.mockResolvedValue(
       gitlabRow({ type: GitProviderType.GITHUB }),
     );
-    await expect(service.setDefaultGitlabProvider('g1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.setDefaultGitlabProvider('g1', 'workspace-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('lists providers via the masked public mapper (no raw token)', async () => {
-    const list = await service.listGitlabProviders();
+    const list = await service.listGitlabProviders('workspace-1');
     expect(list[0]).not.toHaveProperty('adminToken');
     expect(list[0]).toHaveProperty('adminTokenConfigured', true);
   });

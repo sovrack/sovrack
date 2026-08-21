@@ -9,6 +9,7 @@ export const DEPLOYMENT_PIPELINE_UPDATED = 'deployment.pipeline.updated';
 export const DEPLOYMENT_AUTO_DEPLOY_TRIGGER = 'deployment.auto_deploy.trigger';
 
 export type PipelineUpdatedEvent = {
+  projectId: string;
   pipelineId: number;
   webhookStatus: string;
   image?: string;

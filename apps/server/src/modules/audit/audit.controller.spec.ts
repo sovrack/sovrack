@@ -7,8 +7,8 @@ describe('AuditController', () => {
       findAll: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     } as unknown as AuditService;
     const ctrl = new AuditController(auditLogsService);
-    await ctrl.findAll({ page: 1, pageSize: 20 } as never);
-    expect(auditLogsService.findAll).toHaveBeenCalledWith({
+    await ctrl.findAll('workspace-1', { page: 1, pageSize: 20 } as never);
+    expect(auditLogsService.findAll).toHaveBeenCalledWith('workspace-1', {
       page: 1,
       pageSize: 20,
     });

@@ -9,6 +9,7 @@ import { RegistryConnectionTestService } from './registry-connection-test.servic
 
 const row = (over: Record<string, unknown> = {}) => ({
   id: 'r1',
+  teamId: 'workspace-1',
   name: 'hub',
   type: RegistryProviderType.DOCKER_HUB,
   username: 'me',
@@ -47,7 +48,7 @@ describe('ContainerRegistriesService', () => {
     prisma = {
       registryConfig: {
         findMany: jest.fn().mockResolvedValue([row()]),
-        findFirst: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(row()),
         findUnique: jest.fn().mockResolvedValue(row()),
         count: jest.fn().mockResolvedValue(0),
         create: jest
@@ -79,50 +80,62 @@ describe('ContainerRegistriesService', () => {
   });
 
   it('lists registries mapped to the public shape (no password leak)', async () => {
-    const list = await service.listRegistryConfigs();
+    const list = await service.listRegistryConfigs('workspace-1');
     expect(list[0]).not.toHaveProperty('password');
     expect(list[0].name).toBe('hub');
   });
 
   it('makes the FIRST registry of a type default automatically', async () => {
     prisma.registryConfig.count.mockResolvedValue(0);
-    const created = await service.createRegistryConfig({
-      name: 'first',
-      type: RegistryProviderType.DOCKER_HUB,
-      password: 'pw',
-    });
+    const created = await service.createRegistryConfig(
+      {
+        name: 'first',
+        type: RegistryProviderType.DOCKER_HUB,
+        password: 'pw',
+      },
+      'workspace-1',
+    );
     expect(created.isDefault).toBe(true);
     expect(crypto.encryptOptional).toHaveBeenCalledWith('pw');
   });
 
   it('clears other defaults when a new default is requested', async () => {
     prisma.registryConfig.count.mockResolvedValue(2);
-    await service.createRegistryConfig({
-      name: 'x',
-      type: RegistryProviderType.DOCKER_HUB,
-      isDefault: true,
-    });
+    await service.createRegistryConfig(
+      {
+        name: 'x',
+        type: RegistryProviderType.DOCKER_HUB,
+        isDefault: true,
+      },
+      'workspace-1',
+    );
     expect(prisma.registryConfig.updateMany).toHaveBeenCalledWith({
-      where: { type: RegistryProviderType.DOCKER_HUB, isDefault: true },
+      where: {
+        teamId: 'workspace-1',
+        type: RegistryProviderType.DOCKER_HUB,
+        isDefault: true,
+      },
       data: { isDefault: false },
     });
   });
 
   it('rejects an empty name', async () => {
     await expect(
-      service.createRegistryConfig({
-        name: '   ',
-        type: RegistryProviderType.DOCKER_HUB,
-      }),
+      service.createRegistryConfig(
+        {
+          name: '   ',
+          type: RegistryProviderType.DOCKER_HUB,
+        },
+        'workspace-1',
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('promotes a replacement default when deleting the default registry', async () => {
-    prisma.registryConfig.findUnique.mockResolvedValue(
-      row({ isDefault: true }),
-    );
-    prisma.registryConfig.findFirst.mockResolvedValue(row({ id: 'r2' }));
-    await service.deleteRegistryConfig('r1');
+    prisma.registryConfig.findFirst
+      .mockResolvedValueOnce(row({ isDefault: true }))
+      .mockResolvedValueOnce(row({ id: 'r2' }));
+    await service.deleteRegistryConfig('r1', 'workspace-1');
     expect(prisma.registryConfig.update).toHaveBeenCalledWith({
       where: { id: 'r2' },
       data: { isDefault: true },
@@ -130,15 +143,15 @@ describe('ContainerRegistriesService', () => {
   });
 
   it('404s for an unknown registry', async () => {
-    prisma.registryConfig.findUnique.mockResolvedValue(null);
+    prisma.registryConfig.findFirst.mockResolvedValue(null);
     await expect(
-      service.setDefaultRegistryConfig('nope'),
+      service.setDefaultRegistryConfig('nope', 'workspace-1'),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('marks DOCKER_HUB connected on a successful login', async () => {
     http.post.mockReturnValue(of({ data: { token: 'jwt-xyz' } }));
-    const res = await service.testRegistryConnection('r1');
+    const res = await service.testRegistryConnection('r1', 'workspace-1');
     expect(res.ok).toBe(true);
     expect(prisma.registryConfig.update).toHaveBeenCalledWith({
       where: { id: 'r1' },
@@ -147,10 +160,10 @@ describe('ContainerRegistriesService', () => {
   });
 
   it('records the error and returns ok:false when a connection test throws', async () => {
-    prisma.registryConfig.findUnique.mockResolvedValue(
+    prisma.registryConfig.findFirst.mockResolvedValue(
       row({ type: RegistryProviderType.ECR }),
     );
-    const res = await service.testRegistryConnection('r1');
+    const res = await service.testRegistryConnection('r1', 'workspace-1');
     expect(res.ok).toBe(false);
     expect(prisma.registryConfig.update).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1,34 +1,22 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { ProjectRole, Role } from '@prisma/client';
-import { PrismaService } from '../../../../shared/database/prisma.service';
+import { Injectable } from '@nestjs/common';
+import { Role } from '@prisma/client';
+import { WorkspaceAccessService } from '../../../iam/authorization/workspace-access.service';
+import { ProjectActions } from '../../../iam/authorization/workspace-policy.types';
 
 @Injectable()
 export class GitlabAuthorizationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly workspaceAccess: WorkspaceAccessService) {}
 
   async assertCanAccessProject(
     projectId: string,
     userId: string,
     _userRole: Role,
   ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-
-    const membership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException('Accès non autorisé à ce projet');
-    }
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      userId,
+      ProjectActions.READ,
+    );
   }
 
   async assertCanManageProject(
@@ -36,29 +24,10 @@ export class GitlabAuthorizationService {
     userId: string,
     _userRole: Role,
   ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-
-    const ownerMembership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-    });
-
-    if (!ownerMembership || ownerMembership.role !== ProjectRole.OWNER) {
-      throw new ForbiddenException('Action réservée au OWNER du projet');
-    }
-  }
-
-  private async ensureProjectExists(projectId: string): Promise<void> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new NotFoundException('Projet non trouvé');
-    }
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      userId,
+      ProjectActions.UPDATE,
+    );
   }
 }

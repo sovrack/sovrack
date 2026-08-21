@@ -36,7 +36,7 @@ export class SourceConnectionDto {
   @IsNotEmpty()
   repoPath!: string;
 
-  @ApiProperty({ example: 'glpat-xxx' })
+  @ApiProperty({ example: '<git-access-token>' })
   @IsString()
   @IsNotEmpty()
   token!: string;

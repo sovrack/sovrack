@@ -10,6 +10,7 @@ import { DeploymentsController } from './deployments.controller';
 
 describe('DeploymentsController', () => {
   const user = { id: 'user-1', role: 'OWNER' } as JwtPayload;
+  const workspaceId = 'workspace-1';
 
   function build() {
     const createService = {
@@ -63,6 +64,7 @@ describe('DeploymentsController', () => {
     await ctrl.validate(
       { projectId: 'p1', environmentId: 'e1', serviceEnvId: 'se1' } as never,
       user,
+      workspaceId,
     );
     expect(validationService.validate).toHaveBeenCalledWith(
       'p1',
@@ -70,80 +72,96 @@ describe('DeploymentsController', () => {
       'DOCKERFILE_LOCAL',
       'user-1',
       'se1',
+      workspaceId,
     );
   });
 
   it('create delegates to the create service', async () => {
     const { ctrl, createService } = build();
-    await ctrl.create({ projectId: 'p1' } as never, user);
+    await ctrl.create({ projectId: 'p1' } as never, user, workspaceId);
     expect(createService.create).toHaveBeenCalledWith(
       { projectId: 'p1' },
       'user-1',
+      workspaceId,
     );
   });
 
   it('findAll / findByProject / previewEnv / findOne delegate to the query service', async () => {
     const { ctrl, queryService } = build();
-    await ctrl.findAll(user, { page: 1 } as never);
-    await ctrl.findByProject('p1', user);
-    await ctrl.previewEnv('se1', user);
-    await ctrl.findOne('d1', user);
-    expect(queryService.findAll).toHaveBeenCalledWith('user-1', 'OWNER', {
-      page: 1,
-    });
+    await ctrl.findAll(user, { page: 1 } as never, workspaceId);
+    await ctrl.findByProject('p1', user, workspaceId);
+    await ctrl.previewEnv('se1', user, workspaceId);
+    await ctrl.findOne('d1', user, workspaceId);
+    expect(queryService.findAll).toHaveBeenCalledWith(
+      'user-1',
+      'OWNER',
+      { page: 1 },
+      workspaceId,
+    );
     expect(queryService.findByProject).toHaveBeenCalledWith(
       'p1',
       'user-1',
       'OWNER',
+      workspaceId,
     );
     expect(queryService.previewEnv).toHaveBeenCalledWith(
       'se1',
       'user-1',
       'OWNER',
+      workspaceId,
     );
-    expect(queryService.findOne).toHaveBeenCalledWith('d1', 'user-1', 'OWNER');
+    expect(queryService.findOne).toHaveBeenCalledWith(
+      'd1',
+      'user-1',
+      'OWNER',
+      workspaceId,
+    );
   });
 
   it('cancel / rollback / remove delegate to the lifecycle & rollback services', async () => {
     const { ctrl, lifecycleService, rollbackService } = build();
-    await ctrl.cancel('d1', user);
-    await ctrl.rollback('d1', user);
-    await ctrl.remove('d1', user);
+    await ctrl.cancel('d1', user, workspaceId);
+    await ctrl.rollback('d1', user, undefined, workspaceId);
+    await ctrl.remove('d1', user, workspaceId);
     expect(lifecycleService.cancel).toHaveBeenCalledWith(
       'd1',
       'user-1',
       'OWNER',
+      workspaceId,
     );
     expect(rollbackService.rollback).toHaveBeenCalledWith(
       'd1',
       'user-1',
       'OWNER',
       undefined,
+      workspaceId,
     );
     expect(lifecycleService.remove).toHaveBeenCalledWith(
       'd1',
       'user-1',
       'OWNER',
+      workspaceId,
     );
   });
 
   it('containerLogs parses the tail query (default 300)', async () => {
     const { ctrl, containerInspector } = build();
-    await ctrl.containerLogs('d1', '50', user);
+    await ctrl.containerLogs('d1', '50', user, workspaceId);
     expect(containerInspector.getContainerLogs).toHaveBeenCalledWith('d1', 50);
-    await ctrl.containerLogs('d1', undefined, user);
+    await ctrl.containerLogs('d1', undefined, user, workspaceId);
     expect(containerInspector.getContainerLogs).toHaveBeenCalledWith('d1', 300);
   });
 
   it('searchLogs delegates with defaults for q and level', async () => {
     const { ctrl, logSearchService } = build();
-    await ctrl.searchLogs('d1', user, undefined, undefined);
+    await ctrl.searchLogs('d1', user, undefined, undefined, workspaceId);
     expect(logSearchService.searchLogs).toHaveBeenCalledWith(
       'd1',
       'user-1',
       'OWNER',
       '',
       'ALL',
+      workspaceId,
     );
   });
 });

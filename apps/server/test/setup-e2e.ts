@@ -85,7 +85,15 @@ export async function bootstrapE2E(): Promise<E2EContext> {
       name: string,
       data: { deploymentId: string; overrideImage?: string },
     ) => Promise<{ id: string }>;
-  } = { add: () => Promise.resolve({ id: 'stub-job' }) };
+    close: () => Promise<void>;
+  } = {
+    add: () => Promise.resolve({ id: 'stub-job' }),
+    close: () => Promise.resolve(),
+  };
+  const backgroundQueueStub = {
+    add: jest.fn().mockResolvedValue({ id: 'stub-job' }),
+    close: jest.fn().mockResolvedValue(undefined),
+  };
 
   const moduleRef: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
@@ -119,6 +127,10 @@ export async function bootstrapE2E(): Promise<E2EContext> {
     // enqueueDeploy still runs the deployment like the BullMQ worker would.
     .overrideProvider('DEPLOYMENTS_QUEUE')
     .useValue(deploymentsQueueStub)
+    .overrideProvider('SETUP_QUEUE')
+    .useValue(backgroundQueueStub)
+    .overrideProvider('AUTOMATION_RUNS_QUEUE')
+    .useValue(backgroundQueueStub)
     .overrideProvider(DeploymentsProcessor)
     .useValue({ onModuleInit: jest.fn() })
     .compile();
@@ -145,7 +157,7 @@ export async function bootstrapE2E(): Promise<E2EContext> {
   const authCookie = (
     userId: string,
     role: Role = Role.OWNER,
-    email = 'e2e@deployautomation.test',
+    email = `admin-${userId.slice(0, 8)}@deployautomation.test`,
   ): string => {
     const token = jwt.generateAccessToken({ id: userId, email, role });
     return `deploy_automation_token=${token}`;

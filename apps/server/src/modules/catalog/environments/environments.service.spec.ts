@@ -5,6 +5,7 @@ import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
 import { EnvironmentsService } from './environments.service';
 import { ProjectAccessService } from '../authorization/project-access.service';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
 
 describe('EnvironmentsService', () => {
   let prisma: {
@@ -22,6 +23,10 @@ describe('EnvironmentsService', () => {
     serviceEnvironment: { upsert: jest.Mock };
   };
   let crypto: { encryptOptional: jest.Mock };
+  let workspaceAccess: {
+    assertProjectAction: jest.Mock;
+    assertServerAction: jest.Mock;
+  };
   let service: EnvironmentsService;
 
   beforeEach(() => {
@@ -58,6 +63,22 @@ describe('EnvironmentsService', () => {
     crypto = {
       encryptOptional: jest.fn((v?: string | null) => (v ? `enc:${v}` : null)),
     };
+    workspaceAccess = {
+      assertProjectAction: jest
+        .fn()
+        .mockImplementation(async (_projectId, _userId, action) => {
+          const member = await prisma.projectMember.findUnique();
+          if (!member) throw new NotFoundException('Projet introuvable');
+          if (
+            action !== 'project.read' &&
+            member.role !== ProjectRole.MAINTAINER
+          ) {
+            throw new ForbiddenException('Action projet interdite');
+          }
+          return { workspaceId: 'team-1', projectRole: member.role };
+        }),
+      assertServerAction: jest.fn().mockResolvedValue(undefined),
+    };
     const serviceEnvsService = {
       linkServiceToAllEnvsForEnvironment: jest
         .fn()
@@ -67,13 +88,17 @@ describe('EnvironmentsService', () => {
       prisma as unknown as PrismaService,
       serviceEnvsService,
       crypto as unknown as CryptoService,
-      new ProjectAccessService(prisma as unknown as PrismaService),
+      new ProjectAccessService(
+        prisma as unknown as PrismaService,
+        workspaceAccess as unknown as WorkspaceAccessService,
+      ),
+      workspaceAccess as unknown as WorkspaceAccessService,
     );
   });
 
   it('lets an OWNER create an env and encrypts secretsEnv', async () => {
     prisma.projectMember.findUnique.mockResolvedValue({
-      role: ProjectRole.OWNER,
+      role: ProjectRole.MAINTAINER,
     });
     await service.create(
       'p1',
@@ -89,7 +114,7 @@ describe('EnvironmentsService', () => {
   // the secret (→ null) instead of persisting an encrypted empty string.
   it('clears secretsEnv (→ null) when an empty string is submitted', async () => {
     prisma.projectMember.findUnique.mockResolvedValue({
-      role: ProjectRole.OWNER,
+      role: ProjectRole.MAINTAINER,
     });
     await service.create(
       'p1',
@@ -110,7 +135,7 @@ describe('EnvironmentsService', () => {
   // had it. Assert the fix directly rather than trusting the return value.
   it('never returns raw secretsEnv from linkService (omit applied)', async () => {
     prisma.projectMember.findUnique.mockResolvedValue({
-      role: ProjectRole.OWNER,
+      role: ProjectRole.MAINTAINER,
     });
     await service.linkService('p1', 'e1', 'svc1', 'owner', Role.MEMBER);
     expect(prisma.serviceEnvironment.upsert).toHaveBeenCalledWith(
@@ -160,11 +185,11 @@ describe('EnvironmentsService', () => {
     });
   });
 
-  it('forbids a non-member from reading project envs', async () => {
+  it('hides project environments from a non-member', async () => {
     prisma.projectMember.findUnique.mockResolvedValue(null);
     await expect(
       service.findAll('p1', 'u2', Role.MEMBER),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('allows a project member to read envs', async () => {
@@ -185,7 +210,7 @@ describe('EnvironmentsService', () => {
 
   it('allows a project OWNER to manage', async () => {
     prisma.projectMember.findUnique.mockResolvedValue({
-      role: ProjectRole.OWNER,
+      role: ProjectRole.MAINTAINER,
     });
     await expect(
       service.create('p1', { name: 'x' } as never, 'owner', Role.MEMBER),
@@ -194,7 +219,7 @@ describe('EnvironmentsService', () => {
 
   it('404s findOne when the env does not exist', async () => {
     prisma.projectMember.findUnique.mockResolvedValue({
-      role: ProjectRole.OWNER,
+      role: ProjectRole.MAINTAINER,
     });
     prisma.environment.findFirst.mockResolvedValue(null);
     await expect(
@@ -204,9 +229,11 @@ describe('EnvironmentsService', () => {
 
   it('404s assignServer when the server is missing', async () => {
     prisma.projectMember.findUnique.mockResolvedValue({
-      role: ProjectRole.OWNER,
+      role: ProjectRole.MAINTAINER,
     });
-    prisma.server.findUnique.mockResolvedValue(null);
+    workspaceAccess.assertServerAction.mockRejectedValue(
+      new NotFoundException('Serveur introuvable'),
+    );
     await expect(
       service.assignServer('p1', 'e1', 'nope', 'owner', Role.MEMBER),
     ).rejects.toBeInstanceOf(NotFoundException);

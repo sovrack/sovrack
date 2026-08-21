@@ -1,9 +1,10 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ContainerStatus, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
 import type { IDockerRuntime } from '../../../adapters/container-runtime/ports/docker-runtime.port';
 import { DOCKER_RUNTIME } from '../../../adapters/container-runtime/ports/docker-runtime.port';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../iam/authorization/workspace-policy.types';
 
 @Injectable()
 export class ContainersService {
@@ -11,67 +12,66 @@ export class ContainersService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly projectAccess: ProjectAccessService,
+    private readonly workspaceAccess: WorkspaceAccessService,
     @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
   ) {}
-
-  private async resolveProjectId(serverId: string): Promise<string> {
-    const server = await this.prisma.server.findUnique({
-      where: { id: serverId },
-      select: { environment: { select: { projectId: true } } },
-    });
-    if (!server?.environment) {
-      throw new NotFoundException(
-        'Serveur introuvable ou non rattaché à un projet',
-      );
-    }
-    return server.environment.projectId;
-  }
 
   async assertCanAccessServerById(
     serverId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
-    const projectId = await this.resolveProjectId(serverId);
-    await this.projectAccess.assertCanAccessProject(
-      projectId,
+    await this.workspaceAccess.assertServerAction(
+      serverId,
       userId,
-      userRole,
+      WorkspaceActions.READ_SERVER,
+      expectedWorkspaceId,
     );
   }
 
-  private async assertCanManageServer(
+  async assertCanManageServerById(
     serverId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
-    const projectId = await this.resolveProjectId(serverId);
-    await this.projectAccess.assertCanManageProject(
-      projectId,
+    await this.workspaceAccess.assertServerAction(
+      serverId,
       userId,
-      userRole,
+      WorkspaceActions.MANAGE_SERVER,
+      expectedWorkspaceId,
     );
   }
 
   async assertCanAccessContainer(
     containerId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
     const container = await this.findOne(containerId);
-    const server = await this.prisma.server.findUnique({
-      where: { id: container.serverId },
-      select: { environment: { select: { projectId: true } } },
-    });
-    const projectId = server?.environment?.projectId;
-    if (projectId) {
-      await this.projectAccess.assertCanAccessProject(
-        projectId,
-        userId,
-        userRole,
-      );
-    }
+    await this.workspaceAccess.assertServerAction(
+      container.serverId,
+      userId,
+      WorkspaceActions.READ_SERVER,
+      expectedWorkspaceId,
+    );
+  }
+
+  async assertCanManageContainer(
+    containerId: string,
+    userId: string,
+    _userRole: Role,
+    expectedWorkspaceId?: string,
+  ): Promise<void> {
+    const container = await this.findOne(containerId);
+    await this.workspaceAccess.assertServerAction(
+      container.serverId,
+      userId,
+      WorkspaceActions.MANAGE_SERVER,
+      expectedWorkspaceId,
+    );
   }
 
   async findAll(
@@ -82,13 +82,28 @@ export class ContainersService {
       serviceEnvId?: string;
     },
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    requestedWorkspaceId?: string,
   ) {
-    if (filters.serverId) {
-      await this.assertCanAccessServerById(filters.serverId, userId, userRole);
-    }
+    const workspaceId = await this.workspaceAccess.resolveWorkspaceId(
+      userId,
+      requestedWorkspaceId,
+    );
+    await this.workspaceAccess.assertWorkspaceAction(
+      workspaceId,
+      userId,
+      WorkspaceActions.READ_SERVER,
+    );
+    if (filters.serverId)
+      await this.workspaceAccess.assertServerAction(
+        filters.serverId,
+        userId,
+        WorkspaceActions.READ_SERVER,
+        workspaceId,
+      );
     return this.prisma.container.findMany({
       where: {
+        server: { teamId: workspaceId },
         ...(filters.serverId && { serverId: filters.serverId }),
         ...(filters.serviceId && { serviceId: filters.serviceId }),
         ...(filters.deploymentId && { deploymentId: filters.deploymentId }),

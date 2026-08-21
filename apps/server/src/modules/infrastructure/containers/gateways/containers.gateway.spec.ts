@@ -4,7 +4,9 @@ function makeClient(id = 'client-1') {
   return {
     id,
     emit: jest.fn(),
-    data: {},
+    disconnect: jest.fn(),
+    data: { user: { id: 'user-1', role: 'OWNER' } },
+    handshake: { auth: {}, headers: {} },
   } as never;
 }
 
@@ -18,6 +20,10 @@ function makeSvc(
   const container = { serverId: 'srv1', dockerId: 'docker-abc' };
 
   const containersService = {
+    assertCanAccessContainer:
+      opts.containerFound === false
+        ? jest.fn().mockRejectedValue(new Error('not found'))
+        : jest.fn().mockResolvedValue(undefined),
     findOne:
       opts.containerFound === false
         ? jest.fn().mockRejectedValue(new Error('not found'))
@@ -34,15 +40,29 @@ function makeSvc(
   const docker = {
     streamContainerLogs: jest.fn().mockReturnValue(makeStream()),
   } as never;
+  const jwt = { verify: jest.fn().mockReturnValue({ id: 'user-1' }) } as never;
+  const config = { get: jest.fn().mockReturnValue('access_token') } as never;
 
   return {
-    gateway: new ContainersGateway(containersService, docker),
+    gateway: new ContainersGateway(containersService, docker, jwt, config),
     containersService,
     docker,
   };
 }
 
 describe('ContainersGateway', () => {
+  describe('handleConnection', () => {
+    it('disconnects a socket without an authentication token', () => {
+      const { gateway } = makeSvc();
+      const client = makeClient();
+      client.data = {};
+
+      gateway.handleConnection(client);
+
+      expect(client.disconnect).toHaveBeenCalled();
+    });
+  });
+
   describe('handleDisconnect', () => {
     it('aborts any active stream for the disconnecting client', async () => {
       const { gateway, docker } = makeSvc();

@@ -9,10 +9,12 @@ import { ACTIVE_FILTER } from '../../../shared/database/prisma-active.helper';
 import { ProjectAccessService } from '../authorization/project-access.service';
 import { buildServiceAlias } from '../../../shared/utils/container-spec.util';
 import { getDatabaseContainerConfig } from '../../../shared/utils/database-spec.util';
+import { parseDbCredentials } from '../../../shared/utils/database-spec.util';
 import {
   buildDbConnectionUrl,
   dbConnectionEnvKey,
 } from '../../../shared/utils/db-connection.util';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
 
 /**
  * Connexion INTERNE d'une base : joignable uniquement par les autres conteneurs
@@ -57,16 +59,16 @@ export interface ServiceCredentials {
  * DATABASE — volontairement séparé des routes de listing/détail génériques (qui
  * les `omit` : voir ServicesService), pour ne pas réintroduire la fuite
  * corrigée en Tâche 1. Réservé à la page de détail du service DATABASE, et
- * gardé par ProjectAccessService (mêmes droits d'accès projet que la page qui
- * l'héberge). databaseCredentials est stocké en clair (non chiffré) — utilisé
- * tel quel par le moteur de déploiement — donc rien à déchiffrer ici : on ne
- * fait que sélectionner le champ derrière cette route étroite et gardée.
+ * gardé par une capacité dédiée réservée aux Project MAINTAINER (les OWNER et
+ * ADMIN du workspace héritent de ce rôle). L'accès est audité et le blob est
+ * déchiffré uniquement pour cette réponse explicite.
  */
 @Injectable()
 export class ServicesCredentialsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly projectAccess: ProjectAccessService,
+    private readonly crypto: CryptoService,
   ) {}
 
   async getCredentials(
@@ -75,7 +77,7 @@ export class ServicesCredentialsService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceCredentials> {
-    await this.projectAccess.assertCanAccessProject(
+    const actor = await this.projectAccess.assertCanReadProjectSecrets(
       projectId,
       userId,
       userRole,
@@ -90,6 +92,7 @@ export class ServicesCredentialsService {
         databaseType: true,
         databaseCredentials: true,
         externalPort: true,
+        project: { select: { teamId: true } },
       },
     });
 
@@ -102,14 +105,24 @@ export class ServicesCredentialsService {
       );
     }
 
-    const creds = (service.databaseCredentials ?? {}) as Record<
-      string,
-      unknown
-    >;
-    const user = typeof creds.user === 'string' ? creds.user : 'app';
-    const dbName = typeof creds.dbName === 'string' ? creds.dbName : 'app';
-    const password =
-      typeof creds.password === 'string' ? creds.password : 'changeme';
+    const creds = parseDbCredentials(service.databaseCredentials, this.crypto);
+    if (!creds.user || !creds.dbName || !creds.password) {
+      throw new BadRequestException(
+        'Les credentials de cette base sont absents ou indéchiffrables',
+      );
+    }
+    const { user, dbName, password } = creds as Required<typeof creds>;
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        teamId: actor.workspaceId,
+        action: 'SERVICE_CREDENTIALS_REVEALED',
+        resourceType: 'Service',
+        resourceId: service.id,
+        metadata: { projectId },
+      },
+    });
 
     const host = buildServiceAlias(service.name);
     const { port } = getDatabaseContainerConfig(service.databaseType);

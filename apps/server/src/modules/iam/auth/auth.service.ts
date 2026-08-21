@@ -17,7 +17,13 @@ import { Role, User } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { TeamsService } from '../teams/teams.service';
-import { BillingService } from '../../billing/billing.service';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
+import {
+  generateOneTimeCode,
+  sealOneTimeCode,
+  verifyOneTimeCode,
+} from '../security/one-time-code.util';
+import { AccountDeletionService } from '../authorization/account-deletion.service';
 
 /**
  * Réponse d'authentification
@@ -38,9 +44,10 @@ export class AuthService {
     private readonly auditService: AuditService,
     private readonly passwordHasher: PasswordHasher,
     private readonly teamsService: TeamsService,
-    private readonly billingService: BillingService,
     private readonly emailVerification: EmailVerificationService,
     private readonly smtp: NotificationsSmtpService,
+    private readonly crypto: CryptoService,
+    private readonly accountDeletion: AccountDeletionService,
   ) {}
 
   /**
@@ -51,16 +58,19 @@ export class AuthService {
    * @param dto - Données d'inscription
    * @returns Rien d'exploitable côté client (le code part par email)
    */
-  async register(dto: RegisterDto): Promise<{ email: string }> {
-    await this.emailVerification.startPendingRegistration({
+  async register(
+    dto: RegisterDto,
+  ): Promise<{ email: string; registrationId: string }> {
+    const pending = await this.emailVerification.startPendingRegistration({
       email: dto.email,
       password: dto.password,
       fullName: dto.fullName,
-      role: Role.OWNER,
+      workspaceName: dto.teamName,
+      role: Role.MEMBER,
     });
 
     this.logger.log(`Pending registration for ${dto.email}`);
-    return { email: dto.email };
+    return { email: dto.email, registrationId: pending.registrationId };
   }
 
   /**
@@ -71,21 +81,23 @@ export class AuthService {
     const verified = await this.emailVerification.verifyCodeAndActivate({
       email: dto.email,
       code: dto.code,
-      onActivate: async (userId) => {
-        const user = await this.usersService.findById(userId);
-        if (!user) return;
+      registrationId: dto.registrationId,
+      onActivate: async (pendingUser, database) => {
         const team = await this.teamsService.create(
-          { name: `${user.fullName.split(' ')[0]} Team` },
-          userId,
+          { name: pendingUser.workspaceName },
+          pendingUser.id,
+          database,
         );
-        await this.billingService.ensureSubscription(team.id);
-        await this.auditService.record(
-          userId,
-          'AUTH_REGISTER',
-          'User',
-          userId,
-          { email: user.email, teamId: team.id },
-        );
+        await database.auditLog.create({
+          data: {
+            userId: pendingUser.id,
+            teamId: team.id,
+            action: 'AUTH_REGISTER',
+            resourceType: 'User',
+            resourceId: pendingUser.id,
+            metadata: { email: pendingUser.email, teamId: team.id },
+          },
+        });
       },
     });
 
@@ -120,8 +132,11 @@ export class AuthService {
   /**
    * Renvoie un nouveau code de vérification email pour un compte non vérifié.
    */
-  async resendVerificationCode(email: string): Promise<{ email: string }> {
-    await this.emailVerification.resendCode(email);
+  async resendVerificationCode(
+    email: string,
+    registrationId: string,
+  ): Promise<{ email: string }> {
+    await this.emailVerification.resendCode(email, registrationId);
     return { email };
   }
 
@@ -227,11 +242,18 @@ export class AuthService {
     if (!user || !user.emailVerifiedAt) {
       return { sent: false };
     }
-    const code = this.generateSixDigitCode();
+    const code = generateOneTimeCode();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { passwordResetCode: code, passwordResetExpiresAt: expiresAt },
+      data: {
+        passwordResetCode: sealOneTimeCode(this.crypto, {
+          code,
+          purpose: 'password-reset',
+          userId: user.id,
+        }),
+        passwordResetExpiresAt: expiresAt,
+      },
     });
 
     let sent = false;
@@ -294,7 +316,13 @@ export class AuthService {
         'Le code a expiré. Redemandez un nouveau code.',
       );
     }
-    if (user.passwordResetCode !== code) {
+    if (
+      !verifyOneTimeCode(this.crypto, user.passwordResetCode, {
+        code,
+        purpose: 'password-reset',
+        userId: user.id,
+      })
+    ) {
       throw new BadRequestException('Code de réinitialisation invalide');
     }
 
@@ -327,11 +355,18 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
     }
-    const code = this.generateSixDigitCode();
+    const code = generateOneTimeCode();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { deleteAccountCode: code, deleteAccountExpiresAt: expiresAt },
+      data: {
+        deleteAccountCode: sealOneTimeCode(this.crypto, {
+          code,
+          purpose: 'account-deletion',
+          userId,
+        }),
+        deleteAccountExpiresAt: expiresAt,
+      },
     });
 
     let sent = false;
@@ -348,7 +383,8 @@ export class AuthService {
             <h2 style="color:#111827;font-size:18px;margin:0 0 12px">Suppression définitive du compte</h2>
             <p style="color:#374151;font-size:14px;line-height:1.6">
               Bonjour ${user.fullName},<br/>
-              Vous avez demandé la suppression de votre compte et de toutes vos données.
+              Vous avez demandé la suppression de votre identité et de vos appartenances aux workspaces.
+              Les ressources appartenant aux workspaces seront conservées.
               Utilisez ce code pour confirmer :
             </p>
             <div style="background:#fef2f2;border-radius:8px;padding:20px;text-align:center;margin:20px 0">
@@ -374,8 +410,8 @@ export class AuthService {
   }
 
   /**
-   * Confirme et exécute la suppression définitive du compte (cascade) après
-   * validation du code reçu par email.
+   * Supprime l'identité et ses appartenances après validation du code.
+   * Les ressources restent la propriété de leurs workspaces.
    */
   async confirmAccountDeletion(
     userId: string,
@@ -395,44 +431,20 @@ export class AuthService {
         'Le code a expiré. Redemandez un nouveau code.',
       );
     }
-    if (user.deleteAccountCode !== code) {
+    if (
+      !verifyOneTimeCode(this.crypto, user.deleteAccountCode, {
+        code,
+        purpose: 'account-deletion',
+        userId,
+      })
+    ) {
       throw new BadRequestException('Code de confirmation invalide');
     }
 
-    // Purge en cascade : projets & serveurs des équipes, puis équipes, puis user.
-    await this.prisma.$transaction(async (tx) => {
-      const memberships = await tx.teamMember.findMany({
-        where: { userId },
-        select: { teamId: true },
-      });
-      const teamIds = memberships.map((m) => m.teamId);
-
-      if (teamIds.length > 0) {
-        await tx.project.deleteMany({
-          where: { teamId: { in: teamIds } },
-        });
-        await tx.server.deleteMany({
-          where: { teamId: { in: teamIds } },
-        });
-        await tx.team.deleteMany({
-          where: { id: { in: teamIds } },
-        });
-      }
-      await tx.auditLog.deleteMany({ where: { userId } });
-      await tx.sshKey.deleteMany({ where: { userId } });
-      await tx.user.delete({ where: { id: userId } });
-    });
-
-    this.auditService
-      .record(userId, 'ACCOUNT_DELETED', 'User', userId, { email: user.email })
-      .catch(() => undefined);
+    await this.accountDeletion.deleteIdentity(userId);
 
     this.logger.log(`Account ${user.email} (${userId}) deleted`);
     return { message: 'Votre compte a été supprimé définitivement' };
-  }
-
-  private generateSixDigitCode(): string {
-    return String(Math.floor(100000 + Math.random() * 900000));
   }
 
   /**

@@ -1,34 +1,10 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  GitProviderType,
-  RegistryProviderType,
-  type GitProviderConfig,
-} from '@prisma/client';
+import { RegistryProviderType } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { CryptoService } from '../../../../shared/crypto/crypto.service';
-import {
-  inferGitlabRegistryUrl,
-  normalizeOptional,
-} from './git-provider-config.util';
-
-// The legacy single-GitLab-config lived in PlatformConfig under these keys.
-// We keep them in sync with the default GitProviderConfig row for backward
-// compatibility (old code paths / env bootstrap still read them).
-const LEGACY_GITLAB_KEYS = [
-  'GITLAB_PROVIDER_NAME',
-  'GITLAB_URL',
-  'GITLAB_INTERNAL_URL',
-  'GITLAB_REDIRECT_URI',
-  'GITLAB_APP_ID',
-  'GITLAB_APP_SECRET',
-  'GITLAB_GROUP_NAMES',
-  'GITLAB_TOKEN',
-  'GITLAB_OAUTH_ACCESS_TOKEN',
-  'GITLAB_OAUTH_REFRESH_TOKEN',
-  'GITLAB_OAUTH_EXPIRES_AT',
-];
+import { inferGitlabRegistryUrl } from './git-provider-config.util';
 
 /**
  * Owns the LEGACY GitLab compatibility layer extracted from
@@ -49,155 +25,18 @@ export class GitProviderLegacySyncService {
     private readonly crypto: CryptoService,
   ) {}
 
-  private async getDefaultGitlabProvider(): Promise<GitProviderConfig | null> {
-    const defaultProvider = await this.prisma.gitProviderConfig.findFirst({
-      where: { type: GitProviderType.GITLAB, isDefault: true },
-      orderBy: { updatedAt: 'desc' },
-    });
-    if (defaultProvider) return defaultProvider;
-    return this.prisma.gitProviderConfig.findFirst({
-      where: { type: GitProviderType.GITLAB },
-      orderBy: { createdAt: 'asc' },
-    });
-  }
-
   /**
-   * If no GitLab provider row exists yet but legacy PlatformConfig keys are
-   * present, materialize a GitProviderConfig row from them (one-time bootstrap).
+   * The former global PlatformConfig bootstrap is intentionally disabled.
+   * Copying a global secret into whichever workspace calls first would violate
+   * tenant isolation. Existing providers are assigned explicitly by migration.
    */
-  async bootstrapIfNeeded(): Promise<void> {
-    const count = await this.prisma.gitProviderConfig.count({
-      where: { type: GitProviderType.GITLAB },
-    });
-    if (count > 0) return;
-
-    const legacyUrl = (
-      (await this.getLegacyPlatformConfig('GITLAB_URL')) ?? ''
-    ).trim();
-    if (!legacyUrl) return;
-
-    const name =
-      (
-        (await this.getLegacyPlatformConfig('GITLAB_PROVIDER_NAME')) ?? ''
-      ).trim() || 'GitLab Legacy';
-    const oauthExpiresAtRaw = normalizeOptional(
-      await this.getLegacyPlatformConfig('GITLAB_OAUTH_EXPIRES_AT'),
-    );
-    const oauthExpiresAt = oauthExpiresAtRaw
-      ? new Date(oauthExpiresAtRaw)
-      : null;
-
-    await this.prisma.gitProviderConfig.create({
-      data: {
-        name,
-        type: GitProviderType.GITLAB,
-        providerUrl: legacyUrl,
-        internalUrl: normalizeOptional(
-          await this.getLegacyPlatformConfig('GITLAB_INTERNAL_URL'),
-        ),
-        redirectUri: normalizeOptional(
-          await this.getLegacyPlatformConfig('GITLAB_REDIRECT_URI'),
-        ),
-        applicationId: normalizeOptional(
-          await this.getLegacyPlatformConfig('GITLAB_APP_ID'),
-        ),
-        applicationSecret: this.crypto.encryptOptional(
-          (await this.getLegacyPlatformConfig('GITLAB_APP_SECRET')) ??
-            undefined,
-        ),
-        groupNames: normalizeOptional(
-          await this.getLegacyPlatformConfig('GITLAB_GROUP_NAMES'),
-        ),
-        adminToken: this.crypto.encryptOptional(
-          (await this.getLegacyPlatformConfig('GITLAB_TOKEN')) ?? undefined,
-        ),
-        oauthAccessToken: this.crypto.encryptOptional(
-          (await this.getLegacyPlatformConfig('GITLAB_OAUTH_ACCESS_TOKEN')) ??
-            undefined,
-        ),
-        oauthRefreshToken: this.crypto.encryptOptional(
-          (await this.getLegacyPlatformConfig('GITLAB_OAUTH_REFRESH_TOKEN')) ??
-            undefined,
-        ),
-        oauthExpiresAt:
-          oauthExpiresAt && !Number.isNaN(oauthExpiresAt.getTime())
-            ? oauthExpiresAt
-            : null,
-        isDefault: true,
-      },
-    });
-
-    await this.syncDefaultConfig();
+  bootstrapIfNeeded(_teamId: string): Promise<void> {
+    return Promise.resolve();
   }
 
-  /** Mirror the default GitLab provider into the legacy PlatformConfig keys. */
-  async syncDefaultConfig(): Promise<void> {
-    const provider = await this.getDefaultGitlabProvider();
-
-    if (!provider) {
-      await this.prisma.platformConfig.deleteMany({
-        where: { key: { in: LEGACY_GITLAB_KEYS } },
-      });
-      return;
-    }
-
-    const upsertOrClear = async (
-      key: string,
-      value: string | null | undefined,
-      isSecret: boolean,
-    ) => {
-      const normalized = normalizeOptional(value);
-      if (!normalized) {
-        await this.prisma.platformConfig.deleteMany({ where: { key } });
-        return;
-      }
-      const stored = isSecret ? this.crypto.encrypt(normalized) : normalized;
-      await this.prisma.platformConfig.upsert({
-        where: { key },
-        update: { value: stored, isSecret },
-        create: { key, value: stored, isSecret },
-      });
-    };
-
-    await Promise.all([
-      upsertOrClear('GITLAB_PROVIDER_NAME', provider.name, false),
-      upsertOrClear('GITLAB_URL', provider.providerUrl, false),
-      upsertOrClear('GITLAB_INTERNAL_URL', provider.internalUrl, false),
-      upsertOrClear('GITLAB_REDIRECT_URI', provider.redirectUri, false),
-      upsertOrClear('GITLAB_APP_ID', provider.applicationId, false),
-      upsertOrClear(
-        'GITLAB_APP_SECRET',
-        provider.applicationSecret
-          ? this.crypto.decrypt(provider.applicationSecret)
-          : null,
-        true,
-      ),
-      upsertOrClear('GITLAB_GROUP_NAMES', provider.groupNames, false),
-      upsertOrClear(
-        'GITLAB_TOKEN',
-        provider.adminToken ? this.crypto.decrypt(provider.adminToken) : null,
-        true,
-      ),
-      upsertOrClear(
-        'GITLAB_OAUTH_ACCESS_TOKEN',
-        provider.oauthAccessToken
-          ? this.crypto.decrypt(provider.oauthAccessToken)
-          : null,
-        true,
-      ),
-      upsertOrClear(
-        'GITLAB_OAUTH_REFRESH_TOKEN',
-        provider.oauthRefreshToken
-          ? this.crypto.decrypt(provider.oauthRefreshToken)
-          : null,
-        true,
-      ),
-      upsertOrClear(
-        'GITLAB_OAUTH_EXPIRES_AT',
-        provider.oauthExpiresAt?.toISOString() ?? null,
-        false,
-      ),
-    ]);
+  /** No-op: tenant provider secrets must never be mirrored globally. */
+  syncDefaultConfig(_teamId: string): Promise<void> {
+    return Promise.resolve();
   }
 
   /**
@@ -210,6 +49,7 @@ export class GitProviderLegacySyncService {
    */
   async syncRegistry(provider: {
     id: string;
+    teamId: string;
     name: string;
     providerUrl: string;
     adminToken: string | null;
@@ -228,6 +68,7 @@ export class GitProviderLegacySyncService {
 
       const data = {
         name: registryName,
+        teamId: provider.teamId,
         type: RegistryProviderType.GITLAB,
         registryUrl,
         providerId: provider.id,
@@ -238,10 +79,14 @@ export class GitProviderLegacySyncService {
       // Dédoublonnage par provider (robuste au renommage), repli sur type+name.
       const existing =
         (await this.prisma.registryConfig.findFirst({
-          where: { providerId: provider.id },
+          where: { teamId: provider.teamId, providerId: provider.id },
         })) ??
         (await this.prisma.registryConfig.findFirst({
-          where: { type: RegistryProviderType.GITLAB, name: registryName },
+          where: {
+            teamId: provider.teamId,
+            type: RegistryProviderType.GITLAB,
+            name: registryName,
+          },
         }));
 
       if (existing) {
@@ -286,13 +131,5 @@ export class GitProviderLegacySyncService {
     } catch {
       return null;
     }
-  }
-
-  private async getLegacyPlatformConfig(key: string): Promise<string | null> {
-    const config = await this.prisma.platformConfig.findUnique({
-      where: { key },
-    });
-    if (!config) return null;
-    return config.isSecret ? this.crypto.decrypt(config.value) : config.value;
   }
 }

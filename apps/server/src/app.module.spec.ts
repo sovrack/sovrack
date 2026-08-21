@@ -32,7 +32,11 @@ describe('AppModule', () => {
       .overrideProvider(DeploymentsProcessor)
       .useValue({ onModuleInit: jest.fn() })
       .overrideProvider('DEPLOYMENTS_QUEUE')
-      .useValue({ add: jest.fn() })
+      .useValue({ add: jest.fn(), close: jest.fn() })
+      .overrideProvider('SETUP_QUEUE')
+      .useValue({ add: jest.fn(), close: jest.fn() })
+      .overrideProvider('AUTOMATION_RUNS_QUEUE')
+      .useValue({ add: jest.fn(), close: jest.fn() })
       .overrideProvider(APP_GUARD)
       .useValue({ canActivate: () => true })
       .compile();

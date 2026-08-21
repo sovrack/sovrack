@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Post,
   Put,
@@ -17,6 +18,7 @@ import {
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
+import { ProjectWorkspaceGuard } from '../../iam/authorization/project-workspace.guard';
 import { CreateFromTemplateDto } from './dto/create-from-template.dto';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { DiscoverGroupDto } from './dto/discover-group.dto';
@@ -27,8 +29,11 @@ import { ServiceTemplatesFactoryService } from './service-templates-factory.serv
 
 @ApiTags('Services')
 @ApiBearerAuth()
-@Controller('projects/:projectId/services')
-@UseGuards(JwtAuthGuard)
+@Controller([
+  'workspaces/:workspaceId/projects/:projectId/services',
+  'projects/:projectId/services',
+])
+@UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
 export class ServicesController {
   constructor(
     private readonly servicesService: ServicesService,
@@ -119,6 +124,8 @@ export class ServicesController {
   }
 
   @Get(':serviceId/credentials')
+  @Header('Cache-Control', 'no-store, max-age=0')
+  @Header('Pragma', 'no-cache')
   @ApiOperation({
     summary:
       'Get a DATABASE service credentials (dedicated, gated — not the listing route)',

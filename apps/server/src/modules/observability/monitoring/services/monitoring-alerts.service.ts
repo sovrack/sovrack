@@ -25,12 +25,12 @@ type AlertItem = {
 export class MonitoringAlertsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getInstallOptions() {
+  async getInstallOptions(workspaceId: string) {
     const actions = AUTOMATION_ACTIONS.filter(
       (action) => action.category === 'monitoring',
     );
     const servers = await this.prisma.server.findMany({
-      where: activeWhere({ isActive: true }),
+      where: activeWhere({ teamId: workspaceId, isActive: true }),
       orderBy: { name: 'asc' },
       select: {
         id: true,
@@ -49,9 +49,10 @@ export class MonitoringAlertsService {
     };
   }
 
-  async getDerivedAlerts() {
+  async getDerivedAlerts(workspaceId: string) {
     const servers = await this.prisma.server.findMany({
       where: activeWhere({
+        teamId: workspaceId,
         OR: [
           { status: ServerStatus.UNREACHABLE },
           { status: ServerStatus.PREPARATION_FAILED },
@@ -66,6 +67,7 @@ export class MonitoringAlertsService {
 
     const failedDeployments = await this.prisma.deployment.findMany({
       where: {
+        project: { teamId: workspaceId },
         status: DeploymentStatus.FAILED,
       },
       take: 20,

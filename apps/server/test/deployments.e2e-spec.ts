@@ -121,6 +121,17 @@ describe('DeploymentsCreateService (e2e)', () => {
           }
           return Promise.resolve({ id: 'stub-job' });
         },
+        close: () => Promise.resolve(),
+      })
+      .overrideProvider('SETUP_QUEUE')
+      .useValue({
+        add: jest.fn().mockResolvedValue({ id: 'stub-job' }),
+        close: jest.fn().mockResolvedValue(undefined),
+      })
+      .overrideProvider('AUTOMATION_RUNS_QUEUE')
+      .useValue({
+        add: jest.fn().mockResolvedValue({ id: 'stub-job' }),
+        close: jest.fn().mockResolvedValue(undefined),
       })
       .overrideProvider(DeploymentsProcessor)
       .useValue({ onModuleInit: jest.fn() })

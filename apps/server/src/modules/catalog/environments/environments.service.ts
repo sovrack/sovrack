@@ -10,6 +10,8 @@ import { ACTIVE_FILTER } from '../../../shared/database/prisma-active.helper';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
 import { ProjectAccessService } from '../authorization/project-access.service';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../iam/authorization/workspace-policy.types';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { UpdateEnvironmentDto } from './dto/update-environment.dto';
 
@@ -92,6 +94,7 @@ export class EnvironmentsService {
     private readonly serviceEnvsService: ServiceEnvironmentsService,
     private readonly crypto: CryptoService,
     private readonly projectAccess: ProjectAccessService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   async create(
@@ -272,19 +275,19 @@ export class EnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<EnvironmentWithRelations> {
-    await this.projectAccess.assertCanManageProject(
+    const actor = await this.projectAccess.assertCanManageProjectWithContext(
       projectId,
       userId,
       userRole,
     );
     await this.ensureEnvironmentExists(projectId, envId);
 
-    const server = await this.prisma.server.findUnique({
-      where: { id: serverId },
-    });
-    if (!server) {
-      throw new NotFoundException('Serveur non trouvé');
-    }
+    await this.workspaceAccess.assertServerAction(
+      serverId,
+      userId,
+      WorkspaceActions.MANAGE_SERVER,
+      actor.workspaceId,
+    );
 
     return await this.prisma.environment.update({
       where: { id: envId },
@@ -303,12 +306,26 @@ export class EnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<EnvironmentWithRelations> {
-    await this.projectAccess.assertCanManageProject(
+    const actor = await this.projectAccess.assertCanManageProjectWithContext(
       projectId,
       userId,
       userRole,
     );
     await this.ensureEnvironmentExists(projectId, envId);
+
+    await this.workspaceAccess.assertServerAction(
+      serverId,
+      userId,
+      WorkspaceActions.MANAGE_SERVER,
+      actor.workspaceId,
+    );
+    const attached = await this.prisma.server.findFirst({
+      where: { id: serverId, environmentId: envId },
+      select: { id: true },
+    });
+    if (!attached) {
+      throw new NotFoundException('Serveur non rattaché à cet environnement');
+    }
 
     return await this.prisma.environment.update({
       where: { id: envId },

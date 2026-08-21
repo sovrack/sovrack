@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Role, ServerRunKind } from '@prisma/client';
+import { ServerRunKind } from '@prisma/client';
 import {
   ConnectedSocket,
   MessageBody,
@@ -18,6 +18,8 @@ import {
   extractTokenFromCookieHeader,
 } from '../../../../shared/http/auth-cookie.util';
 import { resolveGatewayCorsOrigins } from '../../../../shared/http/cors-origins.util';
+import { WorkspaceAccessService } from '../../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
 
 type JoinSetupPayload = {
   setupId?: string;
@@ -41,6 +43,7 @@ export class ServerSetupGateway implements OnGatewayConnection {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   handleConnection(client: Socket): void {
@@ -69,10 +72,6 @@ export class ServerSetupGateway implements OnGatewayConnection {
 
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);
-      if (payload.role !== Role.OWNER) {
-        client.disconnect();
-        return;
-      }
       (client.data as { user: JwtPayload }).user = payload;
     } catch {
       this.logger.warn(`Setup socket rejected (id: ${client.id})`);
@@ -92,9 +91,22 @@ export class ServerSetupGateway implements OnGatewayConnection {
 
     const setupRun = await this.prisma.serverRun.findFirst({
       where: { id: setupId, kind: ServerRunKind.PREPARATION },
-      select: { id: true },
+      select: { id: true, teamId: true },
     });
     if (!setupRun) {
+      return { ok: false, setupId, error: 'Setup introuvable' };
+    }
+    const user = (client.data as { user?: JwtPayload }).user;
+    if (!user) {
+      return { ok: false, setupId, error: 'Utilisateur non authentifié' };
+    }
+    try {
+      await this.workspaceAccess.assertWorkspaceAction(
+        setupRun.teamId,
+        user.id,
+        WorkspaceActions.MANAGE_SERVER,
+      );
+    } catch {
       return { ok: false, setupId, error: 'Setup introuvable' };
     }
 

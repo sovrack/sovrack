@@ -1,14 +1,17 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
-import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { ProxyService } from './proxy.service';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../iam/authorization/workspace-policy.types';
 
 function makeAccess() {
   return {
     assertCanAccessProject: jest.fn().mockResolvedValue(undefined),
-    assertCanManageProject: jest.fn().mockResolvedValue(undefined),
-  } as unknown as ProjectAccessService;
+    resolveWorkspaceId: jest.fn().mockResolvedValue('workspace-1'),
+    assertWorkspaceAction: jest.fn().mockResolvedValue(undefined),
+    assertServerAction: jest.fn().mockResolvedValue(undefined),
+  } as unknown as WorkspaceAccessService;
 }
 
 function makePrisma(
@@ -38,7 +41,7 @@ function makePrisma(
         ),
     },
     proxyRule: {
-      findUnique: jest
+      findFirst: jest
         .fn()
         .mockResolvedValue(
           'proxyRule' in overrides ? overrides.proxyRule : defaultRule,
@@ -55,45 +58,46 @@ function makePrisma(
         .fn()
         .mockResolvedValue('domain' in overrides ? overrides.domain : null),
     },
+    serviceEnvironment: {
+      findFirst: jest.fn().mockResolvedValue({ id: 'se1' }),
+    },
   } as unknown as PrismaService;
 }
 
 function makeSvc(
   prismaOverrides = {},
-  accessOverrides?: Partial<ProjectAccessService>,
+  accessOverrides?: Partial<WorkspaceAccessService>,
 ) {
   const prisma = makePrisma(prismaOverrides);
   const access = {
     ...makeAccess(),
     ...accessOverrides,
-  } as ProjectAccessService;
+  } as WorkspaceAccessService;
   const svc = new ProxyService(prisma, access);
   return { svc, prisma, access };
 }
 
 describe('ProxyService', () => {
   describe('findAll', () => {
-    it('returns rules without access check when no serverId filter', async () => {
+    it('always checks and scopes the active workspace', async () => {
       const { svc, access } = makeSvc();
       await svc.findAll({}, 'u1', Role.USER);
-      expect(access.assertCanAccessProject).not.toHaveBeenCalled();
+      expect(access.assertWorkspaceAction).toHaveBeenCalledWith(
+        'workspace-1',
+        'u1',
+        WorkspaceActions.READ_SERVER,
+      );
     });
 
     it('checks access when serverId filter is provided', async () => {
       const { svc, access } = makeSvc();
       await svc.findAll({ serverId: 's1' }, 'u1', Role.USER);
-      expect(access.assertCanAccessProject).toHaveBeenCalledWith(
-        'proj1',
+      expect(access.assertServerAction).toHaveBeenCalledWith(
+        's1',
         'u1',
-        Role.USER,
+        WorkspaceActions.READ_SERVER,
+        'workspace-1',
       );
-    });
-
-    it('throws NotFoundException when server has no environment', async () => {
-      const { svc } = makeSvc({ server: null });
-      await expect(
-        svc.findAll({ serverId: 's1' }, 'u1', Role.USER),
-      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -132,10 +136,11 @@ describe('ProxyService', () => {
         'u1',
         Role.OWNER,
       );
-      expect(access.assertCanManageProject).toHaveBeenCalledWith(
-        'proj1',
+      expect(access.assertServerAction).toHaveBeenCalledWith(
+        's1',
         'u1',
-        Role.OWNER,
+        WorkspaceActions.MANAGE_SERVER,
+        'workspace-1',
       );
     });
 
@@ -174,10 +179,10 @@ describe('ProxyService', () => {
     it('updates the rule after access check', async () => {
       const { svc, access } = makeSvc();
       await svc.update('rule1', { targetPort: 8080 }, 'u1', Role.OWNER);
-      expect(access.assertCanManageProject).toHaveBeenCalledWith(
-        'proj1',
+      expect(access.assertWorkspaceAction).toHaveBeenCalledWith(
+        'workspace-1',
         'u1',
-        Role.OWNER,
+        WorkspaceActions.MANAGE_SERVER,
       );
     });
   });
@@ -186,7 +191,7 @@ describe('ProxyService', () => {
     it('deletes the rule after access check', async () => {
       const { svc, prisma, access } = makeSvc();
       await svc.remove('rule1', 'u1', Role.OWNER);
-      expect(access.assertCanManageProject).toHaveBeenCalled();
+      expect(access.assertWorkspaceAction).toHaveBeenCalled();
       expect(prisma.proxyRule.delete).toHaveBeenCalledWith({
         where: { id: 'rule1' },
       });

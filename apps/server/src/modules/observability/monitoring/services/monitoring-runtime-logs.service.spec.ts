@@ -3,6 +3,8 @@ import { Role } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { DockerApiService } from '../../../../adapters/container-runtime/docker-api.service';
 import { MonitoringLokiService } from './monitoring-loki.service';
+import { MonitoringServerResolverService } from './monitoring-server-resolver.service';
+import { WorkspaceAccessService } from '../../../iam/authorization/workspace-access.service';
 import {
   MonitoringRuntimeLogsService,
   type RuntimeLogLine,
@@ -31,7 +33,6 @@ describe('MonitoringRuntimeLogsService', () => {
           .fn()
           .mockResolvedValue({ service: { projectId: 'p1' } }),
       },
-      projectMember: { findUnique: jest.fn().mockResolvedValue(member) },
       container: {
         findFirst: jest
           .fn()
@@ -54,6 +55,12 @@ describe('MonitoringRuntimeLogsService', () => {
       prisma as unknown as PrismaService,
       docker as unknown as DockerApiService,
       loki as unknown as MonitoringLokiService,
+      {} as unknown as MonitoringServerResolverService,
+      {
+        assertProjectAction: member
+          ? jest.fn().mockResolvedValue(undefined)
+          : jest.fn().mockRejectedValue(new ForbiddenException()),
+      } as unknown as WorkspaceAccessService,
     );
     return { service, prisma, docker, loki };
   }

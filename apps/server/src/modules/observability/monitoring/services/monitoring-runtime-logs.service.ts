@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -14,6 +13,8 @@ import {
   type LokiSearchResult,
 } from './monitoring-loki.service';
 import { MonitoringServerResolverService } from './monitoring-server-resolver.service';
+import { WorkspaceAccessService } from '../../../iam/authorization/workspace-access.service';
+import { ProjectActions } from '../../../iam/authorization/workspace-policy.types';
 
 export type RuntimeLogLine = { stream: 'stdout' | 'stderr'; line: string };
 export type RuntimeLogResult = {
@@ -43,6 +44,7 @@ export class MonitoringRuntimeLogsService {
     @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
     private readonly loki: MonitoringLokiService,
     private readonly serverResolver: MonitoringServerResolverService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   /**
@@ -55,8 +57,14 @@ export class MonitoringRuntimeLogsService {
     userId: string,
     userRole: Role,
     opts: { from?: Date; to?: Date; search?: string; limit?: number },
+    expectedWorkspaceId?: string,
   ): Promise<LokiSearchResult> {
-    await this.assertCanAccess(serviceEnvId, userId, userRole);
+    await this.assertCanAccess(
+      serviceEnvId,
+      userId,
+      userRole,
+      expectedWorkspaceId,
+    );
     const server = await this.serverResolver.resolve(serviceEnvId);
     const lokiUrlOverride = server?.monitoringInstalledAt
       ? `http://${server.host}:3100`
@@ -72,8 +80,14 @@ export class MonitoringRuntimeLogsService {
     userId: string,
     userRole: Role,
     opts: SearchOptions,
+    expectedWorkspaceId?: string,
   ): Promise<RuntimeLogResult> {
-    await this.assertCanAccess(serviceEnvId, userId, userRole);
+    await this.assertCanAccess(
+      serviceEnvId,
+      userId,
+      userRole,
+      expectedWorkspaceId,
+    );
 
     const container = await this.prisma.container.findFirst({
       where: { serviceEnvId, status: ContainerStatus.RUNNING },
@@ -117,17 +131,18 @@ export class MonitoringRuntimeLogsService {
     serviceEnvId: string,
     userId: string,
     _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
     const env = await this.prisma.serviceEnvironment.findUnique({
       where: { id: serviceEnvId },
       select: { service: { select: { projectId: true } } },
     });
     if (!env) throw new NotFoundException('Service-environnement introuvable');
-
-    const member = await this.prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId: env.service.projectId, userId } },
-      select: { role: true },
-    });
-    if (!member) throw new ForbiddenException('Accès non autorisé à ce projet');
+    await this.workspaceAccess.assertProjectAction(
+      env.service.projectId,
+      userId,
+      ProjectActions.READ,
+      expectedWorkspaceId,
+    );
   }
 }

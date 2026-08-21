@@ -204,6 +204,7 @@ export class ServerSetupService implements OnModuleInit {
     // worker picks it up and streams logs/status back over the (Redis-adapted)
     // WebSocket. In single-process mode the same process consumes the job.
     await this.queue.enqueueSetup({
+      workspaceId: server.teamId,
       serverId: server.id,
       setupId: created.id,
       jobId: job.id,
@@ -222,9 +223,13 @@ export class ServerSetupService implements OnModuleInit {
     return runs.map((run) => toSetupView(run));
   }
 
-  async getSetup(id: string): Promise<SetupView> {
+  async getSetup(id: string, workspaceId?: string): Promise<SetupView> {
     const run = await this.prisma.serverRun.findFirst({
-      where: { id, kind: ServerRunKind.PREPARATION },
+      where: {
+        id,
+        kind: ServerRunKind.PREPARATION,
+        ...(workspaceId ? { teamId: workspaceId } : {}),
+      },
       include: runWithStepsInclude,
     });
     if (!run) {
@@ -233,8 +238,8 @@ export class ServerSetupService implements OnModuleInit {
     return toSetupView(run);
   }
 
-  async getSetupLogs(id: string, afterLine?: number) {
-    await this.getSetup(id);
+  async getSetupLogs(id: string, afterLine?: number, workspaceId?: string) {
+    await this.getSetup(id, workspaceId);
     const logs = await this.serverRuns.getLogs(id, afterLine);
     return logs.map((log) => ({
       id: log.id,
@@ -251,8 +256,9 @@ export class ServerSetupService implements OnModuleInit {
     id: string,
     dto: RetryServerSetupDto,
     actorId?: string,
+    workspaceId?: string,
   ): Promise<SetupView> {
-    const previous = await this.getSetup(id);
+    const previous = await this.getSetup(id, workspaceId);
     if (!previous.serverId) {
       throw new NotFoundException('Setup serveur introuvable');
     }
@@ -286,8 +292,8 @@ export class ServerSetupService implements OnModuleInit {
     );
   }
 
-  async cancelSetup(id: string, actorId?: string) {
-    const setup = await this.getSetup(id);
+  async cancelSetup(id: string, actorId?: string, workspaceId?: string) {
+    const setup = await this.getSetup(id, workspaceId);
     const serverId = setup.serverId;
     if (!serverId) {
       throw new NotFoundException('Setup serveur introuvable');
@@ -324,7 +330,7 @@ export class ServerSetupService implements OnModuleInit {
       finishedAt: new Date(),
       summary: 'Provisioning canceled by an administrator.',
     });
-    const updated = await this.getSetup(id);
+    const updated = await this.getSetup(id, workspaceId);
 
     await this.prisma.server.update({
       where: { id: serverId },

@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Role, User } from '@prisma/client';
 import { UsersService } from '../users/users.service';
 import { TeamsService } from '../teams/teams.service';
-import { BillingService } from '../../billing/billing.service';
 import { AuditService } from '../../audit/audit.service';
 import { PrismaService } from '../../../shared/database/prisma.service';
 
@@ -27,7 +26,6 @@ export class GoogleOAuthService {
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly teamsService: TeamsService,
-    private readonly billingService: BillingService,
     private readonly auditService: AuditService,
   ) {}
 
@@ -71,40 +69,36 @@ export class GoogleOAuthService {
 
     // 3. Nouvel utilisateur Google → création + onboarding complet
     //    (team + abonnement), exactement comme le parcours register→verifyEmail.
-    const created = await this.prisma.user.create({
-      data: {
-        email,
-        fullName,
-        provider: 'google',
-        googleId,
-        role: Role.OWNER,
-        isActive: true,
-        emailVerifiedAt: new Date(),
-      },
-    });
-
-    try {
+    const onboarding = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email,
+          fullName,
+          provider: 'google',
+          googleId,
+          role: Role.MEMBER,
+          isActive: true,
+          emailVerifiedAt: new Date(),
+        },
+      });
       const team = await this.teamsService.create(
-        { name: `${fullName.split(' ')[0]} Team` },
-        created.id,
+        { name: `${fullName.split(' ')[0]} Workspace` },
+        user.id,
+        tx,
       );
-      await this.billingService.ensureSubscription(team.id);
-      await this.auditService.record(
-        created.id,
-        'AUTH_REGISTER',
-        'User',
-        created.id,
-        { email: created.email, teamId: team.id },
-      );
-    } catch (err) {
-      // L'onboarding ne doit jamais bloquer la connexion Google : on log et on
-      // continue (le user pourra créer sa team via le dashboard).
-      this.logger.warn(
-        `Google onboarding failed for ${email}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-    }
+      await tx.auditLog.create({
+        data: {
+          userId: user.id,
+          teamId: team.id,
+          action: 'AUTH_REGISTER',
+          resourceType: 'User',
+          resourceId: user.id,
+          metadata: { email: user.email },
+        },
+      });
+      return { user, workspaceId: team.id };
+    });
+    const created = onboarding.user;
 
     await this.auditService.record(
       created.id,
@@ -112,6 +106,7 @@ export class GoogleOAuthService {
       'User',
       created.id,
       { email: created.email },
+      onboarding.workspaceId,
     );
 
     this.logger.log(`New Google user created: ${email} (${created.id})`);

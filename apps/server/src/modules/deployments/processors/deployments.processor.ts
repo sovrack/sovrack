@@ -9,13 +9,17 @@ import { createDeploymentsWorker } from '../../../shared/queue/queue.provider';
 import type { DeployJobData } from '../../../shared/queue/queue.service';
 import { runsBackgroundWork } from '../../../shared/utils/process-role.util';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 
 @Injectable()
 export class DeploymentsProcessor implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DeploymentsProcessor.name);
   private worker: Worker | null = null;
 
-  constructor(private readonly executor: DockerDeployExecutorService) {}
+  constructor(
+    private readonly executor: DockerDeployExecutorService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   onModuleInit(): void {
     // Only the worker process CONSUMES deploy jobs. The API process still
@@ -55,6 +59,16 @@ export class DeploymentsProcessor implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handleDeploy(data: DeployJobData): Promise<void> {
+    const deployment = await this.prisma.deployment.findFirst({
+      where: {
+        id: data.deploymentId,
+        project: { teamId: data.workspaceId },
+      },
+      select: { id: true },
+    });
+    if (!deployment) {
+      throw new Error('Deployment job workspace mismatch');
+    }
     await this.executor.executeDeploy(data.deploymentId, data.overrideImage);
   }
 }

@@ -16,7 +16,11 @@ function makeHost(): {
   const host = {
     switchToHttp: () => ({
       getResponse: () => ({ status }),
-      getRequest: () => ({ url: '/x', method: 'GET' }),
+      getRequest: () => ({
+        url: '/x',
+        method: 'GET',
+        headers: { 'x-request-id': 'req-test-1' },
+      }),
     }),
   } as unknown as ArgumentsHost;
   return { host, status, json };
@@ -38,7 +42,9 @@ describe('AllExceptionsFilter', () => {
     expect(json).toHaveBeenCalledWith(
       expect.objectContaining({
         statusCode: 400,
+        code: 'HTTP_400',
         message: 'bad input',
+        requestId: 'req-test-1',
         path: '/x',
       }),
     );
@@ -69,6 +75,23 @@ describe('AllExceptionsFilter', () => {
     );
     expect((json.mock.calls[0][0] as { message: string }).message).toBe(
       'name required, port invalid',
+    );
+  });
+
+  it('preserves an application error code', () => {
+    const { host, json } = makeHost();
+    filter.catch(
+      new HttpException(
+        { code: 'LAST_OWNER_REQUIRED', message: 'owner required' },
+        409,
+      ),
+      host,
+    );
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'LAST_OWNER_REQUIRED',
+        requestId: 'req-test-1',
+      }),
     );
   });
 });

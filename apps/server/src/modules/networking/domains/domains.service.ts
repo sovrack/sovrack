@@ -38,14 +38,15 @@ export class DomainsService {
 
   // ── DNS providers ──────────────────────────────────────────────────────
 
-  async listProviders() {
+  async listProviders(teamId: string) {
     const providers = await this.prisma.dnsProvider.findMany({
+      where: { teamId },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     });
     return providers.map((provider) => this.toPublicProvider(provider));
   }
 
-  async createProvider(dto: CreateDnsProviderDto) {
+  async createProvider(dto: CreateDnsProviderDto, teamId: string) {
     const provider = await this.prisma.dnsProvider.create({
       data: {
         name: dto.name.trim(),
@@ -55,14 +56,15 @@ export class DomainsService {
           : undefined,
         accountId: dto.accountId?.trim() || undefined,
         zoneId: dto.zoneId?.trim() || undefined,
+        teamId,
       },
     });
     return this.toPublicProvider(provider);
   }
 
-  async testProvider(providerId: string) {
-    const provider = await this.prisma.dnsProvider.findUnique({
-      where: { id: providerId },
+  async testProvider(providerId: string, teamId: string) {
+    const provider = await this.prisma.dnsProvider.findFirst({
+      where: { id: providerId, teamId },
     });
 
     if (!provider) {
@@ -102,43 +104,62 @@ export class DomainsService {
 
   // ── Domains ────────────────────────────────────────────────────────────
 
-  async listDomains(projectId?: string, serviceEnvId?: string) {
+  async listDomains(teamId: string, projectId?: string, serviceEnvId?: string) {
     return await this.prisma.domain.findMany({
       where: {
         ...(projectId ? { projectId } : {}),
         ...(serviceEnvId ? { serviceEnvId } : {}),
+        project: { teamId },
       },
       orderBy: { name: 'asc' },
       include: domainInclude,
     });
   }
 
-  async createDomain(dto: CreateDomainDto) {
-    await this.validateProvider(dto.providerId);
-    await this.validateProject(dto.projectId);
+  async createDomain(dto: CreateDomainDto, teamId: string) {
+    await this.validateProvider(dto.providerId, teamId);
+    let projectId = dto.projectId?.trim() || undefined;
+    if (!projectId && dto.serviceEnvId?.trim()) {
+      const serviceEnvironment = await this.prisma.serviceEnvironment.findFirst(
+        {
+          where: {
+            id: dto.serviceEnvId.trim(),
+            service: { project: { teamId } },
+          },
+          select: { service: { select: { projectId: true } } },
+        },
+      );
+      projectId = serviceEnvironment?.service.projectId;
+    }
+    if (!projectId) {
+      throw new BadRequestException(
+        'Un domaine doit appartenir à un projet du workspace',
+      );
+    }
+    await this.validateProject(projectId, teamId);
 
     return await this.prisma.domain.create({
       data: {
         name: dto.name.trim().toLowerCase(),
         providerId: dto.providerId?.trim() || undefined,
-        projectId: dto.projectId?.trim() || undefined,
+        projectId,
         serviceEnvId: dto.serviceEnvId?.trim() || undefined,
       },
       include: domainInclude,
     });
   }
 
-  async removeDomain(domainId: string): Promise<void> {
-    const domain = await this.prisma.domain.findUnique({
-      where: { id: domainId },
+  async removeDomain(domainId: string, teamId: string): Promise<void> {
+    const domain = await this.prisma.domain.findFirst({
+      where: { id: domainId, project: { teamId } },
     });
     if (!domain) throw new NotFoundException('Domaine introuvable');
     await this.prisma.domain.delete({ where: { id: domainId } });
   }
 
-  async verifyDomain(domainId: string) {
-    const domain = await this.prisma.domain.findUnique({
-      where: { id: domainId },
+  async verifyDomain(domainId: string, teamId: string) {
+    const domain = await this.prisma.domain.findFirst({
+      where: { id: domainId, project: { teamId } },
       include: { records: true },
     });
 
@@ -154,17 +175,21 @@ export class DomainsService {
     });
   }
 
-  async listRecords(domainId: string) {
-    await this.ensureDomainExists(domainId);
+  async listRecords(domainId: string, teamId: string) {
+    await this.ensureDomainExists(domainId, teamId);
     return await this.prisma.dnsRecord.findMany({
       where: { domainId },
       orderBy: { createdAt: 'asc' },
     });
   }
 
-  async createRecord(domainId: string, dto: UpsertDnsRecordDto) {
-    await this.ensureDomainExists(domainId);
-    await this.validateRecordLinks(dto);
+  async createRecord(
+    domainId: string,
+    dto: UpsertDnsRecordDto,
+    teamId: string,
+  ) {
+    await this.ensureDomainExists(domainId, teamId);
+    await this.validateRecordLinks(dto, teamId);
 
     return await this.prisma.dnsRecord.create({
       data: {
@@ -179,9 +204,13 @@ export class DomainsService {
     });
   }
 
-  async updateRecord(recordId: string, dto: UpsertDnsRecordDto) {
-    await this.ensureRecordExists(recordId);
-    await this.validateRecordLinks(dto);
+  async updateRecord(
+    recordId: string,
+    dto: UpsertDnsRecordDto,
+    teamId: string,
+  ) {
+    await this.ensureRecordExists(recordId, teamId);
+    await this.validateRecordLinks(dto, teamId);
 
     return await this.prisma.dnsRecord.update({
       where: { id: recordId },
@@ -196,18 +225,21 @@ export class DomainsService {
     });
   }
 
-  async removeRecord(recordId: string): Promise<void> {
-    await this.ensureRecordExists(recordId);
+  async removeRecord(recordId: string, teamId: string): Promise<void> {
+    await this.ensureRecordExists(recordId, teamId);
     await this.prisma.dnsRecord.delete({ where: { id: recordId } });
   }
 
-  private async validateProvider(providerId?: string): Promise<void> {
+  private async validateProvider(
+    providerId: string | undefined,
+    teamId: string,
+  ): Promise<void> {
     if (!providerId?.trim()) {
       return;
     }
 
-    const provider = await this.prisma.dnsProvider.findUnique({
-      where: { id: providerId },
+    const provider = await this.prisma.dnsProvider.findFirst({
+      where: { id: providerId, teamId },
       select: { id: true },
     });
     if (!provider) {
@@ -215,13 +247,16 @@ export class DomainsService {
     }
   }
 
-  private async validateProject(projectId?: string): Promise<void> {
+  private async validateProject(
+    projectId: string | undefined,
+    teamId: string,
+  ): Promise<void> {
     if (!projectId?.trim()) {
       return;
     }
 
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, teamId },
       select: { id: true },
     });
     if (!project) {
@@ -229,10 +264,16 @@ export class DomainsService {
     }
   }
 
-  private async validateRecordLinks(dto: UpsertDnsRecordDto): Promise<void> {
+  private async validateRecordLinks(
+    dto: UpsertDnsRecordDto,
+    teamId: string,
+  ): Promise<void> {
     if (dto.serviceEnvId?.trim()) {
-      const se = await this.prisma.serviceEnvironment.findUnique({
-        where: { id: dto.serviceEnvId },
+      const se = await this.prisma.serviceEnvironment.findFirst({
+        where: {
+          id: dto.serviceEnvId,
+          service: { project: { teamId } },
+        },
         select: { id: true },
       });
       if (!se) {
@@ -243,9 +284,12 @@ export class DomainsService {
     }
   }
 
-  private async ensureDomainExists(domainId: string): Promise<void> {
-    const domain = await this.prisma.domain.findUnique({
-      where: { id: domainId },
+  private async ensureDomainExists(
+    domainId: string,
+    teamId: string,
+  ): Promise<void> {
+    const domain = await this.prisma.domain.findFirst({
+      where: { id: domainId, project: { teamId } },
       select: { id: true },
     });
     if (!domain) {
@@ -253,9 +297,12 @@ export class DomainsService {
     }
   }
 
-  private async ensureRecordExists(recordId: string): Promise<void> {
-    const record = await this.prisma.dnsRecord.findUnique({
-      where: { id: recordId },
+  private async ensureRecordExists(
+    recordId: string,
+    teamId: string,
+  ): Promise<void> {
+    const record = await this.prisma.dnsRecord.findFirst({
+      where: { id: recordId, domain: { project: { teamId } } },
       select: { id: true },
     });
     if (!record) {

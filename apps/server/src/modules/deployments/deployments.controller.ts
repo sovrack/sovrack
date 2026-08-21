@@ -8,6 +8,7 @@ import {
   Query,
   Delete,
   HttpCode,
+  Headers,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -21,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { GetUser } from '../../shared/decorators/get-user.decorator';
+import { GetWorkspaceId } from '../../shared/decorators/get-workspace-id.decorator';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../shared/jwt/dto/jwt-payload.dto';
 import { PaginationDto } from '../../shared/http/pagination.dto';
@@ -44,6 +46,7 @@ import {
   DeploymentsLogSearchService,
   type LogLevelFilter,
 } from './query/deployments-log-search.service';
+import { ProjectWorkspaceGuard } from '../iam/authorization/project-workspace.guard';
 
 @ApiTags('Deployments')
 @ApiBearerAuth()
@@ -52,7 +55,7 @@ import {
   DeploymentDetailedResponseDto,
   PaginatedDeploymentsResponseDto,
 )
-@Controller('deployments')
+@Controller(['workspaces/:workspaceId/deployments', 'deployments'])
 @UseGuards(JwtAuthGuard)
 export class DeploymentsController {
   constructor(
@@ -75,6 +78,7 @@ export class DeploymentsController {
   async validate(
     @Body() dto: ValidateDeploymentDto,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
     return await this.validationService.validate(
       dto.projectId,
@@ -82,6 +86,7 @@ export class DeploymentsController {
       dto.buildSource ?? 'DOCKERFILE_LOCAL',
       user.id,
       dto.serviceEnvId,
+      workspaceId,
     );
   }
 
@@ -103,8 +108,12 @@ export class DeploymentsController {
     status: 403,
     description: 'Unauthorized access to the project',
   })
-  async create(@Body() dto: CreateDeploymentDto, @GetUser() user: JwtPayload) {
-    return await this.createService.create(dto, user.id);
+  async create(
+    @Body() dto: CreateDeploymentDto,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return await this.createService.create(dto, user.id, workspaceId);
   }
 
   @Get()
@@ -125,11 +134,19 @@ export class DeploymentsController {
   async findAll(
     @GetUser() user: JwtPayload,
     @Query() pagination: PaginationDto,
+    @Param('workspaceId') workspaceId?: string,
+    @Headers('x-workspace-id') workspaceHeader?: string,
   ) {
-    return await this.queryService.findAll(user.id, user.role, pagination);
+    return await this.queryService.findAll(
+      user.id,
+      user.role,
+      pagination,
+      workspaceId ?? workspaceHeader,
+    );
   }
 
   @Get('project/:projectId')
+  @UseGuards(ProjectWorkspaceGuard)
   @ApiOperation({ summary: "Lister l'historique d'un projet" })
   @ApiOkResponse({
     description: 'Project deployment history',
@@ -145,8 +162,14 @@ export class DeploymentsController {
   async findByProject(
     @Param('projectId') projectId: string,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
-    return await this.queryService.findByProject(projectId, user.id, user.role);
+    return await this.queryService.findByProject(
+      projectId,
+      user.id,
+      user.role,
+      workspaceId,
+    );
   }
 
   // Declared BEFORE @Get(':id') so the static 'preview-env' segment is not
@@ -168,8 +191,14 @@ export class DeploymentsController {
   async previewEnv(
     @Query('serviceEnvId') serviceEnvId: string,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
-    return await this.queryService.previewEnv(serviceEnvId, user.id, user.role);
+    return await this.queryService.previewEnv(
+      serviceEnvId,
+      user.id,
+      user.role,
+      workspaceId,
+    );
   }
 
   @Get(':id')
@@ -181,8 +210,12 @@ export class DeploymentsController {
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Unauthorized access' })
   @ApiResponse({ status: 404, description: 'Deployment not found' })
-  async findOne(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.queryService.findOne(id, user.id, user.role);
+  async findOne(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return await this.queryService.findOne(id, user.id, user.role, workspaceId);
   }
 
   @Post(':id/cancel')
@@ -198,8 +231,17 @@ export class DeploymentsController {
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Unauthorized access' })
   @ApiResponse({ status: 404, description: 'Deployment not found' })
-  async cancel(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.lifecycleService.cancel(id, user.id, user.role);
+  async cancel(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return await this.lifecycleService.cancel(
+      id,
+      user.id,
+      user.role,
+      workspaceId,
+    );
   }
 
   @Post(':id/rollback')
@@ -218,12 +260,14 @@ export class DeploymentsController {
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Body() body?: { targetDeploymentId?: string },
+    @GetWorkspaceId() workspaceId?: string,
   ) {
     return await this.rollbackService.rollback(
       id,
       user.id,
       user.role,
       body?.targetDeploymentId,
+      workspaceId,
     );
   }
 
@@ -234,8 +278,12 @@ export class DeploymentsController {
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Unauthorized access' })
   @ApiResponse({ status: 404, description: 'Deployment not found' })
-  async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    await this.lifecycleService.remove(id, user.id, user.role);
+  async remove(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    await this.lifecycleService.remove(id, user.id, user.role, workspaceId);
   }
 
   @Get(':id/container-logs')
@@ -243,8 +291,10 @@ export class DeploymentsController {
   async containerLogs(
     @Param('id') id: string,
     @Query('tail') tail: string | undefined,
-    @GetUser() _user: JwtPayload,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
+    await this.queryService.findOne(id, user.id, user.role, workspaceId);
     const tailNum = tail ? parseInt(tail, 10) : 300;
     return await this.containerInspector.getContainerLogs(id, tailNum);
   }
@@ -257,6 +307,7 @@ export class DeploymentsController {
     @GetUser() user: JwtPayload,
     @Query('q') q: string | undefined,
     @Query('level') level: LogLevelFilter | undefined,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
     return await this.logSearchService.searchLogs(
       id,
@@ -264,6 +315,7 @@ export class DeploymentsController {
       user.role,
       q ?? '',
       level ?? 'ALL',
+      workspaceId,
     );
   }
 }

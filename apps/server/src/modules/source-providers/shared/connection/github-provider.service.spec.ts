@@ -8,6 +8,7 @@ import { GithubProviderService } from './github-provider.service';
 
 const row = (over: Record<string, unknown> = {}) => ({
   id: 'h1',
+  teamId: 'workspace-1',
   name: 'GH',
   type: GitProviderType.GITHUB,
   providerUrl: 'https://github.com',
@@ -28,6 +29,7 @@ describe('GithubProviderService', () => {
   let prisma: {
     gitProviderConfig: {
       count: jest.Mock;
+      findFirst: jest.Mock;
       findUnique: jest.Mock;
       findMany: jest.Mock;
       delete: jest.Mock;
@@ -52,6 +54,7 @@ describe('GithubProviderService', () => {
     prisma = {
       gitProviderConfig: {
         count: jest.fn().mockResolvedValue(0),
+        findFirst: jest.fn().mockResolvedValue(row({ adminToken: 'enc-pat' })),
         findUnique: jest.fn().mockResolvedValue(row({ adminToken: 'enc-pat' })),
         findMany: jest.fn().mockResolvedValue([row({ adminToken: 'enc' })]),
         delete: jest.fn().mockResolvedValue(row()),
@@ -77,47 +80,50 @@ describe('GithubProviderService', () => {
 
   it('makes the first GitHub provider default and encrypts its token', async () => {
     prisma.gitProviderConfig.count.mockResolvedValue(0);
-    const res = await service.create({
-      name: 'GH',
-      providerUrl: 'https://github.com',
-      adminToken: 'tok',
-    });
+    const res = await service.create(
+      {
+        name: 'GH',
+        providerUrl: 'https://github.com',
+        adminToken: 'tok',
+      },
+      'workspace-1',
+    );
     expect(res.isDefault).toBe(true);
     expect(crypto.encryptOptional).toHaveBeenCalledWith('tok');
   });
 
   it('404s for a missing or wrong-type provider', async () => {
-    prisma.gitProviderConfig.findUnique.mockResolvedValue(
+    prisma.gitProviderConfig.findFirst.mockResolvedValue(
       row({ type: GitProviderType.GITLAB }),
     );
-    await expect(service.setDefault('h1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.setDefault('h1', 'workspace-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('lists providers masked (no raw token)', async () => {
-    const list = await service.list();
+    const list = await service.list('workspace-1');
     expect(list[0]).not.toHaveProperty('adminToken');
   });
 
   it('test() rejects when no token is configured', async () => {
-    prisma.gitProviderConfig.findUnique.mockResolvedValue(
+    prisma.gitProviderConfig.findFirst.mockResolvedValue(
       row({ adminToken: null, oauthAccessToken: null }),
     );
-    await expect(service.test('h1')).rejects.toBeInstanceOf(
+    await expect(service.test('h1', 'workspace-1')).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
 
   it('test() returns ok when GitHub /user responds', async () => {
     http.get.mockReturnValue(of({ data: { login: 'me' } }));
-    const res = await service.test('h1');
+    const res = await service.test('h1', 'workspace-1');
     expect(res.ok).toBe(true);
   });
 
   it('test() throws when all tokens fail', async () => {
     http.get.mockReturnValue(throwError(() => new Error('401')));
-    await expect(service.test('h1')).rejects.toBeInstanceOf(
+    await expect(service.test('h1', 'workspace-1')).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
@@ -138,7 +144,7 @@ describe('GithubProviderService', () => {
         }),
       )
       .mockReturnValueOnce(of({ data: [] }));
-    const repos = await service.listRepos('h1');
+    const repos = await service.listRepos('h1', 'workspace-1');
     expect(repos[0]).toEqual({
       id: 1,
       name: 'r',

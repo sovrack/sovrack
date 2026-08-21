@@ -1,5 +1,9 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { MembershipStatus, WorkspaceRole } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { UsageGuardService } from '../../billing/usage-guard.service';
+import { WorkspaceAccessService } from '../authorization/workspace-access.service';
+import { WorkspaceActions } from '../authorization/workspace-policy.types';
 import { TeamsService } from './teams.service';
 
 describe('TeamsService', () => {
@@ -7,13 +11,21 @@ describe('TeamsService', () => {
     team: {
       findMany: jest.Mock;
       findUnique: jest.Mock;
-      findFirst: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
+      delete: jest.Mock;
     };
-    project: { findUnique: jest.Mock };
-    projectMember: { createMany: jest.Mock };
+    user: { findUnique: jest.Mock };
+    teamMember: {
+      findUnique: jest.Mock;
+      upsert: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+      count: jest.Mock;
+    };
+    $transaction: jest.Mock;
   };
+  let workspaceAccess: { assertWorkspaceAction: jest.Mock };
   let service: TeamsService;
 
   beforeEach(() => {
@@ -21,7 +33,6 @@ describe('TeamsService', () => {
       team: {
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn().mockResolvedValue(null),
-        findFirst: jest.fn().mockResolvedValue(null),
         create: jest
           .fn()
           .mockImplementation(({ data }) =>
@@ -32,92 +43,87 @@ describe('TeamsService', () => {
           .mockImplementation(({ data }) =>
             Promise.resolve({ id: 't1', members: [], ...data }),
           ),
+        delete: jest.fn().mockResolvedValue({ id: 't1', name: 'Core' }),
       },
-      project: { findUnique: jest.fn().mockResolvedValue({ id: 'p1' }) },
-      projectMember: { createMany: jest.fn().mockResolvedValue({ count: 2 }) },
+      user: { findUnique: jest.fn().mockResolvedValue(null) },
+      teamMember: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn().mockResolvedValue({}),
+        update: jest.fn().mockResolvedValue({}),
+        delete: jest.fn().mockResolvedValue({}),
+        count: jest.fn().mockResolvedValue(1),
+      },
+      $transaction: jest.fn((callback) => callback(prisma)),
     };
-    service = new TeamsService(prisma as unknown as PrismaService);
-  });
-
-  it('404s findOne for a missing team', async () => {
-    prisma.team.findUnique.mockResolvedValue(null);
-    await expect(service.findOne('nope')).rejects.toBeInstanceOf(
-      NotFoundException,
+    workspaceAccess = {
+      assertWorkspaceAction: jest.fn().mockResolvedValue({
+        workspaceRole: WorkspaceRole.OWNER,
+      }),
+    };
+    service = new TeamsService(
+      prisma as unknown as PrismaService,
+      { guardForTeam: jest.fn() } as unknown as UsageGuardService,
+      workspaceAccess as unknown as WorkspaceAccessService,
     );
   });
 
-  it('creates a team with a unique name', async () => {
-    prisma.team.findUnique.mockResolvedValue(null);
-    const res = await service.create({
-      name: 'Core',
-      description: 'd',
-    } as never);
-    expect(res.name).toBe('Core');
-    expect(prisma.team.create).toHaveBeenCalled();
+  it('scopes findOne through workspace authorization and 404s if absent', async () => {
+    await expect(service.findOne('nope', { id: 'u1' })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(workspaceAccess.assertWorkspaceAction).toHaveBeenCalledWith(
+      'nope',
+      'u1',
+      WorkspaceActions.READ,
+    );
   });
 
-  it('rejects creating a team whose name already exists', async () => {
-    prisma.team.findUnique.mockResolvedValue({ id: 'other', name: 'Core' });
-    await expect(
-      service.create({ name: 'Core' } as never),
-    ).rejects.toBeInstanceOf(ConflictException);
+  it('creates a workspace with its creator as active OWNER', async () => {
+    const result = await service.create(
+      { name: ' Core ', description: ' Team ' },
+      'u1',
+    );
+
+    expect(result.name).toBe('Core');
+    expect(prisma.team.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'Core',
+          description: 'Team',
+          members: {
+            create: {
+              userId: 'u1',
+              role: WorkspaceRole.OWNER,
+              status: MembershipStatus.ACTIVE,
+            },
+          },
+        }),
+      }),
+    );
   });
 
-  it('rejects renaming a team to a name taken by another team', async () => {
-    // update(): findUnique verifies team exists; findFirst detects name collision.
-    prisma.team.findUnique.mockResolvedValue({
-      id: 't1',
-      name: 'Old',
-      members: [],
-    });
-    prisma.team.findFirst.mockResolvedValue({ id: 't2', name: 'Taken' }); // collision
-    await expect(
-      service.update('t1', { name: 'Taken' } as never),
-    ).rejects.toBeInstanceOf(ConflictException);
-  });
+  it('authorizes workspace updates before writing', async () => {
+    await service.update('t1', { name: 'Renamed' }, { id: 'u1' });
 
-  it('allows updating a team keeping its own name', async () => {
-    // update(): findUnique finds team; findFirst returns null (no other team has this name).
-    prisma.team.findUnique.mockResolvedValue({
-      id: 't1',
-      name: 'Same',
-      members: [],
-    });
-    prisma.team.findFirst.mockResolvedValue(null); // no conflict
-    const res = await service.update('t1', { name: 'Same' } as never);
+    expect(workspaceAccess.assertWorkspaceAction).toHaveBeenCalledWith(
+      't1',
+      'u1',
+      WorkspaceActions.UPDATE,
+    );
     expect(prisma.team.update).toHaveBeenCalled();
-    expect(res.id).toBe('t1');
   });
 
-  describe('addTeamToProject', () => {
-    it('bulk-inserts all team members with skipDuplicates', async () => {
-      prisma.team.findUnique.mockResolvedValue({
-        id: 't1',
-        name: 'Core',
-        members: [{ userId: 'u1' }, { userId: 'u2' }],
-      });
-      await service.addTeamToProject('p1', 't1');
-      expect(prisma.projectMember.createMany).toHaveBeenCalledWith({
-        data: [
-          { projectId: 'p1', userId: 'u1' },
-          { projectId: 'p1', userId: 'u2' },
-        ],
-        skipDuplicates: true,
-      });
+  it('never removes the last active workspace OWNER', async () => {
+    prisma.teamMember.findUnique.mockResolvedValue({
+      userId: 'u1',
+      role: WorkspaceRole.OWNER,
+      status: MembershipStatus.ACTIVE,
     });
+    prisma.teamMember.count.mockResolvedValue(0);
 
-    it('404s when the project does not exist', async () => {
-      prisma.project.findUnique.mockResolvedValue(null);
-      await expect(
-        service.addTeamToProject('missing', 't1'),
-      ).rejects.toBeInstanceOf(NotFoundException);
-    });
-
-    it('404s when the team does not exist', async () => {
-      prisma.team.findUnique.mockResolvedValue(null);
-      await expect(
-        service.addTeamToProject('p1', 'missing'),
-      ).rejects.toBeInstanceOf(NotFoundException);
-    });
+    await expect(
+      service.removeMember('t1', 'u1', { id: 'u1' }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.teamMember.delete).not.toHaveBeenCalled();
   });
 });

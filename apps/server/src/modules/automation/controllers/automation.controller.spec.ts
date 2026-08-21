@@ -5,6 +5,7 @@ import { AutomationController } from './automation.controller';
 
 describe('AutomationController', () => {
   const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
+  const workspaceId = 'workspace-1';
 
   function build() {
     const automationService = {
@@ -20,42 +21,57 @@ describe('AutomationController', () => {
     return { ctrl, automationService };
   }
 
-  it('getActions / getRun / startRun / cancelRun / deleteRun delegate', () => {
+  it('getActions / getRun / startRun / cancelRun / deleteRun delegate', async () => {
     const { ctrl, automationService } = build();
     ctrl.getActions();
-    ctrl.getRun('r1');
-    ctrl.startRun({ action: 'X' } as never, user);
-    ctrl.cancelRun('r1', user);
-    ctrl.deleteRun('r1');
+    await ctrl.getRun('r1', workspaceId);
+    await ctrl.startRun({ action: 'X' } as never, workspaceId, user);
+    await ctrl.cancelRun('r1', workspaceId, user);
+    await ctrl.deleteRun('r1', workspaceId);
     expect(automationService.getActions).toHaveBeenCalled();
-    expect(automationService.getRun).toHaveBeenCalledWith('r1');
+    expect(automationService.getRun).toHaveBeenCalledWith('r1', workspaceId);
     expect(automationService.startRun).toHaveBeenCalledWith(
       { action: 'X' },
+      workspaceId,
       'user-1',
     );
-    expect(automationService.cancelRun).toHaveBeenCalledWith('r1', 'user-1');
-    expect(automationService.deleteRun).toHaveBeenCalledWith('r1');
+    expect(automationService.cancelRun).toHaveBeenCalledWith(
+      'r1',
+      workspaceId,
+      'user-1',
+    );
+    expect(automationService.deleteRun).toHaveBeenCalledWith('r1', workspaceId);
   });
 
-  it('getRuns forwards the validated pagination DTO as-is', () => {
+  it('getRuns forwards the validated pagination DTO as-is', async () => {
     const { ctrl, automationService } = build();
-    ctrl.getRuns({ page: 2, pageSize: 50 });
-    ctrl.getRuns({});
-    expect(automationService.getRuns).toHaveBeenNthCalledWith(1, {
+    await ctrl.getRuns(workspaceId, { page: 2, pageSize: 50 });
+    await ctrl.getRuns(workspaceId, {});
+    expect(automationService.getRuns).toHaveBeenNthCalledWith(1, workspaceId, {
       page: 2,
       pageSize: 50,
     });
-    expect(automationService.getRuns).toHaveBeenNthCalledWith(2, {});
+    expect(automationService.getRuns).toHaveBeenNthCalledWith(
+      2,
+      workspaceId,
+      {},
+    );
   });
 
-  it('getRunLogs parses afterLine and ignores invalid values', () => {
+  it('getRunLogs parses afterLine and ignores invalid values', async () => {
     const { ctrl, automationService } = build();
-    ctrl.getRunLogs('r1', '10');
-    ctrl.getRunLogs('r1', 'abc');
-    expect(automationService.getRunLogs).toHaveBeenNthCalledWith(1, 'r1', 10);
+    await ctrl.getRunLogs('r1', workspaceId, '10');
+    await ctrl.getRunLogs('r1', workspaceId, 'abc');
+    expect(automationService.getRunLogs).toHaveBeenNthCalledWith(
+      1,
+      'r1',
+      workspaceId,
+      10,
+    );
     expect(automationService.getRunLogs).toHaveBeenNthCalledWith(
       2,
       'r1',
+      workspaceId,
       undefined,
     );
   });

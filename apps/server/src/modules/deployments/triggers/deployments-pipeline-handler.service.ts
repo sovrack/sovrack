@@ -10,7 +10,7 @@ import {
   DEPLOYMENT_PIPELINE_UPDATED,
   type PipelineUpdatedEvent,
 } from '../events/deployment.events';
-import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
+import { QueueService } from '../../../shared/queue/queue.service';
 import { DeploymentEventsPublisher } from '../events/deployment-events.publisher';
 import { NotificationsService } from '../../notifications/notifications.service';
 import {
@@ -33,7 +33,7 @@ export class DeploymentsPipelineHandlerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly deployExecutor: DockerDeployExecutorService,
+    private readonly queueService: QueueService,
     private readonly gateway: DeploymentEventsPublisher,
     private readonly notificationsService: NotificationsService,
   ) {}
@@ -41,6 +41,7 @@ export class DeploymentsPipelineHandlerService {
   @OnEvent(DEPLOYMENT_PIPELINE_UPDATED)
   async onPipelineUpdated(event: PipelineUpdatedEvent): Promise<void> {
     await this.handlePipelineUpdate(
+      event.projectId,
       event.pipelineId,
       event.webhookStatus,
       event.image,
@@ -49,6 +50,7 @@ export class DeploymentsPipelineHandlerService {
   }
 
   async handlePipelineUpdate(
+    projectId: string,
     pipelineId: number,
     status: string,
     image?: string,
@@ -63,7 +65,9 @@ export class DeploymentsPipelineHandlerService {
     //    Secondary: Legacy Deployment.gitlabPipelineId field
     const existingRun = await this.prisma.pipelineRun
       .findUnique({
-        where: { externalId_provider: { externalId, provider } },
+        where: {
+          projectId_externalId_provider: { projectId, externalId, provider },
+        },
         select: { id: true, deploymentId: true, projectId: true },
       })
       .catch(() => null);
@@ -71,20 +75,23 @@ export class DeploymentsPipelineHandlerService {
     const deployment = await this.findDeployment(
       externalId,
       existingRun?.deploymentId,
+      projectId,
     );
     if (!deployment) return { status: 'ignored' };
 
     // ── 2. Upsert PipelineRun (now we have projectId from deployment) ─────────
     await this.prisma.pipelineRun
       .upsert({
-        where: { externalId_provider: { externalId, provider } },
+        where: {
+          projectId_externalId_provider: { projectId, externalId, provider },
+        },
         create: {
           externalId,
           provider,
           status: pipelineRunStatus,
           imageSha: image ?? null,
           deploymentId: deployment.id,
-          projectId: deployment.projectId,
+          projectId,
         },
         update: {
           status: pipelineRunStatus,
@@ -113,7 +120,24 @@ export class DeploymentsPipelineHandlerService {
         },
       });
       if (claimed.count === 0) return { status: 'ignored' };
-      await this.deployExecutor.executeDeploy(deployment.id, image);
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { teamId: true },
+      });
+      if (!project) return { status: 'ignored' };
+      try {
+        await this.queueService.enqueueDeploy(
+          deployment.id,
+          project.teamId,
+          image,
+        );
+      } catch (error) {
+        await this.prisma.deployment.updateMany({
+          where: { id: deployment.id, status: DeploymentStatus.RUNNING },
+          data: { status: DeploymentStatus.PENDING },
+        });
+        throw error;
+      }
       return { status: 'ok' };
     }
 
@@ -166,15 +190,17 @@ export class DeploymentsPipelineHandlerService {
   private async findDeployment(
     externalId: bigint,
     linkedDeploymentId: string | null | undefined,
+    projectId: string,
   ) {
     if (linkedDeploymentId) {
-      return this.prisma.deployment.findUnique({
-        where: { id: linkedDeploymentId },
+      return this.prisma.deployment.findFirst({
+        where: { id: linkedDeploymentId, projectId },
         select: { id: true, status: true, logs: true, projectId: true },
       });
     }
     return this.prisma.deployment.findFirst({
       where: {
+        projectId,
         status: { in: [DeploymentStatus.PENDING, DeploymentStatus.RUNNING] },
         externalPipelineId: externalId,
       },

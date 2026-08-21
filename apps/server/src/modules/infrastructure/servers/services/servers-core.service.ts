@@ -32,35 +32,49 @@ export class ServersCoreService {
   async create(
     dto: CreateServerDto,
     actorUserId: string,
+    workspaceId?: string,
   ): Promise<CreateServerResult> {
-    return this.crud.create(dto, actorUserId);
+    return this.crud.create(dto, actorUserId, workspaceId);
   }
 
   async findAll(
     pagination: PaginationDto | undefined,
     actorUserId: string,
+    workspaceId?: string,
   ): Promise<ServerListResult> {
-    return this.crud.findAll(pagination, actorUserId);
+    return this.crud.findAll(pagination, actorUserId, workspaceId);
   }
 
-  async pingAll(actorUserId: string): Promise<Record<string, boolean>> {
-    return this.crud.pingAll(actorUserId);
+  async pingAll(
+    actorUserId: string,
+    workspaceId?: string,
+  ): Promise<Record<string, boolean>> {
+    return this.crud.pingAll(actorUserId, workspaceId);
   }
 
-  async findOne(id: string, actorUserId: string): Promise<ServerPublic> {
-    return this.crud.findOne(id, actorUserId);
+  async findOne(
+    id: string,
+    actorUserId: string,
+    workspaceId?: string,
+  ): Promise<ServerPublic> {
+    return this.crud.findOne(id, actorUserId, workspaceId);
   }
 
   async update(
     id: string,
     dto: UpdateServerDto,
     actorUserId: string,
+    workspaceId?: string,
   ): Promise<ServerPublic> {
-    return this.crud.update(id, dto, actorUserId);
+    return this.crud.update(id, dto, actorUserId, workspaceId);
   }
 
-  async remove(id: string, actorUserId: string): Promise<void> {
-    return this.crud.remove(id, actorUserId);
+  async remove(
+    id: string,
+    actorUserId: string,
+    workspaceId?: string,
+  ): Promise<void> {
+    return this.crud.remove(id, actorUserId, workspaceId);
   }
 
   async listJobs(
@@ -145,8 +159,8 @@ export class ServersCoreService {
     return this.readersFacade.setServerInfraRole(id, infraRole, actorUserId);
   }
 
-  async listInfraEnvironments(): Promise<ServerPublic[]> {
-    return this.readersFacade.listInfraEnvironments();
+  async listInfraEnvironments(workspaceId: string): Promise<ServerPublic[]> {
+    return this.readersFacade.listInfraEnvironments(workspaceId);
   }
 
   async listEnvironmentsForServer(id: string) {

@@ -5,59 +5,42 @@ import {
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
 import { CreateProxyRuleDto, UpdateProxyRuleDto } from './dto/proxy-rule.dto';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import {
+  WorkspaceAction,
+  WorkspaceActions,
+} from '../../iam/authorization/workspace-policy.types';
 
 @Injectable()
 export class ProxyService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly projectAccess: ProjectAccessService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
-
-  private async resolveProjectIdFromServer(serverId: string): Promise<string> {
-    const server = await this.prisma.server.findUnique({
-      where: { id: serverId },
-      select: { environment: { select: { projectId: true } } },
-    });
-    if (!server?.environment) {
-      throw new NotFoundException(
-        'Serveur introuvable ou non rattaché à un projet',
-      );
-    }
-    return server.environment.projectId;
-  }
-
-  private async resolveProjectIdFromRule(ruleId: string): Promise<string> {
-    const rule = await this.prisma.proxyRule.findUnique({
-      where: { id: ruleId },
-      include: {
-        server: { select: { environment: { select: { projectId: true } } } },
-      },
-    });
-    if (!rule) throw new NotFoundException('Règle proxy introuvable');
-    const projectId = rule.server.environment?.projectId;
-    if (!projectId) {
-      throw new NotFoundException('Serveur non rattaché à un projet');
-    }
-    return projectId;
-  }
 
   async findAll(
     filters: { serverId?: string; serviceEnvId?: string },
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    requestedWorkspaceId?: string,
   ) {
+    const workspaceId = await this.authorizeWorkspace(
+      userId,
+      requestedWorkspaceId,
+      WorkspaceActions.READ_SERVER,
+    );
     if (filters.serverId) {
-      const projectId = await this.resolveProjectIdFromServer(filters.serverId);
-      await this.projectAccess.assertCanAccessProject(
-        projectId,
+      await this.workspaceAccess.assertServerAction(
+        filters.serverId,
         userId,
-        userRole,
+        WorkspaceActions.READ_SERVER,
+        workspaceId,
       );
     }
     return this.prisma.proxyRule.findMany({
       where: {
+        server: { teamId: workspaceId },
         ...(filters.serverId && { serverId: filters.serverId }),
         ...(filters.serviceEnvId && { serviceEnvId: filters.serviceEnvId }),
       },
@@ -65,38 +48,64 @@ export class ProxyService {
     });
   }
 
-  async findOne(id: string, userId: string, userRole: Role) {
-    const rule = await this.prisma.proxyRule.findUnique({
-      where: { id },
+  async findOne(
+    id: string,
+    userId: string,
+    _userRole: Role,
+    requestedWorkspaceId?: string,
+    action: WorkspaceAction = WorkspaceActions.READ_SERVER,
+  ) {
+    const workspaceId = await this.authorizeWorkspace(
+      userId,
+      requestedWorkspaceId,
+      action,
+    );
+    const rule = await this.prisma.proxyRule.findFirst({
+      where: { id, server: { teamId: workspaceId } },
       include: {
         server: { select: { environment: { select: { projectId: true } } } },
       },
     });
     if (!rule) throw new NotFoundException('Règle proxy introuvable');
-    const projectId = rule.server.environment?.projectId;
-    if (projectId) {
-      await this.projectAccess.assertCanAccessProject(
-        projectId,
-        userId,
-        userRole,
-      );
-    }
     return rule;
   }
 
-  async create(dto: CreateProxyRuleDto, userId: string, userRole: Role) {
-    const projectId = await this.resolveProjectIdFromServer(dto.serverId);
-    await this.projectAccess.assertCanManageProject(
-      projectId,
+  async create(
+    dto: CreateProxyRuleDto,
+    userId: string,
+    _userRole: Role,
+    requestedWorkspaceId?: string,
+  ) {
+    const workspaceId = await this.authorizeWorkspace(
       userId,
-      userRole,
+      requestedWorkspaceId,
+      WorkspaceActions.MANAGE_SERVER,
     );
+    await this.workspaceAccess.assertServerAction(
+      dto.serverId,
+      userId,
+      WorkspaceActions.MANAGE_SERVER,
+      workspaceId,
+    );
+    if (dto.serviceEnvId) {
+      const serviceEnv = await this.prisma.serviceEnvironment.findFirst({
+        where: {
+          id: dto.serviceEnvId,
+          environment: { project: { teamId: workspaceId } },
+        },
+        select: { id: true },
+      });
+      if (!serviceEnv) {
+        throw new NotFoundException('Service-environnement introuvable');
+      }
+    }
 
     const domain = dto.domain.trim().toLowerCase();
     const matchingDomain = await this.prisma.domain.findFirst({
       where: {
         name: domain,
         proxyRule: { is: null },
+        project: { teamId: workspaceId },
         ...(dto.serviceEnvId ? { serviceEnvId: dto.serviceEnvId } : {}),
       },
       select: { id: true },
@@ -131,12 +140,14 @@ export class ProxyService {
     dto: UpdateProxyRuleDto,
     userId: string,
     userRole: Role,
+    requestedWorkspaceId?: string,
   ) {
-    const projectId = await this.resolveProjectIdFromRule(id);
-    await this.projectAccess.assertCanManageProject(
-      projectId,
+    await this.findOne(
+      id,
       userId,
       userRole,
+      requestedWorkspaceId,
+      WorkspaceActions.MANAGE_SERVER,
     );
     return this.prisma.proxyRule.update({
       where: { id },
@@ -149,28 +160,55 @@ export class ProxyService {
     });
   }
 
-  async remove(id: string, userId: string, userRole: Role): Promise<void> {
-    const projectId = await this.resolveProjectIdFromRule(id);
-    await this.projectAccess.assertCanManageProject(
-      projectId,
+  async remove(
+    id: string,
+    userId: string,
+    userRole: Role,
+    requestedWorkspaceId?: string,
+  ): Promise<void> {
+    await this.findOne(
+      id,
       userId,
       userRole,
+      requestedWorkspaceId,
+      WorkspaceActions.MANAGE_SERVER,
     );
     await this.prisma.proxyRule.delete({ where: { id } });
   }
 
-  async toggleActive(id: string, userId: string, userRole: Role) {
-    const projectId = await this.resolveProjectIdFromRule(id);
-    await this.projectAccess.assertCanManageProject(
-      projectId,
+  async toggleActive(
+    id: string,
+    userId: string,
+    userRole: Role,
+    requestedWorkspaceId?: string,
+  ) {
+    const rule = await this.findOne(
+      id,
       userId,
       userRole,
+      requestedWorkspaceId,
+      WorkspaceActions.MANAGE_SERVER,
     );
-    const rule = await this.prisma.proxyRule.findUnique({ where: { id } });
-    if (!rule) throw new NotFoundException('Règle proxy introuvable');
     return this.prisma.proxyRule.update({
       where: { id },
       data: { isActive: !rule.isActive },
     });
+  }
+
+  private async authorizeWorkspace(
+    userId: string,
+    requestedWorkspaceId: string | undefined,
+    action: WorkspaceAction,
+  ): Promise<string> {
+    const workspaceId = await this.workspaceAccess.resolveWorkspaceId(
+      userId,
+      requestedWorkspaceId,
+    );
+    await this.workspaceAccess.assertWorkspaceAction(
+      workspaceId,
+      userId,
+      action,
+    );
+    return workspaceId;
   }
 }

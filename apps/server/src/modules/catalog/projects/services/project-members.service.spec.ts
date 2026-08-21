@@ -1,16 +1,15 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ProjectsService } from '../projects.service';
+import { WorkspaceAccessService } from '../../../iam/authorization/workspace-access.service';
+import { ProjectActions } from '../../../iam/authorization/workspace-policy.types';
 import { ProjectMembersService } from './project-members.service';
 
 describe('ProjectMembersService', () => {
   let prisma: {
     user: { findUnique: jest.Mock };
+    project: { findUnique: jest.Mock };
     projectMember: {
       findUnique: jest.Mock;
       create: jest.Mock;
@@ -19,15 +18,20 @@ describe('ProjectMembersService', () => {
     };
   };
   let projects: {
-    assertCanManageProject: jest.Mock;
-    assertCanAccessProject: jest.Mock;
     findOne: jest.Mock;
+  };
+  let workspaceAccess: {
+    assertProjectAction: jest.Mock;
+    assertUserIsActiveMember: jest.Mock;
   };
   let service: ProjectMembersService;
 
   beforeEach(() => {
     prisma = {
       user: { findUnique: jest.fn().mockResolvedValue({ id: 'u2' }) },
+      project: {
+        findUnique: jest.fn().mockResolvedValue({ teamId: 'workspace-1' }),
+      },
       projectMember: {
         findUnique: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue({}),
@@ -36,13 +40,16 @@ describe('ProjectMembersService', () => {
       },
     };
     projects = {
-      assertCanManageProject: jest.fn().mockResolvedValue(undefined),
-      assertCanAccessProject: jest.fn().mockResolvedValue(undefined),
       findOne: jest.fn().mockResolvedValue({ id: 'p1', members: [] }),
+    };
+    workspaceAccess = {
+      assertProjectAction: jest.fn().mockResolvedValue(undefined),
+      assertUserIsActiveMember: jest.fn().mockResolvedValue(undefined),
     };
     service = new ProjectMembersService(
       prisma as unknown as PrismaService,
       projects as unknown as ProjectsService,
+      workspaceAccess as unknown as WorkspaceAccessService,
     );
   });
 
@@ -50,11 +57,21 @@ describe('ProjectMembersService', () => {
     await service.addMember('p1', 'owner', Role.OWNER, {
       userId: 'u2',
     } as never);
-    expect(projects.assertCanManageProject).toHaveBeenCalled();
+    expect(workspaceAccess.assertProjectAction).toHaveBeenCalledWith(
+      'p1',
+      'owner',
+      ProjectActions.MANAGE_MEMBERS,
+      undefined,
+    );
+    expect(workspaceAccess.assertUserIsActiveMember).toHaveBeenCalledWith(
+      'workspace-1',
+      'u2',
+    );
     expect(prisma.projectMember.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           userId: 'u2',
+          teamId: 'workspace-1',
           role: ProjectRole.DEVELOPER,
         }),
       }),
@@ -88,13 +105,12 @@ describe('ProjectMembersService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('refuses to remove the project OWNER', async () => {
+  it('allows removing an explicit maintainer membership', async () => {
     prisma.projectMember.findUnique.mockResolvedValue({
-      role: ProjectRole.OWNER,
+      role: ProjectRole.MAINTAINER,
     });
-    await expect(
-      service.removeMember('p1', 'owner', Role.OWNER, 'u2'),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    await service.removeMember('p1', 'owner', Role.OWNER, 'u2');
+    expect(prisma.projectMember.delete).toHaveBeenCalled();
   });
 
   it('removes a non-owner member', async () => {
@@ -107,10 +123,11 @@ describe('ProjectMembersService', () => {
 
   it('getMembers enforces project access', async () => {
     await service.getMembers('p1', 'u1', Role.OWNER);
-    expect(projects.assertCanAccessProject).toHaveBeenCalledWith(
+    expect(workspaceAccess.assertProjectAction).toHaveBeenCalledWith(
       'p1',
       'u1',
-      Role.OWNER,
+      ProjectActions.READ,
+      undefined,
     );
   });
 });

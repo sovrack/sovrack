@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { LoggerService } from '../shared/logger/logger.service';
 
 const SANITIZE_QUERY_KEYS = [
@@ -47,16 +48,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const internalMessage = this.extractMessage(exception);
+    const code = this.extractCode(exception, statusCode);
     const message =
       statusCode >= 500
         ? 'Une erreur interne est survenue. Réessayez plus tard.'
         : internalMessage;
 
     const safeUrl = sanitizeUrlForLogs(request.url);
+    const incomingRequestId = request.headers?.['x-request-id'];
+    const requestId =
+      (typeof incomingRequestId === 'string' && incomingRequestId.trim()) ||
+      randomUUID();
 
     const payload = {
       statusCode,
+      code,
       message,
+      requestId,
       timestamp: new Date().toISOString(),
       path: safeUrl,
     };
@@ -68,13 +76,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? exception.stack
           : undefined;
       this.logger.error(
-        `${request.method} ${safeUrl} -> ${String(statusCode)}: ${internalMessage}`,
+        `[${requestId}] ${request.method} ${safeUrl} -> ${String(statusCode)}: ${internalMessage}`,
         trace,
         context,
       );
     } else {
       this.logger.warn(
-        `${request.method} ${safeUrl} -> ${String(statusCode)}: ${message}`,
+        `[${requestId}] ${request.method} ${safeUrl} -> ${String(statusCode)}: ${message}`,
         context,
       );
     }
@@ -112,5 +120,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     return 'Erreur interne du serveur';
+  }
+
+  private extractCode(exception: unknown, statusCode: number): string {
+    if (exception instanceof HttpException) {
+      const response = exception.getResponse();
+      if (response && typeof response === 'object') {
+        const code = (response as { code?: unknown }).code;
+        if (typeof code === 'string' && code.trim()) return code.trim();
+      }
+    }
+
+    return statusCode >= 500
+      ? 'INTERNAL_SERVER_ERROR'
+      : `HTTP_${String(statusCode)}`;
   }
 }

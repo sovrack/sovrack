@@ -10,8 +10,8 @@ describe('DashboardController', () => {
     } as unknown as DashboardService;
     const ctrl = new DashboardController(dashboard);
     const user = { id: 'u1', role: Role.MEMBER } as JwtPayload;
-    const res = await ctrl.getStats(user);
-    expect(dashboard.getStats).toHaveBeenCalledWith('u1', Role.MEMBER);
+    const res = await ctrl.getStats(user, 'workspace-1');
+    expect(dashboard.getStats).toHaveBeenCalledWith('u1', 'workspace-1');
     expect(res).toEqual({ projects: 1 });
   });
 });

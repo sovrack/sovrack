@@ -10,11 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
 import { GetUser } from '../../../../shared/decorators/get-user.decorator';
-import { Roles } from '../../../../shared/decorators/roles.decorator';
+import { GetWorkspaceId } from '../../../../shared/decorators/get-workspace-id.decorator';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../../shared/guards/roles.guard';
+import { WorkspaceGuard } from '../../../iam/authorization/workspace.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { InstallMonitoringDto } from '../dto/install-monitoring.dto';
 import { MonitoringService } from '../services/monitoring.service';
@@ -29,9 +28,8 @@ import { ContainerStatsService } from '../../../infrastructure/containers/servic
 // Monitoring pour un développeur.
 @ApiTags('Monitoring')
 @ApiBearerAuth()
-@Controller('monitoring')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.OWNER, Role.MEMBER)
+@Controller(['workspaces/:workspaceId/monitoring', 'monitoring'])
+@UseGuards(JwtAuthGuard)
 export class MonitoringController {
   constructor(
     private readonly monitoringService: MonitoringService,
@@ -40,50 +38,51 @@ export class MonitoringController {
   ) {}
 
   @Get('overview')
-  @Roles(Role.OWNER, Role.MEMBER)
+  @UseGuards(WorkspaceGuard)
   @ApiOperation({ summary: 'Monitoring overview for platform operations' })
-  async overview() {
-    return await this.monitoringService.getOverview();
+  async overview(@GetWorkspaceId() workspaceId: string) {
+    return await this.monitoringService.getOverview(workspaceId);
   }
 
   @Get('servers')
-  @Roles(Role.OWNER, Role.MEMBER)
+  @UseGuards(WorkspaceGuard)
   @ApiOperation({ summary: 'Server monitoring status and metric snapshots' })
-  async servers() {
-    return await this.monitoringService.getServerMonitoring();
+  async servers(@GetWorkspaceId() workspaceId: string) {
+    return await this.monitoringService.getServerMonitoring(workspaceId);
   }
 
   @Get('projects')
-  @Roles(Role.OWNER, Role.MEMBER)
+  @UseGuards(WorkspaceGuard)
   @ApiOperation({
     summary: 'Project monitoring linked to deployments/pipelines',
   })
-  async projects() {
-    return await this.monitoringService.getProjectMonitoring();
+  async projects(@GetWorkspaceId() workspaceId: string) {
+    return await this.monitoringService.getProjectMonitoring(workspaceId);
   }
 
   @Get('deployments')
-  @Roles(Role.OWNER, Role.MEMBER)
+  @UseGuards(WorkspaceGuard)
   @ApiOperation({ summary: 'Deployment health and history monitoring' })
-  async deployments() {
-    return await this.monitoringService.getDeploymentMonitoring();
+  async deployments(@GetWorkspaceId() workspaceId: string) {
+    return await this.monitoringService.getDeploymentMonitoring(workspaceId);
   }
 
   @Get('prometheus/status')
-  @Roles(Role.OWNER, Role.MEMBER)
+  @UseGuards(WorkspaceGuard)
   @ApiOperation({ summary: 'Prometheus connectivity and target status' })
   async prometheusStatus() {
     return await this.monitoringService.getPrometheusStatus();
   }
 
   @Get('servers/:host/metrics/range')
-  @Roles(Role.OWNER, Role.MEMBER)
+  @UseGuards(WorkspaceGuard)
   @ApiOperation({
     summary:
       'Historical CPU/mem/disk time-series for a host (Prometheus range)',
   })
   async serverMetricRange(
     @Param('host') host: string,
+    @GetWorkspaceId() workspaceId: string,
     @Query('minutes', new DefaultValuePipe(60), ParseIntPipe) minutes: number,
     @Query('step', new DefaultValuePipe(60), ParseIntPipe) step: number,
   ) {
@@ -91,11 +90,11 @@ export class MonitoringController {
       host,
       minutes,
       step,
+      workspaceId,
     );
   }
 
   @Get('services/:serviceEnvId/metrics/range')
-  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({
     summary:
       'Historical CPU/memory time-series for a service-environment (Prometheus range)',
@@ -103,10 +102,16 @@ export class MonitoringController {
   async serviceMetricRange(
     @Param('serviceEnvId') serviceEnvId: string,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId: string | undefined,
     @Query('minutes', new DefaultValuePipe(60), ParseIntPipe) minutes: number,
     @Query('step', new DefaultValuePipe(60), ParseIntPipe) step: number,
   ) {
-    await this.access.assertServiceEnv(serviceEnvId, user.id, user.role);
+    await this.access.assertServiceEnv(
+      serviceEnvId,
+      user.id,
+      user.role,
+      workspaceId,
+    );
     return await this.monitoringService.getServiceMetricRange(
       serviceEnvId,
       minutes,
@@ -115,14 +120,13 @@ export class MonitoringController {
   }
 
   @Get('grafana/status')
-  @Roles(Role.OWNER, Role.MEMBER)
+  @UseGuards(WorkspaceGuard)
   @ApiOperation({ summary: 'Grafana connectivity and access status' })
   async grafanaStatus() {
     return await this.monitoringService.getGrafanaStatus();
   }
 
   @Get('services/:serviceEnvId/links')
-  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({
     summary:
       'Monitoring links (Grafana/Prometheus/Loki) for the server hosting a service-environment',
@@ -130,31 +134,39 @@ export class MonitoringController {
   async serviceMonitoringLinks(
     @Param('serviceEnvId') serviceEnvId: string,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId: string | undefined,
   ) {
-    await this.access.assertServiceEnv(serviceEnvId, user.id, user.role);
+    await this.access.assertServiceEnv(
+      serviceEnvId,
+      user.id,
+      user.role,
+      workspaceId,
+    );
     return await this.monitoringService.getMonitoringLinksForServiceEnv(
       serviceEnvId,
     );
   }
 
   @Get('alerts')
-  @Roles(Role.OWNER, Role.MEMBER)
+  @UseGuards(WorkspaceGuard)
   @ApiOperation({
     summary: 'Monitoring alerts (Alertmanager or derived alerts)',
   })
-  async alerts() {
-    return await this.monitoringService.getAlerts();
+  async alerts(@GetWorkspaceId() workspaceId: string) {
+    return await this.monitoringService.getAlerts(workspaceId);
   }
 
   @Get('install/options')
+  @UseGuards(WorkspaceGuard)
   @ApiOperation({
     summary: 'Monitoring installation actions and eligible servers',
   })
-  async installOptions() {
-    return await this.monitoringService.getInstallOptions();
+  async installOptions(@GetWorkspaceId() workspaceId: string) {
+    return await this.monitoringService.getInstallOptions(workspaceId);
   }
 
   @Post('install')
+  @UseGuards(WorkspaceGuard)
   @ApiOperation({
     summary:
       'Install monitoring components through allowlisted automation actions',
@@ -162,35 +174,45 @@ export class MonitoringController {
   async install(
     @Body() dto: InstallMonitoringDto,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId: string,
   ) {
-    return await this.monitoringService.installMonitoring(dto, user.id);
+    return await this.monitoringService.installMonitoring(
+      dto,
+      workspaceId,
+      user.id,
+    );
   }
 
   /* ── Container monitoring ────────────────────────────────────────────── */
 
   @Get('containers/deployment/:deploymentId')
-  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({ summary: 'Get container stats and logs for a deployment' })
   async containerInfo(
     @Param('deploymentId') deploymentId: string,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId: string | undefined,
     @Query('tail', new DefaultValuePipe(200), ParseIntPipe) tail: number,
   ) {
-    await this.access.assertDeployment(deploymentId, user.id, user.role);
+    await this.access.assertDeployment(
+      deploymentId,
+      user.id,
+      user.role,
+      workspaceId,
+    );
     return await this.containerMonitoring.getContainerInfo(deploymentId, tail);
   }
 
   @Get('containers/project/:projectId')
-  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({
     summary: 'List running containers for a project on a server',
   })
   async projectContainers(
     @Param('projectId') projectId: string,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId: string | undefined,
     @Query('serverId') serverId: string,
   ) {
-    await this.access.assertProject(projectId, user.id, user.role);
+    await this.access.assertProject(projectId, user.id, user.role, workspaceId);
     return await this.containerMonitoring.listProjectContainers(
       projectId,
       serverId,

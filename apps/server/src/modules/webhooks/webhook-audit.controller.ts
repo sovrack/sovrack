@@ -10,10 +10,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Role, WebhookEventStatus } from '@prisma/client';
-import { Roles } from '../../shared/decorators/roles.decorator';
+import { WebhookEventStatus } from '@prisma/client';
+import { GetUser } from '../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../shared/guards/roles.guard';
+import type { JwtPayload } from '../../shared/jwt/dto/jwt-payload.dto';
+import { WorkspaceAccessService } from '../iam/authorization/workspace-access.service';
+import { ProjectWorkspaceGuard } from '../iam/authorization/project-workspace.guard';
+import { ProjectActions } from '../iam/authorization/workspace-policy.types';
 import { WebhooksService } from './webhooks.service';
 import { WebhookRetryService } from './services/webhook-retry.service';
 
@@ -29,27 +32,43 @@ import { WebhookRetryService } from './services/webhook-retry.service';
  */
 @ApiTags('Webhooks')
 @ApiBearerAuth()
-@Controller('projects/:id/webhooks')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller([
+  'workspaces/:workspaceId/projects/:id/webhooks',
+  'projects/:id/webhooks',
+])
+@UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
 export class WebhookAuditController {
   constructor(
     private readonly webhooksService: WebhooksService,
     private readonly retryService: WebhookRetryService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   @Get('endpoints')
-  @Roles(Role.OWNER, Role.MEMBER)
-  async listEndpoints(@Param('id') projectId: string) {
+  async listEndpoints(
+    @Param('id') projectId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      user.id,
+      ProjectActions.READ,
+    );
     return this.webhooksService.listEndpointsForProject(projectId);
   }
 
   @Get('events')
-  @Roles(Role.OWNER, Role.MEMBER)
   async listEvents(
     @Param('id') projectId: string,
+    @GetUser() user: JwtPayload,
     @Query('status') status?: WebhookEventStatus,
     @Query('limit') limit?: string,
   ) {
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      user.id,
+      ProjectActions.READ,
+    );
     const parsedLimit = limit
       ? Math.min(500, Math.max(1, parseInt(limit, 10) || 100))
       : 100;
@@ -60,25 +79,47 @@ export class WebhookAuditController {
   }
 
   @Get('events/:eventId')
-  @Roles(Role.OWNER, Role.MEMBER)
-  async getEvent(@Param('eventId') eventId: string) {
-    return this.webhooksService.findEvent(eventId);
+  async getEvent(
+    @Param('id') projectId: string,
+    @Param('eventId') eventId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      user.id,
+      ProjectActions.READ,
+    );
+    return this.webhooksService.findEventForProject(eventId, projectId);
   }
 
   @Post('events/:eventId/replay')
-  @Roles(Role.OWNER, Role.MEMBER)
-  async replayEvent(@Param('eventId') eventId: string) {
+  async replayEvent(
+    @Param('id') projectId: string,
+    @Param('eventId') eventId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      user.id,
+      ProjectActions.UPDATE,
+    );
+    await this.webhooksService.findEventForProject(eventId, projectId);
     // Resets attempts and re-dispatches immediately (works for FAILED and DEAD_LETTER).
     return this.retryService.replayEvent(eventId);
   }
 
   @Patch('endpoints/:endpointId/enabled')
-  @Roles(Role.OWNER)
   async setEnabled(
     @Param('id') projectId: string,
     @Param('endpointId') endpointId: string,
     @Body() body: { enabled: boolean },
+    @GetUser() user: JwtPayload,
   ) {
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      user.id,
+      ProjectActions.UPDATE,
+    );
     // Verify the endpoint belongs to this project (defense in depth)
     const endpoints =
       await this.webhooksService.listEndpointsForProject(projectId);

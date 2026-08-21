@@ -95,19 +95,18 @@ export class GitProviderConfigService {
 
   // ─── GitLab CRUD ─────────────────────────────────────────────────────────
 
-  async listGitlabProviders(): Promise<GitlabProviderPublic[]> {
-    await this.legacySync.bootstrapIfNeeded();
+  async listGitlabProviders(teamId: string): Promise<GitlabProviderPublic[]> {
     const providers = await this.prisma.gitProviderConfig.findMany({
-      where: { type: GitProviderType.GITLAB },
+      where: { teamId, type: GitProviderType.GITLAB },
       orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
     });
     return providers.map((p) => toGitlabProviderPublic(p));
   }
 
-  async listGitlabProvidersForProjects(): Promise<
-    GitlabProviderProjectOption[]
-  > {
-    const providers = await this.listGitlabProviders();
+  async listGitlabProvidersForProjects(
+    teamId: string,
+  ): Promise<GitlabProviderProjectOption[]> {
+    const providers = await this.listGitlabProviders(teamId);
     return providers.map(({ id, name, providerUrl, isDefault, status }) => ({
       id,
       name,
@@ -118,13 +117,12 @@ export class GitProviderConfigService {
   }
 
   async resolveGitlabCredentials(
+    teamId: string,
     providerId?: string,
   ): Promise<ResolvedGitlabCredentials> {
-    await this.legacySync.bootstrapIfNeeded();
-
     const provider = providerId
-      ? await this.getGitlabProviderOrFail(providerId)
-      : await this.getDefaultGitlabProvider();
+      ? await this.getGitlabProviderOrFail(providerId, teamId)
+      : await this.getDefaultGitlabProvider(teamId);
 
     if (!provider) {
       throw new BadRequestException('Aucun provider GitLab configuré');
@@ -175,6 +173,7 @@ export class GitProviderConfigService {
    */
   async createGitlabProvider(
     input: UpsertGitlabProviderInput,
+    teamId: string,
   ): Promise<GitlabProviderPublic> {
     const name = requireNonEmpty(input.name, 'Name est requis');
     const gitlabUrl = requireNonEmpty(
@@ -183,18 +182,20 @@ export class GitProviderConfigService {
     );
 
     const count = await this.prisma.gitProviderConfig.count({
-      where: { type: GitProviderType.GITLAB },
+      where: { teamId, type: GitProviderType.GITLAB },
     });
     const shouldBeDefault = count === 0 ? true : input.isDefault === true;
 
     const provider = await writeWithSingleDefault(
       this.prisma,
+      teamId,
       GitProviderType.GITLAB,
       shouldBeDefault,
       (tx) =>
         tx.gitProviderConfig.create({
           data: {
             name,
+            teamId,
             type: GitProviderType.GITLAB,
             providerUrl: gitlabUrl,
             internalUrl: normalizeOptional(input.internalUrl),
@@ -211,11 +212,12 @@ export class GitProviderConfigService {
     );
 
     if (shouldBeDefault) {
-      await this.legacySync.syncDefaultConfig();
+      await this.legacySync.syncDefaultConfig(teamId);
     }
 
     await this.legacySync.syncRegistry({
       id: provider.id,
+      teamId,
       name: provider.name,
       providerUrl: gitlabUrl,
       adminToken: provider.adminToken,
@@ -226,8 +228,9 @@ export class GitProviderConfigService {
   async updateGitlabProvider(
     id: string,
     input: PatchGitlabProviderInput,
+    teamId: string,
   ): Promise<GitlabProviderPublic> {
-    const current = await this.getGitlabProviderOrFail(id);
+    const current = await this.getGitlabProviderOrFail(id, teamId);
     const data: Partial<GitProviderConfig> = {};
 
     if (typeof input.name === 'string')
@@ -259,19 +262,21 @@ export class GitProviderConfigService {
 
     const updated = await writeWithSingleDefault(
       this.prisma,
+      teamId,
       GitProviderType.GITLAB,
       makeDefault,
       (tx) => tx.gitProviderConfig.update({ where: { id }, data }),
     );
 
     if (updated.isDefault || current.isDefault || input.isDefault === true) {
-      await this.legacySync.syncDefaultConfig();
+      await this.legacySync.syncDefaultConfig(teamId);
     }
 
     const effectiveUrl = updated.providerUrl ?? current.providerUrl;
     const effectiveName = updated.name ?? current.name;
     await this.legacySync.syncRegistry({
       id: updated.id,
+      teamId,
       name: effectiveName,
       providerUrl: effectiveUrl,
       adminToken: updated.adminToken ?? current.adminToken,
@@ -279,13 +284,13 @@ export class GitProviderConfigService {
     return toGitlabProviderPublic(updated);
   }
 
-  async deleteGitlabProvider(id: string): Promise<void> {
-    const provider = await this.getGitlabProviderOrFail(id);
+  async deleteGitlabProvider(id: string, teamId: string): Promise<void> {
+    const provider = await this.getGitlabProviderOrFail(id, teamId);
     await this.prisma.gitProviderConfig.delete({ where: { id } });
 
     if (provider.isDefault) {
       const replacement = await this.prisma.gitProviderConfig.findFirst({
-        where: { type: GitProviderType.GITLAB },
+        where: { teamId, type: GitProviderType.GITLAB },
         orderBy: { createdAt: 'asc' },
       });
       if (replacement) {
@@ -296,13 +301,17 @@ export class GitProviderConfigService {
       }
     }
 
-    await this.legacySync.syncDefaultConfig();
+    await this.legacySync.syncDefaultConfig(teamId);
   }
 
-  async setDefaultGitlabProvider(id: string): Promise<GitlabProviderPublic> {
-    await this.getGitlabProviderOrFail(id);
+  async setDefaultGitlabProvider(
+    id: string,
+    teamId: string,
+  ): Promise<GitlabProviderPublic> {
+    await this.getGitlabProviderOrFail(id, teamId);
     const updated = await writeWithSingleDefault(
       this.prisma,
+      teamId,
       GitProviderType.GITLAB,
       true,
       (tx) =>
@@ -311,21 +320,20 @@ export class GitProviderConfigService {
           data: { isDefault: true },
         }),
     );
-    await this.legacySync.syncDefaultConfig();
+    await this.legacySync.syncDefaultConfig(teamId);
     return toGitlabProviderPublic(updated);
   }
 
   async testGitlab(
+    teamId: string,
     providerId?: string,
   ): Promise<{ ok: boolean; message: string }> {
-    await this.legacySync.bootstrapIfNeeded();
-
     if (providerId) {
-      const provider = await this.getGitlabProviderOrFail(providerId);
+      const provider = await this.getGitlabProviderOrFail(providerId, teamId);
       return this.tester.testProvider(provider);
     }
 
-    const defaultProvider = await this.getDefaultGitlabProvider();
+    const defaultProvider = await this.getDefaultGitlabProvider(teamId);
     if (defaultProvider) {
       return this.tester.testProvider(defaultProvider);
     }
@@ -335,36 +343,47 @@ export class GitProviderConfigService {
 
   // ─── GitHub CRUD (delegated to GithubProviderService) ──────────────────────
 
-  listGithubProviders(): Promise<GitlabProviderPublic[]> {
-    return this.github.list();
+  listGithubProviders(teamId: string): Promise<GitlabProviderPublic[]> {
+    return this.github.list(teamId);
   }
 
   createGithubProvider(
     input: UpsertGithubProviderInput,
+    teamId: string,
   ): Promise<GitlabProviderPublic> {
-    return this.github.create(input);
+    return this.github.create(input, teamId);
   }
 
   updateGithubProvider(
     id: string,
     input: PatchGithubProviderInput,
+    teamId: string,
   ): Promise<GitlabProviderPublic> {
-    return this.github.update(id, input);
+    return this.github.update(id, input, teamId);
   }
 
-  deleteGithubProvider(id: string): Promise<void> {
-    return this.github.remove(id);
+  deleteGithubProvider(id: string, teamId: string): Promise<void> {
+    return this.github.remove(id, teamId);
   }
 
-  setDefaultGithubProvider(id: string): Promise<GitlabProviderPublic> {
-    return this.github.setDefault(id);
+  setDefaultGithubProvider(
+    id: string,
+    teamId: string,
+  ): Promise<GitlabProviderPublic> {
+    return this.github.setDefault(id, teamId);
   }
 
-  testGithubProvider(id: string): Promise<{ ok: boolean; message: string }> {
-    return this.github.test(id);
+  testGithubProvider(
+    id: string,
+    teamId: string,
+  ): Promise<{ ok: boolean; message: string }> {
+    return this.github.test(id, teamId);
   }
 
-  listGithubRepos(id: string): Promise<
+  listGithubRepos(
+    id: string,
+    teamId: string,
+  ): Promise<
     {
       id: number;
       name: string;
@@ -373,16 +392,17 @@ export class GitProviderConfigService {
       defaultBranch: string;
     }[]
   > {
-    return this.github.listRepos(id);
+    return this.github.listRepos(id, teamId);
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────
 
   private async getGitlabProviderOrFail(
     id: string,
+    teamId: string,
   ): Promise<GitProviderConfig> {
-    const provider = await this.prisma.gitProviderConfig.findUnique({
-      where: { id },
+    const provider = await this.prisma.gitProviderConfig.findFirst({
+      where: { id, teamId },
     });
     if (!provider || provider.type !== GitProviderType.GITLAB) {
       throw new NotFoundException('Provider GitLab introuvable');
@@ -390,14 +410,16 @@ export class GitProviderConfigService {
     return provider;
   }
 
-  private async getDefaultGitlabProvider(): Promise<GitProviderConfig | null> {
+  private async getDefaultGitlabProvider(
+    teamId: string,
+  ): Promise<GitProviderConfig | null> {
     const defaultProvider = await this.prisma.gitProviderConfig.findFirst({
-      where: { type: GitProviderType.GITLAB, isDefault: true },
+      where: { teamId, type: GitProviderType.GITLAB, isDefault: true },
       orderBy: { updatedAt: 'desc' },
     });
     if (defaultProvider) return defaultProvider;
     return this.prisma.gitProviderConfig.findFirst({
-      where: { type: GitProviderType.GITLAB },
+      where: { teamId, type: GitProviderType.GITLAB },
       orderBy: { createdAt: 'asc' },
     });
   }

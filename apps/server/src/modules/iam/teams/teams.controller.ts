@@ -6,9 +6,9 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -16,22 +16,18 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
-import { Roles } from '../../../shared/decorators/roles.decorator';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../shared/guards/roles.guard';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { AddTeamMemberDto } from './dto/add-team-member.dto';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
+import { UpdateWorkspaceMemberRoleDto } from './dto/update-workspace-member-role.dto';
+import { UpdateWorkspaceMemberStatusDto } from './dto/update-workspace-member-status.dto';
 import { TeamsService } from './teams.service';
 
 @ApiTags('Teams')
 @ApiBearerAuth()
-@Controller('teams')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.OWNER)
+@Controller('workspaces')
 export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
@@ -105,5 +101,27 @@ export class TeamsController {
     @GetUser() user: JwtPayload,
   ) {
     return this.teamsService.removeMember(id, userId, user);
+  }
+
+  @Patch(':id/members/:userId/role')
+  @ApiOperation({ summary: 'Update a workspace member role' })
+  async updateMemberRole(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateWorkspaceMemberRoleDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return this.teamsService.updateMemberRole(id, userId, dto.role, user);
+  }
+
+  @Patch(':id/members/:userId/status')
+  @ApiOperation({ summary: 'Suspend or reactivate a workspace member' })
+  async updateMemberStatus(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateWorkspaceMemberStatusDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return this.teamsService.updateMemberStatus(id, userId, dto.status, user);
   }
 }

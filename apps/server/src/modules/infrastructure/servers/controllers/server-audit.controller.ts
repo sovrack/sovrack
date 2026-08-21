@@ -5,18 +5,14 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
-import { Roles } from '../../../../shared/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../../shared/guards/roles.guard';
+import { ServerWorkspaceGuard } from '../../../iam/authorization/server-workspace.guard';
 import { ServerAuditEventDto } from '../dto/server-response.dto';
 import { ServersCoreService } from '../services';
 
 @ApiTags('Servers Audit')
 @ApiBearerAuth()
-@Controller('servers')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.OWNER, Role.MEMBER)
+@Controller(['workspaces/:workspaceId/servers', 'servers'])
+@UseGuards(ServerWorkspaceGuard)
 export class ServerAuditController {
   constructor(private readonly core: ServersCoreService) {}
 

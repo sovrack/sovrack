@@ -1,9 +1,4 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import {
   Prisma,
   ProjectRole,
@@ -19,6 +14,9 @@ import {
 } from '../dto/import-gitlab-group.dto';
 import { ProjectsService } from '../projects.service';
 import { AuditService } from '../../../audit/audit.service';
+import { WorkspaceAccessService } from '../../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
+import { UsageGuardService } from '../../../billing/usage-guard.service';
 
 const projectWithMembersInclude = {
   members: {
@@ -29,7 +27,6 @@ const projectWithMembersInclude = {
           id: true,
           email: true,
           fullName: true,
-          role: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -50,34 +47,41 @@ export class ProjectImportService {
     private readonly gitlabCore: GitlabAdapter,
     private readonly projectsService: ProjectsService,
     private readonly auditService: AuditService,
+    private readonly workspaceAccess: WorkspaceAccessService,
+    private readonly usageGuard: UsageGuardService,
   ) {}
 
   async importGitlabGroup(
     userId: string,
     userRole: Role,
     dto: ImportGitlabGroupDto,
+    requestedWorkspaceId?: string,
   ): Promise<{ mode: string; projects: ProjectWithMembers[] }> {
-    const ownerId = await this.resolveOwnerId(userId, userRole, dto.ownerId);
+    const teamId = await this.workspaceAccess.resolveWorkspaceId(
+      userId,
+      requestedWorkspaceId,
+    );
+    await this.workspaceAccess.assertWorkspaceAction(
+      teamId,
+      userId,
+      WorkspaceActions.CREATE_PROJECT,
+    );
+    const ownerId = dto.ownerId ?? userId;
+    await this.workspaceAccess.assertUserIsActiveMember(teamId, ownerId);
     this.assertUniqueRepositorySelection(dto.repositories);
 
-    await this.verifyGitlabGroupImport(dto);
+    await this.verifyGitlabGroupImport(dto, teamId);
 
     const createdProjectIds: string[] = [];
     try {
       if (dto.importMode === 'ONE_APPLICATION') {
-        const project = await this.prisma.project.create({
-          data: {
-            name: dto.name.trim(),
-            description: dto.description?.trim() || undefined,
-            members: {
-              create: {
-                userId: ownerId,
-                role: ProjectRole.OWNER,
-              },
-            },
-          },
-          include: projectWithMembersInclude,
-        });
+        await this.usageGuard.guardForTeam(teamId, 'CREATE_PROJECT');
+        const project = await this.createProjectWithMaintainer(
+          teamId,
+          ownerId,
+          dto.name.trim(),
+          dto.description?.trim(),
+        );
         createdProjectIds.push(project.id);
 
         // Create a default environment
@@ -139,19 +143,13 @@ export class ProjectImportService {
 
       const importedProjects: ProjectWithMembers[] = [];
       for (const repository of dto.repositories) {
-        const project = await this.prisma.project.create({
-          data: {
-            name: repository.serviceName?.trim() || repository.name.trim(),
-            description: dto.description?.trim() || undefined,
-            members: {
-              create: {
-                userId: ownerId,
-                role: ProjectRole.OWNER,
-              },
-            },
-          },
-          include: projectWithMembersInclude,
-        });
+        await this.usageGuard.guardForTeam(teamId, 'CREATE_PROJECT');
+        const project = await this.createProjectWithMaintainer(
+          teamId,
+          ownerId,
+          repository.serviceName?.trim() || repository.name.trim(),
+          dto.description?.trim(),
+        );
         createdProjectIds.push(project.id);
 
         // Create a default environment with service
@@ -213,44 +211,12 @@ export class ProjectImportService {
     }
   }
 
-  private async resolveOwnerId(
-    userId: string,
-    userRole: Role,
-    ownerId?: string,
-  ): Promise<string> {
-    const resolvedOwnerId = ownerId ?? userId;
-
-    if (!ownerId) {
-      return resolvedOwnerId;
-    }
-
-    if (userRole !== Role.OWNER && ownerId !== userId) {
-      throw new ForbiddenException(
-        'Seul un administrateur peut assigner un owner différent',
-      );
-    }
-
-    const ownerUser = await this.prisma.user.findUnique({
-      where: { id: ownerId },
-    });
-
-    if (!ownerUser) {
-      throw new NotFoundException('Utilisateur owner introuvable');
-    }
-
-    if (ownerUser.role !== Role.MEMBER) {
-      throw new ConflictException(
-        'Le owner assigné doit avoir le rôle DEVELOPER',
-      );
-    }
-
-    return resolvedOwnerId;
-  }
-
   private async verifyGitlabGroupImport(
     dto: ImportGitlabGroupDto,
+    teamId: string,
   ): Promise<void> {
     await this.gitlabCore.listGroupRepositoriesByProvider({
+      teamId,
       providerId: dto.providerId?.trim() || undefined,
       gitlabUrl: dto.gitlabUrl?.trim() || undefined,
       gitlabToken: dto.gitlabToken?.trim() || undefined,
@@ -261,6 +227,7 @@ export class ProjectImportService {
     for (const repository of dto.repositories) {
       const branchName = repository.defaultBranch.trim() || 'main';
       const branches = await this.gitlabCore.listProjectBranchesByProvider({
+        teamId,
         providerId: dto.providerId?.trim() || undefined,
         gitlabUrl: dto.gitlabUrl?.trim() || undefined,
         gitlabToken: dto.gitlabToken?.trim() || undefined,
@@ -278,6 +245,31 @@ export class ProjectImportService {
         );
       }
     }
+  }
+
+  private async createProjectWithMaintainer(
+    teamId: string,
+    userId: string,
+    name: string,
+    description?: string,
+  ): Promise<ProjectWithMembers> {
+    return this.prisma.$transaction(async (tx) => {
+      const project = await tx.project.create({
+        data: { teamId, name, description: description || null },
+      });
+      await tx.projectMember.create({
+        data: {
+          projectId: project.id,
+          teamId,
+          userId,
+          role: ProjectRole.MAINTAINER,
+        },
+      });
+      return tx.project.findUniqueOrThrow({
+        where: { id: project.id },
+        include: projectWithMembersInclude,
+      });
+    });
   }
 
   private assertUniqueRepositorySelection(

@@ -13,8 +13,27 @@ enum Role {
   MEMBER
 }
 
-enum ProjectRole {
+enum WorkspaceRole {
   OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum ProjectRole {
+  MAINTAINER
   DEVELOPER
   VIEWER
 }
@@ -227,40 +246,50 @@ enum CircuitState {
 }
 
 model User {
-  id                  String          @id @default(uuid())
-  email               String          @unique
+  id                         String                @id @default(uuid())
+  email                      String                @unique
   // Hash du mot de passe (argon2id/bcrypt). NULL pour les comptes OAuth (Google)
   // qui n'ont pas de mot de passe (authentification par le fournisseur externe).
-  password            String?
+  password                   String?
   // Source d'authentification du compte : "email" (mot de passe + code) ou "google".
-  provider            String          @default("email")
+  provider                   String                @default("email")
   // ID du compte Google (appairage OAuth). NULL pour les comptes email/mot de passe.
-  googleId            String?         @unique
-  fullName            String
-  role                 Role             @default(MEMBER)
-  isActive             Boolean          @default(true)
+  googleId                   String?               @unique
+  fullName                   String
+  // Legacy compatibility only. Customer authorization is resolved from
+  // TeamMember/ProjectMember; this field will be removed after the cutover.
+  role                       Role                  @default(MEMBER)
+  // Preserved between registration and email verification so onboarding uses
+  // the organization name that the customer actually submitted.
+  pendingWorkspaceName       String?
+  isActive                   Boolean               @default(true)
   // Validation email : code à 6 chiffres + expiration + date de vérification.
   // Un compte non vérifié (emailVerifiedAt = NULL) est inactif et ne peut pas
   // se connecter ni être rattaché à une organisation tant que l'email n'est pas
   // confirmé par le code envoyé par e-mail.
-  emailVerificationCode String?
+  emailVerificationCode      String?
   emailVerificationExpiresAt DateTime?
-  emailVerifiedAt          DateTime?
+  // Nonce bound to one precise registration attempt. A newer registration
+  // invalidates the previous form/code pair and cannot silently replace an
+  // already active account.
+  emailVerificationAttemptId String?
+  emailVerifiedAt            DateTime?
   // Confirmation de suppression de compte (code à 6 chiffres par email).
-  deleteAccountCode        String?
-  deleteAccountExpiresAt   DateTime?
+  deleteAccountCode          String?
+  deleteAccountExpiresAt     DateTime?
   // Réinitialisation de mot de passe oublié (code à 6 chiffres par email).
-  passwordResetCode        String?
-  passwordResetExpiresAt   DateTime?
-  projects             ProjectMember[]
-  teams               TeamMember[]
-  deployments         Deployment[]
-  builds              Build[]
-  auditLogs           AuditLog[]
-  sshKeys             SshKey[]
-  serverRunsRequested ServerRun[]     @relation("ServerRunRequestedBy")
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  passwordResetCode          String?
+  passwordResetExpiresAt     DateTime?
+  projects                   ProjectMember[]
+  teams                      TeamMember[]
+  deployments                Deployment[]
+  builds                     Build[]
+  auditLogs                  AuditLog[]
+  sshKeys                    SshKey[]
+  workspaceInvitationsSent   WorkspaceInvitation[] @relation("WorkspaceInvitationInviter")
+  serverRunsRequested        ServerRun[]           @relation("ServerRunRequestedBy")
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
 }
 
 model Project {
@@ -270,10 +299,9 @@ model Project {
   // Multi-tenant fair-share: cap simultaneous in-flight deployments for this
   // project so one tenant can't monopolize the deploy workers. Null = unlimited.
   maxConcurrentDeploys Int?
-  // Tenant (billing scope) de la Team propriétaire. Null = projet legacy
-  // (créé avant la fusion SaaS/platform) — backfill par la migration v2.
-  teamId               String?
-  team                 Team?             @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  // Workspace owner. Phase 2 makes the tenant boundary mandatory.
+  teamId               String
+  team                 Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
   members              ProjectMember[]
   environments         Environment[]
   services             Service[]
@@ -285,19 +313,26 @@ model Project {
   pipelineRuns         PipelineRun[]
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
+
+  @@unique([id, teamId])
+  @@index([teamId, createdAt])
 }
 
 model ProjectMember {
-  id        String      @id @default(uuid())
-  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  role      ProjectRole @default(DEVELOPER)
-  joinedAt  DateTime    @default(now())
-  updatedAt DateTime    @default(now()) @updatedAt
+  id         String      @id @default(uuid())
+  project    Project     @relation(fields: [projectId, teamId], references: [id, teamId], onDelete: Cascade)
+  projectId  String
+  team       Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId     String
+  membership TeamMember  @relation(fields: [teamId, userId], references: [teamId, userId], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  role       ProjectRole @default(DEVELOPER)
+  joinedAt   DateTime    @default(now())
+  updatedAt  DateTime    @default(now()) @updatedAt
 
   @@unique([projectId, userId])
+  @@index([teamId, projectId])
   @@index([userId, projectId])
 }
 
@@ -315,10 +350,9 @@ model Server {
   status                ServerStatus             @default(NEW)
   verificationError     String?                  @db.Text
   infraRole             ServerInfraRole?
-  // Tenant (billing scope). Null = legacy. Servers managés Sovrack =
-  // isManaged true + ownedByTeamId renseigné.
-  teamId                String?
-  team                  Team?                    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  // Mandatory workspace boundary for infrastructure resources.
+  teamId                String
+  team                  Team                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   isManaged             Boolean                  @default(false)
   provider              ManagedServerProvider?
   serverSize            String?
@@ -360,6 +394,7 @@ model Server {
   updatedAt             DateTime                 @updatedAt
 
   @@index([environmentId])
+  @@index([teamId, archivedAt])
 }
 
 model ServerJob {
@@ -759,27 +794,62 @@ model ProxyRule {
 }
 
 model Team {
-  id           String        @id @default(uuid())
-  name         String        @unique
-  description  String?
-  members      TeamMember[]
-  projects     Project[]
-  servers      Server[]
-  subscription Subscription?
-  invoices     Invoice[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                 String                @id @default(uuid())
+  name               String
+  slug               String                @unique
+  description        String?
+  members            TeamMember[]
+  projectMembers     ProjectMember[]
+  projects           Project[]
+  servers            Server[]
+  sshKeys            SshKey[]
+  gitProviderConfigs GitProviderConfig[]
+  registryConfigs    RegistryConfig[]
+  dnsProviders       DnsProvider[]
+  auditLogs          AuditLog[]
+  invitations        WorkspaceInvitation[]
+  serverRuns         ServerRun[]
+  subscription       Subscription?
+  invoices           Invoice[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
 }
 
 model TeamMember {
-  id       String   @id @default(uuid())
-  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  teamId   String
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId   String
-  joinedAt DateTime @default(now())
+  id                 String           @id @default(uuid())
+  team               Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId             String
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String
+  role               WorkspaceRole    @default(MEMBER)
+  status             MembershipStatus @default(ACTIVE)
+  projectMemberships ProjectMember[]
+  joinedAt           DateTime         @default(now())
+  updatedAt          DateTime         @default(now()) @updatedAt
 
   @@unique([teamId, userId])
+  @@index([userId, status])
+  @@index([teamId, role, status])
+}
+
+model WorkspaceInvitation {
+  id          String           @id @default(uuid())
+  teamId      String
+  team        Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  email       String
+  role        WorkspaceRole    @default(MEMBER)
+  status      InvitationStatus @default(PENDING)
+  tokenHash   String           @unique
+  invitedById String
+  invitedBy   User             @relation("WorkspaceInvitationInviter", fields: [invitedById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@index([teamId, status, expiresAt])
+  @@index([email, status])
 }
 
 enum Plan {
@@ -862,6 +932,8 @@ model AuditLog {
   // be actorless (system / automation). User-attributed rows keep a userId.
   userId       String?
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  teamId       String?
+  team         Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
   action       String
   resourceType String
   resourceId   String
@@ -869,6 +941,7 @@ model AuditLog {
   createdAt    DateTime @default(now())
 
   @@index([userId, createdAt])
+  @@index([teamId, createdAt])
   @@index([resourceType, resourceId])
 }
 
@@ -880,10 +953,13 @@ model SshKey {
   keyType             String   @default("ed25519")
   userId              String
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId              String
+  team                Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   @@index([userId])
+  @@index([teamId, createdAt])
 }
 
 model PlatformConfig {
@@ -912,13 +988,15 @@ model GitProviderConfig {
   oauthState          String?
   oauthStateExpiresAt DateTime?
   isDefault           Boolean           @default(false)
+  teamId              String
+  team                Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
   providerRepos       GitProviderRepo[]
   services            Service[]
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
-  @@unique([type, name])
-  @@index([type, isDefault])
+  @@unique([teamId, type, name])
+  @@index([teamId, type, isDefault])
 }
 
 model GitProviderRepo {
@@ -958,11 +1036,13 @@ model RegistryConfig {
   // Registre auto-provisionné depuis un provider Git (GitLab) : lien vers la
   // config provider d'origine → resync (URL/creds) + dédoublonnage par provider.
   providerId      String?
+  teamId          String
+  team            Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
-  @@unique([type, name])
-  @@index([type, isDefault])
+  @@unique([teamId, type, name])
+  @@index([teamId, type, isDefault])
   @@index([providerId])
 }
 
@@ -973,11 +1053,14 @@ model DnsProvider {
   apiToken  String?         @db.Text
   accountId String?
   zoneId    String?
+  teamId    String
+  team      Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
   domains   Domain[]
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
-  @@unique([type, name])
+  @@unique([teamId, type, name])
+  @@index([teamId, type])
 }
 
 model Domain {
@@ -1139,9 +1222,9 @@ model WebhookEvent {
   receivedAt         DateTime           @default(now())
   processedAt        DateTime?
 
+  @@unique([endpointId, externalDeliveryId])
   @@index([endpointId, receivedAt])
   @@index([status, nextRetryAt])
-  @@index([externalDeliveryId])
   @@index([provider, eventType, receivedAt])
 }
 
@@ -1233,7 +1316,10 @@ model PipelineRun {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
-  @@unique([externalId, provider])
+  // Pipeline ids are allocated by the external repository/provider, not
+  // globally. Project scope prevents one tenant from correlating another
+  // tenant's deployment when numeric ids collide.
+  @@unique([projectId, externalId, provider])
   @@index([deploymentId])
   @@index([projectId, status])
   @@index([externalId])
@@ -1443,6 +1529,8 @@ enum ServerRunStepStatus {
 
 model ServerRun {
   id            String          @id @default(uuid())
+  teamId        String
+  team          Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
   kind          ServerRunKind
   // PREPARATION: serverId set, steps keyed by roleKey.
   // AUTOMATION:  serverId null, steps keyed by serverId.
@@ -1473,6 +1561,7 @@ model ServerRun {
   updatedAt     DateTime        @updatedAt
 
   @@index([serverId, status])
+  @@index([teamId, kind, createdAt])
   @@index([status])
   @@index([actionKey])
   @@index([createdAt])
@@ -1543,38 +1632,38 @@ enum StaffStatus {
 }
 
 model Staff {
-  id          String         @id @default(uuid())
-  email       String         @unique
+  id          String          @id @default(uuid())
+  email       String          @unique
   password    String
   fullName    String
-  role        PlatformRole   @default(OPERATOR)
-  status      StaffStatus    @default(ACTIVE)
+  role        PlatformRole    @default(OPERATOR)
+  status      StaffStatus     @default(ACTIVE)
   // MFA TOTP (niveau 2, optionnel).
   mfaSecret   String?
-  mfaEnabled  Boolean        @default(false)
+  mfaEnabled  Boolean         @default(false)
   lastLoginAt DateTime?
   // Soft delete : on ne supprime jamais physiquement un compte staff (audit).
   deletedAt   DateTime?
   createdBy   String?
   sessions    StaffSession[]
   auditLogs   StaffAuditLog[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   @@index([role])
   @@index([status])
 }
 
 model StaffSession {
-  id         String   @id @default(uuid())
-  staffId    String
-  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  tokenHash  String   @unique
-  ip         String?
-  userAgent  String?
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  createdAt  DateTime @default(now())
+  id        String    @id @default(uuid())
+  staffId   String
+  staff     Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  ip        String?
+  userAgent String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([staffId])
   @@index([expiresAt])
@@ -1583,19 +1672,18 @@ model StaffSession {
 // Audit du back-office : append-only (le service n'expose que des inserts).
 // Traçe chaque action du staff (login, impersonation, blocage, suppression…).
 model StaffAuditLog {
-  id          BigInt  @id @default(autoincrement())
-  staffId     String?
-  staff       Staff?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
-  action      String
-  resource    String
-  resourceId  String?
-  beforeJson  Json?
-  afterJson   Json?
-  ip          String?
-  createdAt   DateTime @default(now())
+  id         BigInt   @id @default(autoincrement())
+  staffId    String?
+  staff      Staff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  action     String
+  resource   String
+  resourceId String?
+  beforeJson Json?
+  afterJson  Json?
+  ip         String?
+  createdAt  DateTime @default(now())
 
   @@index([staffId, createdAt])
   @@index([action])
   @@index([resource, resourceId])
 }
-

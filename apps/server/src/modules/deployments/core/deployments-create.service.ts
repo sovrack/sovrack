@@ -49,7 +49,11 @@ export class DeploymentsCreateService {
     private readonly queueService: QueueService,
   ) {}
 
-  async create(dto: CreateDeploymentDto, userId: string): Promise<Deployment> {
+  async create(
+    dto: CreateDeploymentDto,
+    userId: string,
+    expectedWorkspaceId?: string,
+  ): Promise<Deployment> {
     const actor = await this.authorizationService.getActor(userId);
 
     const serviceEnv = await this.prisma.serviceEnvironment.findUnique({
@@ -59,7 +63,12 @@ export class DeploymentsCreateService {
         environment: {
           include: {
             project: {
-              select: { id: true, name: true, maxConcurrentDeploys: true },
+              select: {
+                id: true,
+                name: true,
+                teamId: true,
+                maxConcurrentDeploys: true,
+              },
             },
             servers: {
               where: { isActive: true, isVerified: true },
@@ -84,18 +93,37 @@ export class DeploymentsCreateService {
     const { service, environment } = serviceEnv;
     const project = environment.project;
 
-    await this.authorizationService.assertCanDeployProject(
-      project.id,
-      actor.id,
-      actor.role,
-    );
+    if (expectedWorkspaceId) {
+      await this.authorizationService.assertCanDeployProject(
+        project.id,
+        actor.id,
+        actor.role,
+        expectedWorkspaceId,
+      );
+    } else {
+      await this.authorizationService.assertCanDeployProject(
+        project.id,
+        actor.id,
+        actor.role,
+      );
+    }
 
-    await this.authorizationService.assertCanDeployToEnvironment(
-      project.id,
-      environment.id,
-      actor.id,
-      actor.role,
-    );
+    if (expectedWorkspaceId) {
+      await this.authorizationService.assertCanDeployToEnvironment(
+        project.id,
+        environment.id,
+        actor.id,
+        actor.role,
+        expectedWorkspaceId,
+      );
+    } else {
+      await this.authorizationService.assertCanDeployToEnvironment(
+        project.id,
+        environment.id,
+        actor.id,
+        actor.role,
+      );
+    }
 
     // Garde de pré-vol bloquante (voir AUDIT_VALIDATION_DEPLOIEMENT.md) —
     // s'exécute pour APPLICATION et DATABASE, avant toute écriture. Si elle
@@ -244,7 +272,7 @@ export class DeploymentsCreateService {
         status: deployment.status,
       });
 
-      await this.queueService.enqueueDeploy(deployment.id);
+      await this.queueService.enqueueDeploy(deployment.id, project.teamId);
       return deployment;
     }
 
@@ -290,7 +318,8 @@ export class DeploymentsCreateService {
 
     await this.prisma.pipelineRun.upsert({
       where: {
-        externalId_provider: {
+        projectId_externalId_provider: {
+          projectId: project.id,
           externalId: pipelineIdBigInt,
           provider: providerType,
         },
@@ -345,6 +374,7 @@ export class DeploymentsCreateService {
       project: {
         id: string;
         name: string;
+        teamId: string;
         maxConcurrentDeploys: number | null;
       };
       servers: { id: string }[];
@@ -425,7 +455,7 @@ export class DeploymentsCreateService {
       status: updated.status,
     });
 
-    await this.queueService.enqueueDeploy(updated.id);
+    await this.queueService.enqueueDeploy(updated.id, project.teamId);
 
     return updated;
   }

@@ -8,8 +8,7 @@ import { WebhookManagementService } from './webhook-management.service';
 describe('WebhookManagementService — status & toggle', () => {
   let prisma: {
     webhookEndpoint: { findFirst: jest.Mock; update: jest.Mock };
-    project: { findUnique: jest.Mock };
-    service: { findMany: jest.Mock };
+    service: { findFirst: jest.Mock };
   };
   let platform: { buildWebhookUrl: jest.Mock };
   let service: WebhookManagementService;
@@ -20,11 +19,8 @@ describe('WebhookManagementService — status & toggle', () => {
         findFirst: jest.fn().mockResolvedValue(null),
         update: jest.fn().mockResolvedValue({}),
       },
-      project: {
-        findUnique: jest.fn().mockResolvedValue({ id: 'p1', name: 'proj' }),
-      },
       service: {
-        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue({ id: 'svc1' }),
       },
     };
     platform = {
@@ -42,7 +38,7 @@ describe('WebhookManagementService — status & toggle', () => {
 
   it('reports not-configured when no endpoint exists for a service', async () => {
     prisma.webhookEndpoint.findFirst.mockResolvedValue(null);
-    await expect(service.getStatusForService('svc1')).resolves.toEqual({
+    await expect(service.getStatusForService('p1', 'svc1')).resolves.toEqual({
       configured: false,
     });
   });
@@ -55,7 +51,7 @@ describe('WebhookManagementService — status & toggle', () => {
       provider: 'GITLAB',
       lastEventAt: null,
     });
-    const res = await service.getStatusForService('svc1');
+    const res = await service.getStatusForService('p1', 'svc1');
     expect(res).toMatchObject({
       configured: true,
       isActive: true,
@@ -70,16 +66,39 @@ describe('WebhookManagementService — status & toggle', () => {
   it('404s setActiveForService when no endpoint exists', async () => {
     prisma.webhookEndpoint.findFirst.mockResolvedValue(null);
     await expect(
-      service.setActiveForService('svc1', false),
+      service.setActiveForService('p1', 'svc1', false),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('toggles the active flag for a service endpoint', async () => {
     prisma.webhookEndpoint.findFirst.mockResolvedValue({ id: 'e1' });
-    await service.setActiveForService('svc1', false);
+    await service.setActiveForService('p1', 'svc1', false);
     expect(prisma.webhookEndpoint.update).toHaveBeenCalledWith({
       where: { id: 'e1' },
       data: { isActive: false },
+    });
+  });
+
+  it('404s before reading a webhook when the service is outside the project', async () => {
+    prisma.service.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.getStatusForService('p1', 'foreign-service'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.webhookEndpoint.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('scopes endpoint reads and writes by project and service', async () => {
+    prisma.webhookEndpoint.findFirst.mockResolvedValue({ id: 'e1' });
+
+    await service.setActiveForService('p1', 'svc1', true);
+
+    expect(prisma.service.findFirst).toHaveBeenCalledWith({
+      where: { id: 'svc1', projectId: 'p1' },
+      select: { id: true },
+    });
+    expect(prisma.webhookEndpoint.findFirst).toHaveBeenCalledWith({
+      where: { projectId: 'p1', serviceId: 'svc1' },
     });
   });
 });
@@ -87,7 +106,7 @@ describe('WebhookManagementService — status & toggle', () => {
 describe('WebhookManagementService — configureForService regression test', () => {
   let prisma: {
     webhookEndpoint: { findFirst: jest.Mock };
-    serviceEnvironment: { findUnique: jest.Mock };
+    service: { findFirst: jest.Mock };
   };
   let webhooks: { getOrCreateEndpoint: jest.Mock };
   let sourceProviders: { forService: jest.Mock };
@@ -100,8 +119,8 @@ describe('WebhookManagementService — configureForService regression test', () 
       webhookEndpoint: {
         findFirst: jest.fn().mockResolvedValue(null),
       },
-      serviceEnvironment: {
-        findUnique: jest.fn().mockResolvedValue({ serviceId: 'svc1' }),
+      service: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'svc1' }),
       },
     };
     webhooks = {
@@ -141,5 +160,14 @@ describe('WebhookManagementService — configureForService regression test', () 
       's3cr3t', // ← le secret partagé (pas le webhookToken)
       'svc1',
     );
+  });
+
+  it('does not resolve a provider for a service outside the project', async () => {
+    prisma.service.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.configureForService('proj1', 'foreign-service'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(sourceProviders.forService).not.toHaveBeenCalled();
   });
 });

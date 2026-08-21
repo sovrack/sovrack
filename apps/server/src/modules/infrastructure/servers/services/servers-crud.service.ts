@@ -23,8 +23,9 @@ import { ServersCryptoService } from '../../../../adapters/ssh/servers-crypto.se
 import { ServersConnectionService } from './servers-connection.service';
 import { ServersAuditService } from './servers-audit.service';
 import { AuditService } from '../../../audit/audit.service';
-import { BillingService } from '../../../billing/billing.service';
 import { UsageGuardService } from '../../../billing/usage-guard.service';
+import { WorkspaceAccessService } from '../../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
 import {
   CreateServerResult,
   ServerListResult,
@@ -55,17 +56,25 @@ export class ServersCrudService {
     private readonly jobsFacade: ServersJobsFacade,
     private readonly audit: ServersAuditService,
     private readonly auditService: AuditService,
-    private readonly billing: BillingService,
+    private readonly workspaceAccess: WorkspaceAccessService,
     private readonly usageGuard: UsageGuardService,
   ) {}
 
   async create(
     dto: CreateServerDto,
     actorUserId: string,
+    requestedWorkspaceId?: string,
   ): Promise<CreateServerResult> {
-    // Limite de plan : la team de l'acteur doit avoir de la place.
-    await this.usageGuard.guard(actorUserId, 'ADD_SERVER');
-    const teamId = await this.billing.resolveTeamId(actorUserId);
+    const teamId = await this.workspaceAccess.resolveWorkspaceId(
+      actorUserId,
+      requestedWorkspaceId,
+    );
+    await this.workspaceAccess.assertWorkspaceAction(
+      teamId,
+      actorUserId,
+      WorkspaceActions.MANAGE_SERVER,
+    );
+    await this.usageGuard.guardForTeam(teamId, 'ADD_SERVER');
 
     const connectionMode = this.ssh.mapConnectionMode(dto.connectionMode);
 
@@ -74,7 +83,7 @@ export class ServersCrudService {
       // Ownership: la clé SSH appartient à un utilisateur — un serveur de sa
       // propre team ne doit pas pouvoir référencer la clé d'un autre compte.
       const stored = await this.prisma.sshKey.findFirst({
-        where: { id: dto.sshKeyId, userId: actorUserId },
+        where: { id: dto.sshKeyId, teamId },
       });
       if (!stored) {
         throw new BadRequestException(
@@ -135,8 +144,17 @@ export class ServersCrudService {
   async findAll(
     pagination: PaginationDto | undefined,
     actorUserId: string,
+    requestedWorkspaceId?: string,
   ): Promise<ServerListResult> {
-    const teamId = await this.billing.resolveTeamId(actorUserId);
+    const teamId = await this.workspaceAccess.resolveWorkspaceId(
+      actorUserId,
+      requestedWorkspaceId,
+    );
+    await this.workspaceAccess.assertWorkspaceAction(
+      teamId,
+      actorUserId,
+      WorkspaceActions.READ_SERVER,
+    );
     const where = activeWhere({ teamId });
 
     if (!pagination?.page || !pagination?.limit) {
@@ -186,8 +204,19 @@ export class ServersCrudService {
    * (last-validation/preparation results, only updated on explicit user
    * action) so the two can coexist without either overwriting the other.
    */
-  async pingAll(actorUserId: string): Promise<Record<string, boolean>> {
-    const teamId = await this.billing.resolveTeamId(actorUserId);
+  async pingAll(
+    actorUserId: string,
+    requestedWorkspaceId?: string,
+  ): Promise<Record<string, boolean>> {
+    const teamId = await this.workspaceAccess.resolveWorkspaceId(
+      actorUserId,
+      requestedWorkspaceId,
+    );
+    await this.workspaceAccess.assertWorkspaceAction(
+      teamId,
+      actorUserId,
+      WorkspaceActions.READ_SERVER,
+    );
     const servers = await this.prisma.server.findMany({
       where: activeWhere({ teamId }),
       select: { id: true, host: true, port: true },
@@ -204,8 +233,17 @@ export class ServersCrudService {
     return Object.fromEntries(results);
   }
 
-  async findOne(id: string, actorUserId: string): Promise<ServerPublic> {
-    const server = await this.getServerById(id, actorUserId);
+  async findOne(
+    id: string,
+    actorUserId: string,
+    requestedWorkspaceId?: string,
+  ): Promise<ServerPublic> {
+    const server = await this.getServerById(
+      id,
+      actorUserId,
+      WorkspaceActions.READ_SERVER,
+      requestedWorkspaceId,
+    );
     const activeJobs = await this.jobsFacade.loadActiveJobs([id]);
     return toPublicServer(server, activeJobs.get(id) ?? null);
   }
@@ -214,8 +252,14 @@ export class ServersCrudService {
     id: string,
     dto: UpdateServerDto,
     actorUserId: string,
+    requestedWorkspaceId?: string,
   ): Promise<ServerPublic> {
-    const existing = await this.getServerById(id, actorUserId);
+    const existing = await this.getServerById(
+      id,
+      actorUserId,
+      WorkspaceActions.MANAGE_SERVER,
+      requestedWorkspaceId,
+    );
 
     const nextConnectionMode =
       dto.connectionMode !== undefined
@@ -228,7 +272,7 @@ export class ServersCrudService {
     if (dto.sshKeyId && !resolvedSshKey) {
       // Ownership: même règle qu'en create() — la clé doit appartenir à l'auteur.
       const stored = await this.prisma.sshKey.findFirst({
-        where: { id: dto.sshKeyId, userId: actorUserId },
+        where: { id: dto.sshKeyId, teamId: existing.teamId },
       });
       if (!stored) {
         throw new BadRequestException(
@@ -312,8 +356,17 @@ export class ServersCrudService {
     return toPublicServer(updated);
   }
 
-  async remove(id: string, actorUserId: string): Promise<void> {
-    const server = await this.getServerById(id, actorUserId);
+  async remove(
+    id: string,
+    actorUserId: string,
+    requestedWorkspaceId?: string,
+  ): Promise<void> {
+    const server = await this.getServerById(
+      id,
+      actorUserId,
+      WorkspaceActions.MANAGE_SERVER,
+      requestedWorkspaceId,
+    );
 
     // Guard against orphaning an environment: deployments target
     // `environment.servers[0]`, so if this is the LAST active server of its
@@ -368,15 +421,23 @@ export class ServersCrudService {
   private async getServerById(
     id: string,
     actorUserId: string,
+    action:
+      | typeof WorkspaceActions.READ_SERVER
+      | typeof WorkspaceActions.MANAGE_SERVER,
+    requestedWorkspaceId?: string,
   ): Promise<Server> {
-    const teamId = await this.billing.resolveTeamId(actorUserId);
     const server = await this.prisma.server.findUnique({
       where: { id },
     });
     if (!server) throw new NotFoundException('Serveur non trouvé');
-    if (server.teamId !== teamId) {
+    if (requestedWorkspaceId && server.teamId !== requestedWorkspaceId) {
       throw new NotFoundException('Serveur non trouvé');
     }
+    await this.workspaceAccess.assertWorkspaceAction(
+      server.teamId,
+      actorUserId,
+      action,
+    );
     return server;
   }
 

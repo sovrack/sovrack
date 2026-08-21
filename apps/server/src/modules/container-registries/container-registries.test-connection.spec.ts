@@ -11,6 +11,7 @@ import { RegistryConnectionTestService } from './registry-connection-test.servic
 describe('ContainerRegistriesService.testRegistryConnection (Docker v2 Bearer)', () => {
   const gitlabReg = {
     id: 'r1',
+    teamId: 'workspace-1',
     type: RegistryProviderType.GITLAB,
     registryUrl: 'https://registry.gitlab.com',
     username: 'user',
@@ -20,6 +21,7 @@ describe('ContainerRegistriesService.testRegistryConnection (Docker v2 Bearer)',
   function make(httpGet: jest.Mock) {
     const prisma = {
       registryConfig: {
+        findFirst: jest.fn().mockResolvedValue(gitlabReg),
         findUnique: jest.fn().mockResolvedValue(gitlabReg),
         update: jest.fn().mockResolvedValue(gitlabReg),
       },
@@ -59,7 +61,7 @@ describe('ContainerRegistriesService.testRegistryConnection (Docker v2 Bearer)',
       );
     const { svc, prisma } = make(httpGet);
 
-    const res = await svc.testRegistryConnection('r1');
+    const res = await svc.testRegistryConnection('r1', 'workspace-1');
     expect(res.ok).toBe(true);
     expect(prisma.registryConfig.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -75,7 +77,7 @@ describe('ContainerRegistriesService.testRegistryConnection (Docker v2 Bearer)',
       .mockReturnValueOnce(of({ status: 401, headers: {}, data: {} }));
     const { svc } = make(httpGet);
 
-    const res = await svc.testRegistryConnection('r1');
+    const res = await svc.testRegistryConnection('r1', 'workspace-1');
     expect(res.ok).toBe(false);
     expect(res.message).toMatch(/refusés|401/i);
     // GitLab (service=container_registry) → indice de scope actionnable.
@@ -87,7 +89,7 @@ describe('ContainerRegistriesService.testRegistryConnection (Docker v2 Bearer)',
       .fn()
       .mockReturnValueOnce(of({ status: 200, headers: {}, data: {} }));
     const { svc } = make(httpGet);
-    const res = await svc.testRegistryConnection('r1');
+    const res = await svc.testRegistryConnection('r1', 'workspace-1');
     expect(res.ok).toBe(true);
     expect(httpGet).toHaveBeenCalledTimes(1);
   });

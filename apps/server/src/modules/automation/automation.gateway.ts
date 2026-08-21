@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Role, ServerRunKind } from '@prisma/client';
+import { ServerRunKind } from '@prisma/client';
 import {
   ConnectedSocket,
   MessageBody,
@@ -18,6 +18,8 @@ import {
   extractTokenFromCookieHeader,
 } from '../../shared/http/auth-cookie.util';
 import { resolveGatewayCorsOrigins } from '../../shared/http/cors-origins.util';
+import { WorkspaceAccessService } from '../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../iam/authorization/workspace-policy.types';
 
 type JoinRunPayload = {
   runId?: string;
@@ -41,6 +43,7 @@ export class AutomationGateway implements OnGatewayConnection {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   handleConnection(client: Socket): void {
@@ -69,14 +72,6 @@ export class AutomationGateway implements OnGatewayConnection {
 
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);
-      // Même autorisation que les routes REST GET (automation.controller.ts) :
-      // un développeur peut consulter un run, il doit donc aussi pouvoir en
-      // recevoir les mises à jour en direct, pas seulement l'état figé au
-      // premier chargement.
-      if (payload.role !== Role.OWNER && payload.role !== Role.MEMBER) {
-        client.disconnect();
-        return;
-      }
       (client.data as { user: JwtPayload }).user = payload;
     } catch {
       this.logger.warn(`Automation socket rejected (id: ${client.id})`);
@@ -96,9 +91,22 @@ export class AutomationGateway implements OnGatewayConnection {
 
     const run = await this.prisma.serverRun.findFirst({
       where: { id: runId, kind: ServerRunKind.AUTOMATION },
-      select: { id: true },
+      select: { id: true, teamId: true },
     });
     if (!run) {
+      return { ok: false, runId, error: 'Automation run introuvable' };
+    }
+    const user = (client.data as { user?: JwtPayload }).user;
+    if (!user) {
+      return { ok: false, runId, error: 'Utilisateur non authentifié' };
+    }
+    try {
+      await this.workspaceAccess.assertWorkspaceAction(
+        run.teamId,
+        user.id,
+        WorkspaceActions.MANAGE_SERVER,
+      );
+    } catch {
       return { ok: false, runId, error: 'Automation run introuvable' };
     }
 

@@ -33,8 +33,18 @@ export class GitlabOnboardingService {
     userRole: Role,
   ): Promise<PublicGitlabConfig> {
     await this.auth.assertCanManageProject(projectId, userId, userRole);
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    });
+    if (!project) {
+      throw new BadRequestException('Projet introuvable');
+    }
 
-    const connection = await this.connection.resolveGitlabConnectionInput(dto);
+    const connection = await this.connection.resolveGitlabConnectionInput(
+      dto,
+      project.teamId,
+    );
     const baseUrl = this.connection.normalizeUrl(connection.gitlabUrl);
     const defaultBranch = dto.defaultBranch ?? 'main';
     const webhookSecret = randomBytes(32).toString('hex');
@@ -67,6 +77,7 @@ export class GitlabOnboardingService {
       const newConfig = await this.prisma.gitProviderConfig.create({
         data: {
           name: `gitlab-${projectId.slice(0, 8)}`,
+          teamId: project.teamId,
           type: GitProviderType.GITLAB,
           providerUrl: baseUrl,
           adminToken: this.cryptoService.encrypt(connection.gitlabToken),
@@ -207,8 +218,14 @@ export class GitlabOnboardingService {
     return this.connection.toPublicConfig(config);
   }
 
-  async verifyConnectionInput(dto: ConnectGitlabDto): Promise<void> {
-    const connection = await this.connection.resolveGitlabConnectionInput(dto);
+  async verifyConnectionInput(
+    dto: ConnectGitlabDto,
+    teamId: string,
+  ): Promise<void> {
+    const connection = await this.connection.resolveGitlabConnectionInput(
+      dto,
+      teamId,
+    );
     const baseUrl = this.connection.normalizeUrl(connection.gitlabUrl);
     const defaultBranch = dto.defaultBranch?.trim() || 'main';
 

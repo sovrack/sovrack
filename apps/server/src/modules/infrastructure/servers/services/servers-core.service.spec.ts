@@ -6,6 +6,7 @@ import { ServersCoreService } from './servers-core.service';
 // spec only verifies each public method delegates to the right sub-service
 // with the right arguments — the facade contract the 4 controllers rely on.
 describe('ServersCoreService (facade)', () => {
+  const workspaceId = 'workspace-1';
   let crud: {
     create: jest.Mock;
     findAll: jest.Mock;
@@ -56,23 +57,32 @@ describe('ServersCoreService (facade)', () => {
   });
 
   it('delegates CRUD methods to ServersCrudService', async () => {
-    await service.create({ name: 'srv' } as never, 'admin');
-    expect(crud.create).toHaveBeenCalledWith({ name: 'srv' }, 'admin');
+    await service.create({ name: 'srv' } as never, 'admin', workspaceId);
+    expect(crud.create).toHaveBeenCalledWith(
+      { name: 'srv' },
+      'admin',
+      workspaceId,
+    );
 
-    await service.findAll(undefined, 'admin');
-    expect(crud.findAll).toHaveBeenCalledWith(undefined, 'admin');
+    await service.findAll(undefined, 'admin', workspaceId);
+    expect(crud.findAll).toHaveBeenCalledWith(undefined, 'admin', workspaceId);
 
-    await service.findOne('s1', 'admin');
-    expect(crud.findOne).toHaveBeenCalledWith('s1', 'admin');
+    await service.findOne('s1', 'admin', workspaceId);
+    expect(crud.findOne).toHaveBeenCalledWith('s1', 'admin', workspaceId);
 
-    await service.update('s1', { name: 'x' } as never, 'admin');
-    expect(crud.update).toHaveBeenCalledWith('s1', { name: 'x' }, 'admin');
+    await service.update('s1', { name: 'x' } as never, 'admin', workspaceId);
+    expect(crud.update).toHaveBeenCalledWith(
+      's1',
+      { name: 'x' },
+      'admin',
+      workspaceId,
+    );
 
-    await service.remove('s1', 'admin');
-    expect(crud.remove).toHaveBeenCalledWith('s1', 'admin');
+    await service.remove('s1', 'admin', workspaceId);
+    expect(crud.remove).toHaveBeenCalledWith('s1', 'admin', workspaceId);
 
-    await service.pingAll('admin');
-    expect(crud.pingAll).toHaveBeenCalledWith('admin');
+    await service.pingAll('admin', workspaceId);
+    expect(crud.pingAll).toHaveBeenCalledWith('admin', workspaceId);
   });
 
   it('delegates jobs/verification/preparation/detection methods to ServersJobsFacade', async () => {
@@ -135,8 +145,10 @@ describe('ServersCoreService (facade)', () => {
       'admin',
     );
 
-    await service.listInfraEnvironments();
-    expect(readersFacade.listInfraEnvironments).toHaveBeenCalled();
+    await service.listInfraEnvironments(workspaceId);
+    expect(readersFacade.listInfraEnvironments).toHaveBeenCalledWith(
+      workspaceId,
+    );
 
     await service.listEnvironmentsForServer('s1');
     expect(readersFacade.listEnvironmentsForServer).toHaveBeenCalledWith('s1');

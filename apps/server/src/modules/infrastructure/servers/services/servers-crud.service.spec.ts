@@ -61,6 +61,10 @@ describe('ServersCrudService', () => {
   let jobsFacade: { loadActiveJobs: jest.Mock };
   let audit: { record: jest.Mock };
   let auditService: { record: jest.Mock };
+  let workspaceAccess: {
+    resolveWorkspaceId: jest.Mock;
+    assertWorkspaceAction: jest.Mock;
+  };
   let service: ServersCrudService;
 
   beforeEach(() => {
@@ -117,6 +121,14 @@ describe('ServersCrudService', () => {
     jobsFacade = { loadActiveJobs: jest.fn().mockResolvedValue(new Map()) };
     audit = { record: jest.fn().mockResolvedValue(undefined) };
     auditService = { record: jest.fn().mockResolvedValue(undefined) };
+    workspaceAccess = {
+      resolveWorkspaceId: jest.fn().mockResolvedValue('t1'),
+      assertWorkspaceAction: jest.fn().mockResolvedValue({
+        userId: 'admin',
+        workspaceId: 't1',
+        workspaceRole: 'OWNER',
+      }),
+    };
     const billing = new BillingService(
       prisma as unknown as PrismaService,
       auditService as unknown as AuditService,
@@ -133,7 +145,7 @@ describe('ServersCrudService', () => {
       jobsFacade as never,
       audit as never,
       auditService as never,
-      billing,
+      workspaceAccess as never,
       usageGuard,
     );
   });
@@ -180,7 +192,7 @@ describe('ServersCrudService', () => {
       'admin',
     );
     expect(prisma.sshKey.findFirst).toHaveBeenCalledWith({
-      where: { id: 'k1', userId: 'admin' },
+      where: { id: 'k1', teamId: 't1' },
     });
     expect(crypto.decrypt).toHaveBeenCalledWith('stored-enc');
   });
@@ -210,7 +222,7 @@ describe('ServersCrudService', () => {
     });
     await service.update('s1', { sshKeyId: 'k1' } as never, 'admin');
     expect(prisma.sshKey.findFirst).toHaveBeenCalledWith({
-      where: { id: 'k1', userId: 'admin' },
+      where: { id: 'k1', teamId: 't1' },
     });
     expect(crypto.decrypt).toHaveBeenCalledWith('stored-enc');
     expect(crypto.resolveSshMaterial).toHaveBeenCalledWith('dec:stored-enc');

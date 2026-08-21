@@ -21,7 +21,7 @@ describe('SourceProvidersService (factory)', () => {
   let service: SourceProvidersService;
   let prisma: {
     service: { findFirst: jest.Mock; findUnique: jest.Mock };
-    gitProviderConfig: { findUnique: jest.Mock };
+    gitProviderConfig: { findFirst: jest.Mock };
   };
   // Minimal IGitProvider-shaped mocks (only the methods we exercise).
   let gitlab: {
@@ -39,7 +39,7 @@ describe('SourceProvidersService (factory)', () => {
   beforeEach(async () => {
     prisma = {
       service: { findFirst: jest.fn(), findUnique: jest.fn() },
-      gitProviderConfig: { findUnique: jest.fn() },
+      gitProviderConfig: { findFirst: jest.fn() },
     };
     const methods = () => ({
       listRepos: jest.fn(),
@@ -83,8 +83,11 @@ describe('SourceProvidersService (factory)', () => {
 
   describe('forService', () => {
     it('resolves the provider from the service GitProviderConfig type', async () => {
-      prisma.service.findUnique.mockResolvedValue({ providerId: 'cfg-1' });
-      prisma.gitProviderConfig.findUnique.mockResolvedValue({
+      prisma.service.findUnique.mockResolvedValue({
+        providerId: 'cfg-1',
+        project: { teamId: 'team-1' },
+      });
+      prisma.gitProviderConfig.findFirst.mockResolvedValue({
         type: GitProviderType.GITHUB,
       });
 
@@ -94,8 +97,11 @@ describe('SourceProvidersService (factory)', () => {
     });
 
     it('falls back to GitLab when the resolved provider type is unset', async () => {
-      prisma.service.findUnique.mockResolvedValue({ providerId: 'cfg-1' });
-      prisma.gitProviderConfig.findUnique.mockResolvedValue({ type: null });
+      prisma.service.findUnique.mockResolvedValue({
+        providerId: 'cfg-1',
+        project: { teamId: 'team-1' },
+      });
+      prisma.gitProviderConfig.findFirst.mockResolvedValue({ type: null });
 
       const provider = await service.forService('svc-1');
 
@@ -103,7 +109,10 @@ describe('SourceProvidersService (factory)', () => {
     });
 
     it('throws NotFoundException when the service has no providerId', async () => {
-      prisma.service.findUnique.mockResolvedValue({ providerId: null });
+      prisma.service.findUnique.mockResolvedValue({
+        providerId: null,
+        project: { teamId: 'team-1' },
+      });
 
       await expect(service.forService('svc-1')).rejects.toBeInstanceOf(
         NotFoundException,
@@ -111,8 +120,11 @@ describe('SourceProvidersService (factory)', () => {
     });
 
     it('throws NotFoundException when the GitProviderConfig is missing', async () => {
-      prisma.service.findUnique.mockResolvedValue({ providerId: 'cfg-gone' });
-      prisma.gitProviderConfig.findUnique.mockResolvedValue(null);
+      prisma.service.findUnique.mockResolvedValue({
+        providerId: 'cfg-gone',
+        project: { teamId: 'team-1' },
+      });
+      prisma.gitProviderConfig.findFirst.mockResolvedValue(null);
 
       await expect(service.forService('svc-1')).rejects.toBeInstanceOf(
         NotFoundException,
@@ -131,8 +143,11 @@ describe('SourceProvidersService (factory)', () => {
 
   describe('forProject', () => {
     it('uses the provider type resolved from the project config', async () => {
-      prisma.service.findFirst.mockResolvedValue({ providerId: 'prov_1' });
-      prisma.gitProviderConfig.findUnique.mockResolvedValue({
+      prisma.service.findFirst.mockResolvedValue({
+        providerId: 'prov_1',
+        project: { teamId: 'team-1' },
+      });
+      prisma.gitProviderConfig.findFirst.mockResolvedValue({
         type: GitProviderType.GITHUB,
       });
       const provider = (await service.forProject('proj_1')) as unknown as {
@@ -147,13 +162,19 @@ describe('SourceProvidersService (factory)', () => {
           providerId: { not: null },
           archivedAt: null,
         },
-        select: { providerId: true },
+        select: {
+          providerId: true,
+          project: { select: { teamId: true } },
+        },
       });
     });
 
     it('falls back to GitLab when the resolved provider type is unset', async () => {
-      prisma.service.findFirst.mockResolvedValue({ providerId: 'prov_1' });
-      prisma.gitProviderConfig.findUnique.mockResolvedValue({ type: null });
+      prisma.service.findFirst.mockResolvedValue({
+        providerId: 'prov_1',
+        project: { teamId: 'team-1' },
+      });
+      prisma.gitProviderConfig.findFirst.mockResolvedValue({ type: null });
       const provider = (await service.forProject('proj_2')) as unknown as {
         id: string;
       };
@@ -180,8 +201,11 @@ describe('SourceProvidersService (factory)', () => {
 
   describe('IGitProvider contract resolution', () => {
     it('forProject returns a provider that exposes the IGitProvider methods', async () => {
-      prisma.service.findFirst.mockResolvedValue({ providerId: 'prov_1' });
-      prisma.gitProviderConfig.findUnique.mockResolvedValue({
+      prisma.service.findFirst.mockResolvedValue({
+        providerId: 'prov_1',
+        project: { teamId: 'team-1' },
+      });
+      prisma.gitProviderConfig.findFirst.mockResolvedValue({
         type: GitProviderType.GITLAB,
       });
       const provider = await service.forProject('proj_1');

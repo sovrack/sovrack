@@ -17,6 +17,7 @@ import {
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
+import { ProjectWorkspaceGuard } from '../../iam/authorization/project-workspace.guard';
 import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { UpdateEnvironmentDto } from './dto/update-environment.dto';
 
@@ -25,8 +26,11 @@ import { EnvironmentsService } from './environments.service';
 
 @ApiTags('Environments')
 @ApiBearerAuth()
-@Controller('projects/:id/environments')
-@UseGuards(JwtAuthGuard)
+@Controller([
+  'workspaces/:workspaceId/projects/:id/environments',
+  'projects/:id/environments',
+])
+@UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
 export class EnvironmentsController {
   constructor(
     private readonly environmentsService: EnvironmentsService,

@@ -32,8 +32,8 @@ describe('process-role.util — runsBackgroundWork', () => {
     expect(runsBackgroundWork()).toBe(false);
   });
 
-  it('falls back to background work for an unrecognized value', () => {
+  it('fails closed for an unrecognized value', () => {
     process.env.PROCESS_ROLE = 'nonsense';
-    expect(runsBackgroundWork()).toBe(true);
+    expect(() => runsBackgroundWork()).toThrow('PROCESS_ROLE invalide');
   });
 });

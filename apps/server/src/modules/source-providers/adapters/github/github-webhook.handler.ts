@@ -139,6 +139,7 @@ export class GithubWebhookHandler implements IWebhookHandler {
     const status = this.mapConclusion(conclusion);
 
     const pipelineEvent: PipelineUpdatedEvent = {
+      projectId: endpoint.projectId,
       pipelineId: runId,
       webhookStatus: status,
       provider: GitProviderType.GITHUB,

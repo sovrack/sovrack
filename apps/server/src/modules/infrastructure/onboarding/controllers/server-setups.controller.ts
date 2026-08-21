@@ -14,11 +14,10 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
-import { Roles } from '../../../../shared/decorators/roles.decorator';
+import { GetWorkspaceId } from '../../../../shared/decorators/get-workspace-id.decorator';
 import { GetUser } from '../../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../../shared/guards/roles.guard';
+import { WorkspaceGuard } from '../../../iam/authorization/workspace.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { RetryServerSetupDto } from '../../servers/dto';
 import {
@@ -29,26 +28,33 @@ import { ServerSetupService } from '../services/infra-setup.service';
 
 @ApiTags('Server Setups')
 @ApiBearerAuth()
-@Controller('setups')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.OWNER, Role.MEMBER)
+@Controller(['workspaces/:workspaceId/setups', 'setups'])
+@UseGuards(JwtAuthGuard, WorkspaceGuard)
 export class ServerSetupsController {
   constructor(private readonly prep: ServerSetupService) {}
 
   @Get(':id')
   @ApiOperation({ summary: "View a server provisioning's details" })
   @ApiOkResponse({ type: ServerSetupDto })
-  async findOne(@Param('id') id: string) {
-    return await this.prep.getSetup(id);
+  async findOne(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return await this.prep.getSetup(id, workspaceId);
   }
 
   @Get(':id/logs')
   @ApiOperation({ summary: 'Read the persisted logs of a provisioning job' })
   @ApiOkResponse({ type: ServerSetupLogDto, isArray: true })
-  async logs(@Param('id') id: string, @Query('afterLine') afterLine?: string) {
+  async logs(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+    @Query('afterLine') afterLine?: string,
+  ) {
     return await this.prep.getSetupLogs(
       id,
       afterLine ? Number(afterLine) : undefined,
+      workspaceId,
     );
   }
 
@@ -61,8 +67,9 @@ export class ServerSetupsController {
     @Param('id') id: string,
     @Body() dto: RetryServerSetupDto,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId: string,
   ) {
-    return await this.prep.retrySetup(id, dto, user.id);
+    return await this.prep.retrySetup(id, dto, user.id, workspaceId);
   }
 
   @Post(':id/cancel')
@@ -70,7 +77,11 @@ export class ServerSetupsController {
     summary: 'Cancel a provisioning job if still active',
   })
   @ApiOkResponse({ type: ServerSetupDto })
-  async cancel(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.prep.cancelSetup(id, user.id);
+  async cancel(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return await this.prep.cancelSetup(id, user.id, workspaceId);
   }
 }

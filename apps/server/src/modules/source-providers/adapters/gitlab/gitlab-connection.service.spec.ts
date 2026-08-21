@@ -219,12 +219,17 @@ describe('GitlabConnectionService', () => {
   });
 
   describe('resolveGitlabConnectionInput', () => {
+    const workspaceId = 'workspace-1';
+
     it('returns manual url+token when both provided without providerId', async () => {
       const { svc } = makeSvc();
-      const result = await svc.resolveGitlabConnectionInput({
-        gitlabUrl: 'https://git.corp.io',
-        gitlabToken: 'my-token',
-      } as never);
+      const result = await svc.resolveGitlabConnectionInput(
+        {
+          gitlabUrl: 'https://git.corp.io',
+          gitlabToken: 'my-token',
+        } as never,
+        workspaceId,
+      );
       expect(result.gitlabUrl).toBe('https://git.corp.io');
       expect(result.gitlabToken).toBe('my-token');
       expect(result.providerId).toBeNull();
@@ -233,15 +238,21 @@ describe('GitlabConnectionService', () => {
     it('throws BadRequestException when only one of url/token is provided', async () => {
       const { svc } = makeSvc();
       await expect(
-        svc.resolveGitlabConnectionInput({
-          gitlabUrl: 'https://git.io',
-        } as never),
+        svc.resolveGitlabConnectionInput(
+          {
+            gitlabUrl: 'https://git.io',
+          } as never,
+          workspaceId,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('uses default provider credentials when nothing is provided', async () => {
       const { svc } = makeSvc();
-      const result = await svc.resolveGitlabConnectionInput({} as never);
+      const result = await svc.resolveGitlabConnectionInput(
+        {} as never,
+        workspaceId,
+      );
       expect(result.providerId).toBe('prov-default');
       expect(result.gitlabToken).toBe('default-token');
     });
@@ -254,11 +265,15 @@ describe('GitlabConnectionService', () => {
           providerId: 'prov-corp',
         }),
       });
-      const result = await svc.resolveGitlabConnectionInput({
-        providerId: 'prov-corp',
-      } as never);
+      const result = await svc.resolveGitlabConnectionInput(
+        {
+          providerId: 'prov-corp',
+        } as never,
+        workspaceId,
+      );
       expect(result.gitlabToken).toBe('corp-token');
       expect(registry.resolveGitlabCredentials).toHaveBeenCalledWith(
+        workspaceId,
         'prov-corp',
       );
     });
@@ -271,10 +286,13 @@ describe('GitlabConnectionService', () => {
             { id: 'prov-1', providerUrl: 'https://git.corp.io' },
           ]),
       });
-      const result = await svc.resolveGitlabConnectionInput({
-        providerId: 'prov-1',
-        gitlabToken: 'override-token',
-      } as never);
+      const result = await svc.resolveGitlabConnectionInput(
+        {
+          providerId: 'prov-1',
+          gitlabToken: 'override-token',
+        } as never,
+        workspaceId,
+      );
       expect(result.gitlabToken).toBe('override-token');
       expect(result.gitlabUrl).toBe('https://git.corp.io');
     });

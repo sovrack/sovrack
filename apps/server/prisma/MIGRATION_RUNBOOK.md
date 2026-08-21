@@ -15,7 +15,7 @@
    ```bash
    npm run db:migrate:safe
    ```
-   Ce script lance `scripts/pre-migrate-check.ts` (vérifie les préconditions des
+   Ce script lance `src/scripts/pre-migrate-check.ts` (vérifie les préconditions des
    migrations destructives **en attente**) puis `prisma migrate deploy`. Si une
    précondition échoue (orphelins, backfill manquant), il **refuse** de migrer.
 4. **Vérification post-migration** : exécuter la requête de contrôle de la

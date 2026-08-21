@@ -59,12 +59,10 @@ describe('database-spec.util', () => {
         POSTGRES_DB: 'd',
       });
     });
-    it('Postgres defaults', () => {
-      expect(buildDatabaseEnvVars('POSTGRES', null)).toEqual({
-        POSTGRES_USER: 'app',
-        POSTGRES_PASSWORD: 'changeme',
-        POSTGRES_DB: 'app',
-      });
+    it('refuse les credentials manquants au lieu de créer un secret faible', () => {
+      expect(() => buildDatabaseEnvVars('POSTGRES', null)).toThrow(
+        'databaseCredentials incomplets',
+      );
     });
     it('Redis → {} (pas de var d’init)', () => {
       expect(buildDatabaseEnvVars('REDIS', null)).toEqual({});

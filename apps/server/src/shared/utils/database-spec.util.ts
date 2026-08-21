@@ -1,4 +1,5 @@
 import type { ManagedServiceType, Prisma } from '@prisma/client';
+import type { CryptoService } from '../crypto/crypto.service';
 
 /** Credentials d'une base managée, extraits du blob JSON stocké. */
 export type DbCredentials = {
@@ -10,11 +11,14 @@ export type DbCredentials = {
 /** Parse {user,password,dbName} depuis un blob JSON (string ou objet Prisma). */
 export function parseDbCredentials(
   raw: Prisma.JsonValue | null | undefined,
+  crypto?: CryptoService,
 ): DbCredentials {
   let creds: Record<string, unknown> = {};
   if (typeof raw === 'string') {
     try {
-      creds = JSON.parse(raw) as Record<string, unknown>;
+      const serialized = raw.startsWith('v2:') ? crypto?.decrypt(raw) : raw;
+      if (!serialized) return {};
+      creds = JSON.parse(serialized) as Record<string, unknown>;
     } catch {
       return {};
     }
@@ -26,6 +30,14 @@ export function parseDbCredentials(
     password: typeof creds.password === 'string' ? creds.password : undefined,
     dbName: typeof creds.dbName === 'string' ? creds.dbName : undefined,
   };
+}
+
+/** Store the whole credential object as one authenticated ciphertext. */
+export function encryptDbCredentials(
+  crypto: CryptoService,
+  credentials: Required<DbCredentials>,
+): Prisma.InputJsonValue {
+  return crypto.encrypt(JSON.stringify(credentials));
 }
 
 /** Port + chemin du volume de données par moteur de base. */
@@ -49,16 +61,27 @@ export function getDatabaseContainerConfig(databaseType: ManagedServiceType): {
 
 /**
  * Variables d'environnement d'INITIALISATION du conteneur de base (POSTGRES_USER,
- * MYSQL_DATABASE…) à partir des credentials. Défauts : app / changeme / app.
+ * MYSQL_DATABASE…) à partir des credentials. Aucun secret faible par défaut :
+ * un blob incomplet ou indéchiffrable bloque le déploiement.
  */
 export function buildDatabaseEnvVars(
   databaseType: ManagedServiceType,
   rawCredentials: Prisma.JsonValue | null | undefined,
+  crypto?: CryptoService,
 ): Record<string, string> {
-  const { user, password, dbName } = parseDbCredentials(rawCredentials);
-  const u = user ?? 'app';
-  const p = password ?? 'changeme';
-  const db = dbName ?? 'app';
+  if (databaseType === 'REDIS') {
+    return {};
+  }
+  const { user, password, dbName } = parseDbCredentials(rawCredentials, crypto);
+  if (!user || !password) {
+    throw new Error('databaseCredentials incomplets ou indéchiffrables');
+  }
+  if (databaseType !== 'RABBITMQ' && !dbName) {
+    throw new Error('databaseCredentials incomplets ou indéchiffrables');
+  }
+  const u = user;
+  const p = password;
+  const db = dbName as string;
   const result: Record<string, string> = {};
   switch (databaseType) {
     case 'POSTGRES':
@@ -71,8 +94,6 @@ export function buildDatabaseEnvVars(
       result.MYSQL_DATABASE = db;
       result.MYSQL_USER = u;
       result.MYSQL_PASSWORD = p;
-      break;
-    case 'REDIS':
       break;
     case 'MONGODB':
       result.MONGO_INITDB_ROOT_USERNAME = u;

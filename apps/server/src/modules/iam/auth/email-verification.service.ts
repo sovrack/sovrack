@@ -7,8 +7,15 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { NotificationsSmtpService } from '../../notifications/notifications-smtp.service';
+import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { PasswordHasher } from '../security/password-hasher.service';
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
+import { randomUUID } from 'crypto';
+import {
+  generateOneTimeCode,
+  sealOneTimeCode,
+  verifyOneTimeCode,
+} from '../security/one-time-code.util';
 
 export const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
 
@@ -30,6 +37,7 @@ export class EmailVerificationService {
     private readonly prisma: PrismaService,
     private readonly smtp: NotificationsSmtpService,
     private readonly passwordHasher: PasswordHasher,
+    private readonly crypto: CryptoService,
   ) {}
 
   /**
@@ -40,40 +48,65 @@ export class EmailVerificationService {
     email: string;
     password: string;
     fullName: string;
+    workspaceName: string;
     role: Role;
-  }): Promise<void> {
+  }): Promise<{ registrationId: string }> {
     const existing = await this.prisma.user.findUnique({
       where: { email: params.email },
       select: { id: true, emailVerifiedAt: true, isActive: true },
     });
     if (existing) {
-      if (existing.emailVerifiedAt) {
+      if (existing.emailVerifiedAt || existing.isActive) {
         throw new ConflictException('Cet email est déjà utilisé');
       }
-      // Compte déjà créé mais non vérifié : on le réutilise (resend implicite).
-      await this.issueAndSendCode(existing.id, params.email);
-      return;
+      const hashedPassword = await this.passwordHasher.hash(params.password);
+      const registrationId = randomUUID();
+      // Une nouvelle tentative remplace intégralement l'ancienne tentative en
+      // attente. Le nonce empêche de valider le mot de passe d'une tentative
+      // différente avec un code saisi dans un ancien formulaire.
+      await this.prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          password: hashedPassword,
+          fullName: params.fullName,
+          pendingWorkspaceName: params.workspaceName,
+          emailVerificationAttemptId: registrationId,
+        },
+      });
+      await this.issueAndSendCode(existing.id, params.email, registrationId);
+      return { registrationId };
     }
 
     const hashedPassword = await this.passwordHasher.hash(params.password);
-    const code = this.generateCode();
+    const code = generateOneTimeCode();
     const expiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
+    const registrationId = randomUUID();
+    const userId = randomUUID();
 
     const user = await this.prisma.user.create({
       data: {
+        id: userId,
         email: params.email,
         password: hashedPassword,
         fullName: params.fullName,
+        pendingWorkspaceName: params.workspaceName,
         role: params.role,
         isActive: false,
-        emailVerificationCode: code,
+        emailVerificationCode: sealOneTimeCode(this.crypto, {
+          code,
+          purpose: 'email-verification',
+          userId,
+          attemptId: registrationId,
+        }),
         emailVerificationExpiresAt: expiresAt,
+        emailVerificationAttemptId: registrationId,
       },
       select: { id: true, email: true },
     });
 
     await this.sendCodeEmail(user.id, user.email, code);
     this.logger.log(`Pending registration for ${params.email} (${user.id})`);
+    return { registrationId };
   }
 
   /**
@@ -83,7 +116,16 @@ export class EmailVerificationService {
   async verifyCodeAndActivate(params: {
     email: string;
     code: string;
-    onActivate: (userId: string) => Promise<void>;
+    registrationId: string;
+    onActivate: (
+      pendingUser: {
+        id: string;
+        email: string;
+        fullName: string;
+        workspaceName: string;
+      },
+      database: Prisma.TransactionClient,
+    ) => Promise<void>;
   }): Promise<{
     id: string;
     email: string;
@@ -108,22 +150,46 @@ export class EmailVerificationService {
         'Le code a expiré. Demandez un nouveau code.',
       );
     }
-    if (user.emailVerificationCode !== params.code) {
+    if (user.emailVerificationAttemptId !== params.registrationId) {
+      throw new BadRequestException(
+        "Cette tentative d'inscription n'est plus valide. Recommencez l'inscription.",
+      );
+    }
+    if (
+      !verifyOneTimeCode(this.crypto, user.emailVerificationCode, {
+        code: params.code,
+        purpose: 'email-verification',
+        userId: user.id,
+        attemptId: params.registrationId,
+      })
+    ) {
       throw new BadRequestException('Code de vérification invalide');
     }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerifiedAt: new Date(),
-        isActive: true,
-        emailVerificationCode: null,
-        emailVerificationExpiresAt: null,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerifiedAt: new Date(),
+          isActive: true,
+          emailVerificationCode: null,
+          emailVerificationExpiresAt: null,
+          emailVerificationAttemptId: null,
+          pendingWorkspaceName: null,
+        },
+      });
+      await params.onActivate(
+        {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          workspaceName:
+            user.pendingWorkspaceName?.trim() ||
+            `${user.fullName.split(' ')[0]} Workspace`,
+        },
+        tx,
+      );
     });
-
-    // Onboarding différé : team + abonnement essai (faite par AuthService).
-    await params.onActivate(user.id);
 
     this.logger.log(`Email verified for ${user.email} (${user.id})`);
     return {
@@ -136,36 +202,51 @@ export class EmailVerificationService {
   /**
    * Régénère un code pour un compte non vérifié et le renvoie.
    */
-  async resendCode(email: string): Promise<void> {
+  async resendCode(email: string, registrationId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { email },
-      select: { id: true, emailVerifiedAt: true, isActive: true },
+      select: {
+        id: true,
+        emailVerifiedAt: true,
+        isActive: true,
+        emailVerificationAttemptId: true,
+      },
     });
     if (!user) {
       throw new NotFoundException('Aucun compte avec cet email');
     }
-    if (user.emailVerifiedAt) {
+    if (user.emailVerifiedAt || user.isActive) {
       throw new BadRequestException('Cet email est déjà vérifié');
     }
-    await this.issueAndSendCode(user.id, email);
+    if (user.emailVerificationAttemptId !== registrationId) {
+      throw new BadRequestException(
+        "Cette tentative d'inscription n'est plus valide. Recommencez l'inscription.",
+      );
+    }
+    await this.issueAndSendCode(user.id, email, registrationId);
   }
 
-  private async issueAndSendCode(userId: string, email: string): Promise<void> {
-    const code = this.generateCode();
+  private async issueAndSendCode(
+    userId: string,
+    email: string,
+    registrationId: string,
+  ): Promise<void> {
+    const code = generateOneTimeCode();
     const expiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        emailVerificationCode: code,
+        emailVerificationCode: sealOneTimeCode(this.crypto, {
+          code,
+          purpose: 'email-verification',
+          userId,
+          attemptId: registrationId,
+        }),
         emailVerificationExpiresAt: expiresAt,
         isActive: false,
       },
     });
     await this.sendCodeEmail(userId, email, code);
-  }
-
-  private generateCode(): string {
-    return String(Math.floor(100000 + Math.random() * 900000));
   }
 
   private async sendCodeEmail(

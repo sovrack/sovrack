@@ -9,12 +9,14 @@ describe('DomainsService', () => {
     dnsProvider: {
       findMany: jest.Mock;
       create: jest.Mock;
+      findFirst: jest.Mock;
       findUnique: jest.Mock;
     };
-    project: { findUnique: jest.Mock };
-    serviceEnvironment: { findUnique: jest.Mock };
+    project: { findFirst: jest.Mock; findUnique: jest.Mock };
+    serviceEnvironment: { findFirst: jest.Mock; findUnique: jest.Mock };
     domain: {
       findMany: jest.Mock;
+      findFirst: jest.Mock;
       findUnique: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
@@ -34,14 +36,23 @@ describe('DomainsService', () => {
           .mockImplementation(({ data }) =>
             Promise.resolve({ id: 'dp1', ...data }),
           ),
+        findFirst: jest.fn().mockResolvedValue({ id: 'dp1' }),
         findUnique: jest.fn().mockResolvedValue({ id: 'dp1' }),
       },
-      project: { findUnique: jest.fn().mockResolvedValue({ id: 'p1' }) },
+      project: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'p1' }),
+        findUnique: jest.fn().mockResolvedValue({ id: 'p1' }),
+      },
       serviceEnvironment: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'se1',
+          service: { projectId: 'p1' },
+        }),
         findUnique: jest.fn().mockResolvedValue({ id: 'se1' }),
       },
       domain: {
         findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue({ id: 'd1' }),
         findUnique: jest.fn().mockResolvedValue({ id: 'd1' }),
         create: jest
           .fn()
@@ -71,11 +82,14 @@ describe('DomainsService', () => {
   });
 
   it('encrypts the DNS provider API token on create', async () => {
-    await service.createProvider({
-      name: 'cf',
-      type: DnsProviderType.CLOUDFLARE,
-      apiToken: 'secret',
-    } as never);
+    await service.createProvider(
+      {
+        name: 'cf',
+        type: DnsProviderType.CLOUDFLARE,
+        apiToken: 'secret',
+      } as never,
+      'workspace-1',
+    );
     expect(crypto.encrypt).toHaveBeenCalledWith('secret');
   });
 
@@ -83,66 +97,72 @@ describe('DomainsService', () => {
     prisma.dnsProvider.findMany.mockResolvedValue([
       { id: 'dp1', name: 'cf', type: 'CLOUDFLARE', apiToken: 'enc:x' },
     ]);
-    const list = await service.listProviders();
+    const list = await service.listProviders('workspace-1');
     expect(list[0].apiToken).toBe('***');
     expect(list[0].apiTokenConfigured).toBe(true);
   });
 
   it('reports MANUAL providers as ready without a token', async () => {
-    prisma.dnsProvider.findUnique.mockResolvedValue({
+    prisma.dnsProvider.findFirst.mockResolvedValue({
       id: 'dp1',
       type: DnsProviderType.MANUAL,
       apiToken: null,
     });
-    const res = await service.testProvider('dp1');
+    const res = await service.testProvider('dp1', 'workspace-1');
     expect(res.ok).toBe(true);
     expect(res.status).toBe('MANUAL');
   });
 
   it('rejects testing a non-MANUAL provider without a token', async () => {
-    prisma.dnsProvider.findUnique.mockResolvedValue({
+    prisma.dnsProvider.findFirst.mockResolvedValue({
       id: 'dp1',
       type: DnsProviderType.CLOUDFLARE,
       apiToken: null,
     });
-    await expect(service.testProvider('dp1')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.testProvider('dp1', 'workspace-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('lowercases the domain name and validates provider + project on create', async () => {
-    const created = await service.createDomain({
-      name: 'API.Example.COM',
-      providerId: 'dp1',
-      projectId: 'p1',
-    } as never);
+    const created = await service.createDomain(
+      {
+        name: 'API.Example.COM',
+        providerId: 'dp1',
+        projectId: 'p1',
+      } as never,
+      'workspace-1',
+    );
     expect(created.name).toBe('api.example.com');
-    expect(prisma.dnsProvider.findUnique).toHaveBeenCalled();
-    expect(prisma.project.findUnique).toHaveBeenCalled();
+    expect(prisma.dnsProvider.findFirst).toHaveBeenCalled();
+    expect(prisma.project.findFirst).toHaveBeenCalled();
   });
 
   it('rejects creating a domain with an unknown provider', async () => {
-    prisma.dnsProvider.findUnique.mockResolvedValue(null);
+    prisma.dnsProvider.findFirst.mockResolvedValue(null);
     await expect(
-      service.createDomain({ name: 'x.com', providerId: 'nope' } as never),
+      service.createDomain(
+        { name: 'x.com', providerId: 'nope' } as never,
+        'workspace-1',
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('marks a domain verified only when it has records', async () => {
-    prisma.domain.findUnique.mockResolvedValue({
+    prisma.domain.findFirst.mockResolvedValue({
       id: 'd1',
       records: [{ id: 'r' }],
     });
-    await service.verifyDomain('d1');
+    await service.verifyDomain('d1', 'workspace-1');
     expect(prisma.domain.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { verified: true } }),
     );
   });
 
   it('404s when removing a missing domain', async () => {
-    prisma.domain.findUnique.mockResolvedValue(null);
-    await expect(service.removeDomain('nope')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    prisma.domain.findFirst.mockResolvedValue(null);
+    await expect(
+      service.removeDomain('nope', 'workspace-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

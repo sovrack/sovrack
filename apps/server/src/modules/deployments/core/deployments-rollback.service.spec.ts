@@ -47,15 +47,18 @@ function makeSvc(
   const created = {
     ...baseDeployment,
     id: 'dep-rollback',
-    status: DeploymentStatus.RUNNING,
+    status: DeploymentStatus.PENDING,
     isRollback: true,
   };
-  const executed = { ...created, status: DeploymentStatus.SUCCESS };
 
   const prisma = {
     deployment: {
       findFirst: jest.fn().mockResolvedValue(previous),
       create: jest.fn().mockResolvedValue(created),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    project: {
+      findUnique: jest.fn().mockResolvedValue({ teamId: 'team-1' }),
     },
   } as never;
 
@@ -69,11 +72,11 @@ function makeSvc(
   } as never;
 
   const gateway = {
-    emitStarted: jest.fn(),
+    emitStatus: jest.fn(),
   } as never;
 
-  const deployExecutor = {
-    executeDeploy: jest.fn().mockResolvedValue(executed),
+  const queueService = {
+    enqueueDeploy: jest.fn().mockResolvedValue('job-1'),
   } as never;
 
   const auditService = {
@@ -90,7 +93,7 @@ function makeSvc(
       authorizationService,
       queryService,
       gateway,
-      deployExecutor,
+      queueService,
       auditService,
       preflight,
     ),
@@ -98,7 +101,7 @@ function makeSvc(
     authorizationService,
     queryService,
     gateway,
-    deployExecutor,
+    queueService,
     auditService,
     preflight,
   };
@@ -140,17 +143,18 @@ describe('DeploymentsRollbackService', () => {
       );
     });
 
-    it('calls executeDeploy with the docker image', async () => {
-      const { svc, deployExecutor } = makeSvc();
+    it('enqueues the immutable rollback image', async () => {
+      const { svc, queueService } = makeSvc();
       await svc.rollback('dep1', 'user1', Role.OWNER);
-      expect(deployExecutor.executeDeploy).toHaveBeenCalledWith(
+      expect(queueService.enqueueDeploy).toHaveBeenCalledWith(
         'dep-rollback',
+        'team-1',
         'registry/app:v0',
       );
     });
 
     it('prefers imageSha over dockerImage when sha is present', async () => {
-      const { svc, deployExecutor } = makeSvc({
+      const { svc, queueService } = makeSvc({
         previousSuccess: {
           ...baseDeployment,
           id: 'dep0',
@@ -159,18 +163,20 @@ describe('DeploymentsRollbackService', () => {
         },
       });
       await svc.rollback('dep1', 'user1', Role.OWNER);
-      expect(deployExecutor.executeDeploy).toHaveBeenCalledWith(
+      expect(queueService.enqueueDeploy).toHaveBeenCalledWith(
         'dep-rollback',
+        'team-1',
         'sha256:abc',
       );
     });
 
-    it('emits started gateway event', async () => {
+    it('emits the pending gateway status', async () => {
       const { svc, gateway } = makeSvc();
       await svc.rollback('dep1', 'user1', Role.OWNER);
-      expect(gateway.emitStarted).toHaveBeenCalledWith(
-        expect.objectContaining({ deploymentId: 'dep-rollback' }),
-      );
+      expect(gateway.emitStatus).toHaveBeenCalledWith({
+        deploymentId: 'dep-rollback',
+        status: DeploymentStatus.PENDING,
+      });
     });
 
     it('records DEPLOYMENT_ROLLBACK audit', async () => {
@@ -202,10 +208,10 @@ describe('DeploymentsRollbackService', () => {
     // C1 (Sprints 4+5+6 mission): minimal server guard before relaunching a
     // known-working image.
     it('asserts server readiness for the resolved target server before redeploying', async () => {
-      const { svc, preflight, deployExecutor } = makeSvc();
+      const { svc, preflight, queueService } = makeSvc();
       await svc.rollback('dep1', 'user1', Role.OWNER);
       expect(preflight.assertServerReady).toHaveBeenCalledWith('srv-1');
-      expect(deployExecutor.executeDeploy).toHaveBeenCalled();
+      expect(queueService.enqueueDeploy).toHaveBeenCalled();
     });
 
     it('does not create a rollback deployment when the target server is not ready', async () => {

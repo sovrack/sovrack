@@ -12,6 +12,9 @@ function harness(
   } = {},
 ) {
   const prisma = {
+    project: {
+      findUnique: jest.fn().mockResolvedValue({ teamId: 'workspace-1' }),
+    },
     gitProviderConfig: {
       create: jest.fn().mockResolvedValue({ id: 'prov-new' }),
     },

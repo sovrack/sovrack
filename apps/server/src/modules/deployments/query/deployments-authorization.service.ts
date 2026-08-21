@@ -1,17 +1,14 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProjectRole, Role, type User } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
-import { ProjectAccessService } from '../../catalog/authorization/project-access.service';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import { ProjectActions } from '../../iam/authorization/workspace-policy.types';
 
 @Injectable()
 export class DeploymentsAuthorizationService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly projectAccess: ProjectAccessService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   async getActor(userId: string): Promise<User> {
@@ -25,39 +22,28 @@ export class DeploymentsAuthorizationService {
   async assertCanAccessProject(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
-    await this.projectAccess.assertCanAccessProject(
+    await this.assertProjectAction(
       projectId,
       userId,
-      userRole,
+      ProjectActions.READ,
+      expectedWorkspaceId,
     );
   }
 
   async assertCanDeployProject(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
-    const memberRole = await this.resolveProjectMemberRole(
+    await this.assertProjectAction(
       projectId,
       userId,
-      userRole,
-    );
-
-    if (memberRole === null) {
-      return;
-    }
-
-    if (
-      memberRole === ProjectRole.OWNER ||
-      memberRole === ProjectRole.DEVELOPER
-    ) {
-      return;
-    }
-
-    throw new ForbiddenException(
-      'Action réservée aux OWNER/DEVELOPER du projet ou ADMIN',
+      ProjectActions.DEPLOY,
+      expectedWorkspaceId,
     );
   }
 
@@ -71,78 +57,69 @@ export class DeploymentsAuthorizationService {
     environmentId: string,
     userId: string,
     _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
     const environment = await this.prisma.environment.findUnique({
       where: { id: environmentId },
-      select: { isProtected: true },
+      select: { isProtected: true, projectId: true },
     });
 
-    if (!environment?.isProtected) {
+    if (!environment || environment.projectId !== projectId) {
+      throw new NotFoundException('Environnement introuvable');
+    }
+    if (!environment.isProtected) {
       return;
     }
-
-    // Environment is protected — only OWNER project members can deploy.
-    const member = await this.prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId } },
-      select: { role: true },
-    });
-
-    if (member?.role === ProjectRole.OWNER) {
-      return;
-    }
-
-    throw new ForbiddenException(
-      'Cet environnement est protégé. Seuls les OWNER du projet ou les ADMIN peuvent y déployer.',
+    await this.assertProjectAction(
+      projectId,
+      userId,
+      ProjectActions.DEPLOY_PROTECTED,
+      expectedWorkspaceId,
     );
   }
 
   async assertCanRollbackProject(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
-    const memberRole = await this.resolveProjectMemberRole(
+    await this.assertProjectAction(
       projectId,
       userId,
-      userRole,
+      ProjectActions.ROLLBACK,
+      expectedWorkspaceId,
     );
-
-    if (memberRole === null) {
-      return;
-    }
-
-    if (memberRole === ProjectRole.OWNER) {
-      return;
-    }
-
-    throw new ForbiddenException('Action réservée au OWNER du projet');
   }
 
   async resolveProjectMemberRole(
     projectId: string,
     userId: string,
     _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<ProjectRole | null> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      include: {
-        members: {
-          where: { userId },
-          select: { role: true },
-          take: 1,
-        },
-      },
-    });
+    const context = await this.assertProjectAction(
+      projectId,
+      userId,
+      ProjectActions.READ,
+      expectedWorkspaceId,
+    );
+    return context.effectiveProjectRole;
+  }
 
-    if (!project) {
-      throw new NotFoundException('Projet non trouvé');
-    }
-
-    const member = project.members[0];
-    if (!member) {
-      throw new ForbiddenException('Accès non autorisé à ce projet');
-    }
-
-    return member.role;
+  private assertProjectAction(
+    projectId: string,
+    userId: string,
+    action: Parameters<WorkspaceAccessService['assertProjectAction']>[2],
+    expectedWorkspaceId?: string,
+  ) {
+    return expectedWorkspaceId
+      ? this.workspaceAccess.assertProjectAction(
+          projectId,
+          userId,
+          action,
+          expectedWorkspaceId,
+        )
+      : this.workspaceAccess.assertProjectAction(projectId, userId, action);
   }
 }

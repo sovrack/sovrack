@@ -22,39 +22,75 @@ describe('DomainsController', () => {
 
   it('provider endpoints delegate', async () => {
     const { ctrl, domainsService } = build();
-    await ctrl.listProviders();
-    await ctrl.createProvider({ name: 'n' } as never);
-    await ctrl.testProvider('pr1');
-    expect(domainsService.listProviders).toHaveBeenCalled();
-    expect(domainsService.createProvider).toHaveBeenCalledWith({ name: 'n' });
-    expect(domainsService.testProvider).toHaveBeenCalledWith('pr1');
+    await ctrl.listProviders('workspace-1');
+    await ctrl.createProvider({ name: 'n' } as never, 'workspace-1');
+    await ctrl.testProvider('pr1', 'workspace-1');
+    expect(domainsService.listProviders).toHaveBeenCalledWith('workspace-1');
+    expect(domainsService.createProvider).toHaveBeenCalledWith(
+      { name: 'n' },
+      'workspace-1',
+    );
+    expect(domainsService.testProvider).toHaveBeenCalledWith(
+      'pr1',
+      'workspace-1',
+    );
   });
 
   it('domain endpoints delegate', async () => {
     const { ctrl, domainsService } = build();
-    await ctrl.listDomains('p1', 'se1');
-    await ctrl.createDomain({ name: 'd.com' } as never);
-    expect(await ctrl.removeDomain('d1')).toEqual({ deleted: true });
-    await ctrl.verifyDomain('d1');
-    expect(domainsService.listDomains).toHaveBeenCalledWith('p1', 'se1');
-    expect(domainsService.createDomain).toHaveBeenCalledWith({ name: 'd.com' });
-    expect(domainsService.removeDomain).toHaveBeenCalledWith('d1');
-    expect(domainsService.verifyDomain).toHaveBeenCalledWith('d1');
+    await ctrl.listDomains('workspace-1', 'p1', 'se1');
+    await ctrl.createDomain({ name: 'd.com' } as never, 'workspace-1');
+    expect(await ctrl.removeDomain('d1', 'workspace-1')).toEqual({
+      deleted: true,
+    });
+    await ctrl.verifyDomain('d1', 'workspace-1');
+    expect(domainsService.listDomains).toHaveBeenCalledWith(
+      'workspace-1',
+      'p1',
+      'se1',
+    );
+    expect(domainsService.createDomain).toHaveBeenCalledWith(
+      { name: 'd.com' },
+      'workspace-1',
+    );
+    expect(domainsService.removeDomain).toHaveBeenCalledWith(
+      'd1',
+      'workspace-1',
+    );
+    expect(domainsService.verifyDomain).toHaveBeenCalledWith(
+      'd1',
+      'workspace-1',
+    );
   });
 
   it('record endpoints delegate', async () => {
     const { ctrl, domainsService } = build();
-    await ctrl.listRecords('d1');
-    await ctrl.createRecord('d1', { type: 'A' } as never);
-    await ctrl.updateRecord('rec1', { type: 'A' } as never);
-    const res = await ctrl.removeRecord('rec1');
-    expect(domainsService.listRecords).toHaveBeenCalledWith('d1');
-    expect(domainsService.createRecord).toHaveBeenCalledWith('d1', {
-      type: 'A',
-    });
-    expect(domainsService.updateRecord).toHaveBeenCalledWith('rec1', {
-      type: 'A',
-    });
+    await ctrl.listRecords('d1', 'workspace-1');
+    await ctrl.createRecord('d1', { type: 'A' } as never, 'workspace-1');
+    await ctrl.updateRecord('rec1', { type: 'A' } as never, 'workspace-1');
+    const res = await ctrl.removeRecord('rec1', 'workspace-1');
+    expect(domainsService.listRecords).toHaveBeenCalledWith(
+      'd1',
+      'workspace-1',
+    );
+    expect(domainsService.createRecord).toHaveBeenCalledWith(
+      'd1',
+      {
+        type: 'A',
+      },
+      'workspace-1',
+    );
+    expect(domainsService.updateRecord).toHaveBeenCalledWith(
+      'rec1',
+      {
+        type: 'A',
+      },
+      'workspace-1',
+    );
+    expect(domainsService.removeRecord).toHaveBeenCalledWith(
+      'rec1',
+      'workspace-1',
+    );
     expect(res).toEqual({ message: 'Record DNS supprimé avec succès' });
   });
 });

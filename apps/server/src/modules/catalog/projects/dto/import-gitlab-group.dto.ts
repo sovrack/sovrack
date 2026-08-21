@@ -72,7 +72,7 @@ export class ImportGitlabGroupDto {
   @IsUrl()
   gitlabUrl?: string;
 
-  @ApiPropertyOptional({ example: 'glpat-xxxxxxxxxxxxxxxxxxxx' })
+  @ApiPropertyOptional({ example: '<gitlab-access-token>' })
   @IsOptional()
   @IsString()
   gitlabToken?: string;

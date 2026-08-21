@@ -64,7 +64,11 @@ type MatchingServiceEnv = Pick<
     id: string;
     isProtected: boolean;
     name: string;
-    project: { id: string; maxConcurrentDeploys: number | null } | null;
+    project: {
+      id: string;
+      teamId: string;
+      maxConcurrentDeploys: number | null;
+    } | null;
   };
 };
 
@@ -154,7 +158,9 @@ export class DeploymentsAutoTriggerService {
             id: true,
             isProtected: true,
             name: true,
-            project: { select: { id: true, maxConcurrentDeploys: true } },
+            project: {
+              select: { id: true, teamId: true, maxConcurrentDeploys: true },
+            },
           },
         },
       },
@@ -293,10 +299,13 @@ export class DeploymentsAutoTriggerService {
               staticConfig,
             });
 
-      const project = svcEnv.environment.project ?? {
-        id: projectId,
-        maxConcurrentDeploys: null,
-      };
+      const project = svcEnv.environment.project;
+      if (!project) {
+        this.logger.warn(
+          `Auto-deploy skipped: project ${projectId} no longer exists`,
+        );
+        return;
+      }
 
       const deployment = await this.prisma.$transaction(async (tx) => {
         // Atomic advisory lock + stale recovery + in-flight guard + project cap.
@@ -354,7 +363,11 @@ export class DeploymentsAutoTriggerService {
         startedAt: deployment.startedAt,
       });
 
-      await this.queueService.enqueueDeploy(deployment.id, dockerImage);
+      await this.queueService.enqueueDeploy(
+        deployment.id,
+        project.teamId,
+        dockerImage,
+      );
     } catch (error) {
       this.logger.error(
         `Auto-deploy failed for serviceEnv ${svcEnv.id}: ${

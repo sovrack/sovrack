@@ -1,5 +1,8 @@
 import { VolumesService } from './volumes.service';
 import { VolumesController } from './volumes.controller';
+import { Role } from '@prisma/client';
+
+const user = { id: 'user-1', email: 'u@example.com', role: Role.MEMBER };
 
 describe('VolumesController', () => {
   function build() {
@@ -14,24 +17,42 @@ describe('VolumesController', () => {
     return { ctrl, volumesService };
   }
 
-  it('findAll forwards filters', () => {
+  it('findAll forwards filters', async () => {
     const { ctrl, volumesService } = build();
-    ctrl.findAll('s1', 'svc1');
-    expect(volumesService.findAll).toHaveBeenCalledWith({
-      serverId: 's1',
-      serviceId: 'svc1',
-    });
+    await ctrl.findAll(user, 's1', 'svc1', 'workspace-1');
+    expect(volumesService.findAll).toHaveBeenCalledWith(
+      { serverId: 's1', serviceId: 'svc1' },
+      'user-1',
+      'workspace-1',
+    );
   });
 
-  it('CRUD endpoints delegate', () => {
+  it('CRUD endpoints delegate', async () => {
     const { ctrl, volumesService } = build();
-    ctrl.findOne('v1');
-    ctrl.create({ name: 'v' } as never);
-    ctrl.update('v1', { name: 'v2' } as never);
-    ctrl.remove('v1');
-    expect(volumesService.findOne).toHaveBeenCalledWith('v1');
-    expect(volumesService.create).toHaveBeenCalledWith({ name: 'v' });
-    expect(volumesService.update).toHaveBeenCalledWith('v1', { name: 'v2' });
-    expect(volumesService.remove).toHaveBeenCalledWith('v1');
+    await ctrl.findOne('v1', user, 'workspace-1');
+    await ctrl.create({ name: 'v' } as never, user, 'workspace-1');
+    await ctrl.update('v1', { name: 'v2' } as never, user, 'workspace-1');
+    await ctrl.remove('v1', user, 'workspace-1');
+    expect(volumesService.findOne).toHaveBeenCalledWith(
+      'v1',
+      'user-1',
+      'workspace-1',
+    );
+    expect(volumesService.create).toHaveBeenCalledWith(
+      { name: 'v' },
+      'user-1',
+      'workspace-1',
+    );
+    expect(volumesService.update).toHaveBeenCalledWith(
+      'v1',
+      { name: 'v2' },
+      'user-1',
+      'workspace-1',
+    );
+    expect(volumesService.remove).toHaveBeenCalledWith(
+      'v1',
+      'user-1',
+      'workspace-1',
+    );
   });
 });

@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,6 +7,8 @@ import { Prisma, ProjectRole, Role } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { AddMemberDto } from '../dto/add-member.dto';
 import { ProjectsService } from '../projects.service';
+import { WorkspaceAccessService } from '../../../iam/authorization/workspace-access.service';
+import { ProjectActions } from '../../../iam/authorization/workspace-policy.types';
 
 // Shape used only to derive the ProjectWithMembers type (via typeof); the
 // runtime value itself isn't passed to a query, hence the `_` prefix.
@@ -20,7 +21,6 @@ const _projectWithMembersInclude = {
           id: true,
           email: true,
           fullName: true,
-          role: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -39,6 +39,7 @@ export class ProjectMembersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly projectsService: ProjectsService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   /**
@@ -49,11 +50,13 @@ export class ProjectMembersService {
     userId: string,
     userRole: Role,
     dto: AddMemberDto,
+    expectedWorkspaceId?: string,
   ): Promise<ProjectWithMembers> {
-    await this.projectsService.assertCanManageProject(
+    await this.workspaceAccess.assertProjectAction(
       projectId,
       userId,
-      userRole,
+      ProjectActions.MANAGE_MEMBERS,
+      expectedWorkspaceId,
     );
 
     const lookup = dto.userId
@@ -72,6 +75,15 @@ export class ProjectMembersService {
     if (!targetUser) {
       throw new NotFoundException('Utilisateur non trouvé');
     }
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    });
+    if (!project) throw new NotFoundException('Projet introuvable');
+    await this.workspaceAccess.assertUserIsActiveMember(
+      project.teamId,
+      targetUser.id,
+    );
 
     const existingMembership = await this.prisma.projectMember.findUnique({
       where: {
@@ -89,12 +101,18 @@ export class ProjectMembersService {
     await this.prisma.projectMember.create({
       data: {
         projectId,
+        teamId: project.teamId,
         userId: targetUser.id,
         role: dto.role ?? ProjectRole.DEVELOPER,
       },
     });
 
-    return await this.projectsService.findOne(projectId, userId, userRole);
+    return await this.projectsService.findOne(
+      projectId,
+      userId,
+      userRole,
+      expectedWorkspaceId,
+    );
   }
 
   /**
@@ -105,11 +123,13 @@ export class ProjectMembersService {
     userId: string,
     userRole: Role,
     targetUserId: string,
+    expectedWorkspaceId?: string,
   ): Promise<ProjectWithMembers> {
-    await this.projectsService.assertCanManageProject(
+    await this.workspaceAccess.assertProjectAction(
       projectId,
       userId,
-      userRole,
+      ProjectActions.MANAGE_MEMBERS,
+      expectedWorkspaceId,
     );
 
     const membership = await this.prisma.projectMember.findUnique({
@@ -125,10 +145,6 @@ export class ProjectMembersService {
       throw new NotFoundException('Membre non trouvé dans ce projet');
     }
 
-    if (membership.role === ProjectRole.OWNER) {
-      throw new ForbiddenException('Impossible de retirer le OWNER du projet');
-    }
-
     await this.prisma.projectMember.delete({
       where: {
         projectId_userId: {
@@ -138,7 +154,41 @@ export class ProjectMembersService {
       },
     });
 
-    return await this.projectsService.findOne(projectId, userId, userRole);
+    return await this.projectsService.findOne(
+      projectId,
+      userId,
+      userRole,
+      expectedWorkspaceId,
+    );
+  }
+
+  async updateMemberRole(
+    projectId: string,
+    userId: string,
+    userRole: Role,
+    targetUserId: string,
+    role: ProjectRole,
+    expectedWorkspaceId?: string,
+  ): Promise<ProjectWithMembers> {
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      userId,
+      ProjectActions.MANAGE_MEMBERS,
+      expectedWorkspaceId,
+    );
+    const updated = await this.prisma.projectMember.updateMany({
+      where: { projectId, userId: targetUserId },
+      data: { role },
+    });
+    if (updated.count !== 1) {
+      throw new NotFoundException('Membre non trouvé dans ce projet');
+    }
+    return this.projectsService.findOne(
+      projectId,
+      userId,
+      userRole,
+      expectedWorkspaceId,
+    );
   }
 
   /**
@@ -147,12 +197,14 @@ export class ProjectMembersService {
   async getMembers(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<ProjectWithMembers['members']> {
-    await this.projectsService.assertCanAccessProject(
+    await this.workspaceAccess.assertProjectAction(
       projectId,
       userId,
-      userRole,
+      ProjectActions.READ,
+      expectedWorkspaceId,
     );
 
     const members = await this.prisma.projectMember.findMany({
@@ -164,7 +216,6 @@ export class ProjectMembersService {
             id: true,
             email: true,
             fullName: true,
-            role: true,
             isActive: true,
             createdAt: true,
             updatedAt: true,

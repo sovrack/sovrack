@@ -18,14 +18,29 @@ describe('SshKeysController', () => {
 
   it('findAll / create / remove delegate scoped to the user', async () => {
     const { ctrl, sshKeysService } = build();
-    await ctrl.findAll(user);
-    await ctrl.create(user, { name: 'k', publicKey: 'ssh-rsa' } as never);
-    await ctrl.remove(user, 'k1');
-    expect(sshKeysService.findAll).toHaveBeenCalledWith('user-1');
-    expect(sshKeysService.create).toHaveBeenCalledWith('user-1', {
-      name: 'k',
-      publicKey: 'ssh-rsa',
-    });
-    expect(sshKeysService.remove).toHaveBeenCalledWith('k1', 'user-1');
+    await ctrl.findAll(user, 'workspace-1');
+    await ctrl.create(
+      user,
+      { name: 'k', publicKey: 'ssh-rsa' } as never,
+      'workspace-1',
+    );
+    await ctrl.remove(user, 'k1', 'workspace-1');
+    expect(sshKeysService.findAll).toHaveBeenCalledWith(
+      'user-1',
+      'workspace-1',
+    );
+    expect(sshKeysService.create).toHaveBeenCalledWith(
+      'user-1',
+      {
+        name: 'k',
+        publicKey: 'ssh-rsa',
+      },
+      'workspace-1',
+    );
+    expect(sshKeysService.remove).toHaveBeenCalledWith(
+      'k1',
+      'user-1',
+      'workspace-1',
+    );
   });
 });

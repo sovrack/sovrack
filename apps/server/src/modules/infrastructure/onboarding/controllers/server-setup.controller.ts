@@ -15,11 +15,8 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
-import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { GetUser } from '../../../../shared/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../../shared/guards/roles.guard';
+import { ServerWorkspaceGuard } from '../../../iam/authorization/server-workspace.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { StartServerSetupDto } from '../../servers/dto';
 import {
@@ -30,9 +27,8 @@ import { ServerSetupService } from '../services/infra-setup.service';
 
 @ApiTags('Servers Setup')
 @ApiBearerAuth()
-@Controller('servers')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.OWNER, Role.MEMBER)
+@Controller(['workspaces/:workspaceId/servers', 'servers'])
+@UseGuards(ServerWorkspaceGuard)
 export class ServerSetupController {
   private readonly logger = new Logger(ServerSetupController.name);
 

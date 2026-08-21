@@ -1,9 +1,5 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { ProjectRole, Role } from '@prisma/client';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { BuildDetectorService } from './detection/build-detector.service';
 import { DockerfileGenerator } from './generation/dockerfiles/dockerfile.generator';
@@ -15,6 +11,8 @@ import type {
   BuildPrepareServiceResult,
   BuildPrepareResponse,
 } from './types/build-prepare.types';
+import { WorkspaceAccessService } from '../iam/authorization/workspace-access.service';
+import { ProjectActions } from '../iam/authorization/workspace-policy.types';
 
 @Injectable()
 export class BuildOrchestratorService {
@@ -25,6 +23,7 @@ export class BuildOrchestratorService {
     private readonly dockerignoreGenerator: DockerignoreGenerator,
     private readonly ciGeneratorFactory: CiGeneratorFactory,
     private readonly gitProvidersService: SourceProvidersService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   async generateBuildFiles(
@@ -34,8 +33,14 @@ export class BuildOrchestratorService {
     serviceId?: string,
     overwriteDockerfile?: boolean,
     overwriteGitlabCi?: boolean,
+    expectedWorkspaceId?: string,
   ): Promise<BuildPrepareResponse> {
-    await this.assertCanConfigureBuild(projectId, userId, userRole);
+    await this.assertCanConfigureBuild(
+      projectId,
+      userId,
+      userRole,
+      expectedWorkspaceId,
+    );
     return await this.prepareServiceInternal(
       projectId,
       serviceId,
@@ -49,8 +54,14 @@ export class BuildOrchestratorService {
     userId: string,
     userRole: Role,
     serviceId?: string,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
-    await this.assertCanConfigureBuild(projectId, userId, userRole);
+    await this.assertCanConfigureBuild(
+      projectId,
+      userId,
+      userRole,
+      expectedWorkspaceId,
+    );
 
     const prepared = await this.prepareServiceInternal(projectId, serviceId);
     const provider = serviceId
@@ -70,28 +81,14 @@ export class BuildOrchestratorService {
     projectId: string,
     userId: string,
     _userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
-    const membership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
-      select: {
-        role: true,
-      },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException('Accès non autorisé au projet');
-    }
-
-    if (membership.role === ProjectRole.VIEWER) {
-      throw new ForbiddenException(
-        'Le rôle VIEWER ne peut pas configurer le build',
-      );
-    }
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      userId,
+      ProjectActions.UPDATE,
+      expectedWorkspaceId,
+    );
   }
 
   async prepareServiceInternal(

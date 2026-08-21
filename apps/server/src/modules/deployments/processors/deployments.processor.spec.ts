@@ -1,6 +1,7 @@
 import { createDeploymentsWorker } from '../../../shared/queue/queue.provider';
 import { DockerDeployExecutorService } from '../core/docker-deploy-executor.service';
 import { DeploymentsProcessor } from './deployments.processor';
+import { PrismaService } from '../../../shared/database/prisma.service';
 
 jest.mock('../../../shared/queue/queue.provider', () => ({
   createDeploymentsWorker: jest.fn(),
@@ -10,6 +11,7 @@ describe('DeploymentsProcessor', () => {
   let processor: DeploymentsProcessor;
   let mockWorker: { on: jest.Mock; close: jest.Mock };
   let executeDeploy: jest.Mock;
+  let prisma: { deployment: { findFirst: jest.Mock } };
   let capturedProcessFn: (job: {
     name: string;
     data: unknown;
@@ -30,7 +32,15 @@ describe('DeploymentsProcessor', () => {
     const executor = {
       executeDeploy,
     } as unknown as DockerDeployExecutorService;
-    processor = new DeploymentsProcessor(executor);
+    prisma = {
+      deployment: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'd1' }),
+      },
+    };
+    processor = new DeploymentsProcessor(
+      executor,
+      prisma as unknown as PrismaService,
+    );
   });
 
   afterEach(() => {
@@ -84,17 +94,47 @@ describe('DeploymentsProcessor', () => {
     it('routes deploy job to executeDeploy', async () => {
       await capturedProcessFn({
         name: 'deploy',
-        data: { deploymentId: 'd1', overrideImage: null },
+        data: {
+          deploymentId: 'd1',
+          overrideImage: null,
+          workspaceId: 'workspace-1',
+        },
       });
       expect(executeDeploy).toHaveBeenCalledWith('d1', null);
+      expect(prisma.deployment.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'd1',
+          project: { teamId: 'workspace-1' },
+        },
+        select: { id: true },
+      });
     });
 
     it('passes overrideImage to executeDeploy', async () => {
       await capturedProcessFn({
         name: 'deploy',
-        data: { deploymentId: 'd2', overrideImage: 'registry/img:tag' },
+        data: {
+          deploymentId: 'd2',
+          overrideImage: 'registry/img:tag',
+          workspaceId: 'workspace-1',
+        },
       });
       expect(executeDeploy).toHaveBeenCalledWith('d2', 'registry/img:tag');
+    });
+
+    it('rejects a deployment that no longer belongs to the queued workspace', async () => {
+      prisma.deployment.findFirst.mockResolvedValueOnce(null);
+      await expect(
+        capturedProcessFn({
+          name: 'deploy',
+          data: {
+            deploymentId: 'd1',
+            overrideImage: null,
+            workspaceId: 'workspace-2',
+          },
+        }),
+      ).rejects.toThrow('Deployment job workspace mismatch');
+      expect(executeDeploy).not.toHaveBeenCalled();
     });
 
     it('returns undefined for unknown job names without throwing', async () => {

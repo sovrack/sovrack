@@ -1,5 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ProjectRole, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { BuildDetectorService } from './detection/build-detector.service';
 import { DockerfileGenerator } from './generation/dockerfiles/dockerfile.generator';
@@ -7,12 +7,13 @@ import { DockerignoreGenerator } from './generation/dockerfiles/dockerignore.gen
 import { CiGeneratorFactory } from './generation/ci/ci-generator.factory';
 import { SourceProvidersService } from '../source-providers/source-providers.service';
 import { BuildOrchestratorService } from './build-orchestrator.service';
+import { WorkspaceAccessService } from '../iam/authorization/workspace-access.service';
+import { ProjectActions } from '../iam/authorization/workspace-policy.types';
 
 describe('BuildOrchestratorService', () => {
   let prisma: {
     project: { findUnique: jest.Mock };
     service: { findFirst: jest.Mock; update: jest.Mock };
-    projectMember: { findUnique: jest.Mock };
     pipelineRun: { findFirst: jest.Mock };
   };
   let detector: { detectProjectType: jest.Mock };
@@ -21,6 +22,7 @@ describe('BuildOrchestratorService', () => {
   let ciFactory: { forProject: jest.Mock };
   let providers: { forProject: jest.Mock; forService: jest.Mock };
   let provider: { writeFiles: jest.Mock };
+  let workspaceAccess: { assertProjectAction: jest.Mock };
   let service: BuildOrchestratorService;
 
   beforeEach(() => {
@@ -39,7 +41,6 @@ describe('BuildOrchestratorService', () => {
           .mockResolvedValue({ id: 'svc1', name: 'api', branch: 'main' }),
         update: jest.fn().mockResolvedValue({}),
       },
-      projectMember: { findUnique: jest.fn().mockResolvedValue(null) },
       pipelineRun: {
         findFirst: jest.fn().mockResolvedValue({ webUrl: 'http://ci' }),
       },
@@ -66,6 +67,9 @@ describe('BuildOrchestratorService', () => {
       forProject: jest.fn().mockResolvedValue(provider),
       forService: jest.fn().mockResolvedValue(provider),
     };
+    workspaceAccess = {
+      assertProjectAction: jest.fn().mockResolvedValue({}),
+    };
     service = new BuildOrchestratorService(
       prisma as unknown as PrismaService,
       detector as unknown as BuildDetectorService,
@@ -73,39 +77,42 @@ describe('BuildOrchestratorService', () => {
       dockerignoreGen as unknown as DockerignoreGenerator,
       ciFactory as unknown as CiGeneratorFactory,
       providers as unknown as SourceProvidersService,
+      workspaceAccess as unknown as WorkspaceAccessService,
     );
   });
 
   describe('assertCanConfigureBuild', () => {
-    it('allows a member to configure the build', async () => {
-      prisma.projectMember.findUnique.mockResolvedValue({
-        role: ProjectRole.DEVELOPER,
-      });
+    it('allows a project member authorized by the central policy', async () => {
       await expect(
-        service.assertCanConfigureBuild('p1', 'u1', Role.MEMBER),
+        service.assertCanConfigureBuild('p1', 'u1', Role.MEMBER, 'workspace-1'),
       ).resolves.toBeUndefined();
+      expect(workspaceAccess.assertProjectAction).toHaveBeenCalledWith(
+        'p1',
+        'u1',
+        ProjectActions.UPDATE,
+        'workspace-1',
+      );
     });
 
-    it('forbids a non-member', async () => {
-      prisma.projectMember.findUnique.mockResolvedValue(null);
+    it('hides the project from a non-member', async () => {
+      workspaceAccess.assertProjectAction.mockRejectedValueOnce(
+        new NotFoundException('Projet introuvable'),
+      );
       await expect(
         service.assertCanConfigureBuild('p1', 'u2', Role.MEMBER),
-      ).rejects.toBeInstanceOf(ForbiddenException);
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('forbids a VIEWER', async () => {
-      prisma.projectMember.findUnique.mockResolvedValue({
-        role: ProjectRole.VIEWER,
-      });
+      workspaceAccess.assertProjectAction.mockRejectedValueOnce(
+        new ForbiddenException('Action projet interdite'),
+      );
       await expect(
         service.assertCanConfigureBuild('p1', 'u2', Role.MEMBER),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('allows a DEVELOPER member', async () => {
-      prisma.projectMember.findUnique.mockResolvedValue({
-        role: ProjectRole.DEVELOPER,
-      });
       await expect(
         service.assertCanConfigureBuild('p1', 'u2', Role.MEMBER),
       ).resolves.toBeUndefined();
@@ -113,9 +120,6 @@ describe('BuildOrchestratorService', () => {
   });
 
   it('generates build files as PREVIEW (no repo write) and persists buildType on the service', async () => {
-    prisma.projectMember.findUnique.mockResolvedValue({
-      role: ProjectRole.DEVELOPER,
-    });
     const res = await service.generateBuildFiles(
       'p1',
       'u1',
@@ -134,9 +138,6 @@ describe('BuildOrchestratorService', () => {
   });
 
   it('404s prepareServiceInternal when the service is missing', async () => {
-    prisma.projectMember.findUnique.mockResolvedValue({
-      role: ProjectRole.DEVELOPER,
-    });
     prisma.service.findFirst.mockResolvedValue(null);
     await expect(
       service.generateBuildFiles('p1', 'u1', Role.MEMBER, 'ghost'),
@@ -144,9 +145,6 @@ describe('BuildOrchestratorService', () => {
   });
 
   it('pushFiles 404s when the project is missing', async () => {
-    prisma.projectMember.findUnique.mockResolvedValue({
-      role: ProjectRole.DEVELOPER,
-    });
     prisma.project.findUnique.mockResolvedValue(null);
     await expect(
       service.pushFiles('nope', 'u1', Role.MEMBER),

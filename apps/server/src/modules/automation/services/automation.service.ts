@@ -68,20 +68,20 @@ export class AutomationService {
     return AUTOMATION_ACTIONS;
   }
 
-  async getRuns(pagination?: AutomationPaginationDto) {
+  async getRuns(workspaceId: string, pagination?: AutomationPaginationDto) {
     const page = pagination?.page ?? 1;
     const pageSize = pagination?.pageSize ?? 20;
     const skip = (page - 1) * pageSize;
     const [items, total] = await Promise.all([
       this.prisma.serverRun.findMany({
-        where: { kind: ServerRunKind.AUTOMATION },
+        where: { teamId: workspaceId, kind: ServerRunKind.AUTOMATION },
         skip,
         take: pageSize,
         orderBy: { createdAt: 'desc' },
         include: runListInclude,
       }),
       this.prisma.serverRun.count({
-        where: { kind: ServerRunKind.AUTOMATION },
+        where: { teamId: workspaceId, kind: ServerRunKind.AUTOMATION },
       }),
     ]);
     return {
@@ -92,25 +92,29 @@ export class AutomationService {
     };
   }
 
-  async getRun(id: string) {
+  async getRun(id: string, workspaceId: string) {
     const run = await this.prisma.serverRun.findFirst({
-      where: { id, kind: ServerRunKind.AUTOMATION },
+      where: { id, teamId: workspaceId, kind: ServerRunKind.AUTOMATION },
       include: runDetailInclude,
     });
     if (!run) throw new NotFoundException('Automation run not found');
     return this.toAutomationRunShape(run);
   }
 
-  async getRunLogs(id: string, afterLine?: number) {
+  async getRunLogs(id: string, workspaceId: string, afterLine?: number) {
     const run = await this.prisma.serverRun.findFirst({
-      where: { id, kind: ServerRunKind.AUTOMATION },
+      where: { id, teamId: workspaceId, kind: ServerRunKind.AUTOMATION },
       select: { id: true },
     });
     if (!run) throw new NotFoundException('Automation run not found');
     return this.serverRuns.getLogs(id, afterLine);
   }
 
-  async startRun(dto: CreateAutomationRunDto, actorId?: string) {
+  async startRun(
+    dto: CreateAutomationRunDto,
+    workspaceId: string,
+    actorId?: string,
+  ) {
     const action = getAutomationAction(dto.actionKey);
     if (!action) {
       throw new BadRequestException(`Unknown action: ${dto.actionKey}`);
@@ -128,7 +132,11 @@ export class AutomationService {
     }
 
     const servers = await this.prisma.server.findMany({
-      where: activeWhere({ id: { in: serverIds }, isActive: true }),
+      where: activeWhere({
+        id: { in: serverIds },
+        teamId: workspaceId,
+        isActive: true,
+      }),
       select: { id: true },
     });
 
@@ -141,6 +149,7 @@ export class AutomationService {
     const run = await this.prisma.serverRun.create({
       data: {
         kind: ServerRunKind.AUTOMATION,
+        teamId: workspaceId,
         actionKey: action.key,
         actionLabel: action.label,
         status: ServerRunStatus.QUEUED,
@@ -163,6 +172,7 @@ export class AutomationService {
       data: serverIds.map((serverId) => ({
         resourceType: 'SERVER',
         resourceId: serverId,
+        teamId: workspaceId,
         userId: actorId ?? null,
         action: 'AUTOMATION_RUN_REQUESTED',
         metadata: {
@@ -178,13 +188,13 @@ export class AutomationService {
     );
     // Hand the Ansible run to the worker process via the automation-runs queue
     // (in single-process mode the same process consumes it).
-    await this.queue.enqueueAutomationRun({ runId: run.id });
+    await this.queue.enqueueAutomationRun({ workspaceId, runId: run.id });
     return this.toAutomationRunShape(run);
   }
 
-  async cancelRun(id: string, actorId?: string) {
+  async cancelRun(id: string, workspaceId: string, actorId?: string) {
     const run = await this.prisma.serverRun.findFirst({
-      where: { id, kind: ServerRunKind.AUTOMATION },
+      where: { id, teamId: workspaceId, kind: ServerRunKind.AUTOMATION },
       include: {
         steps: { select: { serverId: true } },
       },
@@ -215,6 +225,7 @@ export class AutomationService {
         data: canceledServerIds.map((serverId) => ({
           resourceType: 'SERVER',
           resourceId: serverId,
+          teamId: workspaceId,
           userId: actorId ?? null,
           action: 'AUTOMATION_RUN_CANCELED',
           metadata: { runId: id } as Prisma.InputJsonValue,
@@ -222,12 +233,12 @@ export class AutomationService {
       });
     }
 
-    return await this.getRun(id);
+    return await this.getRun(id, workspaceId);
   }
 
-  async deleteRun(id: string) {
+  async deleteRun(id: string, workspaceId: string) {
     const run = await this.prisma.serverRun.findFirst({
-      where: { id, kind: ServerRunKind.AUTOMATION },
+      where: { id, teamId: workspaceId, kind: ServerRunKind.AUTOMATION },
     });
     if (!run) throw new NotFoundException('Automation run not found');
     if (ACTIVE_RUN_STATUSES.includes(run.status)) {

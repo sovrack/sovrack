@@ -51,11 +51,13 @@ export class BuildSetupService {
     projectId: string,
     userId: string,
     userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<{ types: string[] }> {
     await this.buildService.assertCanConfigureBuild(
       projectId,
       userId,
       userRole,
+      expectedWorkspaceId,
     );
     return { types: SUPPORTED_TYPES };
   }
@@ -66,11 +68,13 @@ export class BuildSetupService {
     userId: string,
     userRole: Role,
     serviceId?: string,
+    expectedWorkspaceId?: string,
   ): Promise<void> {
     await this.buildService.assertCanConfigureBuild(
       projectId,
       userId,
       userRole,
+      expectedWorkspaceId,
     );
 
     const project = await this.prisma.project.findUnique({
@@ -120,11 +124,13 @@ export class BuildSetupService {
     projectId: string,
     userId: string,
     userRole: Role,
+    expectedWorkspaceId?: string,
   ): Promise<{ results: BuildPrepareServiceResult[] }> {
     await this.buildService.assertCanConfigureBuild(
       projectId,
       userId,
       userRole,
+      expectedWorkspaceId,
     );
 
     const project = await this.prisma.project.findUnique({

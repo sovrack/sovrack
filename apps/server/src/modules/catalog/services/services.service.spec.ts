@@ -36,7 +36,9 @@ describe('ServicesService — soft-delete name collision', () => {
       prisma,
       {} as never,
       {} as never,
-      new ProjectAccessService(prisma),
+      new ProjectAccessService(prisma, {
+        assertProjectAction: jest.fn().mockResolvedValue(undefined),
+      } as never),
       {} as never, // CryptoService — unused by remove()
     );
   }
@@ -357,8 +359,10 @@ describe('ServicesService — CRUD', () => {
       Role.SUPER_ADMIN,
     );
 
-    const creds = prisma.service.create.mock.calls[0][0].data
-      .databaseCredentials as { password: string };
+    const sealed = prisma.service.create.mock.calls[0][0].data
+      .databaseCredentials as string;
+    expect(sealed).toMatch(/^enc:/);
+    const creds = JSON.parse(sealed.slice(4)) as { password: string };
     expect(creds.password).toBeTruthy();
     expect(creds.password.toLowerCase()).not.toBe('changeme');
     expect(creds.password.length).toBeGreaterThan(10);

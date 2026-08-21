@@ -30,16 +30,14 @@ describe('GitProviderLegacySyncService.syncDefaultConfig', () => {
     );
   });
 
-  it('clears all legacy GitLab keys when there is no default provider', async () => {
-    prisma.gitProviderConfig.findFirst.mockResolvedValue(null);
-    await service.syncDefaultConfig();
-    expect(prisma.platformConfig.deleteMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { key: { in: expect.any(Array) } } }),
-    );
+  it('does not read or write global legacy configuration for a workspace', async () => {
+    await service.syncDefaultConfig('workspace-1');
+    expect(prisma.gitProviderConfig.findFirst).not.toHaveBeenCalled();
+    expect(prisma.platformConfig.deleteMany).not.toHaveBeenCalled();
     expect(prisma.platformConfig.upsert).not.toHaveBeenCalled();
   });
 
-  it('upserts populated config and encrypts secrets (token decrypted then re-encrypted)', async () => {
+  it('never mirrors tenant provider secrets into global PlatformConfig', async () => {
     prisma.gitProviderConfig.findFirst.mockResolvedValue({
       name: 'GL',
       providerUrl: 'https://gl.example.com',
@@ -53,32 +51,11 @@ describe('GitProviderLegacySyncService.syncDefaultConfig', () => {
       oauthRefreshToken: null,
       oauthExpiresAt: null,
     });
-    await service.syncDefaultConfig();
+    await service.syncDefaultConfig('workspace-1');
 
-    // Non-secret URL upserted as-is.
-    expect(prisma.platformConfig.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { key: 'GITLAB_URL' },
-        create: expect.objectContaining({
-          value: 'https://gl.example.com',
-          isSecret: false,
-        }),
-      }),
-    );
-    // Token: decrypt(stored) → re-encrypt for legacy config.
-    expect(crypto.decrypt).toHaveBeenCalledWith('enc-stored');
-    expect(prisma.platformConfig.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { key: 'GITLAB_TOKEN' },
-        create: expect.objectContaining({
-          value: 'enc:dec:enc-stored',
-          isSecret: true,
-        }),
-      }),
-    );
-    // Empty fields are cleared, not upserted.
-    expect(prisma.platformConfig.deleteMany).toHaveBeenCalledWith({
-      where: { key: 'GITLAB_INTERNAL_URL' },
-    });
+    expect(crypto.decrypt).not.toHaveBeenCalled();
+    expect(crypto.encrypt).not.toHaveBeenCalled();
+    expect(prisma.platformConfig.upsert).not.toHaveBeenCalled();
+    expect(prisma.platformConfig.deleteMany).not.toHaveBeenCalled();
   });
 });

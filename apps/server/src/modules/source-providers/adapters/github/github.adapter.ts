@@ -97,8 +97,13 @@ export class GithubAdapter implements IGitProvider {
     owner: string,
     token?: string,
     providerId?: string,
+    teamId?: string,
   ): Promise<{ repoPath: string; name: string; defaultBranch: string }[]> {
-    const conn = await this.resolveDiscoveryConnection(token, providerId);
+    const conn = await this.resolveDiscoveryConnection(
+      token,
+      providerId,
+      teamId,
+    );
     const repos = await this.api.listOrgRepos(conn.apiBase, conn.token, owner);
     return repos.map((r) => ({
       repoPath: r.fullName,
@@ -116,10 +121,14 @@ export class GithubAdapter implements IGitProvider {
   private async resolveDiscoveryConnection(
     token?: string,
     providerId?: string,
+    teamId?: string,
   ): Promise<{ apiBase: string; token: string }> {
     if (providerId) {
-      const provider = await this.prisma.gitProviderConfig.findUnique({
-        where: { id: providerId },
+      if (!teamId) {
+        throw new BadRequestException('Contexte workspace requis');
+      }
+      const provider = await this.prisma.gitProviderConfig.findFirst({
+        where: { id: providerId, teamId },
       });
       if (!provider || provider.type !== GitProviderType.GITHUB) {
         throw new NotFoundException(
@@ -197,13 +206,18 @@ export class GithubAdapter implements IGitProvider {
   }> {
     const svc = await this.prisma.service.findFirst({
       where: activeWhere({ projectId, providerId: { not: null } }),
-      select: { providerId: true, repoPath: true, branch: true },
+      select: {
+        providerId: true,
+        repoPath: true,
+        branch: true,
+        project: { select: { teamId: true } },
+      },
     });
     if (!svc?.providerId) {
       throw new NotFoundException('Projet non connecté à GitHub');
     }
-    const gitProviderConfig = await this.prisma.gitProviderConfig.findUnique({
-      where: { id: svc.providerId },
+    const gitProviderConfig = await this.prisma.gitProviderConfig.findFirst({
+      where: { id: svc.providerId, teamId: svc.project.teamId },
     });
 
     if (
@@ -352,6 +366,27 @@ export class GithubAdapter implements IGitProvider {
     projectId: string,
     dto: ConnectGithubDto,
   ): Promise<{ id: string; repoPath: string; defaultBranch: string }> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    });
+    if (!project) {
+      throw new NotFoundException('Projet introuvable');
+    }
+    if (dto.providerId) {
+      const provider = await this.prisma.gitProviderConfig.findFirst({
+        where: {
+          id: dto.providerId,
+          teamId: project.teamId,
+          type: GitProviderType.GITHUB,
+        },
+        select: { id: true },
+      });
+      if (!provider) {
+        throw new NotFoundException('Provider GitHub introuvable');
+      }
+    }
+
     const repoName = dto.repoPath
       .replace(/^https?:\/\/[^/]+\//, '')
       .replace(/\.git$/, '');

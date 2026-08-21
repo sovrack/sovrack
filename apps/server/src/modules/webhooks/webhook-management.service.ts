@@ -29,6 +29,19 @@ export class WebhookManagementService {
     private readonly platformService: PlatformService,
   ) {}
 
+  private async assertServiceInProject(
+    projectId: string,
+    serviceId: string,
+  ): Promise<void> {
+    const service = await this.prisma.service.findFirst({
+      where: { id: serviceId, projectId },
+      select: { id: true },
+    });
+    if (!service) {
+      throw new NotFoundException('Service not found');
+    }
+  }
+
   /**
    * Webhook PAR SERVICE (1 service = 1 repo = 1 webhook). La branche du push
    * route ensuite vers le bon environnement (ServiceEnvironment.autoBranch).
@@ -40,10 +53,11 @@ export class WebhookManagementService {
     projectId: string,
     serviceId: string,
   ): Promise<{ webhookUrl: string; isNew: boolean }> {
+    await this.assertServiceInProject(projectId, serviceId);
     const provider = await this.sourceProviders.forService(serviceId);
 
     const before = await this.prisma.webhookEndpoint.findFirst({
-      where: { serviceId, provider: provider.type },
+      where: { projectId, serviceId, provider: provider.type },
       select: { id: true },
     });
     const endpoint = await this.webhooksService.getOrCreateEndpoint({
@@ -75,9 +89,10 @@ export class WebhookManagementService {
   }
 
   /** Statut webhook d'un service (URL, actif, dernier event). */
-  async getStatusForService(serviceId: string) {
+  async getStatusForService(projectId: string, serviceId: string) {
+    await this.assertServiceInProject(projectId, serviceId);
     const endpoint = await this.prisma.webhookEndpoint.findFirst({
-      where: { serviceId },
+      where: { projectId, serviceId },
       select: {
         id: true,
         isActive: true,
@@ -103,11 +118,13 @@ export class WebhookManagementService {
 
   /** Pause/reprise du webhook d'un service. */
   async setActiveForService(
+    projectId: string,
     serviceId: string,
     isActive: boolean,
   ): Promise<void> {
+    await this.assertServiceInProject(projectId, serviceId);
     const endpoint = await this.prisma.webhookEndpoint.findFirst({
-      where: { serviceId },
+      where: { projectId, serviceId },
     });
     if (!endpoint)
       throw new NotFoundException(

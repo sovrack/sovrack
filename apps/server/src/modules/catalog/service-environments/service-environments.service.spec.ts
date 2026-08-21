@@ -32,7 +32,9 @@ describe('ServiceEnvironmentsService', () => {
     prisma = {
       project: { findUnique: jest.fn().mockResolvedValue({ id: 'p1' }) },
       projectMember: {
-        findUnique: jest.fn().mockResolvedValue({ role: ProjectRole.OWNER }),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ role: ProjectRole.MAINTAINER }),
       },
       service: { findFirst: jest.fn().mockResolvedValue({ id: 'svc1' }) },
       environment: {
@@ -61,7 +63,18 @@ describe('ServiceEnvironmentsService', () => {
     service = new ServiceEnvironmentsService(
       prisma as unknown as PrismaService,
       crypto as unknown as CryptoService,
-      new ProjectAccessService(prisma as unknown as PrismaService),
+      new ProjectAccessService(
+        prisma as unknown as PrismaService,
+        {
+          assertProjectAction: jest.fn().mockImplementation(async () => {
+            const member = await prisma.projectMember.findUnique();
+            if (!member) throw new NotFoundException('Projet introuvable');
+            if (member.role !== ProjectRole.MAINTAINER) {
+              throw new ForbiddenException('Action projet interdite');
+            }
+          }),
+        } as never,
+      ),
     );
   });
 

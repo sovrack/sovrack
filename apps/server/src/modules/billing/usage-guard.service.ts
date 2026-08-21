@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { BillingService } from './billing.service';
+import { Plan } from '@prisma/client';
 
 export type UsageAction =
   | 'CREATE_PROJECT'
@@ -34,9 +35,12 @@ export class UsageGuardService {
 
   /** Variante scopée à une team précise (utilisée par les services internes). */
   async guardForTeam(teamId: string, action: UsageAction): Promise<void> {
-    const subscription = await this.billing.ensureSubscription(teamId);
-    const limits = await this.billing.getLimitsForPlan(subscription.plan);
-    const plan = subscription.plan;
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { teamId },
+      select: { plan: true },
+    });
+    const plan = subscription?.plan ?? Plan.FREE;
+    const limits = await this.billing.getLimitsForPlan(plan);
 
     const [projectCount, serverCount, memberCount, volumeCount] =
       await Promise.all([

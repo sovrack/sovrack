@@ -8,6 +8,7 @@ import { BuildController } from './build.controller';
 
 describe('BuildController', () => {
   const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
+  const workspaceId = 'workspace-1';
 
   function build() {
     const buildService = {
@@ -28,13 +29,19 @@ describe('BuildController', () => {
     } as unknown as BuildDetectorService;
     const buildsService = {
       listForProject: jest.fn().mockResolvedValue([]),
-      findOne: jest.fn().mockResolvedValue({ id: 'b1' }),
+      findOne: jest.fn().mockResolvedValue({ id: 'b1', projectId: 'p1' }),
     } as unknown as BuildLifecycleService;
+    const workspaceAccess = {
+      assertProjectAction: jest.fn().mockResolvedValue({
+        effectiveProjectRole: 'VIEWER',
+      }),
+    };
     const ctrl = new BuildController(
       buildService,
       setupService,
       detector,
       buildsService,
+      workspaceAccess as never,
     );
     return {
       ctrl,
@@ -42,15 +49,22 @@ describe('BuildController', () => {
       setupService,
       detector,
       buildsService,
+      workspaceAccess,
     };
   }
 
   it('generateBuildFiles forwards overwrite flags', async () => {
     const { ctrl, buildService } = build();
-    await ctrl.generateBuildFiles('p1', user, 's1', {
-      overwriteDockerfile: true,
-      overwriteGitlabCi: false,
-    } as never);
+    await ctrl.generateBuildFiles(
+      'p1',
+      user,
+      's1',
+      {
+        overwriteDockerfile: true,
+        overwriteGitlabCi: false,
+      } as never,
+      workspaceId,
+    );
     expect(buildService.generateBuildFiles).toHaveBeenCalledWith(
       'p1',
       'user-1',
@@ -58,16 +72,18 @@ describe('BuildController', () => {
       's1',
       true,
       false,
+      workspaceId,
     );
   });
 
   it('detect asserts access then delegates to the detector', async () => {
     const { ctrl, buildService, detector } = build();
-    await ctrl.detect('p1', user, 's1');
+    await ctrl.detect('p1', user, 's1', workspaceId);
     expect(buildService.assertCanConfigureBuild).toHaveBeenCalledWith(
       'p1',
       'user-1',
       Role.OWNER,
+      workspaceId,
     );
     expect(detector.detectProjectType).toHaveBeenCalledWith('p1', 's1');
   });
@@ -79,6 +95,7 @@ describe('BuildController', () => {
       user,
       { buildPack: 'NIXPACKS' } as never,
       's1',
+      workspaceId,
     );
     expect(setupService.updateBuildConfig).toHaveBeenCalledWith(
       'p1',
@@ -86,44 +103,48 @@ describe('BuildController', () => {
       'user-1',
       Role.OWNER,
       's1',
+      workspaceId,
     );
     expect(res).toEqual({ message: 'Configuration mise à jour' });
   });
 
   it('pushFiles delegates and returns a message', async () => {
     const { ctrl, buildService } = build();
-    const res = await ctrl.pushFiles('p1', user, 's1');
+    const res = await ctrl.pushFiles('p1', user, 's1', workspaceId);
     expect(buildService.pushFiles).toHaveBeenCalledWith(
       'p1',
       'user-1',
       Role.OWNER,
       's1',
+      workspaceId,
     );
     expect(res).toEqual({ message: 'Fichiers poussés avec succès' });
   });
 
   it('templates / generateAll / engines delegate', async () => {
     const { ctrl, setupService } = build();
-    await ctrl.getTemplates('p1', user);
-    await ctrl.generateAll('p1', user);
-    ctrl.getAvailableEngines();
+    await ctrl.getTemplates('p1', user, workspaceId);
+    await ctrl.generateAll('p1', user, workspaceId);
+    await ctrl.getAvailableEngines('p1', user, workspaceId);
     expect(setupService.getTemplates).toHaveBeenCalledWith(
       'p1',
       'user-1',
       Role.OWNER,
+      workspaceId,
     );
     expect(setupService.generateAll).toHaveBeenCalledWith(
       'p1',
       'user-1',
       Role.OWNER,
+      workspaceId,
     );
     expect(setupService.getAvailableEngines).toHaveBeenCalled();
   });
 
   it('getBuildStatus / extractComposeFile assert access first', async () => {
     const { ctrl, buildService, setupService } = build();
-    await ctrl.getBuildStatus('p1', user);
-    await ctrl.extractComposeFile('p1', user, 's1');
+    await ctrl.getBuildStatus('p1', user, workspaceId);
+    await ctrl.extractComposeFile('p1', user, 's1', workspaceId);
     expect(buildService.assertCanConfigureBuild).toHaveBeenCalledTimes(2);
     expect(setupService.getBuildStatus).toHaveBeenCalledWith('p1');
     expect(setupService.extractComposeFile).toHaveBeenCalledWith('p1', 's1');
@@ -131,13 +152,27 @@ describe('BuildController', () => {
 
   it('listBuilds clamps the limit and forwards filters', async () => {
     const { ctrl, buildsService } = build();
-    await ctrl.listBuilds('p1', 'SUCCESS' as never, 'main', '999');
+    await ctrl.listBuilds(
+      'p1',
+      user,
+      'SUCCESS' as never,
+      'main',
+      '999',
+      workspaceId,
+    );
     expect(buildsService.listForProject).toHaveBeenCalledWith('p1', {
       status: 'SUCCESS',
       branch: 'main',
       limit: 200,
     });
-    await ctrl.listBuilds('p1', undefined, undefined, undefined);
+    await ctrl.listBuilds(
+      'p1',
+      user,
+      undefined,
+      undefined,
+      undefined,
+      workspaceId,
+    );
     expect(buildsService.listForProject).toHaveBeenCalledWith('p1', {
       limit: 50,
     });
@@ -145,7 +180,7 @@ describe('BuildController', () => {
 
   it('getBuild delegates to the lifecycle service', async () => {
     const { ctrl, buildsService } = build();
-    await ctrl.getBuild('b1');
+    await ctrl.getBuild('b1', user, workspaceId);
     expect(buildsService.findOne).toHaveBeenCalledWith('b1');
   });
 });

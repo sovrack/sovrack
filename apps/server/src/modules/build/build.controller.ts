@@ -8,11 +8,8 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
 import { GetUser } from '../../shared/decorators/get-user.decorator';
-import { Roles } from '../../shared/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../shared/guards/roles.guard';
 import type { JwtPayload } from '../../shared/jwt/dto/jwt-payload.dto';
 import { BuildDetectorService } from './detection/build-detector.service';
 import { BuildOrchestratorService } from './build-orchestrator.service';
@@ -21,26 +18,34 @@ import { BuildLifecycleService } from './lifecycle/build-lifecycle.service';
 import { CreateBuildConfigDto } from './dto/create-build-config.dto';
 import { BuildStatus } from '@prisma/client';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { WorkspaceAccessService } from '../iam/authorization/workspace-access.service';
+import { ProjectActions } from '../iam/authorization/workspace-policy.types';
+import { GetWorkspaceId } from '../../shared/decorators/get-workspace-id.decorator';
+import { ProjectWorkspaceGuard } from '../iam/authorization/project-workspace.guard';
 
 @ApiTags('Build')
 @ApiBearerAuth()
-@Controller('projects/:id/build')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller([
+  'workspaces/:workspaceId/projects/:id/build',
+  'projects/:id/build',
+])
+@UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
 export class BuildController {
   constructor(
     private readonly buildService: BuildOrchestratorService,
     private readonly setupService: BuildSetupService,
     private readonly detector: BuildDetectorService,
     private readonly buildsService: BuildLifecycleService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   @Post('generate')
-  @Roles(Role.OWNER, Role.MEMBER)
   async generateBuildFiles(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Query('serviceId') serviceId?: string,
     @Body() body?: CreateBuildConfigDto,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
     return await this.buildService.generateBuildFiles(
       id,
@@ -49,27 +54,33 @@ export class BuildController {
       serviceId,
       body?.overwriteDockerfile,
       body?.overwriteGitlabCi,
+      workspaceId,
     );
   }
 
   @Get('detect')
-  @Roles(Role.OWNER, Role.MEMBER)
   async detect(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Query('serviceId') serviceId?: string,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
-    await this.buildService.assertCanConfigureBuild(id, user.id, user.role);
+    await this.buildService.assertCanConfigureBuild(
+      id,
+      user.id,
+      user.role,
+      workspaceId,
+    );
     return await this.detector.detectProjectType(id, serviceId);
   }
 
   @Put('config')
-  @Roles(Role.OWNER, Role.MEMBER)
   async updateConfig(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Body() dto: CreateBuildConfigDto,
     @Query('serviceId') serviceId?: string,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
     await this.setupService.updateBuildConfig(
       id,
@@ -77,24 +88,39 @@ export class BuildController {
       user.id,
       user.role,
       serviceId,
+      workspaceId,
     );
     return { message: 'Configuration mise à jour' };
   }
 
   @Get('templates')
-  @Roles(Role.OWNER, Role.MEMBER)
-  async getTemplates(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.setupService.getTemplates(id, user.id, user.role);
+  async getTemplates(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return await this.setupService.getTemplates(
+      id,
+      user.id,
+      user.role,
+      workspaceId,
+    );
   }
 
   @Post('push-files')
-  @Roles(Role.OWNER, Role.MEMBER)
   async pushFiles(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Query('serviceId') serviceId?: string,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
-    await this.buildService.pushFiles(id, user.id, user.role, serviceId);
+    await this.buildService.pushFiles(
+      id,
+      user.id,
+      user.role,
+      serviceId,
+      workspaceId,
+    );
     return { message: 'Fichiers poussés avec succès' };
   }
 
@@ -103,18 +129,34 @@ export class BuildController {
    * Returns per-service results so frontend can show progress.
    */
   @Post('generate-all')
-  @Roles(Role.OWNER, Role.MEMBER)
-  async generateAll(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.setupService.generateAll(id, user.id, user.role);
+  async generateAll(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return await this.setupService.generateAll(
+      id,
+      user.id,
+      user.role,
+      workspaceId,
+    );
   }
 
   /**
    * Get build readiness status per service.
    */
   @Get('status')
-  @Roles(Role.OWNER, Role.MEMBER)
-  async getBuildStatus(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    await this.buildService.assertCanConfigureBuild(id, user.id, user.role);
+  async getBuildStatus(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    await this.buildService.assertCanConfigureBuild(
+      id,
+      user.id,
+      user.role,
+      workspaceId,
+    );
     return await this.setupService.getBuildStatus(id);
   }
 
@@ -127,13 +169,18 @@ export class BuildController {
    * is found in the repo.
    */
   @Get('extract-compose')
-  @Roles(Role.OWNER, Role.MEMBER)
   async extractComposeFile(
     @Param('id') id: string,
     @GetUser() user: JwtPayload,
     @Query('serviceId') serviceId?: string,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
-    await this.buildService.assertCanConfigureBuild(id, user.id, user.role);
+    await this.buildService.assertCanConfigureBuild(
+      id,
+      user.id,
+      user.role,
+      workspaceId,
+    );
     return await this.setupService.extractComposeFile(id, serviceId);
   }
 
@@ -142,8 +189,17 @@ export class BuildController {
    * Used by the deployment dialog to show the strategy selector.
    */
   @Get('engines')
-  @Roles(Role.OWNER, Role.MEMBER)
-  getAvailableEngines() {
+  async getAvailableEngines(
+    @Param('id') projectId: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      user.id,
+      ProjectActions.READ,
+      workspaceId,
+    );
     return this.setupService.getAvailableEngines();
   }
 
@@ -153,13 +209,20 @@ export class BuildController {
    * from Deployment rows.
    */
   @Get('history')
-  @Roles(Role.OWNER, Role.MEMBER)
   async listBuilds(
     @Param('id') projectId: string,
+    @GetUser() user: JwtPayload,
     @Query('status') status?: BuildStatus,
     @Query('branch') branch?: string,
     @Query('limit') limit?: string,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      user.id,
+      ProjectActions.READ,
+      workspaceId,
+    );
     const parsedLimit = limit
       ? Math.min(200, Math.max(1, parseInt(limit, 10) || 50))
       : 50;
@@ -171,8 +234,18 @@ export class BuildController {
   }
 
   @Get('history/:buildId')
-  @Roles(Role.OWNER, Role.MEMBER)
-  async getBuild(@Param('buildId') buildId: string) {
-    return this.buildsService.findOne(buildId);
+  async getBuild(
+    @Param('buildId') buildId: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    const build = await this.buildsService.findOne(buildId);
+    await this.workspaceAccess.assertProjectAction(
+      build.projectId,
+      user.id,
+      ProjectActions.READ,
+      workspaceId,
+    );
+    return build;
   }
 }

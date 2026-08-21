@@ -58,11 +58,15 @@ function makeGateway(
 
   const prisma = {
     deployment: {
-      findUnique: jest
-        .fn()
-        .mockResolvedValue(
-          'deployment' in opts ? opts.deployment : { projectId: 'proj1' },
-        ),
+      findUnique: jest.fn().mockResolvedValue(
+        'deployment' in opts
+          ? opts.deployment
+          : {
+              projectId: 'proj1',
+              resolvedRefs: { serverId: 's1' },
+              serviceEnv: null,
+            },
+      ),
     },
     projectMember: {
       findUnique: jest
@@ -81,11 +85,19 @@ function makeGateway(
     subscribe: jest.fn().mockReturnValue('sub-key-1'),
   } as unknown as DeploymentsLogStreamService;
 
+  const workspaceAccess = {
+    assertProjectAction:
+      opts.member === null
+        ? jest.fn().mockRejectedValue(new Error('not found'))
+        : jest.fn().mockResolvedValue({ effectiveProjectRole: 'VIEWER' }),
+  };
+
   const gateway = new DeploymentsGateway(
     jwtService,
     prisma,
     configService,
     logStreamService,
+    workspaceAccess as never,
   );
 
   const _mockTo = jest.fn().mockReturnThis();

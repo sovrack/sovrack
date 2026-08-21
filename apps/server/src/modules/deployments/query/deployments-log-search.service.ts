@@ -31,9 +31,19 @@ export class DeploymentsLogSearchService {
     userRole: Role,
     query: string,
     level: LogLevelFilter = 'ALL',
+    expectedWorkspaceId?: string,
   ): Promise<{ hits: LogSearchHit[]; total: number }> {
     // Authorization (throws 403/404 if the user cannot access this deployment).
-    await this.queryService.findOne(deploymentId, userId, userRole);
+    if (expectedWorkspaceId) {
+      await this.queryService.findOne(
+        deploymentId,
+        userId,
+        userRole,
+        expectedWorkspaceId,
+      );
+    } else {
+      await this.queryService.findOne(deploymentId, userId, userRole);
+    }
 
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },

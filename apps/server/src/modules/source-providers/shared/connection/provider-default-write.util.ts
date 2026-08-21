@@ -10,6 +10,7 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
  */
 export function writeWithSingleDefault<T>(
   prisma: PrismaService,
+  teamId: string,
   type: GitProviderType,
   clearDefault: boolean,
   write: (tx: Prisma.TransactionClient) => Promise<T>,
@@ -17,7 +18,7 @@ export function writeWithSingleDefault<T>(
   return prisma.$transaction(async (tx) => {
     if (clearDefault) {
       await tx.gitProviderConfig.updateMany({
-        where: { type, isDefault: true },
+        where: { teamId, type, isDefault: true },
         data: { isDefault: false },
       });
     }

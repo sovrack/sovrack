@@ -74,9 +74,10 @@ export class ServersReadersFacade {
     return toPublicServer(updated);
   }
 
-  async listInfraEnvironments(): Promise<ServerPublic[]> {
+  async listInfraEnvironments(workspaceId: string): Promise<ServerPublic[]> {
     const servers = await this.prisma.server.findMany({
       where: {
+        teamId: workspaceId,
         infraRole: { in: ['STAGING', 'PRODUCTION'] as ServerInfraRole[] },
       } as Prisma.ServerWhereInput,
       orderBy: { name: 'asc' },

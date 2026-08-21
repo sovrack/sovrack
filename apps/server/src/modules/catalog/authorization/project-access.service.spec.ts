@@ -11,13 +11,24 @@ describe('ProjectAccessService', () => {
           .fn()
           .mockResolvedValue('project' in opts ? opts.project : { id: 'p1' }),
       },
-      projectMember: {
-        findUnique: jest.fn().mockResolvedValue(opts.member ?? null),
-      },
+    };
+    const workspaceAccess = {
+      assertProjectAction: jest.fn().mockImplementation(() => {
+        const member = opts.member as { role?: ProjectRole } | null | undefined;
+        if (!member) return Promise.reject(new NotFoundException());
+        if (member.role === ProjectRole.DEVELOPER) {
+          return Promise.reject(new ForbiddenException());
+        }
+        return Promise.resolve(undefined);
+      }),
     };
     return {
-      svc: new ProjectAccessService(prisma as unknown as PrismaService),
+      svc: new ProjectAccessService(
+        prisma as unknown as PrismaService,
+        workspaceAccess as never,
+      ),
       prisma,
+      workspaceAccess,
     };
   }
 
@@ -30,11 +41,11 @@ describe('ProjectAccessService', () => {
 
   describe('assertCanAccessProject', () => {
     it('forbids a platform SUPER_ADMIN who is not a member', async () => {
-      const { svc, prisma } = make();
+      const { svc, workspaceAccess } = make();
       await expect(
         svc.assertCanAccessProject('p1', 'u1', Role.SUPER_ADMIN),
-      ).rejects.toThrow(ForbiddenException);
-      expect(prisma.projectMember.findUnique).toHaveBeenCalled();
+      ).rejects.toThrow(NotFoundException);
+      expect(workspaceAccess.assertProjectAction).toHaveBeenCalled();
     });
 
     it('allows any member', async () => {
@@ -48,20 +59,20 @@ describe('ProjectAccessService', () => {
       const { svc } = make({ member: null });
       await expect(
         svc.assertCanAccessProject('p1', 'u1', Role.MEMBER),
-      ).rejects.toBeInstanceOf(ForbiddenException);
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('forbids an OWNER who is not a member (tenant isolation)', async () => {
       const { svc } = make({ member: null });
       await expect(
         svc.assertCanAccessProject('p1', 'u1', Role.OWNER),
-      ).rejects.toBeInstanceOf(ForbiddenException);
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
   describe('assertCanManageProject', () => {
     it('allows the OWNER', async () => {
-      const { svc } = make({ member: { role: ProjectRole.OWNER } });
+      const { svc } = make({ member: { role: ProjectRole.MAINTAINER } });
       await expect(
         svc.assertCanManageProject('p1', 'u1', Role.MEMBER),
       ).resolves.toBeUndefined();

@@ -128,13 +128,23 @@ export class DeploymentsValidationService {
     buildSource: BuildSource,
     userId: string,
     serviceEnvId?: string,
+    expectedWorkspaceId?: string,
   ): Promise<DeployValidationResult> {
     const actor = await this.authorizationService.getActor(userId);
-    await this.authorizationService.assertCanDeployProject(
-      projectId,
-      actor.id,
-      actor.role,
-    );
+    if (expectedWorkspaceId) {
+      await this.authorizationService.assertCanDeployProject(
+        projectId,
+        actor.id,
+        actor.role,
+        expectedWorkspaceId,
+      );
+    } else {
+      await this.authorizationService.assertCanDeployProject(
+        projectId,
+        actor.id,
+        actor.role,
+      );
+    }
 
     // Garde de pré-vol centralisée (voir AUDIT_VALIDATION_DEPLOIEMENT.md) —
     // les mêmes 8 vérifications bloquantes que POST /deployments, mais

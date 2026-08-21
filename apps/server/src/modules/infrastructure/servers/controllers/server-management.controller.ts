@@ -22,11 +22,10 @@ import {
   getSchemaPath,
 } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
-import { Role, ServerInfraRole } from '@prisma/client';
-import { Roles } from '../../../../shared/decorators/roles.decorator';
+import { ServerInfraRole } from '@prisma/client';
 import { GetUser } from '../../../../shared/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../../shared/guards/roles.guard';
+import { GetWorkspaceId } from '../../../../shared/decorators/get-workspace-id.decorator';
+import { ServerWorkspaceGuard } from '../../../iam/authorization/server-workspace.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { PaginationDto } from '../../../../shared/http/pagination.dto';
 import { CreateServerDto } from '../dto/create-server.dto';
@@ -78,9 +77,8 @@ class InstallKeyDto {
   DeleteServerResponseDto,
   InstallKeyResponseDto,
 )
-@Controller('servers')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.OWNER, Role.MEMBER)
+@Controller(['workspaces/:workspaceId/servers', 'servers'])
+@UseGuards(ServerWorkspaceGuard)
 export class ServerManagementController {
   constructor(private readonly core: ServersCoreService) {}
 
@@ -90,12 +88,15 @@ export class ServerManagementController {
     description: 'Server created successfully',
     type: CreateServerResponseDto,
   })
-  async create(@Body() dto: CreateServerDto, @GetUser() user: JwtPayload) {
-    return await this.core.create(dto, user.id);
+  async create(
+    @Body() dto: CreateServerDto,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return await this.core.create(dto, user.id, workspaceId);
   }
 
   @Get()
-  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({ summary: 'List all servers (sshKey masked)' })
   @ApiOkResponse({
     description: 'Liste des serveurs',
@@ -112,12 +113,12 @@ export class ServerManagementController {
   async findAll(
     @Query() pagination: PaginationDto,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
-    return await this.core.findAll(pagination, user.id);
+    return await this.core.findAll(pagination, user.id, workspaceId);
   }
 
   @Get('reachability')
-  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({
     summary:
       'A3: lightweight TCP reachability ping for every server (not the full SSH validation) — meant to be polled frequently by the list page.',
@@ -125,16 +126,29 @@ export class ServerManagementController {
   @ApiOkResponse({
     description: 'Map of serverId → isReachable',
   })
-  async pingAll(@GetUser() user: JwtPayload) {
-    return await this.core.pingAll(user.id);
+  async pingAll(
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return await this.core.pingAll(user.id, workspaceId);
+  }
+
+  @Get('infra-environments')
+  @ApiOperation({ summary: 'List servers configured as STAGING or PRODUCTION' })
+  @ApiOkResponse({ description: 'Servers with an infra role' })
+  async listInfraEnvironments(@GetWorkspaceId() workspaceId: string) {
+    return await this.core.listInfraEnvironments(workspaceId);
   }
 
   @Get(':id')
-  @Roles(Role.OWNER, Role.MEMBER)
   @ApiOperation({ summary: "View a server's details" })
   @ApiOkResponse({ description: 'Server found', type: ServerResponseDto })
-  async findOne(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    return await this.core.findOne(id, user.id);
+  async findOne(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    return await this.core.findOne(id, user.id, workspaceId);
   }
 
   @Put(':id')
@@ -144,8 +158,9 @@ export class ServerManagementController {
     @Param('id') id: string,
     @Body() dto: UpdateServerDto,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
-    return await this.core.update(id, dto, user.id);
+    return await this.core.update(id, dto, user.id, workspaceId);
   }
 
   @Patch(':id')
@@ -155,8 +170,9 @@ export class ServerManagementController {
     @Param('id') id: string,
     @Body() dto: UpdateServerDto,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
-    return await this.core.update(id, dto, user.id);
+    return await this.core.update(id, dto, user.id, workspaceId);
   }
 
   @Delete(':id')
@@ -171,8 +187,12 @@ export class ServerManagementController {
     status: 400,
     description: 'Server used by an active environment',
   })
-  async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    await this.core.remove(id, user.id);
+  async remove(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
+  ) {
+    await this.core.remove(id, user.id, workspaceId);
     return { message: 'Serveur supprimé avec succès' };
   }
 
@@ -232,13 +252,6 @@ export class ServerManagementController {
     @GetUser() user: JwtPayload,
   ) {
     return await this.core.setServerInfraRole(id, dto.infraRole, user.id);
-  }
-
-  @Get('infra-environments')
-  @ApiOperation({ summary: 'List servers configured as STAGING or PRODUCTION' })
-  @ApiOkResponse({ description: 'Servers with an infra role' })
-  async listInfraEnvironments() {
-    return await this.core.listInfraEnvironments();
   }
 
   @Get(':id/environments')

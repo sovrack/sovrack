@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Role, WorkspaceRole } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { DeploymentsAuthorizationService } from './deployments-authorization.service';
@@ -7,6 +7,7 @@ import {
   DeploymentsQueryService,
   type DeploymentWithRelations,
 } from './deployments-query.service';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
 
 describe('DeploymentsQueryService', () => {
   let prisma: {
@@ -19,6 +20,10 @@ describe('DeploymentsQueryService', () => {
   };
   let auth: { assertCanAccessProject: jest.Mock };
   let crypto: { decryptSafe: jest.Mock };
+  let workspaceAccess: {
+    resolveWorkspaceId: jest.Mock;
+    assertWorkspaceAction: jest.Mock;
+  };
   let service: DeploymentsQueryService;
 
   beforeEach(() => {
@@ -32,10 +37,19 @@ describe('DeploymentsQueryService', () => {
     };
     auth = { assertCanAccessProject: jest.fn().mockResolvedValue(undefined) };
     crypto = { decryptSafe: jest.fn((v: string | null) => v) };
+    workspaceAccess = {
+      resolveWorkspaceId: jest.fn().mockResolvedValue('workspace-1'),
+      assertWorkspaceAction: jest.fn().mockResolvedValue({
+        workspaceId: 'workspace-1',
+        userId: 'u1',
+        workspaceRole: WorkspaceRole.MEMBER,
+      }),
+    };
     service = new DeploymentsQueryService(
       prisma as unknown as PrismaService,
       auth as unknown as DeploymentsAuthorizationService,
       crypto as unknown as CryptoService,
+      workspaceAccess as unknown as WorkspaceAccessService,
     );
   });
 
@@ -97,11 +111,16 @@ describe('DeploymentsQueryService', () => {
   });
 
   describe('findAll', () => {
-    it('filters by membership for a SUPER_ADMIN too (tenant isolation)', async () => {
+    it('scopes a workspace admin to every deployment in that workspace', async () => {
+      workspaceAccess.assertWorkspaceAction.mockResolvedValueOnce({
+        workspaceId: 'workspace-1',
+        userId: 'admin',
+        workspaceRole: WorkspaceRole.ADMIN,
+      });
       await service.findAll('admin', Role.SUPER_ADMIN);
       expect(prisma.deployment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { project: { members: { some: { userId: 'admin' } } } },
+          where: { project: { teamId: 'workspace-1' } },
         }),
       );
     });
@@ -110,7 +129,12 @@ describe('DeploymentsQueryService', () => {
       await service.findAll('u1', Role.MEMBER);
       expect(prisma.deployment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { project: { members: { some: { userId: 'u1' } } } },
+          where: {
+            project: {
+              teamId: 'workspace-1',
+              members: { some: { userId: 'u1' } },
+            },
+          },
         }),
       );
     });

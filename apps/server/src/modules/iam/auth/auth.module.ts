@@ -7,12 +7,10 @@ import { EmailVerificationService } from './email-verification.service';
 import { GoogleOAuthService } from './google-oauth.service';
 import { GoogleStrategy } from './google.strategy';
 import { UsersModule } from '../users/users.module';
-import { RolesGuard } from '../../../shared/guards/roles.guard';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import { AppJwtModule } from '../../../shared/jwt/jwt.module';
 import { AuditModule } from '../../audit';
 import { TeamsModule } from '../teams/teams.module';
-import { BillingModule } from '../../billing';
 import { NotificationsModule } from '../../notifications';
 
 /**
@@ -26,12 +24,10 @@ import { NotificationsModule } from '../../notifications';
     AppJwtModule,
     AuditModule,
     TeamsModule,
-    BillingModule,
     NotificationsModule,
   ],
   providers: [
     AuthService,
-    RolesGuard,
     LoginRateLimitGuard,
     EmailVerificationService,
     GoogleOAuthService,

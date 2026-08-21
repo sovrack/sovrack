@@ -5,6 +5,7 @@ import { ServerManagementController } from './server-management.controller';
 
 describe('ServerManagementController', () => {
   const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
+  const workspaceId = 'workspace-1';
 
   function build() {
     const core = {
@@ -29,38 +30,48 @@ describe('ServerManagementController', () => {
 
   it('create / findAll / findOne delegate', async () => {
     const { ctrl, core } = build();
-    await ctrl.create({ name: 'x' } as never, user);
-    await ctrl.findAll({ page: 1 } as never, user);
-    await ctrl.pingAll(user);
-    await ctrl.findOne('srv-1', user);
-    expect(core.create).toHaveBeenCalledWith({ name: 'x' }, 'user-1');
-    expect(core.findAll).toHaveBeenCalledWith({ page: 1 }, 'user-1');
-    expect(core.pingAll).toHaveBeenCalledWith('user-1');
-    expect(core.findOne).toHaveBeenCalledWith('srv-1', 'user-1');
+    await ctrl.create({ name: 'x' } as never, user, workspaceId);
+    await ctrl.findAll({ page: 1 } as never, user, workspaceId);
+    await ctrl.pingAll(user, workspaceId);
+    await ctrl.findOne('srv-1', user, workspaceId);
+    expect(core.create).toHaveBeenCalledWith(
+      { name: 'x' },
+      'user-1',
+      workspaceId,
+    );
+    expect(core.findAll).toHaveBeenCalledWith(
+      { page: 1 },
+      'user-1',
+      workspaceId,
+    );
+    expect(core.pingAll).toHaveBeenCalledWith('user-1', workspaceId);
+    expect(core.findOne).toHaveBeenCalledWith('srv-1', 'user-1', workspaceId);
   });
 
   it('update / patch both delegate to core.update', async () => {
     const { ctrl, core } = build();
-    await ctrl.update('srv-1', { name: 'y' } as never, user);
-    await ctrl.patch('srv-1', { name: 'z' } as never, user);
+    await ctrl.update('srv-1', { name: 'y' } as never, user, workspaceId);
+    await ctrl.patch('srv-1', { name: 'z' } as never, user, workspaceId);
     expect(core.update).toHaveBeenNthCalledWith(
       1,
       'srv-1',
       { name: 'y' },
       'user-1',
+      workspaceId,
     );
     expect(core.update).toHaveBeenNthCalledWith(
       2,
       'srv-1',
       { name: 'z' },
       'user-1',
+      workspaceId,
     );
   });
 
   it('remove returns a success message', async () => {
     const { ctrl, core } = build();
-    const res = await ctrl.remove('srv-1', user);
-    expect(core.remove).toHaveBeenCalledWith('srv-1', 'user-1');
+    const res = await ctrl.remove('srv-1', user, workspaceId);
+    expect(core.remove).toHaveBeenCalledWith('srv-1', 'user-1', workspaceId);
     expect(res).toEqual({ message: 'Serveur supprimé avec succès' });
   });
 
@@ -80,7 +91,7 @@ describe('ServerManagementController', () => {
       { infraRole: 'PRODUCTION' } as never,
       user,
     );
-    await ctrl.listInfraEnvironments();
+    await ctrl.listInfraEnvironments(workspaceId);
     await ctrl.listServerEnvironments('srv-1');
     await ctrl.pingServer('srv-1', user);
     await ctrl.cancelJob('srv-1', 'job-1');
@@ -90,7 +101,7 @@ describe('ServerManagementController', () => {
       'PRODUCTION',
       'user-1',
     );
-    expect(core.listInfraEnvironments).toHaveBeenCalled();
+    expect(core.listInfraEnvironments).toHaveBeenCalledWith(workspaceId);
     expect(core.listEnvironmentsForServer).toHaveBeenCalledWith('srv-1');
     expect(core.pingServer).toHaveBeenCalledWith('srv-1', 'user-1');
     expect(core.cancelJob).toHaveBeenCalledWith('srv-1', 'job-1');

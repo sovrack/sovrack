@@ -7,6 +7,7 @@ import { MonitoringController } from './monitoring.controller';
 
 describe('MonitoringController', () => {
   const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
+  const workspaceId = 'workspace-1';
 
   function build() {
     const monitoringService = {
@@ -40,52 +41,64 @@ describe('MonitoringController', () => {
 
   it('read endpoints delegate to the monitoring service', async () => {
     const { ctrl, monitoringService } = build();
-    await ctrl.overview();
-    await ctrl.servers();
-    await ctrl.projects();
-    await ctrl.deployments();
+    await ctrl.overview(workspaceId);
+    await ctrl.servers(workspaceId);
+    await ctrl.projects(workspaceId);
+    await ctrl.deployments(workspaceId);
     await ctrl.prometheusStatus();
     await ctrl.grafanaStatus();
-    await ctrl.alerts();
-    await ctrl.installOptions();
-    expect(monitoringService.getOverview).toHaveBeenCalled();
-    expect(monitoringService.getServerMonitoring).toHaveBeenCalled();
-    expect(monitoringService.getProjectMonitoring).toHaveBeenCalled();
-    expect(monitoringService.getDeploymentMonitoring).toHaveBeenCalled();
+    await ctrl.alerts(workspaceId);
+    await ctrl.installOptions(workspaceId);
+    expect(monitoringService.getOverview).toHaveBeenCalledWith(workspaceId);
+    expect(monitoringService.getServerMonitoring).toHaveBeenCalledWith(
+      workspaceId,
+    );
+    expect(monitoringService.getProjectMonitoring).toHaveBeenCalledWith(
+      workspaceId,
+    );
+    expect(monitoringService.getDeploymentMonitoring).toHaveBeenCalledWith(
+      workspaceId,
+    );
     expect(monitoringService.getPrometheusStatus).toHaveBeenCalled();
     expect(monitoringService.getGrafanaStatus).toHaveBeenCalled();
-    expect(monitoringService.getAlerts).toHaveBeenCalled();
-    expect(monitoringService.getInstallOptions).toHaveBeenCalled();
+    expect(monitoringService.getAlerts).toHaveBeenCalledWith(workspaceId);
+    expect(monitoringService.getInstallOptions).toHaveBeenCalledWith(
+      workspaceId,
+    );
   });
 
   it('serverMetricRange / install forward parameters', async () => {
     const { ctrl, monitoringService } = build();
-    await ctrl.serverMetricRange('host-1', 30, 15);
-    await ctrl.install({ action: 'INSTALL' } as never, user);
+    await ctrl.serverMetricRange('host-1', workspaceId, 30, 15);
+    await ctrl.install({ action: 'INSTALL' } as never, user, workspaceId);
     expect(monitoringService.getServerMetricRange).toHaveBeenCalledWith(
       'host-1',
       30,
       15,
+      workspaceId,
     );
     expect(monitoringService.installMonitoring).toHaveBeenCalledWith(
       { action: 'INSTALL' },
+      workspaceId,
       'user-1',
     );
   });
 
   it('container endpoints assert project access then delegate (LOT1a)', async () => {
     const { ctrl, containerMonitoring, access } = build();
-    await ctrl.containerInfo('d1', user, 100);
-    await ctrl.projectContainers('p1', user, 's1');
+    await ctrl.containerInfo('d1', user, workspaceId, 100);
+    await ctrl.projectContainers('p1', user, workspaceId, 's1');
     expect(access.assertDeployment).toHaveBeenCalledWith(
       'd1',
       'user-1',
       Role.OWNER,
+      workspaceId,
     );
     expect(access.assertProject).toHaveBeenCalledWith(
       'p1',
       'user-1',
       Role.OWNER,
+      workspaceId,
     );
     expect(containerMonitoring.getContainerInfo).toHaveBeenCalledWith(
       'd1',

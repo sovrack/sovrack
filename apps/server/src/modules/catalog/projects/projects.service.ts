@@ -1,10 +1,11 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { Project, ProjectRole, Prisma, Role } from '@prisma/client';
+  Project,
+  ProjectRole,
+  Prisma,
+  Role,
+  WorkspaceRole,
+} from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import {
@@ -16,7 +17,11 @@ import { ProjectAccessService } from '../authorization/project-access.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { UsageGuardService } from '../../billing/usage-guard.service';
-import { BillingService } from '../../billing/billing.service';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import {
+  ProjectActions,
+  WorkspaceActions,
+} from '../../iam/authorization/workspace-policy.types';
 
 const projectWithMembersInclude = {
   members: {
@@ -27,7 +32,6 @@ const projectWithMembersInclude = {
           id: true,
           email: true,
           fullName: true,
-          role: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -59,7 +63,7 @@ export class ProjectsService {
     private readonly auditService: AuditService,
     private readonly projectAccess: ProjectAccessService,
     private readonly usageGuard: UsageGuardService,
-    private readonly billing: BillingService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   /**
@@ -67,52 +71,43 @@ export class ProjectsService {
    */
   async create(
     userId: string,
-    userRole: Role,
+    _userRole: Role,
     dto: CreateProjectDto,
+    requestedWorkspaceId?: string,
   ): Promise<ProjectWithMembers> {
     const ownerId = dto.ownerId ?? userId;
+    const teamId = await this.workspaceAccess.resolveWorkspaceId(
+      userId,
+      requestedWorkspaceId,
+    );
+    await this.workspaceAccess.assertWorkspaceAction(
+      teamId,
+      userId,
+      WorkspaceActions.CREATE_PROJECT,
+    );
+    await this.usageGuard.guardForTeam(teamId, 'CREATE_PROJECT');
+    await this.workspaceAccess.assertUserIsActiveMember(teamId, ownerId);
 
-    // Limite de plan : la team du créateur doit avoir de la place.
-    await this.usageGuard.guard(userId, 'CREATE_PROJECT');
-
-    // Rattache le projet à la team de son créateur (tenant billing v2).
-    const teamId = await this.billing.resolveTeamId(userId);
-
-    if (dto.ownerId) {
-      if (userRole !== Role.OWNER && dto.ownerId !== userId) {
-        throw new ForbiddenException(
-          'Seul un administrateur peut assigner un owner différent',
-        );
-      }
-
-      const ownerUser = await this.prisma.user.findUnique({
-        where: { id: dto.ownerId },
-      });
-
-      if (!ownerUser) {
-        throw new NotFoundException('Utilisateur owner introuvable');
-      }
-
-      if (ownerUser.role !== Role.MEMBER) {
-        throw new ConflictException(
-          'Le owner assigné doit avoir le rôle DEVELOPER',
-        );
-      }
-    }
-
-    const project = await this.prisma.project.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        teamId,
-        members: {
-          create: {
-            userId: ownerId,
-            role: ProjectRole.OWNER,
-          },
+    const project = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          name: dto.name,
+          description: dto.description,
+          teamId,
         },
-      },
-      include: projectWithMembersInclude,
+      });
+      await tx.projectMember.create({
+        data: {
+          projectId: created.id,
+          teamId,
+          userId: ownerId,
+          role: ProjectRole.MAINTAINER,
+        },
+      });
+      return tx.project.findUniqueOrThrow({
+        where: { id: created.id },
+        include: projectWithMembersInclude,
+      });
     });
 
     await this.auditService.record(
@@ -123,6 +118,7 @@ export class ProjectsService {
       {
         name: project.name,
         ownerId,
+        teamId,
       },
     );
 
@@ -134,13 +130,25 @@ export class ProjectsService {
    */
   async findAll(
     userId: string,
-    userRole: Role,
+    _userRole: Role,
     pagination?: PaginationDto,
+    requestedWorkspaceId?: string,
   ): Promise<ProjectListItem[] | PaginatedResult<ProjectListItem>> {
-    // Multi-tenant : un utilisateur ne voit que les projets dont il est membre
-    // (son organisation).
-    const where: Prisma.ProjectWhereInput | undefined = {
-      members: { some: { userId } },
+    const teamId = await this.workspaceAccess.resolveWorkspaceId(
+      userId,
+      requestedWorkspaceId,
+    );
+    const workspace = await this.workspaceAccess.assertWorkspaceAction(
+      teamId,
+      userId,
+      WorkspaceActions.READ,
+    );
+    const hasWorkspaceWideAccess =
+      workspace.workspaceRole === WorkspaceRole.OWNER ||
+      workspace.workspaceRole === WorkspaceRole.ADMIN;
+    const where: Prisma.ProjectWhereInput = {
+      teamId,
+      ...(hasWorkspaceWideAccess ? {} : { members: { some: { userId } } }),
     };
 
     const queryInclude = {
@@ -183,7 +191,9 @@ export class ProjectsService {
       environmentCount: project._count.environments,
       serviceCount: project._count.services,
       hasGitlabConfig: project.services.length > 0,
-      currentUserProjectRole: project.members[0]?.role ?? null,
+      currentUserProjectRole: hasWorkspaceWideAccess
+        ? ProjectRole.MAINTAINER
+        : (project.members[0]?.role ?? null),
     }));
 
     if (page && limit) {
@@ -200,9 +210,19 @@ export class ProjectsService {
   async findOne(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    requestedWorkspaceId?: string,
   ): Promise<ProjectWithMembers> {
-    await this.assertCanAccessProject(projectId, userId, userRole);
+    const teamId = await this.workspaceAccess.resolveWorkspaceId(
+      userId,
+      requestedWorkspaceId,
+    );
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      userId,
+      ProjectActions.READ,
+      teamId,
+    );
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -224,8 +244,18 @@ export class ProjectsService {
     userId: string,
     userRole: Role,
     dto: UpdateProjectDto,
+    requestedWorkspaceId?: string,
   ): Promise<ProjectWithMembers> {
-    await this.assertCanManageProject(projectId, userId, userRole);
+    const teamId = await this.workspaceAccess.resolveWorkspaceId(
+      userId,
+      requestedWorkspaceId,
+    );
+    await this.workspaceAccess.assertProjectAction(
+      projectId,
+      userId,
+      ProjectActions.UPDATE,
+      teamId,
+    );
 
     const rest = dto;
     const project = await this.prisma.project.update({
@@ -243,10 +273,23 @@ export class ProjectsService {
   async remove(
     projectId: string,
     userId: string,
-    userRole: Role,
+    _userRole: Role,
+    requestedWorkspaceId?: string,
   ): Promise<void> {
-    await this.ensureProjectExists(projectId);
-    this.assertAdminRole(userRole);
+    const teamId = await this.workspaceAccess.resolveWorkspaceId(
+      userId,
+      requestedWorkspaceId,
+    );
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, teamId },
+      select: { id: true },
+    });
+    if (!project) throw new NotFoundException('Projet introuvable');
+    await this.workspaceAccess.assertWorkspaceAction(
+      teamId,
+      userId,
+      WorkspaceActions.DELETE_PROJECT,
+    );
 
     await this.prisma.$transaction(async (tx) => {
       await tx.deployment.deleteMany({ where: { projectId } });
@@ -300,12 +343,6 @@ export class ProjectsService {
       userId,
       userRole,
     );
-  }
-
-  private assertAdminRole(userRole: Role): void {
-    if (userRole !== Role.OWNER) {
-      throw new ForbiddenException('Action réservée aux administrateurs');
-    }
   }
 
   /**

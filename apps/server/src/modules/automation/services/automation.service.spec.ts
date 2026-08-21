@@ -29,6 +29,7 @@ describe('AutomationService', () => {
   let service: AutomationService;
 
   const actionKey = AUTOMATION_ACTIONS[0].key;
+  const workspaceId = 'workspace-1';
 
   beforeEach(() => {
     prisma = {
@@ -64,33 +65,43 @@ describe('AutomationService', () => {
 
   it('rejects an unknown action', async () => {
     await expect(
-      service.startRun({ actionKey: 'nope', serverIds: ['s1'] } as never),
+      service.startRun(
+        { actionKey: 'nope', serverIds: ['s1'] } as never,
+        workspaceId,
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rejects when no target servers are provided', async () => {
     await expect(
-      service.startRun({ actionKey, serverIds: [] } as never),
+      service.startRun({ actionKey, serverIds: [] } as never, workspaceId),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rejects when some servers are missing or disabled', async () => {
     prisma.server.findMany.mockResolvedValue([]); // none found for ['s1']
     await expect(
-      service.startRun({ actionKey, serverIds: ['s1'] } as never),
+      service.startRun({ actionKey, serverIds: ['s1'] } as never, workspaceId),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('creates a run, audits it, and enqueues it on the worker queue', async () => {
-    await service.startRun({ actionKey, serverIds: ['s1'] } as never, 'admin');
+    await service.startRun(
+      { actionKey, serverIds: ['s1'] } as never,
+      workspaceId,
+      'admin',
+    );
     expect(prisma.serverRun.create).toHaveBeenCalled();
     expect(prisma.auditLog.createMany).toHaveBeenCalled();
-    expect(queue.enqueueAutomationRun).toHaveBeenCalledWith({ runId: 'run1' });
+    expect(queue.enqueueAutomationRun).toHaveBeenCalledWith({
+      workspaceId,
+      runId: 'run1',
+    });
   });
 
   it('404s getRun for a missing automation run', async () => {
     prisma.serverRun.findFirst.mockResolvedValue(null);
-    await expect(service.getRun('nope')).rejects.toBeInstanceOf(
+    await expect(service.getRun('nope', workspaceId)).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
@@ -101,7 +112,7 @@ describe('AutomationService', () => {
       status: ServerRunStatus.SUCCEEDED,
       steps: [],
     });
-    await expect(service.cancelRun('run1')).rejects.toBeInstanceOf(
+    await expect(service.cancelRun('run1', workspaceId)).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
@@ -114,7 +125,7 @@ describe('AutomationService', () => {
         steps: [{ serverId: 's1' }],
       })
       .mockResolvedValueOnce({ id: 'run1', steps: [] }); // getRun at the end
-    await service.cancelRun('run1', 'admin');
+    await service.cancelRun('run1', workspaceId, 'admin');
     expect(prisma.serverRun.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: ServerRunStatus.CANCELED }),
@@ -128,7 +139,7 @@ describe('AutomationService', () => {
       id: 'run1',
       status: ServerRunStatus.RUNNING,
     });
-    await expect(service.deleteRun('run1')).rejects.toBeInstanceOf(
+    await expect(service.deleteRun('run1', workspaceId)).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });

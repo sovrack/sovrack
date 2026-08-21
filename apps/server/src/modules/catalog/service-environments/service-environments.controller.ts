@@ -17,14 +17,18 @@ import {
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
+import { ProjectWorkspaceGuard } from '../../iam/authorization/project-workspace.guard';
 import { CreateServiceEnvironmentDto } from './dto/create-service-environment.dto';
 import { UpdateServiceEnvironmentDto } from './dto/update-service-environment.dto';
 import { ServiceEnvironmentsService } from './service-environments.service';
 
 @ApiTags('ServiceEnvironments')
 @ApiBearerAuth()
-@Controller('projects/:projectId/service-environments')
-@UseGuards(JwtAuthGuard)
+@Controller([
+  'workspaces/:workspaceId/projects/:projectId/service-environments',
+  'projects/:projectId/service-environments',
+])
+@UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
 export class ServiceEnvironmentsController {
   constructor(private readonly service: ServiceEnvironmentsService) {}
 

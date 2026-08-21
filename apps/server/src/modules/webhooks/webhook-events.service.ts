@@ -69,18 +69,39 @@ export class WebhookEventsService {
       }
     }
 
-    const event = await this.prisma.webhookEvent.create({
-      data: {
-        endpointId: params.endpointId,
-        provider: params.provider,
-        eventType: params.eventType,
-        externalDeliveryId: params.externalDeliveryId ?? null,
-        payload: params.payload,
-        headers: params.headers,
-        status: WebhookEventStatus.RECEIVED,
-      },
-      select: { id: true },
-    });
+    let event: { id: string };
+    try {
+      event = await this.prisma.webhookEvent.create({
+        data: {
+          endpointId: params.endpointId,
+          provider: params.provider,
+          eventType: params.eventType,
+          externalDeliveryId: params.externalDeliveryId ?? null,
+          payload: params.payload,
+          headers: params.headers,
+          status: WebhookEventStatus.RECEIVED,
+        },
+        select: { id: true },
+      });
+    } catch (error) {
+      // The database constraint is the final arbiter under concurrent provider
+      // retries; the optimistic lookup above only avoids the common exception.
+      if (
+        params.externalDeliveryId &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const existing = await this.prisma.webhookEvent.findFirst({
+          where: {
+            endpointId: params.endpointId,
+            externalDeliveryId: params.externalDeliveryId,
+          },
+          select: { id: true },
+        });
+        if (existing) return { id: existing.id, deduplicated: true };
+      }
+      throw error;
+    }
 
     await this.prisma.webhookEndpoint.update({
       where: { id: params.endpointId },

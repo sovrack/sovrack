@@ -50,6 +50,9 @@ function makeSvc(
         : jest.fn().mockResolvedValue({}),
       delete: jest.fn().mockResolvedValue(undefined),
     },
+    auditLog: {
+      create: jest.fn().mockResolvedValue({}),
+    },
   } as never;
 
   const auditService = {
@@ -66,19 +69,24 @@ function makeSvc(
     create: jest.fn().mockResolvedValue({ id: 'team-1', name: 'Mon équipe' }),
   } as never;
 
-  const billingService = {
-    ensureSubscription: jest.fn().mockResolvedValue({ id: 'sub-1' }),
-  } as never;
-
   const emailVerification = {
-    startPendingRegistration: jest.fn().mockResolvedValue(undefined),
+    startPendingRegistration: jest
+      .fn()
+      .mockResolvedValue({ registrationId: 'registration-1' }),
     verifyCodeAndActivate: jest.fn().mockResolvedValue({
       id: 'user-1',
       email: 'user@example.com',
-      role: 'OWNER',
+      role: 'MEMBER',
     }),
     resendCode: jest.fn().mockResolvedValue(undefined),
   } as never;
+
+  const smtp = {} as never;
+  const crypto = {
+    encrypt: jest.fn((value: string) => `enc:${value}`),
+    decrypt: jest.fn((value: string) => value.replace(/^enc:/, '')),
+  } as never;
+  const accountDeletion = { deleteIdentity: jest.fn() } as never;
 
   return {
     svc: new AuthService(
@@ -88,8 +96,10 @@ function makeSvc(
       auditService,
       passwordHasher,
       teamsService,
-      billingService,
       emailVerification,
+      smtp,
+      crypto,
+      accountDeletion,
     ),
     usersService,
     jwtService,
@@ -97,7 +107,6 @@ function makeSvc(
     passwordHasher,
     prisma,
     teamsService,
-    billingService,
     emailVerification,
   };
 }
@@ -222,25 +231,22 @@ describe('AuthService', () => {
       teamName: 'New Team',
     };
 
-    it('creates a pending account without team/billing/login', async () => {
-      const {
-        svc,
-        emailVerification,
-        usersService,
-        teamsService,
-        billingService,
-      } = makeSvc();
+    it('creates a pending account without workspace or login', async () => {
+      const { svc, emailVerification, usersService, teamsService } = makeSvc();
       const result = await svc.register(dto);
       expect(emailVerification.startPendingRegistration).toHaveBeenCalledWith({
         email: dto.email,
         password: dto.password,
         fullName: dto.fullName,
-        role: 'OWNER',
+        workspaceName: dto.teamName,
+        role: 'MEMBER',
       });
       expect(usersService.create).not.toHaveBeenCalled();
       expect(teamsService.create).not.toHaveBeenCalled();
-      expect(billingService.ensureSubscription).not.toHaveBeenCalled();
-      expect(result).toEqual({ email: dto.email });
+      expect(result).toEqual({
+        email: dto.email,
+        registrationId: 'registration-1',
+      });
     });
   });
 
@@ -251,34 +257,43 @@ describe('AuthService', () => {
         emailVerification,
         usersService,
         teamsService,
-        billingService,
         jwtService,
+        prisma,
       } = makeSvc();
       const verified = makeUser({ id: 'user-1', email: 'user@example.com' });
       usersService.findById = jest.fn().mockResolvedValue(verified);
       emailVerification.verifyCodeAndActivate = jest
         .fn()
         .mockImplementation(async ({ onActivate }) => {
-          await onActivate('user-1');
+          await onActivate(
+            {
+              id: 'user-1',
+              email: 'user@example.com',
+              role: 'MEMBER',
+              workspaceName: 'New Team',
+            },
+            prisma,
+          );
           return {
             id: 'user-1',
             email: 'user@example.com',
-            role: 'OWNER',
+            role: 'MEMBER',
           };
         });
 
       const result = await svc.verifyEmail({
         email: 'user@example.com',
         code: '123456',
+        registrationId: 'c56a4180-65aa-42ec-a945-5fd21dec0538',
       });
 
       expect(emailVerification.verifyCodeAndActivate).toHaveBeenCalledWith({
         email: 'user@example.com',
         code: '123456',
+        registrationId: 'c56a4180-65aa-42ec-a945-5fd21dec0538',
         onActivate: expect.any(Function),
       });
       expect(teamsService.create).toHaveBeenCalled();
-      expect(billingService.ensureSubscription).toHaveBeenCalledWith('team-1');
       expect(jwtService.sign).toHaveBeenCalled();
       expect(result.access_token).toBe('jwt-token');
       expect(result.user.email).toBe('user@example.com');
@@ -289,7 +304,11 @@ describe('AuthService', () => {
       const { svc, usersService } = makeSvc();
       usersService.findById = jest.fn().mockResolvedValue(null);
       await expect(
-        svc.verifyEmail({ email: 'user@example.com', code: '123456' }),
+        svc.verifyEmail({
+          email: 'user@example.com',
+          code: '123456',
+          registrationId: 'c56a4180-65aa-42ec-a945-5fd21dec0538',
+        }),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -297,9 +316,13 @@ describe('AuthService', () => {
   describe('resendVerificationCode', () => {
     it('delegates to emailVerification.resendCode', async () => {
       const { svc, emailVerification } = makeSvc();
-      const result = await svc.resendVerificationCode('user@example.com');
+      const result = await svc.resendVerificationCode(
+        'user@example.com',
+        'c56a4180-65aa-42ec-a945-5fd21dec0538',
+      );
       expect(emailVerification.resendCode).toHaveBeenCalledWith(
         'user@example.com',
+        'c56a4180-65aa-42ec-a945-5fd21dec0538',
       );
       expect(result).toEqual({ email: 'user@example.com' });
     });

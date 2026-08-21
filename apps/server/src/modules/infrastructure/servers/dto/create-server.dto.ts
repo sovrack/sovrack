@@ -58,7 +58,7 @@ export class CreateServerDto {
   username?: string;
 
   @ApiPropertyOptional({
-    example: '-----BEGIN OPENSSH PRIVATE KEY-----\n...',
+    example: '<ssh-private-key-pem>',
     description:
       'SSH private key (OpenSSH or PKCS8). If omitted, the platform auto-generates a key pair.',
   })

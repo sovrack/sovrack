@@ -8,6 +8,8 @@ import { PlatformRole, Role, StaffStatus } from '@prisma/client';
 import { PasswordHasher } from '../iam/security/password-hasher.service';
 import { StaffService } from './staff.service';
 import { StaffAuditService } from './staff-audit.service';
+import { ConfigService } from '@nestjs/config';
+import { AccountDeletionService } from '../iam/authorization/account-deletion.service';
 import type { Staff, User } from '@prisma/client';
 
 const staffFixture: Staff = {
@@ -34,6 +36,7 @@ const userFixture: User = {
   role: Role.OWNER,
   isActive: true,
   emailVerificationCode: null,
+  emailVerificationAttemptId: null,
   emailVerificationExpiresAt: null,
   emailVerifiedAt: null,
   deleteAccountCode: null,
@@ -80,6 +83,12 @@ describe('StaffService', () => {
   const audit = {
     record: jest.fn(async () => undefined),
   };
+  const config = {
+    getOrThrow: jest.fn(() => 'customer-jwt-secret-at-least-32-chars'),
+  };
+  const accountDeletion = {
+    deleteIdentity: jest.fn(async () => undefined),
+  };
   let service: StaffService;
 
   beforeEach(() => {
@@ -89,6 +98,8 @@ describe('StaffService', () => {
       jwt as unknown as JwtService,
       passwordHasher as unknown as PasswordHasher,
       audit as unknown as StaffAuditService,
+      config as unknown as ConfigService,
+      accountDeletion as unknown as AccountDeletionService,
     );
   });
 
@@ -261,7 +272,7 @@ describe('StaffService', () => {
   });
 
   describe('deleteUser', () => {
-    it('supprime le compte et les données liées en transaction', async () => {
+    it('supprime uniquement l’identité via le service de domaine', async () => {
       prisma.user.findUnique.mockResolvedValue(userFixture);
       prisma.teamMember.findMany.mockResolvedValue([{ teamId: 'team-1' }]);
       prisma.$transaction.mockImplementation(
@@ -270,7 +281,7 @@ describe('StaffService', () => {
 
       const result = await service.deleteUser('user-1', 'staff-1', '::1');
 
-      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(accountDeletion.deleteIdentity).toHaveBeenCalledWith('user-1');
       expect(audit.record).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'user.delete',

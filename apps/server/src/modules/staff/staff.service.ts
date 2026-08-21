@@ -11,6 +11,8 @@ import { PrismaService } from '../../shared/database/prisma.service';
 import { PasswordHasher } from '../iam/security/password-hasher.service';
 import { StaffAuditService } from './staff-audit.service';
 import { StaffJwtPayload } from './staff-jwt.strategy';
+import { ConfigService } from '@nestjs/config';
+import { AccountDeletionService } from '../iam/authorization/account-deletion.service';
 import {
   CreateStaffDto,
   StaffLoginDto,
@@ -38,6 +40,8 @@ export class StaffService {
     private readonly jwtService: JwtService,
     private readonly passwordHasher: PasswordHasher,
     private readonly audit: StaffAuditService,
+    private readonly config: ConfigService,
+    private readonly accountDeletion: AccountDeletionService,
   ) {}
 
   // ──────────────────────────── AUTH ────────────────────────────
@@ -400,21 +404,7 @@ export class StaffService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
 
-    await this.prisma.$transaction(async (tx) => {
-      const memberships = await tx.teamMember.findMany({
-        where: { userId },
-        select: { teamId: true },
-      });
-      const teamIds = memberships.map((m) => m.teamId);
-      if (teamIds.length > 0) {
-        await tx.project.deleteMany({ where: { teamId: { in: teamIds } } });
-        await tx.server.deleteMany({ where: { teamId: { in: teamIds } } });
-        await tx.team.deleteMany({ where: { id: { in: teamIds } } });
-      }
-      await tx.auditLog.deleteMany({ where: { userId } });
-      await tx.sshKey.deleteMany({ where: { userId } });
-      await tx.user.delete({ where: { id: userId } });
-    });
+    await this.accountDeletion.deleteIdentity(userId);
     await this.audit.record({
       staffId: actorId,
       action: 'user.delete',
@@ -443,7 +433,14 @@ export class StaffService {
       role: user.role,
       sub: user.id,
     };
-    const token = this.jwtService.sign(payload);
+    const customerSecret = this.config.get<string>('JWT_SECRET');
+    if (!customerSecret) {
+      throw new Error('JWT_SECRET non configuré');
+    }
+    const token = this.jwtService.sign(payload, {
+      secret: customerSecret,
+      expiresIn: '15m',
+    });
     const { password: _p, ...safeUser } = user;
     void _p;
     await this.audit.record({

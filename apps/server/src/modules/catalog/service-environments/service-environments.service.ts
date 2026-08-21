@@ -8,6 +8,8 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { activeWhere } from '../../../shared/database/prisma-active.helper';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { ProjectAccessService } from '../authorization/project-access.service';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import { WorkspaceActions } from '../../iam/authorization/workspace-policy.types';
 import { CreateServiceEnvironmentDto } from './dto/create-service-environment.dto';
 import { UpdateServiceEnvironmentDto } from './dto/update-service-environment.dto';
 
@@ -47,6 +49,7 @@ export class ServiceEnvironmentsService {
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
     private readonly projectAccess: ProjectAccessService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   async link(
@@ -55,7 +58,7 @@ export class ServiceEnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceEnvWithRelations> {
-    await this.projectAccess.assertCanManageProject(
+    const actor = await this.projectAccess.assertCanManageProjectWithContext(
       projectId,
       userId,
       userRole,
@@ -73,6 +76,15 @@ export class ServiceEnvironmentsService {
     });
     if (!env) {
       throw new NotFoundException('Environnement non trouvé dans ce projet');
+    }
+
+    if (dto.serverId) {
+      await this.workspaceAccess.assertServerAction(
+        dto.serverId,
+        userId,
+        WorkspaceActions.MANAGE_SERVER,
+        actor.workspaceId,
+      );
     }
 
     const existing = await this.prisma.serviceEnvironment.findUnique({
@@ -202,12 +214,24 @@ export class ServiceEnvironmentsService {
     userId: string,
     userRole: Role,
   ): Promise<ServiceEnvWithRelations> {
-    await this.projectAccess.assertCanManageProject(
+    const actor = await this.projectAccess.assertCanManageProjectWithContext(
       projectId,
       userId,
       userRole,
     );
     await this.ensureExists(projectId, id);
+
+    if (dto.serverId) {
+      await this.workspaceAccess.assertServerAction(
+        dto.serverId,
+        userId,
+        WorkspaceActions.MANAGE_SERVER,
+        actor.workspaceId,
+      );
+    } else if (dto.serverId === null || dto.serverId === '') {
+      // Explicit detachment is allowed to the project maintainer. No foreign
+      // server is referenced, so there is no additional workspace capability.
+    }
 
     return this.prisma.serviceEnvironment.update({
       where: { id },

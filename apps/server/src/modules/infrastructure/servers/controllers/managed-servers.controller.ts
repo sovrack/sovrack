@@ -15,11 +15,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { ManagedServerProvider, Role } from '@prisma/client';
-import { Roles } from '../../../../shared/decorators/roles.decorator';
+import { ManagedServerProvider } from '@prisma/client';
 import { GetUser } from '../../../../shared/decorators/get-user.decorator';
-import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../../shared/guards/roles.guard';
+import { GetWorkspaceId } from '../../../../shared/decorators/get-workspace-id.decorator';
+import { ServerWorkspaceGuard } from '../../../iam/authorization/server-workspace.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { ManagedServersService } from '../services/managed-servers.service';
 
@@ -49,9 +48,8 @@ class SetManagedHostDto {
  */
 @ApiTags('Managed Servers')
 @ApiBearerAuth()
-@Controller('managed-servers')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.OWNER, Role.MEMBER)
+@Controller(['workspaces/:workspaceId/managed-servers', 'managed-servers'])
+@UseGuards(ServerWorkspaceGuard)
 export class ManagedServersController {
   constructor(private readonly managed: ManagedServersService) {}
 
@@ -63,23 +61,26 @@ export class ManagedServersController {
   async create(
     @Body() dto: CreateManagedServerDto,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
-    return this.managed.create({ ...dto, provider: dto.provider }, user.id);
+    return this.managed.create(
+      { ...dto, provider: dto.provider },
+      user.id,
+      workspaceId,
+    );
   }
 
   @Get()
   @ApiOperation({ summary: 'Lister les serveurs managés de la team' })
   @ApiOkResponse({ description: 'Liste des serveurs managés' })
-  async list(@GetUser() user: JwtPayload) {
-    const teamId = await this.managed.getTeamId(user.id);
-    return this.managed.listManaged(teamId);
+  async list(@GetWorkspaceId() workspaceId: string) {
+    return this.managed.listManaged(workspaceId);
   }
 
   @Get('estimate')
   @ApiOperation({ summary: 'Coût mensuel estimé de l’infra managée' })
-  async estimate(@GetUser() user: JwtPayload) {
-    const teamId = await this.managed.getTeamId(user.id);
-    const aggregate = await this.managed.estimateMonthly(teamId);
+  async estimate(@GetWorkspaceId() workspaceId: string) {
+    const aggregate = await this.managed.estimateMonthly(workspaceId);
     return {
       monthlyTotalMillimes: aggregate._sum.monthlyCostMillimes ?? 0,
     };
@@ -87,9 +88,11 @@ export class ManagedServersController {
 
   @Get(':id/public-key')
   @ApiOperation({ summary: 'Clé publique SSH du serveur managé' })
-  async publicKey(@Param('id') id: string, @GetUser() user: JwtPayload) {
-    const teamId = await this.managed.getTeamId(user.id);
-    return this.managed.getPublicKey(id, teamId);
+  async publicKey(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.managed.getPublicKey(id, workspaceId);
   }
 
   @Patch(':id/host')
@@ -101,8 +104,8 @@ export class ManagedServersController {
     @Param('id') id: string,
     @Body() dto: SetManagedHostDto,
     @GetUser() user: JwtPayload,
+    @GetWorkspaceId() workspaceId: string,
   ) {
-    const teamId = await this.managed.getTeamId(user.id);
-    return this.managed.setHost(id, dto.host, teamId, user.id);
+    return this.managed.setHost(id, dto.host, workspaceId, user.id);
   }
 }

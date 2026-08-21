@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Role, RegistryProviderType } from '@prisma/client';
+import { RegistryProviderType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -18,9 +18,8 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Roles } from '../../shared/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../shared/guards/roles.guard';
+import { GetWorkspaceId } from '../../shared/decorators/get-workspace-id.decorator';
+import { WorkspaceGuard } from '../iam/authorization/workspace.guard';
 import { ContainerRegistriesService } from './container-registries.service';
 
 class CreateRegistryConfigDto {
@@ -43,22 +42,27 @@ class UpdateRegistryConfigDto {
 
 @ApiTags('ContainerRegistries (Admin)')
 @ApiBearerAuth()
-@Controller('admin/platform-config/registries')
-@Roles(Role.OWNER, Role.MEMBER)
-@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller([
+  'workspaces/:workspaceId/integrations/registries',
+  'admin/platform-config/registries',
+])
+@UseGuards(WorkspaceGuard)
 export class ContainerRegistriesController {
   constructor(private readonly registries: ContainerRegistriesService) {}
 
   @Get()
   @ApiOperation({ summary: 'List registry configurations' })
-  async listContainerRegistries() {
-    return this.registries.listRegistryConfigs();
+  async listContainerRegistries(@GetWorkspaceId() workspaceId: string) {
+    return this.registries.listRegistryConfigs(workspaceId);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a new registry configuration' })
-  async createRegistry(@Body() dto: CreateRegistryConfigDto) {
-    return this.registries.createRegistryConfig(dto);
+  async createRegistry(
+    @Body() dto: CreateRegistryConfigDto,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.registries.createRegistryConfig(dto, workspaceId);
   }
 
   @Put(':id')
@@ -66,26 +70,36 @@ export class ContainerRegistriesController {
   async updateRegistry(
     @Param('id') id: string,
     @Body() dto: UpdateRegistryConfigDto,
+    @GetWorkspaceId() workspaceId: string,
   ) {
-    return this.registries.updateRegistryConfig(id, dto);
+    return this.registries.updateRegistryConfig(id, dto, workspaceId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a registry configuration' })
-  async deleteRegistry(@Param('id') id: string) {
-    await this.registries.deleteRegistryConfig(id);
+  async deleteRegistry(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    await this.registries.deleteRegistryConfig(id, workspaceId);
     return { message: 'Registre supprimé avec succès' };
   }
 
   @Post(':id/test')
   @ApiOperation({ summary: 'Test the connection to a registry' })
-  async testRegistry(@Param('id') id: string) {
-    return this.registries.testRegistryConnection(id);
+  async testRegistry(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.registries.testRegistryConnection(id, workspaceId);
   }
 
   @Post(':id/set-default')
   @ApiOperation({ summary: 'Set a registry as the default registry' })
-  async setDefaultRegistry(@Param('id') id: string) {
-    return this.registries.setDefaultRegistryConfig(id);
+  async setDefaultRegistry(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.registries.setDefaultRegistryConfig(id, workspaceId);
   }
 }

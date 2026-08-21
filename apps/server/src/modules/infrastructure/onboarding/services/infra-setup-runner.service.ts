@@ -116,6 +116,7 @@ export class InfraSetupRunnerService {
         const run = await tx.serverRun.create({
           data: {
             kind: ServerRunKind.PREPARATION,
+            teamId: server.teamId,
             serverId: server.id,
             status: ServerRunStatus.QUEUED,
             profile: resolved.profile,

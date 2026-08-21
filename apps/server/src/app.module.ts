@@ -41,6 +41,7 @@ import { AutomationModule } from './modules/automation';
 import { ContainerRegistriesModule } from './modules/container-registries';
 import { BillingModule } from './modules/billing';
 import { StaffModule } from './modules/staff/staff.module';
+import { WorkspaceAuthorizationModule } from './modules/iam/authorization/workspace-authorization.module';
 // shared/ (technique pur) + adapters/ (I/O : docker, ssh, ansible)
 import { PrismaModule } from './shared/database/prisma.module';
 import { LoggerModule } from './shared/logger/logger.module';
@@ -83,6 +84,7 @@ import { QueueModule } from './shared/queue/queue.module';
     SshModule,
     QueueModule,
     PrismaModule,
+    WorkspaceAuthorizationModule,
     UsersModule,
     AuthModule,
     BuildModule,

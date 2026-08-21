@@ -1,7 +1,10 @@
 import { Inject, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import {
   ConnectedSocket,
   MessageBody,
+  OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
@@ -12,6 +15,11 @@ import type { IDockerRuntime } from '../../../../adapters/container-runtime/port
 import { DOCKER_RUNTIME } from '../../../../adapters/container-runtime/ports/docker-runtime.port';
 import { ContainersService } from '../containers.service';
 import { resolveGatewayCorsOrigins } from '../../../../shared/http/cors-origins.util';
+import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
+import {
+  AUTH_COOKIE_NAME_DEFAULT,
+  extractTokenFromCookieHeader,
+} from '../../../../shared/http/auth-cookie.util';
 
 type LogStreamPayload = {
   containerId: string;
@@ -22,7 +30,9 @@ type LogStreamPayload = {
   namespace: '/containers',
   cors: { origin: resolveGatewayCorsOrigins(), credentials: true },
 })
-export class ContainersGateway implements OnGatewayDisconnect {
+export class ContainersGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer() server!: Server;
   private readonly logger = new Logger(ContainersGateway.name);
   private readonly activeStreams = new Map<string, AbortController>();
@@ -30,7 +40,40 @@ export class ContainersGateway implements OnGatewayDisconnect {
   constructor(
     private readonly containersService: ContainersService,
     @Inject(DOCKER_RUNTIME) private readonly docker: IDockerRuntime,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
+
+  handleConnection(client: Socket): void {
+    const auth = client.handshake.auth as Record<string, unknown>;
+    const cookieName = this.configService.get<string>(
+      'AUTH_COOKIE_NAME',
+      AUTH_COOKIE_NAME_DEFAULT,
+    );
+    const cookieToken = extractTokenFromCookieHeader(
+      client.handshake.headers.cookie,
+      cookieName,
+    );
+    const rawToken =
+      cookieToken ??
+      (auth.token as string | undefined) ??
+      client.handshake.headers.authorization;
+    const token =
+      typeof rawToken === 'string'
+        ? rawToken.replace(/^Bearer\s+/i, '').trim()
+        : '';
+
+    if (!token) {
+      client.disconnect();
+      return;
+    }
+    try {
+      (client.data as { user: JwtPayload }).user =
+        this.jwtService.verify<JwtPayload>(token);
+    } catch {
+      client.disconnect();
+    }
+  }
 
   handleDisconnect(client: Socket): void {
     this.stopStream(client.id);
@@ -43,8 +86,28 @@ export class ContainersGateway implements OnGatewayDisconnect {
   ): Promise<void> {
     this.stopStream(client.id);
 
+    const user = (client.data as { user?: JwtPayload }).user;
+    if (!user) {
+      client.emit('container:error', {
+        message: 'Utilisateur non authentifié',
+      });
+      return;
+    }
+    const auth = client.handshake.auth as Record<string, unknown>;
+    const headerWorkspaceId = client.handshake.headers['x-workspace-id'];
+    const requestedWorkspaceId =
+      (typeof auth.workspaceId === 'string' && auth.workspaceId.trim()) ||
+      (typeof headerWorkspaceId === 'string' && headerWorkspaceId.trim()) ||
+      undefined;
+
     const container = await this.containersService
-      .findOne(payload.containerId)
+      .assertCanAccessContainer(
+        payload.containerId,
+        user.id,
+        user.role,
+        requestedWorkspaceId,
+      )
+      .then(() => this.containersService.findOne(payload.containerId))
       .catch(() => null);
     if (!container) {
       client.emit('container:error', { message: 'Container introuvable' });
@@ -59,7 +122,10 @@ export class ContainersGateway implements OnGatewayDisconnect {
         const stream = this.docker.streamContainerLogs(
           container.serverId,
           container.dockerId,
-          { follow: true, tail: payload.tail ?? 100 },
+          {
+            follow: true,
+            tail: Math.min(1000, Math.max(1, payload.tail ?? 100)),
+          },
         );
         for await (const entry of stream) {
           if (controller.signal.aborted) break;

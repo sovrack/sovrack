@@ -94,16 +94,24 @@ export class BillingService {
     return PLAN_LIMITS_DEFAULTS[plan];
   }
 
-  /** Résout la première team de l'utilisateur (tenant du billing). */
+  /** Compatibility helper: resolves only an unambiguous active workspace. */
   async resolveTeamId(userId: string): Promise<string> {
-    const membership = await this.prisma.teamMember.findFirst({
-      where: { userId },
+    const memberships = await this.prisma.teamMember.findMany({
+      where: { userId, status: 'ACTIVE' },
       orderBy: { joinedAt: 'asc' },
+      select: { teamId: true },
+      take: 2,
     });
-    if (!membership) {
+    if (memberships.length === 0) {
       throw new NotFoundException('Aucune équipe associée à ce compte');
     }
-    return membership.teamId;
+    if (memberships.length > 1) {
+      throw new BadRequestException({
+        code: 'WORKSPACE_CONTEXT_REQUIRED',
+        message: 'Sélectionnez explicitement le workspace de facturation',
+      });
+    }
+    return memberships[0].teamId;
   }
 
   /** Vue billing pour le dashboard (résout la team de l'utilisateur). */

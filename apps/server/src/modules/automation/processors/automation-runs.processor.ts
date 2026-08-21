@@ -9,6 +9,7 @@ import { createAutomationRunsWorker } from '../../../shared/queue/queue.provider
 import type { AutomationRunJobData } from '../../../shared/queue/queue.service';
 import { runsBackgroundWork } from '../../../shared/utils/process-role.util';
 import { AutomationRunnerService } from '../services/automation-runner.service';
+import { PrismaService } from '../../../shared/database/prisma.service';
 
 /**
  * Worker-side consumer of the `automation-runs` queue (the /automation feature:
@@ -21,7 +22,10 @@ export class AutomationRunsProcessor implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AutomationRunsProcessor.name);
   private worker: Worker | null = null;
 
-  constructor(private readonly runner: AutomationRunnerService) {}
+  constructor(
+    private readonly runner: AutomationRunnerService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   onModuleInit(): void {
     if (!runsBackgroundWork()) {
@@ -47,7 +51,14 @@ export class AutomationRunsProcessor implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(`Unknown automation-run job type: ${job.name}`);
       return;
     }
-    const { runId } = job.data as AutomationRunJobData;
+    const { runId, workspaceId } = job.data as AutomationRunJobData;
+    const run = await this.prisma.serverRun.findFirst({
+      where: { id: runId, teamId: workspaceId },
+      select: { id: true },
+    });
+    if (!run) {
+      throw new Error('Automation job workspace mismatch');
+    }
     await this.runner.runAutomationJob(runId);
   }
 }

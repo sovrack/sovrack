@@ -57,7 +57,12 @@ function makeServiceEnv(
     },
     environment: {
       id: 'env1',
-      project: { id: 'proj1', name: 'my-project', maxConcurrentDeploys: null },
+      project: {
+        id: 'proj1',
+        teamId: 'workspace1',
+        name: 'my-project',
+        maxConcurrentDeploys: null,
+      },
       servers: [
         {
           id: 'srv1',
@@ -224,7 +229,10 @@ describe('DeploymentsCreateService', () => {
         databaseType: ManagedServiceType.POSTGRES,
       });
       await svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1');
-      expect(queueService.enqueueDeploy).toHaveBeenCalledWith('dep1');
+      expect(queueService.enqueueDeploy).toHaveBeenCalledWith(
+        'dep1',
+        'workspace1',
+      );
     });
 
     it('calls the preflight guard before creating anything, for APP services', async () => {
@@ -286,7 +294,10 @@ describe('DeploymentsCreateService', () => {
         needsDirectTrigger: true,
       });
       await svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1');
-      expect(queueService.enqueueDeploy).toHaveBeenCalledWith('dep1');
+      expect(queueService.enqueueDeploy).toHaveBeenCalledWith(
+        'dep1',
+        'workspace1',
+      );
       expect(gateway.emitStatus).toHaveBeenCalledWith({
         deploymentId: 'dep1',
         status: DeploymentStatus.RUNNING,
@@ -307,7 +318,11 @@ describe('DeploymentsCreateService', () => {
       expect(prisma.pipelineRun.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            externalId_provider: { externalId: 99n, provider: 'GITLAB' },
+            projectId_externalId_provider: {
+              projectId: 'proj1',
+              externalId: 99n,
+              provider: 'GITLAB',
+            },
           },
           create: expect.objectContaining({
             externalId: 99n,
@@ -385,7 +400,10 @@ describe('DeploymentsCreateService', () => {
         databaseType: ManagedServiceType.POSTGRES,
       });
       await svc.create({ serviceEnvId: 'senv1', branch: 'main' }, 'user1');
-      expect(queueService.enqueueDeploy).toHaveBeenCalledWith('dep1');
+      expect(queueService.enqueueDeploy).toHaveBeenCalledWith(
+        'dep1',
+        'workspace1',
+      );
     });
 
     it('calls getDatabaseImage to resolve the container image', async () => {

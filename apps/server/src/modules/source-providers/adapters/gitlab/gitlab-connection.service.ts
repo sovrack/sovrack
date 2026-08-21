@@ -106,6 +106,7 @@ export class GitlabConnectionService {
 
   async resolveGitlabConnectionInput(
     dto: ConnectGitlabDto,
+    teamId: string,
   ): Promise<GitlabConnectionInput> {
     const manualUrl = this.normalizeOptionalString(dto.gitlabUrl);
     const manualToken = this.normalizeOptionalString(dto.gitlabToken);
@@ -113,7 +114,7 @@ export class GitlabConnectionService {
     if (dto.providerId) {
       if (manualToken) {
         const providers =
-          await this.gitProviderRegistry.listGitlabProvidersForProjects();
+          await this.gitProviderRegistry.listGitlabProvidersForProjects(teamId);
         const provider = providers.find((p) => p.id === dto.providerId);
         const providerUrl = provider?.providerUrl ?? 'https://gitlab.com';
         return {
@@ -124,7 +125,10 @@ export class GitlabConnectionService {
       }
 
       const providerCredentials =
-        await this.gitProviderRegistry.resolveGitlabCredentials(dto.providerId);
+        await this.gitProviderRegistry.resolveGitlabCredentials(
+          teamId,
+          dto.providerId,
+        );
 
       return {
         gitlabUrl: manualUrl ?? providerCredentials.providerUrl,
@@ -148,7 +152,7 @@ export class GitlabConnectionService {
     }
 
     const defaultProviderCredentials =
-      await this.gitProviderRegistry.resolveGitlabCredentials();
+      await this.gitProviderRegistry.resolveGitlabCredentials(teamId);
 
     return {
       gitlabUrl: defaultProviderCredentials.providerUrl,

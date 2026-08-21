@@ -14,7 +14,7 @@ export class DiscoverGroupDto {
 
   // Optionnel : si le provider est déjà connecté (providerId fourni), on réutilise
   // le token stocké. Obligatoire seulement pour un provider non connecté.
-  @ApiPropertyOptional({ example: 'glpat-xxx' })
+  @ApiPropertyOptional({ example: '<git-access-token>' })
   @IsOptional()
   @IsString()
   token?: string;

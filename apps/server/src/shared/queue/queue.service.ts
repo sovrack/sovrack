@@ -3,6 +3,7 @@ import { Queue } from 'bullmq';
 
 export type DeployJobData = {
   deploymentId: string;
+  workspaceId: string;
   overrideImage?: string;
 };
 
@@ -12,6 +13,7 @@ export type DeployJobData = {
  * Server row and re-hydrates everything it needs from the DB.
  */
 export type SetupJobData = {
+  workspaceId: string;
   serverId: string;
   setupId: string;
   jobId: string;
@@ -20,6 +22,7 @@ export type SetupJobData = {
 
 /** Payload for an automation run (/automation feature) executed by the worker. */
 export type AutomationRunJobData = {
+  workspaceId: string;
   runId: string;
 };
 
@@ -34,24 +37,18 @@ export class QueueService {
     private readonly automationRunsQueue: Queue,
   ) {}
 
-  /**
-   * Enqueue a deployment for async execution by the BullMQ worker.
-   *
-   * Note: rollbacks intentionally do NOT go through the queue. They are
-   * human-triggered, low-frequency, and run synchronously via a direct
-   * `executeDeploy(rollbackId, pinnedImageRef)` call in
-   * DeploymentsRollbackService. The former `enqueueRollback`/`handleRollback`
-   * path was dead code with a latent bug (it passed a Deployment UUID into the
-   * `overrideImage` slot, where a Docker image ref is expected) and was removed.
-   */
+  /** Enqueue deploys, webhook continuations and rollbacks on the worker. */
   async enqueueDeploy(
     deploymentId: string,
+    workspaceId: string,
     overrideImage?: string,
   ): Promise<string> {
     const job = await this.deploymentsQueue.add(
       'deploy',
-      { deploymentId, overrideImage } satisfies DeployJobData,
+      { deploymentId, workspaceId, overrideImage } satisfies DeployJobData,
       {
+        // Stable id makes producer retries idempotent while the job exists.
+        jobId: `deployment-${deploymentId}`,
         // No auto-retry: the executor now rolls the service back to the previous
         // container on failure, so retrying would just flap (stop/restart the
         // old container) and rebuild for nothing on a permanent error. The user

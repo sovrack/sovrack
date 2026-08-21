@@ -1,4 +1,5 @@
-import { Role } from '@prisma/client';
+import { GitProviderType, Role } from '@prisma/client';
+import { NotFoundException } from '@nestjs/common';
 import { GithubAdapter } from './github.adapter';
 
 /**
@@ -56,5 +57,39 @@ describe('GithubAdapter (delegation)', () => {
 
   it('resolveRepositoryPath returns the resolved fullRepoName', async () => {
     expect(await adapter.resolveRepositoryPath('p1')).toBe('org/app');
+  });
+
+  it('rejects a provider owned by another workspace during connection', async () => {
+    const prisma = {
+      project: {
+        findUnique: jest.fn().mockResolvedValue({ teamId: 'workspace-1' }),
+      },
+      gitProviderConfig: { findFirst: jest.fn().mockResolvedValue(null) },
+    };
+    const scopedAdapter = new GithubAdapter(
+      prisma as never,
+      {} as never,
+      api as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await expect(
+      scopedAdapter.connectProject('project-1', {
+        gitlabToken: 'token',
+        repoPath: 'org/app',
+        defaultBranch: 'main',
+        providerId: 'foreign-provider',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.gitProviderConfig.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'foreign-provider',
+        teamId: 'workspace-1',
+        type: GitProviderType.GITHUB,
+      },
+      select: { id: true },
+    });
   });
 });

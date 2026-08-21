@@ -236,8 +236,11 @@ describe('GitlabAdapter — connectProject / verifyConnectionInput (delegation)'
   it('verifyConnectionInput delegates to GitlabOnboardingService', async () => {
     const { adapter, onboarding } = makeFullAdapter();
     const dto = { repoPath: 'org/app', defaultBranch: 'main' } as never;
-    await adapter.verifyConnectionInput(dto);
-    expect(onboarding.verifyConnectionInput).toHaveBeenCalledWith(dto);
+    await adapter.verifyConnectionInput(dto, 'workspace-1');
+    expect(onboarding.verifyConnectionInput).toHaveBeenCalledWith(
+      dto,
+      'workspace-1',
+    );
   });
 });
 

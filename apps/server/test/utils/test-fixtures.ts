@@ -7,6 +7,7 @@ import {
   BuildPack,
   GitProviderType,
   ServerStatus,
+  WorkspaceRole,
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
@@ -21,6 +22,7 @@ export async function createTestFixtures(prisma: PrismaClient) {
       password: '$2b$10$dummyhashneverusedfore2e',
       fullName: 'E2E Admin',
       role: Role.OWNER,
+      emailVerifiedAt: new Date(),
     },
   });
 
@@ -29,10 +31,14 @@ export async function createTestFixtures(prisma: PrismaClient) {
   // same team the fixtures' server belongs to.
   const teamId = randomUUID();
   await prisma.team.create({
-    data: { id: teamId, name: `e2e-team-${teamId.slice(0, 8)}` },
+    data: {
+      id: teamId,
+      name: `e2e-team-${teamId.slice(0, 8)}`,
+      slug: `e2e-team-${teamId}`,
+    },
   });
   await prisma.teamMember.create({
-    data: { teamId, userId },
+    data: { teamId, userId, role: WorkspaceRole.OWNER },
   });
 
   const projectId = randomUUID();
@@ -40,14 +46,16 @@ export async function createTestFixtures(prisma: PrismaClient) {
     data: {
       id: projectId,
       name: `e2e-project-${projectId.slice(0, 8)}`,
+      teamId,
     },
   });
 
   await prisma.projectMember.create({
     data: {
       projectId,
+      teamId,
       userId,
-      role: ProjectRole.OWNER,
+      role: ProjectRole.MAINTAINER,
     },
   });
 
@@ -127,6 +135,7 @@ export async function createTestFixtures(prisma: PrismaClient) {
       name: `e2e-gitlab-${providerId.slice(0, 8)}`,
       type: GitProviderType.GITLAB,
       providerUrl: 'https://gitlab.example.com',
+      teamId,
     },
   });
 

@@ -20,9 +20,10 @@ export class MonitoringStatsService {
 
   async getServerMonitoring(
     metricByHost: Map<string, MonitoringMetricSnapshot>,
+    workspaceId: string,
   ) {
     const servers = await this.prisma.server.findMany({
-      where: activeWhere({ isActive: true }),
+      where: activeWhere({ teamId: workspaceId, isActive: true }),
       orderBy: { name: 'asc' },
       take: 200,
     });
@@ -58,7 +59,8 @@ export class MonitoringStatsService {
       }
     }
 
-    const deploymentStatsByServer = await this.fetchDeploymentStatsByServer();
+    const deploymentStatsByServer =
+      await this.fetchDeploymentStatsByServer(serverIds);
 
     return servers.map((server) => {
       const metrics = metricByHost.get(server.host) ?? {
@@ -122,8 +124,9 @@ export class MonitoringStatsService {
     });
   }
 
-  async getProjectMonitoring() {
+  async getProjectMonitoring(workspaceId: string) {
     const projects = await this.prisma.project.findMany({
+      where: { teamId: workspaceId },
       orderBy: { name: 'asc' },
       take: 100,
       include: {
@@ -214,8 +217,9 @@ export class MonitoringStatsService {
     });
   }
 
-  async getDeploymentMonitoring() {
+  async getDeploymentMonitoring(workspaceId: string) {
     const deployments = await this.prisma.deployment.findMany({
+      where: { project: { teamId: workspaceId } },
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: {
@@ -297,10 +301,10 @@ export class MonitoringStatsService {
     };
   }
 
-  private async fetchDeploymentStatsByServer() {
+  private async fetchDeploymentStatsByServer(serverIds: string[]) {
     const containers = await this.prisma.container.findMany({
       take: 500,
-      where: { deploymentId: { not: null } },
+      where: { serverId: { in: serverIds }, deploymentId: { not: null } },
       select: {
         serverId: true,
         deployment: {

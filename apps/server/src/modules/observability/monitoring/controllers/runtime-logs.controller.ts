@@ -4,10 +4,11 @@ import { GetUser } from '../../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { MonitoringRuntimeLogsService } from '../services/monitoring-runtime-logs.service';
+import { GetWorkspaceId } from '../../../../shared/decorators/get-workspace-id.decorator';
 
 @ApiTags('Observability')
 @ApiBearerAuth()
-@Controller('runtime-logs')
+@Controller(['workspaces/:workspaceId/runtime-logs', 'runtime-logs'])
 @UseGuards(JwtAuthGuard)
 export class RuntimeLogsController {
   constructor(private readonly runtimeLogs: MonitoringRuntimeLogsService) {}
@@ -22,6 +23,7 @@ export class RuntimeLogsController {
     @Query('tail') tail?: string,
     @Query('search') search?: string,
     @Query('stream') stream?: 'stdout' | 'stderr' | 'all',
+    @GetWorkspaceId() workspaceId?: string,
   ) {
     return await this.runtimeLogs.searchServiceLogs(
       serviceEnvId,
@@ -32,6 +34,7 @@ export class RuntimeLogsController {
         search,
         stream,
       },
+      workspaceId,
     );
   }
 
@@ -47,6 +50,7 @@ export class RuntimeLogsController {
     @Query('to') to?: string,
     @Query('search') search?: string,
     @Query('limit') limit?: string,
+    @GetWorkspaceId() workspaceId?: string,
   ) {
     return await this.runtimeLogs.searchPersistedLogs(
       serviceEnvId,
@@ -58,6 +62,7 @@ export class RuntimeLogsController {
         search,
         limit: limit ? Number(limit) : undefined,
       },
+      workspaceId,
     );
   }
 }

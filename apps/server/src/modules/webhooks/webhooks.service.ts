@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import {
   GitProviderType,
@@ -248,5 +248,18 @@ export class WebhooksService {
 
   findEvent(id: string): Promise<WebhookEvent> {
     return this.events.findEvent(id);
+  }
+
+  async findEventForProject(
+    id: string,
+    projectId: string,
+  ): Promise<WebhookEvent> {
+    const event = await this.prisma.webhookEvent.findFirst({
+      where: { id, endpoint: { projectId } },
+    });
+    if (!event) {
+      throw new NotFoundException('Webhook event introuvable');
+    }
+    return event;
   }
 }

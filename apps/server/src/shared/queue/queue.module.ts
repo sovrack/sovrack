@@ -6,6 +6,7 @@ import {
 } from './queue.provider';
 import { QueueService } from './queue.service';
 import { QueueMonitoringService } from './queue-monitoring.service';
+import { QueueLifecycleService } from './queue-lifecycle.service';
 import { ScheduleModule } from '@nestjs/schedule';
 
 // Loi d'architecture : core/ ne dépend JAMAIS d'un contexte métier.
@@ -20,6 +21,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     bullAutomationRunsQueueProvider,
     QueueService,
     QueueMonitoringService,
+    QueueLifecycleService,
   ],
   // Les tokens de queue doivent être exportés (pas seulement les services au-
   // dessus) : @Global() ne rend résolvables que les providers EXPORTÉS. Sans

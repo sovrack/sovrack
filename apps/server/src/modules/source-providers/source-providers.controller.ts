@@ -11,13 +11,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import type { Request } from 'express';
-import { Roles } from '../../shared/decorators/roles.decorator';
+import { GetWorkspaceId } from '../../shared/decorators/get-workspace-id.decorator';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
-import { RolesGuard } from '../../shared/guards/roles.guard';
+import { WorkspaceGuard } from '../iam/authorization/workspace.guard';
 import { GitProviderConfigService } from './shared/connection/git-provider-config.service';
 import { GitProviderOauthService } from './shared/connection/git-provider-oauth.service';
 
@@ -52,9 +51,11 @@ type UpdateGithubProviderDto = UpdateGitlabProviderDto;
 
 @ApiTags('Git Providers (Admin)')
 @ApiBearerAuth()
-@Controller('admin/platform-config')
-@Roles(Role.OWNER, Role.MEMBER)
-@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller([
+  'workspaces/:workspaceId/integrations/git',
+  'admin/platform-config',
+])
+@UseGuards(JwtAuthGuard, WorkspaceGuard)
 export class SourceProvidersController {
   constructor(
     private readonly gitProviders: GitProviderConfigService,
@@ -65,14 +66,17 @@ export class SourceProvidersController {
 
   @Get('gitlab/providers')
   @ApiOperation({ summary: 'List GitLab providers' })
-  async listGitlabProviders() {
-    return this.gitProviders.listGitlabProviders();
+  async listGitlabProviders(@GetWorkspaceId() workspaceId: string) {
+    return this.gitProviders.listGitlabProviders(workspaceId);
   }
 
   @Post('gitlab/providers')
   @ApiOperation({ summary: 'Create a GitLab provider' })
-  async createGitlabProvider(@Body() dto: CreateGitlabProviderDto) {
-    return this.gitProviders.createGitlabProvider(dto);
+  async createGitlabProvider(
+    @Body() dto: CreateGitlabProviderDto,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.gitProviders.createGitlabProvider(dto, workspaceId);
   }
 
   @Put('gitlab/providers/:id')
@@ -80,27 +84,37 @@ export class SourceProvidersController {
   async updateGitlabProvider(
     @Param('id') id: string,
     @Body() dto: UpdateGitlabProviderDto,
+    @GetWorkspaceId() workspaceId: string,
   ) {
-    return this.gitProviders.updateGitlabProvider(id, dto);
+    return this.gitProviders.updateGitlabProvider(id, dto, workspaceId);
   }
 
   @Delete('gitlab/providers/:id')
   @ApiOperation({ summary: 'Delete a GitLab provider' })
-  async deleteGitlabProvider(@Param('id') id: string) {
-    await this.gitProviders.deleteGitlabProvider(id);
+  async deleteGitlabProvider(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    await this.gitProviders.deleteGitlabProvider(id, workspaceId);
     return { ok: true };
   }
 
   @Post('gitlab/providers/:id/default')
   @ApiOperation({ summary: 'Set a default GitLab provider' })
-  async setDefaultGitlabProvider(@Param('id') id: string) {
-    return this.gitProviders.setDefaultGitlabProvider(id);
+  async setDefaultGitlabProvider(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.gitProviders.setDefaultGitlabProvider(id, workspaceId);
   }
 
   @Post('gitlab/providers/:id/test')
   @ApiOperation({ summary: 'Test the GitLab connection for a provider' })
-  async testGitlabProvider(@Param('id') id: string) {
-    return this.gitProviders.testGitlab(id);
+  async testGitlabProvider(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.gitProviders.testGitlab(workspaceId, id);
   }
 
   @Post('gitlab/providers/:id/oauth/start')
@@ -108,9 +122,11 @@ export class SourceProvidersController {
   async startGitlabOAuthForProvider(
     @Param('id') id: string,
     @Req() req: Request,
+    @GetWorkspaceId() workspaceId: string,
   ) {
     return this.oauth.startGitlabOAuthForProvider(
       id,
+      workspaceId,
       this.resolvePublicBaseUrl(req),
     );
   }
@@ -119,28 +135,37 @@ export class SourceProvidersController {
   @ApiOperation({
     summary: 'Test the global GitLab connection (default provider)',
   })
-  async testGitlab() {
-    return this.gitProviders.testGitlab();
+  async testGitlab(@GetWorkspaceId() workspaceId: string) {
+    return this.gitProviders.testGitlab(workspaceId);
   }
 
   @Post('gitlab/oauth/start')
   @ApiOperation({ summary: 'Start global GitLab OAuth (default provider)' })
-  async startGitlabOAuth(@Req() req: Request) {
-    return this.oauth.startGitlabOAuth(this.resolvePublicBaseUrl(req));
+  async startGitlabOAuth(
+    @Req() req: Request,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.oauth.startGitlabOAuth(
+      workspaceId,
+      this.resolvePublicBaseUrl(req),
+    );
   }
 
   // ─── GitHub Providers ──────────────────────────────────────────────────
 
   @Get('github/providers')
   @ApiOperation({ summary: 'List GitHub providers' })
-  async listGithubProviders() {
-    return this.gitProviders.listGithubProviders();
+  async listGithubProviders(@GetWorkspaceId() workspaceId: string) {
+    return this.gitProviders.listGithubProviders(workspaceId);
   }
 
   @Post('github/providers')
   @ApiOperation({ summary: 'Create a GitHub provider' })
-  async createGithubProvider(@Body() dto: CreateGithubProviderDto) {
-    return this.gitProviders.createGithubProvider(dto);
+  async createGithubProvider(
+    @Body() dto: CreateGithubProviderDto,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.gitProviders.createGithubProvider(dto, workspaceId);
   }
 
   @Put('github/providers/:id')
@@ -148,33 +173,46 @@ export class SourceProvidersController {
   async updateGithubProvider(
     @Param('id') id: string,
     @Body() dto: UpdateGithubProviderDto,
+    @GetWorkspaceId() workspaceId: string,
   ) {
-    return this.gitProviders.updateGithubProvider(id, dto);
+    return this.gitProviders.updateGithubProvider(id, dto, workspaceId);
   }
 
   @Delete('github/providers/:id')
   @ApiOperation({ summary: 'Delete a GitHub provider' })
-  async deleteGithubProvider(@Param('id') id: string) {
-    await this.gitProviders.deleteGithubProvider(id);
+  async deleteGithubProvider(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    await this.gitProviders.deleteGithubProvider(id, workspaceId);
     return { ok: true };
   }
 
   @Post('github/providers/:id/default')
   @ApiOperation({ summary: 'Set a default GitHub provider' })
-  async setDefaultGithubProvider(@Param('id') id: string) {
-    return this.gitProviders.setDefaultGithubProvider(id);
+  async setDefaultGithubProvider(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.gitProviders.setDefaultGithubProvider(id, workspaceId);
   }
 
   @Post('github/providers/:id/test')
   @ApiOperation({ summary: 'Test the GitHub connection for a provider' })
-  async testGithubProvider(@Param('id') id: string) {
-    return this.gitProviders.testGithubProvider(id);
+  async testGithubProvider(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.gitProviders.testGithubProvider(id, workspaceId);
   }
 
   @Get('github/providers/:id/repos')
   @ApiOperation({ summary: 'List GitHub repos accessible via this provider' })
-  async listGithubRepos(@Param('id') id: string) {
-    return this.gitProviders.listGithubRepos(id);
+  async listGithubRepos(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.gitProviders.listGithubRepos(id, workspaceId);
   }
 
   private resolvePublicBaseUrl(req: Request): string {

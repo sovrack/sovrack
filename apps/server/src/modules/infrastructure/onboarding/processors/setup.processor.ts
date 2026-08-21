@@ -52,13 +52,14 @@ export class SetupProcessor implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(`Unknown setup job type: ${job.name}`);
       return;
     }
-    const { serverId, setupId, jobId, roles } = job.data as SetupJobData;
-    const server = await this.prisma.server.findUnique({
-      where: { id: serverId },
+    const { workspaceId, serverId, setupId, jobId, roles } =
+      job.data as SetupJobData;
+    const server = await this.prisma.server.findFirst({
+      where: { id: serverId, teamId: workspaceId },
     });
     if (!server) {
       this.logger.error(
-        `Setup ${setupId}: server ${serverId} not found — skipping run`,
+        `Setup ${setupId}: server ${serverId} not found in workspace — skipping run`,
       );
       return;
     }

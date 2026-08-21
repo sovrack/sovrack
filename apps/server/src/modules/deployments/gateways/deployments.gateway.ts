@@ -21,6 +21,8 @@ import {
 } from '../../../shared/http/auth-cookie.util';
 import { resolveGatewayCorsOrigins } from '../../../shared/http/cors-origins.util';
 import { DeploymentsLogStreamService } from '../query/deployments-log-stream.service';
+import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
+import { ProjectActions } from '../../iam/authorization/workspace-policy.types';
 import {
   DEPLOYMENT_WS_STARTED,
   DEPLOYMENT_WS_LOG,
@@ -71,6 +73,7 @@ export class DeploymentsGateway
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly logStreamService: DeploymentsLogStreamService,
+    private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
   // Vérifie le token JWT à chaque nouvelle connexion WebSocket.
@@ -259,6 +262,33 @@ export class DeploymentsGateway
     if (!hasAccess) {
       return { ok: false, error: 'Accès non autorisé à ce déploiement' };
     }
+    const deploymentScope = await this.prisma.deployment.findUnique({
+      where: { id: deploymentId },
+      select: {
+        resolvedRefs: true,
+        serviceEnv: {
+          select: {
+            serverId: true,
+            environment: {
+              select: { servers: { select: { id: true } } },
+            },
+          },
+        },
+      },
+    });
+    const resolvedServerId = (
+      deploymentScope?.resolvedRefs as { serverId?: string | null } | null
+    )?.serverId;
+    const allowedServerIds = new Set([
+      resolvedServerId,
+      deploymentScope?.serviceEnv?.serverId,
+      ...(deploymentScope?.serviceEnv?.environment.servers.map(
+        (server) => server.id,
+      ) ?? []),
+    ]);
+    if (!deploymentScope || !allowedServerIds.has(serverId)) {
+      return { ok: false, error: 'Serveur introuvable pour ce déploiement' };
+    }
 
     try {
       const key = this.logStreamService.subscribe(client, {
@@ -320,16 +350,15 @@ export class DeploymentsGateway
       return false;
     }
 
-    const member = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId: deployment.projectId,
-          userId: user.id,
-        },
-      },
-      select: { id: true },
-    });
-
-    return Boolean(member);
+    try {
+      await this.workspaceAccess.assertProjectAction(
+        deployment.projectId,
+        user.id,
+        ProjectActions.READ,
+      );
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

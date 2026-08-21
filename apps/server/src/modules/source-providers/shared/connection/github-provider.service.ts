@@ -50,15 +50,18 @@ export class GithubProviderService {
     private readonly crypto: CryptoService,
   ) {}
 
-  async list(): Promise<GitlabProviderPublic[]> {
+  async list(teamId: string): Promise<GitlabProviderPublic[]> {
     const providers = await this.prisma.gitProviderConfig.findMany({
-      where: { type: GitProviderType.GITHUB },
+      where: { teamId, type: GitProviderType.GITHUB },
       orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
     });
     return providers.map((p) => toGithubProviderPublic(p));
   }
 
-  async create(input: UpsertProviderInput): Promise<GitlabProviderPublic> {
+  async create(
+    input: UpsertProviderInput,
+    teamId: string,
+  ): Promise<GitlabProviderPublic> {
     const name = requireNonEmpty(input.name, 'Name est requis');
     const githubUrl = requireNonEmpty(
       input.providerUrl,
@@ -66,18 +69,20 @@ export class GithubProviderService {
     );
 
     const count = await this.prisma.gitProviderConfig.count({
-      where: { type: GitProviderType.GITHUB },
+      where: { teamId, type: GitProviderType.GITHUB },
     });
     const shouldBeDefault = count === 0 ? true : input.isDefault === true;
 
     const provider = await writeWithSingleDefault(
       this.prisma,
+      teamId,
       GitProviderType.GITHUB,
       shouldBeDefault,
       (tx) =>
         tx.gitProviderConfig.create({
           data: {
             name,
+            teamId,
             type: GitProviderType.GITHUB,
             providerUrl: githubUrl,
             internalUrl: normalizeOptional(input.internalUrl),
@@ -98,8 +103,9 @@ export class GithubProviderService {
   async update(
     id: string,
     input: PatchProviderInput,
+    teamId: string,
   ): Promise<GitlabProviderPublic> {
-    const current = await this.getOrFail(id);
+    const current = await this.getOrFail(id, teamId);
     const data: Partial<GitProviderConfig> = {};
 
     if (typeof input.name === 'string')
@@ -131,6 +137,7 @@ export class GithubProviderService {
 
     const updated = await writeWithSingleDefault(
       this.prisma,
+      teamId,
       GitProviderType.GITHUB,
       makeDefault,
       (tx) => tx.gitProviderConfig.update({ where: { id }, data }),
@@ -138,15 +145,16 @@ export class GithubProviderService {
     return toGithubProviderPublic(updated);
   }
 
-  async remove(id: string): Promise<void> {
-    await this.getOrFail(id);
+  async remove(id: string, teamId: string): Promise<void> {
+    await this.getOrFail(id, teamId);
     await this.prisma.gitProviderConfig.delete({ where: { id } });
   }
 
-  async setDefault(id: string): Promise<GitlabProviderPublic> {
-    await this.getOrFail(id);
+  async setDefault(id: string, teamId: string): Promise<GitlabProviderPublic> {
+    await this.getOrFail(id, teamId);
     const updated = await writeWithSingleDefault(
       this.prisma,
+      teamId,
       GitProviderType.GITHUB,
       true,
       (tx) =>
@@ -158,8 +166,11 @@ export class GithubProviderService {
     return toGithubProviderPublic(updated);
   }
 
-  async test(id: string): Promise<{ ok: boolean; message: string }> {
-    const provider = await this.getOrFail(id);
+  async test(
+    id: string,
+    teamId: string,
+  ): Promise<{ ok: boolean; message: string }> {
+    const provider = await this.getOrFail(id, teamId);
     const adminToken = provider.adminToken
       ? this.crypto.decrypt(provider.adminToken).trim()
       : '';
@@ -199,8 +210,8 @@ export class GithubProviderService {
     );
   }
 
-  async listRepos(id: string): Promise<GithubRepoOption[]> {
-    const provider = await this.getOrFail(id);
+  async listRepos(id: string, teamId: string): Promise<GithubRepoOption[]> {
+    const provider = await this.getOrFail(id, teamId);
     const adminToken = provider.adminToken
       ? this.crypto.decrypt(provider.adminToken).trim()
       : '';
@@ -247,9 +258,12 @@ export class GithubProviderService {
     }));
   }
 
-  private async getOrFail(id: string): Promise<GitProviderConfig> {
-    const provider = await this.prisma.gitProviderConfig.findUnique({
-      where: { id },
+  private async getOrFail(
+    id: string,
+    teamId: string,
+  ): Promise<GitProviderConfig> {
+    const provider = await this.prisma.gitProviderConfig.findFirst({
+      where: { id, teamId },
     });
     if (!provider || provider.type !== GitProviderType.GITHUB) {
       throw new NotFoundException('Provider GitHub introuvable');

@@ -22,6 +22,7 @@ import { SourceProvidersService } from '../../source-providers/source-providers.
 import { CreateServiceDto } from './dto/create-service.dto';
 import { DiscoverGroupDto } from './dto/discover-group.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { encryptDbCredentials } from '../../../shared/utils/database-spec.util';
 
 // envLinks: explicit `select` (not `include`) so a ServiceEnvironment's
 // sensitive fields (secretsEnv — encrypted, but never meant to leave the
@@ -149,6 +150,13 @@ export class ServicesService {
       userId,
       userRole,
     );
+    if (dto.providerId?.trim()) {
+      await this.sourceProviders.assertProviderForProject(
+        dto.providerId.trim(),
+        projectId,
+        dto.source?.provider,
+      );
+    }
     const client = tx ?? this.prisma;
 
     let service: Awaited<ReturnType<typeof this.prisma.service.create>>;
@@ -182,8 +190,11 @@ export class ServicesService {
           databaseVersion: dto.databaseVersion?.trim() || 'latest',
           databaseCredentials:
             dto.type === ServiceType.DATABASE
-              ? this.ensureDatabaseCredentials(dto.databaseCredentials)
-              : dto.databaseCredentials || undefined,
+              ? encryptDbCredentials(
+                  this.crypto,
+                  this.ensureDatabaseCredentials(dto.databaseCredentials),
+                )
+              : undefined,
           externalPort: dto.externalPort ?? undefined,
           env: dto.env,
           // Service-level default secrets encrypted at rest (AES-256-GCM);
@@ -253,6 +264,12 @@ export class ServicesService {
       userRole,
     );
     await this.ensureServiceExists(projectId, serviceId);
+    if (dto.providerId?.trim()) {
+      await this.sourceProviders.assertProviderForProject(
+        dto.providerId.trim(),
+        projectId,
+      );
+    }
 
     const updated = await this.prisma.service.update({
       where: { id: serviceId },
@@ -274,7 +291,9 @@ export class ServicesService {
           ? { branch: dto.branch?.trim() || 'main' }
           : {}),
         ...(dto.providerId !== undefined
-          ? { providerId: dto.providerId?.trim() }
+          ? dto.providerId?.trim()
+            ? { provider: { connect: { id: dto.providerId.trim() } } }
+            : { provider: { disconnect: true } }
           : {}),
         ...(dto.rootDir !== undefined
           ? { rootDir: dto.rootDir?.trim() || '/' }
@@ -317,7 +336,14 @@ export class ServicesService {
           ? { databaseVersion: dto.databaseVersion?.trim() || 'latest' }
           : {}),
         ...(dto.databaseCredentials !== undefined
-          ? { databaseCredentials: dto.databaseCredentials || null }
+          ? {
+              databaseCredentials: dto.databaseCredentials
+                ? encryptDbCredentials(
+                    this.crypto,
+                    this.ensureDatabaseCredentials(dto.databaseCredentials),
+                  )
+                : Prisma.DbNull,
+            }
           : {}),
         ...(dto.externalPort !== undefined
           ? { externalPort: dto.externalPort }
@@ -382,9 +408,11 @@ export class ServicesService {
    * mot de passe aléatoire de 24 octets. Élimine le défaut historique `changeme`
    * du moteur de déploiement (résolveur d'env DB).
    */
-  private ensureDatabaseCredentials(
-    provided?: Record<string, string>,
-  ): Prisma.InputJsonValue {
+  private ensureDatabaseCredentials(provided?: Record<string, string>): {
+    user: string;
+    password: string;
+    dbName: string;
+  } {
     const user = provided?.user?.trim() || 'app';
     const dbName = provided?.dbName?.trim() || 'app';
     const rawPassword = provided?.password?.trim();

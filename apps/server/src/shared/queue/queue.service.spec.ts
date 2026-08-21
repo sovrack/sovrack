@@ -23,11 +23,15 @@ describe('QueueService', () => {
   });
 
   it('enqueues a deploy job without auto-retry and returns its id', async () => {
-    const id = await service.enqueueDeploy('dep-1', 'img:sha');
+    const id = await service.enqueueDeploy('dep-1', 'workspace-1', 'img:sha');
     expect(id).toBe('job-1');
     expect(queue.add).toHaveBeenCalledWith(
       'deploy',
-      { deploymentId: 'dep-1', overrideImage: 'img:sha' },
+      {
+        deploymentId: 'dep-1',
+        workspaceId: 'workspace-1',
+        overrideImage: 'img:sha',
+      },
       // attempts: 1 — the executor rolls back to the previous container on
       // failure, so retrying would only flap the old container.
       expect.objectContaining({ attempts: 1 }),
@@ -36,7 +40,7 @@ describe('QueueService', () => {
 
   it('returns an empty string when BullMQ yields no job id', async () => {
     queue.add.mockResolvedValueOnce({ id: undefined });
-    expect(await service.enqueueDeploy('dep-2')).toBe('');
+    expect(await service.enqueueDeploy('dep-2', 'workspace-1')).toBe('');
   });
 
   it('aggregates queue counts', async () => {

@@ -18,7 +18,12 @@ import {
 import { Type } from 'class-transformer';
 import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 import { GetUser } from '../../../../shared/decorators/get-user.decorator';
+import { GetWorkspaceId } from '../../../../shared/decorators/get-workspace-id.decorator';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
+import { WorkspaceGuard } from '../../../iam/authorization/workspace.guard';
+import { ProjectWorkspaceGuard } from '../../../iam/authorization/project-workspace.guard';
+import { RequireProjectAction } from '../../../iam/authorization/require-project-action.decorator';
+import { ProjectActions } from '../../../iam/authorization/workspace-policy.types';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
 import { GitlabAdapter } from './gitlab.adapter';
@@ -78,8 +83,8 @@ class ListGroupRepositoriesQueryDto {
 export class GitlabController {
   constructor(private readonly gitlabCore: GitlabAdapter) {}
 
-  @Get('gitlab/providers')
-  @UseGuards(JwtAuthGuard)
+  @Get(['workspaces/:workspaceId/gitlab/providers', 'gitlab/providers'])
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary:
@@ -87,12 +92,15 @@ export class GitlabController {
   })
   @ApiResponse({ status: 200, description: 'Providers GitLab disponibles' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
-  async listProviders() {
-    return await this.gitlabCore.listAvailableProviders();
+  async listProviders(@GetWorkspaceId() workspaceId: string) {
+    return await this.gitlabCore.listAvailableProviders(workspaceId);
   }
 
-  @Get('gitlab/providers/:providerId/groups/:groupId/repositories')
-  @UseGuards(JwtAuthGuard)
+  @Get([
+    'workspaces/:workspaceId/gitlab/providers/:providerId/groups/:groupId/repositories',
+    'gitlab/providers/:providerId/groups/:groupId/repositories',
+  ])
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'List repositories accessible in a GitLab group',
@@ -102,8 +110,10 @@ export class GitlabController {
     @Param('providerId') providerId: string,
     @Param('groupId') groupId: string,
     @Query() query: ListGroupRepositoriesQueryDto,
+    @GetWorkspaceId() workspaceId: string,
   ) {
     return await this.gitlabCore.listGroupRepositoriesByProvider({
+      teamId: workspaceId,
       providerId: providerId === 'default' ? undefined : providerId,
       gitlabUrl: query.gitlabUrl,
       gitlabToken: query.gitlabToken,
@@ -120,8 +130,11 @@ export class GitlabController {
     });
   }
 
-  @Get('gitlab/providers/:providerId/projects/:gitlabProjectId/branches')
-  @UseGuards(JwtAuthGuard)
+  @Get([
+    'workspaces/:workspaceId/gitlab/providers/:providerId/projects/:gitlabProjectId/branches',
+    'gitlab/providers/:providerId/projects/:gitlabProjectId/branches',
+  ])
+  @UseGuards(JwtAuthGuard, WorkspaceGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'List branches before project/service creation',
@@ -131,8 +144,10 @@ export class GitlabController {
     @Param('providerId') providerId: string,
     @Param('gitlabProjectId') gitlabProjectId: string,
     @Query() query: ListGroupRepositoriesQueryDto,
+    @GetWorkspaceId() workspaceId: string,
   ) {
     return await this.gitlabCore.listProjectBranchesByProvider({
+      teamId: workspaceId,
       providerId: providerId === 'default' ? undefined : providerId,
       gitlabUrl: query.gitlabUrl,
       gitlabToken: query.gitlabToken,
@@ -140,8 +155,12 @@ export class GitlabController {
     });
   }
 
-  @Post('projects/:id/gitlab/connect')
-  @UseGuards(JwtAuthGuard)
+  @Post([
+    'workspaces/:workspaceId/projects/:id/gitlab/connect',
+    'projects/:id/gitlab/connect',
+  ])
+  @UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
+  @RequireProjectAction(ProjectActions.UPDATE)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Connect a project to GitLab' })
   @ApiResponse({ status: 201, description: 'GitLab configuration saved' })
@@ -162,8 +181,11 @@ export class GitlabController {
     );
   }
 
-  @Get('projects/:id/gitlab/branches')
-  @UseGuards(JwtAuthGuard)
+  @Get([
+    'workspaces/:workspaceId/projects/:id/gitlab/branches',
+    'projects/:id/gitlab/branches',
+  ])
+  @UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List available GitLab branches' })
   @ApiQuery({
@@ -195,8 +217,11 @@ export class GitlabController {
     );
   }
 
-  @Get('projects/:id/gitlab/pipelines')
-  @UseGuards(JwtAuthGuard)
+  @Get([
+    'workspaces/:workspaceId/projects/:id/gitlab/pipelines',
+    'projects/:id/gitlab/pipelines',
+  ])
+  @UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List GitLab pipelines' })
   @ApiResponse({ status: 200, description: 'GitLab pipelines fetched' })
@@ -213,8 +238,11 @@ export class GitlabController {
     return await this.gitlabCore.getPipelines(projectId, user.id, user.role);
   }
 
-  @Get('projects/:id/services/:serviceId/gitlab/pipelines')
-  @UseGuards(JwtAuthGuard)
+  @Get([
+    'workspaces/:workspaceId/projects/:id/services/:serviceId/gitlab/pipelines',
+    'projects/:id/services/:serviceId/gitlab/pipelines',
+  ])
+  @UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List GitLab pipelines for a service repo' })
   @ApiResponse({ status: 200, description: 'GitLab pipelines fetched' })
@@ -237,8 +265,11 @@ export class GitlabController {
     );
   }
 
-  @Get('projects/:id/gitlab/repos')
-  @UseGuards(JwtAuthGuard)
+  @Get([
+    'workspaces/:workspaceId/projects/:id/gitlab/repos',
+    'projects/:id/gitlab/repos',
+  ])
+  @UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List repositories (REPO/GROUP)' })
   @ApiResponse({ status: 200, description: 'GitLab repositories fetched' })
@@ -252,8 +283,12 @@ export class GitlabController {
     return await this.gitlabCore.getRepos(projectId, user.id, user.role);
   }
 
-  @Post('projects/:id/gitlab/pipelines/trigger')
-  @UseGuards(JwtAuthGuard)
+  @Post([
+    'workspaces/:workspaceId/projects/:id/gitlab/pipelines/trigger',
+    'projects/:id/gitlab/pipelines/trigger',
+  ])
+  @UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
+  @RequireProjectAction(ProjectActions.DEPLOY)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Trigger a GitLab pipeline manually' })
   @ApiResponse({ status: 201, description: 'GitLab pipeline triggered' })
@@ -277,8 +312,11 @@ export class GitlabController {
     );
   }
 
-  @Get('projects/:id/gitlab/config')
-  @UseGuards(JwtAuthGuard)
+  @Get([
+    'workspaces/:workspaceId/projects/:id/gitlab/config',
+    'projects/:id/gitlab/config',
+  ])
+  @UseGuards(JwtAuthGuard, ProjectWorkspaceGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "View a project's GitLab configuration" })
   @ApiResponse({ status: 200, description: 'GitLab configuration returned' })

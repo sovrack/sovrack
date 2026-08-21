@@ -44,7 +44,7 @@ export class UpdateServerDto {
   })
   username?: string;
 
-  @ApiPropertyOptional({ example: '-----BEGIN OPENSSH PRIVATE KEY-----\n...' })
+  @ApiPropertyOptional({ example: '<ssh-private-key-pem>' })
   @IsOptional()
   @IsString()
   @Matches(/PRIVATE KEY/, {
