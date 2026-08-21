@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
+import { PublicContentPlaceholder } from "@/components/marketing/public-content-placeholder";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 
 const plans = [
   {
@@ -73,13 +75,24 @@ const plans = [
 export default function PricingPage() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
+  const publicPricingEnabled = isCapabilityEnabled("publicPricing");
 
   useEffect(() => {
-    if (loading) return;
+    if (!publicPricingEnabled || loading) return;
     if (isAuthenticated) {
       router.replace("/settings/billing");
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, publicPricingEnabled, router]);
+
+  if (!publicPricingEnabled) {
+    return (
+      <PublicContentPlaceholder
+        eyebrow="Offres en préparation"
+        title="Sovrack n'est pas encore commercialisé"
+        description="Les plans, tarifs, limites et modalités de paiement sont en cours de définition et ne sont pas ouverts à la souscription."
+      />
+    );
+  }
 
   const targetHref = isAuthenticated ? "/settings/billing" : "/register";
 
@@ -107,13 +120,15 @@ export default function PricingPage() {
                 }`}
               >
                 {p.featured && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-1 text-xs font-semibold text-white shadow-sm">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-1 text-xs font-semibold text-white shadow-sm">
                     Recommandé
                   </span>
                 )}
                 <h2 className="text-xl font-bold text-white">{p.name}</h2>
                 <div className="mt-3">
-                  <span className="text-4xl font-bold text-white">{p.price}</span>
+                  <span className="text-4xl font-bold text-white">
+                    {p.price}
+                  </span>
                   <span className="text-slate-400">/mois</span>
                 </div>
                 <p className="mt-1 text-sm text-slate-400">{p.desc}</p>
@@ -145,7 +160,7 @@ export default function PricingPage() {
                     href="mailto:support@sovrack.tech?subject=Demande%20Enterprise"
                     className={`mt-8 flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold transition ${
                       p.featured
-                        ? "bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/25 hover:brightness-110"
+                        ? "bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-500/25 hover:brightness-110"
                         : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
                     }`}
                   >
@@ -156,7 +171,7 @@ export default function PricingPage() {
                     href={targetHref}
                     className={`mt-8 flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold transition ${
                       p.featured
-                        ? "bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-lg shadow-sky-500/25 hover:brightness-110"
+                        ? "bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-500/25 hover:brightness-110"
                         : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
                     }`}
                   >

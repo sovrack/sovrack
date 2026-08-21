@@ -4,33 +4,37 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/features/auth/api/use-auth";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { SovrackLogo } from "./sovrack-logo";
 
-const productLinks = [
-  { href: "/#platforme", label: "La plateforme" },
-  { href: "/#features", label: "Fonctionnalités" },
-  { href: "/#how-it-works", label: "Comment ça marche" },
-];
+const productLinks = isCapabilityEnabled("publicMarketingCopy")
+  ? [
+      { href: "/#platforme", label: "La plateforme" },
+      { href: "/#features", label: "Fonctionnalités" },
+      { href: "/#how-it-works", label: "Comment ça marche" },
+    ]
+  : [];
 
 const resourcesLinks = [
-  { href: "/docs", label: "Documentation" },
+  ...(isCapabilityEnabled("publicDocumentation")
+    ? [{ href: "/docs", label: "Documentation" }]
+    : []),
   { href: "/legal", label: "Légal" },
 ];
+
+const publicPricingEnabled = isCapabilityEnabled("publicPricing");
 
 export function MarketingNavbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node)
-      ) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setOpenMenu(null);
       }
     }
@@ -68,56 +72,64 @@ export function MarketingNavbar() {
               className="-rotate-12 drop-shadow-[0_0_18px_rgba(0,229,255,0.5)]"
             />
             <span className="text-lg font-extrabold tracking-tight text-white group-hover:text-sky-100 transition">
-              Deploy<span className="text-sky-300 group-hover:text-sky-200">Arc</span>
+              Deploy
+              <span className="text-sky-300 group-hover:text-sky-200">Arc</span>
             </span>
           </Link>
         </div>
 
         <nav className="absolute left-[42%] hidden -translate-x-1/2 items-center md:flex">
           <div className="flex items-center gap-10" ref={menuRef}>
-            <div className="relative">
-              <button
-                onMouseEnter={() => setOpenMenu("product")}
-                onClick={() =>
-                  setOpenMenu((v) => (v === "product" ? null : "product"))
-                }
-                className={`flex items-center gap-1 text-base font-medium transition ${
-                  openMenu === "product"
-                    ? "text-white"
-                    : "text-slate-100 hover:text-white"
-                }`}
-                aria-expanded={openMenu === "product"}
-                aria-haspopup="true"
-              >
-                Produit
-                <svg
-                  className={`h-4 w-4 transition ${openMenu === "product" ? "rotate-180" : ""}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {openMenu === "product" && (
-                <div
-                  className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-white/15 bg-brand-light p-1.5 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150"
+            {productLinks.length > 0 && (
+              <div className="relative">
+                <button
                   onMouseEnter={() => setOpenMenu("product")}
-                  onMouseLeave={() => setOpenMenu(null)}
+                  onClick={() =>
+                    setOpenMenu((v) => (v === "product" ? null : "product"))
+                  }
+                  className={`flex items-center gap-1 text-base font-medium transition ${
+                    openMenu === "product"
+                      ? "text-white"
+                      : "text-slate-100 hover:text-white"
+                  }`}
+                  aria-expanded={openMenu === "product"}
+                  aria-haspopup="true"
                 >
-                  {productLinks.map((l) => (
-                    <Link
-                      key={l.href}
-                      href={l.href}
-                      onClick={() => setOpenMenu(null)}
-                      className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
-                    >
-                      {l.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+                  Produit
+                  <svg
+                    className={`h-4 w-4 transition ${openMenu === "product" ? "rotate-180" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                {openMenu === "product" && (
+                  <div
+                    className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-white/15 bg-brand-light p-1.5 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150"
+                    onMouseEnter={() => setOpenMenu("product")}
+                    onMouseLeave={() => setOpenMenu(null)}
+                  >
+                    {productLinks.map((l) => (
+                      <Link
+                        key={l.href}
+                        href={l.href}
+                        onClick={() => setOpenMenu(null)}
+                        className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
+                      >
+                        {l.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="relative">
               <button
@@ -140,7 +152,12 @@ export function MarketingNavbar() {
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
               {openMenu === "resources" && (
@@ -167,19 +184,21 @@ export function MarketingNavbar() {
               )}
             </div>
 
-            <Link
-              href="/pricing"
-              className={`relative text-base font-medium transition ${
-                pathname === "/pricing"
-                  ? "text-white"
-                  : "text-slate-100 hover:text-white"
-              }`}
-            >
-              Tarifs
-              {pathname === "/pricing" && (
-                <span className="absolute -bottom-1.5 left-0 h-0.5 w-full rounded-full bg-gradient-to-r from-sky-400 to-violet-400" />
-              )}
-            </Link>
+            {publicPricingEnabled && (
+              <Link
+                href="/pricing"
+                className={`relative text-base font-medium transition ${
+                  pathname === "/pricing"
+                    ? "text-white"
+                    : "text-slate-100 hover:text-white"
+                }`}
+              >
+                Tarifs
+                {pathname === "/pricing" && (
+                  <span className="absolute -bottom-1.5 left-0 h-0.5 w-full rounded-full bg-sky-400" />
+                )}
+              </Link>
+            )}
           </div>
         </nav>
 
@@ -196,7 +215,7 @@ export function MarketingNavbar() {
                 aria-expanded={openMenu === "profile"}
                 aria-haspopup="true"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-violet-500 text-xs font-bold text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-500 text-xs font-bold text-white">
                   {user.fullName?.charAt(0).toUpperCase() || "?"}
                 </span>
                 <span className="hidden max-w-[120px] truncate sm:block">
@@ -235,29 +254,20 @@ export function MarketingNavbar() {
                     Mon espace
                   </Link>
                   <Link
-                    href="/settings"
+                    href="/settings/account"
                     className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
                     onClick={() => setOpenMenu(null)}
                   >
                     Paramètres
                   </Link>
-                  {user.role === "OWNER" && (
-                    <>
-                      <Link
-                        href="/admin/users"
-                        className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
-                        onClick={() => setOpenMenu(null)}
-                      >
-                        Administration
-                      </Link>
-                      <Link
-                        href="/admin/teams"
-                        className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
-                        onClick={() => setOpenMenu(null)}
-                      >
-                        Équipes
-                      </Link>
-                    </>
+                  {isAdmin && (
+                    <Link
+                      href="/admin/teams"
+                      className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
+                      onClick={() => setOpenMenu(null)}
+                    >
+                      Workspace
+                    </Link>
                   )}
                   <button
                     onClick={handleLogout}
@@ -278,7 +288,7 @@ export function MarketingNavbar() {
               </Link>
               <Link
                 href="/register"
-                className="rounded-lg bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110"
+                className="rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110"
               >
                 S&apos;inscrire
               </Link>
@@ -321,22 +331,28 @@ export function MarketingNavbar() {
         <div className="border-t border-white/10 bg-brand px-6 py-4 md:hidden animate-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col gap-4">
             <div className="flex flex-col gap-2 border-b border-white/10 pb-4 pt-2">
-              <Link
-                href="/pricing"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`text-base font-medium ${
-                  pathname === "/pricing" ? "text-white" : "text-slate-100 hover:text-white"
-                }`}
-              >
-                Tarifs
-              </Link>
+              {publicPricingEnabled && (
+                <Link
+                  href="/pricing"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`text-base font-medium ${
+                    pathname === "/pricing"
+                      ? "text-white"
+                      : "text-slate-100 hover:text-white"
+                  }`}
+                >
+                  Tarifs
+                </Link>
+              )}
               {[...productLinks, ...resourcesLinks].map((l) => (
                 <Link
                   key={l.href}
                   href={l.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`text-base font-medium ${
-                    pathname === l.href ? "text-white" : "text-slate-100 hover:text-white"
+                    pathname === l.href
+                      ? "text-white"
+                      : "text-slate-100 hover:text-white"
                   }`}
                 >
                   {l.label}
@@ -356,7 +372,7 @@ export function MarketingNavbar() {
                   <Link
                     href="/register"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="rounded-lg bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-2.5 text-center font-semibold text-white"
+                    className="rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-2.5 text-center font-semibold text-white"
                   >
                     S&apos;inscrire
                   </Link>
@@ -372,29 +388,20 @@ export function MarketingNavbar() {
                     Mon espace
                   </Link>
                   <Link
-                    href="/settings"
+                    href="/settings/account"
                     onClick={() => setMobileMenuOpen(false)}
                     className="text-base font-medium text-slate-100 hover:text-white"
                   >
                     Paramètres
                   </Link>
-                  {user?.role === "OWNER" && (
-                    <>
-                      <Link
-                        href="/admin/users"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="text-base font-medium text-slate-100 hover:text-white"
-                      >
-                        Administration
-                      </Link>
-                      <Link
-                        href="/admin/teams"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="text-base font-medium text-slate-100 hover:text-white"
-                      >
-                        Équipes
-                      </Link>
-                    </>
+                  {isAdmin && (
+                    <Link
+                      href="/admin/teams"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-base font-medium text-slate-100 hover:text-white"
+                    >
+                      Workspace
+                    </Link>
                   )}
                   <button
                     onClick={handleLogout}

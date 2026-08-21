@@ -2,9 +2,21 @@
 
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
+import { PublicContentPlaceholder } from "@/components/marketing/public-content-placeholder";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import Link from "next/link";
 
 export default function LegalPage() {
+  if (!isCapabilityEnabled("publicLegalContent")) {
+    return (
+      <PublicContentPlaceholder
+        eyebrow="Informations en préparation"
+        title="Le contenu juridique est en cours de validation"
+        description="Les mentions, conditions et informations relatives à l'éditeur seront publiées après leur validation formelle."
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-brand">
       <MarketingNavbar />

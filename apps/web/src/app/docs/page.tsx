@@ -2,6 +2,8 @@
 
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
+import { PublicContentPlaceholder } from "@/components/marketing/public-content-placeholder";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 
 const sections = [
   {
@@ -114,6 +116,16 @@ const sections = [
 ];
 
 export default function DocsPage() {
+  if (!isCapabilityEnabled("publicDocumentation")) {
+    return (
+      <PublicContentPlaceholder
+        eyebrow="Documentation en révision"
+        title="La documentation publique est temporairement masquée"
+        description="Les guides sont en cours d'alignement avec les parcours réellement validés du produit."
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-brand">
       <MarketingNavbar />

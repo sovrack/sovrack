@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { SovrackLogo } from "./sovrack-logo";
 
 export default function MarketingFooter() {
+  const publicMarketingEnabled = isCapabilityEnabled("publicMarketingCopy");
+  const publicDocumentationEnabled = isCapabilityEnabled("publicDocumentation");
+  const publicPricingEnabled = isCapabilityEnabled("publicPricing");
+
   return (
     <footer className="border-t border-white/10 bg-brand pb-10 pt-14 text-slate-300">
       <div className="mx-auto max-w-7xl px-6">
@@ -17,15 +22,18 @@ export default function MarketingFooter() {
               </span>
             </div>
             <p className="max-w-xs text-sm leading-relaxed text-slate-400">
-              La plateforme de déploiement automatisé pour vos sites, APIs,
-              bases de données et services Docker. Prête en 2 minutes.
+              {publicMarketingEnabled
+                ? "La plateforme de déploiement automatisé pour vos sites, APIs, bases de données et services Docker."
+                : "Produit en cours de développement privé et de validation fonctionnelle."}
             </p>
           </div>
 
           <div>
             <h4 className="mb-4 text-sm font-semibold text-white">Produit</h4>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/pricing" className="transition hover:text-sky-300">Tarifs</Link></li>
+              {publicPricingEnabled && (
+                <li><Link href="/pricing" className="transition hover:text-sky-300">Tarifs</Link></li>
+              )}
               <li><Link href="/register" className="transition hover:text-sky-300">Créer un compte</Link></li>
               <li><Link href="/login" className="transition hover:text-sky-300">Connexion</Link></li>
               <li><Link href="/" className="transition hover:text-sky-300">Accueil</Link></li>
@@ -35,7 +43,9 @@ export default function MarketingFooter() {
           <div>
             <h3 className="mb-4 text-sm font-semibold text-white">Ressources</h3>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/docs" className="transition hover:text-sky-300">Documentation</Link></li>
+              {publicDocumentationEnabled && (
+                <li><Link href="/docs" className="transition hover:text-sky-300">Documentation</Link></li>
+              )}
               <li><Link href="/legal" className="transition hover:text-sky-300">Mentions légales</Link></li>
             </ul>
           </div>
