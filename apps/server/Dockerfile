@@ -36,8 +36,22 @@ RUN npm ci --omit=dev && \
 # non-root runtime user (appuser) finds them. /usr/share/ansible/collections is
 # already on ansible-core's default COLLECTIONS_PATH; we also export it to be safe.
 COPY ansible/requirements.yml ./ansible/requirements.yml
-RUN ansible-galaxy collection install -r ansible/requirements.yml \
-      -p /usr/share/ansible/collections
+RUN set -eu; \
+    attempt=1; \
+    while [ "$attempt" -le 3 ]; do \
+      if ansible-galaxy collection install -r ansible/requirements.yml \
+          -p /usr/share/ansible/collections; then \
+        break; \
+      fi; \
+      if [ "$attempt" -eq 3 ]; then \
+        echo "Ansible Galaxy installation failed after $attempt attempts" >&2; \
+        exit 1; \
+      fi; \
+      delay=$((attempt * 5)); \
+      echo "Ansible Galaxy unavailable; retrying in ${delay}s" >&2; \
+      sleep "$delay"; \
+      attempt=$((attempt + 1)); \
+    done
 ENV ANSIBLE_COLLECTIONS_PATH=/usr/share/ansible/collections
 
 # ── Install Nixpacks (used by NixpacksService for local builds + plan generation) ──
