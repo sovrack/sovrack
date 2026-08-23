@@ -37,9 +37,9 @@ validate:
 
 shellcheck:
   stage: validate
-  image: koalaman/shellcheck-alpine:latest
+  image: koalaman/shellcheck-alpine:v0.11.0
   script:
-    - shellcheck scripts/*.sh
+    - shellcheck scripts/*.sh tests/*.sh
   only:
     - main
     - merge_requests

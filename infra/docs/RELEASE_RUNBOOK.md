@@ -58,3 +58,10 @@ curl --fail --show-error --silent https://sovrack.tech/backend-api/health
 ```
 
 Conserver au moins une copie chiffrée des backups sur un stockage hors du VPS et tester périodiquement une restauration dans un environnement isolé.
+
+Le test local reproductible de la procédure utilise uniquement une stack Docker
+jetable :
+
+```bash
+make test-scripts
+```

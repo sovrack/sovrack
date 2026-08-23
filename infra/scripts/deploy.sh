@@ -161,6 +161,8 @@ fi
 
 compose ps
 
+# DOMAIN doit être développé dans le shell du conteneur nginx, pas sur l'hôte.
+# shellcheck disable=SC2016
 if ! compose exec -T nginx sh -c 'test -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" && test -s "/etc/letsencrypt/live/${DOMAIN}/privkey.pem"'; then
   echo "⚠️  Certificat TLS absent : Nginx fonctionne uniquement en mode challenge ACME."
   echo "   Lance ./scripts/certbot.sh puis vérifie HTTPS."

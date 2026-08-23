@@ -6,7 +6,7 @@ SHELL := /usr/bin/env bash
 ENV_FILE := .env
 COMPOSE := docker compose --env-file $(ENV_FILE) -f docker-compose.prod.yml
 
-.PHONY: help bootstrap config up ps logs backup restore validate-ci certbot certbot-renew
+.PHONY: help bootstrap config up ps logs backup restore validate-ci test-scripts certbot certbot-renew
 
 help: ## Affiche l'aide
 	@printf "Commandes Sovrack infra:\n"
@@ -37,10 +37,13 @@ restore: ## Restaure un dump (BRUTAL)
 validate-ci: ## Valide le compose dans les conditions CI (image docker cli)
 	docker compose --env-file .env.production.example -f docker-compose.prod.yml config -q
 
+test-scripts: ## Teste backup/restore dans une stack Docker jetable
+	./tests/backup-restore-integration.sh
+
 certbot: ## Obtient/renouvelle le certificat TLS (DOMAIN = domaine)
 	./scripts/certbot.sh
 
 certbot-renew: ## Renouvellement TLS automatique (à appeler côté VPS, ex. cron)
 	./scripts/certbot.sh --renew
 
-.PHONY: help bootstrap config up ps logs backup restore validate-ci certbot certbot-renew
+.PHONY: help bootstrap config up ps logs backup restore validate-ci test-scripts certbot certbot-renew

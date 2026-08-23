@@ -1,0 +1,49 @@
+name: sovrack-scripts-test
+
+x-sleeper: &sleeper
+  image: alpine:3.22
+  command: ["sh", "-c", "sleep 3600"]
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: backup_test
+      POSTGRES_PASSWORD: local_test_only
+      POSTGRES_DB: backup_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backup_test -d backup_test"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    <<: *sleeper
+
+  migrator:
+    image: alpine:3.22
+    command: ["sh", "-c", "true"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    <<: *sleeper
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+
+  worker:
+    <<: *sleeper
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+
+  frontend:
+    <<: *sleeper
+
+  nginx:
+    <<: *sleeper
