@@ -67,7 +67,10 @@ import { QueueModule } from './shared/queue/queue.module';
     }),
     ThrottlerModule.forRootAsync({
       useFactory: () => {
-        const redisUrl = process.env.REDIS_URL?.trim();
+        const redisUrl =
+          process.env.OPENAPI_EXPORT === 'true'
+            ? undefined
+            : process.env.REDIS_URL?.trim();
         const storage = redisUrl
           ? new ThrottlerStorageRedisService(redisUrl)
           : undefined;

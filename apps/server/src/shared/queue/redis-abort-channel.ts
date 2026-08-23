@@ -27,6 +27,7 @@ export class RedisAbortChannel {
   }
 
   init(): void {
+    if (process.env.OPENAPI_EXPORT === 'true') return;
     const url = process.env.REDIS_URL?.trim();
     if (!url) {
       this.logger.warn(`REDIS_URL unset — abort channel ${this.channel} off`);

@@ -22,28 +22,39 @@ function requireRedisUrl(): string {
   return url;
 }
 
+/**
+ * Swagger only needs Nest metadata. Opening Redis sockets while exporting the
+ * contract makes the build non-deterministic and used to hide connection
+ * errors behind a forced process exit.
+ */
+function createQueue(name: string): Queue {
+  if (process.env.OPENAPI_EXPORT === 'true') {
+    return {
+      name,
+      close: () => Promise.resolve(),
+    } as unknown as Queue;
+  }
+  return new Queue(name, { connection: { url: requireRedisUrl() } });
+}
+
 export const bullQueueProvider: FactoryProvider<Queue> = {
   provide: 'DEPLOYMENTS_QUEUE',
   useFactory: () => {
-    return new Queue(DEPLOYMENTS_QUEUE, {
-      connection: { url: requireRedisUrl() },
-    });
+    return createQueue(DEPLOYMENTS_QUEUE);
   },
 };
 
 export const bullSetupQueueProvider: FactoryProvider<Queue> = {
   provide: 'SETUP_QUEUE',
   useFactory: () => {
-    return new Queue(SETUP_QUEUE, { connection: { url: requireRedisUrl() } });
+    return createQueue(SETUP_QUEUE);
   },
 };
 
 export const bullAutomationRunsQueueProvider: FactoryProvider<Queue> = {
   provide: 'AUTOMATION_RUNS_QUEUE',
   useFactory: () => {
-    return new Queue(AUTOMATION_RUNS_QUEUE, {
-      connection: { url: requireRedisUrl() },
-    });
+    return createQueue(AUTOMATION_RUNS_QUEUE);
   },
 };
 
