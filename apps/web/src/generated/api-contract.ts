@@ -45,8 +45,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Platform health check */
+        /** Public service health check */
         get: operations["AppController_getHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/system-health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detailed platform health for back-office staff */
+        get: operations["AppController_getSystemHealth"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6103,11 +6120,11 @@ export interface components {
             /** Format: uuid */
             userId: string;
             /** @enum {string} */
-            role?: "OWNER" | "MEMBER" | "ADMIN";
+            role?: "ADMIN" | "OWNER" | "MEMBER";
         };
         UpdateWorkspaceMemberRoleDto: {
             /** @enum {string} */
-            role: "OWNER" | "MEMBER" | "ADMIN";
+            role: "ADMIN" | "OWNER" | "MEMBER";
         };
         UpdateWorkspaceMemberStatusDto: {
             /** @enum {string} */
@@ -6117,7 +6134,7 @@ export interface components {
             /** Format: email */
             email: string;
             /** @enum {string} */
-            role?: "OWNER" | "MEMBER" | "ADMIN";
+            role?: "ADMIN" | "OWNER" | "MEMBER";
         };
         AcceptWorkspaceInvitationDto: {
             token: string;
@@ -7445,6 +7462,24 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Service operational */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AppController_getSystemHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Detailed service health */
             200: {
                 headers: {
                     [name: string]: unknown;

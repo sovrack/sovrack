@@ -43,7 +43,22 @@
             "description": "Service operational"
           }
         },
-        "summary": "Platform health check",
+        "summary": "Public service health check",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/staff/system-health": {
+      "get": {
+        "operationId": "AppController_getSystemHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Detailed service health"
+          }
+        },
+        "summary": "Detailed platform health for back-office staff",
         "tags": [
           "Health"
         ]
@@ -16061,9 +16076,9 @@
           "role": {
             "type": "string",
             "enum": [
+              "ADMIN",
               "OWNER",
-              "MEMBER",
-              "ADMIN"
+              "MEMBER"
             ]
           }
         },
@@ -16077,9 +16092,9 @@
           "role": {
             "type": "string",
             "enum": [
+              "ADMIN",
               "OWNER",
-              "MEMBER",
-              "ADMIN"
+              "MEMBER"
             ]
           }
         },
@@ -16112,9 +16127,9 @@
           "role": {
             "type": "string",
             "enum": [
+              "ADMIN",
               "OWNER",
-              "MEMBER",
-              "ADMIN"
+              "MEMBER"
             ]
           }
         },

@@ -1,7 +1,9 @@
 # =============================================================================
 # Frontend Makefile — Deploy Automation
 # =============================================================================
-.PHONY: help build run test lint clean
+.PHONY: help build run dev test test-watch test-coverage lint lint-fix typecheck \
+	build-dev build-prod dev-clean clean clean-all install install-clean \
+	contract-generate deploy-staging deploy-prod
 
 .DEFAULT_GOAL := help
 
@@ -12,7 +14,7 @@ help: ## Show this help
 # ─── Application ─────────────────────────────────────────────────────────────
 
 build: ## Build Docker image
-	docker build -t deployautomation/frontend:latest .
+	docker build -t deployautomation/frontend:local .
 
 run: ## Run with Docker Compose
 	docker compose up -d --build
@@ -25,16 +27,16 @@ dev: ## Start frontend in development mode
 test: ## Run unit tests
 	npm test
 
-test:watch: ## Run tests in watch mode
+test-watch: ## Run tests in watch mode
 	npm run test:watch
 
-test:coverage: ## Run tests with coverage
+test-coverage: ## Run tests with coverage
 	npm run test:cov
 
 lint: ## Run ESLint
 	npm run lint
 
-lint:fix: ## Run ESLint with auto-fix
+lint-fix: ## Run ESLint with auto-fix
 	npm run lint:fix
 
 typecheck: ## Run TypeScript checks
@@ -42,26 +44,26 @@ typecheck: ## Run TypeScript checks
 
 # ─── Build ─────────────────────────────────────────────────────────────────
 
-build:dev: ## Build for development
+build-dev: ## Build for development
 	npm run build
 
-build:prod: ## Build for production
+build-prod: ## Build for production
 	NODE_ENV=production npm run build
 
 # ─── Development ───────────────────────────────────────────────────────────
 
-dev:clean: ## Clean development (remove .next and restart)
+dev-clean: ## Clean development (remove .next and restart)
 	rm -rf .next
 	$(MAKE) dev
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 
-clean: ## Clean Docker resources
+clean: ## Stop this Compose project and remove only its local app image
 	docker compose down
-	docker system prune -f
+	-docker image rm deployautomation/frontend:local
 
-clean:all: ## Clean everything including node_modules and .next
-	rm -rf node_modules .next dist coverage
+clean-all: ## Clean everything including node_modules and .next
+	rm -rf -- "$(CURDIR)/node_modules" "$(CURDIR)/.next" "$(CURDIR)/dist" "$(CURDIR)/coverage"
 	$(MAKE) clean
 
 # ─── Dependencies ───────────────────────────────────────────────────────────
@@ -69,21 +71,21 @@ clean:all: ## Clean everything including node_modules and .next
 install: ## Install dependencies
 	npm install
 
-install:clean: ## Clean install (remove node_modules first)
-	rm -rf node_modules
+install-clean: ## Clean install (remove node_modules first)
+	rm -rf -- "$(CURDIR)/node_modules"
 	$(MAKE) install
 
 # ─── Code Generation ───────────────────────────────────────────────────────
 
-contract:generate: ## Generate OpenAPI contract from backend
+contract-generate: ## Generate OpenAPI contract from backend
 	npm run contract:generate
 
 # ─── Deployment Helpers ───────────────────────────────────────────────────
 
-deploy:staging: ## Build and deploy to staging
-	docker build -t ${REGISTRY:-registry.gitlab.com/deploy-automation}/deploy-automation-frontend:staging .
-	docker push ${REGISTRY:-registry.gitlab.com/deploy-automation}/deploy-automation-frontend:staging
+deploy-staging: ## Refuse mutable direct deployment; use the infra pipeline
+	@echo "Use an immutable RC tag and the deploy-automation-infra pipeline."
+	@false
 
-deploy:prod: ## Build and deploy to production
-	docker build -t ${REGISTRY:-registry.gitlab.com/deploy-automation}/deploy-automation-frontend:latest .
-	docker push ${REGISTRY:-registry.gitlab.com/deploy-automation}/deploy-automation-frontend:latest
+deploy-prod: ## Refuse mutable direct deployment; use the infra pipeline
+	@echo "Use an immutable SemVer tag and the deploy-automation-infra pipeline."
+	@false

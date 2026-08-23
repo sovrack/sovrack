@@ -7,6 +7,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   typescript: {
     tsconfigPath: './tsconfig.json',
   },
@@ -64,9 +65,11 @@ const nextConfig = {
               "font-src 'self' data:",
               "connect-src 'self' ws: wss:",
               "frame-src 'none'",
+              "object-src 'none'",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
+              "upgrade-insecure-requests",
             ].join('; '),
           },
         ],

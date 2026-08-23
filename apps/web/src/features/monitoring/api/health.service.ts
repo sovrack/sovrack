@@ -31,7 +31,7 @@ export type PlatformHealth = {
 
 export const healthService = {
   async get(): Promise<PlatformHealth> {
-    const res = await api.get<PlatformHealth>("/health");
+    const res = await api.get<PlatformHealth>("/staff/system-health");
     return res.data;
   },
 };
