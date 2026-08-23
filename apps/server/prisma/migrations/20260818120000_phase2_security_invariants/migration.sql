@@ -1,6 +1,8 @@
 -- Bind verification codes to the browser registration attempt that created
 -- them. Active legacy email accounts are marked verified before the runtime
 -- starts enforcing that invariant.
+BEGIN;
+
 ALTER TABLE "User"
   ADD COLUMN "emailVerificationAttemptId" TEXT;
 
@@ -34,3 +36,5 @@ CREATE UNIQUE INDEX "WebhookEvent_endpointId_externalDeliveryId_key"
 DROP INDEX IF EXISTS "PipelineRun_externalId_provider_key";
 CREATE UNIQUE INDEX "PipelineRun_projectId_externalId_provider_key"
   ON "PipelineRun"("projectId", "externalId", "provider");
+
+COMMIT;

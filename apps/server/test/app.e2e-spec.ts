@@ -58,8 +58,7 @@ describe('AppController (e2e)', () => {
       .get('/health')
       .expect(200)
       .expect((res) => {
-        expect((res.body as { status: string }).status).toBe('ok');
-        expect((res.body as { database: string }).database).toBe('connected');
+        expect(res.body).toEqual({ status: 'ok' });
       });
   });
 });

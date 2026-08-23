@@ -155,12 +155,15 @@ describe('LocalBuildService', () => {
     expect(di).toContain('.env');
   });
 
-  it('prunes dangling images after a successful build (disk hygiene)', async () => {
+  it('cleans only old images from the service repository', async () => {
     const { svc, ssh } = make();
     await svc.run(params());
     const execCmds = ssh.exec.mock.calls.map((c: unknown[]) => c[1] as string);
-    expect(execCmds.some((c) => c.includes('docker image prune -f'))).toBe(
-      true,
-    );
+    expect(execCmds.some((c) => c.includes('docker image prune'))).toBe(false);
+    expect(
+      execCmds.some(
+        (c) => c.includes('docker images') && c.includes('docker rmi'),
+      ),
+    ).toBe(true);
   });
 });

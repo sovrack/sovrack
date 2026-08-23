@@ -2,6 +2,12 @@
 -- ownership. This is a forward-only migration; historical migrations remain
 -- immutable.
 
+-- Prisma does not wrap PostgreSQL migrations in a transaction automatically.
+-- Keep the whole tenant-boundary change atomic: either every backfill,
+-- constraint and enum conversion succeeds, or PostgreSQL restores the exact
+-- pre-Phase-2 schema.
+BEGIN;
+
 CREATE TYPE "WorkspaceRole" AS ENUM ('OWNER', 'ADMIN', 'MEMBER');
 CREATE TYPE "MembershipStatus" AS ENUM ('INVITED', 'ACTIVE', 'SUSPENDED');
 CREATE TYPE "InvitationStatus" AS ENUM ('PENDING', 'ACCEPTED', 'REVOKED', 'EXPIRED');
@@ -113,7 +119,6 @@ ALTER TABLE "Project" ALTER COLUMN "teamId" SET NOT NULL;
 ALTER TABLE "Server" ALTER COLUMN "teamId" SET NOT NULL;
 
 -- Project roles now describe technical responsibility, not workspace ownership.
-BEGIN;
 CREATE TYPE "ProjectRole_new" AS ENUM ('MAINTAINER', 'DEVELOPER', 'VIEWER');
 ALTER TABLE "ProjectMember" ALTER COLUMN "role" DROP DEFAULT;
 ALTER TABLE "ProjectMember"
@@ -125,7 +130,6 @@ ALTER TYPE "ProjectRole" RENAME TO "ProjectRole_old";
 ALTER TYPE "ProjectRole_new" RENAME TO "ProjectRole";
 DROP TYPE "ProjectRole_old";
 ALTER TABLE "ProjectMember" ALTER COLUMN "role" SET DEFAULT 'DEVELOPER';
-COMMIT;
 
 ALTER TABLE "ProjectMember" ADD COLUMN "teamId" TEXT;
 UPDATE "ProjectMember" pm
@@ -305,3 +309,5 @@ ALTER TABLE "RegistryConfig"
 ALTER TABLE "DnsProvider"
   ADD CONSTRAINT "DnsProvider_teamId_fkey"
   FOREIGN KEY ("teamId") REFERENCES "Team"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+COMMIT;

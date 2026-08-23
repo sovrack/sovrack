@@ -4,6 +4,7 @@ import {
   Inject,
   Optional,
   ServiceUnavailableException,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -14,6 +15,12 @@ import * as os from 'node:os';
 import { PrismaService } from './shared/database/prisma.service';
 import { PlatformService } from './modules/platform/platform.service';
 import { Public } from './shared/decorators/public.decorator';
+import { PlatformRole } from '@prisma/client';
+import {
+  StaffJwtAuthGuard,
+  StaffRoles,
+  StaffRolesGuard,
+} from './modules/staff/staff.guards';
 
 type ComponentStatus = 'connected' | 'disconnected';
 
@@ -74,8 +81,8 @@ export class AppController {
    */
   @Get('health/live')
   @ApiOperation({ summary: 'Liveness probe (process up)' })
-  getLiveness(): { status: 'ok'; uptime: number } {
-    return { status: 'ok', uptime: process.uptime() };
+  getLiveness(): { status: 'ok' } {
+    return { status: 'ok' };
   }
 
   /**
@@ -89,14 +96,6 @@ export class AppController {
   @ApiResponse({ status: 503, description: 'A hard dependency is unavailable' })
   async getReadiness(): Promise<{
     status: 'ready';
-    database: ComponentStatus;
-    redis: ComponentStatus;
-    queue: {
-      waiting: number;
-      active: number;
-      failed: number;
-      status: ComponentStatus;
-    };
   }> {
     const [database, redis, queueStatus] = await Promise.all([
       this.checkDatabase(),
@@ -110,18 +109,24 @@ export class AppController {
     ) {
       throw new ServiceUnavailableException({
         status: 'not-ready',
-        database,
-        redis,
-        queue: queueStatus,
       });
     }
-    return { status: 'ready', database, redis, queue: queueStatus };
+    return { status: 'ready' };
   }
 
   @Get('health')
-  @ApiOperation({ summary: 'Platform health check' })
+  @ApiOperation({ summary: 'Public service health check' })
   @ApiResponse({ status: 200, description: 'Service operational' })
-  async getHealth(): Promise<HealthResponse> {
+  getHealth(): { status: 'ok' } {
+    return { status: 'ok' };
+  }
+
+  @Get('staff/system-health')
+  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN, PlatformRole.OPERATOR)
+  @ApiOperation({ summary: 'Detailed platform health for back-office staff' })
+  @ApiResponse({ status: 200, description: 'Detailed service health' })
+  async getSystemHealth(): Promise<HealthResponse> {
     const webhook = await this.resolveWebhookConfigStatus();
     const [database, redis, host] = await Promise.all([
       this.checkDatabase(),

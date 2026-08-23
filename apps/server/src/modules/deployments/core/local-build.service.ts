@@ -206,16 +206,15 @@ export class LocalBuildService {
         );
         logs += `[LOCAL BUILD] Docker build OK → ${imageTag}\n`;
       }
-      // Best-effort disk hygiene (non-fatal): (1) drop dangling build layers,
-      // (2) keep only the last 5 tagged images of THIS service so rollback
-      // targets survive (unique per-deploy tags) without filling the disk.
+      // Best-effort disk hygiene (non-fatal): keep only the last 5 tagged
+      // images of THIS service. Never run a host-wide prune here: the target
+      // may host unrelated workloads and older images can be rollback assets.
       const repo = imageTag.includes(':')
         ? imageTag.slice(0, imageTag.lastIndexOf(':'))
         : imageTag;
       await this.ssh.exec(
         conn,
-        `docker image prune -f; ` +
-          `docker images ${q(repo)} --format '{{.Repository}}:{{.Tag}}' | tail -n +6 | xargs -r docker rmi 2>/dev/null || true`,
+        `docker images ${q(repo)} --format '{{.Repository}}:{{.Tag}}' | tail -n +6 | xargs -r docker rmi 2>/dev/null || true`,
       );
       onLog(`[LOCAL BUILD] Image built: ${imageTag}`, 'info');
     } finally {

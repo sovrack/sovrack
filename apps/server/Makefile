@@ -1,7 +1,9 @@
 # =============================================================================
 # Backend Makefile — Deploy Automation
 # =============================================================================
-.PHONY: help build run test lint clean db db-stop db-reset
+.PHONY: help build run dev test test-watch test-coverage lint lint-fix typecheck \
+	db db-stop db-reset migrate migrate-dev migrate-reset db-seed db-studio \
+	clean clean-all install install-clean
 
 .DEFAULT_GOAL := help
 
@@ -35,7 +37,7 @@ db-reset: ## DANGER: drop the DB volume and recreate (wipes all data)
 # ─── Application ─────────────────────────────────────────────────────────────
 
 build: ## Build Docker image
-	docker build -t deployautomation/backend:latest .
+	docker build -t deployautomation/backend:local .
 
 run: ## Run with Docker Compose (production mode)
 	docker compose up -d --build
@@ -48,16 +50,16 @@ dev: db ## Start backend in development mode (requires DB + Redis)
 test: ## Run unit tests
 	npm test
 
-test:watch: ## Run tests in watch mode
+test-watch: ## Run tests in watch mode
 	npm run test:watch
 
-test:coverage: ## Run tests with coverage
+test-coverage: ## Run tests with coverage
 	npm run test:cov
 
 lint: ## Run ESLint
 	npm run lint
 
-lint:fix: ## Run ESLint with auto-fix
+lint-fix: ## Run ESLint with auto-fix
 	npm run lint:fix
 
 typecheck: ## Run TypeScript checks
@@ -68,26 +70,26 @@ typecheck: ## Run TypeScript checks
 migrate: ## Apply Prisma migrations
 	npx prisma migrate deploy
 
-migrate:dev: ## Create and apply new migration (development)
+migrate-dev: ## Create and apply new migration (development)
 	npx prisma migrate dev
 
-migrate:reset: ## Reset database and reapply all migrations
+migrate-reset: ## Reset database and reapply all migrations
 	npx prisma migrate reset
 
-db:seed: ## Seed database with sample data
+db-seed: ## Seed database with sample data
 	npx prisma db seed
 
-db:studio: ## Open Prisma Studio
+db-studio: ## Open Prisma Studio
 	npx prisma studio
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 
-clean: ## Clean Docker resources
-	docker compose down -v
-	docker system prune -f
+clean: ## Stop this Compose project and remove only its local app image
+	docker compose down
+	-docker image rm deployautomation/backend:local
 
-clean:all: ## Clean everything including node_modules
-	rm -rf node_modules dist coverage
+clean-all: ## Clean everything including node_modules
+	rm -rf -- "$(CURDIR)/node_modules" "$(CURDIR)/dist" "$(CURDIR)/coverage"
 	$(MAKE) clean
 
 # ─── Dependencies ───────────────────────────────────────────────────────────
@@ -96,6 +98,6 @@ install: ## Install dependencies and generate Prisma client
 	npm install
 	npm run prisma:generate
 
-install:clean: ## Clean install (remove node_modules first)
-	rm -rf node_modules
+install-clean: ## Clean install (remove node_modules first)
+	rm -rf -- "$(CURDIR)/node_modules"
 	$(MAKE) install

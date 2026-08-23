@@ -21,6 +21,26 @@
 4. **Vérification post-migration** : exécuter la requête de contrôle de la
    migration concernée et confirmer 0 incohérence.
 
+## Atomicité PostgreSQL obligatoire
+
+Prisma n'ajoute pas automatiquement `BEGIN` / `COMMIT` autour d'une migration
+PostgreSQL personnalisée. Toute nouvelle migration qui mélange DDL, backfill et
+contraintes doit donc être atomique :
+
+```sql
+BEGIN;
+-- DDL + backfill + gardes DO $$ ... $$
+COMMIT;
+```
+
+Ne jamais placer un second `BEGIN` / `COMMIT` à l'intérieur. Une opération qui
+ne peut pas être transactionnelle doit être isolée dans une migration dédiée et
+documentée selon le modèle expand → backfill vérifié → contract.
+
+Le test `npm run test:migrations:phase2` couvre trois chemins : base neuve,
+upgrade depuis l'historique pré-Phase-2 et échec volontaire. Ce dernier vérifie
+qu'aucun type, colonne ou index intermédiaire ne subsiste après le rollback.
+
 ### Ordre des scripts de backfill (modèle déclaratif M3)
 
 ```

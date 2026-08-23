@@ -44,6 +44,6 @@ const ms = require('ms') as (value: string) => number;
     StaffRolesGuard,
     PasswordHasher,
   ],
-  exports: [StaffService],
+  exports: [StaffService, StaffJwtAuthGuard, StaffRolesGuard],
 })
 export class StaffModule {}

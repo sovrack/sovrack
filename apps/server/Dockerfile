@@ -1,5 +1,5 @@
 # ── Build stage ──────────────────────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,12 @@ COPY . .
 RUN npm run build
 
 # ── Production stage ──────────────────────────────────────────────────────────
-FROM node:22-alpine AS runner
+FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS runner
+
+ARG VCS_REF=unknown
+ARG OPENAPI_SHA256=unknown
+LABEL org.opencontainers.image.revision="$VCS_REF" \
+      tech.sovrack.openapi.sha256="$OPENAPI_SHA256"
 
 # ansible-core (~8 MB) instead of the full `ansible` meta-package (~100+ MB which
 # bundles hundreds of collections). We install ONLY the 3 collections we actually

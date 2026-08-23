@@ -10,11 +10,9 @@ stages:
   - security
 
 default:
-  image: node:22
-  # Utilise le runner privé du VPS (tags: vps) au lieu des runners SaaS partagés
-  # (qui consomment le quota payant et ont causé des échecs "ci_quota_exceeded").
+  image: node:22@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
   tags:
-    - vps
+    - sovrack-ci
 
 variables:
   DATABASE_URL: postgresql://postgres:postgres@postgres:5432/deploy_automation_test
@@ -26,11 +24,12 @@ variables:
   ANSIBLE_PLAYBOOKS_PATH: /tmp/playbooks
   ANSIBLE_VENV_PATH: /tmp/venv
   NODE_ENV: test
+  NPM_CONFIG_CACHE: '$CI_PROJECT_DIR/.npm'
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
-    - node_modules/
+    - .npm/
 
 typecheck:
   stage: validate
@@ -67,9 +66,9 @@ arch:check:
 test:unit:
   stage: test
   services:
-    - name: postgres:16-alpine
+    - name: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
       alias: postgres
-    - name: redis:7-alpine
+    - name: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
       alias: redis
   variables:
     POSTGRES_USER: postgres
@@ -95,9 +94,9 @@ test:e2e:
   stage: test
   timeout: 15 minutes
   services:
-    - name: postgres:16-alpine
+    - name: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
       alias: postgres
-    - name: redis:7-alpine
+    - name: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
       alias: redis
   variables:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/deploy_automation_test
@@ -109,6 +108,28 @@ test:e2e:
     - npx prisma migrate deploy
     - npm run test:e2e
 
+# Full migration replay needs a Docker daemon but never the production host's
+# socket. This tag must point to a disposable, isolated runner configured for
+# Docker-in-Docker only.
+test:migrations:
+  stage: test
+  image: node:22@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+  tags:
+    - sovrack-docker-tests
+  services:
+    - name: docker:27-dind@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ''
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends docker.io
+    - rm -rf /var/lib/apt/lists/*
+  script:
+    - npm ci
+    - npm run test:migrations:phase2
+
 build:
   stage: build
   script:
@@ -119,27 +140,30 @@ build:
       - dist/
     expire_in: 2 hours
 
-# Construit et pousse l'image Docker de production vers le Container Registry
-# GitLab intégré (méthode B, plan produit final). Kaniko plutôt que
-# `docker build` : ce runner ("docker" executor, gitlab-docker-runner-2) n'a
-# PAS Docker-in-Docker — mémé limite déjà rencontrée et contournée pour
-# test:e2e (Testcontainers). Kaniko construit une image OCI sans daemon
-# Docker, fonctionne sur n'importe quel runner sans privileged mode.
-# CI_REGISTRY_USER/PASSWORD sont fournis automatiquement par GitLab pour
-# CE projet — rien à créer côté utilisateur pour CETTE étape.
+# BuildKit rootless builds and pushes without the host Docker socket and without
+# a privileged application job.
 build:image:
   stage: build
   image:
-    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    name: moby/buildkit:v0.30.0-rootless@sha256:d76eb1caecac5733ef7553c1e90a1b21f1bb218cd1142d3553de0747b4a14ba9
     entrypoint: ['']
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  needs:
+    - job: contract:openapi
+      artifacts: true
   script:
-    - mkdir -p /kaniko/.docker
+    - mkdir -p ~/.docker
     - >
-      echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor
-      --context "$CI_PROJECT_DIR"
-      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
-      --destination "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+      echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')\"}}}" > ~/.docker/config.json
+    - OPENAPI_SHA256="$(sha256sum artifacts/api-contract.openapi.json | awk '{print $1}')"
+    - buildctl-daemonless.sh build
+      --frontend dockerfile.v0
+      --local context="$CI_PROJECT_DIR"
+      --local dockerfile="$CI_PROJECT_DIR"
+      --opt "build-arg:VCS_REF=$CI_COMMIT_SHA"
+      --opt "build-arg:OPENAPI_SHA256=$OPENAPI_SHA256"
+      --output "type=image,name=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA,push=true"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
@@ -173,7 +197,7 @@ security:audit:
 sonarqube:
   stage: security
   image:
-    name: sonarsource/sonar-scanner-cli:latest
+    name: sonarsource/sonar-scanner-cli@sha256:23ca0f137965d9dff2198074043fd48d386280bc5d0ccac8c8349cea4cf096a9
     entrypoint: ['']
   needs:
     - job: test:unit
@@ -208,7 +232,7 @@ sonarqube:
 security:trivy:
   stage: security
   image:
-    name: aquasec/trivy:latest
+    name: aquasec/trivy@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
     entrypoint: ['']
   script:
     - trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --no-progress .
@@ -222,7 +246,7 @@ security:trivy:
 security:image:
   stage: security
   image:
-    name: aquasec/trivy:latest
+    name: aquasec/trivy@sha256:62b1e65e8869bc4b6caa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
     entrypoint: ['']
   needs:
     - build:image
@@ -231,5 +255,11 @@ security:image:
     TRIVY_PASSWORD: '$CI_REGISTRY_PASSWORD'
   script:
     - trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - trivy image --format cyclonedx --output backend-sbom.cdx.json --no-progress "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  artifacts:
+    when: always
+    paths:
+      - backend-sbom.cdx.json
+    expire_in: 30 days
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'

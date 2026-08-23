@@ -2,6 +2,8 @@
 -- PREPARATION runs and from all target servers for AUTOMATION runs. Abort if a
 -- historical automation ever mixed workspaces: assigning it arbitrarily would
 -- hide a real isolation defect.
+BEGIN;
+
 ALTER TABLE "ServerRun" ADD COLUMN "teamId" TEXT;
 
 UPDATE "ServerRun" AS run
@@ -58,3 +60,5 @@ ALTER TABLE "ServerRun"
 
 CREATE INDEX "ServerRun_teamId_kind_createdAt_idx"
   ON "ServerRun"("teamId", "kind", "createdAt");
+
+COMMIT;

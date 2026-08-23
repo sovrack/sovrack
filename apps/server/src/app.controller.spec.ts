@@ -53,13 +53,25 @@ describe('AppController', () => {
     }).compile();
 
   describe('GET /health', () => {
+    it('exposes only the minimum public liveness signal', async () => {
+      const app = await buildModule({
+        $queryRaw: jest.fn().mockRejectedValue(new Error('DB down')),
+      });
+
+      expect(app.get<AppController>(AppController).getHealth()).toEqual({
+        status: 'ok',
+      });
+    });
+  });
+
+  describe('GET /staff/system-health', () => {
     it('retourne status ok avec database connected', async () => {
       const app = await buildModule({
         $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
       });
       const appController = app.get<AppController>(AppController);
 
-      const result = await appController.getHealth();
+      const result = await appController.getSystemHealth();
       expect(result.status).toBe('ok');
       expect(result.database).toBe('connected');
       expect(result.timestamp).toBeDefined();
@@ -71,7 +83,7 @@ describe('AppController', () => {
       });
       const ctrl = app.get<AppController>(AppController);
 
-      const result = await ctrl.getHealth();
+      const result = await ctrl.getSystemHealth();
       expect(result.status).toBe('ok');
       expect(result.database).toBe('disconnected');
     });
@@ -85,7 +97,9 @@ describe('AppController', () => {
           }),
         },
       );
-      const result = await app.get<AppController>(AppController).getHealth();
+      const result = await app
+        .get<AppController>(AppController)
+        .getSystemHealth();
       expect(result.redis).toBe('connected');
     });
 
@@ -93,7 +107,9 @@ describe('AppController', () => {
       const app = await buildModule({
         $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
       });
-      const result = await app.get<AppController>(AppController).getHealth();
+      const result = await app
+        .get<AppController>(AppController)
+        .getSystemHealth();
       expect(result.redis).toBe('disconnected');
     });
 
@@ -112,7 +128,7 @@ describe('AppController', () => {
       const ctrl = app.get<AppController>(AppController);
 
       const start = Date.now();
-      const result = await ctrl.getHealth();
+      const result = await ctrl.getSystemHealth();
       const elapsedMs = Date.now() - start;
 
       expect(result.redis).toBe('disconnected');
@@ -127,7 +143,7 @@ describe('AppController', () => {
       });
       const ctrl = app.get<AppController>(AppController);
 
-      const result = await ctrl.getHealth();
+      const result = await ctrl.getSystemHealth();
       expect(result.webhook.autoConfigure).toBe(true);
       expect(result.webhook.configured).toBe(true);
       expect(result.webhook.valid).toBe(true);
@@ -143,7 +159,7 @@ describe('AppController', () => {
       });
       const ctrl = app.get<AppController>(AppController);
 
-      const result = await ctrl.getHealth();
+      const result = await ctrl.getSystemHealth();
       expect(result.webhook.configured).toBe(false);
       expect(result.webhook.valid).toBe(false);
       expect(result.webhook.callbackUrl).toBeNull();
@@ -156,7 +172,7 @@ describe('AppController', () => {
       });
       const ctrl = app.get<AppController>(AppController);
 
-      const result = await ctrl.getHealth();
+      const result = await ctrl.getSystemHealth();
       expect(result.webhook.autoConfigure).toBe(false);
       mockConfigService.get.mockImplementation(
         (key: string, defaultValue?: string) => {

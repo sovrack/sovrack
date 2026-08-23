@@ -112,4 +112,28 @@ docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_upgrade \
   -c "SELECT trim(both '\"' from \"databaseCredentials\"::text) LIKE 'v2:%' FROM \"Service\" WHERE id='service-1';" \
   | grep -qx 't'
 
-echo "Fresh and pre-Phase-2 migration paths passed."
+# Atomicity path: deliberately violate the first Phase-2 precondition after
+# applying the complete historical schema. PostgreSQL must roll back every DDL
+# statement from that migration, not leave new enums/columns behind.
+docker exec "$CONTAINER_NAME" createdb -U postgres phase2_atomicity
+export DATABASE_URL="${base_url}/phase2_atomicity"
+PRISMA_INTEGRATION_MIGRATIONS="$TEMP_DIR/migrations" \
+  npx prisma migrate deploy --config test/migrations/prisma.integration.config.ts
+docker exec -i "$CONTAINER_NAME" psql -v ON_ERROR_STOP=1 -U postgres -d phase2_atomicity <<'SQL'
+INSERT INTO "Team" ("id", "name", "createdAt", "updatedAt")
+VALUES ('ownerless-team', 'Ownerless workspace', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+SQL
+
+if npx prisma migrate deploy >"$TEMP_DIR/expected-migration-failure.log" 2>&1; then
+  echo "Expected the ownerless-workspace migration to fail."
+  exit 1
+fi
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_atomicity \
+  -c "SELECT to_regtype('\"WorkspaceRole\"') IS NULL;" | grep -qx 't'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_atomicity \
+  -c "SELECT count(*) FROM information_schema.columns WHERE table_name='Team' AND column_name='slug';" \
+  | grep -qx '0'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_atomicity \
+  -c "SELECT to_regclass('\"Team_name_key\"') IS NOT NULL;" | grep -qx 't'
+
+echo "Fresh, pre-Phase-2 upgrade and transactional-failure migration paths passed."

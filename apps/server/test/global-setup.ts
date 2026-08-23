@@ -10,6 +10,10 @@ export default async function globalSetup(): Promise<void> {
   process.env.FRONTEND_URL = 'http://localhost:3000';
   process.env.GITLAB_WEBHOOK_AUTO_CONFIGURE = 'false';
   process.env.NODE_ENV = 'test';
+  // E2E drives deployment execution through explicit test doubles. Starting
+  // real BullMQ consumers would race the fixtures and make one suite delete
+  // records while another background execution is still finishing.
+  process.env.PROCESS_ROLE = 'api';
 
   // In GitLab CI, a `postgres` service is already up and migrated (the
   // `prisma migrate deploy` step runs right before this suite) — reuse it.
