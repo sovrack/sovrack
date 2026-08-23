@@ -11,6 +11,12 @@ BASE_DIR="$(realpath "${1:-/srv/sovrack}")"
   echo "ERROR: layout versionné absent dans $BASE_DIR."
   exit 1
 }
+SERVICE_USER="$(stat -c %U "$BASE_DIR/shared")"
+SERVICE_GROUP="$(stat -c %G "$BASE_DIR/shared")"
+id "$SERVICE_USER" >/dev/null 2>&1 || {
+  echo "ERROR: propriétaire de shared/ introuvable : $SERVICE_USER."
+  exit 1
+}
 
 cat > /etc/systemd/system/sovrack-backup.service <<EOF
 [Unit]
@@ -20,6 +26,8 @@ After=docker.service
 
 [Service]
 Type=oneshot
+User=$SERVICE_USER
+Group=$SERVICE_GROUP
 Environment=SOVRACK_BASE_DIR=$BASE_DIR
 ExecStart=$BASE_DIR/current/scripts/backup-current.sh
 UMask=0077

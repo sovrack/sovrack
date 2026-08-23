@@ -140,6 +140,10 @@ systemctl start sovrack-backup.service
 journalctl -u sovrack-backup.service --no-pager
 ```
 
+Le service est exécuté avec le propriétaire de `shared/` afin que les backups
+créés par le timer et ceux créés avant une release gardent le même propriétaire
+et puissent être soumis à la même politique de rétention.
+
 ## TLS
 
 `certbot.sh` écrit directement dans `sovrack-certbot-certs`, le volume lu par
