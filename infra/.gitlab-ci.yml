@@ -1,88 +1,157 @@
-# =============================================================================
-# Sovrack Infrastructure — CI/CD GitLab
-# -----------------------------------------------------------------------------
-# Ce repo pilote le DÉPLOIEMENT de production. Il n'effectue aucun build de
-# code app : il attend que les images backend/frontend existent déjà dans le
-# registry (poussées par leur propre CI build:image) puis les déploie sur le
-# VPS via rsync + docker compose.
-#
-# Variables CI/CD requises (Settings → CI/CD → Variables) :
-#   PRODUCTION_HOST   : IP/hostname du VPS
-#   PRODUCTION_USER   : user SSH (recommandé : utilisateur dédié "deploy")
-#   SSH_PRIVATE_KEY_B64: clé privée encodée en base64
-#   SSH_KNOWN_HOSTS   : ligne known_hosts vérifiée hors bande (pas ssh-keyscan)
-#   DEPLOY_PATH       : chemin cible sur le VPS (défaut : /srv/sovrack)
-#   BACKEND_IMAGE     : image backend avec SHA Git complet ou digest sha256
-#   FRONTEND_IMAGE    : image frontend avec SHA Git complet ou digest sha256
-# Le job de production reste manuel même lorsque toutes les variables existent.
-# =============================================================================
-
 stages:
   - validate
+  - package
   - deploy
 
-variables:
-  # Une variable GitLab de projet/groupe peut remplacer cette valeur.
-  DEPLOY_PATH: /srv/sovrack
+default:
+  tags:
+    - sovrack-ci
 
-# ── Validation ────────────────────────────────────────────────────────────────
-validate:
+variables:
+  DEPLOY_PATH: /srv/sovrack
+  NGINX_IMAGE: nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+  POSTGRES_IMAGE: postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+  REDIS_IMAGE: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+
+validate:compose:
   stage: validate
-  image: docker:27
+  image: docker:27@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce
   script:
     - docker compose --env-file .env.production.example -f docker-compose.prod.yml config -q
-  only:
-    - main
-    - merge_requests
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
 
-shellcheck:
+validate:shell:
   stage: validate
-  image: koalaman/shellcheck-alpine:v0.11.0
+  image: koalaman/shellcheck-alpine:v0.11.0@sha256:9955be09ea7f0dbf7ae942ac1f2094355bb30d96fffba0ec09f5432207544002
+  before_script:
+    - apk add --no-cache bash
   script:
-    - shellcheck scripts/*.sh tests/*.sh
-  only:
-    - main
-    - merge_requests
+    - shellcheck -x scripts/*.sh tests/*.sh
+    - ./tests/release-manifest-test.sh
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
 
-# ── Déploiement ───────────────────────────────────────────────────────────────
-deploy:
+# A release bundle contains no secret. It binds the three source commits, both
+# immutable application images, the exact DB schema and the API contract hash.
+package:release:
+  stage: package
+  image: alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
+  needs:
+    - validate:compose
+    - validate:shell
+  before_script:
+    - apk add --no-cache bash coreutils tar
+    - 'test -n "$BACKEND_IMAGE" && test -n "$FRONTEND_IMAGE" && test -n "$BACKEND_COMMIT" && test -n "$FRONTEND_COMMIT"'
+    - 'test -n "$SCHEMA_MIGRATION" && test -n "$OPENAPI_SHA256"'
+    - 'test -n "$NGINX_IMAGE" && test -n "$POSTGRES_IMAGE" && test -n "$REDIS_IMAGE"'
+    - 'RUNTIME_TOPOLOGY="${RUNTIME_TOPOLOGY:-compact}"; export RUNTIME_TOPOLOGY'
+    - 'test "$RUNTIME_TOPOLOGY" = "split" || test "$RUNTIME_TOPOLOGY" = "compact" || test "$RUNTIME_TOPOLOGY" = "legacy-single"'
+    - 'printf "%s" "$BACKEND_COMMIT" | grep -Eq "^[0-9a-fA-F]{40}$"'
+    - 'printf "%s" "$FRONTEND_COMMIT" | grep -Eq "^[0-9a-fA-F]{40}$"'
+    - 'printf "%s" "$OPENAPI_SHA256" | grep -Eq "^[0-9a-fA-F]{64}$"'
+    - 'printf "%s" "$SCHEMA_MIGRATION" | grep -Eq "^[0-9]{14}_[a-z0-9_]+$"'
+    - 'printf "%s" "$BACKEND_IMAGE" | grep -Eq "(@sha256:[0-9a-fA-F]{64}|:[0-9a-fA-F]{40})$"'
+    - 'printf "%s" "$FRONTEND_IMAGE" | grep -Eq "(@sha256:[0-9a-fA-F]{64}|:[0-9a-fA-F]{40})$"'
+    - 'for image in "$NGINX_IMAGE" "$POSTGRES_IMAGE" "$REDIS_IMAGE"; do printf "%s" "$image" | grep -Eq "^.+@sha256:[0-9a-fA-F]{64}$" || exit 1; done'
+  script:
+    - printf '%s\n' "$CI_COMMIT_SHA" > .infra-commit
+    - |
+      printf 'RELEASE_ID=%s\nBACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\nNGINX_IMAGE=%s\nPOSTGRES_IMAGE=%s\nREDIS_IMAGE=%s\nBACKEND_COMMIT=%s\nFRONTEND_COMMIT=%s\nINFRA_COMMIT=%s\nRUNTIME_TOPOLOGY=%s\nSCHEMA_MIGRATION=%s\nOPENAPI_SHA256=%s\n' \
+        "$CI_COMMIT_TAG" "$BACKEND_IMAGE" "$FRONTEND_IMAGE" "$NGINX_IMAGE" "$POSTGRES_IMAGE" "$REDIS_IMAGE" \
+        "$BACKEND_COMMIT" "$FRONTEND_COMMIT" "$CI_COMMIT_SHA" \
+        "$RUNTIME_TOPOLOGY" "$SCHEMA_MIGRATION" "$OPENAPI_SHA256" > release.manifest
+    - bash -c 'source scripts/release-lib.sh; validate_release_manifest release.manifest'
+    - tar -czf "sovrack-infra-$CI_COMMIT_SHA.tar.gz" --exclude='.git' --exclude='*.tar.gz' --exclude='*.sha256' .
+    - sha256sum "sovrack-infra-$CI_COMMIT_SHA.tar.gz" > "sovrack-infra-$CI_COMMIT_SHA.tar.gz.sha256"
+  artifacts:
+    paths:
+      - sovrack-infra-$CI_COMMIT_SHA.tar.gz
+      - sovrack-infra-$CI_COMMIT_SHA.tar.gz.sha256
+    expire_in: 30 days
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/'
+
+.deploy_release:
   stage: deploy
-  image: alpine:3
-  resource_group: sovrack-production
+  image: alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
+  tags:
+    - sovrack-deploy
+  resource_group: $TARGET_ENVIRONMENT
   interruptible: false
   needs:
-    - validate
-    - shellcheck
+    - job: package:release
+      artifacts: true
   before_script:
-    - apk add --no-cache openssh-client rsync
+    - apk add --no-cache openssh-client tar
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - 'test -n "$PRODUCTION_HOST" && test -n "$PRODUCTION_USER" && test -n "$SSH_PRIVATE_KEY_B64" && test -n "$SSH_KNOWN_HOSTS" || { echo "ERROR: variables SSH de production incomplètes"; exit 1; }'
-    - 'test -n "$BACKEND_IMAGE" && test -n "$FRONTEND_IMAGE" || { echo "ERROR: BACKEND_IMAGE et FRONTEND_IMAGE sont obligatoires"; exit 1; }'
-    - 'printf "%s\n" "$BACKEND_IMAGE" | grep -Eq "(@sha256:[0-9a-fA-F]{64}|:[0-9a-f]{40})$" || { echo "ERROR: BACKEND_IMAGE non immuable"; exit 1; }'
-    - 'printf "%s\n" "$FRONTEND_IMAGE" | grep -Eq "(@sha256:[0-9a-fA-F]{64}|:[0-9a-f]{40})$" || { echo "ERROR: FRONTEND_IMAGE non immuable"; exit 1; }'
-    - 'case "$DEPLOY_PATH" in /*) ;; *) echo "ERROR: DEPLOY_PATH doit être absolu"; exit 1 ;; esac; case "$DEPLOY_PATH" in *[!A-Za-z0-9._/-]*) echo "ERROR: DEPLOY_PATH contient un caractère interdit"; exit 1 ;; esac'
-    - printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/id_ed25519
+    - 'test -n "$TARGET_HOST" && test -n "$TARGET_USER" && test -n "$TARGET_SSH_PRIVATE_KEY_B64" && test -n "$TARGET_SSH_KNOWN_HOSTS"'
+    - 'case "$TARGET_PATH" in /*) ;; *) echo "ERROR: TARGET_PATH doit être absolu"; exit 1 ;; esac'
+    - 'case "$TARGET_PATH" in *[!A-Za-z0-9._/-]*) echo "ERROR: TARGET_PATH invalide"; exit 1 ;; esac'
+    - 'printf "%s" "$CI_COMMIT_TAG" | grep -Eq "^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$"'
+    - printf '%s' "$TARGET_SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
-    - printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - printf '%s\n' "$TARGET_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
     - chmod 600 ~/.ssh/known_hosts
   script:
-    # Synchronise l'orchestration sans toucher aux secrets, données, backups ni
-    # fichiers temporaires d'une autre promotion.
-    - rsync -az --omit-dir-times --no-perms --delete --exclude '.env' --exclude '.env.release.*' --exclude '.env.rollback.*' --exclude '.release-request' --exclude '.git' --exclude 'data/' --exclude 'backups/' ./ "${PRODUCTION_USER}@${PRODUCTION_HOST}:${DEPLOY_PATH}/"
-    # Le manifeste éphémère ne contient aucun secret. deploy.sh le parse sans
-    # `source`, valide les références, puis persiste atomiquement la promotion
-    # dans le .env du VPS seulement après les healthchecks.
-    - printf 'BACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' "$BACKEND_IMAGE" "$FRONTEND_IMAGE" > .release-request
-    - chmod 600 .release-request
-    - scp .release-request "${PRODUCTION_USER}@${PRODUCTION_HOST}:${DEPLOY_PATH}/.release-request"
-    - ssh "${PRODUCTION_USER}@${PRODUCTION_HOST}" "test -f '${DEPLOY_PATH}/.env' || { echo 'Il manque ${DEPLOY_PATH}/.env — lance scripts/bootstrap.sh sur le VPS.'; exit 1; }; cd '${DEPLOY_PATH}'; ./scripts/deploy.sh --release-file .release-request; status=\$?; rm -f .release-request; exit \$status"
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      when: manual
-    - when: never
+    - bundle="sovrack-infra-$CI_COMMIT_SHA.tar.gz"
+    - 'tar -xOf "$bundle" ./release.manifest | grep -Eqx "RUNTIME_TOPOLOGY=(split|compact)" || { echo "ERROR: une baseline legacy ne peut pas être promue par ce job"; exit 1; }'
+    - ssh "$TARGET_USER@$TARGET_HOST" "mkdir -p '$TARGET_PATH/incoming' '$TARGET_PATH/releases' '$TARGET_PATH/shared'"
+    - scp "$bundle" "$bundle.sha256" "$TARGET_USER@$TARGET_HOST:$TARGET_PATH/incoming/"
+    - |
+      ssh "$TARGET_USER@$TARGET_HOST" "set -eu
+      cd '$TARGET_PATH/incoming'
+      sha256sum -c '$bundle.sha256'
+      if [ -e '$TARGET_PATH/releases/$CI_COMMIT_TAG' ]; then
+        test -f '$TARGET_PATH/releases/$CI_COMMIT_TAG/.bundle.sha256'
+        cmp '$bundle.sha256' '$TARGET_PATH/releases/$CI_COMMIT_TAG/.bundle.sha256'
+      else
+        mkdir '$TARGET_PATH/releases/$CI_COMMIT_TAG'
+        tar -xzf '$bundle' -C '$TARGET_PATH/releases/$CI_COMMIT_TAG'
+        install -m 600 '$bundle.sha256' '$TARGET_PATH/releases/$CI_COMMIT_TAG/.bundle.sha256'
+      fi
+      if [ ! -f '$TARGET_PATH/shared/.env' ]; then
+        test -f '$TARGET_PATH/.env'
+        install -m 600 '$TARGET_PATH/.env' '$TARGET_PATH/shared/.env'
+      fi
+      SOVRACK_BASE_DIR='$TARGET_PATH' '$TARGET_PATH/releases/$CI_COMMIT_TAG/scripts/bootstrap.sh'
+      SOVRACK_BASE_DIR='$TARGET_PATH' '$TARGET_PATH/releases/$CI_COMMIT_TAG/scripts/deploy.sh' --release-file '$TARGET_PATH/releases/$CI_COMMIT_TAG/release.manifest'
+      rm -f '$TARGET_PATH/incoming/$bundle' '$TARGET_PATH/incoming/$bundle.sha256'"
   allow_failure: false
+
+deploy:staging:
+  extends: .deploy_release
+  variables:
+    TARGET_ENVIRONMENT: sovrack-staging
+    TARGET_HOST: $STAGING_HOST
+    TARGET_USER: $STAGING_USER
+    TARGET_PATH: $STAGING_PATH
+    TARGET_SSH_PRIVATE_KEY_B64: $STAGING_SSH_PRIVATE_KEY_B64
+    TARGET_SSH_KNOWN_HOSTS: $STAGING_SSH_KNOWN_HOSTS
+  environment:
+    name: staging
+    url: https://$STAGING_DOMAIN
+    deployment_tier: staging
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$/'
+      when: manual
+
+deploy:production:
+  extends: .deploy_release
+  variables:
+    TARGET_ENVIRONMENT: sovrack-production
+    TARGET_HOST: $PRODUCTION_HOST
+    TARGET_USER: $PRODUCTION_USER
+    TARGET_PATH: $DEPLOY_PATH
+    TARGET_SSH_PRIVATE_KEY_B64: $SSH_PRIVATE_KEY_B64
+    TARGET_SSH_KNOWN_HOSTS: $SSH_KNOWN_HOSTS
   environment:
     name: production
-    url: https://$PRODUCTION_HOST
+    url: https://$PRODUCTION_DOMAIN
     deployment_tier: production
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
+      when: manual

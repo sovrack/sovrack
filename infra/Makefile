@@ -3,10 +3,10 @@
 # .env : copie-le depuis .env.production.example puis renseigne les secrets.
 
 SHELL := /usr/bin/env bash
-ENV_FILE := .env
-COMPOSE := docker compose --env-file $(ENV_FILE) -f docker-compose.prod.yml
+BASE_DIR ?= /srv/sovrack
+CURRENT_COMPOSE := SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/current-compose.sh
 
-.PHONY: help bootstrap config up ps logs backup restore validate-ci test-scripts certbot certbot-renew
+.PHONY: help bootstrap config up ps logs backup restore rollback preflight validate-ci test-scripts certbot certbot-renew
 
 help: ## Affiche l'aide
 	@printf "Commandes Sovrack infra:\n"
@@ -15,35 +15,44 @@ help: ## Affiche l'aide
 bootstrap: ## Initialise les dossiers + .env (1ère fois)
 	./scripts/bootstrap.sh
 
-config: ## Affiche la config résolue (validation)
-	$(COMPOSE) config
+config: ## Affiche la config résolue de la release active
+	$(CURRENT_COMPOSE) config
 
-up: ## Pull + up la stack de production
-	./scripts/deploy.sh
+up: ## Promeut une release immuable (FILE=manifest)
+	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/deploy.sh --release-file $(FILE)
 
 ps: ## État des services
-	$(COMPOSE) ps
+	$(CURRENT_COMPOSE) ps
 
 logs: ## Logs backend+frontend en direct
-	$(COMPOSE) logs -f backend frontend
+	$(CURRENT_COMPOSE) logs -f backend worker frontend
 
 backup: ## Dump PostgreSQL + rotation
-	./scripts/backup.sh
+	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/backup-current.sh
 
 restore: ## Restaure un dump (BRUTAL)
 	@echo "Usage: make restore FILE=/chemin/backup.sql.gz"
-	./scripts/restore.sh $(FILE)
+	@echo "Utiliser rollback pour un retour de schéma ou restore.sh avec un manifeste explicite."
+
+rollback: ## Restaure dump + ancienne release (RELEASE=id FILE=dump)
+	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/rollback.sh $(RELEASE) $(FILE)
+
+preflight: ## Valide capacité, secrets et manifeste (FILE=manifest)
+	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/preflight.sh --release-file $(FILE)
 
 validate-ci: ## Valide le compose dans les conditions CI (image docker cli)
 	docker compose --env-file .env.production.example -f docker-compose.prod.yml config -q
 
 test-scripts: ## Teste backup/restore dans une stack Docker jetable
+	./tests/release-manifest-test.sh
+	./tests/nginx-maintenance-test.sh
+	./tests/release-deploy-integration.sh
 	./tests/backup-restore-integration.sh
 
 certbot: ## Obtient/renouvelle le certificat TLS (DOMAIN = domaine)
-	./scripts/certbot.sh
+	SOVRACK_BASE_DIR=$(BASE_DIR) ENV_FILE=$(BASE_DIR)/shared/.env ./scripts/certbot.sh
 
 certbot-renew: ## Renouvellement TLS automatique (à appeler côté VPS, ex. cron)
-	./scripts/certbot.sh --renew
+	SOVRACK_BASE_DIR=$(BASE_DIR) ENV_FILE=$(BASE_DIR)/shared/.env ./scripts/certbot.sh --renew
 
 .PHONY: help bootstrap config up ps logs backup restore validate-ci test-scripts certbot certbot-renew

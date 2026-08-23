@@ -1,56 +1,67 @@
-# MIGRATION — prod `da-fares` → `sovrack` (zéro-downtime)
+# Transition du layout historique vers les releases versionnées
 
-> Contexte : la prod actuelle tourne dans un stack docker nommé `da-fares`,
-> dont le `docker-compose.yml` est introuvable et dont Postgres/Redis vivent
-> dans **`/tmp/da-instances/fares/data`** (⇒ perte au reboot).
->
-> Ce guide recrée une prod propre sur `/srv/sovrack` (projet `sovrack`)
-> et migre les données **sans arrêt** de la stack existante.
+Cette transition concerne la stack `sovrack` déjà installée à plat dans
+`/srv/sovrack`. Elle n'est pas un déploiement zéro-downtime : la phase 2
+modifie le schéma et exige une fenêtre de maintenance.
 
----
+## Règles
 
-## 0. Règles
-- Exécute en tant qu'utilisateur ayant accès à docker (et sudo si besoin).
-- **Backup AVANT tout** (étape 1) — jamais en dernier sale.
+- Ne supprimer ni déplacer le `.env`, les volumes ou l'ancienne stack.
+- Préparer d'abord une release de référence R0 correspondant exactement aux
+  images et au schéma actuels.
+- Créer un nouveau dump `.sql.gz` avec checksum avant toute migration.
+- Répéter la transition sur l'environnement de qualification local avant
+  production lorsqu'aucun staging distant n'est disponible.
 
-## 1. Sauvegarde (dump de la DB prod actuelle)
+## Préparation R0
+
+Documenter :
+
+- digest actuel du backend ;
+- digest actuel du frontend ;
+- commit des trois dépôts correspondant aux images ;
+- dernière migration appliquée (`20260806200000_add_google_oauth` lors de
+  l'audit initial) ;
+- SHA-256 du contrat OpenAPI correspondant.
+
+Créer un manifeste `v1-baseline` et archiver une copie du code infrastructure
+capable de redémarrer cette version. Ce couple constitue la cible de rollback.
+Le manifeste baseline doit utiliser `RUNTIME_TOPOLOGY=legacy-single` ; démarrer
+un worker séparé avec l'ancienne image créerait deux consommateurs concurrents.
+
+## Initialisation du nouveau layout
+
+Après installation du premier bundle dans
+`/srv/sovrack/releases/<release-id>` :
+
 ```bash
-mkdir -p /srv/sovrack/backups
-docker exec da-fares-postgres pg_dump -U da_fares -d deploy_automation \
-  | gzip > /srv/sovrack/backups/pre-migration-$(date +%F).sql.gz
-ls -lh /srv/sovrack/backups/
+SOVRACK_BASE_DIR=/srv/sovrack \
+  /srv/sovrack/releases/<release-id>/scripts/bootstrap.sh
 ```
 
-## 2. Installer ce repo sur le VPS
-```bash
-sudo mkdir -p /srv/sovrack && sudo chown "$(whoami)": /srv/sovrack
-cd /srv/sovrack
-git clone git@gitlab.com:deploy-automation/deploy-automation-infra.git .
-cp .env.production.example .env
-vi .env          # renseignè POSTGRES_*, REDIS_*, JWT_SECRET, CONFIG_SECRET, DOMAIN, SECRET...
-./scripts/gen-secrets.sh   # optionnel : outils pour générer des secrets forts
-```
+Le bootstrap copie l'ancien `/srv/sovrack/.env` vers
+`/srv/sovrack/shared/.env` sans supprimer l'original. Compléter ensuite les
+nouvelles variables, sans modifier `CONFIG_SECRET`.
 
-## 3. Démarrer la DB/vide cible
-```bash
-./scripts/bootstrap.sh
-docker compose -f docker-compose.prod.yml up -d postgres redis
-docker compose -f docker-compose.prod.yml ps    # healthy
-```
+## Répétition obligatoire sur le PC de qualification
 
-## 4. Migrer les données (l'ancienne stack reste up)
-```bash
-gunzip -c /srv/sovrack/backups/pre-migration-$(date +%F).sql.gz \
-  | docker compose -f docker-compose.prod.yml exec -T postgres \
-      psql -U da_admin -d deploy_automation
-```
-> Si le schéma fait défaut, lance d'abord `npm i && npx prisma migrate deploy` côté backend pointé vers la nouvelle base.
+Avec les mêmes images immuables et des limites identiques au VPS :
 
-## 5. Démarrer la stack complète
-```bash
-./scripts/deploy.sh
-docker compose -f docker-compose.prod.yml ps
-```
+1. restaurer une copie récente de la base 105 ;
+2. promouvoir localement `v2.0.0-rc.1` en topologie `compact` ;
+3. vérifier le passage exact à la migration 108 ;
+4. exécuter les tests métier ;
+5. restaurer le dump 105 avec la baseline R0 ;
+6. vérifier que l'ancienne version redémarre ;
+7. mesurer les temps d'arrêt et de restauration.
 
-## 6. Bascule DNS / TLS, puis validation, puis cleanup des stacks orphelins
-- Voir `CLEANUP.md` + scripts/certbot.sh.
+La production ne commence qu'après réussite des deux directions.
+
+## Bascule de production
+
+Utiliser exclusivement le job GitLab protégé `deploy:production`. Le script
+ouvre la maintenance, arrête les writers, crée le backup final, migre et ne
+bascule `current` qu'après les contrôles.
+
+L'ancien layout plat reste en place pendant la période d'observation. Son
+nettoyage est une opération ultérieure et ciblée décrite dans `CLEANUP.md`.

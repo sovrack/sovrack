@@ -18,16 +18,18 @@ x-sovrack-common: &common
   restart: unless-stopped
   networks:
     - sovrack-net
+  logging:
+    driver: json-file
+    options:
+      max-size: ${DOCKER_LOG_MAX_SIZE:-10m}
+      max-file: ${DOCKER_LOG_MAX_FILES:-5}
 
 services:
   # ─────────────────────────── REVERSE-PROXY / TLS ───────────────────────────
   nginx:
-    image: nginx:1.27-alpine
+    image: ${NGINX_IMAGE:?NGINX_IMAGE must be an immutable digest}
     container_name: sovrack-proxy
     <<: *common
-    depends_on:
-      - frontend
-      - backend
     environment:
       DOMAIN: ${DOMAIN}
     ports:
@@ -46,9 +48,15 @@ services:
       - ./nginx/security-headers.conf:/etc/nginx/conf.d/security-headers.conf:ro
       - certbot-webroot:/var/www/certbot:ro
       - certbot-certs:/etc/letsencrypt:ro
+      - ${SOVRACK_MAINTENANCE_DIR:-./maintenance}:/var/run/sovrack-maintenance:ro
     # L'entrypoint démarre en HTTP/ACME si le certificat n'existe pas encore,
     # puis utilise automatiquement la configuration TLS aux démarrages suivants.
     entrypoint: ["/bin/sh", "/opt/sovrack/nginx-entrypoint.sh"]
+    deploy:
+      resources:
+        limits:
+          memory: ${NGINX_MEMORY_LIMIT:-128M}
+          cpus: "${NGINX_CPU_LIMIT:-0.25}"
 
   # ──────────────────────────── FRONTEND (Next.js) ───────────────────────────
   frontend:
@@ -74,6 +82,15 @@ services:
       NEXT_PUBLIC_WS_URL: ${FRONTEND_WS_PUBLIC_URL:-wss://sovrack.tech}
       NEXT_PUBLIC_APP_NAME: ${APP_NAME:-Sovrack}
       NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-2.0.0}
+    deploy:
+      resources:
+        limits:
+          memory: ${FRONTEND_MEMORY_LIMIT:-512M}
+          cpus: "${FRONTEND_CPU_LIMIT:-0.75}"
+        reservations:
+          memory: ${FRONTEND_MEMORY_RESERVATION:-256M}
+          cpus: "${FRONTEND_CPU_RESERVATION:-0.2}"
+    stop_grace_period: 30s
 
   # ──────────────────────────── BACKEND (NestJS) ─────────────────────────────
   backend:
@@ -83,7 +100,7 @@ services:
     environment: &backend-environment
       NODE_ENV: production
       PORT: "3001"
-      PROCESS_ROLE: api
+      PROCESS_ROLE: ${BACKEND_PROCESS_ROLE:-api}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TRUST_PROXY: ${TRUST_PROXY:-1}
       # Base de données (redis/chemin via le réseau docker)
@@ -118,22 +135,25 @@ services:
     expose:
       - "3001"
     depends_on:
-      migrator:
-        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r&&r.ok?0:1)).catch(()=>process.exit(1))\""]
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/health/ready').then(r=>process.exit(r&&r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 15s
       timeout: 10s
       retries: 6
       start_period: 40s
     deploy:
       resources:
-        limits: { memory: 1G, cpus: "1.0" }
-        reservations: { memory: 512M, cpus: "0.5" }
+        limits:
+          memory: ${BACKEND_MEMORY_LIMIT:-768M}
+          cpus: "${BACKEND_CPU_LIMIT:-1.0}"
+        reservations:
+          memory: ${BACKEND_MEMORY_RESERVATION:-384M}
+          cpus: "${BACKEND_CPU_RESERVATION:-0.35}"
+    stop_grace_period: 45s
 
   # One-shot release gate. Ordinary API/worker restarts never run migrations.
   migrator:
@@ -162,26 +182,37 @@ services:
     <<: *common
     image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable release tag or digest}
     container_name: sovrack-worker
+    profiles:
+      - split-runtime
     environment:
       <<: *backend-environment
       PORT: "3002"
       PROCESS_ROLE: worker
     depends_on:
-      migrator:
-        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3002/health/live').then(r=>process.exit(r&&r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
     deploy:
       resources:
-        limits: { memory: 2G, cpus: "2.0" }
-        reservations: { memory: 512M, cpus: "0.5" }
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT:-1G}
+          cpus: "${WORKER_CPU_LIMIT:-1.0}"
+        reservations:
+          memory: ${WORKER_MEMORY_RESERVATION:-384M}
+          cpus: "${WORKER_CPU_RESERVATION:-0.35}"
+    stop_grace_period: 60s
 
   # ──────────────────────────── POSTGRES (DB) ────────────────────────────────
   postgres:
     <<: *common
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE must be an immutable digest}
     container_name: sovrack-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -200,13 +231,18 @@ services:
       start_period: 10s
     deploy:
       resources:
-        limits: { memory: 1G, cpus: "1.0" }
-        reservations: { memory: 512M, cpus: "0.5" }
+        limits:
+          memory: ${POSTGRES_MEMORY_LIMIT:-768M}
+          cpus: "${POSTGRES_CPU_LIMIT:-0.75}"
+        reservations:
+          memory: ${POSTGRES_MEMORY_RESERVATION:-384M}
+          cpus: "${POSTGRES_CPU_RESERVATION:-0.25}"
+    stop_grace_period: 60s
 
   # ────────────────────────────── REDIS ──────────────────────────────────────
   redis:
     <<: *common
-    image: redis:7-alpine
+    image: ${REDIS_IMAGE:?REDIS_IMAGE must be an immutable digest}
     container_name: sovrack-redis
     command: >
       redis-server

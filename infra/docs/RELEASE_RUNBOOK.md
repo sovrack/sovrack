@@ -1,67 +1,170 @@
 # Runbook de release Sovrack
 
-## Invariants
+## Modèle de production
 
-- `BACKEND_IMAGE` et `FRONTEND_IMAGE` pointent vers un SHA Git complet (40 caractères hexadécimaux) ou un digest `sha256`.
-- Le fichier `.env` du VPS reste local, en mode `0600`, et n'est jamais synchronisé par la CI.
-- Une seule promotion de production s'exécute à la fois (`resource_group: sovrack-production`).
-- Le migrateur est un conteneur one-shot. L'API et le worker ne lancent jamais de migration au démarrage ordinaire.
-- La promotion n'est inscrite dans `.env` qu'après les contrôles de santé.
+Une release est un ensemble immuable :
 
-## Première installation
+- commit backend et image backend immuable ;
+- commit frontend et image frontend immuable ;
+- digests immuables Nginx, PostgreSQL et Redis ;
+- commit infrastructure ;
+- topologie runtime (`compact`, `split` ou baseline `legacy-single`) ;
+- dernière migration Prisma attendue ;
+- SHA-256 du contrat OpenAPI ;
+- identifiant SemVer (`v2.0.0-rc.1`, puis `v2.0.0`).
 
-1. Exécuter `./scripts/bootstrap.sh`, compléter tous les secrets de `.env` et remplacer les deux références d'images.
-2. Lancer `./scripts/deploy.sh`. Sans certificat, Nginx démarre volontairement en HTTP limité au challenge ACME.
-3. Vérifier que le DNS du domaine pointe vers l'hôte, puis lancer `./scripts/certbot.sh`.
-4. Vérifier `docker compose --env-file .env -f docker-compose.prod.yml ps` et l'accès HTTPS.
-5. Installer le renouvellement avec `sudo ./scripts/install-certbot-renew.sh /srv/sovrack`.
+Le VPS utilise le layout suivant :
 
-## Promotion normale
+```text
+/srv/sovrack/
+├── releases/<release-id>/
+├── shared/
+│   ├── .env
+│   ├── backups/
+│   ├── maintenance/
+│   └── release-manifests/
+├── incoming/
+└── current -> releases/<release-id>
+```
 
-Le job GitLab `deploy` est manuel. Il reçoit les variables protégées `BACKEND_IMAGE` et `FRONTEND_IMAGE`, transfère un manifeste de deux lignes, puis appelle :
+La CI n'écrase jamais `current`. Elle décompresse un bundle neuf dans
+`releases/<release-id>`. `deploy.sh` ne remplace le lien `current` qu'après la
+migration, les contrôles de schéma et les healthchecks.
+
+## Conditions obligatoires avant une release candidate
+
+1. Les pipelines backend, frontend et infrastructure sont verts.
+2. Les images applicatives utilisent un digest ou un tag SHA Git de 40 caractères ;
+   Nginx, PostgreSQL et Redis utilisent obligatoirement un digest sha256.
+3. Le contrat OpenAPI du frontend correspond au backend.
+4. Le test des migrations couvre base neuve, upgrade et rollback transactionnel.
+5. Une sauvegarde locale et une copie chiffrée hors VPS sont disponibles.
+6. Une restauration a réussi sur une base isolée.
+7. Le runner CI ne se trouve pas sur le VPS applicatif.
+8. Le preflight capacité réussit sans `ALLOW_UNDERSIZED_HOST=true`.
+9. Une release précédente compatible et son manifeste sont archivés.
+
+## Qualification locale lorsque staging n'est pas disponible
+
+Créer d'abord un tag `v2.0.0-rc.1`. Le PC de qualification doit restaurer une
+copie du schéma 105, puis exécuter le bundle exact sous les limites CPU/RAM du
+VPS. Le job distant `deploy:staging` reste disponible pour une évolution future.
+Exécuter ensuite :
+
+- inscription, vérification email et connexion ;
+- création/sélection d'un workspace ;
+- invitation et acceptation d'un membre ;
+- contrôle OWNER, ADMIN, MEMBER et suspension ;
+- rôles projet MAINTAINER, DEVELOPER et VIEWER ;
+- création d'un projet et d'un serveur ;
+- déploiement manuel et webhook ;
+- worker, WebSocket, logs et rollback applicatif ;
+- sauvegarde/restauration complète ;
+- test de charge et observation mémoire/CPU/disque ;
+- répétition d'un rollback de schéma.
+
+Un échec produit une nouvelle RC. Ne jamais réutiliser ou remplacer le contenu
+d'un identifiant de release existant.
+
+## Promotion de production
+
+Créer le tag final `v2.0.0` uniquement après validation de la RC. Le job
+`deploy:production` doit être manuel, protégé et soumis à approbation dans
+GitLab.
+
+Le script applique cet ordre :
+
+1. vérification stricte du manifeste, des secrets et de la capacité ;
+2. téléchargement des images avant la maintenance ;
+3. activation de la page de maintenance ;
+4. arrêt du frontend, de l'API et du worker ;
+5. sauvegarde finale sans writer, checksum et métadonnées ;
+6. application éventuelle de la configuration PostgreSQL/Redis ;
+7. exécution unique du migrateur ;
+8. vérification exacte de `SCHEMA_MIGRATION` et absence de migration échouée ;
+9. démarrage du backend (`all` en compact, API + worker en split), du frontend et de Nginx ;
+10. healthchecks internes puis smoke test HTTPS ;
+11. archivage du manifeste et bascule atomique de `current`.
+
+Une erreur après l'ouverture de la maintenance laisse volontairement les
+writers arrêtés. Aucun rollback d'image automatique n'est tenté.
+
+## Rollback de schéma
+
+Un rollback après migration incompatible restaure obligatoirement la base et
+la release précédente :
 
 ```bash
-./scripts/deploy.sh --release-file .release-request
+sudo -u deploy SOVRACK_BASE_DIR=/srv/sovrack \
+  /srv/sovrack/current/scripts/rollback.sh \
+  <ancienne-release> \
+  /srv/sovrack/shared/backups/<backup-pre-release>.sql.gz
 ```
 
-Le script valide les références, crée un backup PostgreSQL, tire uniquement les images applicatives, exécute le migrateur, attend les healthchecks puis persiste atomiquement les références. Une erreur laisse l'ancienne version désirée dans `.env` et affiche les logs critiques.
+Le fichier `.metadata` du dump doit annoncer la même migration que le manifeste
+de l'ancienne release. `restore.sh --mode exact` ne lance jamais le migrateur.
+La baseline R0 utilise `RUNTIME_TOPOLOGY=legacy-single`, afin que l'ancien
+backend reste l'unique consommateur de jobs. Sur le VPS 3,8 Gio, les releases
+Phase 2 utilisent `RUNTIME_TOPOLOGY=compact` et `PROCESS_ROLE=all`. Le mode
+`split` reste disponible lorsqu'un worker dédié pourra être hébergé.
 
-## Rollback
+`--mode upgrade` est réservé à une restauration volontaire d'un ancien dump
+vers la release courante ; il réexécute alors explicitement le migrateur.
 
-Un rollback d'images après migration n'est pas automatiquement sûr. Il faut d'abord confirmer que toutes les migrations appliquées sont de type expand/contract et restent compatibles avec l'ancienne application.
+L'option `--allow-unverified` permet uniquement de récupérer un ancien dump
+sans sidecars. Après import, la vérification du schéma cible reste obligatoire.
 
-Seulement dans ce cas, définir temporairement :
+## Sauvegardes et hors site
 
-```dotenv
-ALLOW_AUTOMATIC_IMAGE_ROLLBACK=true
+Une sauvegarde standard produit :
+
+```text
+sovrack-<date>-<id>.sql.gz
+sovrack-<date>-<id>.sql.gz.sha256
+sovrack-<date>-<id>.sql.gz.metadata
 ```
 
-Sinon, conserver la valeur `false`, examiner la base et les logs, puis promouvoir explicitement des images corrigées. Un rollback de données passe par la procédure de restauration, pas par un simple changement de tag Docker.
-
-## Restauration PostgreSQL
+Initialiser une fois le dépôt Restic distant :
 
 ```bash
-./scripts/restore.sh backups/sovrack-YYYYMMDD-HHMMSS.sql.gz
+SOVRACK_BASE_DIR=/srv/sovrack \
+  /srv/sovrack/current/scripts/backup-offsite.sh --init
 ```
 
-La procédure vérifie le gzip et son checksum, exige de saisir le nom exact de la base, crée un backup de sécurité sans rotation, arrête l'entrée publique et les writers, recrée une base vide, importe le dump, réexécute le migrateur puis attend les healthchecks. En cas d'échec, les services applicatifs restent arrêtés et le chemin du backup de retour est affiché.
-
-L'option `--allow-unverified` est réservée aux anciens dumps dont l'intégrité a été vérifiée par un autre canal.
-
-## Vérifications après release
+Après une sauvegarde distante et une restauration testée, activer
+`BACKUP_OFFSITE_ENABLED=true`. Installer le timer quotidien :
 
 ```bash
-docker compose --env-file .env -f docker-compose.prod.yml ps
-docker compose --env-file .env -f docker-compose.prod.yml logs --tail=150 migrator backend worker frontend nginx
-curl --fail --show-error --silent https://sovrack.tech/ >/dev/null
-curl --fail --show-error --silent https://sovrack.tech/backend-api/health
+sudo /srv/sovrack/current/scripts/install-backup-timer.sh /srv/sovrack
+systemctl start sovrack-backup.service
+journalctl -u sovrack-backup.service --no-pager
 ```
 
-Conserver au moins une copie chiffrée des backups sur un stockage hors du VPS et tester périodiquement une restauration dans un environnement isolé.
+## TLS
 
-Le test local reproductible de la procédure utilise uniquement une stack Docker
-jetable :
+`certbot.sh` écrit directement dans `sovrack-certbot-certs`, le volume lu par
+Nginx. `CERTBOT_DOMAINS` doit contenir l'apex et `www`.
 
 ```bash
-make test-scripts
+SOVRACK_BASE_DIR=/srv/sovrack ENV_FILE=/srv/sovrack/shared/.env \
+  /srv/sovrack/current/scripts/certbot.sh --dry-run
+sudo /srv/sovrack/current/scripts/install-certbot-renew.sh /srv/sovrack
+systemctl start sovrack-certbot-renew.service
+journalctl -u sovrack-certbot-renew.service --no-pager
 ```
+
+Vérifier ensuite le certificat réellement servi depuis Internet, pas seulement
+les fichiers présents dans le conteneur.
+
+## Contrôles post-release
+
+```bash
+SOVRACK_BASE_DIR=/srv/sovrack /srv/sovrack/current/scripts/current-compose.sh ps
+SOVRACK_BASE_DIR=/srv/sovrack /srv/sovrack/current/scripts/current-compose.sh logs --tail=150 migrator backend worker frontend nginx
+curl --fail --silent https://sovrack.tech/backend-api/health
+```
+
+Contrôler aussi les métriques authentifiées, les erreurs applicatives, l'espace
+disque, les événements OOM, le timer de backup et le timer TLS. Conserver dans
+le compte-rendu : release, digests, pipelines, migration avant/après, backup,
+opérateur, heure de début/fin et résultat des smoke tests.

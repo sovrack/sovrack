@@ -31,19 +31,34 @@ services:
         condition: service_healthy
 
   backend:
-    <<: *sleeper
+    image: node:22-alpine
+    environment:
+      PROCESS_ROLE: ${BACKEND_PROCESS_ROLE:-api}
+    command:
+      - node
+      - -e
+      - >-
+        require('http').createServer((_req,res)=>{res.writeHead(200,{'content-type':'application/json'});res.end('{"status":"ready"}')}).listen(3001)
     depends_on:
       migrator:
         condition: service_completed_successfully
 
   worker:
     <<: *sleeper
+    profiles:
+      - split-runtime
     depends_on:
       migrator:
         condition: service_completed_successfully
 
   frontend:
-    <<: *sleeper
+    image: node:22-alpine
+    command:
+      - node
+      - -e
+      - >-
+        require('http').createServer((_req,res)=>{res.writeHead(200);res.end('ok')}).listen(3000)
 
   nginx:
-    <<: *sleeper
+    image: nginx:1.27-alpine
+    command: ["sh", "-c", "sleep 3600"]

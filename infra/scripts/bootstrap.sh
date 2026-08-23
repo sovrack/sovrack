@@ -1,62 +1,43 @@
 #!/usr/bin/env bash
-# =============================================================================
-# Sovrack — Bootstrap (initialisation 1ère fois sur le VPS)
-# -----------------------------------------------------------------------------
-# - Crée les répertoires de données persistants.
-# - Vérifie docker & docker compose.
-# - Copie .env.production.example → .env si absent (l'utilisateur renseignera).
-# =============================================================================
+# Initialize the versioned release layout without overwriting existing secrets.
 set -euo pipefail
+umask 077
 
-# Chemins
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DATA_DIR="${DEPLOY_DATA_DIR:-/srv/sovrack/data}"
-PG_DIR="$DATA_DIR/pg"
-REDIS_DIR="$DATA_DIR/redis"
-BACKUP_DIR="${DEPLOY_BACKUP_DIR:-$ROOT/backups}"
+BASE_DIR="${SOVRACK_BASE_DIR:-$ROOT}"
+SHARED_DIR="$BASE_DIR/shared"
 
-echo "▶️  Bootstrap Sovrack infra"
-echo "    Racine : $ROOT"
-echo "    Données: $DATA_DIR"
+command -v docker >/dev/null 2>&1 || { echo "ERROR: docker absent."; exit 1; }
+docker info >/dev/null 2>&1 || { echo "ERROR: daemon Docker inaccessible."; exit 1; }
+docker compose version >/dev/null 2>&1 || { echo "ERROR: Docker Compose v2 requis."; exit 1; }
 
-# 1. Vérifier docker
-if ! command -v docker >/dev/null 2>&1; then
-  echo "❌ docker est introuvable. Installe-le (voir docs)."
-  exit 1
-fi
-docker info >/dev/null 2>&1 || {
-  echo "❌ Le daemon docker ne répond pas (ou droits manquants)."
-  exit 1
-}
-docker compose version >/dev/null 2>&1 || {
-  echo "❌ docker compose (v2) requis."
-  exit 1
-}
+mkdir -p "$BASE_DIR/releases" "$BASE_DIR/incoming" \
+  "$SHARED_DIR/backups" "$SHARED_DIR/logs" \
+  "$SHARED_DIR/maintenance" "$SHARED_DIR/release-manifests"
+chmod 700 "$BASE_DIR/releases" "$BASE_DIR/incoming" "$SHARED_DIR" \
+  "$SHARED_DIR/backups" "$SHARED_DIR/logs" \
+  "$SHARED_DIR/maintenance" "$SHARED_DIR/release-manifests"
 
-# 2. Créer les dossiers persistants
-mkdir -p "$PG_DIR" "$REDIS_DIR" "$BACKUP_DIR"
-chmod 700 "$REDIS_DIR" 2>/dev/null || true
-chmod 700 "$PG_DIR" 2>/dev/null || true
-
-# 3. .env
-if [ ! -f "$ROOT/.env" ]; then
-  if [ -f "$ROOT/.env.production.example" ]; then
-    cp "$ROOT/.env.production.example" "$ROOT/.env"
-    chmod 600 "$ROOT/.env"
-    echo "ℹ️  .env créé depuis le template. ➜ Renseigne les secrets : $ROOT/.env"
-    echo "   Puis relance ./scripts/deploy.sh"
+target_env="$SHARED_DIR/.env"
+if [ ! -f "$target_env" ]; then
+  if [ -f "$BASE_DIR/.env" ] && [ "$BASE_DIR/.env" != "$target_env" ]; then
+    # Transition from the legacy flat layout: copy, never move/delete, so the
+    # old stack remains recoverable until the first release rehearsal passes.
+    install -m 600 "$BASE_DIR/.env" "$target_env"
+    echo "Existing secrets copied to shared/.env; the legacy file was preserved."
+  elif [ -f "$ROOT/.env.production.example" ]; then
+    install -m 600 "$ROOT/.env.production.example" "$target_env"
+    echo "shared/.env created from the template; replace every placeholder."
   else
-    echo "❌ .env absent et modèle absent."
+    echo "ERROR: no existing .env and no production template."
     exit 1
   fi
 else
-  chmod 600 "$ROOT/.env"
-  echo "✅ .env existant."
+  chmod 600 "$target_env"
+  echo "Existing shared/.env preserved."
 fi
 
-# 4. Vérifier que les secrets ne sont pas restés par défaut
-if grep -qs "change_me_" "$ROOT/.env"; then
-  echo "⚠️  Avertissement : des secrets par défaut ('change_me_*') sont encore présents."
+if grep -qE '(change_me_|CHANGE_ME_|REPLACE_WITH_|Dev_Test_Only_1192)' "$target_env"; then
+  echo "WARNING: shared/.env still contains placeholders; preflight will refuse deployment."
 fi
-
-echo "✅ Bootstrap terminé. Édite .env puis : ./scripts/deploy.sh"
+echo "Versioned layout ready in $BASE_DIR."

@@ -1,66 +1,105 @@
 #!/usr/bin/env bash
-# =============================================================================
-# Sovrack — Backup PostgreSQL (dump compressé + rotation)
-# -----------------------------------------------------------------------------
-# Usage : ./scripts/backup.sh            → backup manuel
-# Cron recommandé sur le VPS :
-#   30 2 * * * /srv/sovrack/scripts/backup.sh >> /var/log/sovrack-backup.log 2>&1
-# =============================================================================
+# shellcheck source-path=SCRIPTDIR
+# Consistent PostgreSQL dump with checksum and release/schema metadata.
 set -euo pipefail
 umask 077
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
-
-export COMPOSE_FILE="${COMPOSE_FILE:-${ROOT}/docker-compose.prod.yml}"
-export ENV_FILE="${ENV_FILE:-.env}"
-
-[ -f "$ENV_FILE" ] || { echo "❌ $ENV_FILE introuvable. Lance ./scripts/bootstrap.sh."; exit 1; }
+BASE_DIR="${SOVRACK_BASE_DIR:-$ROOT}"
+SECRETS_ENV="${ENV_FILE:-}"
+# shellcheck source=release-lib.sh
+source "$ROOT/scripts/release-lib.sh"
+SECRETS_ENV="${SECRETS_ENV:-$(resolve_secrets_env "$ROOT" "$BASE_DIR")}"
+export COMPOSE_FILE="${COMPOSE_FILE:-$ROOT/docker-compose.prod.yml}"
 
 compose() {
-  docker compose --env-file "$ENV_FILE" "$@"
+  local -a args=(--env-file "$SECRETS_ENV")
+  if [ -n "${RELEASE_FILE:-}" ]; then
+    args+=(--env-file "$RELEASE_FILE")
+  fi
+  docker compose "${args[@]}" -f "$COMPOSE_FILE" "$@"
 }
 
-# Le conteneur actif est la source de vérité. Aucun fallback ne doit produire
-# silencieusement un dump de la mauvaise base.
-P_USER="$(compose exec -T postgres printenv POSTGRES_USER)"
-P_DB="$(compose exec -T postgres printenv POSTGRES_DB)"
-[ -n "$P_USER" ] && [ -n "$P_DB" ] || {
-  echo "❌ Impossible de résoudre les identifiants PostgreSQL."
+[ -f "$SECRETS_ENV" ] || {
+  echo "ERROR: fichier de secrets introuvable : $SECRETS_ENV"
   exit 1
 }
 
-BACKUP_DIR="${BACKUP_DIR:-$ROOT/backups}"
+P_USER="$(compose exec -T postgres printenv POSTGRES_USER)"
+P_DB="$(compose exec -T postgres printenv POSTGRES_DB)"
+[ -n "$P_USER" ] && [ -n "$P_DB" ] || {
+  echo "ERROR: impossible de résoudre les identifiants PostgreSQL."
+  exit 1
+}
+
+BACKUP_DIR="${BACKUP_DIR:-$BASE_DIR/shared/backups}"
 mkdir -p "$BACKUP_DIR"
-STAMP="$(date +%Y%m%d-%H%M%S)"
+chmod 700 "$BACKUP_DIR"
+STAMP="$(date -u +%Y%m%d-%H%M%SZ)"
 DEST="$(mktemp "$BACKUP_DIR/sovrack-$STAMP-XXXXXX.sql.gz")"
 DEST_NAME="$(basename "$DEST")"
 
-echo "▶️ Backup PostgreSQL → $DEST"
-if compose exec -T postgres pg_dump -U "$P_USER" -d "$P_DB" \
-     | gzip > "$DEST" && gzip -t "$DEST"; then
-  (cd "$BACKUP_DIR" && sha256sum "$DEST_NAME" > "$DEST_NAME.sha256")
-  echo "✅ Backup OK : $DEST"
-else
-  echo "❌ Backup échoué"; rm -f "$DEST"; exit 1
+cleanup_failed_backup() {
+  rm -f -- "$DEST" "$DEST.sha256" "$DEST.metadata"
+}
+trap cleanup_failed_backup ERR
+
+echo "PostgreSQL backup -> $DEST"
+compose exec -T postgres pg_dump --no-owner --no-privileges \
+  -U "$P_USER" -d "$P_DB" | gzip -9 > "$DEST"
+gzip -t "$DEST"
+(cd "$BACKUP_DIR" && sha256sum "$DEST_NAME" > "$DEST_NAME.sha256")
+
+schema_migration="unmanaged"
+migrations_table="$(compose exec -T postgres psql -At -U "$P_USER" -d "$P_DB" \
+  -c 'SELECT to_regclass('\''public."_prisma_migrations"'\'') IS NOT NULL;')"
+if [ "$migrations_table" = "t" ]; then
+  schema_migration="$(last_applied_migration compose)"
 fi
 
-# Rotation : ne garde que les N derniers. Une restauration crée d'abord une
-# sauvegarde de sécurité avec SKIP_BACKUP_ROTATION=true afin de ne jamais
-# supprimer par mégarde le dump source avant son import.
+release_id="unmanaged"
+backend_image="$(docker inspect sovrack-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
+frontend_image="$(docker inspect sovrack-frontend --format '{{.Config.Image}}' 2>/dev/null || true)"
+if [ -n "${RELEASE_FILE:-}" ]; then
+  validate_release_manifest "$RELEASE_FILE"
+  release_id="$(read_env_value RELEASE_ID "$RELEASE_FILE")"
+fi
+release_id="${BACKUP_RELEASE_ID_OVERRIDE:-$release_id}"
+[[ "$release_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]] || {
+  echo "ERROR: BACKUP_RELEASE_ID_OVERRIDE invalide."
+  exit 1
+}
+dump_sha256="$(sha256sum "$DEST" | awk '{print $1}')"
+{
+  printf 'BACKUP_FORMAT_VERSION=1\n'
+  printf 'CREATED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf 'DATABASE=%s\n' "$P_DB"
+  printf 'SCHEMA_MIGRATION=%s\n' "$schema_migration"
+  printf 'RELEASE_ID=%s\n' "$release_id"
+  printf 'BACKEND_IMAGE=%s\n' "$backend_image"
+  printf 'FRONTEND_IMAGE=%s\n' "$frontend_image"
+  printf 'DUMP_SHA256=%s\n' "$dump_sha256"
+} > "$DEST.metadata"
+chmod 600 "$DEST" "$DEST.sha256" "$DEST.metadata"
+
 RETENTION="${BACKUP_RETENTION:-7}"
 if [ "${SKIP_BACKUP_ROTATION:-false}" = "true" ]; then
-  echo "ℹ️  Rotation ignorée pour cette sauvegarde de sécurité."
+  echo "Backup rotation skipped for this safety copy."
 else
   [[ "$RETENTION" =~ ^[1-9][0-9]*$ ]] || {
-    echo "❌ BACKUP_RETENTION doit être un entier strictement positif."
+    echo "ERROR: BACKUP_RETENTION doit être un entier strictement positif."
     exit 1
   }
-  echo "ℹ️  Conservation des $RETENTION derniers backups."
   find "$BACKUP_DIR" -maxdepth 1 -name 'sovrack-*.sql.gz' -type f \
-    | sort -r | tail -n +$((RETENTION+1)) | while read -r old_backup; do
+    | sort -r | tail -n +$((RETENTION + 1)) | while read -r old_backup; do
         rm -- "$old_backup"
-        rm -f -- "$old_backup.sha256"
+        rm -f -- "$old_backup.sha256" "$old_backup.metadata"
       done
 fi
-echo "🏁 Terminé."
+
+if [ "${BACKUP_OFFSITE_ENABLED:-false}" = "true" ]; then
+  "$ROOT/scripts/backup-offsite.sh" "$DEST"
+fi
+
+trap - ERR
+echo "Backup verified: $DEST (+ checksum + metadata)."

@@ -4,6 +4,9 @@
 .env.release.*
 .env.rollback.*
 .release-request
+.infra-commit
+release.manifest
+*.tar.gz.sha256
 !.env.production.example
 
 # Données / sauvegardes locales

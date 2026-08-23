@@ -1,171 +1,167 @@
 #!/usr/bin/env bash
-# =============================================================================
-# Sovrack — Déploiement de la stack de production
-# -----------------------------------------------------------------------------
-# Pull les dernières images du registry + (re)crée les services.
-# Utilisé par la CI ou à la main sur le VPS.
-# =============================================================================
+# shellcheck source-path=SCRIPTDIR
+# Deploy one immutable release from its versioned directory.
 set -euo pipefail
 umask 077
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT"
+BASE_DIR="${SOVRACK_BASE_DIR:-$ROOT}"
+SHARED_DIR="$BASE_DIR/shared"
+MAINTENANCE_DIR="${SOVRACK_MAINTENANCE_DIR:-$SHARED_DIR/maintenance}"
+export SOVRACK_MAINTENANCE_DIR="$MAINTENANCE_DIR"
+export COMPOSE_FILE="${COMPOSE_FILE:-$ROOT/docker-compose.prod.yml}"
 
-export COMPOSE_FILE="${COMPOSE_FILE:-${ROOT}/docker-compose.prod.yml}"
+# shellcheck source=release-lib.sh
+source "$ROOT/scripts/release-lib.sh"
 
-echo "▶️  Sovrack deploy — $(date)"
-[ -f .env ] || { echo "❌ .env introuvable. Lance ./scripts/bootstrap.sh d'abord."; exit 1; }
-
-RELEASE_FILE=""
 if [ "${1:-}" = "--release-file" ] && [ -n "${2:-}" ] && [ -z "${3:-}" ]; then
-  RELEASE_FILE="$2"
-elif [ "$#" -ne 0 ]; then
-  echo "Usage: $0 [--release-file <fichier>]"
+  RELEASE_FILE="$(realpath "$2")"
+else
+  echo "Usage: $0 --release-file <manifest>"
   exit 1
 fi
-
-candidate_env=""
-rollback_env=""
-cleanup() {
-  [ -z "$candidate_env" ] || rm -f -- "$candidate_env"
-  [ -z "$rollback_env" ] || rm -f -- "$rollback_env"
-}
-trap cleanup EXIT
-
-read_env_value() {
-  local key="$1"
-  local file="$2"
-  awk -F= -v wanted="$key" '$1 == wanted { sub(/^[^=]*=/, ""); print }' "$file"
-}
-
-write_release_env() {
-  local source_file="$1"
-  local target_file="$2"
-  local backend_image="$3"
-  local frontend_image="$4"
-
-  [ "$(grep -c '^BACKEND_IMAGE=' "$source_file" || true)" -eq 1 ] || {
-    echo "❌ .env doit contenir exactement une ligne BACKEND_IMAGE."
-    return 1
-  }
-  [ "$(grep -c '^FRONTEND_IMAGE=' "$source_file" || true)" -eq 1 ] || {
-    echo "❌ .env doit contenir exactement une ligne FRONTEND_IMAGE."
-    return 1
-  }
-
-  awk -v backend="$backend_image" -v frontend="$frontend_image" '
-    /^BACKEND_IMAGE=/ { print "BACKEND_IMAGE=" backend; next }
-    /^FRONTEND_IMAGE=/ { print "FRONTEND_IMAGE=" frontend; next }
-    { print }
-  ' "$source_file" > "$target_file"
-  chmod 600 "$target_file"
-}
-
-is_immutable_image() {
-  local image="$1"
-  [[ "$image" =~ @sha256:[0-9a-fA-F]{64}$ || "$image" =~ :[0-9a-f]{40}$ ]]
-}
-
-# Un fichier de promotion contient uniquement deux références d'images. Il est
-# volontairement parsé sans `source` afin qu'aucun contenu ne puisse exécuter
-# une commande sur l'hôte.
-active_env=".env"
-if [ -n "$RELEASE_FILE" ]; then
-  [ -f "$RELEASE_FILE" ] && [ ! -L "$RELEASE_FILE" ] || {
-    echo "❌ Fichier de release absent ou lien symbolique refusé : $RELEASE_FILE"
-    exit 1
-  }
-  mapfile -t release_lines < "$RELEASE_FILE"
-  if [ "${#release_lines[@]}" -ne 2 ] \
-    || [[ "${release_lines[0]}" != BACKEND_IMAGE=* ]] \
-    || [[ "${release_lines[1]}" != FRONTEND_IMAGE=* ]]; then
-    echo "❌ Le fichier de release doit contenir exactement BACKEND_IMAGE puis FRONTEND_IMAGE."
-    exit 1
-  fi
-  requested_backend="${release_lines[0]#BACKEND_IMAGE=}"
-  requested_frontend="${release_lines[1]#FRONTEND_IMAGE=}"
-  candidate_env="$(mktemp "$ROOT/.env.release.XXXXXX")"
-  write_release_env .env "$candidate_env" "$requested_backend" "$requested_frontend"
-  active_env="$candidate_env"
+validate_release_manifest "$RELEASE_FILE"
+runtime_services=(backend)
+pull_services=(backend frontend migrator)
+configure_runtime_topology
+if [ "$RUNTIME_TOPOLOGY" = "split" ]; then
+  runtime_services+=(worker)
+  pull_services+=(worker)
 fi
 
-# ── Sécurité : refuse un .env avec des secrets par défaut ────────────────────
-# Empêche la copie accidentelle de .env.production.example (change_me_*) ou de
-# valeurs de dev (Dev_Test_Only_1192) de partir en production. Le seed-staff
-# est idempotent : un ROOT créé avec un mot de passe par défaut ne sera JAMAIS
-# re-corrigé ensuite, donc on échoue dès le départ.
-if grep -qE '(change_me_|CHANGE_ME_|Dev_Test_Only_1192)' .env; then
-  echo "❌ .env contient au moins un secret par défaut/placeholder."
+SECRETS_ENV="$(resolve_secrets_env "$ROOT" "$BASE_DIR")"
+export ENV_FILE="$SECRETS_ENV"
+
+# A bundle records the exact infra commit before packaging. A local Git checkout
+# may use HEAD instead, which keeps the same invariant during rehearsals.
+if [ -f "$ROOT/.infra-commit" ]; then
+  packaged_infra_commit="$(tr -d '\r\n' < "$ROOT/.infra-commit")"
+elif git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  packaged_infra_commit="$(git -C "$ROOT" rev-parse HEAD)"
+else
+  echo "ERROR: impossible de prouver le commit de l'infrastructure."
   exit 1
 fi
-
-target_backend="$(read_env_value BACKEND_IMAGE "$active_env")"
-target_frontend="$(read_env_value FRONTEND_IMAGE "$active_env")"
-if ! is_immutable_image "$target_backend" || ! is_immutable_image "$target_frontend"; then
-  echo "❌ Les images applicatives doivent finir par un SHA Git complet (40 hex) ou un digest sha256."
+[ "$packaged_infra_commit" = "$INFRA_COMMIT" ] || {
+  echo "ERROR: le bundle infra ne correspond pas à INFRA_COMMIT."
   exit 1
-fi
+}
+
+"$ROOT/scripts/preflight.sh" --release-file "$RELEASE_FILE"
+
+mkdir -p "$SHARED_DIR/backups" "$SHARED_DIR/logs" \
+  "$SHARED_DIR/release-manifests" "$MAINTENANCE_DIR"
+chmod 700 "$SHARED_DIR" "$SHARED_DIR/backups" "$SHARED_DIR/logs" \
+  "$SHARED_DIR/release-manifests" "$MAINTENANCE_DIR"
 
 compose() {
-  docker compose --env-file "$active_env" "$@"
+  docker compose --env-file "$SECRETS_ENV" --env-file "$RELEASE_FILE" \
+    -f "$COMPOSE_FILE" "$@"
 }
 
+deployment_succeeded=false
+maintenance_enabled=false
+on_exit() {
+  if [ "$deployment_succeeded" != "true" ]; then
+    if [ "$maintenance_enabled" = "true" ]; then
+      echo "ERROR: promotion interrompue ; la maintenance reste activée et les writers ne sont pas relancés automatiquement."
+    fi
+    echo "       Examiner les logs et utiliser scripts/rollback.sh avec le backup pré-release."
+  fi
+}
+trap on_exit EXIT
+
+echo "Sovrack release $RELEASE_ID"
 compose config -q
 
-previous_backend="$(docker inspect sovrack-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
-previous_frontend="$(docker inspect sovrack-frontend --format '{{.Config.Image}}' 2>/dev/null || true)"
+# Network transfer and image availability are checked before the maintenance
+# window. Infrastructure images are upgraded only through their own manifest.
+compose pull "${pull_services[@]}"
 
-# Une migration sans sauvegarde vérifiée n'est pas une release acceptable.
-if [ "$(docker inspect sovrack-postgres --format '{{.State.Running}}' 2>/dev/null || true)" = "true" ]; then
-  ./scripts/backup.sh
-else
-  echo "ℹ️  Première installation détectée : aucune base existante à sauvegarder."
+if [ "${SKIP_IMAGE_PROVENANCE_CHECK:-false}" != "true" ]; then
+  backend_revision="$(docker image inspect "$BACKEND_IMAGE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+  frontend_revision="$(docker image inspect "$FRONTEND_IMAGE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+  backend_contract="$(docker image inspect "$BACKEND_IMAGE" --format '{{index .Config.Labels "tech.sovrack.openapi.sha256"}}')"
+  frontend_contract="$(docker image inspect "$FRONTEND_IMAGE" --format '{{index .Config.Labels "tech.sovrack.openapi.sha256"}}')"
+  [ "$backend_revision" = "$BACKEND_COMMIT" ] || { echo "ERROR: label commit backend invalide."; exit 1; }
+  [ "$frontend_revision" = "$FRONTEND_COMMIT" ] || { echo "ERROR: label commit frontend invalide."; exit 1; }
+  [ "$backend_contract" = "$OPENAPI_SHA256" ] || { echo "ERROR: contrat OpenAPI backend invalide."; exit 1; }
+  [ "$frontend_contract" = "$OPENAPI_SHA256" ] || { echo "ERROR: contrat OpenAPI frontend incompatible."; exit 1; }
 fi
 
-# Une release applicative ne met pas implicitement à niveau Postgres, Redis ou
-# Nginx. Ces composants ont leur propre cycle de maintenance planifié.
-compose pull backend frontend migrator worker
-
-if ! compose up -d --remove-orphans --wait --wait-timeout 240; then
-  echo "❌ Release non saine. Journaux des services critiques :"
-  compose logs --tail=150 migrator backend worker frontend || true
-
-  allow_rollback="$(read_env_value ALLOW_AUTOMATIC_IMAGE_ROLLBACK .env)"
-  if [ "$allow_rollback" = "true" ] \
-    && is_immutable_image "$previous_backend" \
-    && is_immutable_image "$previous_frontend"; then
-    echo "↩️  Rollback d'images autorisé explicitement ; restauration de la release précédente."
-    rollback_env="$(mktemp "$ROOT/.env.rollback.XXXXXX")"
-    write_release_env .env "$rollback_env" "$previous_backend" "$previous_frontend"
-    active_env="$rollback_env"
-    compose pull backend frontend migrator worker
-    compose up -d --remove-orphans --wait --wait-timeout 240
-    mv -f -- "$rollback_env" .env
-    rollback_env=""
-    chmod 600 .env
-  else
-    echo "⛔ Rollback automatique non exécuté : la rétrocompatibilité des migrations n'est pas déclarée."
-    echo "   La référence persistée dans .env reste inchangée ; inspecte la base et les logs avant toute action."
+postgres_was_running="$(docker inspect sovrack-postgres --format '{{.State.Running}}' 2>/dev/null || true)"
+if [ "$postgres_was_running" = "true" ]; then
+  postgres_user="$(compose exec -T postgres printenv POSTGRES_USER)"
+  postgres_db="$(compose exec -T postgres printenv POSTGRES_DB)"
+  migrations_table="$(compose exec -T postgres psql -At -U "$postgres_user" -d "$postgres_db" \
+    -c 'SELECT to_regclass('\''public."_prisma_migrations"'\'') IS NOT NULL;')"
+  if [ "$migrations_table" = "t" ]; then
+    current_schema="$(last_applied_migration compose)"
+    if [[ "$current_schema" > "$SCHEMA_MIGRATION" ]]; then
+      echo "ERROR: la base ($current_schema) est plus récente que la release ($SCHEMA_MIGRATION)."
+      exit 1
+    fi
   fi
-  exit 1
+else
+  compose up -d --wait --wait-timeout 180 postgres redis
 fi
 
-# La promotion ne devient l'état désiré persistant qu'après tous les contrôles
-# de santé. Un redémarrage ultérieur reprendra donc les mêmes images immuables.
-if [ -n "$candidate_env" ]; then
-  mv -f -- "$candidate_env" .env
-  candidate_env=""
-  chmod 600 .env
-  active_env=".env"
+# Nginx is recreated first with a shared maintenance flag. The old API and
+# worker are quiesced before the final backup, so no write can cross the dump.
+touch "$MAINTENANCE_DIR/enabled"
+maintenance_enabled=true
+compose up -d --no-deps --wait --wait-timeout 120 nginx
+compose stop -t 60 frontend backend >/dev/null 2>&1 || true
+docker stop -t 60 sovrack-worker >/dev/null 2>&1 || true
+
+if [ "$postgres_was_running" = "true" ]; then
+  RELEASE_FILE="$RELEASE_FILE" BACKUP_DIR="$SHARED_DIR/backups" \
+    "$ROOT/scripts/backup.sh"
+else
+  echo "First installation: no existing database to back up."
 fi
 
-compose ps
+# Apply database/cache container configuration only after writers are stopped
+# and the pre-release backup is complete; this avoids a surprise Postgres
+# recreation while the old API is still accepting requests.
+compose up -d --wait --wait-timeout 180 postgres redis
 
-# DOMAIN doit être développé dans le shell du conteneur nginx, pas sur l'hôte.
+# Never rely on a stale completed migrator container. The one-shot execution is
+# the only component allowed to alter the schema for this release.
+compose rm -sf migrator >/dev/null 2>&1 || true
+compose run --rm --no-deps migrator
+assert_schema_migration compose "$SCHEMA_MIGRATION"
+
+compose up -d --no-deps --wait --wait-timeout 300 "${runtime_services[@]}"
+compose up -d --no-deps --wait --wait-timeout 240 frontend nginx
+compose exec -T backend node -e \
+  "fetch('http://127.0.0.1:3001/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+compose exec -T frontend wget -qO- http://127.0.0.1:3000/ >/dev/null
+compose exec -T nginx nginx -t
+
+manifest_destination="$SHARED_DIR/release-manifests/$RELEASE_ID.manifest"
+if [ -e "$manifest_destination" ]; then
+  cmp -s "$RELEASE_FILE" "$manifest_destination" || {
+    echo "ERROR: RELEASE_ID existe déjà avec un manifeste différent."
+    exit 1
+  }
+else
+  install -m 600 "$RELEASE_FILE" "$manifest_destination"
+fi
+
+rm -f "$MAINTENANCE_DIR/enabled"
+maintenance_enabled=false
+
+domain="$(read_env_value DOMAIN "$SECRETS_ENV")"
 # shellcheck disable=SC2016
-if ! compose exec -T nginx sh -c 'test -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" && test -s "/etc/letsencrypt/live/${DOMAIN}/privkey.pem"'; then
-  echo "⚠️  Certificat TLS absent : Nginx fonctionne uniquement en mode challenge ACME."
-  echo "   Lance ./scripts/certbot.sh puis vérifie HTTPS."
+if compose exec -T nginx sh -c 'test -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"'; then
+  curl --fail --show-error --silent --max-time 20 \
+    "https://$domain/backend-api/health" >/dev/null
+else
+  echo "TLS certificate absent: public HTTPS smoke test deferred until certbot."
 fi
 
-echo "✅ Stack démarrée. Vérifie : docker compose ps ; docker compose logs -f backend"
+activate_release_directory "$BASE_DIR" "$ROOT" "$RELEASE_ID"
+compose ps
+deployment_succeeded=true
+echo "Release $RELEASE_ID promoted atomically."
