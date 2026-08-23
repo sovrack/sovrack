@@ -33,6 +33,7 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "openapi:export": "nest build && node dist/scripts/export-openapi.js",
     "test": "jest",
+    "test:migrations:phase2": "npm run build && ./test/migrations/phase2-migrations.integration.sh",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
