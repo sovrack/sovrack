@@ -13,25 +13,33 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 export COMPOSE_FILE="${COMPOSE_FILE:-${ROOT}/docker-compose.prod.yml}"
+export ENV_FILE="${ENV_FILE:-.env}"
 
-[ -f .env ] || { echo "❌ .env introuvable. Lance ./scripts/bootstrap.sh."; exit 1; }
+[ -f "$ENV_FILE" ] || { echo "❌ $ENV_FILE introuvable. Lance ./scripts/bootstrap.sh."; exit 1; }
 
-# Récupère les identifiants depuis le compose (résolution des valeurs .env)
-read -r P_USER <<<"$(docker compose --env-file .env config --format json 2>/dev/null | \
-  python3 -c "import sys,json;print(json.load(sys.stdin)['services']['postgres']['environment']['POSTGRES_USER'])" 2>/dev/null || echo da_admin)"
-read -r P_DB <<<"$(docker compose --env-file .env config --format json 2>/dev/null | \
-  python3 -c "import sys,json;print(json.load(sys.stdin)['services']['postgres']['environment']['POSTGRES_DB'])" 2>/dev/null || echo deploy_automation)"
+compose() {
+  docker compose --env-file "$ENV_FILE" "$@"
+}
+
+# Le conteneur actif est la source de vérité. Aucun fallback ne doit produire
+# silencieusement un dump de la mauvaise base.
+P_USER="$(compose exec -T postgres printenv POSTGRES_USER)"
+P_DB="$(compose exec -T postgres printenv POSTGRES_DB)"
+[ -n "$P_USER" ] && [ -n "$P_DB" ] || {
+  echo "❌ Impossible de résoudre les identifiants PostgreSQL."
+  exit 1
+}
 
 BACKUP_DIR="${BACKUP_DIR:-$ROOT/backups}"
 mkdir -p "$BACKUP_DIR"
 STAMP="$(date +%Y%m%d-%H%M%S)"
-DEST="$BACKUP_DIR/sovrack-$STAMP.sql.gz"
+DEST="$(mktemp "$BACKUP_DIR/sovrack-$STAMP-XXXXXX.sql.gz")"
+DEST_NAME="$(basename "$DEST")"
 
 echo "▶️ Backup PostgreSQL → $DEST"
-if docker compose --env-file .env exec -T postgres \
-     pg_dump -U "$P_USER" -d "$P_DB" | gzip > "$DEST"; then
-  gzip -t "$DEST"
-  sha256sum "$DEST" > "$DEST.sha256"
+if compose exec -T postgres pg_dump -U "$P_USER" -d "$P_DB" \
+     | gzip > "$DEST" && gzip -t "$DEST"; then
+  (cd "$BACKUP_DIR" && sha256sum "$DEST_NAME" > "$DEST_NAME.sha256")
   echo "✅ Backup OK : $DEST"
 else
   echo "❌ Backup échoué"; rm -f "$DEST"; exit 1

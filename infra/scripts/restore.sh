@@ -15,6 +15,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 export COMPOSE_FILE="${COMPOSE_FILE:-${ROOT}/docker-compose.prod.yml}"
+export ENV_FILE="${ENV_FILE:-.env}"
 
 DUMP="${1:-}"
 ALLOW_UNVERIFIED="${2:-}"
@@ -23,14 +24,14 @@ ALLOW_UNVERIFIED="${2:-}"
   exit 1
 }
 [ -f "$DUMP" ] || { echo "❌ Fichier introuvable : $DUMP"; exit 1; }
-[ -f .env ] || { echo "❌ .env introuvable."; exit 1; }
+[ -f "$ENV_FILE" ] || { echo "❌ $ENV_FILE introuvable."; exit 1; }
 if [ -n "$ALLOW_UNVERIFIED" ] && [ "$ALLOW_UNVERIFIED" != "--allow-unverified" ]; then
   echo "❌ Option inconnue : $ALLOW_UNVERIFIED"
   exit 1
 fi
 
 compose() {
-  docker compose --env-file .env "$@"
+  docker compose --env-file "$ENV_FILE" "$@"
 }
 
 if [[ "$DUMP" == *.gz ]]; then
@@ -61,7 +62,12 @@ POSTGRES_DB="$(compose exec -T postgres printenv POSTGRES_DB)"
 
 echo "⚠️  La base '$POSTGRES_DB' sera supprimée puis recréée."
 echo "   Une sauvegarde de sécurité sera créée avant l'arrêt des services."
-read -r -p "Saisir exactement le nom de la base pour confirmer : " answer
+if [ -n "${RESTORE_CONFIRM:-}" ]; then
+  answer="$RESTORE_CONFIRM"
+elif ! read -r -p "Saisir exactement le nom de la base pour confirmer : " answer; then
+  echo "❌ Confirmation illisible sur l'entrée standard."
+  exit 1
+fi
 [ "$answer" = "$POSTGRES_DB" ] || { echo "Abandon."; exit 1; }
 
 # Pas de rotation ici : le dump source peut être un ancien fichier du même
