@@ -27,7 +27,8 @@ if [ -f "$GITLAB_ALERT_URL_FILE" ] || [ -f "$GITLAB_ALERT_TOKEN_FILE" ]; then
     exit 1
   }
   chmod 0600 "$GITLAB_ALERT_URL_FILE" "$GITLAB_ALERT_TOKEN_FILE"
-  chown root:root "$GITLAB_ALERT_URL_FILE" "$GITLAB_ALERT_TOKEN_FILE"
+  # The pinned Alertmanager image runs as the unprivileged nobody user.
+  chown 65534:65534 "$GITLAB_ALERT_URL_FILE" "$GITLAB_ALERT_TOKEN_FILE"
   ALERTMANAGER_CONFIG_SOURCE="$ROOT/monitoring/alertmanager.gitlab.yml"
   alertmanager_secret_mounts=(
     -v "$GITLAB_ALERT_URL_FILE:/etc/alertmanager/secrets/gitlab-alert-url:ro"

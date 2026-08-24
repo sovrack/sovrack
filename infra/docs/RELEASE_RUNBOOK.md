@@ -155,10 +155,12 @@ activer le récepteur Prometheus GitLab, créer l'intégration dans
 /opt/monitoring/secrets/gitlab-alert-token
 ```
 
-Les fichiers doivent appartenir à `root:root` avec le mode `0600`. Le script
-`install-external-monitoring.sh` détecte la paire complète, monte les secrets en
-lecture seule et route toutes les alertes opérationnelles vers GitLab. Le
-watchdog reste volontairement local afin de ne pas créer une alerte permanente.
+Les fichiers doivent appartenir à l'UID/GID de runtime non privilégié
+`65534:65534` avec le mode `0600`. Le script
+`install-external-monitoring.sh` applique ces permissions, détecte la paire
+complète, monte les secrets en lecture seule et route toutes les alertes
+opérationnelles vers GitLab. Le watchdog reste volontairement local afin de ne
+pas créer une alerte permanente.
 
 ## TLS
 
