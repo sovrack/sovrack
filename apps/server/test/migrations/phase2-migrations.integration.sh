@@ -24,11 +24,23 @@ cleanup() {
 }
 trap cleanup EXIT
 
+database_host="127.0.0.1"
+publish_address="127.0.0.1::5432"
+case "${DOCKER_HOST:-}" in
+  tcp://*)
+    # En Docker-in-Docker, le daemon vit dans le service GitLab `docker` :
+    # publier seulement sur sa loopback rend le port inaccessible au job.
+    docker_authority="${DOCKER_HOST#tcp://}"
+    database_host="${docker_authority%%:*}"
+    publish_address="0.0.0.0::5432"
+    ;;
+esac
+
 docker run -d --name "$CONTAINER_NAME" \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=phase2_fresh \
-  -p 127.0.0.1::5432 \
+  -p "$publish_address" \
   postgres:16-alpine >/dev/null
 
 for _attempt in $(seq 1 30); do
@@ -41,7 +53,7 @@ docker exec "$CONTAINER_NAME" pg_isready -U postgres -d phase2_fresh >/dev/null
 
 port_binding="$(docker port "$CONTAINER_NAME" 5432/tcp)"
 postgres_port="${port_binding##*:}"
-base_url="postgresql://postgres:postgres@127.0.0.1:${postgres_port}"
+base_url="postgresql://postgres:postgres@${database_host}:${postgres_port}"
 export CONFIG_SECRET="integration-config-secret-at-least-32-characters"
 
 # Chemin base vide : les deux pré-gardes doivent accepter l'absence de tables,
