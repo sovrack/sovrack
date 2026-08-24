@@ -64,7 +64,11 @@ package:release:
         "$BACKEND_COMMIT" "$FRONTEND_COMMIT" "$CI_COMMIT_SHA" \
         "$RUNTIME_TOPOLOGY" "$SCHEMA_MIGRATION" "$OPENAPI_SHA256" > release.manifest
     - bash -c 'source scripts/release-lib.sh; validate_release_manifest release.manifest'
-    - tar -czf "sovrack-infra-$CI_COMMIT_SHA.tar.gz" --exclude='.git' --exclude='*.tar.gz' --exclude='*.sha256' .
+    # Build outside CI_PROJECT_DIR so tar never observes its own output while
+    # walking the source tree (which otherwise fails with "file changed").
+    - bundle_tmp="$(mktemp -p /tmp sovrack-infra.XXXXXX.tar.gz)"
+    - tar -czf "$bundle_tmp" --exclude='.git' --exclude='*.tar.gz' --exclude='*.sha256' .
+    - mv "$bundle_tmp" "sovrack-infra-$CI_COMMIT_SHA.tar.gz"
     - sha256sum "sovrack-infra-$CI_COMMIT_SHA.tar.gz" > "sovrack-infra-$CI_COMMIT_SHA.tar.gz.sha256"
   artifacts:
     paths:
