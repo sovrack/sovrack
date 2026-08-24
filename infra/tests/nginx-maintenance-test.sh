@@ -37,6 +37,10 @@ for _attempt in $(seq 1 20); do
   sleep 1
 done
 docker exec "$CONTAINER" nginx -t
+nginx_dump="$(docker exec "$CONTAINER" nginx -T 2>&1)"
+printf '%s\n' "$nginx_dump" | grep -q 'zone=sovrack_api:10m rate=20r/s'
+printf '%s\n' "$nginx_dump" | grep -q 'zone=sovrack_auth:10m rate=5r/m'
+printf '%s\n' "$nginx_dump" | grep -q 'limit_conn sovrack_connections 50'
 touch "$TEMP_DIR/maintenance/enabled"
 response_headers="$(docker exec "$CONTAINER" wget --no-check-certificate -qSO- \
   --header='Host: example.test' https://127.0.0.1/ 2>&1 >/dev/null || true)"

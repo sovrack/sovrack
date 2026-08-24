@@ -1,4 +1,15 @@
 # =============================================================================
+
+# Les zones sont partagées par tous les workers Nginx. Une clé vide désactive
+# la zone : seules les routes d'authentification sensibles utilisent la limite
+# stricte, tandis que toute l'API bénéficie d'une protection anti-rafale.
+map $uri $sovrack_auth_limit_key {
+    default "";
+    ~^/backend-api/(auth/(login|register|forgot-password|reset-password|staff/login)|staff/auth/login) $binary_remote_addr;
+}
+limit_req_zone $binary_remote_addr zone=sovrack_api:10m rate=20r/s;
+limit_req_zone $sovrack_auth_limit_key zone=sovrack_auth:10m rate=5r/m;
+limit_conn_zone $binary_remote_addr zone=sovrack_connections:10m;
 # Sovrack — nginx template (reverse proxy + TLS)
 # Ce fichier est utilisé comme template par l'image nginx (envsubst).
 # ${DOMAIN} remplacé au run via le .env du conteneur (le service nginx
@@ -36,6 +47,19 @@ server {
 
     include /etc/nginx/conf.d/security-headers.conf;
 
+    # Nginx est l'autorité unique pour ces en-têtes. Les variantes éventuellement
+    # ajoutées par Next.js ou l'API sont masquées afin d'éviter les doublons.
+    proxy_hide_header X-Powered-By;
+    proxy_hide_header X-Content-Type-Options;
+    proxy_hide_header X-Frame-Options;
+    proxy_hide_header Referrer-Policy;
+    proxy_hide_header Permissions-Policy;
+    proxy_hide_header Strict-Transport-Security;
+
+    limit_req_status 429;
+    limit_conn_status 429;
+    limit_conn sovrack_connections 50;
+
     # Docker DNS. Les URLs sous forme de variables sont résolues au moment de
     # la requête : Nginx peut ainsi démarrer seul et servir la maintenance même
     # lorsque backend/frontend sont volontairement arrêtés.
@@ -55,8 +79,21 @@ server {
         return 301 https://${DOMAIN}$request_uri;
     }
 
+    # Les sondes restent hors quota pour ne jamais masquer l'état réel du service.
+    location ~ ^/backend-api/health(?:/live|/ready)?/?$ {
+        rewrite ^/backend-api/(.*)$ /$1 break;
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # Proxy le backend (API) sous /backend-api pour que le frontend en soit proxy
     location /backend-api/ {
+        limit_req zone=sovrack_api burst=40 nodelay;
+        limit_req zone=sovrack_auth burst=5 nodelay;
         rewrite ^/backend-api/(.*)$ /$1 break;
         proxy_pass $backend_upstream;
         proxy_http_version 1.1;

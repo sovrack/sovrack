@@ -6,7 +6,7 @@ SHELL := /usr/bin/env bash
 BASE_DIR ?= /srv/sovrack
 CURRENT_COMPOSE := SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/current-compose.sh
 
-.PHONY: help bootstrap config up ps logs backup restore rollback preflight validate-ci test-scripts certbot certbot-renew
+.PHONY: help bootstrap config up ps logs backup restore rollback preflight validate-ci test-scripts test-hardening certbot certbot-renew
 
 help: ## Affiche l'aide
 	@printf "Commandes Sovrack infra:\n"
@@ -48,6 +48,9 @@ test-scripts: ## Teste backup/restore dans une stack Docker jetable
 	./tests/nginx-maintenance-test.sh
 	./tests/release-deploy-integration.sh
 	./tests/backup-restore-integration.sh
+
+test-hardening: ## Qualifie le runtime de production avec des images immuables
+	./tests/production-hardening-test.sh
 
 certbot: ## Obtient/renouvelle le certificat TLS (DOMAIN = domaine)
 	SOVRACK_BASE_DIR=$(BASE_DIR) ENV_FILE=$(BASE_DIR)/shared/.env ./scripts/certbot.sh

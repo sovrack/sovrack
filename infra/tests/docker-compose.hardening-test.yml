@@ -1,0 +1,49 @@
+name: sovrack-hardening-test
+
+services:
+  nginx:
+    container_name: sovrack-hardening-nginx
+    ports: !override
+      - "127.0.0.1:18080:80"
+      - "127.0.0.1:18443:443"
+    volumes: !override
+      # Compose résout les chemins relatifs depuis le premier fichier (-f),
+      # c'est-à-dire la racine du dépôt et non le dossier tests/.
+      - ./nginx/proxy.conf.template:/etc/nginx/proxy.conf.template:ro
+      - ./nginx/acme-http.conf.template:/etc/nginx/acme-http.conf.template:ro
+      - ./nginx/entrypoint.sh:/opt/sovrack/nginx-entrypoint.sh:ro
+      - ./nginx/security-headers.conf:/etc/nginx/conf.d/security-headers.conf:ro
+      - ${HARDENING_CERT_DIR}:/etc/letsencrypt/live/hardening.test:ro
+      - ${HARDENING_MAINTENANCE_DIR}:/var/run/sovrack-maintenance:ro
+
+  frontend:
+    container_name: sovrack-hardening-frontend
+
+  backend:
+    container_name: sovrack-hardening-backend
+
+  migrator:
+    container_name: sovrack-hardening-migrator
+
+  worker:
+    container_name: sovrack-hardening-worker
+
+  postgres:
+    container_name: sovrack-hardening-postgres
+    ports: !override
+      - "127.0.0.1:15432:5432"
+
+  redis:
+    container_name: sovrack-hardening-redis
+    ports: !override
+      - "127.0.0.1:16379:6379"
+
+volumes:
+  pgdata:
+    name: sovrack-hardening-pgdata
+  redisdata:
+    name: sovrack-hardening-redisdata
+  certbot-webroot:
+    name: sovrack-hardening-certbot-webroot
+  certbot-certs:
+    name: sovrack-hardening-certbot-certs
