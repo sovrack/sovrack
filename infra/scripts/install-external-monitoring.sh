@@ -15,6 +15,25 @@ PROMETHEUS_IMAGE="${PROMETHEUS_IMAGE:-prom/prometheus@sha256:f6639335d34a77d9d9d
 ALERTMANAGER_IMAGE="${ALERTMANAGER_IMAGE:-prom/alertmanager@sha256:e13b6ed5cb929eeaee733479dce55e10eb3bc2e9c4586c705a4e8da41e5eacf5}"
 BLACKBOX_IMAGE="${BLACKBOX_IMAGE:-quay.io/prometheus/blackbox-exporter@sha256:e753ff9f3fc458d02cca5eddab5a77e1c175eee484a8925ac7d524f04366c2fc}"
 BACKUP_DIR="$MONITORING_DIR/config-backups/$(date -u +%Y%m%d-%H%M%SZ)"
+SECRETS_DIR="$MONITORING_DIR/secrets"
+GITLAB_ALERT_URL_FILE="$SECRETS_DIR/gitlab-alert-url"
+GITLAB_ALERT_TOKEN_FILE="$SECRETS_DIR/gitlab-alert-token"
+ALERTMANAGER_CONFIG_SOURCE="$ROOT/monitoring/alertmanager.yml"
+alertmanager_secret_mounts=()
+
+if [ -f "$GITLAB_ALERT_URL_FILE" ] || [ -f "$GITLAB_ALERT_TOKEN_FILE" ]; then
+  [ -f "$GITLAB_ALERT_URL_FILE" ] && [ -f "$GITLAB_ALERT_TOKEN_FILE" ] || {
+    echo "ERROR: les deux fichiers GitLab Alertmanager sont obligatoires."
+    exit 1
+  }
+  chmod 0600 "$GITLAB_ALERT_URL_FILE" "$GITLAB_ALERT_TOKEN_FILE"
+  chown root:root "$GITLAB_ALERT_URL_FILE" "$GITLAB_ALERT_TOKEN_FILE"
+  ALERTMANAGER_CONFIG_SOURCE="$ROOT/monitoring/alertmanager.gitlab.yml"
+  alertmanager_secret_mounts=(
+    -v "$GITLAB_ALERT_URL_FILE:/etc/alertmanager/secrets/gitlab-alert-url:ro"
+    -v "$GITLAB_ALERT_TOKEN_FILE:/etc/alertmanager/secrets/gitlab-alert-token:ro"
+  )
+fi
 
 for image in "$PROMETHEUS_IMAGE" "$ALERTMANAGER_IMAGE" "$BLACKBOX_IMAGE"; do
   [[ "$image" =~ @sha256:[0-9a-f]{64}$ ]] || {
@@ -44,7 +63,7 @@ install -m 0644 "$ROOT/monitoring/prometheus.yml" \
   "$MONITORING_DIR/prometheus/prometheus.yml"
 install -m 0644 "$ROOT/monitoring/alerts.yml" \
   "$MONITORING_DIR/prometheus/alerts.yml"
-install -m 0644 "$ROOT/monitoring/alertmanager.yml" \
+install -m 0644 "$ALERTMANAGER_CONFIG_SOURCE" \
   "$MONITORING_DIR/alertmanager/alertmanager.yml"
 install -m 0644 "$ROOT/monitoring/blackbox.yml" \
   "$MONITORING_DIR/blackbox/blackbox.yml"
@@ -60,6 +79,7 @@ docker run --rm \
   check config /etc/prometheus/prometheus.yml
 docker run --rm \
   -v "$MONITORING_DIR/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+  "${alertmanager_secret_mounts[@]}" \
   --entrypoint /bin/amtool "$ALERTMANAGER_IMAGE" \
   check-config /etc/alertmanager/alertmanager.yml
 docker run --rm \
@@ -104,6 +124,7 @@ docker run -d --name alertmanager \
   -p 127.0.0.1:9093:9093 \
   -v "$MONITORING_DIR/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
   -v "$MONITORING_DIR/alertmanager/data:/alertmanager" \
+  "${alertmanager_secret_mounts[@]}" \
   "$ALERTMANAGER_IMAGE" \
   --config.file=/etc/alertmanager/alertmanager.yml \
   --storage.path=/alertmanager >/dev/null

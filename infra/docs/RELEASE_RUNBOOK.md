@@ -144,6 +144,22 @@ Le service est exécuté avec le propriétaire de `shared/` afin que les backups
 créés par le timer et ceux créés avant une release gardent le même propriétaire
 et puissent être soumis à la même politique de rétention.
 
+### Livraison des alertes dans GitLab
+
+Le monitoring reste utilisable localement sans destinataire externe. Pour
+activer le récepteur Prometheus GitLab, créer l'intégration dans
+`Settings > Monitor > Alerts`, puis déposer ses deux valeurs hors Git :
+
+```text
+/opt/monitoring/secrets/gitlab-alert-url
+/opt/monitoring/secrets/gitlab-alert-token
+```
+
+Les fichiers doivent appartenir à `root:root` avec le mode `0600`. Le script
+`install-external-monitoring.sh` détecte la paire complète, monte les secrets en
+lecture seule et route toutes les alertes opérationnelles vers GitLab. Le
+watchdog reste volontairement local afin de ne pas créer une alerte permanente.
+
 ## TLS
 
 `certbot.sh` écrit directement dans `sovrack-certbot-certs`, le volume lu par
