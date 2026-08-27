@@ -152,8 +152,18 @@ services:
       ANSIBLE_COLLECTIONS_PATH: /usr/share/ansible/collections
       ANSIBLE_HOST_KEY_TRUST_ON_FIRST_USE: "false"
       ANSIBLE_STRICT_HOST_KEY_CHECKING: ${ANSIBLE_STRICT_HOST_KEY_CHECKING:-accept-new}
-      STAFF_ROOT_EMAIL: ${STAFF_ROOT_EMAIL}
-      STAFF_ROOT_PASSWORD: ${STAFF_ROOT_PASSWORD}
+      # SMTP peut venir de l'environnement ou, après configuration par ROOT,
+      # d'un snapshot chiffré en base. Aucun secret n'est exposé au frontend.
+      SMTP_CONFIG_SOURCE: ${SMTP_CONFIG_SOURCE:-environment}
+      SMTP_ENABLED: ${SMTP_ENABLED:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_TO: ${SMTP_TO:-}
+      SMTP_ALLOWED_HOSTS: ${SMTP_ALLOWED_HOSTS:-}
       # Google OAuth ("Se connecter avec Google")
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
@@ -212,8 +222,28 @@ services:
       - >-
         node dist/scripts/backfill-database-credentials.js &&
         node dist/scripts/pre-migrate-check.js &&
-        ./node_modules/.bin/prisma migrate deploy &&
-        node prisma/seed-staff.js
+        ./node_modules/.bin/prisma migrate deploy
+
+  # Création initiale du ROOT uniquement. Ce profil n'est jamais démarré par
+  # deploy.sh ; scripts/bootstrap-staff.sh injecte le mot de passe de manière
+  # éphémère dans ce conteneur one-shot.
+  staff-bootstrap:
+    <<: *common
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable tag or digest}
+    profiles:
+      - bootstrap
+    restart: "no"
+    read_only: true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,uid=100,gid=101,mode=1777
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["node", "prisma/seed-staff.js"]
 
   # Dedicated consumers/crons. No public port; WebSocket events are relayed
   # to the API process through the Redis adapter.

@@ -16,7 +16,6 @@ echo "STAFF_JWT_SECRET=$(gen)"
 echo "CONFIG_SECRET=$(gen)"
 echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
 echo "REDIS_PASSWORD=$(openssl rand -hex 24)"
-echo "STAFF_ROOT_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' )"
 echo
 echo "👉 NB : CONFIG_SECRET doit ≥32 chars (48 octets ✓). JWT ≥32 (✓)."
-echo "⚠️  Change aussi STAFF_ROOT_PASSWORD si le compte ROOT existe déjà."
+echo "👉 Le mot de passe ROOT se crée séparément avec scripts/bootstrap-staff.sh."

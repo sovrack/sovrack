@@ -5,7 +5,7 @@
 # stricte, tandis que toute l'API bénéficie d'une protection anti-rafale.
 map $uri $sovrack_auth_limit_key {
     default "";
-    ~^/backend-api/(auth/(login|register|forgot-password|reset-password|staff/login)|staff/auth/login) $binary_remote_addr;
+    ~^/backend-api/(auth/(login|register|verify-email|resend-code|forgot-password|reset-password)|staff/login)$ $binary_remote_addr;
 }
 limit_req_zone $binary_remote_addr zone=sovrack_api:10m rate=20r/s;
 limit_req_zone $sovrack_auth_limit_key zone=sovrack_auth:10m rate=5r/m;

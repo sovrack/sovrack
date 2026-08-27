@@ -1,0 +1,63 @@
+# HTTP-only reverse proxy for the disposable local acceptance stack.
+map $uri $sovrack_auth_limit_key {
+    default "";
+    ~^/backend-api/(auth/(login|register|verify-email|resend-code|forgot-password|reset-password)|staff/login)$ $binary_remote_addr;
+}
+
+limit_req_zone $binary_remote_addr zone=sovrack_local_api:10m rate=20r/s;
+limit_req_zone $sovrack_auth_limit_key zone=sovrack_local_auth:10m rate=5r/m;
+limit_conn_zone $binary_remote_addr zone=sovrack_local_connections:10m;
+
+server {
+    listen 80;
+    server_name ${DOMAIN};
+    server_tokens off;
+    client_max_body_size 15m;
+
+    include /etc/nginx/conf.d/security-headers.conf;
+    proxy_hide_header X-Powered-By;
+    proxy_hide_header X-Content-Type-Options;
+    proxy_hide_header X-Frame-Options;
+    proxy_hide_header Referrer-Policy;
+    proxy_hide_header Permissions-Policy;
+    proxy_hide_header Strict-Transport-Security;
+
+    limit_req_status 429;
+    limit_conn_status 429;
+    limit_conn sovrack_local_connections 50;
+
+    location ~ ^/backend-api/health(?:/live|/ready)?/?$ {
+        rewrite ^/backend-api/(.*)$ /$1 break;
+        proxy_pass http://backend:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /backend-api/ {
+        limit_req zone=sovrack_local_api burst=40 nodelay;
+        limit_req zone=sovrack_local_auth burst=5 nodelay;
+        rewrite ^/backend-api/(.*)$ /$1 break;
+        proxy_pass http://backend:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+    }
+
+    location / {
+        proxy_pass http://frontend:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}

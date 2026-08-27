@@ -40,6 +40,45 @@ Voir [le runbook de release](docs/RELEASE_RUNBOOK.md) et
 
 ## Commandes locales
 
+La recette d'acceptation locale démarre une pile entièrement isolée de la
+production : PostgreSQL, Redis, Mailpit, backend, frontend et Nginx. Les
+migrations s'exécutent avant un seed local idempotent qui ne supprime aucune
+ligne et refuse toute base distante.
+
+```bash
+make local-up
+
+# Application et connexions clients
+# http://localhost:13080
+
+# Connexion staff
+# http://localhost:13080/staff/login
+
+# Emails de validation capturés localement (aucun email Internet)
+# http://localhost:18025
+
+make local-logs
+make local-down      # conserve la base locale
+make local-reset     # supprime uniquement les volumes sovrack-local
+```
+
+Les identifiants déterministes sont définis dans le seed local du backend. Ils
+ne doivent jamais être copiés dans un environnement partagé ou de production.
+
+Le premier compte staff de production est une opération distincte et unique.
+Son mot de passe est demandé sans écho et n'est ni ajouté à `.env`, ni placé
+dans les arguments du processus :
+
+```bash
+sudo -u deploy make -C /srv/sovrack/current bootstrap-staff \
+  BASE_DIR=/srv/sovrack EMAIL=root@example.com
+```
+
+Après connexion, le `ROOT` configure l'envoi dans
+`/staff/settings/email`, teste le transport, puis invite les autres comptes
+staff. Les comptes invités choisissent eux-mêmes leur mot de passe via un lien
+à usage unique de 24 heures.
+
 ```bash
 # Validation sans secret réel
 docker compose --env-file .env.production.example \
@@ -50,7 +89,8 @@ make test-scripts
 
 # Shell statique via l'image utilisée en CI
 docker run --rm -v "$PWD:/mnt:ro" -w /mnt \
-  koalaman/shellcheck:v0.11.0 -x scripts/*.sh tests/*.sh
+  koalaman/shellcheck-alpine:v0.11.0@sha256:9955be09ea7f0dbf7ae942ac1f2094355bb30d96fffba0ec09f5432207544002 \
+  -x scripts/*.sh tests/*.sh
 ```
 
 ## Première transition depuis le layout historique

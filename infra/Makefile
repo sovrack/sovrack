@@ -6,7 +6,7 @@ SHELL := /usr/bin/env bash
 BASE_DIR ?= /srv/sovrack
 CURRENT_COMPOSE := SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/current-compose.sh
 
-.PHONY: help bootstrap config up ps logs backup restore rollback preflight validate-ci test-scripts test-hardening certbot certbot-renew
+.PHONY: help bootstrap bootstrap-staff config up ps logs backup restore rollback preflight validate-ci test-scripts test-hardening certbot certbot-renew local-up local-down local-reset local-logs
 
 help: ## Affiche l'aide
 	@printf "Commandes Sovrack infra:\n"
@@ -14,6 +14,9 @@ help: ## Affiche l'aide
 
 bootstrap: ## Initialise les dossiers + .env (1ère fois)
 	./scripts/bootstrap.sh
+
+bootstrap-staff: ## Crée le premier ROOT via un secret éphémère (EMAIL=...)
+	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/bootstrap-staff.sh "$(EMAIL)"
 
 config: ## Affiche la config résolue de la release active
 	$(CURRENT_COMPOSE) config
@@ -57,5 +60,17 @@ certbot: ## Obtient/renouvelle le certificat TLS (DOMAIN = domaine)
 
 certbot-renew: ## Renouvellement TLS automatique (à appeler côté VPS, ex. cron)
 	SOVRACK_BASE_DIR=$(BASE_DIR) ENV_FILE=$(BASE_DIR)/shared/.env ./scripts/certbot.sh --renew
+
+local-up: ## Construit et démarre la recette locale isolée avec Mailpit
+	docker compose -f docker-compose.dev.yml up -d --build --wait
+
+local-down: ## Arrête la recette locale en conservant ses données
+	docker compose -f docker-compose.dev.yml down --remove-orphans
+
+local-reset: ## Supprime uniquement les volumes de la recette locale
+	docker compose -f docker-compose.dev.yml down --volumes --remove-orphans
+
+local-logs: ## Affiche les logs de la recette locale
+	docker compose -f docker-compose.dev.yml logs -f backend frontend nginx mailpit
 
 .PHONY: help bootstrap config up ps logs backup restore validate-ci test-scripts certbot certbot-renew

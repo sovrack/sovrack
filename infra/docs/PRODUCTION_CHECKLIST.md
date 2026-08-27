@@ -11,6 +11,10 @@
 - [ ] Le renouvellement TLS du volume Docker passe en dry-run.
 - [ ] Le backup local, le backup Restic et la restauration isolée réussissent.
 - [ ] La baseline R0 (schéma 105 + anciens digests) est archivée.
+- [ ] Le premier `ROOT` a été créé par `make bootstrap-staff` sans secret dans `.env`.
+- [ ] SMTP a été configuré depuis `/staff/settings/email`, limité au fournisseur attendu et testé.
+- [ ] SPF, DKIM et DMARC sont publiés pour le domaine d'envoi.
+- [ ] Un second `ROOT` nominatif a activé son invitation et sa connexion a été vérifiée.
 
 ## Validation RC
 
@@ -37,6 +41,7 @@
 - [ ] Migration exacte attendue.
 - [ ] Tous les conteneurs healthy et aucun restart inattendu.
 - [ ] Smoke tests public, staff et client réussis.
+- [ ] Invitation staff, activation à usage unique et révocation de session réussies.
 - [ ] Logs sans nouvelle erreur répétée.
 - [ ] Backup post-release terminé.
 - [ ] Timers backup et TLS actifs.

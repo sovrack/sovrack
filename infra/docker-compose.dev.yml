@@ -1,72 +1,182 @@
-# Validation DEV autonome (build local, ports sans conflit) - NE PAS utiliser en prod
-name: sovrack-dev
+# Disposable local acceptance stack. It never connects to the production VPS.
+name: sovrack-local
+
+x-backend-environment: &backend-environment
+  NODE_ENV: development
+  PORT: "3001"
+  PROCESS_ROLE: all
+  DATABASE_URL: postgresql://sovrack_local:local-postgres-password@postgres:5432/sovrack_local
+  REDIS_URL: redis://:local-redis-password@redis:6379
+  JWT_SECRET: local-client-jwt-secret-2026-aaaaaaaaaaaaaaaaaaaaaaaa
+  JWT_EXPIRES_IN: 2h
+  STAFF_JWT_SECRET: local-staff-jwt-secret-2026-bbbbbbbbbbbbbbbbbbbbbbbb
+  STAFF_JWT_EXPIRES_IN: 2h
+  CONFIG_SECRET: local-config-encryption-secret-2026-cccccccccccccccccc
+  FRONTEND_URL: http://localhost:13080
+  FRONTEND_URLS: http://localhost:13080
+  AUTH_COOKIE_SECURE: "false"
+  AUTH_COOKIE_SAME_SITE: lax
+  STAFF_AUTH_COOKIE_SECURE: "false"
+  STAFF_AUTH_COOKIE_SAME_SITE: lax
+  TRUST_PROXY: "1"
+  SMTP_CONFIG_SOURCE: environment
+  SMTP_ENABLED: "true"
+  SMTP_HOST: mailpit
+  SMTP_PORT: "1025"
+  SMTP_SECURITY: none
+  SMTP_FROM: noreply@sovrack.test
+  SMTP_TO: ops@sovrack.test
+  SMTP_ALLOWED_HOSTS: mailpit
+  ANSIBLE_PLAYBOOKS_PATH: /app/ansible/playbooks
+  ANSIBLE_COLLECTIONS_PATH: /usr/share/ansible/collections
+  ANSIBLE_STRICT_HOST_KEY_CHECKING: accept-new
+  GITLAB_WEBHOOK_AUTO_CONFIGURE: "false"
+
 services:
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: sovrack-dev-proxy
-    depends_on: [frontend, backend]
-    environment: { DOMAIN: localhost }
-    ports: ["127.0.0.1:13080:80"]
+  postgres:
+    image: postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    environment:
+      POSTGRES_USER: sovrack_local
+      POSTGRES_PASSWORD: local-postgres-password
+      POSTGRES_DB: sovrack_local
+    ports:
+      - "127.0.0.1:15432:5432"
     volumes:
-      - ./nginx/proxy.conf.template:/etc/nginx/proxy.conf.template:ro
-      - ./nginx/security-headers.conf:/etc/nginx/conf.d/security-headers.conf:ro
-    entrypoint: ["/bin/sh","-c"]
-    command:
-      - envsubst '$${DOMAIN}' < /etc/nginx/proxy.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'
+      - local-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sovrack_local -d sovrack_local"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+    command: ["redis-server", "--requirepass", "local-redis-password", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:16379:6379"
+    volumes:
+      - local-redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a local-redis-password ping | grep -q PONG"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit@sha256:6abc8e633df15eaf785cfcf38bae48e66f64beecdc03121e249d0f9ec15f0707
+    ports:
+      - "127.0.0.1:18025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrator:
+    image: sovrack-backend:local
+    environment: *backend-environment
+    command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  seed:
+    image: sovrack-backend:local
+    environment:
+      <<: *backend-environment
+      ALLOW_LOCAL_SEED: "true"
+      LOCAL_CLIENT_PASSWORD: Local-Client-2026!
+      LOCAL_STAFF_ROOT_PASSWORD: Local-Root-2026!
+      LOCAL_STAFF_ADMIN_PASSWORD: Local-Admin-2026!
+      LOCAL_STAFF_OPERATOR_PASSWORD: Local-Operator-2026!
+    command: ["node", "prisma/seed-local.js"]
+    restart: "no"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+
+  backend:
+    image: sovrack-backend:local
+    build:
+      context: ../backend
+      args:
+        VCS_REF: local
+        OPENAPI_SHA256: local
+    environment: *backend-environment
+    ports:
+      - "127.0.0.1:13013:3001"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3001/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+
   frontend:
-    image: sovrack-frontend:dev
-    container_name: sovrack-dev-frontend
-    depends_on: [backend]
+    image: sovrack-frontend:local
+    build:
+      context: ../frontend
+      args:
+        VCS_REF: local
+        OPENAPI_SHA256: local
+        NEXT_PUBLIC_API_URL: http://localhost:13080/backend-api
+        NEXT_PUBLIC_WS_URL: ws://localhost:13080/backend-api
+        NEXT_PUBLIC_APP_NAME: Sovrack Local
+        NEXT_PUBLIC_APP_VERSION: local
+        BACKEND_INTERNAL_URL: http://backend:3001
     environment:
       NODE_ENV: production
       BACKEND_INTERNAL_URL: http://backend:3001
       NEXT_PUBLIC_API_URL: http://localhost:13080/backend-api
       NEXT_PUBLIC_WS_URL: ws://localhost:13080/backend-api
-      NEXT_PUBLIC_APP_NAME: "Sovrack (DEV)"
-    ports: ["127.0.0.1:13012:3000"]
-  backend:
-    image: sovrack-backend:dev
-    container_name: sovrack-dev-backend
-    environment:
-      NODE_ENV: production
-      PORT: "3001"
-      DATABASE_URL: postgresql://dev:dev@postgres:5432/deploy_automation
-      REDIS_URL: redis://:redis_dev@redis:6379
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRES_IN: 24h
-      STAFF_JWT_SECRET: ${STAFF_JWT_SECRET}
-      STAFF_JWT_EXPIRES_IN: 12h
-      CONFIG_SECRET: ${CONFIG_SECRET}
-      FRONTEND_URL: http://localhost:13080
-      FRONTEND_URLS: http://localhost:13080
-      AUTH_COOKIE_SECURE: "false"
-      AUTH_COOKIE_SAME_SITE: lax
-      STAFF_AUTH_COOKIE_SECURE: "false"
-      ANSIBLE_PLAYBOOKS_PATH: /app/ansible/playbooks
-      ANSIBLE_COLLECTIONS_PATH: /usr/share/ansible/collections
-      ANSIBLE_STRICT_HOST_KEY_CHECKING: accept-new
-      STAFF_ROOT_EMAIL: admin@sovrack.tech
-      STAFF_ROOT_PASSWORD: ${STAFF_ROOT_PASSWORD:-Dev_Test_Only_1192}
-    expose: ["3001"]
-    ports: ["127.0.0.1:13013:3001"]
-    depends_on: [postgres, redis]
+      NEXT_PUBLIC_APP_NAME: Sovrack Local
+      NEXT_PUBLIC_APP_VERSION: local
+    depends_on:
+      backend:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL","node -e \"fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r&&r.ok?0:1)).catch(()=>process.exit(1))\""]
-      interval: 15s
-      retries: 10
-      start_period: 40s
-  postgres:
-    image: postgres:16-alpine
-    container_name: sovrack-dev-postgres
-    environment: { POSTGRES_USER: dev, POSTGRES_PASSWORD: dev, POSTGRES_DB: deploy_automation }
-    ports: ["127.0.0.1:15432:5432"]
-    healthcheck: { test: ["CMD-SHELL","pg_isready -U dev"], interval: 10s, retries: 5 }
-  redis:
-    image: redis:7-alpine
-    container_name: sovrack-dev-redis
-    command: ["redis-server","--requirepass","redis_dev","--appendonly","yes"]
-    ports: ["127.0.0.1:16379:6379"]
-    healthcheck: { test: ["CMD-SHELL","redis-cli -a redis_dev ping | grep PONG"], interval: 10s, retries: 5 }
-networks:
-  default:
-    name: sovrack-dev-net
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+
+  nginx:
+    image: nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    ports:
+      - "127.0.0.1:13080:80"
+    volumes:
+      - ./nginx/proxy.dev.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/security-headers.conf:/etc/nginx/conf.d/security-headers.conf:ro
+    environment:
+      DOMAIN: localhost
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/backend-api/health/ready >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  local-pgdata:
+  local-redisdata:

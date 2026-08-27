@@ -89,6 +89,27 @@ Le script applique cet ordre :
 Une erreur après l'ouverture de la maintenance laisse volontairement les
 writers arrêtés. Aucun rollback d'image automatique n'est tenté.
 
+## Bootstrap et administration staff
+
+Après la toute première release uniquement, créer le premier `ROOT` avec un
+secret éphémère :
+
+```bash
+sudo -u deploy make -C /srv/sovrack/current bootstrap-staff \
+  BASE_DIR=/srv/sovrack EMAIL=root@example.com
+```
+
+La commande refuse les releases non versionnées. En automatisation, le mot de
+passe peut être lu depuis `STAFF_BOOTSTRAP_PASSWORD_FILE`, fichier régulier non
+symbolique en mode `0400` ou `0600`, puis supprimé de façon sécurisée par
+l'opérateur. Ne jamais définir `STAFF_ROOT_PASSWORD` dans le fichier partagé.
+
+Le `ROOT` configure ensuite SMTP dans `/staff/settings/email`. Le mot de passe
+reste en écriture seule et chiffré avec `CONFIG_SECRET`. Un `ADMIN` peut voir
+l'état sûr et exécuter le test, mais seul un `ROOT` peut modifier la
+configuration ou inviter un autre membre du staff. Les invitations expirent
+après 24 heures, sont à usage unique et ne stockent que le hachage du jeton.
+
 ## Rollback de schéma
 
 Un rollback après migration incompatible restaure obligatoirement la base et
