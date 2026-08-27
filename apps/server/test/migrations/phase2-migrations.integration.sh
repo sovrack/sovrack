@@ -56,6 +56,31 @@ postgres_port="${port_binding##*:}"
 base_url="postgresql://postgres:postgres@${database_host}:${postgres_port}"
 export CONFIG_SECRET="integration-config-secret-at-least-32-characters"
 
+# pg_isready above proves that PostgreSQL is accepting connections inside the
+# container. With Docker-in-Docker, however, the published port/NAT rule can
+# become reachable from the job a few seconds later (especially after a cold
+# image pull). Prove that second boundary before Prisma uses the host port.
+published_port_ready=false
+for _attempt in $(seq 1 30); do
+  if node -e '
+    const net = require("node:net");
+    const socket = net.createConnection({ host: process.argv[1], port: Number(process.argv[2]) });
+    const fail = () => { socket.destroy(); process.exit(1); };
+    socket.setTimeout(1000);
+    socket.once("connect", () => { socket.end(); process.exit(0); });
+    socket.once("timeout", fail);
+    socket.once("error", fail);
+  ' "$database_host" "$postgres_port"; then
+    published_port_ready=true
+    break
+  fi
+  sleep 1
+done
+[ "$published_port_ready" = "true" ] || {
+  echo "Le port PostgreSQL publié n'est pas joignable depuis le job CI."
+  exit 1
+}
+
 # Chemin base vide : les deux pré-gardes doivent accepter l'absence de tables,
 # puis toutes les migrations doivent s'appliquer.
 export DATABASE_URL="${base_url}/phase2_fresh"
