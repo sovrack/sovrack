@@ -114,7 +114,7 @@ export class WorkspaceInvitationsService {
 
     const frontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, '') ?? '';
     const link = `${frontendUrl}/invitations/accept?token=${encodeURIComponent(token)}`;
-    await this.smtp.sendBillingEmail(
+    await this.smtp.sendTransactionalEmail(
       email,
       `Invitation au workspace ${invitation.team.name}`,
       `<p>Vous avez été invité à rejoindre <strong>${this.escapeHtml(invitation.team.name)}</strong>.</p><p><a href="${this.escapeHtml(link)}">Accepter l'invitation</a></p><p>Cette invitation expire dans 7 jours.</p>`,

@@ -2,6 +2,7 @@ import {
   ArgumentsHost,
   BadRequestException,
   HttpException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { LoggerService } from '../shared/logger/logger.service';
 import { AllExceptionsFilter } from './http-exception.filter';
@@ -91,6 +92,18 @@ describe('AllExceptionsFilter', () => {
       expect.objectContaining({
         code: 'LAST_OWNER_REQUIRED',
         requestId: 'req-test-1',
+      }),
+    );
+  });
+
+  it('distinguishes an explicit service outage from an unexpected 500', () => {
+    const { host, json } = makeHost();
+    filter.catch(new ServiceUnavailableException('smtp unavailable'), host);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 503,
+        code: 'HTTP_503',
+        message: 'Une erreur interne est survenue. Réessayez plus tard.',
       }),
     );
   });

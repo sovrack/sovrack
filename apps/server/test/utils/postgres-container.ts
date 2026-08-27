@@ -33,7 +33,6 @@ export async function startTestDatabase(): Promise<{
     .withDatabase('deployautomation_e2e')
     .withUsername('deployautomation')
     .withPassword('test_pwd')
-    .withReuse()
     .start();
 
   const url = pg.getConnectionUri() + '?schema=public';

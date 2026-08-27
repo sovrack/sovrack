@@ -1,17 +1,24 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  MaxLength,
+  MinLength,
   IsEmail,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
-  MinLength,
 } from 'class-validator';
 import { PlatformRole, Role } from '@prisma/client';
+import {
+  SOVRACK_PASSWORD_OPENAPI,
+  IsSovrackPassword,
+  NormalizeEmail,
+} from '../../../shared/validation/identity-validation.util';
 
 export class StaffLoginDto {
   @ApiProperty({ example: 'admin@sovrack.tech' })
+  @NormalizeEmail()
   @IsEmail()
   email: string;
 
@@ -21,18 +28,36 @@ export class StaffLoginDto {
   password: string;
 }
 
-export class CreateStaffDto {
-  @ApiProperty({ example: 'nouveau.staff@sovrack.tech' })
+export class StaffForgotPasswordDto {
+  @ApiProperty({ example: 'admin@sovrack.tech' })
+  @NormalizeEmail()
+  @IsEmail()
+  email: string;
+}
+
+export class StaffResetPasswordDto {
+  @ApiProperty({ example: 'admin@sovrack.tech' })
+  @NormalizeEmail()
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: '8-Chars-Min!' })
+  @ApiProperty({ example: '12345678', minLength: 8, maxLength: 8 })
   @IsString()
-  @MinLength(8)
-  @Matches(/^(?=.*[A-Za-z])(?=.*\d).+$/, {
-    message: 'Le mot de passe doit contenir au moins une lettre et un chiffre',
+  @Matches(/^\d{8}$/, {
+    message: 'Le code doit contenir exactement 8 chiffres',
   })
+  code: string;
+
+  @ApiProperty(SOVRACK_PASSWORD_OPENAPI)
+  @IsSovrackPassword()
   password: string;
+}
+
+export class CreateStaffDto {
+  @ApiProperty({ example: 'nouveau.staff@sovrack.tech' })
+  @NormalizeEmail()
+  @IsEmail()
+  email: string;
 
   @ApiProperty({ example: 'Sami Ben Salah' })
   @IsString()
@@ -43,6 +68,18 @@ export class CreateStaffDto {
   @IsOptional()
   @IsEnum(PlatformRole)
   role?: PlatformRole;
+}
+
+export class AcceptStaffInvitationDto {
+  @ApiProperty({ description: "Jeton reçu dans l'email d'invitation" })
+  @IsString()
+  @MinLength(32)
+  @MaxLength(256)
+  token: string;
+
+  @ApiProperty(SOVRACK_PASSWORD_OPENAPI)
+  @IsSovrackPassword()
+  password: string;
 }
 
 export class UpdateStaffDto {
@@ -64,10 +101,12 @@ export class UpdateStaffDto {
   @IsNotEmpty()
   fullName?: string;
 
-  @ApiPropertyOptional({ description: 'Nouveau mot de passe (optionnel)' })
+  @ApiPropertyOptional({
+    description: 'Nouveau mot de passe (optionnel)',
+    ...SOVRACK_PASSWORD_OPENAPI,
+  })
   @IsOptional()
-  @IsString()
-  @MinLength(8)
+  @IsSovrackPassword()
   password?: string;
 }
 

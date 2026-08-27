@@ -102,9 +102,9 @@ describe('Email verification registration (e2e)', () => {
         code,
         registrationId: registration.body.registrationId,
       })
-      .expect(201);
+      .expect(200);
 
-    expect(verify.body.access_token).toBeDefined();
+    expect(verify.body.access_token).toBeUndefined();
     expect(verify.headers['set-cookie']).toBeDefined();
     expect(verify.body.user.email).toBe(email);
     expect(verify.body.user.password).toBeUndefined();

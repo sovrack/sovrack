@@ -6,12 +6,14 @@ import {
   IsUUID,
   Matches,
 } from 'class-validator';
+import { NormalizeEmail } from '../../../../shared/validation/identity-validation.util';
 
 /**
  * DTO de vérification d'email — reçoit le code à 6 chiffres envoyé à l'adresse.
  */
 export class VerifyEmailDto {
   @ApiProperty({ example: 'dev@sovrack.tech' })
+  @NormalizeEmail()
   @IsEmail({}, { message: 'Email invalide' })
   @IsNotEmpty({ message: 'Email requis' })
   email: string;

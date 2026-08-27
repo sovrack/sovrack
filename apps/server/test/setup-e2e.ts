@@ -27,6 +27,7 @@ import { JwtService } from '../src/shared/jwt/jwt.service';
 import { AnsibleRunnerService } from '../src/adapters/provisioning/ansible-runner.service';
 import { DeploymentsGateway } from '../src/modules/deployments/gateways/deployments.gateway';
 import { DeploymentsProcessor } from '../src/modules/deployments/processors/deployments.processor';
+import { NotificationsSmtpService } from '../src/modules/notifications/notifications-smtp.service';
 import { DockerDeployExecutorService } from '../src/modules/deployments/core/docker-deploy-executor.service';
 import {
   DockerApiMockHandle,
@@ -53,6 +54,7 @@ export interface E2EContext {
 
 const TRUNCATE_ROOTS = [
   'User',
+  'Staff',
   'Project',
   'Server',
   'Team',
@@ -117,6 +119,16 @@ export async function bootstrapE2E(): Promise<E2EContext> {
       emitStatus: jest.fn(),
       emitFinished: jest.fn(),
       emitLog: jest.fn(),
+    })
+    // Unit/E2E suites do not depend on an Internet SMTP server. A separate
+    // Mailpit integration smoke verifies real SMTP transport locally.
+    .overrideProvider(NotificationsSmtpService)
+    .useValue({
+      sendTransactionalEmail: jest.fn().mockResolvedValue(undefined),
+      sendBillingEmail: jest.fn().mockResolvedValue(undefined),
+      sendSimpleEmail: jest.fn().mockResolvedValue(undefined),
+      sendDeploymentEmail: jest.fn().mockResolvedValue(undefined),
+      sendDockerConnectionEmail: jest.fn().mockResolvedValue(undefined),
     })
     // e2e tests business logic, not rate limiting — disable the global throttler
     // so rapid-fire test requests (matrix deploys) aren't 429'd by per-route caps.

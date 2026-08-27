@@ -19,6 +19,10 @@ import { DockerConnectionNotificationsListener } from './listeners/docker-connec
     NotificationsService,
     DockerConnectionNotificationsListener,
   ],
-  exports: [NotificationsService, NotificationsSmtpService],
+  exports: [
+    NotificationsService,
+    NotificationsSmtpService,
+    NotificationsConfigService,
+  ],
 })
 export class NotificationsModule {}

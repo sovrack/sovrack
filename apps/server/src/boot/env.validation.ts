@@ -29,7 +29,7 @@ const envSchema = z
     AUTH_COOKIE_MAX_AGE_MS: z.string().optional(),
 
     // ── CORS / frontend ──────────────────────────────────────────────────────
-    FRONTEND_URL: z.string().default('http://localhost:3000'),
+    FRONTEND_URL: z.url().default('http://localhost:3000'),
     FRONTEND_URLS: z.string().optional(),
 
     // ── Google OAuth (Se connecter avec Google) ───────────────────────────────
@@ -87,12 +87,23 @@ const envSchema = z
     // ── Email (factures, notifications de facturation) ───────────────────────
     // Optionnels : si absents, les mails de facturation sont désactivés
     // (le paiement est toujours possible depuis le dashboard).
+    SMTP_CONFIG_SOURCE: z.enum(['database', 'environment']).optional(),
+    SMTP_ENABLED: z.enum(['true', 'false']).optional(),
     SMTP_HOST: z.string().optional(),
-    SMTP_PORT: z.string().optional(),
+    SMTP_PORT: z
+      .string()
+      .regex(/^\d+$/)
+      .refine((value) => Number(value) >= 1 && Number(value) <= 65_535, {
+        message: 'SMTP_PORT doit être compris entre 1 et 65535',
+      })
+      .optional(),
+    SMTP_SECURITY: z.enum(['none', 'starttls', 'tls']).optional(),
     SMTP_SECURE: z.string().optional(),
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
     SMTP_FROM: z.string().optional(),
+    SMTP_TO: z.string().optional(),
+    SMTP_ALLOWED_HOSTS: z.string().optional(),
 
     // ── Paiement (Stripe) ────────────────────────────────────────────────────
     // Optionnels : sans clé, le billing fonctionne en mode facturation manuelle
@@ -121,6 +132,33 @@ const envSchema = z
         message:
           'STAFF_JWT_SECRET doit être un secret INDÉPENDANT de JWT_SECRET (génère-le avec `openssl rand -hex 48`).',
       });
+    }
+
+    if (
+      env.SMTP_CONFIG_SOURCE === 'environment' &&
+      env.SMTP_ENABLED === 'true'
+    ) {
+      if (!env.SMTP_HOST?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['SMTP_HOST'],
+          message: 'SMTP_HOST est requis quand SMTP est activé',
+        });
+      }
+      if (!env.SMTP_FROM?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['SMTP_FROM'],
+          message: 'SMTP_FROM est requis quand SMTP est activé',
+        });
+      }
+      if (env.SMTP_USER?.trim() && !env.SMTP_PASS) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['SMTP_PASS'],
+          message: 'SMTP_PASS est requis avec SMTP_USER',
+        });
+      }
     }
   });
 

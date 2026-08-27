@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   NotFoundException,
   UnauthorizedException,
@@ -10,6 +11,8 @@ import { StaffService } from './staff.service';
 import { StaffAuditService } from './staff-audit.service';
 import { ConfigService } from '@nestjs/config';
 import { AccountDeletionService } from '../iam/authorization/account-deletion.service';
+import { NotificationsSmtpService } from '../notifications/notifications-smtp.service';
+import { StaffOperationsService } from './staff-operations.service';
 import type { Staff, User } from '@prisma/client';
 
 const staffFixture: Staff = {
@@ -56,6 +59,16 @@ describe('StaffService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
+    staffSession: {
+      create: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    staffInvitation: {
+      create: jest.fn(),
+      upsert: jest.fn(),
+      findUnique: jest.fn(),
+      updateMany: jest.fn(),
+    },
     user: {
       findUnique: jest.fn(),
       count: jest.fn(),
@@ -85,21 +98,36 @@ describe('StaffService', () => {
   };
   const config = {
     getOrThrow: jest.fn(() => 'customer-jwt-secret-at-least-32-chars'),
+    get: jest.fn((_key: string, fallback: string) => fallback),
   };
   const accountDeletion = {
     deleteIdentity: jest.fn(async () => undefined),
+  };
+  const notifications = {
+    sendTransactionalEmail: jest.fn(async () => undefined),
   };
   let service: StaffService;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.$transaction.mockImplementation(
+      async (callback: (transaction: typeof prisma) => Promise<unknown>) =>
+        callback(prisma),
+    );
     service = new StaffService(
       prisma as never,
       jwt as unknown as JwtService,
       passwordHasher as unknown as PasswordHasher,
       audit as unknown as StaffAuditService,
       config as unknown as ConfigService,
-      accountDeletion as unknown as AccountDeletionService,
+      new StaffOperationsService(
+        prisma as never,
+        jwt as unknown as JwtService,
+        audit as unknown as StaffAuditService,
+        config as unknown as ConfigService,
+        accountDeletion as unknown as AccountDeletionService,
+      ),
+      notifications as unknown as NotificationsSmtpService,
     );
   });
 
@@ -120,7 +148,19 @@ describe('StaffService', () => {
       expect(result.staff).not.toHaveProperty('password');
       expect(result.staff).not.toHaveProperty('mfaSecret');
       expect(jwt.sign).toHaveBeenCalledWith(
-        expect.objectContaining({ role: 'ROOT', id: 'staff-1' }),
+        expect.objectContaining({
+          role: 'ROOT',
+          id: 'staff-1',
+          sid: expect.any(String),
+        }),
+      );
+      expect(prisma.staffSession.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            staffId: 'staff-1',
+            tokenHash: expect.any(String),
+          }),
+        }),
       );
       expect(audit.record).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'staff.login', ip: '::1' }),
@@ -178,7 +218,6 @@ describe('StaffService', () => {
       const result = await service.createStaff(
         {
           email: 'op@sovrack.tn',
-          password: 'Password1',
           fullName: 'Op',
         },
         'staff-1',
@@ -189,13 +228,19 @@ describe('StaffService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             role: PlatformRole.OPERATOR,
+            status: StaffStatus.INVITED,
             email: 'op@sovrack.tn',
             createdBy: 'staff-1',
           }),
         }),
       );
       expect(audit.record).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'staff.create' }),
+        expect.objectContaining({ action: 'staff.invite' }),
+      );
+      expect(notifications.sendTransactionalEmail).toHaveBeenCalledWith(
+        staffFixture.email,
+        expect.stringContaining('Invitation'),
+        expect.stringContaining('/staff/activate?token='),
       );
       expect(result).not.toHaveProperty('password');
     });
@@ -204,10 +249,113 @@ describe('StaffService', () => {
       prisma.staff.findUnique.mockResolvedValue(staffFixture);
       await expect(
         service.createStaff(
-          { email: 'admin@sovrack.tn', password: 'Password1', fullName: 'X' },
+          { email: 'admin@sovrack.tn', fullName: 'X' },
           'staff-1',
         ),
       ).rejects.toThrow('existe déjà');
+    });
+  });
+
+  describe('staff invitation', () => {
+    it('active une invitation valide une seule fois', async () => {
+      prisma.staffInvitation.findUnique.mockResolvedValue({
+        id: 'invite-1',
+        staffId: staffFixture.id,
+        tokenHash: 'hash',
+        expiresAt: new Date(Date.now() + 60_000),
+        usedAt: null,
+        staff: { ...staffFixture, status: StaffStatus.INVITED },
+      });
+      prisma.staffInvitation.updateMany.mockResolvedValue({ count: 1 });
+      prisma.staff.update.mockResolvedValue(staffFixture);
+
+      const result = await service.acceptStaffInvitation(
+        { token: 'a'.repeat(43), password: 'Strong-Password-2026!' },
+        '::1',
+      );
+
+      expect(result.message).toContain('Invitation acceptée');
+      expect(prisma.staff.update).toHaveBeenCalledWith({
+        where: { id: staffFixture.id },
+        data: {
+          password: expect.any(String),
+          status: StaffStatus.ACTIVE,
+        },
+      });
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'staff.invitation.accept' }),
+      );
+    });
+
+    it('refuse une invitation expirée', async () => {
+      prisma.staffInvitation.findUnique.mockResolvedValue({
+        id: 'invite-1',
+        staffId: staffFixture.id,
+        expiresAt: new Date(Date.now() - 1),
+        usedAt: null,
+        staff: { ...staffFixture, status: StaffStatus.INVITED },
+      });
+
+      await expect(
+        service.acceptStaffInvitation({
+          token: 'a'.repeat(43),
+          password: 'Strong-Password-2026!',
+        }),
+      ).rejects.toThrow('invalide ou expirée');
+    });
+  });
+
+  describe('updateStaff', () => {
+    it('révoque immédiatement les sessions après un changement de rôle', async () => {
+      prisma.staff.findUnique.mockResolvedValue(staffFixture);
+      prisma.staff.count.mockResolvedValue(2);
+      prisma.staff.update.mockResolvedValue({
+        ...staffFixture,
+        role: PlatformRole.ADMIN,
+      });
+
+      const result = await service.updateStaff(
+        staffFixture.id,
+        { role: PlatformRole.ADMIN },
+        'other-root',
+        '::1',
+      );
+
+      expect(result.role).toBe(PlatformRole.ADMIN);
+      expect(prisma.staffSession.updateMany).toHaveBeenCalledWith({
+        where: { staffId: staffFixture.id, revokedAt: null },
+        data: { revokedAt: expect.any(Date) },
+      });
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        isolationLevel: 'Serializable',
+      });
+    });
+
+    it('interdit de retirer le dernier ROOT actif', async () => {
+      prisma.staff.findUnique.mockResolvedValue(staffFixture);
+      prisma.staff.count.mockResolvedValue(1);
+
+      await expect(
+        service.updateStaff(
+          staffFixture.id,
+          { status: StaffStatus.DISABLED },
+          'other-root',
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.staff.update).not.toHaveBeenCalled();
+    });
+
+    it('interdit à un ROOT de se rétrograder lui-même', async () => {
+      prisma.staff.findUnique.mockResolvedValue(staffFixture);
+      prisma.staff.count.mockResolvedValue(2);
+
+      await expect(
+        service.updateStaff(
+          staffFixture.id,
+          { role: PlatformRole.ADMIN },
+          staffFixture.id,
+        ),
+      ).rejects.toThrow('propre session');
     });
   });
 

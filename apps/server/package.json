@@ -31,6 +31,7 @@
     "prisma:migrate:status": "prisma migrate status",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "prisma:seed:local": "node prisma/seed-local.js",
     "openapi:export": "nest build && node dist/scripts/export-openapi.js",
     "test": "jest",
     "test:migrations:phase2": "npm run build && ./test/migrations/phase2-migrations.integration.sh",

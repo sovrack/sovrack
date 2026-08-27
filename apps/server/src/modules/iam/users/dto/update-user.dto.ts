@@ -1,12 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 import {
-  IsBoolean,
-  IsEnum,
-  IsOptional,
-  IsString,
-  MinLength,
-} from 'class-validator';
+  SOVRACK_PASSWORD_OPENAPI,
+  IsSovrackPassword,
+} from '../../../../shared/validation/identity-validation.util';
 
 /**
  * DTO de mise à jour utilisateur.
@@ -34,14 +32,12 @@ export class UpdateUserDto {
   })
   currentPassword?: string;
 
-  @ApiPropertyOptional({ example: 'NouveauMotDePasse123!' })
+  @ApiPropertyOptional({
+    example: 'NouveauMotDePasse123!',
+    ...SOVRACK_PASSWORD_OPENAPI,
+  })
   @IsOptional()
-  @IsString({
-    message: 'Le nouveau mot de passe doit être une chaîne de caractères',
-  })
-  @MinLength(8, {
-    message: 'Le nouveau mot de passe doit contenir au moins 8 caractères',
-  })
+  @IsSovrackPassword()
   newPassword?: string;
 
   @ApiPropertyOptional({ example: 'NouveauMotDePasse123!' })

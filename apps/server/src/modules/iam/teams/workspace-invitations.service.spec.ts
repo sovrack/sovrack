@@ -26,7 +26,7 @@ describe('WorkspaceInvitationsService', () => {
     };
   };
   let workspaceAccess: { assertWorkspaceAction: jest.Mock };
-  let smtp: { sendBillingEmail: jest.Mock };
+  let smtp: { sendTransactionalEmail: jest.Mock };
   let service: WorkspaceInvitationsService;
 
   beforeEach(() => {
@@ -59,7 +59,7 @@ describe('WorkspaceInvitationsService', () => {
         workspaceRole: WorkspaceRole.OWNER,
       }),
     };
-    smtp = { sendBillingEmail: jest.fn().mockResolvedValue(undefined) };
+    smtp = { sendTransactionalEmail: jest.fn().mockResolvedValue(undefined) };
     service = new WorkspaceInvitationsService(
       prisma as unknown as PrismaService,
       workspaceAccess as unknown as WorkspaceAccessService,
@@ -78,7 +78,7 @@ describe('WorkspaceInvitationsService', () => {
       email: string;
       tokenHash: string;
     };
-    const emailHtml = smtp.sendBillingEmail.mock.calls[0][2] as string;
+    const emailHtml = smtp.sendTransactionalEmail.mock.calls[0][2] as string;
     const encodedToken = emailHtml.match(/token=([^"&]+)/)?.[1];
     expect(encodedToken).toBeDefined();
     const rawToken = decodeURIComponent(encodedToken as string);

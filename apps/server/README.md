@@ -77,3 +77,17 @@ npx prisma validate
   sits in front of the backend — otherwise every request appears to come
   from the proxy's IP, which breaks the per-IP login rate-limiter for all
   users at once.
+
+## Staff access and SMTP
+
+- The first `ROOT` account is created once by the infrastructure repository's
+  `bootstrap-staff` command. Its password must not live in a dotenv file.
+- Subsequent staff accounts are invited by a `ROOT` from `/staff/users`. The
+  email contains a single-use activation link valid for 24 hours; no initial
+  password is shared by an administrator.
+- `ROOT` can edit SMTP at `/staff/settings/email`. `ADMIN` can inspect the safe
+  configuration and send a test email. The API never returns the SMTP password.
+- SMTP resolves one complete snapshot from either the environment or the
+  encrypted database configuration. It never combines credentials from both.
+- A production SMTP host should be restricted with `SMTP_ALLOWED_HOSTS`; use
+  `starttls` on port 587 or `tls` on port 465 according to the provider.

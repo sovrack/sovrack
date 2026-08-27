@@ -254,11 +254,10 @@ export class EmailVerificationService {
     email: string,
     code: string,
   ): Promise<void> {
-    try {
-      await this.smtp.sendBillingEmail(
-        email,
-        'Votre code de vérification',
-        `
+    await this.smtp.sendTransactionalEmail(
+      email,
+      'Votre code de vérification',
+      `
         <div style="font-family:sans-serif;max-width:520px;margin:auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
           <div style="background:#1e3a8a;padding:16px 24px">
             <span style="color:#fff;font-weight:bold;font-size:16px">Sovrack</span>
@@ -278,14 +277,7 @@ export class EmailVerificationService {
           </div>
         </div>
         `,
-      );
-      this.logger.log(`Verification email sent to ${email} (${userId})`);
-    } catch (err) {
-      this.logger.warn(
-        `Verification email failed for ${email}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-    }
+    );
+    this.logger.log(`Verification email accepted for delivery (${userId})`);
   }
 }

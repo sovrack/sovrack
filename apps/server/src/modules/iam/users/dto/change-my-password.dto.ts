@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, MinLength } from 'class-validator';
+import { IsString } from 'class-validator';
+import {
+  SOVRACK_PASSWORD_OPENAPI,
+  IsSovrackPassword,
+} from '../../../../shared/validation/identity-validation.util';
 
 export class ChangeMyPasswordDto {
   @ApiProperty({ example: 'AncienMotDePasse123!' })
@@ -8,13 +12,11 @@ export class ChangeMyPasswordDto {
   })
   currentPassword!: string;
 
-  @ApiProperty({ example: 'NouveauMotDePasse123!' })
-  @IsString({
-    message: 'Le nouveau mot de passe doit être une chaîne de caractères',
+  @ApiProperty({
+    example: 'NouveauMotDePasse123!',
+    ...SOVRACK_PASSWORD_OPENAPI,
   })
-  @MinLength(8, {
-    message: 'Le nouveau mot de passe doit contenir au moins 8 caractères',
-  })
+  @IsSovrackPassword()
   newPassword!: string;
 
   @ApiProperty({ example: 'NouveauMotDePasse123!' })

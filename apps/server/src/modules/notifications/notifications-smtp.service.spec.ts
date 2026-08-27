@@ -1,22 +1,33 @@
-import {
-  NotificationsConfigService,
-  CONFIG_KEYS,
-} from './notifications-config.service';
+import { NotificationsConfigService } from './notifications-config.service';
+import type { SmtpRuntimeConfig } from './notifications-config.service';
 import { NotificationsSmtpService } from './notifications-smtp.service';
 import type { DeploymentNotificationPayload } from './notifications.service';
 
 const mockSendMail = jest.fn().mockResolvedValue({});
+const mockVerify = jest.fn().mockResolvedValue(true);
 const mockCreateTransport = jest
   .fn()
-  .mockReturnValue({ sendMail: mockSendMail });
+  .mockReturnValue({ sendMail: mockSendMail, verify: mockVerify });
 
 jest.mock('nodemailer', () => ({
   createTransport: (...args: unknown[]) => mockCreateTransport(...args),
 }));
 
 describe('NotificationsSmtpService', () => {
-  let configGet: jest.Mock;
+  let getSmtpRuntimeConfig: jest.Mock;
   let service: NotificationsSmtpService;
+
+  const disabledSmtp: SmtpRuntimeConfig = {
+    enabled: false,
+    source: 'none',
+    host: '',
+    port: 587,
+    security: 'starttls',
+    user: '',
+    pass: '',
+    from: '',
+    to: '',
+  };
 
   const deployPayload: DeploymentNotificationPayload = {
     deploymentId: 'd1',
@@ -27,23 +38,27 @@ describe('NotificationsSmtpService', () => {
     triggeredBy: 'ci',
   };
 
-  const withSmtp = (overrides: Record<string, string> = {}) => {
-    const defaults: Record<string, string> = {
-      [CONFIG_KEYS.SMTP_HOST]: 'smtp.local',
-      [CONFIG_KEYS.SMTP_TO]: 'to@test.com',
-    };
-    const map = { ...defaults, ...overrides };
-    configGet.mockImplementation((k: string) =>
-      Promise.resolve(map[k] ?? null),
-    );
+  const withSmtp = (overrides: Partial<SmtpRuntimeConfig> = {}) => {
+    getSmtpRuntimeConfig.mockResolvedValue({
+      ...disabledSmtp,
+      enabled: true,
+      source: 'database',
+      host: 'smtp.local',
+      to: 'to@test.com',
+      ...overrides,
+    });
   };
 
   beforeEach(() => {
     mockSendMail.mockClear();
     mockCreateTransport.mockClear();
     mockSendMail.mockResolvedValue({});
-    configGet = jest.fn().mockResolvedValue(null);
-    const config = { get: configGet } as unknown as NotificationsConfigService;
+    mockVerify.mockClear();
+    mockVerify.mockResolvedValue(true);
+    getSmtpRuntimeConfig = jest.fn().mockResolvedValue(disabledSmtp);
+    const config = {
+      getSmtpRuntimeConfig,
+    } as unknown as NotificationsConfigService;
     service = new NotificationsSmtpService(config);
   });
 
@@ -54,9 +69,7 @@ describe('NotificationsSmtpService', () => {
     });
 
     it('is a no-op when SMTP_TO is missing (host configured)', async () => {
-      configGet.mockImplementation((k: string) =>
-        Promise.resolve(k === CONFIG_KEYS.SMTP_HOST ? 'smtp.local' : null),
-      );
+      withSmtp({ to: '' });
       await service.sendSimpleEmail('Subject', 'body', 'ctx');
       expect(mockSendMail).not.toHaveBeenCalled();
     });
@@ -75,6 +88,68 @@ describe('NotificationsSmtpService', () => {
       await expect(
         service.sendSimpleEmail('Subject', 'body', 'ctx'),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('sendTransactionalEmail', () => {
+    it('fails explicitly when SMTP is not configured', async () => {
+      await expect(
+        service.sendTransactionalEmail(
+          'client@example.test',
+          'Verify',
+          '<p>123456</p>',
+        ),
+      ).rejects.toThrow("service d'envoi d'email");
+      expect(mockSendMail).not.toHaveBeenCalled();
+    });
+
+    it('sends to the requested recipient when SMTP is configured', async () => {
+      withSmtp({ from: 'noreply@example.test' });
+      await service.sendTransactionalEmail(
+        'client@example.test',
+        'Verify',
+        '<p>123456</p>',
+      );
+      expect(mockSendMail).toHaveBeenCalledWith({
+        from: 'noreply@example.test',
+        to: 'client@example.test',
+        subject: '[Sovrack] Verify',
+        html: '<p>123456</p>',
+      });
+    });
+
+    it('does not report success when the SMTP server rejects the message', async () => {
+      withSmtp();
+      mockSendMail.mockRejectedValue(new Error('connection refused'));
+      await expect(
+        service.sendTransactionalEmail(
+          'client@example.test',
+          'Verify',
+          '<p>123456</p>',
+        ),
+      ).rejects.toThrow("service d'envoi d'email");
+    });
+  });
+
+  describe('testConfiguration', () => {
+    it('verifies the transport and sends an actual test message', async () => {
+      withSmtp({ from: 'noreply@example.test' });
+
+      await service.testConfiguration('staff@example.test');
+
+      expect(mockVerify).toHaveBeenCalledTimes(1);
+      expect(mockSendMail).toHaveBeenCalledWith(
+        expect.objectContaining({ to: 'staff@example.test' }),
+      );
+    });
+
+    it('does not expose provider errors to the API caller', async () => {
+      withSmtp();
+      mockVerify.mockRejectedValue(new Error('535 invalid password'));
+
+      await expect(
+        service.testConfiguration('staff@example.test'),
+      ).rejects.toThrow('test SMTP a échoué');
     });
   });
 
@@ -150,6 +225,26 @@ describe('NotificationsSmtpService', () => {
   });
 
   describe('transporter caching', () => {
+    it('configures bounded SMTP network timeouts', async () => {
+      withSmtp();
+      await service.sendDeploymentEmail(deployPayload);
+      expect(mockCreateTransport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          connectionTimeout: 5_000,
+          greetingTimeout: 5_000,
+          socketTimeout: 10_000,
+        }),
+      );
+    });
+
+    it('uses explicit STARTTLS without implicit TLS', async () => {
+      withSmtp({ security: 'starttls' });
+      await service.sendDeploymentEmail(deployPayload);
+      expect(mockCreateTransport).toHaveBeenCalledWith(
+        expect.objectContaining({ secure: false, requireTLS: true }),
+      );
+    });
+
     it('reuses the transporter when SMTP config is unchanged', async () => {
       withSmtp();
       await service.sendDeploymentEmail(deployPayload);

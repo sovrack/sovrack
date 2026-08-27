@@ -1,8 +1,11 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -10,22 +13,39 @@ import {
   Req,
   Res,
   UseGuards,
+  Put,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { PlatformRole, type Staff } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
+import type { StaffJwtPayload } from './staff-jwt.strategy';
 import { GetStaff } from './staff.decorators';
 import { Public } from '../../shared/decorators/public.decorator';
-import { StaffJwtAuthGuard, StaffRoles, StaffRolesGuard } from './staff.guards';
+import {
+  StaffJwtAuthGuard,
+  StaffPublic,
+  StaffRoles,
+  StaffRolesGuard,
+} from './staff.guards';
 import { StaffService } from './staff.service';
+import { StaffPasswordRecoveryService } from './staff-password-recovery.service';
 import { StaffAuditService } from './staff-audit.service';
 import {
+  AcceptStaffInvitationDto,
   CreateStaffDto,
+  StaffForgotPasswordDto,
   StaffLoginDto,
+  StaffResetPasswordDto,
   StaffUpdateUserDto,
   UpdateStaffDto,
 } from './dto/staff.dto';
+import {
+  TestStaffEmailSettingsDto,
+  UpdateStaffEmailSettingsDto,
+} from './dto/staff-email-settings.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   buildStaffAuthCookieClearOptions,
   buildStaffAuthCookieOptions,
@@ -37,46 +57,80 @@ import {
 } from '../../shared/http/auth-cookie.util';
 
 function clientIp(req: Request): string | null {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (Array.isArray(forwarded)) return forwarded[0] ?? null;
-  if (forwarded) return forwarded.split(',')[0].trim() ?? null;
-  return req.socket?.remoteAddress ?? null;
+  return req.ip || req.socket?.remoteAddress || null;
 }
 
 @ApiTags('Back-office (staff)')
 @Public()
+@UseGuards(StaffJwtAuthGuard)
 @Controller('staff')
 export class StaffController {
   constructor(
     private readonly staffService: StaffService,
+    private readonly passwordRecovery: StaffPasswordRecoveryService,
     private readonly configService: ConfigService,
     private readonly auditService: StaffAuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ──────────────────────────── AUTH ────────────────────────────
 
   @Post('login')
+  @StaffPublic()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiOperation({ summary: 'Login back-office (staff)' })
   async login(
     @Body() dto: StaffLoginDto,
     @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.staffService.login(dto, clientIp(req));
+    const result = await this.staffService.login(
+      dto,
+      clientIp(req),
+      req.get('user-agent'),
+    );
     response.cookie(
       resolveStaffAuthCookieName(this.configService),
       result.access_token,
       buildStaffAuthCookieOptions(this.configService),
     );
-    return result;
+    return { staff: result.staff };
+  }
+
+  @Post('forgot-password')
+  @StaffPublic()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 600_000, limit: 3 } })
+  @ApiOperation({ summary: 'Demander un code de récupération Staff' })
+  forgotPassword(@Body() dto: StaffForgotPasswordDto, @Req() req: Request) {
+    return this.passwordRecovery.forgotPassword(dto, clientIp(req));
+  }
+
+  @Post('reset-password')
+  @StaffPublic()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 600_000, limit: 5 } })
+  @ApiOperation({ summary: 'Réinitialiser le mot de passe Staff' })
+  resetPassword(@Body() dto: StaffResetPasswordDto, @Req() req: Request) {
+    return this.passwordRecovery.resetPassword(dto, clientIp(req));
+  }
+
+  @Post('activate')
+  @StaffPublic()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @ApiOperation({ summary: 'Accepter une invitation staff à usage unique' })
+  acceptInvitation(@Body() dto: AcceptStaffInvitationDto, @Req() req: Request) {
+    return this.staffService.acceptStaffInvitation(dto, clientIp(req));
   }
 
   @Post('logout')
-  @UseGuards(StaffJwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout back-office (audit)' })
   async logout(
-    @GetStaff() staff: Staff,
+    @GetStaff() staff: StaffJwtPayload,
     @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -84,21 +138,20 @@ export class StaffController {
       resolveStaffAuthCookieName(this.configService),
       buildStaffAuthCookieClearOptions(this.configService),
     );
-    return this.staffService.logout(staff.id, clientIp(req));
+    return this.staffService.logout(staff.id, staff.sid, clientIp(req));
   }
 
   @Get('me')
-  @UseGuards(StaffJwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Profil du staff connecté' })
-  me(@GetStaff() staff: Staff) {
+  me(@GetStaff() staff: StaffJwtPayload) {
     return this.staffService.me(staff.id);
   }
 
   // ──────────────────────── STAFF (back-office) ────────────────────────
 
   @Get('staff')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Liste des comptes back-office' })
@@ -110,27 +163,27 @@ export class StaffController {
   }
 
   @Post('staff')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Créer un compte back-office (ROOT uniquement)' })
   createStaff(
     @Body() dto: CreateStaffDto,
-    @GetStaff() staff: Staff,
+    @GetStaff() staff: StaffJwtPayload,
     @Req() req: Request,
   ) {
     return this.staffService.createStaff(dto, staff.id, clientIp(req));
   }
 
   @Patch('staff/:id')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Modifier un compte back-office (ROOT uniquement)' })
   updateStaff(
     @Param('id') id: string,
     @Body() body: UpdateStaffDto,
-    @GetStaff() staff: Staff,
+    @GetStaff() staff: StaffJwtPayload,
     @Req() req: Request,
   ) {
     return this.staffService.updateStaff(
@@ -146,10 +199,100 @@ export class StaffController {
     );
   }
 
+  @Post('staff/:id/invitation')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(StaffRolesGuard)
+  @StaffRoles(PlatformRole.ROOT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Renvoyer l'invitation d'un compte staff" })
+  resendStaffInvitation(
+    @Param('id') id: string,
+    @GetStaff() staff: StaffJwtPayload,
+    @Req() req: Request,
+  ) {
+    return this.staffService.resendStaffInvitation(id, staff.id, clientIp(req));
+  }
+
+  // ──────────────────── CONFIGURATION EMAIL GLOBALE ─────────────────────
+
+  @Get('settings/email')
+  @UseGuards(StaffRolesGuard)
+  @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Voir la configuration SMTP sans jamais lire le secret',
+  })
+  getEmailSettings() {
+    return this.notifications.getStaffEmailSettings();
+  }
+
+  @Put('settings/email')
+  @UseGuards(StaffRolesGuard)
+  @StaffRoles(PlatformRole.ROOT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Modifier la configuration SMTP globale (ROOT)' })
+  async updateEmailSettings(
+    @Body() dto: UpdateStaffEmailSettingsDto,
+    @GetStaff() staff: StaffJwtPayload,
+    @Req() req: Request,
+  ) {
+    const before = await this.notifications.getStaffEmailSettings();
+    const after = await this.notifications.saveStaffEmailSettings(dto);
+    await this.auditService.record({
+      staffId: staff.id,
+      action: 'platform.email.settings.update',
+      resource: 'platform-email-settings',
+      before,
+      after,
+      ip: clientIp(req),
+    });
+    return after;
+  }
+
+  @Post('settings/email/test')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60_000, limit: 3 } })
+  @UseGuards(StaffRolesGuard)
+  @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Tester SMTP vers le staff connecté' })
+  async testEmailSettings(
+    @Body() dto: TestStaffEmailSettingsDto,
+    @GetStaff() staff: StaffJwtPayload,
+    @Req() req: Request,
+  ) {
+    const recipient = dto.recipient?.trim().toLowerCase() ?? staff.email;
+    if (recipient !== staff.email.toLowerCase()) {
+      throw new BadRequestException(
+        'Le test SMTP doit être envoyé au staff connecté',
+      );
+    }
+    try {
+      await this.notifications.testStaffEmailSettings(recipient);
+      await this.auditService.record({
+        staffId: staff.id,
+        action: 'platform.email.settings.test',
+        resource: 'platform-email-settings',
+        after: { recipient, status: 'success' },
+        ip: clientIp(req),
+      });
+      return { delivered: true, recipient };
+    } catch (error: unknown) {
+      await this.auditService.record({
+        staffId: staff.id,
+        action: 'platform.email.settings.test',
+        resource: 'platform-email-settings',
+        after: { recipient, status: 'failed' },
+        ip: clientIp(req),
+      });
+      throw error;
+    }
+  }
+
   // ──────────────────────────── PLATEFORME ────────────────────────────
 
   @Get('overview')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN, PlatformRole.OPERATOR)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Vue globale de la plateforme' })
@@ -158,7 +301,7 @@ export class StaffController {
   }
 
   @Get('audit-logs')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Journal d’audit du back-office (append-only)' })
@@ -170,7 +313,7 @@ export class StaffController {
   }
 
   @Get('users')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Liste des utilisateurs clients' })
@@ -182,7 +325,7 @@ export class StaffController {
   }
 
   @Get('teams')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Liste des équipes plateforme' })
@@ -194,7 +337,7 @@ export class StaffController {
   }
 
   @Get('subscriptions')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Liste des abonnements plateforme' })
@@ -203,34 +346,34 @@ export class StaffController {
   }
 
   @Patch('users/:id')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Bloquer/débloquer ou changer le rôle d’un client' })
   updateUser(
     @Param('id') id: string,
     @Body() dto: StaffUpdateUserDto,
-    @GetStaff() staff: Staff,
+    @GetStaff() staff: StaffJwtPayload,
     @Req() req: Request,
   ) {
     return this.staffService.updateUser(id, dto, staff.id, clientIp(req));
   }
 
   @Delete('users/:id')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Supprimer définitivement un compte client (ROOT)' })
   deleteUser(
     @Param('id') id: string,
-    @GetStaff() staff: Staff,
+    @GetStaff() staff: StaffJwtPayload,
     @Req() req: Request,
   ) {
     return this.staffService.deleteUser(id, staff.id, clientIp(req));
   }
 
   @Post('users/:id/impersonate')
-  @UseGuards(StaffJwtAuthGuard, StaffRolesGuard)
+  @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({
@@ -239,7 +382,7 @@ export class StaffController {
   })
   async impersonate(
     @Param('id') id: string,
-    @GetStaff() staff: Staff,
+    @GetStaff() staff: StaffJwtPayload,
     @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -255,6 +398,6 @@ export class StaffController {
       result.access_token,
       buildClientAuthCookieOptions(this.configService),
     );
-    return result;
+    return { user: result.user, expiresInSeconds: 900 };
   }
 }

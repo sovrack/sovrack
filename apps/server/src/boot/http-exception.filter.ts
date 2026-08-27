@@ -129,10 +129,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const code = (response as { code?: unknown }).code;
         if (typeof code === 'string' && code.trim()) return code.trim();
       }
+      return statusCode === 500
+        ? 'INTERNAL_SERVER_ERROR'
+        : `HTTP_${String(statusCode)}`;
     }
 
-    return statusCode >= 500
-      ? 'INTERNAL_SERVER_ERROR'
-      : `HTTP_${String(statusCode)}`;
+    return 'INTERNAL_SERVER_ERROR';
   }
 }

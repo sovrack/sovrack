@@ -60,7 +60,7 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: '^_',
         },
       ],
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
       // P1-07 safety net: catches `if (skipX) return;` early-return patterns
       // in service files. Anti-pattern that led to the original bug class.
       'deploy-automation-safety/no-skip-without-trigger': 'warn',
@@ -130,7 +130,11 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/unbound-method': 'off',
+      // Test scenarios are organized by behavior and can legitimately exceed
+      // the production-file size budget without creating runtime god objects.
+      'max-lines': 'off',
       // Mocking legitimately uses require() (jest module mocks) and async
       // signatures with no await (async-iterator `next()`, signature parity).
       '@typescript-eslint/no-require-imports': 'off',

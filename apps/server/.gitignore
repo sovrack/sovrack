@@ -9,6 +9,7 @@
 /prisma/*.d.ts
 # seed-staff est un script JS dédié (source, pas un artefact compilé) : on le versionne.
 !/prisma/seed-staff.js
+!/prisma/seed-local.js
 
 # Logs
 logs

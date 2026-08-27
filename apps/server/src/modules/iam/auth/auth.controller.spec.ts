@@ -36,7 +36,7 @@ describe('AuthController', () => {
     );
     expect(authService.login).toHaveBeenCalled();
     expect(res.cookie).toHaveBeenCalled();
-    expect(result.access_token).toBe('tok');
+    expect(result).toEqual({ user: { id: 'user-1' } });
   });
 
   it('getWsToken returns a short-lived websocket token', () => {

@@ -12,6 +12,8 @@ export interface StaffJwtPayload {
   email: string;
   sub: string;
   role: import('@prisma/client').PlatformRole;
+  /** Revocable server-side session identifier. */
+  sid: string;
 }
 
 /**
@@ -43,7 +45,7 @@ export class StaffJwtStrategy extends PassportStrategy(Strategy, 'staff-jwt') {
   }
 
   validate(payload: StaffJwtPayload): StaffJwtPayload {
-    if (!payload.id || !payload.email || !payload.role) {
+    if (!payload.id || !payload.email || !payload.role || !payload.sid) {
       throw new UnauthorizedException('Invalid staff token payload');
     }
     return payload;

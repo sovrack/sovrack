@@ -1,27 +1,27 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import {
-  IsEmail,
-  IsEnum,
-  IsNotEmpty,
-  IsString,
-  MinLength,
-} from 'class-validator';
+  SOVRACK_PASSWORD_OPENAPI,
+  IsSovrackPassword,
+  NormalizeEmail,
+} from '../../../../shared/validation/identity-validation.util';
 
 /**
  * DTO de création utilisateur par un administrateur.
  */
 export class CreateUserDto {
   @ApiProperty({ example: 'dev@deployautomation.local' })
+  @NormalizeEmail()
   @IsEmail({}, { message: 'Email invalide' })
   @IsNotEmpty({ message: 'Email requis' })
   email: string;
 
-  @ApiProperty({ example: 'StrongPassword123!' })
-  @IsString({ message: 'Le mot de passe doit être une chaîne de caractères' })
-  @MinLength(8, {
-    message: 'Le mot de passe doit contenir au moins 8 caractères',
+  @ApiProperty({
+    example: 'StrongPassword123!',
+    ...SOVRACK_PASSWORD_OPENAPI,
   })
+  @IsSovrackPassword()
   @IsNotEmpty({ message: 'Mot de passe requis' })
   password: string;
 

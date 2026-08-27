@@ -6,10 +6,17 @@ import {
 export default async function globalSetup(): Promise<void> {
   process.env.JWT_SECRET = 'a'.repeat(64);
   process.env.JWT_EXPIRES_IN = '24h';
+  process.env.STAFF_JWT_SECRET = 'c'.repeat(64);
+  process.env.STAFF_JWT_EXPIRES_IN = '2h';
   process.env.CONFIG_SECRET = 'b'.repeat(64);
   process.env.FRONTEND_URL = 'http://localhost:3000';
   process.env.GITLAB_WEBHOOK_AUTO_CONFIGURE = 'false';
   process.env.NODE_ENV = 'test';
+  // Reuse the application's explicit no-external-Redis mode. Queue providers
+  // and workers are replaced by deterministic doubles in setup-e2e.ts; this
+  // also prevents the Redis-backed throttler/abort channels from loading a
+  // developer's .env and turning every request into a retry timeout.
+  process.env.OPENAPI_EXPORT = 'true';
   // E2E drives deployment execution through explicit test doubles. Starting
   // real BullMQ consumers would race the fixtures and make one suite delete
   // records while another background execution is still finishing.

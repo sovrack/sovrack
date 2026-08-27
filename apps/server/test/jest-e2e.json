@@ -7,7 +7,7 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "globalSetup": "<rootDir>/global-setup.ts",
-  "globalTeardown": "<rootDir>/global-setup.ts",
+  "globalTeardown": "<rootDir>/global-teardown.ts",
   "testTimeout": 120000,
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/../$1"

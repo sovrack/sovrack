@@ -1,11 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsUUID } from 'class-validator';
+import { NormalizeEmail } from '../../../../shared/validation/identity-validation.util';
 
 /**
  * DTO de renvoi du code de vérification d'email.
  */
 export class ResendVerificationCodeDto {
   @ApiProperty({ example: 'dev@sovrack.tech' })
+  @NormalizeEmail()
   @IsEmail({}, { message: 'Email invalide' })
   @IsNotEmpty({ message: 'Email requis' })
   email: string;

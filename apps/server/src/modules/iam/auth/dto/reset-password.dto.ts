@@ -1,8 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsString, Matches } from 'class-validator';
+import {
+  SOVRACK_PASSWORD_OPENAPI,
+  IsSovrackPassword,
+  NormalizeEmail,
+} from '../../../../shared/validation/identity-validation.util';
 
 export class ResetPasswordDto {
   @ApiProperty({ example: 'user@example.com' })
+  @NormalizeEmail()
   @IsEmail()
   email: string;
 
@@ -13,8 +19,10 @@ export class ResetPasswordDto {
   })
   code: string;
 
-  @ApiProperty({ example: 'NewPassword2026!' })
-  @IsString()
-  @MinLength(8, { message: 'Le mot de passe doit faire au moins 8 caractères' })
+  @ApiProperty({
+    example: 'NewPassword2026!',
+    ...SOVRACK_PASSWORD_OPENAPI,
+  })
+  @IsSovrackPassword()
   password: string;
 }

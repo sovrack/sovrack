@@ -24,6 +24,7 @@ import {
   verifyOneTimeCode,
 } from '../security/one-time-code.util';
 import { AccountDeletionService } from '../authorization/account-deletion.service';
+import { normalizeEmailAddress } from '../../../shared/validation/identity-validation.util';
 
 /**
  * Réponse d'authentification
@@ -61,16 +62,17 @@ export class AuthService {
   async register(
     dto: RegisterDto,
   ): Promise<{ email: string; registrationId: string }> {
+    const email = normalizeEmailAddress(dto.email);
     const pending = await this.emailVerification.startPendingRegistration({
-      email: dto.email,
+      email,
       password: dto.password,
       fullName: dto.fullName,
       workspaceName: dto.teamName,
       role: Role.MEMBER,
     });
 
-    this.logger.log(`Pending registration for ${dto.email}`);
-    return { email: dto.email, registrationId: pending.registrationId };
+    this.logger.log(`Pending registration created (${pending.registrationId})`);
+    return { email, registrationId: pending.registrationId };
   }
 
   /**
@@ -78,8 +80,9 @@ export class AuthService {
    * (création de la team + abonnement d'essai) et connecte l'utilisateur.
    */
   async verifyEmail(dto: VerifyEmailDto): Promise<AuthResponse> {
+    const email = normalizeEmailAddress(dto.email);
     const verified = await this.emailVerification.verifyCodeAndActivate({
-      email: dto.email,
+      email,
       code: dto.code,
       registrationId: dto.registrationId,
       onActivate: async (pendingUser, database) => {
@@ -136,6 +139,7 @@ export class AuthService {
     email: string,
     registrationId: string,
   ): Promise<{ email: string }> {
+    email = normalizeEmailAddress(email);
     await this.emailVerification.resendCode(email, registrationId);
     return { email };
   }
@@ -148,7 +152,9 @@ export class AuthService {
    */
   async login(dto: LoginDto): Promise<AuthResponse> {
     // Chercher l'utilisateur par email
-    const user = await this.usersService.findByEmail(dto.email);
+    const user = await this.usersService.findByEmail(
+      normalizeEmailAddress(dto.email),
+    );
     if (!user) {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
@@ -238,6 +244,7 @@ export class AuthService {
    * email si le compte existe. Ne révèle jamais si l'email est enregistré.
    */
   async forgotPassword(email: string): Promise<{ sent: boolean }> {
+    email = normalizeEmailAddress(email);
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || !user.emailVerifiedAt) {
       return { sent: false };
@@ -258,7 +265,7 @@ export class AuthService {
 
     let sent = false;
     try {
-      await this.smtp.sendBillingEmail(
+      await this.smtp.sendTransactionalEmail(
         user.email,
         'Réinitialisez votre mot de passe',
         `
@@ -302,6 +309,7 @@ export class AuthService {
     code: string,
     newPassword: string,
   ): Promise<{ message: string }> {
+    email = normalizeEmailAddress(email);
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || !user.emailVerifiedAt) {
       throw new BadRequestException('Compte introuvable ou non vérifié');
@@ -371,7 +379,7 @@ export class AuthService {
 
     let sent = false;
     try {
-      await this.smtp.sendBillingEmail(
+      await this.smtp.sendTransactionalEmail(
         user.email,
         'Confirmez la suppression de votre compte',
         `

@@ -47,11 +47,11 @@ typecheck:
 
 lint:
   stage: validate
-  # Bloquant sur toute erreur et sur toute hausse de la dette existante. Le
-  # plafond doit être abaissé à mesure que les 24 avertissements sont corrigés.
+  # La dette historique a été ramenée à zéro : tout nouvel avertissement est
+  # désormais bloquant, au même titre qu'une erreur.
   script:
     - npm ci
-    - npm run lint -- --max-warnings=24
+    - npm run lint -- --max-warnings=0
     - npm run format:check
 
 arch:check:

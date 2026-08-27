@@ -9,12 +9,16 @@ import { StaffAuditService } from './staff-audit.service';
 import { StaffJwtStrategy } from './staff-jwt.strategy';
 import { StaffJwtAuthGuard, StaffRolesGuard } from './staff.guards';
 import { PasswordHasher } from '../iam/security/password-hasher.service';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { StaffOperationsService } from './staff-operations.service';
+import { StaffPasswordRecoveryService } from './staff-password-recovery.service';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ms = require('ms') as (value: string) => number;
 
 @Module({
   imports: [
     PrismaModule,
+    NotificationsModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -38,6 +42,8 @@ const ms = require('ms') as (value: string) => number;
   controllers: [StaffController],
   providers: [
     StaffService,
+    StaffOperationsService,
+    StaffPasswordRecoveryService,
     StaffAuditService,
     StaffJwtStrategy,
     StaffJwtAuthGuard,

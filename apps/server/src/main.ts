@@ -90,16 +90,16 @@ async function bootstrap() {
   const trustProxyRaw = process.env.TRUST_PROXY?.trim().toLowerCase();
   if (trustProxyRaw) {
     const expressApp = app.getHttpAdapter().getInstance() as Application;
-    const trueValues = ['true', '1', 'yes'];
+    const trueValues = ['true', 'yes'];
     const falseValues = ['false', '0', 'no'];
-    if (trueValues.includes(trustProxyRaw)) {
-      expressApp.set('trust proxy', true);
-    } else if (falseValues.includes(trustProxyRaw)) {
+    if (falseValues.includes(trustProxyRaw)) {
       expressApp.set('trust proxy', false);
     } else {
       const hops = Number(trustProxyRaw);
       if (Number.isFinite(hops) && Number.isInteger(hops) && hops > 0) {
         expressApp.set('trust proxy', hops);
+      } else if (trueValues.includes(trustProxyRaw)) {
+        expressApp.set('trust proxy', true);
       } else {
         expressApp.set('trust proxy', trustProxyRaw);
         logger.warn(

@@ -183,14 +183,19 @@ export async function createTestService(
     data: {
       id: serviceId,
       projectId: args.projectId,
-      environmentId: args.environmentId,
       name: `e2e-service-${serviceId.slice(0, 8)}`,
       type: ServiceType.APPLICATION,
       sourceType: SourceType.GIT,
       repoPath: 'deployautomation/e2e',
       branch: 'main',
       buildPack: (args.buildPack as BuildPack) ?? BuildPack.DOCKERFILE,
-    } as any,
+    },
+  });
+  await prisma.serviceEnvironment.create({
+    data: {
+      serviceId,
+      environmentId: args.environmentId,
+    },
   });
   return serviceId;
 }

@@ -6,6 +6,10 @@ import { NotificationsSmtpService } from './notifications-smtp.service';
 import { NotificationsSlackService } from './notifications-slack.service';
 import type { NotificationsSettings } from './notifications-config.service';
 import type {
+  StaffEmailSettingsView,
+  UpdateStaffEmailSettings,
+} from './notifications-config.service';
+import type {
   DeploymentNotificationPayload,
   DockerConnectionDownPayload,
   DockerConnectionRecoveredPayload,
@@ -143,5 +147,19 @@ export class NotificationsService {
     settings: Parameters<NotificationsConfigService['saveSettings']>[0],
   ): Promise<void> {
     return this.configService.saveSettings(settings);
+  }
+
+  getStaffEmailSettings(): Promise<StaffEmailSettingsView> {
+    return this.configService.getStaffEmailSettings();
+  }
+
+  saveStaffEmailSettings(
+    settings: UpdateStaffEmailSettings,
+  ): Promise<StaffEmailSettingsView> {
+    return this.configService.saveStaffEmailSettings(settings);
+  }
+
+  testStaffEmailSettings(recipient: string): Promise<void> {
+    return this.smtp.testConfiguration(recipient);
   }
 }

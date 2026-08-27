@@ -3,12 +3,14 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Post,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import {
   ApiBearerAuth,
@@ -42,7 +44,6 @@ import {
  * Contrôleur d'authentification
  * Gère les routes de connexion et profil utilisateur
  */
-@SkipThrottle()
 @Controller('auth')
 @ApiTags('Auth')
 export class AuthController {
@@ -88,6 +89,7 @@ export class AuthController {
    */
   @Post('verify-email')
   @Public()
+  @HttpCode(HttpStatus.OK)
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @ApiOperation({
     summary: 'Verify email with the 6-digit code, then log in',
@@ -107,14 +109,14 @@ export class AuthController {
   async verifyEmail(
     @Body() dto: VerifyEmailDto,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<AuthResponse> {
+  ): Promise<Pick<AuthResponse, 'user'>> {
     const result = await this.authService.verifyEmail(dto);
     response.cookie(
       resolveAuthCookieName(this.configService),
       result.access_token,
       buildAuthCookieOptions(this.configService),
     );
-    return result;
+    return { user: result.user };
   }
 
   /**
@@ -154,6 +156,7 @@ export class AuthController {
    */
   @Post('login')
   @Public() // unauthenticated by definition — this is where you obtain the JWT
+  @HttpCode(HttpStatus.OK)
   @UseGuards(LoginRateLimitGuard) // per-IP in-memory guard — independent of the shared throttler
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiOperation({ summary: 'User login' })
@@ -172,14 +175,14 @@ export class AuthController {
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<AuthResponse> {
+  ): Promise<Pick<AuthResponse, 'user'>> {
     const result = await this.authService.login(dto);
     response.cookie(
       resolveAuthCookieName(this.configService),
       result.access_token,
       buildAuthCookieOptions(this.configService),
     );
-    return result;
+    return { user: result.user };
   }
 
   /**
