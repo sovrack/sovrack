@@ -124,15 +124,18 @@ export const FR: Record<string, string> = {
   "Connected user information.": "Informations de l'utilisateur connecté.",
   "Change password": "Changer le mot de passe",
   "Minimum 8 characters.": "Minimum 8 caractères.",
+  "12 to 128 characters, with uppercase, lowercase and a digit.":
+    "12 à 128 caractères, avec majuscule, minuscule et chiffre.",
   "Current password": "Mot de passe actuel",
   "New password": "Nouveau mot de passe",
   "Confirm new password": "Confirmer le nouveau mot de passe",
   "Update password": "Mettre à jour le mot de passe",
   "Password updated.": "Mot de passe mis à jour.",
-  "Password confirmation does not match.":
-    "La confirmation ne correspond pas.",
+  "Password confirmation does not match.": "La confirmation ne correspond pas.",
   "New password must contain at least 8 characters.":
     "Le nouveau mot de passe doit contenir au moins 8 caractères.",
+  "Password must contain 12 to 128 characters, an uppercase letter, a lowercase letter and a digit.":
+    "Le mot de passe doit contenir 12 à 128 caractères, une majuscule, une minuscule et un chiffre.",
   Preferences: "Préférences",
   "Language and appearance, saved on this browser.":
     "Langue et apparence, enregistrées sur ce navigateur.",

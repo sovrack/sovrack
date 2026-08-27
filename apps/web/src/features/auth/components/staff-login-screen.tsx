@@ -83,6 +83,14 @@ export function StaffLoginScreen() {
                 required
                 className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
               />
+              <div className="mt-2 text-right">
+                <Link
+                  href="/staff/forgot-password"
+                  className="text-xs font-semibold text-sky-400 hover:text-sky-300"
+                >
+                  Mot de passe oublié ?
+                </Link>
+              </div>
             </div>
             <div>
               <label

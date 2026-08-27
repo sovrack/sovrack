@@ -16,6 +16,7 @@ vi.mock("@/features/auth/api/use-auth", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock }),
   usePathname: () => "/register",
+  useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("@/shared/lib/api", () => ({
   getApiErrorMessage: (e: unknown) => (e as Error)?.message ?? "",
@@ -41,7 +42,7 @@ describe("RegisterScreen (public signup)", () => {
     fireEvent.change(screen.getByPlaceholderText("Mon équipe"), {
       target: { value: "Équipe John" },
     });
-    fireEvent.change(screen.getByPlaceholderText("8 caractères minimum"), {
+    fireEvent.change(screen.getByPlaceholderText("12 caractères minimum"), {
       target: { value: "StrongPass123!" },
     });
     fireEvent.click(screen.getByRole("button", { name: /créer mon compte/i }));

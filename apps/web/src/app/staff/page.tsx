@@ -24,7 +24,7 @@ export default function StaffDashboardPage() {
     {
       label: "Comptes clients",
       value: data.users.total,
-      sub: `${data.users.active} actifs · ${data.users.admins} admins · ${data.users.developers} devs`,
+      sub: `${data.users.active} actifs · ${data.users.owners} owners · ${data.users.members} membres`,
       icon: Users,
     },
     {

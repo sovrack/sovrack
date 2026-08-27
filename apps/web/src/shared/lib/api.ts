@@ -51,6 +51,13 @@ function handleUnauthorized(): void {
   }, 0);
 }
 
+function handleStaffUnauthorized(): void {
+  if (typeof window === "undefined") return;
+  if (window.location.pathname !== "/staff/login") {
+    window.location.href = "/staff/login?reason=session-expired";
+  }
+}
+
 export function getApiErrorMessage(error: unknown): string {
   const axiosError = error as AxiosError<ApiErrorPayload>;
   const message = axiosError.response?.data?.message;
@@ -125,7 +132,9 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorPayload>) => {
     if (error.response?.status === 401) {
-      handleUnauthorized();
+      const isStaffRequest = error.config?.url?.startsWith("/staff/") ?? false;
+      if (isStaffRequest) handleStaffUnauthorized();
+      else handleUnauthorized();
     }
 
     return Promise.reject(error);

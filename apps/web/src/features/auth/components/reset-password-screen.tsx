@@ -8,6 +8,12 @@ import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { PasswordInput } from "@/shared/ui/password-input";
 import api, { getApiErrorMessage } from "@/shared/lib/api";
+import {
+  SOVRACK_PASSWORD_MAX_LENGTH,
+  SOVRACK_PASSWORD_MESSAGE,
+  SOVRACK_PASSWORD_MIN_LENGTH,
+  isSovrackPassword,
+} from "@/shared/lib/password-policy";
 
 export function ResetPasswordScreen() {
   const router = useRouter();
@@ -26,8 +32,8 @@ export function ResetPasswordScreen() {
       setError("Les deux mots de passe ne correspondent pas.");
       return;
     }
-    if (password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères.");
+    if (!isSovrackPassword(password)) {
+      setError(SOVRACK_PASSWORD_MESSAGE);
       return;
     }
     setLoading(true);
@@ -136,8 +142,10 @@ export function ResetPasswordScreen() {
                     id="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimum 8 caractères"
+                    placeholder="12 caractères, majuscule, minuscule et chiffre"
                     autoComplete="new-password"
+                    minLength={SOVRACK_PASSWORD_MIN_LENGTH}
+                    maxLength={SOVRACK_PASSWORD_MAX_LENGTH}
                     required
                   />
                 </div>

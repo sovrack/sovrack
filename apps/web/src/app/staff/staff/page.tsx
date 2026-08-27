@@ -2,8 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, ShieldCheck, UserPlus } from "lucide-react";
+import { MailCheck, ShieldCheck, UserPlus } from "lucide-react";
 import { staffService } from "@/features/staff/api/staff.service";
+import { useStaffAuth } from "@/features/staff/api/use-staff-auth";
 import type { PlatformRole, StaffStatus } from "@/features/staff/types/staff";
 
 const PAGE_SIZE = 50;
@@ -15,18 +16,20 @@ const ROLE_LABELS: Record<PlatformRole, string> = {
 };
 
 const STATUS_LABELS: Record<StaffStatus, string> = {
+  INVITED: "Invitation en attente",
   ACTIVE: "Actif",
   DISABLED: "Désactivé",
   BLOCKED: "Bloqué",
 };
 
 export default function StaffAccountsPage() {
+  const { staff } = useStaffAuth();
+  const canManage = staff?.role === "ROOT";
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     email: "",
-    password: "",
     fullName: "",
     role: "OPERATOR" as PlatformRole,
   });
@@ -50,7 +53,6 @@ export default function StaffAccountsPage() {
       setShowCreate(false);
       setForm({
         email: "",
-        password: "",
         fullName: "",
         role: "OPERATOR",
       });
@@ -58,8 +60,13 @@ export default function StaffAccountsPage() {
       invalidate();
     },
     onError: (err: unknown) => {
+      // L'invitation est persistée avant l'appel au fournisseur SMTP. Si le
+      // transport échoue, le compte reste visible et peut être renvoyé.
+      invalidate();
       setFormError(
-        err instanceof Error ? err.message : "Erreur lors de la création",
+        err instanceof Error
+          ? `${err.message} Actualisez la liste puis utilisez « Renvoyer l’invitation ».`
+          : "L’invitation n’a pas été livrée. Actualisez puis renvoyez-la.",
       );
     },
   });
@@ -74,6 +81,16 @@ export default function StaffAccountsPage() {
     mutationFn: ({ id, role }: { id: string; role: PlatformRole }) =>
       staffService.updateStaff(id, { role }),
     onSuccess: invalidate,
+  });
+
+  const resendMutation = useMutation({
+    mutationFn: (id: string) => staffService.resendStaffInvitation(id),
+    onSuccess: invalidate,
+    onError: (err: unknown) => {
+      setFormError(
+        err instanceof Error ? err.message : "Échec du renvoi de l’invitation",
+      );
+    },
   });
 
   const handleCreate = (e: FormEvent<HTMLFormElement>) => {
@@ -99,19 +116,21 @@ export default function StaffAccountsPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowCreate((v) => !v)}
-          className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
-        >
-          <UserPlus size={16} />
-          Créer un compte
-        </button>
+        {canManage ? (
+          <button
+            onClick={() => setShowCreate((v) => !v)}
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
+          >
+            <UserPlus size={16} />
+            Créer un compte
+          </button>
+        ) : null}
       </div>
 
       {showCreate && (
         <form
           onSubmit={handleCreate}
-          className="mb-6 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 md:grid-cols-5"
+          className="mb-6 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 md:grid-cols-4"
         >
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-400">
@@ -139,19 +158,6 @@ export default function StaffAccountsPage() {
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-400">
-              Mot de passe (8+ chars, lettre + chiffre)
-            </label>
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-400">
               Rôle
             </label>
             <select
@@ -174,8 +180,8 @@ export default function StaffAccountsPage() {
               disabled={createMutation.isPending}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
             >
-              <KeyRound size={16} />
-              {createMutation.isPending ? "Création…" : "Créer"}
+              <UserPlus size={16} />
+              {createMutation.isPending ? "Envoi…" : "Inviter"}
             </button>
           </div>
           {formError && (
@@ -211,7 +217,7 @@ export default function StaffAccountsPage() {
                         role: e.target.value as PlatformRole,
                       })
                     }
-                    disabled={roleMutation.isPending}
+                    disabled={!canManage || roleMutation.isPending}
                     className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1 text-xs font-medium text-white focus:border-blue-500 focus:outline-none"
                   >
                     {(Object.keys(ROLE_LABELS) as PlatformRole[]).map((r) => (
@@ -222,23 +228,44 @@ export default function StaffAccountsPage() {
                   </select>
                 </td>
                 <td className="px-4 py-3">
-                  <select
-                    value={s.status}
-                    onChange={(e) =>
-                      statusMutation.mutate({
-                        id: s.id,
-                        status: e.target.value as StaffStatus,
-                      })
-                    }
-                    disabled={statusMutation.isPending}
-                    className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1 text-xs font-medium text-white focus:border-blue-500 focus:outline-none"
-                  >
-                    {(Object.keys(STATUS_LABELS) as StaffStatus[]).map((st) => (
-                      <option key={st} value={st}>
-                        {STATUS_LABELS[st]}
-                      </option>
-                    ))}
-                  </select>
+                  {s.status === "INVITED" ? (
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-amber-500/10 px-2 py-1 text-xs text-amber-300">
+                        {STATUS_LABELS.INVITED}
+                      </span>
+                      {canManage ? (
+                        <button
+                          type="button"
+                          title="Renvoyer l’invitation"
+                          disabled={resendMutation.isPending}
+                          onClick={() => resendMutation.mutate(s.id)}
+                          className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-white disabled:opacity-40"
+                        >
+                          <MailCheck size={15} />
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <select
+                      value={s.status}
+                      onChange={(e) =>
+                        statusMutation.mutate({
+                          id: s.id,
+                          status: e.target.value as StaffStatus,
+                        })
+                      }
+                      disabled={!canManage || statusMutation.isPending}
+                      className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1 text-xs font-medium text-white focus:border-blue-500 focus:outline-none"
+                    >
+                      {(["ACTIVE", "DISABLED", "BLOCKED"] as StaffStatus[]).map(
+                        (status) => (
+                          <option key={status} value={status}>
+                            {STATUS_LABELS[status]}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-zinc-500">
                   {s.lastLoginAt

@@ -10,6 +10,7 @@ import { useAuth } from "@/features/auth/api/use-auth";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { GoogleLoginButton } from "./google-login-button";
+import { resolveSafeInternalPath } from "@/shared/lib/safe-navigation";
 
 export function LoginScreen() {
   const router = useRouter();
@@ -31,7 +32,10 @@ export function LoginScreen() {
     setLoading(true);
     try {
       await login(email, password);
-      const next = searchParams.get("next") || "/dashboard";
+      const next = resolveSafeInternalPath(
+        searchParams.get("next"),
+        "/dashboard",
+      );
       router.replace(next);
     } catch (err: unknown) {
       setError(
@@ -143,7 +147,16 @@ export function LoginScreen() {
           <p className="mt-10 text-center text-sm text-slate-400">
             Pas encore de compte ?{" "}
             <Link
-              href="/register"
+              href={
+                searchParams.get("next")
+                  ? `/register?next=${encodeURIComponent(
+                      resolveSafeInternalPath(
+                        searchParams.get("next"),
+                        "/dashboard",
+                      ),
+                    )}`
+                  : "/register"
+              }
               className="font-semibold text-sky-400 hover:text-sky-300"
             >
               S&rsquo;inscrire

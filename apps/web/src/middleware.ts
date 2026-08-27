@@ -14,6 +14,9 @@ const PUBLIC_PATHS = [
   "/docs",
   "/legal",
   "/staff/login",
+  "/staff/activate",
+  "/staff/forgot-password",
+  "/staff/reset-password",
 ];
 
 const AUTHENTICATED_REDIRECT = "/dashboard";
@@ -93,7 +96,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Back-office : protégé par la session staff (cookie séparé).
-  if (pathname.startsWith("/staff") && pathname !== "/staff/login") {
+  if (pathname.startsWith("/staff") && !isPublicPath(pathname)) {
     const staffToken = request.cookies.get(STAFF_COOKIE_NAME)?.value;
 
     if (!staffToken || isTokenExpiredOrInvalid(staffToken)) {

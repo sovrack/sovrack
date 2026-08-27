@@ -1,12 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRound, Languages, Loader2, Moon, Sun, Trash2, User } from "lucide-react";
+import {
+  KeyRound,
+  Languages,
+  Loader2,
+  Moon,
+  Sun,
+  Trash2,
+  User,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { usersService } from "@/features/users/api/users.service";
 import { getApiErrorMessage } from "@/shared/lib/api";
+import {
+  SOVRACK_PASSWORD_MAX_LENGTH,
+  SOVRACK_PASSWORD_MIN_LENGTH,
+  isSovrackPassword,
+} from "@/shared/lib/password-policy";
 import { PageHeader } from "@/shared/layout/page-header";
 import { SectionCard } from "@/shared/layout/section-card";
 import { Alert } from "@/shared/ui/alert";
@@ -49,10 +62,12 @@ export default function MyAccountPage() {
       });
       return;
     }
-    if (newPassword.length < 8) {
+    if (!isSovrackPassword(newPassword)) {
       setNotice({
         tone: "error",
-        message: t("New password must contain at least 8 characters."),
+        message: t(
+          "Password must contain 12 to 128 characters, an uppercase letter, a lowercase letter and a digit.",
+        ),
       });
       return;
     }
@@ -97,7 +112,9 @@ export default function MyAccountPage() {
     }
   };
 
-  const handleConfirmDeletion = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleConfirmDeletion = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
     if (deleteCode.length !== 6) {
       setNotice({
@@ -155,7 +172,9 @@ export default function MyAccountPage() {
 
       <SectionCard
         title={t("Change password")}
-        description={t("Minimum 8 characters.")}
+        description={t(
+          "12 to 128 characters, with uppercase, lowercase and a digit.",
+        )}
       >
         <form
           onSubmit={(e) => void handleChangePassword(e)}
@@ -177,6 +196,8 @@ export default function MyAccountPage() {
               label={t("New password")}
               required
               autoComplete="new-password"
+              minLength={SOVRACK_PASSWORD_MIN_LENGTH}
+              maxLength={SOVRACK_PASSWORD_MAX_LENGTH}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
@@ -187,6 +208,8 @@ export default function MyAccountPage() {
               label={t("Confirm new password")}
               required
               autoComplete="new-password"
+              minLength={SOVRACK_PASSWORD_MIN_LENGTH}
+              maxLength={SOVRACK_PASSWORD_MAX_LENGTH}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
@@ -218,8 +241,7 @@ export default function MyAccountPage() {
             onClick={() => setLang(lang === "en" ? "fr" : "en")}
             className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
           >
-            <Languages size={14} />{" "}
-            {lang === "en" ? "Français" : "English"}
+            <Languages size={14} /> {lang === "en" ? "Français" : "English"}
           </button>
           <button
             type="button"

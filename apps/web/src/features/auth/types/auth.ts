@@ -11,6 +11,5 @@ export type AuthUser = {
 };
 
 export type LoginResponse = {
-  access_token: string;
   user: AuthUser;
 };

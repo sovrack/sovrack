@@ -5838,6 +5838,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Demander un code de récupération Staff */
+        post: operations["StaffController_forgotPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Réinitialiser le mot de passe Staff */
+        post: operations["StaffController_resetPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepter une invitation staff à usage unique */
+        post: operations["StaffController_acceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/logout": {
         parameters: {
             query?: never;
@@ -5905,6 +5956,58 @@ export interface paths {
         head?: never;
         /** Modifier un compte back-office (ROOT uniquement) */
         patch: operations["StaffController_updateStaff"];
+        trace?: never;
+    };
+    "/staff/staff/{id}/invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Renvoyer l'invitation d'un compte staff */
+        post: operations["StaffController_resendStaffInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/settings/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Voir la configuration SMTP sans jamais lire le secret */
+        get: operations["StaffController_getEmailSettings"];
+        /** Modifier la configuration SMTP globale (ROOT) */
+        put: operations["StaffController_updateEmailSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/settings/email/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tester SMTP vers le staff connecté */
+        post: operations["StaffController_testEmailSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/staff/overview": {
@@ -7367,14 +7470,34 @@ export interface components {
             /** @example S3cure-Password! */
             password: string;
         };
+        StaffForgotPasswordDto: {
+            /**
+             * Format: email
+             * @example admin@sovrack.tech
+             */
+            email: string;
+        };
+        StaffResetPasswordDto: {
+            /**
+             * Format: email
+             * @example admin@sovrack.tech
+             */
+            email: string;
+            /** @example 12345678 */
+            code: string;
+            password: string;
+        };
+        AcceptStaffInvitationDto: {
+            /** @description Jeton reçu dans l'email d'invitation */
+            token: string;
+            password: string;
+        };
         CreateStaffDto: {
             /**
              * Format: email
              * @example nouveau.staff@sovrack.tech
              */
             email: string;
-            /** @example 8-Chars-Min! */
-            password: string;
             /** @example Sami Ben Salah */
             fullName: string;
             /**
@@ -7394,6 +7517,22 @@ export interface components {
             fullName?: string;
             /** @description Nouveau mot de passe (optionnel) */
             password?: string;
+        };
+        UpdateStaffEmailSettingsDto: {
+            enabled: boolean;
+            host: string;
+            port: number;
+            /** @enum {string} */
+            security: "none" | "starttls" | "tls";
+            user?: string;
+            password?: string;
+            clearPassword?: boolean;
+            from: string;
+            to?: string;
+        };
+        TestStaffEmailSettingsDto: {
+            /** Format: email */
+            recipient?: string;
         };
         StaffUpdateUserDto: {
             /** @enum {string} */
@@ -17722,7 +17861,70 @@ export interface operations {
             };
         };
         responses: {
-            201: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffController_forgotPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffForgotPasswordDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffController_resetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffResetPasswordDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffController_acceptInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptStaffInvitationDto"];
+            };
+        };
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17739,7 +17941,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17817,6 +18019,84 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UpdateStaffDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffController_resendStaffInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffController_getEmailSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffController_updateEmailSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStaffEmailSettingsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffController_testEmailSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestStaffEmailSettingsDto"];
             };
         };
         responses: {

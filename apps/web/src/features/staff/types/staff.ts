@@ -1,6 +1,6 @@
 export type PlatformRole = "ROOT" | "ADMIN" | "OPERATOR";
 
-export type StaffStatus = "ACTIVE" | "DISABLED" | "BLOCKED";
+export type StaffStatus = "INVITED" | "ACTIVE" | "DISABLED" | "BLOCKED";
 
 export type StaffUser = {
   id: string;
@@ -16,6 +16,5 @@ export type StaffUser = {
 };
 
 export type StaffLoginResponse = {
-  access_token: string;
   staff: StaffUser;
 };

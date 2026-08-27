@@ -9,6 +9,7 @@ import {
   CreditCard,
   LayoutDashboard,
   LogOut,
+  Mail,
   Rocket,
   ShieldCheck,
   Users,
@@ -17,14 +18,62 @@ import { useStaffAuth } from "@/features/staff/api/use-staff-auth";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const NAV_ITEMS = [
-  { href: "/staff", label: "Vue d'ensemble", icon: LayoutDashboard },
-  { href: "/staff/users", label: "Utilisateurs", icon: Users },
-  { href: "/staff/staff", label: "Équipe back-office", icon: ShieldCheck },
-  { href: "/staff/teams", label: "Équipes", icon: Rocket },
-  { href: "/staff/subscriptions", label: "Abonnements", icon: CreditCard },
-  { href: "/staff/audit-logs", label: "Journal d'audit", icon: ClipboardList },
-  { href: "/staff/systems", label: "Systèmes", icon: Activity },
+import type { PlatformRole } from "@/features/staff/types/staff";
+
+const NAV_ITEMS: Array<{
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  roles: PlatformRole[];
+}> = [
+  {
+    href: "/staff",
+    label: "Vue d'ensemble",
+    icon: LayoutDashboard,
+    roles: ["ROOT", "ADMIN", "OPERATOR"],
+  },
+  {
+    href: "/staff/users",
+    label: "Utilisateurs",
+    icon: Users,
+    roles: ["ROOT", "ADMIN"],
+  },
+  {
+    href: "/staff/staff",
+    label: "Équipe back-office",
+    icon: ShieldCheck,
+    roles: ["ROOT", "ADMIN"],
+  },
+  {
+    href: "/staff/teams",
+    label: "Équipes",
+    icon: Rocket,
+    roles: ["ROOT", "ADMIN"],
+  },
+  {
+    href: "/staff/subscriptions",
+    label: "Abonnements",
+    icon: CreditCard,
+    roles: ["ROOT", "ADMIN"],
+  },
+  {
+    href: "/staff/settings/email",
+    label: "Configuration email",
+    icon: Mail,
+    roles: ["ROOT", "ADMIN"],
+  },
+  {
+    href: "/staff/audit-logs",
+    label: "Journal d'audit",
+    icon: ClipboardList,
+    roles: ["ROOT", "ADMIN"],
+  },
+  {
+    href: "/staff/systems",
+    label: "Systèmes",
+    icon: Activity,
+    roles: ["ROOT", "ADMIN", "OPERATOR"],
+  },
 ];
 
 export default function StaffLayout({
@@ -33,22 +82,40 @@ export default function StaffLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const isPublicStaffPath = [
+    "/staff/login",
+    "/staff/activate",
+    "/staff/forgot-password",
+    "/staff/reset-password",
+  ].includes(pathname);
   const router = useRouter();
   const { staff, loading, initialized, logout, fetchMe } = useStaffAuth();
 
   useEffect(() => {
-    if (pathname !== "/staff/login") {
+    if (!isPublicStaffPath) {
       void fetchMe();
     }
-  }, [fetchMe, pathname]);
+  }, [fetchMe, isPublicStaffPath]);
 
   useEffect(() => {
-    if (pathname !== "/staff/login" && initialized && !loading && !staff) {
+    if (!isPublicStaffPath && initialized && !loading && !staff) {
       router.replace("/staff/login");
     }
-  }, [initialized, loading, pathname, router, staff]);
+  }, [initialized, isPublicStaffPath, loading, router, staff]);
 
-  if (pathname === "/staff/login") {
+  useEffect(() => {
+    if (!staff || isPublicStaffPath) return;
+    const route = NAV_ITEMS.find(
+      (item) =>
+        pathname === item.href ||
+        (item.href !== "/staff" && pathname.startsWith(`${item.href}/`)),
+    );
+    if (route && !route.roles.includes(staff.role)) {
+      router.replace("/staff");
+    }
+  }, [isPublicStaffPath, pathname, router, staff]);
+
+  if (isPublicStaffPath) {
     return <>{children}</>;
   }
 
@@ -73,27 +140,29 @@ export default function StaffLayout({
           </div>
 
           <nav className="flex-1 space-y-0.5 px-3 py-4">
-            {NAV_ITEMS.map((item) => {
-              const active =
-                pathname === item.href ||
-                (item.href !== "/staff" &&
-                  pathname.startsWith(`${item.href}/`));
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={clsx(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
-                    active
-                      ? "bg-white text-zinc-950"
-                      : "text-zinc-400 hover:bg-white/5 hover:text-white",
-                  )}
-                >
-                  <item.icon size={17} />
-                  {item.label}
-                </Link>
-              );
-            })}
+            {NAV_ITEMS.filter((item) => item.roles.includes(staff.role)).map(
+              (item) => {
+                const active =
+                  pathname === item.href ||
+                  (item.href !== "/staff" &&
+                    pathname.startsWith(`${item.href}/`));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={clsx(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
+                      active
+                        ? "bg-white text-zinc-950"
+                        : "text-zinc-400 hover:bg-white/5 hover:text-white",
+                    )}
+                  >
+                    <item.icon size={17} />
+                    {item.label}
+                  </Link>
+                );
+              },
+            )}
           </nav>
 
           <div className="border-t border-white/10 p-4">

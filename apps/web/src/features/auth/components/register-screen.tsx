@@ -2,16 +2,24 @@
 
 import { FormEvent, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { getApiErrorMessage } from "@/shared/lib/api";
+import { resolveSafeInternalPath } from "@/shared/lib/safe-navigation";
+import {
+  SOVRACK_PASSWORD_MAX_LENGTH,
+  SOVRACK_PASSWORD_MESSAGE,
+  SOVRACK_PASSWORD_MIN_LENGTH,
+  isSovrackPassword,
+} from "@/shared/lib/password-policy";
 
 type Step = "form" | "verify";
 
 export function RegisterScreen() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { register, verifyEmail, resendCode } = useAuth();
 
   const [step, setStep] = useState<Step>("form");
@@ -42,11 +50,8 @@ export function RegisterScreen() {
     setError("");
     setInfo("");
 
-    const passwordOk = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
-    if (!passwordOk) {
-      setError(
-        "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre.",
-      );
+    if (!isSovrackPassword(password)) {
+      setError(SOVRACK_PASSWORD_MESSAGE);
       return;
     }
 
@@ -87,7 +92,9 @@ export function RegisterScreen() {
         throw new Error("La tentative d'inscription a expiré. Recommencez.");
       }
       await verifyEmail(email, code, registrationId);
-      router.replace("/dashboard");
+      router.replace(
+        resolveSafeInternalPath(searchParams.get("next"), "/dashboard"),
+      );
     } catch (err: unknown) {
       setError(
         getApiErrorMessage(err) || "Le code est invalide ou expiré. Réessayez.",
@@ -241,14 +248,15 @@ export function RegisterScreen() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="8 caractères minimum"
+                    placeholder="12 caractères minimum"
                     autoComplete="new-password"
                     required
-                    minLength={8}
+                    minLength={SOVRACK_PASSWORD_MIN_LENGTH}
+                    maxLength={SOVRACK_PASSWORD_MAX_LENGTH}
                     className={inputClass}
                   />
                   <p className="mt-1 text-xs text-slate-500">
-                    8 caractères minimum : majuscule, minuscule et chiffre
+                    12 caractères minimum : majuscule, minuscule et chiffre
                   </p>
                 </div>
 

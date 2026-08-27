@@ -10,8 +10,8 @@ export type StaffOverview = {
   users: {
     total: number;
     active: number;
-    admins: number;
-    developers: number;
+    owners: number;
+    members: number;
   };
   teams: {
     total: number;
@@ -105,8 +105,11 @@ export const staffService = {
 
   impersonateUser: async (
     id: string,
-  ): Promise<{ access_token: string; user: AuthUserView }> => {
-    const res = await api.post(`/staff/users/${id}/impersonate`);
+  ): Promise<{ user: AuthUserView; expiresInSeconds: number }> => {
+    const res = await api.post<{
+      user: AuthUserView;
+      expiresInSeconds: number;
+    }>(`/staff/users/${id}/impersonate`);
     return res.data;
   },
 
@@ -119,7 +122,6 @@ export const staffService = {
 
   createStaff: async (body: {
     email: string;
-    password: string;
     fullName: string;
     role?: PlatformRole;
   }): Promise<StaffUser> => {
@@ -140,6 +142,44 @@ export const staffService = {
     return res.data;
   },
 
+  resendStaffInvitation: async (id: string): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>(
+      `/staff/staff/${id}/invitation`,
+    );
+    return res.data;
+  },
+
+  acceptStaffInvitation: async (
+    token: string,
+    password: string,
+  ): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>("/staff/activate", {
+      token,
+      password,
+    });
+    return res.data;
+  },
+
+  requestPasswordReset: async (email: string): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>("/staff/forgot-password", {
+      email,
+    });
+    return res.data;
+  },
+
+  resetPassword: async (
+    email: string,
+    code: string,
+    password: string,
+  ): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>("/staff/reset-password", {
+      email,
+      code,
+      password,
+    });
+    return res.data;
+  },
+
   getAuditLogs: async (
     page = 1,
     limit = 50,
@@ -149,6 +189,58 @@ export const staffService = {
     );
     return res.data;
   },
+
+  getEmailSettings: async (): Promise<StaffEmailSettings> => {
+    const res = await api.get<StaffEmailSettings>("/staff/settings/email");
+    return res.data;
+  },
+
+  updateEmailSettings: async (
+    body: UpdateStaffEmailSettings,
+  ): Promise<StaffEmailSettings> => {
+    const res = await api.put<StaffEmailSettings>(
+      "/staff/settings/email",
+      body,
+    );
+    return res.data;
+  },
+
+  testEmailSettings: async (): Promise<{
+    delivered: true;
+    recipient: string;
+  }> => {
+    const res = await api.post<{
+      delivered: true;
+      recipient: string;
+    }>("/staff/settings/email/test", {});
+    return res.data;
+  },
+};
+
+export type SmtpSecurityMode = "none" | "starttls" | "tls";
+
+export type StaffEmailSettings = {
+  enabled: boolean;
+  source: "database" | "environment" | "none";
+  host: string;
+  port: number;
+  security: SmtpSecurityMode;
+  user: string;
+  from: string;
+  to: string;
+  passwordConfigured: boolean;
+};
+
+export type UpdateStaffEmailSettings = {
+  enabled: boolean;
+  host: string;
+  port: number;
+  security: SmtpSecurityMode;
+  user?: string;
+  password?: string;
+  clearPassword?: boolean;
+  from: string;
+  to?: string;
 };
 
 export type AuthUserView = {

@@ -15459,11 +15459,86 @@
           }
         },
         "responses": {
-          "201": {
+          "200": {
             "description": ""
           }
         },
         "summary": "Login back-office (staff)",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/forgot-password": {
+      "post": {
+        "operationId": "StaffController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Demander un code de récupération Staff",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/reset-password": {
+      "post": {
+        "operationId": "StaffController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Réinitialiser le mot de passe Staff",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/activate": {
+      "post": {
+        "operationId": "StaffController_acceptInvitation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptStaffInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Accepter une invitation staff à usage unique",
         "tags": [
           "Back-office (staff)"
         ]
@@ -15474,7 +15549,7 @@
         "operationId": "StaffController_logout",
         "parameters": [],
         "responses": {
-          "201": {
+          "200": {
             "description": ""
           }
         },
@@ -15608,6 +15683,113 @@
           }
         ],
         "summary": "Modifier un compte back-office (ROOT uniquement)",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/staff/{id}/invitation": {
+      "post": {
+        "operationId": "StaffController_resendStaffInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Renvoyer l'invitation d'un compte staff",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/settings/email": {
+      "get": {
+        "operationId": "StaffController_getEmailSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Voir la configuration SMTP sans jamais lire le secret",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      },
+      "put": {
+        "operationId": "StaffController_updateEmailSettings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStaffEmailSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Modifier la configuration SMTP globale (ROOT)",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/settings/email/test": {
+      "post": {
+        "operationId": "StaffController_testEmailSettings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestStaffEmailSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tester SMTP vers le staff connecté",
         "tags": [
           "Back-office (staff)"
         ]
@@ -15886,8 +16068,10 @@
           },
           "newPassword": {
             "type": "string",
-            "minLength": 8,
-            "example": "NouveauMotDePasse123!"
+            "example": "NouveauMotDePasse123!",
+            "minLength": 12,
+            "maxLength": 128,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$"
           },
           "confirmNewPassword": {
             "type": "string",
@@ -15910,8 +16094,10 @@
           },
           "password": {
             "type": "string",
-            "minLength": 8,
-            "example": "StrongPassword123!"
+            "example": "StrongPassword123!",
+            "minLength": 12,
+            "maxLength": 128,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$"
           },
           "fullName": {
             "type": "string",
@@ -16017,8 +16203,10 @@
           },
           "password": {
             "type": "string",
-            "minLength": 8,
-            "example": "NewPassword2026!"
+            "example": "NewPassword2026!",
+            "minLength": 12,
+            "maxLength": 128,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$"
           }
         },
         "required": [
@@ -19433,6 +19621,68 @@
           "password"
         ]
       },
+      "StaffForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@sovrack.tech"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "StaffResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@sovrack.tech"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "example": "12345678",
+            "minLength": 8,
+            "maxLength": 8
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$"
+          }
+        },
+        "required": [
+          "email",
+          "code",
+          "password"
+        ]
+      },
+      "AcceptStaffInvitationDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256,
+            "description": "Jeton reçu dans l'email d'invitation"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$"
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ]
+      },
       "CreateStaffDto": {
         "type": "object",
         "properties": {
@@ -19440,12 +19690,6 @@
             "type": "string",
             "format": "email",
             "example": "nouveau.staff@sovrack.tech"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 8,
-            "pattern": "^(?=.*[A-Za-z])(?=.*\\d).+$",
-            "example": "8-Chars-Min!"
           },
           "fullName": {
             "type": "string",
@@ -19463,7 +19707,6 @@
         },
         "required": [
           "email",
-          "password",
           "fullName"
         ]
       },
@@ -19492,8 +19735,75 @@
           },
           "password": {
             "type": "string",
-            "minLength": 8,
-            "description": "Nouveau mot de passe (optionnel)"
+            "description": "Nouveau mot de passe (optionnel)",
+            "minLength": 12,
+            "maxLength": 128,
+            "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$"
+          }
+        }
+      },
+      "UpdateStaffEmailSettingsDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "host": {
+            "type": "string",
+            "maxLength": 253
+          },
+          "port": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "security": {
+            "type": "string",
+            "enum": [
+              "none",
+              "starttls",
+              "tls"
+            ]
+          },
+          "user": {
+            "type": "string",
+            "maxLength": 320,
+            "pattern": "^[^\\r\\n]*$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "clearPassword": {
+            "type": "boolean"
+          },
+          "from": {
+            "type": "string",
+            "maxLength": 512,
+            "pattern": "^[^\\r\\n]*$"
+          },
+          "to": {
+            "type": "string",
+            "maxLength": 320,
+            "pattern": "^[^\\r\\n]*$"
+          }
+        },
+        "required": [
+          "enabled",
+          "host",
+          "port",
+          "security",
+          "from"
+        ]
+      },
+      "TestStaffEmailSettingsDto": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": "string",
+            "maxLength": 320,
+            "format": "email"
           }
         }
       },
