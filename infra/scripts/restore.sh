@@ -112,7 +112,16 @@ compose() {
 mkdir -p "$SHARED_DIR/backups" "$SHARED_DIR/release-manifests" "$MAINTENANCE_DIR"
 chmod 700 "$SHARED_DIR/backups" "$SHARED_DIR/release-manifests" "$MAINTENANCE_DIR"
 compose config -q
-compose pull "${pull_services[@]}"
+# A rollback must remain possible when the private registry is unavailable or
+# after its short-lived deployment credential has been removed. Immutable
+# application images already present on the target are sufficient. If one is
+# absent, Compose still performs the normal authenticated pull and fails before
+# maintenance or database replacement if the registry cannot serve it.
+if docker image inspect "$BACKEND_IMAGE" "$FRONTEND_IMAGE" >/dev/null 2>&1; then
+  echo "Immutable rollback images are already present locally; registry pull skipped."
+else
+  compose pull "${pull_services[@]}"
+fi
 postgres_container_id="$(compose ps --quiet postgres 2>/dev/null || true)"
 postgres_was_running="false"
 if [ -n "$postgres_container_id" ]; then

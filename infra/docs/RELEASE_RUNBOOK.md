@@ -140,6 +140,12 @@ Phase 2 utilisent `RUNTIME_TOPOLOGY=compact` et `PROCESS_ROLE=all`. Le mode
 `--mode upgrade` est réservé à une restauration volontaire d'un ancien dump
 vers la release courante ; il réexécute alors explicitement le migrateur.
 
+Le rollback réutilise les images applicatives immuables déjà présentes sur la
+machine. Cela permet de revenir en arrière même si le registre privé est
+indisponible et sans conserver un identifiant de registre permanent. Si une
+image cible manque, la restauration tente de la récupérer et s'arrête avant la
+maintenance si l'authentification ou le registre échoue.
+
 L'option `--allow-unverified` permet uniquement de récupérer un ancien dump
 sans sidecars. Après import, la vérification du schéma cible reste obligatoire.
 
