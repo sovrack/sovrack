@@ -89,7 +89,13 @@ describe('DeploymentPrelaunchService', () => {
           Image: 'my-image:latest',
           name: 'pre-app',
           Cmd: ['sh', '-c', 'npm run migrate'],
-          HostConfig: { AutoRemove: true },
+          HostConfig: {
+            AutoRemove: true,
+            SecurityOpt: ['no-new-privileges:true'],
+            CapDrop: ['ALL'],
+            PidsLimit: 128,
+            Init: true,
+          },
         }),
       );
       expect(docker.startContainer).toHaveBeenCalledWith(

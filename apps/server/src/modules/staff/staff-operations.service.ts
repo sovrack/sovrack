@@ -5,10 +5,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Role, type User } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { AccountDeletionService } from '../iam/authorization/account-deletion.service';
 import { StaffAuditService } from './staff-audit.service';
+import { type SafeUser, toSafeUser } from '../iam/users/user-safe-view';
 
 /** Administration des comptes clients, séparée du cycle d'authentification staff. */
 @Injectable()
@@ -140,7 +141,10 @@ export class StaffOperationsService {
     if (!user) throw new NotFoundException('Utilisateur introuvable');
     const updated = await this.prisma.user.update({
       where: { id: userId },
-      data: { isActive },
+      data: {
+        isActive,
+        sessionVersion: { increment: 1 },
+      },
       select: {
         id: true,
         email: true,
@@ -239,7 +243,7 @@ export class StaffOperationsService {
     userId: string,
     actorStaffId: string,
     ip?: string | null,
-  ): Promise<{ access_token: string; user: Omit<User, 'password'> }> {
+  ): Promise<{ access_token: string; user: SafeUser }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
     if (!user.isActive) {
@@ -252,6 +256,7 @@ export class StaffOperationsService {
       sub: user.id,
       authType: 'staff-impersonation' as const,
       impersonatedByStaffId: actorStaffId,
+      sessionVersion: user.sessionVersion,
     };
     const customerSecret = this.config.get<string>('JWT_SECRET');
     if (!customerSecret) throw new Error('JWT_SECRET non configuré');
@@ -259,8 +264,6 @@ export class StaffOperationsService {
       secret: customerSecret,
       expiresIn: '15m',
     });
-    const { password: _password, ...safeUser } = user;
-    void _password;
     await this.audit.record({
       staffId: actorStaffId,
       action: 'user.impersonate',
@@ -269,7 +272,7 @@ export class StaffOperationsService {
       after: { email: user.email },
       ip,
     });
-    return { access_token: token, user: safeUser };
+    return { access_token: token, user: toSafeUser(user) };
   }
 
   async listAudit(pagination?: { page?: number; limit?: number }) {

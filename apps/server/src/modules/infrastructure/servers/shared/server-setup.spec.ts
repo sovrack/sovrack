@@ -1,47 +1,56 @@
 import type { StartServerSetupDto } from '../dto/start-server-setup.dto';
+import { ServerSetupProfile } from '../dto/start-server-setup.dto';
 import { ROLE_ORDER, resolveSetupOptions } from './server-setup';
 
-// Décision produit : "Setup Server" installe TOUJOURS le jeu complet — aucun
-// profil, aucune option, aucune case à cocher. GitLab Runner et la stack
-// d'observabilité (Prometheus/Grafana/Loki/Alertmanager/exporters) sont
-// systématiques, au même titre que Docker ou le firewall. Seul le mode
-// d'exécuteur GitLab Runner (docker/shell) reste paramétrable.
-describe('resolveSetupOptions — always the full bundle, no choices', () => {
-  const EXPECTED_ROLES = [
+describe('resolveSetupOptions — secure explicit profiles', () => {
+  const RUNTIME_ROLES = [
     'system_base',
+    'swap',
+    'security_hardening',
+    'firewall',
+    'fail2ban',
     'docker',
     'docker_tls',
     'traefik',
-    'nixpacks',
-    'gitlab_runner',
-    'firewall',
-    'fail2ban',
-    'swap',
     'system_diagnostics',
     'node_exporter',
-    'cadvisor',
-    'prometheus',
-    'grafana',
-    'alertmanager',
-    'loki',
     'logrotate',
-    'security_hardening',
   ];
 
-  it('always includes the full bundle, with no dto at all', () => {
+  it('defaults to the minimal production runtime', () => {
     const resolved = resolveSetupOptions();
-    for (const role of EXPECTED_ROLES) {
+    expect(resolved.profile).toBe(ServerSetupProfile.RUNTIME_MINIMAL);
+    for (const role of RUNTIME_ROLES) {
       expect(resolved.roles).toContain(role);
     }
-    expect(resolved.roles).toHaveLength(EXPECTED_ROLES.length);
+    expect(resolved.roles).not.toContain('gitlab_runner');
+    expect(resolved.roles).not.toContain('grafana');
+    expect(resolved.roles).not.toContain('loki');
   });
 
-  it('the dto has no on/off switch for anything — only gitlabRunnerExecutor', () => {
-    // Passing any dto at all changes nothing about which roles run.
-    const resolved = resolveSetupOptions({} as StartServerSetupDto);
-    for (const role of EXPECTED_ROLES) {
-      expect(resolved.roles).toContain(role);
-    }
+  it('adds only local exporters for the observability-agent profile', () => {
+    const resolved = resolveSetupOptions({
+      profile: ServerSetupProfile.OBSERVABILITY_AGENT,
+    });
+    expect(resolved.roles).toContain('cadvisor');
+    expect(resolved.roles).not.toContain('grafana');
+    expect(resolved.roles).not.toContain('gitlab_runner');
+  });
+
+  it('installs build tooling only in the build-runner profile', () => {
+    const resolved = resolveSetupOptions({
+      profile: ServerSetupProfile.BUILD_RUNNER,
+    });
+    expect(resolved.roles).toContain('nixpacks');
+    expect(resolved.roles).toContain('gitlab_runner');
+    expect(resolved.roles).not.toContain('grafana');
+  });
+
+  it('keeps the complete bundle explicitly available for development', () => {
+    const resolved = resolveSetupOptions({
+      profile: ServerSetupProfile.FULL_DEV,
+    });
+    expect(resolved.roles).toEqual(ROLE_ORDER);
   });
 
   it('defaults gitlabRunnerExecutor to docker', () => {
@@ -54,13 +63,19 @@ describe('resolveSetupOptions — always the full bundle, no choices', () => {
   });
 
   it('runs docker_tls after docker, and roles follow ROLE_ORDER', () => {
-    const resolved = resolveSetupOptions();
+    const resolved = resolveSetupOptions({
+      profile: ServerSetupProfile.FULL_DEV,
+    });
     const roleIndex = (r: string) => resolved.roles.indexOf(r as never);
     expect(roleIndex('docker_tls')).toBeGreaterThan(roleIndex('docker'));
     expect(resolved.roles).toEqual(ROLE_ORDER);
   });
 
-  it('is never empty', () => {
-    expect(resolveSetupOptions().roles.length).toBeGreaterThan(0);
+  it('every profile is non-empty and follows ROLE_ORDER', () => {
+    for (const profile of Object.values(ServerSetupProfile)) {
+      const roles = resolveSetupOptions({ profile }).roles;
+      expect(roles.length).toBeGreaterThan(0);
+      expect(roles).toEqual(ROLE_ORDER.filter((role) => roles.includes(role)));
+    }
   });
 });

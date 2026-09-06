@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { LoggerService as NestLoggerService } from '@nestjs/common';
 import * as winston from 'winston';
 import { getLogContext } from './log-context';
 
@@ -18,7 +19,7 @@ function stringifyLogField(value: unknown): string {
 }
 
 @Injectable()
-export class LoggerService {
+export class LoggerService implements NestLoggerService {
   private readonly logger: winston.Logger;
 
   constructor() {
@@ -84,6 +85,14 @@ export class LoggerService {
 
   debug(message: string, context?: string): void {
     this.logger.debug(this.withContext({ message, context }));
+  }
+
+  verbose(message: string, context?: string): void {
+    this.logger.verbose(this.withContext({ message, context }));
+  }
+
+  fatal(message: string, context?: string): void {
+    this.logger.error(this.withContext({ message, context, fatal: true }));
   }
 
   logAction(

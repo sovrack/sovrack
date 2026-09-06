@@ -112,7 +112,7 @@ describe('InfraSetupRunnerService', () => {
 
   const server = { id: 'srv-1' } as Server;
   const resolved: ResolvedSetup = {
-    profile: 'AUTO',
+    profile: 'runtime-minimal',
     roles: ['system_base'] as SetupRoleKey[],
     gitlabRunnerExecutor: 'docker',
   };

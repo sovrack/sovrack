@@ -7,14 +7,12 @@ import {
 import { QueueService } from './queue.service';
 import { QueueMonitoringService } from './queue-monitoring.service';
 import { QueueLifecycleService } from './queue-lifecycle.service';
-import { ScheduleModule } from '@nestjs/schedule';
 
 // Loi d'architecture : core/ ne dépend JAMAIS d'un contexte métier.
 // DeploymentsProcessor / AutomationProcessor (workers Bull) sont enregistrés
 // dans leurs modules métier respectifs, pas ici — QueueModule reste générique.
 @Global()
 @Module({
-  imports: [ScheduleModule.forRoot()],
   providers: [
     bullQueueProvider,
     bullSetupQueueProvider,

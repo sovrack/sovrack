@@ -15,6 +15,8 @@ import {
   ServerResponseDto,
 } from '../dto/server-response.dto';
 import { ServersCoreService } from '../services';
+import { RequireServerAction } from '../../../iam/authorization/require-server-action.decorator';
+import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
 
 @ApiTags('Servers Detection')
 @ApiBearerAuth()
@@ -24,6 +26,7 @@ export class ServerDetectionController {
   constructor(private readonly core: ServersCoreService) {}
 
   @Post(':id/detect')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({
     summary: 'Detect system info and installed tools',
   })

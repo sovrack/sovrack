@@ -5,12 +5,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { User } from '@prisma/client';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { ChangeMyPasswordDto } from './dto/change-my-password.dto';
 import { UsersService } from './users.service';
+import type { SafeUser } from './user-safe-view';
 
 /**
  * Identity self-service only. Workspace membership administration lives under
@@ -30,7 +30,7 @@ export class UsersController {
   async changeMyPassword(
     @GetUser() user: JwtPayload,
     @Body() dto: ChangeMyPasswordDto,
-  ): Promise<Omit<User, 'password'>> {
+  ): Promise<SafeUser> {
     return this.usersService.changeMyPassword(user.id, dto);
   }
 }

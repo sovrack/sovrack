@@ -29,7 +29,7 @@ import { Public } from '../../../shared/decorators/public.decorator';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { User } from '@prisma/client';
+import type { SafeUser } from '../users/user-safe-view';
 import type { Response } from 'express';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -216,15 +216,16 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
-  async getMe(@GetUser() user: JwtPayload): Promise<Omit<User, 'password'>> {
+  async getMe(@GetUser() user: JwtPayload): Promise<SafeUser> {
     return await this.authService.getMe(user.id);
   }
 
   @Post('logout')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'User logout (audit)' })
-  @ApiResponse({ status: 201, description: 'Logout recorded' })
+  @ApiResponse({ status: 200, description: 'Logout recorded' })
   @ApiResponse({ status: 401, description: 'Invalid or expired JWT token' })
   async logout(
     @GetUser() user: JwtPayload,

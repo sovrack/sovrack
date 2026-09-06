@@ -6,44 +6,31 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import {
-  PlatformRole,
-  Role,
-  StaffStatus,
-  type Staff,
-  type User,
-} from '@prisma/client';
+import { PlatformRole, Role, StaffStatus, type Staff } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { PasswordHasher } from '../iam/security/password-hasher.service';
 import { StaffAuditService } from './staff-audit.service';
 import { StaffJwtPayload } from './staff-jwt.strategy';
 import { ConfigService } from '@nestjs/config';
-import { createHash, randomBytes, randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import {
   AcceptStaffInvitationDto,
   CreateStaffDto,
   StaffLoginDto,
   StaffUpdateUserDto,
 } from './dto/staff.dto';
-import { NotificationsSmtpService } from '../notifications/notifications-smtp.service';
 import { StaffOperationsService } from './staff-operations.service';
-import { escapeHtml } from './staff-invitation.utils';
+import { StaffInvitationService } from './staff-invitation.service';
+import { type SafeStaff, toSafeStaff } from './staff-safe-view';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ms = require('ms') as (value: string) => number;
 
-export type SafeStaff = Omit<Staff, 'password' | 'mfaSecret'>;
+export type { SafeStaff } from './staff-safe-view';
 
 export interface StaffAuthResponse {
   access_token: string;
   staff: SafeStaff;
-}
-
-function toSafeStaff(s: Staff): SafeStaff {
-  const { password: _p, mfaSecret: _m, ...rest } = s;
-  void _p;
-  void _m;
-  return rest;
 }
 
 @Injectable()
@@ -55,7 +42,7 @@ export class StaffService {
     private readonly audit: StaffAuditService,
     private readonly config: ConfigService,
     private readonly operations: StaffOperationsService,
-    private readonly notifications: NotificationsSmtpService,
+    private readonly invitations: StaffInvitationService,
   ) {}
 
   // ──────────────────────────── AUTH ────────────────────────────
@@ -168,46 +155,7 @@ export class StaffService {
   }
 
   async createStaff(dto: CreateStaffDto, actorId: string, ip?: string | null) {
-    const exists = await this.prisma.staff.findUnique({
-      where: { email: dto.email.toLowerCase() },
-    });
-    if (exists) {
-      throw new BadRequestException('Cet email staff existe déjà');
-    }
-    const { token, tokenHash } = this.createInvitationToken();
-    const unusablePassword = await this.passwordHasher.hash(
-      randomBytes(48).toString('base64url'),
-    );
-    const created = await this.prisma.$transaction(async (transaction) => {
-      const staff = await transaction.staff.create({
-        data: {
-          email: dto.email.toLowerCase(),
-          password: unusablePassword,
-          fullName: dto.fullName,
-          role: dto.role ?? PlatformRole.OPERATOR,
-          status: StaffStatus.INVITED,
-          createdBy: actorId,
-        },
-      });
-      await transaction.staffInvitation.create({
-        data: {
-          staffId: staff.id,
-          tokenHash,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        },
-      });
-      return staff;
-    });
-    await this.sendStaffInvitation(created, token);
-    await this.audit.record({
-      staffId: actorId,
-      action: 'staff.invite',
-      resource: 'staff',
-      resourceId: created.id,
-      after: { email: created.email, role: created.role },
-      ip,
-    });
-    return toSafeStaff(created);
+    return this.invitations.createStaff(dto, actorId, ip);
   }
 
   async resendStaffInvitation(
@@ -215,126 +163,44 @@ export class StaffService {
     actorId: string,
     ip?: string | null,
   ): Promise<{ message: string }> {
-    const staff = await this.prisma.staff.findUnique({
-      where: { id: staffId },
-    });
-    if (!staff || staff.deletedAt) {
-      throw new NotFoundException('Compte staff introuvable');
-    }
-    if (staff.status !== StaffStatus.INVITED) {
-      throw new BadRequestException(
-        "Seul un compte en attente d'invitation peut être renvoyé",
-      );
-    }
+    return this.invitations.resend(staffId, actorId, ip);
+  }
 
-    const { token, tokenHash } = this.createInvitationToken();
-    await this.prisma.staffInvitation.upsert({
-      where: { staffId },
-      create: {
-        staffId,
-        tokenHash,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      },
-      update: {
-        tokenHash,
-        usedAt: null,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      },
-    });
-    await this.sendStaffInvitation(staff, token);
-    await this.audit.record({
-      staffId: actorId,
-      action: 'staff.invitation.resend',
-      resource: 'staff',
-      resourceId: staff.id,
-      after: { email: staff.email },
-      ip,
-    });
-    return { message: 'Invitation staff renvoyée' };
+  async requestStaffActivationCode(
+    email: string,
+    ip?: string | null,
+  ): Promise<{ message: string }> {
+    return this.invitations.requestCode(email, ip);
   }
 
   async acceptStaffInvitation(
     dto: AcceptStaffInvitationDto,
     ip?: string | null,
   ): Promise<{ message: string }> {
-    const tokenHash = createHash('sha256').update(dto.token).digest('hex');
-    const invitation = await this.prisma.staffInvitation.findUnique({
-      where: { tokenHash },
-      include: { staff: true },
-    });
-    if (
-      !invitation ||
-      invitation.usedAt ||
-      invitation.expiresAt <= new Date() ||
-      invitation.staff.deletedAt ||
-      invitation.staff.status !== StaffStatus.INVITED
-    ) {
-      throw new BadRequestException('Invitation staff invalide ou expirée');
-    }
-
-    const password = await this.passwordHasher.hash(dto.password);
-    const activated = await this.prisma.$transaction(
-      async (transaction) => {
-        const consumed = await transaction.staffInvitation.updateMany({
-          where: {
-            id: invitation.id,
-            usedAt: null,
-            expiresAt: { gt: new Date() },
-          },
-          data: { usedAt: new Date() },
-        });
-        if (consumed.count !== 1) {
-          throw new BadRequestException('Invitation staff invalide ou expirée');
-        }
-        const staff = await transaction.staff.update({
-          where: { id: invitation.staffId },
-          data: { password, status: StaffStatus.ACTIVE },
-        });
-        await transaction.staffSession.updateMany({
-          where: { staffId: staff.id, revokedAt: null },
-          data: { revokedAt: new Date() },
-        });
-        return staff;
-      },
-      { isolationLevel: 'Serializable' },
-    );
-    await this.audit.record({
-      staffId: activated.id,
-      action: 'staff.invitation.accept',
-      resource: 'staff',
-      resourceId: activated.id,
-      after: { email: activated.email, role: activated.role },
-      ip,
-    });
-    return {
-      message: 'Invitation acceptée. Vous pouvez maintenant vous connecter.',
-    };
+    return this.invitations.accept(dto, ip);
   }
 
   async updateStaff(
     staffId: string,
     body: {
-      role?: PlatformRole;
+      role?: Exclude<PlatformRole, 'ROOT'>;
       status?: 'ACTIVE' | 'DISABLED' | 'BLOCKED';
       fullName?: string;
-      password?: string;
     },
     actorId: string,
     ip?: string | null,
   ) {
-    const data: Partial<
-      Pick<Staff, 'role' | 'status' | 'fullName' | 'password'>
-    > = {};
+    if ((body as { role?: PlatformRole }).role === PlatformRole.ROOT) {
+      throw new BadRequestException(
+        'Le rôle ROOT est réservé au bootstrap initial et n’est pas délégable',
+      );
+    }
+    const data: Partial<Pick<Staff, 'role' | 'status' | 'fullName'>> = {};
     if (body.role !== undefined) data.role = body.role;
     if (body.fullName !== undefined) data.fullName = body.fullName;
     if (body.status !== undefined) data.status = body.status;
-    if (body.password)
-      data.password = await this.passwordHasher.hash(body.password);
-
     const revokesSessions =
-      body.role !== undefined ||
-      body.status !== undefined ||
-      body.password !== undefined;
+      body.role !== undefined || body.status !== undefined;
 
     const { existing, updated } = await this.prisma.$transaction(
       async (transaction) => {
@@ -344,6 +210,11 @@ export class StaffService {
         if (!current) {
           throw new NotFoundException('Compte staff introuvable');
         }
+        if (current.role === PlatformRole.ROOT && body.role !== undefined) {
+          throw new BadRequestException(
+            'Le rôle ROOT est immuable et réservé au bootstrap initial',
+          );
+        }
         if (Object.keys(data).length === 0) {
           return { existing: current, updated: current };
         }
@@ -351,8 +222,8 @@ export class StaffService {
         const removesActiveRoot =
           current.role === PlatformRole.ROOT &&
           current.status === 'ACTIVE' &&
-          ((body.role !== undefined && body.role !== PlatformRole.ROOT) ||
-            (body.status !== undefined && body.status !== 'ACTIVE'));
+          body.status !== undefined &&
+          body.status !== 'ACTIVE';
         if (removesActiveRoot) {
           const activeRoots = await transaction.staff.count({
             where: {
@@ -369,8 +240,8 @@ export class StaffService {
         }
         if (
           actorId === staffId &&
-          ((body.role !== undefined && body.role !== PlatformRole.ROOT) ||
-            (body.status !== undefined && body.status !== 'ACTIVE'))
+          body.status !== undefined &&
+          body.status !== 'ACTIVE'
         ) {
           throw new BadRequestException(
             'Un ROOT ne peut pas désactiver ou rétrograder sa propre session',
@@ -457,37 +328,11 @@ export class StaffService {
     userId: string,
     actorStaffId: string,
     ip?: string | null,
-  ): Promise<{ access_token: string; user: Omit<User, 'password'> }> {
+  ): ReturnType<StaffOperationsService['impersonateUser']> {
     return this.operations.impersonateUser(userId, actorStaffId, ip);
   }
 
   async listAudit(pagination?: { page?: number; limit?: number }) {
     return this.operations.listAudit(pagination);
-  }
-
-  private createInvitationToken(): { token: string; tokenHash: string } {
-    const token = randomBytes(32).toString('base64url');
-    return {
-      token,
-      tokenHash: createHash('sha256').update(token).digest('hex'),
-    };
-  }
-
-  private async sendStaffInvitation(
-    staff: Staff,
-    token: string,
-  ): Promise<void> {
-    const frontendUrl = this.config
-      .get<string>('FRONTEND_URL', 'http://localhost:3000')
-      .replace(/\/$/, '');
-    const activationUrl = `${frontendUrl}/staff/activate?token=${encodeURIComponent(token)}`;
-    await this.notifications.sendTransactionalEmail(
-      staff.email,
-      'Invitation au back-office',
-      `<p>Bonjour ${escapeHtml(staff.fullName)},</p>` +
-        '<p>Un compte back-office Sovrack a été créé pour vous.</p>' +
-        `<p><a href="${escapeHtml(activationUrl)}">Choisir mon mot de passe et activer le compte</a></p>` +
-        '<p>Ce lien à usage unique expire dans 24 heures.</p>',
-    );
   }
 }

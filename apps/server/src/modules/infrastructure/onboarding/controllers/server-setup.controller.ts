@@ -24,6 +24,8 @@ import {
   ServerSetupReadinessDto,
 } from '../../servers/dto/server-response.dto';
 import { ServerSetupService } from '../services/infra-setup.service';
+import { RequireServerAction } from '../../../iam/authorization/require-server-action.decorator';
+import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
 
 @ApiTags('Servers Setup')
 @ApiBearerAuth()
@@ -35,6 +37,7 @@ export class ServerSetupController {
   constructor(private readonly prep: ServerSetupService) {}
 
   @Post(':id/setups')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({ summary: 'Start a server provisioning job' })
   @ApiCreatedResponse({ type: ServerSetupDto })
   async startSetup(

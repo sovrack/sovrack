@@ -6,6 +6,7 @@ import type { ServerHostKeyService } from '../../../../adapters/ssh/server-host-
 import type { ServersConnectionService } from '../../servers/services/servers-connection.service';
 import type { AnsibleRunnerService } from '../../../../adapters/provisioning/ansible-runner.service';
 import type { SetupRoleKey } from '../../servers/shared/server-setup';
+import type { ConfigService } from '@nestjs/config';
 
 jest.mock('fs/promises', () => ({
   mkdtemp: jest.fn(),
@@ -38,11 +39,17 @@ describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
       resolvePlaybooksRoot: jest.fn().mockReturnValue('/app/ansible/playbooks'),
       run: jest.fn().mockResolvedValue(undefined),
     };
+    const config = {
+      get: jest.fn((key: string) =>
+        key === 'DOCKER_TLS_ALLOWED_CIDR' ? '10.0.0.1/32' : undefined,
+      ),
+    };
     const service = new ServerSetupAnsibleService(
       crypto,
       hostKeys,
       ssh,
       ansibleRunner as unknown as AnsibleRunnerService,
+      config as unknown as ConfigService,
     );
     return { service, ansibleRunner };
   }
@@ -86,6 +93,7 @@ describe('ServerSetupAnsibleService — docker_tls fetch dir', () => {
       '/tmp/docker-tls-abc123',
     );
     expect(extraVars.extraVars.docker_tls_san_ip).toBe('10.0.0.9');
+    expect(extraVars.extraVars.docker_tls_allowed_cidr).toBe('10.0.0.1/32');
     expect(result.dockerTls).toEqual({
       ca: 'CA_PEM',
       cert: 'CERT_PEM',

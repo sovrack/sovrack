@@ -1,12 +1,13 @@
 ---
-# UFW volontairement DÉSACTIVÉ par défaut : dans l'environnement de test, la
-# politique deny provoquait des timeouts (ERR_CONNECTION_TIMED_OUT) sur les
-# dashboards de monitoring et les apps. Passer à `true` pour réactiver le
-# pare-feu (deny par défaut + autorisation de 22/80/443).
-firewall_enabled: false
+# Production-safe default. A caller may opt out only for an isolated disposable
+# development host; opting out never actively disables an existing firewall.
+firewall_enabled: true
 firewall_allowed_ports:
-  - '22/tcp'
   - '80/tcp'
   - '443/tcp'
+firewall_ssh_port: 22
+# Optional CIDR allowed to reach SSH. Empty preserves remote access from any
+# source and avoids locking out first-time provisioning.
+firewall_ssh_allowed_cidr: ''
 firewall_default_incoming: deny
 firewall_default_outgoing: allow

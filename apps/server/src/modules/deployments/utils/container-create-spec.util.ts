@@ -78,6 +78,14 @@ export function buildContainerCreateSpec(
       : { [`${servicePort}/tcp`]: {} },
     StopTimeout: stopTimeout,
     HostConfig: {
+      // Safe baseline for every customer workload. These controls do not make
+      // the root filesystem immutable (many third-party images legitimately
+      // write at runtime), but they prevent privilege escalation, remove the
+      // default Linux capability set and cap fork-bomb impact.
+      SecurityOpt: ['no-new-privileges:true'],
+      CapDrop: ['ALL'],
+      PidsLimit: 256,
+      Init: true,
       // Traefik mode / workers / cron → no host port binding.
       PortBindings: noHostPort
         ? {}

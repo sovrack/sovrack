@@ -21,6 +21,8 @@ variables:
   JWT_SECRET: ci-jwt-secret-minimum-32-characters-ok
   # Secret indépendant (jamais dérivé de JWT_SECRET) — exigé par env.validation.
   STAFF_JWT_SECRET: ci-staff-jwt-secret-minimum-32-characters-ok
+  # Secret HMAC indépendant pour les codes à usage unique staff.
+  STAFF_OTP_SECRET: ci-staff-otp-secret-minimum-32-characters-ok
   ANSIBLE_PLAYBOOKS_PATH: /tmp/playbooks
   ANSIBLE_VENV_PATH: /tmp/venv
   NODE_ENV: test
@@ -117,7 +119,9 @@ test:migrations:
   tags:
     - sovrack-docker-tests
   services:
-    - name: docker:27-dind@sha256:aa3df78ecf320f5fafdce71c659f1629e96e9de0968305fe1de670e0ca9176ce
+    # Seul le service DinD rootless reçoit le privilège du runner dédié ; le
+    # conteneur du job Node reste non privilégié.
+    - name: docker:27-dind-rootless@sha256:9d7346a1c76e658d818714d48d6154436bcf681ea3251985ccbe55f7788d9e20
       alias: docker
   variables:
     DOCKER_HOST: tcp://docker:2375

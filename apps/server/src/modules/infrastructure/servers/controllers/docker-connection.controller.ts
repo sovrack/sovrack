@@ -11,6 +11,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { ServerWorkspaceGuard } from '../../../iam/authorization/server-workspace.guard';
 import { DockerConnectionsService } from '../../../../adapters/container-runtime/docker-connections.service';
+import { RequireServerAction } from '../../../iam/authorization/require-server-action.decorator';
+import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
 
 class UpsertDockerConnectionDto {
   @IsString()
@@ -65,6 +67,7 @@ export class DockerConnectionController {
   }
 
   @Post()
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({
     summary: 'Create or replace the Docker connection of a server',
   })
@@ -72,10 +75,21 @@ export class DockerConnectionController {
     @Param('serverId') serverId: string,
     @Body() dto: UpsertDockerConnectionDto,
   ) {
-    return this.dockerConnections.upsert({ serverId, ...dto });
+    const conn = await this.dockerConnections.upsert({ serverId, ...dto });
+    return {
+      id: conn.id,
+      serverId: conn.serverId,
+      endpoint: conn.endpoint,
+      apiVersion: conn.apiVersion,
+      lastCheckedAt: conn.lastCheckedAt,
+      isReachable: conn.isReachable,
+      createdAt: conn.createdAt,
+      updatedAt: conn.updatedAt,
+    };
   }
 
   @Post('probe')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({
     summary: 'Test the Docker connection (TLS handshake + ping)',
   })
@@ -84,6 +98,7 @@ export class DockerConnectionController {
   }
 
   @Delete()
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({
     summary: 'Delete the Docker connection configured for this server',
   })

@@ -19,6 +19,14 @@
     group: root
     mode: '0755'
 
+- name: "alertmanager | Create storage directory"
+  ansible.builtin.file:
+    path: "{{ alertmanager_storage_dir }}"
+    state: directory
+    owner: nobody
+    group: nogroup
+    mode: '0750'
+
 - name: "alertmanager | Render configuration"
   ansible.builtin.template:
     src: alertmanager.yml.j2
@@ -41,13 +49,25 @@
       - alertmanager
       - --restart
       - unless-stopped
+      - --read-only
+      - --security-opt
+      - no-new-privileges:true
+      - --cap-drop
+      - ALL
+      - --pids-limit
+      - "128"
+      - --tmpfs
+      - /tmp:rw,noexec,nosuid,size=32m
       - --network
       - "{{ monitoring_docker_network }}"
       - --publish
-      - "{{ alertmanager_port }}:9093"
+      - "{{ alertmanager_bind_address }}:{{ alertmanager_port }}:9093"
       - --volume
       - "{{ alertmanager_config_dir }}/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro"
+      - --volume
+      - "{{ alertmanager_storage_dir }}:/alertmanager"
       - "{{ alertmanager_image }}"
       - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
   register: alertmanager_run
   changed_when: alertmanager_run.rc == 0

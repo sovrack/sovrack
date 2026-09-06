@@ -16,7 +16,7 @@ export class JwtService {
   /**
    * Generate access token for user.
    */
-  generateAccessToken(payload: Partial<JwtPayloadDto>): string {
+  generateAccessToken(payload: JwtPayloadDto): string {
     return this.jwtService.sign(payload);
   }
 

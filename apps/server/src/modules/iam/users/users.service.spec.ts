@@ -162,7 +162,12 @@ describe('UsersService', () => {
       confirmNewPassword: 'newpw',
     } as never);
     expect(prisma.user.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { password: 'hashed:newpw' } }),
+      expect.objectContaining({
+        data: {
+          password: 'hashed:newpw',
+          sessionVersion: { increment: 1 },
+        },
+      }),
     );
   });
 

@@ -55,12 +55,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         isActive: true,
         emailVerifiedAt: true,
         provider: true,
+        sessionVersion: true,
       },
     });
     if (
       !user ||
       !user.isActive ||
       user.email !== payload.email ||
+      !Number.isInteger(payload.sessionVersion) ||
+      user.sessionVersion !== payload.sessionVersion ||
       (user.provider === 'email' && !user.emailVerifiedAt)
     ) {
       throw new UnauthorizedException('Session utilisateur révoquée');

@@ -10,6 +10,7 @@ function buildStrategy(
     isActive: true,
     emailVerifiedAt: new Date(),
     provider: 'email',
+    sessionVersion: 0,
   },
 ): JwtStrategy {
   const config = {
@@ -37,6 +38,7 @@ describe('JwtStrategy', () => {
         id: 'u1',
         email: 'a@b.com',
         role: 'OWNER',
+        sessionVersion: 0,
       } as unknown as JwtPayloadDto;
       await expect(strategy.validate(payload)).resolves.toBe(payload);
     });
@@ -61,11 +63,30 @@ describe('JwtStrategy', () => {
         isActive: false,
         emailVerifiedAt: new Date(),
         provider: 'email',
+        sessionVersion: 0,
       });
       await expect(
         strategy.validate({
           id: 'u1',
           email: 'a@b.com',
+          sessionVersion: 0,
+        } as JwtPayloadDto),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('rejects a token issued before a session revocation', async () => {
+      const strategy = buildStrategy({
+        email: 'a@b.com',
+        isActive: true,
+        emailVerifiedAt: new Date(),
+        provider: 'email',
+        sessionVersion: 2,
+      });
+      await expect(
+        strategy.validate({
+          id: 'u1',
+          email: 'a@b.com',
+          sessionVersion: 1,
         } as JwtPayloadDto),
       ).rejects.toThrow(UnauthorizedException);
     });

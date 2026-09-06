@@ -1,6 +1,8 @@
 ---
 alertmanager_image: prom/alertmanager:v0.27.0
 alertmanager_port: 9093
+alertmanager_bind_address: 127.0.0.1
 alertmanager_config_dir: /opt/monitoring/alertmanager
+alertmanager_storage_dir: /opt/monitoring/alertmanager/data
 # Shared bridge network so Prometheus can reach Alertmanager by container name.
 monitoring_docker_network: deployautomation_monitoring

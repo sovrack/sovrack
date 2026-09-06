@@ -20,6 +20,8 @@ import {
   serverHasDocker,
   serverHasRunner,
 } from '../../../../adapters/server-capabilities/server-capabilities.util';
+import { RequireServerAction } from '../../../iam/authorization/require-server-action.decorator';
+import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
 
 @ApiTags('Servers Validation')
 @ApiBearerAuth()
@@ -29,6 +31,7 @@ export class ServerValidationController {
   constructor(private readonly core: ServersCoreService) {}
 
   @Post(':id/validate-ssh')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({
     summary:
       'Validate the SSH connection, auth, sudo and minimal prerequisites',

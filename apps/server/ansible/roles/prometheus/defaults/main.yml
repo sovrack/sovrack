@@ -1,6 +1,7 @@
 ---
 prometheus_image: prom/prometheus:v2.54.1
 prometheus_port: 9090
+prometheus_bind_address: 127.0.0.1
 prometheus_config_dir: /opt/monitoring/prometheus
 prometheus_storage_dir: /opt/monitoring/prometheus/data
 prometheus_scrape_interval: 15s

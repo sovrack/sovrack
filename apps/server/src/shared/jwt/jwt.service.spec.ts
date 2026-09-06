@@ -19,8 +19,14 @@ describe('JwtService (wrapper)', () => {
   });
 
   it('generateAccessToken delegates to sign', () => {
-    expect(service.generateAccessToken({ id: 'u1' })).toBe('signed.jwt.token');
-    expect(nest.sign).toHaveBeenCalledWith({ id: 'u1' });
+    const payload = {
+      id: 'u1',
+      email: 'a@b.com',
+      role: 'OWNER' as const,
+      sessionVersion: 0,
+    };
+    expect(service.generateAccessToken(payload)).toBe('signed.jwt.token');
+    expect(nest.sign).toHaveBeenCalledWith(payload);
   });
 
   it('verifyToken delegates to verify', () => {

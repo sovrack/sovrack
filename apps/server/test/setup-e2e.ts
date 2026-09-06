@@ -171,7 +171,12 @@ export async function bootstrapE2E(): Promise<E2EContext> {
     role: Role = Role.OWNER,
     email = `admin-${userId.slice(0, 8)}@deployautomation.test`,
   ): string => {
-    const token = jwt.generateAccessToken({ id: userId, email, role });
+    const token = jwt.generateAccessToken({
+      id: userId,
+      email,
+      role,
+      sessionVersion: 0,
+    });
     return `deploy_automation_token=${token}`;
   };
 

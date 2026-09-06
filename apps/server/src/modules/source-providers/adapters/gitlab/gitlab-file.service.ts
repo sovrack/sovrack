@@ -163,7 +163,7 @@ export class GitlabFileService {
     projectId: string,
     serviceId?: string,
   ): Promise<GitlabRepositoryContext> {
-    this.logger.log(
+    this.logger.debug(
       `[DEBUG resolveRepositoryContext] projectId=${projectId}, serviceId=${serviceId}`,
     );
     // Use serviceId to target the exact repository (fixes bug where any repo
@@ -175,7 +175,7 @@ export class GitlabFileService {
       : await this.prisma.service.findFirst({
           where: { projectId, providerId: { not: null } },
         });
-    this.logger.log(
+    this.logger.debug(
       `[DEBUG resolveRepositoryContext] Resolved service: id=${svc?.id}, name=${svc?.name}, repoPath=${svc?.repoPath}`,
     );
     if (!svc?.providerId)
@@ -223,12 +223,12 @@ export class GitlabFileService {
 
     branch = service?.branch?.trim() || config.defaultBranch?.trim() || 'main';
     repositoryPath = svc.repoPath ?? null;
-    this.logger.log(
+    this.logger.debug(
       `[DEBUG resolveRepositoryContext] Initial repositoryPath from svc.repoPath: ${repositoryPath}`,
     );
 
     if (!repositoryPath) {
-      this.logger.log(
+      this.logger.debug(
         `[DEBUG resolveRepositoryContext] repositoryPath is null, using fallback gitProviderRepo.findFirst with providerId=${config.providerId}`,
       );
       const repoLink = await this.prisma.gitProviderRepo.findFirst({
@@ -236,7 +236,7 @@ export class GitlabFileService {
         select: { repoPath: true },
       });
       repositoryPath = repoLink?.repoPath ?? null;
-      this.logger.log(
+      this.logger.debug(
         `[DEBUG resolveRepositoryContext] Fallback repositoryPath: ${repositoryPath}`,
       );
     }

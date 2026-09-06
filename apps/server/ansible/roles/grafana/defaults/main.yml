@@ -1,9 +1,12 @@
 ---
 grafana_image: grafana/grafana:11.2.0
 grafana_port: 3000
+grafana_bind_address: 127.0.0.1
 grafana_data_dir: /opt/monitoring/grafana/data
 grafana_admin_user: admin
-grafana_admin_password: admin
+# Required secret supplied at execution time (Ansible Vault / extra-vars).
+# There is deliberately no insecure default.
+grafana_admin_password: ""
 
 # Provisioning (datasource + default dashboards shipped out of the box).
 grafana_provisioning_dir: /opt/monitoring/grafana/provisioning

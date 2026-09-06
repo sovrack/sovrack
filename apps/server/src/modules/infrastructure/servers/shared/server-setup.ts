@@ -1,4 +1,7 @@
-import type { StartServerSetupDto } from '../dto/start-server-setup.dto';
+import {
+  ServerSetupProfile,
+  type StartServerSetupDto,
+} from '../dto/start-server-setup.dto';
 
 // Rôles réellement pilotables — toujours dans cet ordre d'exécution. Exporté
 // pour que les consommateurs (suivi de rôle + filtre de retry de l'orchestrateur)
@@ -45,58 +48,61 @@ export const ROLE_ORDER: SetupRoleKey[] = [
   'logrotate',
 ];
 
-// Décision produit : "Setup Server" installe TOUT ce qui est nécessaire à un
-// bon déploiement, EN UN SEUL BOUTON, sans aucun choix — ni case à cocher, ni
-// profil, ni catalogue d'options. Tout est conteneurisé, le coût RAM/disque
-// est négligeable, donc pas de raison de faire un tri : GitLab Runner et la
-// stack d'observabilité complète (Prometheus/Grafana/Loki/Alertmanager/
-// exporters) sont désormais installés systématiquement, au même titre que
-// Docker ou le firewall. `nginx`/`postgres`/`redis`/`nodejs`/`backup` restent
-// exclus : nginx n'est jamais câblé au routage HTTPS automatique (Traefik est
-// le seul), une base de données se déploie via un Service du catalogue
-// (moteur Docker générique, jamais un rôle Ansible séparé et invisible du
-// catalogue), et backup n'a jamais eu de vraie politique de sauvegarde
-// branchée dessus.
-const CORE_ROLES: SetupRoleKey[] = [
+const RUNTIME_MINIMAL_ROLES: SetupRoleKey[] = [
   'system_base',
+  'swap',
+  'security_hardening',
+  'firewall',
+  'fail2ban',
   'docker',
   'docker_tls',
   'traefik',
-  'nixpacks',
-  'gitlab_runner',
-  'firewall',
-  'fail2ban',
-  'swap',
   'system_diagnostics',
   'node_exporter',
-  'cadvisor',
-  'prometheus',
-  'grafana',
-  'alertmanager',
-  'loki',
   'logrotate',
-  'security_hardening',
 ];
 
+const SETUP_PROFILE_ROLES: Record<ServerSetupProfile, SetupRoleKey[]> = {
+  [ServerSetupProfile.RUNTIME_MINIMAL]: RUNTIME_MINIMAL_ROLES,
+  [ServerSetupProfile.OBSERVABILITY_AGENT]: [
+    ...RUNTIME_MINIMAL_ROLES,
+    'cadvisor',
+  ],
+  [ServerSetupProfile.BUILD_RUNNER]: [
+    ...RUNTIME_MINIMAL_ROLES,
+    'nixpacks',
+    'gitlab_runner',
+  ],
+  [ServerSetupProfile.FULL_DEV]: [
+    ...RUNTIME_MINIMAL_ROLES,
+    'nixpacks',
+    'gitlab_runner',
+    'cadvisor',
+    'prometheus',
+    'grafana',
+    'alertmanager',
+    'loki',
+  ],
+};
+
 export type ResolvedSetup = {
-  // Conservé uniquement pour l'affichage historique dans ServerRun.profile
-  // (String simple, non lié à un enum) — il n'y a plus de vrai "profil".
-  profile: 'AUTO';
+  profile: ServerSetupProfile;
   roles: SetupRoleKey[];
   gitlabRunnerExecutor: string;
 };
 
 /**
- * Un seul jeu de rôles fixe, TOUJOURS complet — plus aucune option. Seul
- * `gitlabRunnerExecutor` reste configurable (docker/shell), pour paramétrer
- * COMMENT GitLab Runner s'installe, pas SI il s'installe.
+ * Resolve the explicit profile server-side. The safe default excludes build
+ * runners and operator dashboards from production application hosts.
  */
 export function resolveSetupOptions(dto?: StartServerSetupDto): ResolvedSetup {
+  const profile = dto?.profile ?? ServerSetupProfile.RUNTIME_MINIMAL;
   const gitlabRunnerExecutor = dto?.gitlabRunnerExecutor?.trim() || 'docker';
-  const roles = ROLE_ORDER.filter((role) => CORE_ROLES.includes(role));
+  const selected = new Set(SETUP_PROFILE_ROLES[profile]);
+  const roles = ROLE_ORDER.filter((role) => selected.has(role));
 
   return {
-    profile: 'AUTO',
+    profile,
     roles,
     gitlabRunnerExecutor,
   };

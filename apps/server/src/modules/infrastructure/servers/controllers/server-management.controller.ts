@@ -41,6 +41,8 @@ import {
 } from '../dto/server-response.dto';
 import { UpdateServerDto } from '../dto/update-server.dto';
 import { ServersCoreService } from '../services';
+import { RequireServerAction } from '../../../iam/authorization/require-server-action.decorator';
+import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
 
 class SetServerRoleDto {
   @IsEnum(ServerInfraRole, { message: 'Rôle invalide' })
@@ -83,6 +85,7 @@ export class ServerManagementController {
   constructor(private readonly core: ServersCoreService) {}
 
   @Post()
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({ summary: 'Create a server' })
   @ApiCreatedResponse({
     description: 'Server created successfully',
@@ -152,6 +155,7 @@ export class ServerManagementController {
   }
 
   @Put(':id')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({ summary: 'Edit a server' })
   @ApiOkResponse({ description: 'Server updated', type: ServerResponseDto })
   async update(
@@ -164,6 +168,7 @@ export class ServerManagementController {
   }
 
   @Patch(':id')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({ summary: 'Partially update a server' })
   @ApiOkResponse({ description: 'Server updated', type: ServerResponseDto })
   async patch(
@@ -176,6 +181,7 @@ export class ServerManagementController {
   }
 
   @Delete(':id')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({
     summary: 'Delete a server if no active environment',
   })
@@ -197,6 +203,7 @@ export class ServerManagementController {
   }
 
   @Post(':id/install-key')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({
     summary: 'Install the SSH public key via a temporary password',
   })
@@ -213,6 +220,7 @@ export class ServerManagementController {
   }
 
   @Post(':id/register-runner')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({ summary: 'Enregistrer le GitLab Runner sur ce serveur' })
   @ApiCreatedResponse({
     description: 'Runner registered',
@@ -244,6 +252,7 @@ export class ServerManagementController {
   }
 
   @Patch(':id/role')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({ summary: 'Set the infrastructure role of this server' })
   @ApiOkResponse({ description: 'Role updated' })
   async setServerRole(
@@ -264,6 +273,7 @@ export class ServerManagementController {
   }
 
   @Post(':id/ping')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({ summary: 'Quickly test the server SSH connectivity' })
   @ApiOkResponse({ description: 'Connection test result' })
   async pingServer(@Param('id') id: string, @GetUser() user: JwtPayload) {
@@ -271,6 +281,7 @@ export class ServerManagementController {
   }
 
   @Post(':id/jobs/:jobId/cancel')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({ summary: 'Force-finish a stuck or ghost job' })
   @ApiOkResponse({
     description: 'Job marked as failed',
@@ -281,6 +292,7 @@ export class ServerManagementController {
   }
 
   @Post(':id/jobs/:jobId/retry')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({ summary: 'Re-run a failed SSH validation job' })
   @ApiOkResponse({
     description: 'SSH validation re-triggered',

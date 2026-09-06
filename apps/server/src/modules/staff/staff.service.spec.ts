@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { AccountDeletionService } from '../iam/authorization/account-deletion.service';
 import { NotificationsSmtpService } from '../notifications/notifications-smtp.service';
 import { StaffOperationsService } from './staff-operations.service';
+import { StaffInvitationService } from './staff-invitation.service';
 import type { Staff, User } from '@prisma/client';
 
 const staffFixture: Staff = {
@@ -35,8 +36,11 @@ const userFixture: User = {
   id: 'user-1',
   email: 'client@sovrack.tn',
   password: 'x',
+  provider: 'email',
+  googleId: null,
   fullName: 'Client One',
   role: Role.OWNER,
+  pendingWorkspaceName: null,
   isActive: true,
   emailVerificationCode: null,
   emailVerificationAttemptId: null,
@@ -46,6 +50,9 @@ const userFixture: User = {
   deleteAccountExpiresAt: null,
   passwordResetCode: null,
   passwordResetExpiresAt: null,
+  passwordResetRequestedAt: null,
+  passwordResetAttempts: 0,
+  sessionVersion: 0,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
 };
@@ -66,7 +73,6 @@ describe('StaffService', () => {
     staffInvitation: {
       create: jest.fn(),
       upsert: jest.fn(),
-      findUnique: jest.fn(),
       updateMany: jest.fn(),
     },
     user: {
@@ -107,12 +113,20 @@ describe('StaffService', () => {
     sendTransactionalEmail: jest.fn(async () => undefined),
   };
   let service: StaffService;
+  let invitationService: StaffInvitationService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.$transaction.mockImplementation(
       async (callback: (transaction: typeof prisma) => Promise<unknown>) =>
         callback(prisma),
+    );
+    invitationService = new StaffInvitationService(
+      prisma as never,
+      passwordHasher as unknown as PasswordHasher,
+      audit as unknown as StaffAuditService,
+      config as unknown as ConfigService,
+      notifications as unknown as NotificationsSmtpService,
     );
     service = new StaffService(
       prisma as never,
@@ -127,7 +141,7 @@ describe('StaffService', () => {
         config as unknown as ConfigService,
         accountDeletion as unknown as AccountDeletionService,
       ),
-      notifications as unknown as NotificationsSmtpService,
+      invitationService,
     );
   });
 
@@ -214,6 +228,8 @@ describe('StaffService', () => {
     it('crée un OPERATOR par défaut et journalise', async () => {
       prisma.staff.findUnique.mockResolvedValue(null);
       prisma.staff.create.mockResolvedValue(staffFixture);
+      prisma.staffInvitation.create.mockResolvedValue({ id: 'invite-1' });
+      prisma.staffInvitation.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.createStaff(
         {
@@ -239,8 +255,8 @@ describe('StaffService', () => {
       );
       expect(notifications.sendTransactionalEmail).toHaveBeenCalledWith(
         staffFixture.email,
-        expect.stringContaining('Invitation'),
-        expect.stringContaining('/staff/activate?token='),
+        expect.stringContaining('activation'),
+        expect.stringContaining('/staff/activate?email='),
       );
       expect(result).not.toHaveProperty('password');
     });
@@ -258,19 +274,34 @@ describe('StaffService', () => {
 
   describe('staff invitation', () => {
     it('active une invitation valide une seule fois', async () => {
-      prisma.staffInvitation.findUnique.mockResolvedValue({
-        id: 'invite-1',
-        staffId: staffFixture.id,
-        tokenHash: 'hash',
-        expiresAt: new Date(Date.now() + 60_000),
-        usedAt: null,
-        staff: { ...staffFixture, status: StaffStatus.INVITED },
+      const code = '12345678';
+      const codeHash = (
+        invitationService as unknown as {
+          hashActivationCode: (staffId: string, value: string) => string;
+        }
+      ).hashActivationCode(staffFixture.id, code);
+      prisma.staff.findUnique.mockResolvedValue({
+        ...staffFixture,
+        status: StaffStatus.INVITED,
+        invitation: {
+          id: 'invite-1',
+          staffId: staffFixture.id,
+          tokenHash: codeHash,
+          attempts: 0,
+          deliveredAt: new Date(),
+          expiresAt: new Date(Date.now() + 60_000),
+          usedAt: null,
+        },
       });
       prisma.staffInvitation.updateMany.mockResolvedValue({ count: 1 });
       prisma.staff.update.mockResolvedValue(staffFixture);
 
       const result = await service.acceptStaffInvitation(
-        { token: 'a'.repeat(43), password: 'Strong-Password-2026!' },
+        {
+          email: staffFixture.email,
+          code,
+          password: 'Strong-Password-2026!',
+        },
         '::1',
       );
 
@@ -288,40 +319,110 @@ describe('StaffService', () => {
     });
 
     it('refuse une invitation expirée', async () => {
-      prisma.staffInvitation.findUnique.mockResolvedValue({
-        id: 'invite-1',
-        staffId: staffFixture.id,
-        expiresAt: new Date(Date.now() - 1),
-        usedAt: null,
-        staff: { ...staffFixture, status: StaffStatus.INVITED },
+      prisma.staff.findUnique.mockResolvedValue({
+        ...staffFixture,
+        status: StaffStatus.INVITED,
+        invitation: {
+          id: 'invite-1',
+          staffId: staffFixture.id,
+          tokenHash: '0'.repeat(64),
+          attempts: 0,
+          deliveredAt: new Date(),
+          expiresAt: new Date(Date.now() - 1),
+          usedAt: null,
+        },
       });
 
       await expect(
         service.acceptStaffInvitation({
-          token: 'a'.repeat(43),
+          email: staffFixture.email,
+          code: '12345678',
           password: 'Strong-Password-2026!',
         }),
       ).rejects.toThrow('invalide ou expirée');
+    });
+
+    it('compte les codes d’activation invalides sans révéler la cause', async () => {
+      prisma.staff.findUnique.mockResolvedValue({
+        ...staffFixture,
+        status: StaffStatus.INVITED,
+        invitation: {
+          id: 'invite-1',
+          staffId: staffFixture.id,
+          tokenHash: '0'.repeat(64),
+          attempts: 0,
+          deliveredAt: new Date(),
+          expiresAt: new Date(Date.now() + 60_000),
+          usedAt: null,
+        },
+      });
+      prisma.staffInvitation.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        service.acceptStaffInvitation({
+          email: staffFixture.email,
+          code: '12345678',
+          password: 'Strong-Password-2026!',
+        }),
+      ).rejects.toThrow('invalide ou expirée');
+
+      expect(prisma.staffInvitation.updateMany).toHaveBeenCalledWith({
+        where: { id: 'invite-1', usedAt: null },
+        data: { attempts: { increment: 1 } },
+      });
+    });
+
+    it('renvoie une réponse neutre pour une demande d’activation inconnue', async () => {
+      prisma.staff.findUnique.mockResolvedValue(null);
+
+      const result = await service.requestStaffActivationCode(
+        'unknown@sovrack.tech',
+        '::1',
+      );
+
+      expect(result.message).toContain('Si ce compte staff existe');
+      expect(notifications.sendTransactionalEmail).not.toHaveBeenCalled();
+    });
+
+    it('ne génère pas un second code pendant le délai anti-abus', async () => {
+      prisma.staff.findUnique.mockResolvedValue({
+        ...staffFixture,
+        status: StaffStatus.INVITED,
+        invitation: {
+          id: 'invite-1',
+          deliveredAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      const result = await service.requestStaffActivationCode(
+        staffFixture.email,
+        '::1',
+      );
+
+      expect(result.message).toContain('Si ce compte staff existe');
+      expect(prisma.staffInvitation.upsert).not.toHaveBeenCalled();
+      expect(notifications.sendTransactionalEmail).not.toHaveBeenCalled();
     });
   });
 
   describe('updateStaff', () => {
     it('révoque immédiatement les sessions après un changement de rôle', async () => {
-      prisma.staff.findUnique.mockResolvedValue(staffFixture);
-      prisma.staff.count.mockResolvedValue(2);
+      const admin = { ...staffFixture, role: PlatformRole.ADMIN };
+      prisma.staff.findUnique.mockResolvedValue(admin);
       prisma.staff.update.mockResolvedValue({
-        ...staffFixture,
-        role: PlatformRole.ADMIN,
+        ...admin,
+        role: PlatformRole.OPERATOR,
       });
 
       const result = await service.updateStaff(
-        staffFixture.id,
-        { role: PlatformRole.ADMIN },
+        admin.id,
+        { role: PlatformRole.OPERATOR },
         'other-root',
         '::1',
       );
 
-      expect(result.role).toBe(PlatformRole.ADMIN);
+      expect(result.role).toBe(PlatformRole.OPERATOR);
       expect(prisma.staffSession.updateMany).toHaveBeenCalledWith({
         where: { staffId: staffFixture.id, revokedAt: null },
         data: { revokedAt: expect.any(Date) },
@@ -345,9 +446,8 @@ describe('StaffService', () => {
       expect(prisma.staff.update).not.toHaveBeenCalled();
     });
 
-    it('interdit à un ROOT de se rétrograder lui-même', async () => {
+    it('interdit de modifier le rôle ROOT réservé au bootstrap', async () => {
       prisma.staff.findUnique.mockResolvedValue(staffFixture);
-      prisma.staff.count.mockResolvedValue(2);
 
       await expect(
         service.updateStaff(
@@ -355,7 +455,7 @@ describe('StaffService', () => {
           { role: PlatformRole.ADMIN },
           staffFixture.id,
         ),
-      ).rejects.toThrow('propre session');
+      ).rejects.toThrow('ROOT est immuable');
     });
   });
 

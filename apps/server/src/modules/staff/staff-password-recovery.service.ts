@@ -32,6 +32,15 @@ export class StaffPasswordRecoveryService {
       return { message: genericMessage };
     }
 
+    const recentRequest = await this.prisma.staffPasswordReset.findFirst({
+      where: {
+        staffId: staff.id,
+        createdAt: { gt: new Date(Date.now() - 60_000) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (recentRequest) return { message: genericMessage };
+
     const code = randomInt(0, 100_000_000).toString().padStart(8, '0');
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
@@ -73,7 +82,7 @@ export class StaffPasswordRecoveryService {
         where: { id: reset.id, usedAt: null },
         data: { deliveredAt: new Date() },
       });
-    } catch (error: unknown) {
+    } catch {
       await this.prisma.staffPasswordReset.updateMany({
         where: { id: reset.id, usedAt: null },
         data: { usedAt: new Date() },
@@ -86,7 +95,8 @@ export class StaffPasswordRecoveryService {
         after: { resetId: reset.id },
         ip,
       });
-      throw error;
+      // La réponse reste identique à celle d'un compte inconnu : un appelant
+      // public ne doit pouvoir déduire ni l'existence du staff ni l'état SMTP.
     }
 
     return { message: genericMessage };
@@ -179,7 +189,7 @@ export class StaffPasswordRecoveryService {
   }
 
   private hashCode(staffId: string, code: string): string {
-    const secret = this.config.getOrThrow<string>('STAFF_JWT_SECRET');
+    const secret = this.config.getOrThrow<string>('STAFF_OTP_SECRET');
     return createHmac('sha256', secret)
       .update(`staff-password-reset-v1\u0000${staffId}\u0000${code}`)
       .digest('hex');

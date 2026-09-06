@@ -25,13 +25,14 @@ import {
 } from '../security/one-time-code.util';
 import { AccountDeletionService } from '../authorization/account-deletion.service';
 import { normalizeEmailAddress } from '../../../shared/validation/identity-validation.util';
+import { type SafeUser, toSafeUser } from '../users/user-safe-view';
 
 /**
  * Réponse d'authentification
  */
 export interface AuthResponse {
   access_token: string;
-  user: Omit<User, 'password'>;
+  user: SafeUser;
 }
 
 @Injectable()
@@ -108,6 +109,7 @@ export class AuthService {
       verified.id,
       verified.email,
       verified.role,
+      verified.sessionVersion,
     );
 
     await this.auditService.record(
@@ -122,14 +124,11 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
-
     this.logger.log(
       `User ${verified.email} (${verified.id}) verified and onboarded`,
     );
 
-    return { access_token, user: userWithoutPassword };
+    return { access_token, user: toSafeUser(user) };
   }
 
   /**
@@ -205,15 +204,17 @@ export class AuthService {
     });
 
     // Retourner la réponse sans le mot de passe
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
     return {
       access_token,
-      user: userWithoutPassword,
+      user: toSafeUser(user),
     };
   }
 
   async logout(userId: string): Promise<{ message: string }> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { sessionVersion: { increment: 1 } },
+    });
     await this.auditService.record(userId, 'AUTH_LOGOUT', 'User', userId);
 
     return {
@@ -227,27 +228,30 @@ export class AuthService {
    * @returns Utilisateur sans mot de passe
    * @throws NotFoundException si l'utilisateur n'existe pas
    */
-  async getMe(id: string): Promise<Omit<User, 'password'>> {
+  async getMe(id: string): Promise<SafeUser> {
     const user = await this.usersService.findById(id);
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
     }
 
-    // Retourner l'utilisateur sans le mot de passe
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return toSafeUser(user);
   }
 
   /**
    * Mot de passe oublié : génère un code à 6 chiffres (10 min) et l'envoie par
    * email si le compte existe. Ne révèle jamais si l'email est enregistré.
    */
-  async forgotPassword(email: string): Promise<{ sent: boolean }> {
+  async forgotPassword(email: string): Promise<{ sent: true }> {
     email = normalizeEmailAddress(email);
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || !user.emailVerifiedAt) {
-      return { sent: false };
+      return { sent: true };
+    }
+    if (
+      user.passwordResetRequestedAt &&
+      Date.now() - user.passwordResetRequestedAt.getTime() < 60_000
+    ) {
+      return { sent: true };
     }
     const code = generateOneTimeCode();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -260,10 +264,11 @@ export class AuthService {
           userId: user.id,
         }),
         passwordResetExpiresAt: expiresAt,
+        passwordResetRequestedAt: new Date(),
+        passwordResetAttempts: 0,
       },
     });
 
-    let sent = false;
     try {
       await this.smtp.sendTransactionalEmail(
         user.email,
@@ -289,7 +294,6 @@ export class AuthService {
           </div>
         </div>`,
       );
-      sent = true;
       this.logger.log(`Password reset code sent to ${user.email}`);
     } catch (err) {
       this.logger.warn(
@@ -298,7 +302,8 @@ export class AuthService {
         }`,
       );
     }
-    return { sent };
+    // Deliberately indistinguishable for unknown accounts and SMTP failures.
+    return { sent: true };
   }
 
   /**
@@ -311,18 +316,16 @@ export class AuthService {
   ): Promise<{ message: string }> {
     email = normalizeEmailAddress(email);
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || !user.emailVerifiedAt) {
-      throw new BadRequestException('Compte introuvable ou non vérifié');
-    }
-    if (!user.passwordResetCode || !user.passwordResetExpiresAt) {
-      throw new BadRequestException(
-        'Aucune demande de réinitialisation en attente',
-      );
-    }
-    if (user.passwordResetExpiresAt.getTime() < Date.now()) {
-      throw new BadRequestException(
-        'Le code a expiré. Redemandez un nouveau code.',
-      );
+    const genericInvalidMessage = 'Code de réinitialisation invalide ou expiré';
+    if (
+      !user ||
+      !user.emailVerifiedAt ||
+      !user.passwordResetCode ||
+      !user.passwordResetExpiresAt ||
+      user.passwordResetExpiresAt.getTime() < Date.now() ||
+      user.passwordResetAttempts >= 5
+    ) {
+      throw new BadRequestException(genericInvalidMessage);
     }
     if (
       !verifyOneTimeCode(this.crypto, user.passwordResetCode, {
@@ -331,7 +334,21 @@ export class AuthService {
         userId: user.id,
       })
     ) {
-      throw new BadRequestException('Code de réinitialisation invalide');
+      const nextAttempts = user.passwordResetAttempts + 1;
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetAttempts: nextAttempts,
+          ...(nextAttempts >= 5
+            ? {
+                passwordResetCode: null,
+                passwordResetExpiresAt: null,
+                passwordResetRequestedAt: null,
+              }
+            : {}),
+        },
+      });
+      throw new BadRequestException(genericInvalidMessage);
     }
 
     const hashed = await this.passwordHasher.hash(newPassword);
@@ -341,6 +358,9 @@ export class AuthService {
         password: hashed,
         passwordResetCode: null,
         passwordResetExpiresAt: null,
+        passwordResetRequestedAt: null,
+        passwordResetAttempts: 0,
+        sessionVersion: { increment: 1 },
       },
     });
 
@@ -466,7 +486,12 @@ export class AuthService {
   }
 
   private generateToken(user: User): string {
-    return this.generateTokenForId(user.id, user.email, user.role);
+    return this.generateTokenForId(
+      user.id,
+      user.email,
+      user.role,
+      user.sessionVersion,
+    );
   }
 
   /**
@@ -482,6 +507,7 @@ export class AuthService {
       user.id,
       user.email,
       user.role,
+      user.sessionVersion,
     );
     await this.auditService.record(
       user.id,
@@ -492,16 +518,20 @@ export class AuthService {
         email: user.email,
       },
     );
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
-    return { access_token, user: userWithoutPassword };
+    return { access_token, user: toSafeUser(user) };
   }
 
-  private generateTokenForId(id: string, email: string, role: Role): string {
+  private generateTokenForId(
+    id: string,
+    email: string,
+    role: Role,
+    sessionVersion: number,
+  ): string {
     const payload = {
       id,
       email,
       role,
+      sessionVersion,
     };
     return this.jwtService.sign(payload);
   }

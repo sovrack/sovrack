@@ -9,3 +9,7 @@ docker_tls_days: 3650
 # backend (mkdtemp hors du dépôt) ; si absent, aucun fetch n'est fait.
 # JAMAIS un chemin du projet : les PEM ne doivent pas pouvoir être commités.
 docker_tls_fetch_dir: ""
+# Required source CIDR for remote access to the root-equivalent Docker API.
+# Example: the Sovrack control-plane public address followed by /32.
+docker_tls_allowed_cidr: ""
+docker_tls_port: 2376

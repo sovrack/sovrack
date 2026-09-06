@@ -1,9 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  MaxLength,
-  MinLength,
   IsEmail,
   IsEnum,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -64,29 +63,49 @@ export class CreateStaffDto {
   @IsNotEmpty()
   fullName: string;
 
-  @ApiPropertyOptional({ enum: PlatformRole, default: PlatformRole.OPERATOR })
+  @ApiPropertyOptional({
+    enum: [PlatformRole.ADMIN, PlatformRole.OPERATOR],
+    default: PlatformRole.OPERATOR,
+    description: 'ROOT est réservé au bootstrap initial et n’est pas délégable',
+  })
   @IsOptional()
-  @IsEnum(PlatformRole)
-  role?: PlatformRole;
+  @IsIn([PlatformRole.ADMIN, PlatformRole.OPERATOR])
+  role?: Exclude<PlatformRole, 'ROOT'>;
 }
 
 export class AcceptStaffInvitationDto {
-  @ApiProperty({ description: "Jeton reçu dans l'email d'invitation" })
+  @ApiProperty({ example: 'admin@sovrack.tech' })
+  @NormalizeEmail()
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '12345678', minLength: 8, maxLength: 8 })
   @IsString()
-  @MinLength(32)
-  @MaxLength(256)
-  token: string;
+  @Matches(/^\d{8}$/, {
+    message: 'Le code doit contenir exactement 8 chiffres',
+  })
+  code: string;
 
   @ApiProperty(SOVRACK_PASSWORD_OPENAPI)
   @IsSovrackPassword()
   password: string;
 }
 
+export class RequestStaffActivationCodeDto {
+  @ApiProperty({ example: 'admin@sovrack.tech' })
+  @NormalizeEmail()
+  @IsEmail()
+  email: string;
+}
+
 export class UpdateStaffDto {
-  @ApiPropertyOptional({ enum: PlatformRole })
+  @ApiPropertyOptional({
+    enum: [PlatformRole.ADMIN, PlatformRole.OPERATOR],
+    description: 'Le rôle ROOT est immuable et réservé au bootstrap initial',
+  })
   @IsOptional()
-  @IsEnum(PlatformRole)
-  role?: PlatformRole;
+  @IsIn([PlatformRole.ADMIN, PlatformRole.OPERATOR])
+  role?: Exclude<PlatformRole, 'ROOT'>;
 
   @ApiPropertyOptional({
     description: 'Statut du compte staff (ACTIVE / DISABLED / BLOCKED)',
@@ -100,14 +119,6 @@ export class UpdateStaffDto {
   @IsString()
   @IsNotEmpty()
   fullName?: string;
-
-  @ApiPropertyOptional({
-    description: 'Nouveau mot de passe (optionnel)',
-    ...SOVRACK_PASSWORD_OPENAPI,
-  })
-  @IsOptional()
-  @IsSovrackPassword()
-  password?: string;
 }
 
 /** Mise à jour d'un utilisateur CLIENT depuis le back-office. */

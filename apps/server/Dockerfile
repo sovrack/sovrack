@@ -68,15 +68,23 @@ ENV ANSIBLE_COLLECTIONS_PATH=/usr/share/ansible/collections
 # variante "nixpacks-linux-amd64.tar.gz" (l'ancien pattern 404ait toujours).
 # musl = adapté à Alpine. L'archive contient le binaire `nixpacks` à sa racine.
 ARG NIXPACKS_VERSION=1.30.0
-RUN arch=$(uname -m) && \
+ARG NIXPACKS_SHA256_X86_64=94f79db0ac7758c08e330f56c8a8ef6987cd20e98c14c65afe0d91819efbd184
+ARG NIXPACKS_SHA256_AARCH64=0aa386759de5834ae3228521dbb1d7740f545b25f0179dcff9f2040e98696f2b
+RUN set -eu; \
+    arch=$(uname -m); \
     case "$arch" in \
-      x86_64) NIXPACKS_ARCH="x86_64" ;; \
-      aarch64) NIXPACKS_ARCH="aarch64" ;; \
+      x86_64) NIXPACKS_ARCH="x86_64"; NIXPACKS_SHA256="$NIXPACKS_SHA256_X86_64" ;; \
+      aarch64) NIXPACKS_ARCH="aarch64"; NIXPACKS_SHA256="$NIXPACKS_SHA256_AARCH64" ;; \
       *) echo "Unsupported arch: $arch" && exit 1 ;; \
-    esac && \
-    curl -fsSL "https://github.com/railwayapp/nixpacks/releases/download/v${NIXPACKS_VERSION}/nixpacks-v${NIXPACKS_VERSION}-${NIXPACKS_ARCH}-unknown-linux-musl.tar.gz" \
-      | tar -xz -C /usr/local/bin nixpacks && \
-    chmod +x /usr/local/bin/nixpacks && \
+    esac; \
+    archive=/tmp/nixpacks.tar.gz; \
+    curl --proto '=https' --tlsv1.2 -fsSL \
+      "https://github.com/railwayapp/nixpacks/releases/download/v${NIXPACKS_VERSION}/nixpacks-v${NIXPACKS_VERSION}-${NIXPACKS_ARCH}-unknown-linux-musl.tar.gz" \
+      -o "$archive"; \
+    echo "$NIXPACKS_SHA256  $archive" | sha256sum -c -; \
+    tar -xzf "$archive" -C /usr/local/bin nixpacks; \
+    rm "$archive"; \
+    chmod +x /usr/local/bin/nixpacks; \
     nixpacks --version
 
 # Application artifacts come after external tool installation so an ordinary

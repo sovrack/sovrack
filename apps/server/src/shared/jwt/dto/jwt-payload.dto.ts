@@ -7,6 +7,7 @@ export interface JwtPayloadDto {
   id: string;
   email: string;
   role: Role;
+  sessionVersion: number;
   sub?: string;
   iat?: number;
   exp?: number;

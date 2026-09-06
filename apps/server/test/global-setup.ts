@@ -8,6 +8,7 @@ export default async function globalSetup(): Promise<void> {
   process.env.JWT_EXPIRES_IN = '24h';
   process.env.STAFF_JWT_SECRET = 'c'.repeat(64);
   process.env.STAFF_JWT_EXPIRES_IN = '2h';
+  process.env.STAFF_OTP_SECRET = 'd'.repeat(64);
   process.env.CONFIG_SECRET = 'b'.repeat(64);
   process.env.FRONTEND_URL = 'http://localhost:3000';
   process.env.GITLAB_WEBHOOK_AUTO_CONFIGURE = 'false';

@@ -44,9 +44,8 @@ export class ServerSetupDto {
   @ApiProperty({ enum: ServerRunStatus })
   status!: ServerRunStatus;
 
-  // Il n'y a plus de "profil" à choisir (Setup Server = un seul jeu fixe,
-  // décidé côté backend) — ce champ vaut toujours 'AUTO', conservé pour
-  // l'historique/l'affichage (ServerRun.profile est un simple String).
+  // Profil explicite retenu pour l'historique et l'affichage. The database
+  // keeps it as a string so historical runs remain readable.
   @ApiProperty()
   profile!: string;
 

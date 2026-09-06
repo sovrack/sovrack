@@ -8,6 +8,7 @@ export type StaffAuditAction =
   | 'staff.create'
   | 'staff.invite'
   | 'staff.invitation.resend'
+  | 'staff.invitation.delivery_failed'
   | 'staff.invitation.accept'
   | 'staff.password.reset.requested'
   | 'staff.password.reset.delivery_failed'

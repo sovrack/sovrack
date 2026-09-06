@@ -12,6 +12,7 @@ import { PasswordHasher } from '../iam/security/password-hasher.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { StaffOperationsService } from './staff-operations.service';
 import { StaffPasswordRecoveryService } from './staff-password-recovery.service';
+import { StaffInvitationService } from './staff-invitation.service';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ms = require('ms') as (value: string) => number;
 
@@ -44,6 +45,7 @@ const ms = require('ms') as (value: string) => number;
     StaffService,
     StaffOperationsService,
     StaffPasswordRecoveryService,
+    StaffInvitationService,
     StaffAuditService,
     StaffJwtStrategy,
     StaffJwtAuthGuard,

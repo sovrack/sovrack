@@ -95,6 +95,15 @@
   args: { creates: "{{ docker_tls_dir }}/client-cert.pem" }
 
 # ── Config dockerd ─────────────────────────────────────────────────────────
+- name: "docker_tls | Require an explicit control-plane source CIDR"
+  ansible.builtin.assert:
+    that:
+      - docker_tls_allowed_cidr | length > 0
+      - docker_tls_allowed_cidr is match('^[0-9A-Fa-f:.]+/[0-9]{1,3}$')
+    fail_msg: >-
+      docker_tls_allowed_cidr is required because the Docker API is
+      root-equivalent and must never be reachable from the whole Internet.
+
 - name: "docker_tls | Read existing daemon.json (if any)"
   ansible.builtin.slurp:
     src: /etc/docker/daemon.json
@@ -109,7 +118,7 @@
       {{ ((existing_daemon.content | b64decode | from_json)
             if (existing_daemon.content is defined) else {})
          | combine({
-             'hosts': ['unix:///var/run/docker.sock', 'tcp://0.0.0.0:2376'],
+             'hosts': ['unix:///var/run/docker.sock', 'tcp://0.0.0.0:' ~ (docker_tls_port | string)],
              'tls': true,
              'tlsverify': true,
              'tlscacert': docker_tls_dir ~ '/ca.pem',
@@ -139,11 +148,12 @@
 - name: "docker_tls | systemd daemon-reload"
   ansible.builtin.systemd: { daemon_reload: true }
 
-- name: "docker_tls | Open firewall port 2376 (ufw, if active)"
-  ansible.builtin.command: ufw allow 2376/tcp
-  register: docker_tls_ufw_res
-  changed_when: "'Rule added' in docker_tls_ufw_res.stdout"
-  failed_when: false
+- name: "docker_tls | Allow Docker API only from the control-plane CIDR"
+  community.general.ufw:
+    rule: allow
+    port: "{{ docker_tls_port | string }}"
+    proto: tcp
+    from_ip: "{{ docker_tls_allowed_cidr }}"
 
 - name: "docker_tls | Apply docker restart now (flush handlers)"
   ansible.builtin.meta: flush_handlers
@@ -182,4 +192,4 @@
 
 - name: "docker_tls | Summary"
   ansible.builtin.debug:
-    msg: "Docker mTLS ready on tcp://{{ docker_tls_san_ip }}:2376 (client certs fetched: {{ (docker_tls_fetch_dir | length > 0) | ternary('yes', 'no') }})"
+    msg: "Docker mTLS ready on tcp://{{ docker_tls_san_ip }}:{{ docker_tls_port }} for {{ docker_tls_allowed_cidr }} (client certs fetched: {{ (docker_tls_fetch_dir | length > 0) | ternary('yes', 'no') }})"

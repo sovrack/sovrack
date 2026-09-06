@@ -94,6 +94,43 @@ describe('StaffPasswordRecoveryService', () => {
     expect(notifications.sendTransactionalEmail).not.toHaveBeenCalled();
   });
 
+  it('ne révèle pas une panne SMTP et rend le code inutilisable', async () => {
+    prisma.staff.findUnique.mockResolvedValue(staff);
+    prisma.staffPasswordReset.findFirst.mockResolvedValue(null);
+    prisma.staffPasswordReset.updateMany.mockResolvedValue({ count: 1 });
+    prisma.staffPasswordReset.create.mockResolvedValue({
+      id: 'reset-smtp-failed',
+      staffId: staff.id,
+    });
+    notifications.sendTransactionalEmail.mockRejectedValueOnce(
+      new Error('smtp unavailable'),
+    );
+
+    const result = await service.forgotPassword({ email: staff.email }, '::1');
+
+    expect(result.message).toContain('Si ce compte staff existe');
+    expect(prisma.staffPasswordReset.updateMany).toHaveBeenCalledWith({
+      where: { id: 'reset-smtp-failed', usedAt: null },
+      data: { usedAt: expect.any(Date) },
+    });
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'staff.password.reset.delivery_failed',
+      }),
+    );
+  });
+
+  it('applique un délai entre deux demandes de code', async () => {
+    prisma.staff.findUnique.mockResolvedValue(staff);
+    prisma.staffPasswordReset.findFirst.mockResolvedValue({ id: 'recent' });
+
+    const result = await service.forgotPassword({ email: staff.email }, '::1');
+
+    expect(result.message).toContain('Si ce compte staff existe');
+    expect(prisma.staffPasswordReset.create).not.toHaveBeenCalled();
+    expect(notifications.sendTransactionalEmail).not.toHaveBeenCalled();
+  });
+
   it('réinitialise le mot de passe et révoque toutes les sessions', async () => {
     prisma.staff.findUnique.mockResolvedValue(staff);
     const code = '12345678';

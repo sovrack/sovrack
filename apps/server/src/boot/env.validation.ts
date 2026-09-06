@@ -20,6 +20,9 @@ const envSchema = z
     // JWT_SECRET a été supprimé (si JWT_SECRET fuitait, le staff serait compromis).
     STAFF_JWT_SECRET: z.string().min(32),
     STAFF_JWT_EXPIRES_IN: z.string().default('12h'),
+    // Clé HMAC dédiée aux codes à usage unique (activation/récupération).
+    // La séparer du JWT permet de renouveler l'une sans compromettre l'autre.
+    STAFF_OTP_SECRET: z.string().min(32),
 
     // ── Auth cookie ──────────────────────────────────────────────────────────
     AUTH_COOKIE_NAME: z.string().optional(),
@@ -67,6 +70,14 @@ const envSchema = z
     SERVER_AUTO_CONFIGURE_SUDOERS: z.string().optional(),
     SERVER_LEGACY_API_ENABLED: z.string().optional(),
     SERVER_LEGACY_API_SUNSET_DATE: z.string().optional(),
+    // Réseau source autorisé à joindre l'API Docker mTLS des serveurs gérés.
+    // Obligatoire au moment d'exécuter le rôle docker_tls.
+    DOCKER_TLS_ALLOWED_CIDR: z
+      .string()
+      .regex(
+        /^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)\/(3[0-2]|[12]?\d)$/,
+      )
+      .optional(),
 
     // ── Deployment health-check ──────────────────────────────────────────────
     DEPLOY_HEALTHCHECK_ENABLED: z.string().optional(),
@@ -132,6 +143,23 @@ const envSchema = z
         message:
           'STAFF_JWT_SECRET doit être un secret INDÉPENDANT de JWT_SECRET (génère-le avec `openssl rand -hex 48`).',
       });
+    }
+
+    for (const [otherName, otherSecret] of [
+      ['JWT_SECRET', env.JWT_SECRET],
+      ['STAFF_JWT_SECRET', env.STAFF_JWT_SECRET],
+    ] as const) {
+      if (
+        env.STAFF_OTP_SECRET === otherSecret ||
+        env.STAFF_OTP_SECRET.startsWith(otherSecret) ||
+        otherSecret.startsWith(env.STAFF_OTP_SECRET)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['STAFF_OTP_SECRET'],
+          message: `STAFF_OTP_SECRET doit être indépendant de ${otherName}.`,
+        });
+      }
     }
 
     if (

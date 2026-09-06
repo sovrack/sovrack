@@ -280,6 +280,11 @@ model User {
   // Réinitialisation de mot de passe oublié (code à 6 chiffres par email).
   passwordResetCode          String?
   passwordResetExpiresAt     DateTime?
+  passwordResetRequestedAt   DateTime?
+  passwordResetAttempts      Int                   @default(0)
+  // Every customer JWT carries this value. Incrementing it revokes all tokens
+  // issued before a password change, reset, explicit logout or staff block.
+  sessionVersion             Int                   @default(0)
   projects                   ProjectMember[]
   teams                      TeamMember[]
   deployments                Deployment[]
@@ -1658,14 +1663,18 @@ model Staff {
 }
 
 model StaffInvitation {
-  id        String    @id @default(uuid())
-  staffId   String    @unique
-  staff     Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  staffId     String    @unique
+  staff       Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  // HMAC du code d'activation : le code en clair n'est jamais persisté.
+  tokenHash   String    @unique
+  attempts    Int       @default(0)
+  requestedIp String?
+  deliveredAt DateTime?
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([expiresAt])
 }

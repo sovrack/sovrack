@@ -49,7 +49,13 @@ export class DeploymentPrelaunchService {
       Image: imageRef,
       name: `pre-${containerName}`,
       Env: envVars,
-      HostConfig: { AutoRemove: true },
+      HostConfig: {
+        AutoRemove: true,
+        SecurityOpt: ['no-new-privileges:true'],
+        CapDrop: ['ALL'],
+        PidsLimit: 128,
+        Init: true,
+      },
       Cmd: ['sh', '-c', preCmd],
     });
     await this.docker.startContainer(serverId, preContainer.id);

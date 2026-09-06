@@ -49,10 +49,19 @@
       - prometheus
       - --restart
       - unless-stopped
+      - --read-only
+      - --security-opt
+      - no-new-privileges:true
+      - --cap-drop
+      - ALL
+      - --pids-limit
+      - "256"
+      - --tmpfs
+      - /tmp:rw,noexec,nosuid,size=64m
       - --network
       - "{{ monitoring_docker_network }}"
       - --publish
-      - "{{ prometheus_port }}:9090"
+      - "{{ prometheus_bind_address }}:{{ prometheus_port }}:9090"
       - --volume
       - "{{ prometheus_config_dir }}/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
       - --volume

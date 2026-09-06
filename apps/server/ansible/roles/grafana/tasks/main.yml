@@ -3,6 +3,16 @@
   ansible.builtin.command: docker --version
   changed_when: false
 
+- name: "grafana | Refuse the default or a weak administrator password"
+  ansible.builtin.assert:
+    that:
+      - grafana_admin_password | length >= 16
+      - grafana_admin_password != 'admin'
+    fail_msg: >-
+      grafana_admin_password must be supplied through a secret mechanism and
+      contain at least 16 characters.
+  no_log: true
+
 - name: "grafana | Ensure the monitoring Docker network exists"
   ansible.builtin.command: docker network create {{ monitoring_docker_network }}
   register: grafana_network
@@ -56,14 +66,23 @@
       - grafana
       - --restart
       - unless-stopped
+      - --read-only
+      - --security-opt
+      - no-new-privileges:true
+      - --cap-drop
+      - ALL
+      - --pids-limit
+      - "256"
+      - --tmpfs
+      - /tmp:rw,noexec,nosuid,size=64m
       - --network
       - "{{ monitoring_docker_network }}"
       - --publish
-      - "{{ grafana_port }}:3000"
+      - "{{ grafana_bind_address }}:{{ grafana_port }}:3000"
       - --volume
       - "{{ grafana_data_dir }}:/var/lib/grafana"
       - --volume
-      - "{{ grafana_provisioning_dir }}:/etc/grafana/provisioning"
+      - "{{ grafana_provisioning_dir }}:/etc/grafana/provisioning:ro"
       - --volume
       - "{{ grafana_dashboards_dir }}:/var/lib/grafana/dashboards"
       - --env
@@ -73,3 +92,4 @@
       - "{{ grafana_image }}"
   register: grafana_run
   changed_when: grafana_run.rc == 0
+  no_log: true

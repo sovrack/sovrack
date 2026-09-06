@@ -130,6 +130,7 @@ export class EmailVerificationService {
     id: string;
     email: string;
     role: Role;
+    sessionVersion: number;
   }> {
     const user = await this.prisma.user.findUnique({
       where: { email: params.email },
@@ -196,6 +197,7 @@ export class EmailVerificationService {
       id: user.id,
       email: user.email,
       role: user.role,
+      sessionVersion: user.sessionVersion,
     };
   }
 

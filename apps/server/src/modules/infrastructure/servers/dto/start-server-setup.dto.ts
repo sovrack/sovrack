@@ -1,15 +1,26 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+
+export enum ServerSetupProfile {
+  RUNTIME_MINIMAL = 'runtime-minimal',
+  OBSERVABILITY_AGENT = 'observability-agent',
+  BUILD_RUNNER = 'build-runner',
+  FULL_DEV = 'full-dev',
+}
 
 /**
- * "Setup Server" installe un jeu FIXE et COMPLET, décidé côté backend
- * (server-setup.ts) — sans profil, sans option, sans case à cocher : tout ce
- * qui est nécessaire à un bon déploiement s'installe systématiquement (y
- * compris GitLab Runner et la stack Grafana/Prometheus/Loki). Seul le mode
- * d'exécuteur GitLab Runner reste paramétrable — pas SI il s'installe, juste
- * COMMENT.
+ * The server profile is explicit. Production defaults to the smallest runtime
+ * needed by Sovrack; build and dashboard tooling are opt-in.
  */
 export class StartServerSetupDto {
+  @ApiPropertyOptional({
+    enum: ServerSetupProfile,
+    default: ServerSetupProfile.RUNTIME_MINIMAL,
+  })
+  @IsOptional()
+  @IsEnum(ServerSetupProfile)
+  profile?: ServerSetupProfile;
+
   @ApiPropertyOptional({
     example: 'docker',
     description:

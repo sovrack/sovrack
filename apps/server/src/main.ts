@@ -65,6 +65,9 @@ async function bootstrap() {
     }),
   );
   const logger = app.get(LoggerService);
+  // Route aussi les Logger Nest natifs vers Winston : LOG_LEVEL est ainsi
+  // respecté uniformément et les logs de production restent JSON structurés.
+  app.useLogger(logger);
   const prisma = app.get(PrismaService);
   const allowedOrigins = new Set(resolveAllowedOrigins());
 

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Server, ServerLogLevel } from '@prisma/client';
 import { mkdtemp, readFile, rm } from 'fs/promises';
 import { tmpdir } from 'os';
@@ -69,6 +70,7 @@ export class ServerSetupAnsibleService {
     private readonly hostKeys: ServerHostKeyService,
     private readonly ssh: ServersConnectionService,
     private readonly ansibleRunner: AnsibleRunnerService,
+    private readonly config: ConfigService,
   ) {}
 
   async runSetup(
@@ -102,6 +104,14 @@ export class ServerSetupAnsibleService {
     // dans le finally, même en cas d'échec du run. Le contenu ne transite
     // jamais par stdout → jamais dans les logs de préparation.
     const wantsDockerTls = input.roles.includes('docker_tls');
+    const dockerTlsAllowedCidr = this.config
+      .get<string>('DOCKER_TLS_ALLOWED_CIDR')
+      ?.trim();
+    if (wantsDockerTls && !dockerTlsAllowedCidr) {
+      throw new BadRequestException(
+        'DOCKER_TLS_ALLOWED_CIDR doit contenir le réseau du control-plane avant d’activer docker_tls.',
+      );
+    }
     const tlsFetchDir = wantsDockerTls
       ? await mkdtemp(join(tmpdir(), 'docker-tls-'))
       : null;
@@ -125,6 +135,7 @@ export class ServerSetupAnsibleService {
                   // SAN du cert serveur = l'adresse par laquelle la plateforme
                   // joint réellement ce serveur (Server.host).
                   docker_tls_san_ip: server.host,
+                  docker_tls_allowed_cidr: dockerTlsAllowedCidr,
                 }
               : {}),
           },

@@ -34,6 +34,7 @@ import { StaffPasswordRecoveryService } from './staff-password-recovery.service'
 import { StaffAuditService } from './staff-audit.service';
 import {
   AcceptStaffInvitationDto,
+  RequestStaffActivationCodeDto,
   CreateStaffDto,
   StaffForgotPasswordDto,
   StaffLoginDto,
@@ -120,9 +121,26 @@ export class StaffController {
   @StaffPublic()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
-  @ApiOperation({ summary: 'Accepter une invitation staff à usage unique' })
+  @ApiOperation({
+    summary: 'Activer un compte staff avec le code reçu par email',
+  })
   acceptInvitation(@Body() dto: AcceptStaffInvitationDto, @Req() req: Request) {
     return this.staffService.acceptStaffInvitation(dto, clientIp(req));
+  }
+
+  @Post('request-activation-code')
+  @StaffPublic()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 600_000, limit: 3 } })
+  @ApiOperation({ summary: "Demander un nouveau code d'activation Staff" })
+  requestActivationCode(
+    @Body() dto: RequestStaffActivationCodeDto,
+    @Req() req: Request,
+  ) {
+    return this.staffService.requestStaffActivationCode(
+      dto.email,
+      clientIp(req),
+    );
   }
 
   @Post('logout')
@@ -192,7 +210,6 @@ export class StaffController {
         role: body.role,
         status: body.status,
         fullName: body.fullName,
-        password: body.password,
       },
       staff.id,
       clientIp(req),

@@ -18,6 +18,7 @@ import { PasswordHasher } from '../security/password-hasher.service';
 import { ChangeMyPasswordDto } from './dto/change-my-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { type SafeUser, toSafeUser } from './user-safe-view';
 
 type UpdateActor = {
   id: string;
@@ -59,7 +60,7 @@ export class UsersService {
   async create(
     dto: CreateUserDto,
     actor?: { id: string; role: Role },
-  ): Promise<Omit<User, 'password'>> {
+  ): Promise<SafeUser> {
     const existingUser = await this.findByEmail(dto.email);
     if (existingUser) {
       throw new ConflictException('Cet email est déjà utilisé');
@@ -107,9 +108,7 @@ export class UsersService {
   async findAll(
     pagination?: PaginationDto,
     actor?: { id: string; role: Role },
-  ): Promise<
-    Array<Omit<User, 'password'>> | PaginatedResult<Omit<User, 'password'>>
-  > {
+  ): Promise<SafeUser[] | PaginatedResult<SafeUser>> {
     const page = pagination?.page;
     const limit = pagination?.limit;
     const where = await this.orgScopeWhere(actor);
@@ -171,7 +170,7 @@ export class UsersService {
   async findByIdOrFail(
     id: string,
     actor?: { id: string; role: Role },
-  ): Promise<Omit<User, 'password'>> {
+  ): Promise<SafeUser> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
@@ -189,7 +188,7 @@ export class UsersService {
     id: string,
     dto: UpdateUserDto,
     actor?: UpdateActor,
-  ): Promise<Omit<User, 'password'>> {
+  ): Promise<SafeUser> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
@@ -284,6 +283,7 @@ export class UsersService {
       );
     }
     if (wantsPasswordChange) {
+      data.sessionVersion = { increment: 1 };
       this.logger.log(`User ${id} changed their password via profile update`);
     }
 
@@ -294,7 +294,7 @@ export class UsersService {
   async changeMyPassword(
     userId: string,
     dto: ChangeMyPasswordDto,
-  ): Promise<Omit<User, 'password'>> {
+  ): Promise<SafeUser> {
     const user = await this.findById(userId);
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
@@ -324,7 +324,10 @@ export class UsersService {
     const hashedPassword = await this.passwordHasher.hash(dto.newPassword);
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
-      data: { password: hashedPassword },
+      data: {
+        password: hashedPassword,
+        sessionVersion: { increment: 1 },
+      },
     });
     this.logger.log(`User ${userId} changed their password`);
 
@@ -338,7 +341,7 @@ export class UsersService {
   async delete(
     id: string,
     actor?: { id: string; role: Role },
-  ): Promise<Omit<User, 'password'>> {
+  ): Promise<SafeUser> {
     await this.ensureUserExists(id);
     if (actor) {
       await this.assertInSameOrg(id, actor);
@@ -356,7 +359,7 @@ export class UsersService {
   async toggleActive(
     id: string,
     actor?: { id: string; role: Role },
-  ): Promise<Omit<User, 'password'>> {
+  ): Promise<SafeUser> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('Utilisateur non trouvé');
@@ -418,9 +421,7 @@ export class UsersService {
   /**
    * Supprime le mot de passe d'un objet utilisateur.
    */
-  private removePassword(user: User): Omit<User, 'password'> {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+  private removePassword(user: User): SafeUser {
+    return toSafeUser(user);
   }
 }

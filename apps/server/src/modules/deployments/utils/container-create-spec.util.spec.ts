@@ -111,4 +111,16 @@ describe('buildContainerCreateSpec', () => {
     const spec = buildContainerCreateSpec(base({ binds: ['data:/var/lib'] }));
     expect(spec.HostConfig?.Binds).toEqual(['data:/var/lib']);
   });
+
+  it('applies the non-privileged workload security baseline', () => {
+    const spec = buildContainerCreateSpec(base());
+    expect(spec.HostConfig).toEqual(
+      expect.objectContaining({
+        SecurityOpt: ['no-new-privileges:true'],
+        CapDrop: ['ALL'],
+        PidsLimit: 256,
+        Init: true,
+      }),
+    );
+  });
 });

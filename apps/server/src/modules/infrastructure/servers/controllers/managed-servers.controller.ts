@@ -21,6 +21,8 @@ import { GetWorkspaceId } from '../../../../shared/decorators/get-workspace-id.d
 import { ServerWorkspaceGuard } from '../../../iam/authorization/server-workspace.guard';
 import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { ManagedServersService } from '../services/managed-servers.service';
+import { RequireServerAction } from '../../../iam/authorization/require-server-action.decorator';
+import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
 
 class CreateManagedServerDto {
   @IsString()
@@ -54,6 +56,7 @@ export class ManagedServersController {
   constructor(private readonly managed: ManagedServersService) {}
 
   @Post()
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({
     summary: 'Provisionner un serveur managé pour la team',
   })
@@ -96,6 +99,7 @@ export class ManagedServersController {
   }
 
   @Patch(':id/host')
+  @RequireServerAction(WorkspaceActions.MANAGE_SERVER)
   @ApiOperation({
     summary:
       "Renseigner l'hôte réel (IP/hostname) du serveur managé après provisionnement — déclenche la vérification SSH puis la préparation",
