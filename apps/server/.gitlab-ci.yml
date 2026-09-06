@@ -67,11 +67,11 @@ arch:check:
 
 test:unit:
   stage: test
+  # GitLab déduit déjà les alias `postgres` et `redis` du nom des images.
+  # Les répéter explicitement produit un avertissement avec Runner 19.x.
   services:
     - name: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
-      alias: postgres
     - name: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
-      alias: redis
   variables:
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
@@ -97,9 +97,7 @@ test:e2e:
   timeout: 15 minutes
   services:
     - name: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
-      alias: postgres
     - name: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
-      alias: redis
   variables:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/deploy_automation_test
     POSTGRES_USER: postgres
@@ -120,9 +118,9 @@ test:migrations:
     - sovrack-docker-tests
   services:
     # Seul le service DinD rootless reçoit le privilège du runner dédié ; le
-    # conteneur du job Node reste non privilégié.
+    # conteneur du job Node reste non privilégié. L'alias `docker` est déduit
+    # automatiquement du nom de l'image.
     - name: docker:27-dind-rootless@sha256:9d7346a1c76e658d818714d48d6154436bcf681ea3251985ccbe55f7788d9e20
-      alias: docker
   variables:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ''

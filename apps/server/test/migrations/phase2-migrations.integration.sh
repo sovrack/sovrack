@@ -4,7 +4,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-CONTAINER_NAME="sovrack-phase2-migrations-test"
+POSTGRES_IMAGE="postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685"
+job_suffix="${CI_JOB_ID:-$$}"
+case "$job_suffix" in
+  *[!0-9]*) echo "Identifiant de job Docker invalide : $job_suffix"; exit 1 ;;
+esac
+CONTAINER_NAME="sovrack-phase2-migrations-test-$job_suffix"
 if docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
   echo "Refus : le conteneur Docker de test existe déjà."
   exit 1
@@ -17,6 +22,13 @@ case "$TEMP_DIR" in
 esac
 
 cleanup() {
+  status=$?
+  if [ "$status" -ne 0 ] && docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
+    echo "Diagnostic PostgreSQL après échec du test de migrations :" >&2
+    docker inspect "$CONTAINER_NAME" \
+      --format 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}' >&2 || true
+    docker logs --tail 80 "$CONTAINER_NAME" >&2 || true
+  fi
   docker stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
   docker rm "$CONTAINER_NAME" >/dev/null 2>&1 || true
   find "$TEMP_DIR" -mindepth 1 -delete 2>/dev/null || true
@@ -36,12 +48,13 @@ case "${DOCKER_HOST:-}" in
     ;;
 esac
 
+echo "Démarrage de PostgreSQL de test depuis l'image immuable $POSTGRES_IMAGE."
 docker run -d --name "$CONTAINER_NAME" \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_DB=phase2_fresh \
   -p "$publish_address" \
-  postgres:16-alpine >/dev/null
+  "$POSTGRES_IMAGE" >/dev/null
 
 for _attempt in $(seq 1 30); do
   if docker exec "$CONTAINER_NAME" pg_isready -U postgres -d phase2_fresh >/dev/null 2>&1; then
@@ -49,7 +62,10 @@ for _attempt in $(seq 1 30); do
   fi
   sleep 1
 done
-docker exec "$CONTAINER_NAME" pg_isready -U postgres -d phase2_fresh >/dev/null
+docker exec "$CONTAINER_NAME" pg_isready -U postgres -d phase2_fresh >/dev/null || {
+  echo "PostgreSQL n'est pas devenu prêt dans le délai imparti." >&2
+  exit 1
+}
 
 port_binding="$(docker port "$CONTAINER_NAME" 5432/tcp)"
 postgres_port="${port_binding##*:}"
